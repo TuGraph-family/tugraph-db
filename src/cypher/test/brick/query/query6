@@ -1,0 +1,1 @@
+MATCH (t:vertex {uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(x),(vav)<-[:bf$feeds*..]-(y),(vav)<-[:bf$isPointOf*..]-(z),(vav)<-[:bf$isPartOf*..]-(a) RETURN DISTINCT vav.uri,x.uri,y.uri,z.uri,a.uri

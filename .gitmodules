@@ -1,0 +1,39 @@
+[submodule "deps/tiny-process-library"]
+	path = deps/tiny-process-library
+	url = git@github.com:TuGraph-db/tiny-process-library.git
+[submodule "deps/jwt-cpp"]
+	path = deps/jwt-cpp
+	url = git@github.com:TuGraph-db/jwt-cpp.git
+[submodule "deps/prometheus-cpp-client"]
+	path = deps/prometheus-cpp-client
+	url = git@github.com:TuGraph-db/prometheus-cpp-client.git
+[submodule "deps/googletest"]
+	path = deps/googletest
+	url = git@github.com:TuGraph-db/googletest.git
+[submodule "deps/DataX"]
+	path = deps/DataX
+	url = git@github.com:TuGraph-db/DataX.git
+[submodule "deps/cpprestsdk"]
+	path = deps/cpprestsdk
+	url = git@github.com:TuGraph-db/cpprestsdk.git
+[submodule "deps/brpc-java"]
+	path = deps/brpc-java
+	url = git@github.com:TuGraph-db/brpc-java.git
+[submodule "deps/brpc"]
+	path = deps/brpc
+	url = git@github.com:TuGraph-db/brpc.git
+[submodule "deps/braft"]
+	path = deps/braft
+	url = git@github.com:TuGraph-db/braft.git
+[submodule "deps/antlr4"]
+	path = deps/antlr4
+	url = git@github.com:TuGraph-db/antlr4.git
+[submodule "deps/fma-common"]
+	path = deps/fma-common
+	url = git@github.com:TuGraph-db/fma-common.git
+[submodule "deps/tugraph-web"]
+	path = deps/tugraph-web
+	url = git@github.com:TuGraph-db/tugraph-web.git
+[submodule "deps/pybind11"]
+	path = deps/pybind11
+	url = git@github.com:TuGraph-db/pybind11.git

@@ -1,0 +1,1 @@
+rm /usr/local/bin/lgraph_cypher -rf

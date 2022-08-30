@@ -1,0 +1,82 @@
+﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+
+/*
+ * Created on 6/23/21
+ */
+#pragma once
+
+#include "opt_pass.h"
+
+namespace cypher {
+/*
+ * preproject topN:
+ * MATCH (n) RETURN n.a, n.b, n.c ORDER BY n.a desc LIMIT k;
+ * Plan before optimization:
+ * Produce Results
+ *     Limit [20]
+ *         Sort [{2}: 1:0, 3:1]
+ *             Project [a,b,c,d]
+ *
+ * Plan after optimization:
+ * Produce Results
+ *          TopN [{1:0, 3:1},{20}]
+ *
+ */
+class LazyProjectTopN : public OptPass {
+    static bool _IdentifyElementAndTopN(OpBase *root, Limit *&op_limit, Sort *&op_sort,
+                                        Project *&op_project) {
+        auto op = root;
+        while (op->type != OpType::LIMIT) {
+            if (op->children.size() != 1) return false;
+            op = op->children[0];
+        }
+        op_limit = dynamic_cast<Limit *>(op);
+        op = op->children[0];
+        if (op->type != OpType::SORT || op->children.size() != 1) return false;
+        op_sort = dynamic_cast<Sort *>(op);
+        op = op->children[0];
+        if (op->type != OpType::PROJECT || op->children.size() != 1) return false;
+        op_project = dynamic_cast<Project *>(op);
+        if (op_project->return_elements_.size() == op_sort->sort_items_.size()) return false;
+        return true;
+    }
+
+    void _AdjustProjectOrder(ExecutionPlan &plan) {
+        Limit *op_limit = nullptr;
+        Sort *op_sort = nullptr;
+        Project *op_project = nullptr;
+        if (!_IdentifyElementAndTopN(plan.Root(), op_limit, op_sort, op_project)) {
+            return;
+        }
+        // add topN
+        auto op_topn =
+            new TopN(op_sort->sort_items_, op_limit->limit_, op_project->return_elements_);
+        auto op_post = op_limit->parent;
+        op_topn->parent = op_post;
+        auto op_pre = op_project->children[0];
+        op_sort->RemoveChild(op_project);
+        op_limit->RemoveChild(op_sort);
+        op_post->RemoveChild(op_limit);
+        delete op_project, op_sort, op_limit;
+        op_project = nullptr;
+        op_sort = nullptr;
+        op_limit = nullptr;
+        op_post->AddChild(op_topn);
+        op_topn->AddChild(op_pre);
+        FMA_DBG() << "the stream:";
+        std::string s;
+        OpBase::DumpStream(op_post, 0, true, s);
+        FMA_DBG() << s;
+    }
+
+ public:
+    LazyProjectTopN() : OptPass(typeid(LazyProjectTopN).name()) {}
+
+    bool Gate() override { return true; }
+
+    int Execute(ExecutionPlan *plan) override {
+        _AdjustProjectOrder(*plan);
+        return 0;
+    }
+};
+}  // namespace cypher

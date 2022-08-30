@@ -1,0 +1,748 @@
+syntax="proto2";
+package lgraph;
+option cc_generic_services = true;
+
+message Snapshot {
+    required int64 value = 1;
+};
+
+enum ProtoFieldType {
+    NUL = 0;
+    BOOL = 1;
+    INT8 = 2;
+    INT16 = 3;
+    INT32 = 4;
+    INT64 = 5;
+    FLOAT = 6;
+    DOUBLE = 7;
+    DATE = 8;
+    DATETIME = 9;
+    STRING = 10;
+    BLOB = 11;
+};
+
+enum ProtoAccessLevel {
+// DO NOT change the value of the enums, we are relying on them
+    NONE = 0;
+    READ_ONLY = 1;
+    READ_WRITE = 2;
+    FULL = 3;
+};
+
+message ProtoFieldData {
+    oneof Data {
+        bool boolean = 1;
+        int32 int8_ = 2;
+        int32 int16_ = 3;
+        int32 int32_ = 4;
+        int64 int64_ = 5;
+        float sp = 6;
+        double dp = 7;
+        int32 date = 8;
+        int64 datetime = 9;
+        string str = 10;
+        bytes blob = 11;
+    }
+};
+
+message ListOfProtoFieldData {
+    repeated ProtoFieldData values = 1;
+};
+
+message ProtoFieldSpec {
+    required string name = 1;
+    required ProtoFieldType type = 2;
+    required bool nullable = 3;
+};
+
+message ProtoIndexSpec {
+    required string label = 1;
+    required string field = 2;
+    required bool unique = 3;
+};
+
+message SrcDstFieldValues {
+    required int64 src = 1;
+    required int64 dst = 2;
+    required ListOfProtoFieldData values = 3;
+};
+
+message Property {
+    required string key = 1;
+    required ProtoFieldData value = 2;
+};
+
+//--------------------------------
+// graph apis
+//--------------------------------
+// label
+
+message EdgeConstraint {
+    required string src_label = 1;
+    required string dst_label = 2;
+}
+
+message AddLabelRequest {
+    required bool is_vertex = 1;
+    required string label = 2;
+    optional string primary = 3;
+    repeated EdgeConstraint edge_constraints = 4;
+    repeated ProtoFieldSpec fields = 5;
+};
+
+message AddLabelResponse {};
+
+message ListLabelsRequest {
+    required bool is_vertex = 1;
+};
+message ListLabelsResponse {
+    repeated string labels = 1;
+};
+
+message GetLabelRequest {
+    required bool is_vertex = 1;
+};
+message GetLabelResponse {
+    repeated ProtoFieldSpec fields = 1;
+};
+
+// index
+message AddIndexRequest {
+    required string label = 1;
+    required string field = 2;
+    required bool is_unique = 3;
+};
+
+message AddIndexResponse {};
+
+message DelIndexRequest {
+    required string label = 1;
+    required string field = 2;
+};
+
+message DelIndexResponse {};
+
+// vertex
+message AddVertexesRequest {
+    required string label = 1;
+    repeated string fields = 2;
+    repeated ListOfProtoFieldData vertexes = 3; // list of vector<FieldData>, each for one vertex
+};
+message AddVertexesResponse {
+    repeated int64 vid = 1;     // returns list of vids of each vertex if successful, otherwise -1
+};
+
+message DelVertexRequest {
+    required int64 vid = 1;
+};
+
+message DelVertexResponse {
+    required int64 n_ins = 1;
+    required int64 n_outs = 2;
+};
+
+message ModVertexRequest {
+    required int64 vid = 1;
+    optional string label = 2;	// if label not set, then
+    repeated string fields = 3;
+    required ListOfProtoFieldData values = 4;
+};
+
+message  ModVertexResponse {};
+
+// edge
+message AddEdgesRequest {
+    required string label = 1;
+    repeated string fields = 2;
+    repeated SrcDstFieldValues edges = 3;
+};
+message AddEdgesResponse {
+    required int64 lid = 1;
+    required int64 tid = 2;
+    repeated int64 eids = 3;
+};
+
+message DelEdgeRequest {
+    required int64 src = 1;
+    required int64 tid = 2;
+    required int64 lid = 3;
+    required int64 dst = 4;
+    required int64 eid = 5;
+};
+
+message DelEdgeResponse {};
+
+message ModEdgeRequest {
+    required int64 src = 1;
+    required int64 tid = 2;
+    required int64 lid = 3;
+    required int64 dst = 4;
+    required int64 eid = 5;
+    repeated string fields = 6;
+    required ListOfProtoFieldData values = 7;
+};
+message ModEdgeResponse {};
+
+// flush
+message FlushRequest {};
+message FlushResponse {};
+
+message SubGraphRequest {
+    repeated int64 vids = 1;
+};
+
+message VertexData {
+    required int64 vid = 1;
+    required string label = 2;
+    repeated Property properties = 3;
+};
+
+message EdgeData {
+    required int64 src = 1;
+    required int64 tid = 2;
+    required int64 lid = 3;
+    required int64 dst = 4;
+    required int64 eid = 5;
+    required string label = 6;
+    repeated Property properties = 7;
+};
+
+message SubGraphResponse {
+    repeated VertexData nodes = 1;
+    repeated EdgeData edges = 2;
+};
+
+// native requests and responses
+message GraphApiRequest {
+    oneof Req {
+        AddLabelRequest add_label_request = 1;
+        AddIndexRequest add_index_request = 2;
+        AddVertexesRequest add_vertexes_request = 3;
+        AddEdgesRequest add_edges_request = 4;
+        DelIndexRequest del_index_request = 5;
+        DelVertexRequest del_vertex_request = 6;
+        DelEdgeRequest del_edge_request = 7;
+        ModVertexRequest mod_vertex_request = 8;
+        ModEdgeRequest mod_edge_request = 9;
+        SubGraphRequest sub_graph_request = 10;
+        FlushRequest flush_request = 11;
+    };
+    required string graph = 12;
+};
+message GraphApiResponse {
+    oneof Resp {
+        AddLabelResponse add_label_response = 1;
+        AddIndexResponse add_index_response = 2;
+        AddVertexesResponse add_vertexes_response = 3;
+        AddEdgesResponse add_edges_response = 4;
+        DelIndexResponse del_index_response = 5;
+        DelVertexResponse del_vertex_response = 6;
+        DelEdgeResponse del_edge_response = 7;
+        ModVertexResponse mod_vertex_response = 8;
+        ModEdgeResponse mod_edge_response = 9;
+        SubGraphResponse sub_graph_response = 10;
+        FlushResponse flush_response = 11;
+    };
+};
+
+//--------------------------------
+// config
+//--------------------------------
+message ModConfigRequest {
+    repeated string keys = 1;
+    repeated ProtoFieldData values = 2;
+};
+
+message ModConfigResponse {};
+
+message ConfigRequest {
+    oneof Req {
+        ModConfigRequest mod_config_request = 1;
+    };
+};
+
+message ConfigResponse {
+    oneof Resp {
+        ModConfigResponse mod_config_response = 1;
+    };
+};
+
+//--------------------------------
+// graph
+//--------------------------------
+message ProtoDBConfig {
+    required int64 db_size = 1;
+    required bool async = 2;
+    required string desc = 3;
+};
+
+message AddGraphRequest {
+    required string name = 1;
+    required ProtoDBConfig config = 2;
+};
+
+message AddGraphResponse {};
+
+message DeleteGraphRequest {
+    required string name = 1;
+};
+
+message DeleteGraphResponse {};
+
+message ListGraphsRequest {};
+
+message ListGraphsResponse {
+    repeated string names = 1;
+    repeated ProtoDBConfig configs = 2;
+};
+
+message GraphRequest {
+    oneof Req {
+        AddGraphRequest add_graph_request = 1;
+        DeleteGraphRequest delete_graph_request = 2;
+        ListGraphsRequest list_graphs_request = 3;
+    };
+};
+
+message GraphResponse {
+    oneof Resp {
+        AddGraphResponse add_graph_response = 1;
+        DeleteGraphResponse delete_graph_response = 2;
+        ListGraphsResponse list_graphs_response = 3;
+    };
+};
+
+//--------------------------------
+// acl
+//--------------------------------
+// auth
+message AuthRequest {
+    required string user = 1;
+    required string password = 2;
+};
+
+message AuthResponse {
+    required string token = 1;
+};
+
+// user
+message AddUserRequest {
+    required string user = 1;
+    required string password = 2;
+    optional string auth_method = 3;
+    optional string desc = 4;
+};
+
+message AddUserResponse {};
+
+message ListOfString {
+    repeated string values = 1;
+};
+
+message SetPasswordParam {
+    optional string old_pass = 1;
+    required string new_pass = 2;
+};
+
+message ModUserRequest {
+    required string user = 1;
+    oneof action {
+        SetPasswordParam set_password = 2;
+        ListOfString set_roles = 3;
+        ListOfString add_roles = 4;
+        ListOfString del_roles = 5;
+        bool enable = 6;
+        bool disable = 7;
+        string set_desc = 8;
+    };
+};
+
+message ModUserResponse {};
+
+message DelUserRequest {
+    required string user = 1;
+};
+
+message DelUserResponse {};
+
+message GetUserInfoRequest {
+    required string user = 1;
+};
+
+message ProtoUserInfo {
+    required bool is_disabled = 1;
+    repeated string roles = 2;
+    optional string auth_method = 3;
+};
+
+message GetUserInfoResponse {
+    required ProtoUserInfo info = 1;
+};
+
+message ListUserRequest {};
+
+message ListUserResponse {
+    map<string, ProtoUserInfo> users = 1;
+};
+
+// roles
+message ProtoGraphAccess {
+    map<string, ProtoAccessLevel> values = 1;
+};
+
+message AddRoleRequest {
+    required string role = 1;
+    optional string desc = 2;
+};
+
+message AddRoleResponse {};
+
+message DelRoleRequest {
+    required string role = 1;
+};
+
+message DelRoleResponse {};
+
+message ModRoleRequest {
+    required string role = 1;
+    oneof action {
+        string mod_desc = 2;
+        ProtoGraphAccess set_full_graph_access = 3;
+        ProtoGraphAccess set_diff_graph_access = 4;
+        bool enable = 5;
+        bool disable = 6;
+    };
+};
+
+message ModRoleResponse {};
+
+message GetRoleInfoRequest {
+    required string role = 1;
+};
+
+message ProtoRoleInfo {
+    required bool is_disabled = 1;
+    required string desc = 2;
+    required ProtoGraphAccess graph_access = 3;
+};
+
+message GetRoleInfoResponse {
+    required ProtoRoleInfo info = 1;
+};
+
+message ListRoleRequest {};
+
+message ListRoleResponse {
+    map<string, ProtoRoleInfo> roles = 1;
+};
+
+message AclRequest {
+    oneof Req{
+        AuthRequest auth_request = 1;
+        AddUserRequest add_user_request = 2;
+        ModUserRequest mod_user_request = 3;
+        DelUserRequest del_user_request = 4;
+        GetUserInfoRequest list_user_info_request = 5;
+        AddRoleRequest add_role_request = 6;
+        ModRoleRequest mod_role_request = 7;
+        DelRoleRequest del_role_request = 8;
+        GetRoleInfoRequest list_role_info_request = 9;
+        ListUserRequest list_user_request = 10;
+        ListRoleRequest list_role_request = 11;
+    };
+};
+
+message AclResponse {
+    oneof Resp {
+        AuthResponse auth_response = 1;
+        AddUserResponse add_user_response = 2;
+        ModUserResponse mod_user_response = 3;
+        DelUserResponse del_user_response = 4;
+        GetUserInfoResponse list_user_info_response = 5;
+        AddRoleResponse add_role_response = 6;
+        ModRoleResponse mod_role_response = 7;
+        DelRoleResponse del_role_response = 8;
+        GetRoleInfoResponse list_role_info_response = 9;
+        ListUserResponse list_user_response = 10;
+        ListRoleResponse list_role_response = 11;
+    };
+};
+
+//--------------------------------
+// cypher
+//--------------------------------
+message Header {
+    required string name = 1;
+    required int32 type = 2;
+};
+
+message CypherResult {
+    repeated Header header = 1;
+    repeated ListOfProtoFieldData result = 2;
+    required double elapsed = 3;
+};
+
+message CypherRequest {
+    required string query = 1;
+    repeated string param_names = 2;
+    optional ListOfProtoFieldData param_values = 3;
+    required bool result_in_json_format = 4;
+    optional string graph = 5;
+    optional double timeout = 6;
+};
+message CypherResponse {
+    oneof Result {
+        string json_result = 1;
+        CypherResult binary_result = 2;
+    }
+};
+
+//--------------------------------
+// import
+//--------------------------------
+
+message ImportRequest {
+    required string graph = 3;
+    required string description = 4;
+    required string data = 5;
+    required bool continue_on_error = 6;
+    required string delimiter = 7;
+};
+
+message ImportResponse {
+    optional string log = 1;
+    optional string error_message = 2;
+};
+
+message SchemaRequest {
+    required string graph = 3;
+    required string description = 4;
+};
+
+message SchemaResponse {
+    optional string log = 1;
+    optional string error_message = 2;
+};
+
+//--------------------------------
+// plugin
+//--------------------------------
+message CallPluginRequest {
+    required string name = 1;
+    required bytes param = 2;
+    optional double timeout = 3;
+    optional bool in_process = 4;
+};
+
+message CallPluginResponse {
+    required bytes reply = 1;
+};
+
+message LoadPluginRequest {
+    enum CodeType {
+        PY = 1;
+        SO = 2;
+        CPP = 3;
+        ZIP = 4;
+    };
+
+    required string name = 1;
+    required bool read_only = 2;
+    required bytes code = 3;
+    optional string desc = 4;
+    optional CodeType code_type = 5;
+};
+
+message LoadPluginResponse {};
+
+message DelPluginRequest {
+    required string name = 1;
+};
+
+message DelPluginResponse {};
+
+message ListPluginRequest {};
+
+message ListPluginResponse {};
+
+message PluginRequest {
+    enum PluginType {
+        CPP = 1;
+        PYTHON = 2;
+    };
+
+    required PluginType type = 1;
+    oneof Req {
+        LoadPluginRequest load_plugin_request = 2;
+        DelPluginRequest del_plugin_request = 3;
+        CallPluginRequest call_plugin_request = 4;
+        ListPluginRequest list_plugin_request = 5;
+    };
+    required string graph = 6;
+};
+
+message PluginResponse {
+    oneof Resp {
+        LoadPluginResponse load_plugin_response = 1;
+        DelPluginResponse del_plugin_response = 2;
+        CallPluginResponse call_plugin_response = 3;
+        ListPluginResponse list_plugin_response = 4;
+    };
+};
+
+//--------------------------------
+// heartbeat
+//--------------------------------
+enum NodeState {
+    UNINITIALIZED = 1;
+    LOADING_SNAPSHOT = 2;
+    REPLAYING_LOG = 3;
+    JOINED_SLAVE = 4;
+    JOINED_MASTER = 5;
+    OFFLINE = 6;
+};
+
+message HeartbeatRequest {
+    required string rpc_addr = 1;
+    required string rest_addr = 2;
+    required NodeState state = 3;
+};
+
+message HeartbeatResponse {
+};
+
+message PeerInfo {
+    required string rpc_addr = 1;
+    required string rest_addr = 2;
+    required NodeState state = 3;
+};
+
+message ListPeersRequest {
+};
+
+message ListPeersResponse {
+    repeated PeerInfo peers = 1;
+};
+
+message GetMasterRequest {};
+
+message GetMasterResponse {
+    required PeerInfo master = 1;
+};
+
+message SyncMetaRequest {
+    required string confirm = 1;
+};
+
+message SyncMetaResponse {
+    required int32 ret = 1;
+};
+
+message HARequest {
+    oneof Req {
+        HeartbeatRequest heartbeat_request = 1;
+        ListPeersRequest list_peers_request = 2;
+        GetMasterRequest get_master_request = 3;
+        SyncMetaRequest sync_meta_request = 4;
+    };
+};
+
+message HAResponse {
+    oneof Resp {
+        HeartbeatResponse heartbeat_response = 1;
+        ListPeersResponse list_peers_response = 2;
+        GetMasterResponse get_master_response = 3;
+        SyncMetaResponse sync_meta_response = 4;
+    };
+};
+
+//--------------------------------
+// envelope
+//--------------------------------
+message LGraphRequest {
+    optional int64 client_version = 1;
+    required string token = 2;
+    optional bool is_write_op = 3;
+    oneof Req {
+        GraphApiRequest graph_api_request = 11;
+        CypherRequest cypher_request = 12;
+        PluginRequest plugin_request = 13;
+        HARequest ha_request = 14;
+        ImportRequest import_request = 15;
+        GraphRequest graph_request = 17;
+        AclRequest acl_request = 18;
+        ConfigRequest config_request = 19;
+        RestoreRequest restore_request = 20;
+        SchemaRequest schema_request = 21;
+    };
+};
+
+message LGraphResponse {
+    enum ErrorCode {
+        SUCCESS = 1;
+        BAD_REQUEST = 2;
+        AUTH_ERROR = 3;
+        KILLED = 4;
+        REDIRECT = 5;
+        FAILED = 6;
+        EXCEPTION = 255;
+    };
+
+    required ErrorCode error_code = 1;
+    optional string redirect = 2;
+    optional string error = 3;
+    optional int64 server_version = 4;
+    oneof Resp {
+        GraphApiResponse graph_api_response = 11;
+        CypherResponse cypher_response = 12;
+        PluginResponse plugin_response = 13;
+        HAResponse ha_response = 14;
+        ImportResponse import_response = 15;
+        GraphResponse graph_response = 17;
+        AclResponse acl_response = 18;
+        ConfigResponse config_response = 19;
+        RestoreResponse restore_response = 20;
+        SchemaResponse schema_response = 21;
+    };
+};
+
+// For backup and restore
+message BackupLogEntry {
+    required int64 index = 1;
+    required int64 time = 2;
+    required LGraphRequest req = 3;
+};
+
+message RestoreRequest {
+    repeated BackupLogEntry logs = 1;
+};
+
+message RestoreResponse {
+    required int64 last_success_idx = 1;
+};
+
+//--------------------------------
+// audit_log
+//--------------------------------
+enum LogApiType {
+    SingleApi = 0;
+    Security = 1;
+    Plugin = 2;
+    Cypher = 3;
+};
+
+message LogMessage {
+    required int64 index = 1;
+    required int64 time = 2;
+    required bool begin_end = 3;
+    optional string user = 4;
+    optional string graph = 5;
+    optional LogApiType type = 6;
+    optional bool read_write = 7;
+    optional bool success = 8;
+    optional string content = 9;
+};
+
+service LGraphRPCService {
+    rpc HandleRequest(LGraphRequest) returns (LGraphResponse);
+};

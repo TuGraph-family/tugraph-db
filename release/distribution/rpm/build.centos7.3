@@ -1,0 +1,16 @@
+#!/bin/bash
+PROJECT_SOURCE_DIR=../../../
+
+# help
+if [ $# -gt 1 ]
+then
+    echo 'usage: ./build [-j|-j4]' && exit
+fi
+
+# make
+cd ${PROJECT_SOURCE_DIR}
+rm -rf build.centos7.3
+mkdir build.centos7.3 && cd build.centos7.3
+cmake .. -DCMAKE_BUILD_TYPE=Release -DWR_REL_CENTOS=1
+make $1
+make install

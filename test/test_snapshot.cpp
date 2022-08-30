@@ -1,0 +1,93 @@
+﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+
+#include <random>
+#include "fma-common/configuration.h"
+#include "fma-common/file_system.h"
+#include "fma-common/logging.h"
+
+#include "gtest/gtest.h"
+
+#include "db/galaxy.h"
+#include "db/db.h"
+#include "./ut_utils.h"
+
+class TestSnapshot : public TuGraphTest {};
+
+static lgraph::VertexId AddVertex(lgraph::Transaction& txn, const std::string& name,
+                                  const std::string& type) {
+    std::vector<size_t> fids = {1, 0};  // 域为string类型会放在label的最后面
+    std::vector<std::string> values = {name, type};
+    return txn.AddVertex((size_t)0, fids, values);
+}
+
+static lgraph::EdgeId AddEdge(lgraph::Transaction& txn, lgraph::VertexId src, lgraph::VertexId dst,
+                              int8_t source, float weight) {
+    std::vector<size_t> fids = {0, 1};
+    lgraph::FieldData s(source);
+    lgraph::FieldData w(weight);
+    std::vector<lgraph::FieldData> values = {s, w};
+    return txn.AddEdge(src, dst, (size_t)0, fids, values).eid;
+}
+
+void CreateTestDB() {
+    using namespace lgraph;
+
+    fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
+    Galaxy galaxy("./testdb");
+    AccessControlledDB db = galaxy.OpenGraph("admin", "default");
+    std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
+                                    {"type", FieldType::INT8, false}};
+    std::vector<FieldSpec> e_fds = {{"source", FieldType::INT8, false},
+                                    {"weight", FieldType::FLOAT, false}};
+    UT_EXPECT_TRUE(db.AddLabel(true, "v", v_fds, "name", {}));
+    UT_EXPECT_TRUE(db.AddLabel(false, "e", e_fds, {}, {}));
+    // ASSERT(db.AddVertexIndex("v", "name", false));
+    while (!db.IsVertexIndexed("v", "name")) fma_common::SleepUs(100);
+
+    Transaction txn = db.CreateWriteTxn();
+    VertexId vid1_ = AddVertex(txn, "v1", "1");
+    VertexId vid2_ = AddVertex(txn, "v2", "2");
+    {
+        VertexIndexIterator iit = txn.GetVertexIndexIterator("v", "name", "v2", "v2");
+        UT_EXPECT_TRUE(iit.IsValid());
+        UT_EXPECT_EQ(iit.GetVid(), 1);
+    }
+    AddEdge(txn, vid1_, vid1_, 11, 11.0);
+    AddEdge(txn, vid1_, vid2_, 12, 12.0);
+    AddEdge(txn, vid2_, vid1_, 21, 21.0);
+    AddEdge(txn, vid2_, vid2_, 22, 22.0);
+
+    txn.Commit();
+}
+
+static lgraph::AccessControlledDB OpenGraph(const std::string& dir) {
+    lgraph::Galaxy galaxy(dir);
+    return galaxy.OpenGraph("admin", "default");
+}
+
+TEST_F(TestSnapshot, Snapshot) {
+    using namespace lgraph;
+    using namespace fma_common;
+
+    size_t n = 10;
+    int argc = _ut_argc;
+    char** argv = _ut_argv;
+    Configuration config;
+    config.Add(n, "n_snapshot,n", true).Comment("Number of times to do snapshot");
+    config.ParseAndFinalize(argc, argv);
+    { CreateTestDB(); }
+    {
+        // create snapshot
+
+        Galaxy galaxy("./testdb");
+        std::vector<std::string> vector_graph = {"default"};
+        galaxy.WarmUp("admin", vector_graph);
+        fma_common::file_system::RemoveDir("./backup");
+        galaxy.Backup("./backup", true);
+        fma_common::file_system::RemoveDir("./snap");
+        std::string path_snap = "./snap";
+        galaxy.SaveSnapshot(path_snap);
+        // load snapshot
+        UT_EXPECT_TRUE(galaxy.LoadSnapshot(path_snap));
+    }
+}

@@ -1,0 +1,1 @@
+MATCH (t:vertex {uri:'brick$VAV'})<-[:rdf$type]-(vav) RETURN DISTINCT vav.uri

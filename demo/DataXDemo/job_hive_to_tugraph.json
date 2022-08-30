@@ -1,0 +1,116 @@
+{
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 1
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "hdfsreader",
+          "parameter": {
+            "path": "/user/hive/warehouse/movie/*",
+            "defaultFS": "hdfs://127.0.0.1:9000",
+            "column": [
+              {
+                "index": 0,
+                "type": "long"
+              },
+              {
+                "index": 1,
+                "type": "long"
+              },
+              {
+                "index": 2,
+                "type": "string"
+              },
+              {
+                "index": 3,
+                "type": "string"
+              },
+              {
+                "index": 4,
+                "type": "string"
+              },
+              {
+                "index": 5,
+                "type": "string"
+              },
+              {
+                "index": 6,
+                "type": "string"
+              }
+            ],
+            "fileType": "text",
+            "encoding": "UTF-8",
+            "fieldDelimiter": ","
+          }
+        },
+        "writer": {
+          "name": "tugraphwriter",
+          "parameter": {
+            "host": "127.0.0.1",
+            "port": 7071,
+            "username": "admin",
+            "password": "73@TuGraph",
+            "graphName": "default",
+            "schema": [
+              {
+                "label": "movie",
+                "type": "VERTEX",
+                "properties": [
+                  {
+                    "name": "id",
+                    "type": "INT32"
+                  },
+                  {
+                    "name": "duration",
+                    "type": "INT32"
+                  },
+                  {
+                    "name": "title",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "tagline",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "summary",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "poster_image",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "rated",
+                    "type": "STRING"
+                  }
+                ],
+                "primary": "id"
+              }
+            ],
+            "files": [
+              {
+                "label": "movie",
+                "format": "JSON",
+                "columns": [
+                  "id",
+                  "duration",
+                  "title",
+                  "tagline",
+                  "summary",
+                  "poster_image",
+                  "rated"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+  

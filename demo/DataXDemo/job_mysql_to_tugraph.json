@@ -1,0 +1,102 @@
+{
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 1
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "username": "root",
+            "password": "root",
+            "column": [
+              "id",
+              "duration",
+              "title",
+              "tagline",
+              "summary",
+              "poster_image",
+              "rated"
+            ],
+            "splitPk": "id",
+            "connection": [
+              {
+                "table": [
+                  "movie"
+                ],
+                "jdbcUrl": [
+                  "jdbc:mysql://127.0.0.1:3306/datax?useSSL=false"
+                ]
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "tugraphwriter",
+          "parameter": {
+            "host": "127.0.0.1",
+            "port": 7071,
+            "username": "admin",
+            "password": "73@TuGraph",
+            "graphName": "default",
+            "schema": [
+              {
+                "label": "movie",
+                "type": "VERTEX",
+                "properties": [
+                  {
+                    "name": "id",
+                    "type": "INT32"
+                  },
+                  {
+                    "name": "duration",
+                    "type": "INT32"
+                  },
+                  {
+                    "name": "title",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "tagline",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "summary",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "poster_image",
+                    "type": "STRING"
+                  },
+                  {
+                    "name": "rated",
+                    "type": "STRING"
+                  }
+                ],
+                "primary": "id"
+              }
+            ],
+            "files": [
+              {
+                "label": "movie",
+                "format": "JSON",
+                "columns": [
+                  "id",
+                  "duration",
+                  "title",
+                  "tagline",
+                  "summary",
+                  "poster_image",
+                  "rated"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+MATCH (t:vertex {uri:'brick$AHU'})<-[:rdf$type]->(ahu)-[:bf$feeds*..]->(x) RETURN DISTINCT x.uri

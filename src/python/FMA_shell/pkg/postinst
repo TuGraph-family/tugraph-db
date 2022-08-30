@@ -1,0 +1,10 @@
+#!/bin/sh
+# postinst script for fake_python_app
+
+set -e
+cd /usr/local/share/FMA_shell/pkg
+python -m pip install --user --no-index --find-links . click==7.0  prompt_toolkit==2.0.9 prettytable==0.7.2 requests==2.22.0
+cd /usr/local/share/FMA_shell/lgraph_shell/
+chmod 777 lgraph_cypher.py
+rm /usr/local/bin/lgraph_cypher -rf
+ln -s /usr/local/share/FMA_shell/lgraph_shell/lgraph_cypher.py /usr/local/bin/lgraph_cypher

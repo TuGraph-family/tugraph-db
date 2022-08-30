@@ -1,0 +1,63 @@
+/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+
+#include "core/vertex_index.h"
+#include "core/transaction.h"
+
+namespace lgraph {
+VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvTable& table,
+                                         const Value& key_start,
+                                         const Value& key_end, VertexId vid, bool unique)
+    : IteratorBase(txn),
+      index_(idx),
+      it_(txn->GetTxn(), table, unique ?
+           key_start : _detail::PatchKeyWithVid(key_start, vid),
+          true),
+      key_end_(unique ? Value::MakeCopy(key_end)
+               : _detail::PatchKeyWithVid(key_end, -1)),
+      iv_(),
+      valid_(false),
+      pos_(0),
+      unique_(unique) {
+    if (!it_.IsValid() || KeyOutOfRange()) {
+        return;
+    }
+    LoadContentFromIt();
+}
+
+VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, KvTransaction* txn, KvTable& table,
+                                         const Value& key_start,
+                                         const Value& key_end, VertexId vid, bool unique)
+    : IteratorBase(nullptr),
+      index_(idx),
+      it_(*txn, table, unique ?
+          key_start : _detail::PatchKeyWithVid(key_start, vid), true),
+      key_end_(unique ? Value::MakeCopy(key_end) : _detail::PatchKeyWithVid(key_end, -1)),
+      iv_(),
+      valid_(false),
+      pos_(0),
+      unique_(unique) {
+    if (!it_.IsValid() || KeyOutOfRange()) {
+        return;
+    }
+    LoadContentFromIt();
+}
+
+VertexIndexIterator::VertexIndexIterator(VertexIndexIterator&& rhs)
+    : IteratorBase(std::move(rhs)),
+      index_(rhs.index_),
+      it_(std::move(rhs.it_)),
+      key_end_(std::move(rhs.key_end_)),
+      curr_key_(std::move(rhs.curr_key_)),
+      iv_(std::move(rhs.iv_)),
+      valid_(rhs.valid_),
+      pos_(rhs.pos_),
+      vid_(rhs.vid_),
+      unique_(rhs.unique_) {
+    rhs.valid_ = false;
+}
+
+void VertexIndexIterator::CloseImpl() {
+    it_.Close();
+    valid_ = false;
+}
+}  // namespace lgraph

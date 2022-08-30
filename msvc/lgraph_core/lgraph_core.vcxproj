@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\deps\tiny-process-library\process.cpp" />
+    <ClCompile Include="..\..\deps\tiny-process-library\process_win.cpp" />
+    <ClCompile Include="..\..\src\algo\algo.cpp" />
+    <ClCompile Include="..\..\src\core\audit_logger.cpp" />
+    <ClCompile Include="..\..\src\core\data_type.cpp" />
+    <ClCompile Include="..\..\src\core\edge_index.cpp" />
+    <ClCompile Include="..\..\src\core\field_extractor.cpp" />
+    <ClCompile Include="..\..\src\core\full_text_index.cpp" />
+    <ClCompile Include="..\..\src\core\global_config.cpp" />
+    <ClCompile Include="..\..\src\core\graph.cpp" />
+    <ClCompile Include="..\..\src\core\graph_edge_iterator.cpp" />
+    <ClCompile Include="..\..\src\core\graph_vertex_iterator.cpp" />
+    <ClCompile Include="..\..\src\core\kv_table_comparators.cpp" />
+    <ClCompile Include="..\..\src\core\wal.cpp" />
+    <ClCompile Include="..\..\src\core\index_manager.cpp" />
+    <ClCompile Include="..\..\src\core\iterator_base.cpp" />
+    <ClCompile Include="..\..\src\core\kv_store_iterator.cpp" />
+    <ClCompile Include="..\..\src\core\kv_store_mdb.cpp" />
+    <ClCompile Include="..\..\src\core\kv_store_table.cpp" />
+    <ClCompile Include="..\..\src\core\kv_store_transaction.cpp" />
+    <ClCompile Include="..\..\src\core\lightning_graph.cpp" />
+    <ClCompile Include="..\..\src\core\lmdb\mdb.c" />
+    <ClCompile Include="..\..\src\core\lmdb\midl.c" />
+    <ClCompile Include="..\..\src\core\schema.cpp" />
+    <ClCompile Include="..\..\src\core\thread_id.cpp" />
+    <ClCompile Include="..\..\src\core\transaction.cpp" />
+    <ClCompile Include="..\..\src\core\vertex_index.cpp" />
+    <ClCompile Include="..\..\src\db\acl.cpp" />
+    <ClCompile Include="..\..\src\db\galaxy.cpp" />
+    <ClCompile Include="..\..\src\db\graph_manager.cpp" />
+    <ClCompile Include="..\..\src\db\token_manager.cpp" />
+    <ClCompile Include="..\..\src\db\db.cpp" />
+    <ClCompile Include="..\..\src\import\import_online.cpp" />
+    <ClCompile Include="..\..\src\import\import_v2.cpp" />
+    <ClCompile Include="..\..\src\plugin\cpp_plugin.cpp" />
+    <ClCompile Include="..\..\src\plugin\plugin_context.cpp" />
+    <ClCompile Include="..\..\src\plugin\plugin_manager.cpp" />
+    <ClCompile Include="..\..\src\plugin\python_plugin.cpp" />
+    <ClCompile Include="..\..\src\protobuf\ha.pb.cc" />
+    <ClCompile Include="..\..\src\server\state_machine.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\deps\tiny-process-library\process.hpp" />
+    <ClInclude Include="..\..\include\lgraph\base64_encode.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_date_time.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_db.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_edge_iterator.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_exceptions.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_index_iterator.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_olap.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_traversal.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_txn.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_types.h" />
+    <ClInclude Include="..\..\include\lgraph\lgraph_vertex_iterator.h" />
+    <ClInclude Include="..\..\include\libcuckoo\cuckoohash_config.hh" />
+    <ClInclude Include="..\..\include\libcuckoo\cuckoohash_map.hh" />
+    <ClInclude Include="..\..\include\libcuckoo\cuckoohash_util.hh" />
+    <ClInclude Include="..\..\include\libcuckoo\libcuckoo_bucket_container.hh" />
+    <ClInclude Include="..\..\src\algo\algo.h" />
+    <ClInclude Include="..\..\src\core\backup_log.h" />
+    <ClInclude Include="..\..\src\core\blob_manager.h" />
+    <ClInclude Include="..\..\src\core\cache_aligned_vector.h" />
+    <ClInclude Include="..\..\src\core\data_type.h" />
+    <ClInclude Include="..\..\src\core\defs.h" />
+    <ClInclude Include="..\..\src\core\field_data_helper.h" />
+    <ClInclude Include="..\..\src\core\field_extractor.h" />
+    <ClInclude Include="..\..\src\core\global_config.h" />
+    <ClInclude Include="..\..\src\core\graph.h" />
+    <ClInclude Include="..\..\src\core\graph_data_pack.h" />
+    <ClInclude Include="..\..\src\core\graph_edge_iterator.h" />
+    <ClInclude Include="..\..\src\core\kv_table_comparators.h" />
+    <ClInclude Include="..\..\src\core\wal.h" />
+    <ClInclude Include="..\..\src\core\iterator_base.h" />
+    <ClInclude Include="..\..\src\core\graph_vertex_iterator.h" />
+    <ClInclude Include="..\..\src\core\index.h" />
+    <ClInclude Include="..\..\src\core\index_manager.h" />
+    <ClInclude Include="..\..\src\core\killable_rw_lock.h" />
+    <ClInclude Include="..\..\src\core\kv_store.h" />
+    <ClInclude Include="..\..\src\core\kv_store_exception.h" />
+    <ClInclude Include="..\..\src\core\kv_store_iterator.h" />
+    <ClInclude Include="..\..\src\core\kv_store_mdb.h" />
+    <ClInclude Include="..\..\src\core\kv_store_table.h" />
+    <ClInclude Include="..\..\src\core\kv_store_transaction.h" />
+    <ClInclude Include="..\..\src\core\lightning_graph.h" />
+    <ClInclude Include="..\..\src\core\lmdb\lmdb.h" />
+    <ClInclude Include="..\..\src\core\lmdb_profiler.h" />
+    <ClInclude Include="..\..\src\core\managed_object.h" />
+    <ClInclude Include="..\..\src\core\mem_profiler.h" />
+    <ClInclude Include="..\..\src\core\mock_kv.h" />
+    <ClInclude Include="..\..\src\core\schema.h" />
+    <ClInclude Include="..\..\src\core\schema_common.h" />
+    <ClInclude Include="..\..\src\core\schema_manager.h" />
+    <ClInclude Include="..\..\src\core\task_tracker.h" />
+    <ClInclude Include="..\..\src\core\thread_id.h" />
+    <ClInclude Include="..\..\src\core\transaction.h" />
+    <ClInclude Include="..\..\src\core\type_convert.h" />
+    <ClInclude Include="..\..\src\core\value.h" />
+    <ClInclude Include="..\..\src\db\acl.h" />
+    <ClInclude Include="..\..\src\db\galaxy.h" />
+    <ClInclude Include="..\..\src\db\graph_manager.h" />
+    <ClInclude Include="..\..\src\db\token_manager.h" />
+    <ClInclude Include="..\..\src\db\db.h" />
+    <ClInclude Include="..\..\src\plugin\cpp_plugin.h" />
+    <ClInclude Include="..\..\src\plugin\load_library.h" />
+    <ClInclude Include="..\..\src\plugin\plugin_context.h" />
+    <ClInclude Include="..\..\src\plugin\plugin_manager.h" />
+    <ClInclude Include="..\..\src\plugin\plugin_manager_impl.h" />
+    <ClInclude Include="..\..\src\plugin\python_plugin.h" />
+    <ClInclude Include="..\..\src\protobuf\ha.pb.h" />
+    <ClInclude Include="..\..\src\server\ha_state_machine.h" />
+    <ClInclude Include="..\..\src\server\lgraph_service_config.h" />
+    <ClInclude Include="..\..\src\server\proto_convert.h" />
+    <ClInclude Include="..\..\src\server\service.h" />
+    <ClInclude Include="..\..\src\server\state_machine.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\protobuf\ha.proto" />
+    <None Include="..\..\src\python\lgraph_task_runner.py" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{3FE92D13-D30D-4DB4-9E03-233C64C03B6E}</ProjectGuid>
+    <RootNamespace>liblgraph</RootNamespace>
+    <ProjectName>lgraph_core</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\tests\PropertySheet.props" />
+    <Import Project="..\SharedProperties.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\tests\PropertySheet.props" />
+    <Import Project="..\SharedProperties.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\tests\PropertySheet.props" />
+    <Import Project="..\SharedProperties.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\tests\PropertySheet.props" />
+    <Import Project="..\SharedProperties.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;LGRAPH_ENABLE_PYTHON_PLUGIN=1;_ENABLE_EXTENDED_ALIGNED_STORAGE=1;NOMINMAX=1;HAVE_SNPRINTF=1;_TURN_OFF_PLATFORM_STRING=1;_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Python3\include;$(SolutionDir)/../src/cypher;$(SolutionDir)/../src;$(SolutionDir)/../deps/;$(SolutionDir)/../deps/fma-common;$(SolutionDir)/../include;%(AdditionalIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>C:\Python3\libs</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;LGRAPH_ENABLE_PYTHON_PLUGIN=1;_ENABLE_EXTENDED_ALIGNED_STORAGE=1;NOMINMAX=1;HAVE_SNPRINTF=1;_TURN_OFF_PLATFORM_STRING=1;_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Python3\include;$(SolutionDir)/../src/cypher;$(SolutionDir)/../src;$(SolutionDir)/../deps/;$(SolutionDir)/../deps/fma-common;$(SolutionDir)/../include;;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>C:\Python3\libs</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

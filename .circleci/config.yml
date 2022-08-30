@@ -1,0 +1,41 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: fmacloud/u1604_20200820
+
+    environment:
+      - CTEST_OUTPUT_ON_FAILURE: "1"
+
+    steps:
+      - checkout
+
+      - run:
+          name: modules update
+          command: |
+                git submodule update --init
+                cd deps
+                SKIP_WEB=1 ./build_deps.sh -j4
+
+      - run:
+          name: build
+          command: |
+                mkdir build.cover && cd build.cover
+                cmake .. -DCMAKE_BUILD_TYPE=Coverage
+                make lgraph -j5
+                make lgraph_cypher_lib -j4
+                make -j2
+
+      - run:
+          name: run tests
+          command: |
+                cd build.cover/output
+                ./unit_test -t all
+                rm -rf testdb
+                python3 ../../test/test_embedded_api.py
+
+      - run:
+          name: codecov
+          command: |
+                export PATH=$PATH:$HOME/.local/bin
+                ./.codecov.sh
