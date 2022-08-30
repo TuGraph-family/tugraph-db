@@ -14,7 +14,6 @@
 #include "monitor/memory_monitor_allocator.h"
 #include "optimization/pass_manager.h"
 #include "procedure/procedure.h"
-#include "validation/acl_visitor.h"
 #include "validation/check_graph.h"
 
 namespace cypher {
@@ -1215,8 +1214,6 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt,
 }
 
 void ExecutionPlan::Validate(cypher::RTContext* ctx_) {
-    ACLVisitor acl_visitor(ctx_);
-    acl_visitor.Visit(*_root);
     CheckGraphVisitor check_graph(ctx_);
     check_graph.Visit(*_root);
 }

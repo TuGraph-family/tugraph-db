@@ -36,7 +36,6 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_var_len_expand.cpp
         cypher/execution_plan/ops/op_var_len_expand_into.cpp
         cypher/execution_plan/ops/op_merge.cpp
-        cypher/execution_plan/validation/acl_visitor.cpp
         cypher/execution_plan/ops/op_node_by_id_seek.cpp
         cypher/execution_plan/scheduler.cpp
         cypher/filter/filter.cpp

@@ -2074,78 +2074,6 @@ void TestCypherDetermineReadonly() {
     FMA_CHECK_EQ(cypher::Scheduler::DetermineReadOnly("CALL dbms.listGraphs()"), true);
 }
 
-void TestCypherDetermineAccess(cypher::RTContext* ctx) {
-    const std::string tmp_user = "tmp_user";
-    const std::string tmp_password = "tmp_password";
-    const std::string &tmp_role = tmp_user;
-    ctx->galaxy_->CreateUser(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                             tmp_user, tmp_password, "");
-    lgraph::AclManager::AclTable acl;
-    lgraph::AclManager::FieldAccess field_access;
-    acl["default"] = lgraph_api::AccessLevel::FULL;
-    field_access[lgraph::AclManager::LabelFieldSpec(true, "Person", "name")] =
-        lgraph_api::FieldAccessLevel::NONE;
-    field_access[lgraph::AclManager::LabelFieldSpec(true, "Person", "birthyear")] =
-        lgraph_api::FieldAccessLevel::NONE;
-    ctx->field_access_ = field_access;
-    ctx->galaxy_->ModRoleAccessLevel(tmp_role, acl);
-    ctx->token_ = ctx->galaxy_->GetUserToken(tmp_user, tmp_password);
-    // NONE ACCESS PERMISSION
-    FMA_LOG() << "---NONE ACCESS PERMISSION---";
-    eval_script(ctx, "MATCH (n:City) RETURN n.name LIMIT 1");
-    eval_script(ctx,
-                "MATCH (n:City) WHERE n.name = \"London\" RETURN n.name LIMIT 1");
-    eval_script(ctx, "MATCH (n) RETURN n LIMIT 1");
-    eval_script(ctx, "MATCH (n:Person) RETURN n LIMIT 1");
-    expected_exception_any(ctx, "MATCH (n:Person) RETURN n.name LIMIT 1");
-    expected_exception_any(
-        ctx, "MATCH (n:Person) WHERE n.name = \"Michael Redgrave\" RETURN n.name LIMIT 1");
-    expected_exception_any(ctx, "MATCH (n:Person) WHERE n.birthyear>0 RETURN n.name LIMIT 1");
-    expected_exception_any(ctx, "MATCH (n) RETURN n.birthyear LIMIT 1");
-    expected_exception_any(ctx, "MATCH (n:Person) RETURN n.birthyear LIMIT 1");
-    expected_exception_any(ctx, "MATCH (n:Person{name:\"Michael Redgrave\"}) RETURN id(n)");
-    expected_exception_any(ctx, "MATCH (n:Person{birthyear:1921}) RETURN id(n)");
-    expected_exception_any(
-        ctx, "MATCH p=(:Person{name:\"Rachel Kempson\"})-[]->() RETURN p LIMIT 1");
-    eval_script(ctx, "CREATE (n:City{name:\"CityName\"})");
-    expected_exception_any(ctx, "CREATE (n:Person{name:\"PersonName\", birthyear:2003})");
-    expected_exception_any(ctx, "MATCH (n:Person) SET n.birthyear=2004");
-    // READ ACCESS PERMISSION
-    FMA_LOG() << "---READ ACCESS PERMISSION---";
-    field_access[lgraph::AclManager::LabelFieldSpec(true, "Person", "name")] =
-        lgraph_api::FieldAccessLevel::READ;
-    field_access[lgraph::AclManager::LabelFieldSpec(true, "Person", "birthyear")] =
-        lgraph_api::FieldAccessLevel::READ;
-    ctx->field_access_ = field_access;
-    eval_script(ctx, "MATCH (n:Person) RETURN n.name LIMIT 1");
-    eval_script(
-        ctx, "MATCH (n:Person) WHERE n.name = \"Michael Redgrave\" RETURN n.name LIMIT 1");
-    eval_script(ctx, "MATCH (n:Person) WHERE n.birthyear>0 RETURN n.name LIMIT 1");
-    eval_script(ctx, "MATCH (n) RETURN n LIMIT 1");
-    eval_script(ctx, "MATCH (n) RETURN n.birthyear LIMIT 1");
-    eval_script(ctx, "MATCH (n:Person) RETURN n LIMIT 1");
-    eval_script(ctx, "MATCH (n:Person) RETURN n.birthyear LIMIT 1");
-    eval_script(ctx, "MATCH (n:Person{name:\"Michael Redgrave\"}) RETURN id(n)");
-    eval_script(ctx, "MATCH (n:Person{birthyear:1921}) RETURN id(n)");
-    eval_script(
-        ctx, "MATCH p=(:Person{name:\"Rachel Kempson\"})-[]->() RETURN p LIMIT 1");
-    eval_script(ctx, "CREATE (n:City{name:\"CityName2\"})");
-    expected_exception_any(ctx, "CREATE (n:Person{name:\"PersonName\", birthyear:2003})");
-    expected_exception_any(ctx, "MATCH (n:Person) SET n.birthyear=2004");
-    expected_exception_any(ctx, "MATCH (n:Person{name:\"Michael Redgrave\"}) DELETE n");
-    ctx->field_access_ = field_access;
-    // WRITE ACCESS PERMISSION
-    FMA_LOG() << "---WRITE ACCESS PERMISSION---";
-    field_access[lgraph::AclManager::LabelFieldSpec(true, "Person", "name")] =
-        lgraph_api::FieldAccessLevel::WRITE;
-    field_access[lgraph::AclManager::LabelFieldSpec(true, "Person", "birthyear")] =
-        lgraph_api::FieldAccessLevel::WRITE;
-    ctx->field_access_ = field_access;
-    eval_script(ctx, "CREATE (n:City{name:\"CityName3\"})");
-    eval_script(ctx, "CREATE (n:Person{name:\"PersonName\", birthyear:2003})");
-    eval_script(ctx, "MATCH (n:Person) SET n.birthyear=2004");
-}
-
 void TestCypherEmptyGraph(cypher::RTContext* ctx) {
     ctx->graph_ = "";
     expected_exception_any(ctx, "MATCH (n:Person) RETURN n.name LIMIT 1");
@@ -2215,7 +2143,6 @@ enum TestCase {
     TC_CREATE_LABEL = 404,
     TC_READONLY = 500,
     TC_EDGE_ID = 501,
-    TC_DETERMINE_ACCESS = 600,
     TC_EMPTY_GRAPH = 700,
 };
 
@@ -2245,13 +2172,13 @@ TEST_P(TestCypher, Cypher) {
         " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
         "{}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
-        " {}-determine_access; {}-empty_graph;",
+        " {}-empty_graph;",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
         TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
-        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_DETERMINE_ACCESS,
+        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID,
         TC_EMPTY_GRAPH);
     test_case = GetParam().tc;
     database = GetParam().d;
@@ -2407,9 +2334,6 @@ TEST_P(TestCypher, Cypher) {
             break;
         case TC_EDGE_ID:
             test_edge_id_query(&db);
-            break;
-        case TC_DETERMINE_ACCESS:
-            TestCypherDetermineAccess(&db);
             break;
         case TC_EMPTY_GRAPH:
             TestCypherEmptyGraph(&db);
