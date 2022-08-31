@@ -58,13 +58,13 @@ if [ ! ${ONLY_WEB} ] || [ ! ${ONLY_WEB} = 1 ]; then
     # remove Any.h because it is modified
     rm -f ${INSTALL_DIR}/include/antlr4-runtime/support/Any.h
     BuildPackage brpc brpc -DBUILD_UNIT_TESTS=0 || exit 1
-    BuildPackage braft braft || exit 1
     BuildPackage cpprest cpprestsdk/Release -DCMAKE_CXX_FLAGS=-Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 || exit 1
     BuildPackage gtest googletest || exit 1
     BuildPackage prometheus-cpp-client prometheus-cpp-client || exit 1
 
     ln -sf ${DEPS_DIR}/fma-common/fma-common ${INSTALL_DIR}/include/
     ln -sf ${DEPS_DIR}/jwt-cpp/include/jwt-cpp ${INSTALL_DIR}/include/
+    ln -sf ${DEPS_DIR}/jwt-cpp/include/picojson ${INSTALL_DIR}/include/
     ln -sf ${DEPS_DIR}/pybind11/include/pybind11 ${INSTALL_DIR}/include/
     ln -sf ${DEPS_DIR}/tiny-process-library ${INSTALL_DIR}/include/
     ln -sf ${DEPS_DIR}/prometheus-cpp-client ${INSTALL_DIR}/include/

@@ -1,6 +1,5 @@
-# brpc and braft
+# brpc
 set(BRPC_LIB libbrpc.a)
-set(BRAFT_LIB libbraft.a)
 
 # boost
 set(Boost_USE_STATIC_LIBS ON)
@@ -41,7 +40,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             PUBLIC
             # begin static linking
             -Wl,-Bstatic
-            ${BRAFT_LIB}
             ${BRPC_LIB}
             ${GFLAGS_LIBRARY}
             ${LEVELDB_LIB}
@@ -69,7 +67,6 @@ else ()
             lgraph
             lgraph_cypher_lib
             ${BRPC_LIB}
-            ${BRAFT_LIB}
             ${LEVELDB_LIB}
             ${PROTOBUF_LIBRARY}
             "-framework CoreFoundation"

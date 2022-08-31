@@ -32,9 +32,8 @@ GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
 
 include_directories(${DEPS_INCLUDE_DIR})
 
-# brpc and braft
+# brpc
 set(BRPC_LIB libbrpc.a)
-set(BRAFT_LIB libbraft.a)
 
 add_library(lgraph_server_lib STATIC
         plugin/plugin_context.cpp
@@ -62,7 +61,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             # begin static linking
             -Wl,-Bstatic
             cpprest
-            ${BRAFT_LIB}
             ${BRPC_LIB}
             ${GFLAGS_LIBRARY}
             ${GPERFTOOLS_LIBRARIES}
@@ -84,7 +82,6 @@ else ()
             lgraph
             lgraph_cypher_lib
             ${BRPC_LIB}
-            ${BRAFT_LIB}
             ${LEVELDB_LIB}
             ${PROTOBUF_LIBRARY}
             "-framework CoreFoundation"

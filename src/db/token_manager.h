@@ -7,6 +7,7 @@
 #include <string>
 
 #include "jwt-cpp/jwt.h"
+#include "jwt-cpp/traits/kazuho-picojson/traits.h"
 
 namespace lgraph {
 /**
@@ -18,7 +19,7 @@ namespace lgraph {
 class TokenManager {
     std::string secret_key_;
     // verifier
-    jwt::verifier<jwt::default_clock> verifier_;
+    jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson> verifier_;
 
  public:
     // @param secret_key    key for encryption

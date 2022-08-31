@@ -210,7 +210,7 @@ int LGraphServer::Start() {
 #ifndef _WIN32
         // set REST thread limit
         if (config_->thread_limit != 0)
-            crossplat::threadpool::num_threads() = config_->thread_limit;
+            crossplat::threadpool::initialize_with_threads(config_->thread_limit);
 
         if (config_->enable_rpc) {
             // start RPC service
