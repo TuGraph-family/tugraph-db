@@ -19,9 +19,6 @@
 [submodule "deps/prometheus-cpp-client"]
 	path = deps/prometheus-cpp-client
 	url = git@github.com:jupp0r/prometheus-cpp.git
-[submodule "deps/antlr4"]
-	path = deps/antlr4
-	url = git@github.com:antlr/antlr4.git
 [submodule "deps/brpc"]
 	path = deps/brpc
 	url = git@github.com:apache/incubator-brpc.git
@@ -31,3 +28,6 @@
 [submodule "deps/tiny-process-library"]
 	path = deps/tiny-process-library
 	url = git@github.com:cpp-pm/tiny-process-library.git
+[submodule "deps/antlr4"]
+	path = deps/antlr4
+	url = git@github.com:TuGraph-db/antlr4.git
