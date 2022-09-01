@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{66474ea5-b65e-484c-ba35-fc27837d40a4}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>
+    </StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="plugin\neighbour.py" />
+    <Compile Include="plugin\__init__.py" />
+    <Compile Include="pybind11\docs\benchmark.py" />
+    <Compile Include="pybind11\docs\conf.py" />
+    <Compile Include="pybind11\pybind11\_version.py" />
+    <Compile Include="pybind11\pybind11\__init__.py" />
+    <Compile Include="pybind11\pybind11\__main__.py" />
+    <Compile Include="pybind11\setup.py" />
+    <Compile Include="pybind11\tests\conftest.py" />
+    <Compile Include="pybind11\tests\test_buffers.py" />
+    <Compile Include="pybind11\tests\test_builtin_casters.py" />
+    <Compile Include="pybind11\tests\test_callbacks.py" />
+    <Compile Include="pybind11\tests\test_call_policies.py" />
+    <Compile Include="pybind11\tests\test_chrono.py" />
+    <Compile Include="pybind11\tests\test_class.py" />
+    <Compile Include="pybind11\tests\test_cmake_build\test.py" />
+    <Compile Include="pybind11\tests\test_constants_and_functions.py" />
+    <Compile Include="pybind11\tests\test_copy_move.py" />
+    <Compile Include="pybind11\tests\test_docstring_options.py" />
+    <Compile Include="pybind11\tests\test_eigen.py" />
+    <Compile Include="pybind11\tests\test_embed\test_interpreter.py" />
+    <Compile Include="pybind11\tests\test_enum.py" />
+    <Compile Include="pybind11\tests\test_eval.py" />
+    <Compile Include="pybind11\tests\test_eval_call.py" />
+    <Compile Include="pybind11\tests\test_exceptions.py" />
+    <Compile Include="pybind11\tests\test_factory_constructors.py" />
+    <Compile Include="pybind11\tests\test_iostream.py" />
+    <Compile Include="pybind11\tests\test_kwargs_and_defaults.py" />
+    <Compile Include="pybind11\tests\test_local_bindings.py" />
+    <Compile Include="pybind11\tests\test_methods_and_attributes.py" />
+    <Compile Include="pybind11\tests\test_modules.py" />
+    <Compile Include="pybind11\tests\test_multiple_inheritance.py" />
+    <Compile Include="pybind11\tests\test_numpy_array.py" />
+    <Compile Include="pybind11\tests\test_numpy_dtypes.py" />
+    <Compile Include="pybind11\tests\test_numpy_vectorize.py" />
+    <Compile Include="pybind11\tests\test_opaque_types.py" />
+    <Compile Include="pybind11\tests\test_operator_overloading.py" />
+    <Compile Include="pybind11\tests\test_pickling.py" />
+    <Compile Include="pybind11\tests\test_pytypes.py" />
+    <Compile Include="pybind11\tests\test_sequences_and_iterators.py" />
+    <Compile Include="pybind11\tests\test_smart_ptr.py" />
+    <Compile Include="pybind11\tests\test_stl.py" />
+    <Compile Include="pybind11\tests\test_stl_binders.py" />
+    <Compile Include="pybind11\tests\test_virtual_functions.py" />
+    <Compile Include="pybind11\tools\clang\cindex.py" />
+    <Compile Include="pybind11\tools\clang\enumerations.py" />
+    <Compile Include="pybind11\tools\clang\__init__.py" />
+    <Compile Include="pybind11\tools\libsize.py" />
+    <Compile Include="pybind11\tools\mkdoc.py" />
+    <Compile Include="task_consumer.py" />
+    <Compile Include="task_runner.py" />
+    <Compile Include="test\client.py" />
+    <Compile Include="test\script.py" />
+    <Compile Include="test\server.py" />
+    <Compile Include="test\upload_plugins.py" />
+    <Compile Include="test\upload_script.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="pybind11\CMakeLists.txt" />
+    <Content Include="pybind11\docs\pybind11-logo.png" />
+    <Content Include="pybind11\docs\pybind11_vs_boost_python1.png" />
+    <Content Include="pybind11\docs\pybind11_vs_boost_python1.svg" />
+    <Content Include="pybind11\docs\pybind11_vs_boost_python2.png" />
+    <Content Include="pybind11\docs\pybind11_vs_boost_python2.svg" />
+    <Content Include="pybind11\docs\requirements.txt" />
+    <Content Include="pybind11\docs\_static\theme_overrides.css" />
+    <Content Include="pybind11\tests\CMakeLists.txt" />
+    <Content Include="pybind11\tests\pytest.ini" />
+    <Content Include="pybind11\tests\test_cmake_build\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_cmake_build\installed_embed\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_cmake_build\installed_function\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_cmake_build\installed_target\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_cmake_build\subdirectory_embed\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_cmake_build\subdirectory_function\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_cmake_build\subdirectory_target\CMakeLists.txt" />
+    <Content Include="pybind11\tests\test_embed\CMakeLists.txt" />
+    <Content Include="pybind11\tools\clang\LICENSE.TXT" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="plugin" />
+    <Folder Include="pybind11" />
+    <Folder Include="pybind11\docs" />
+    <Folder Include="pybind11\docs\_static" />
+    <Folder Include="pybind11\pybind11" />
+    <Folder Include="pybind11\tests" />
+    <Folder Include="pybind11\tests\test_cmake_build" />
+    <Folder Include="pybind11\tests\test_cmake_build\installed_embed" />
+    <Folder Include="pybind11\tests\test_cmake_build\installed_function" />
+    <Folder Include="pybind11\tests\test_cmake_build\installed_target" />
+    <Folder Include="pybind11\tests\test_cmake_build\subdirectory_embed" />
+    <Folder Include="pybind11\tests\test_cmake_build\subdirectory_function" />
+    <Folder Include="pybind11\tests\test_cmake_build\subdirectory_target" />
+    <Folder Include="pybind11\tests\test_embed" />
+    <Folder Include="pybind11\tools" />
+    <Folder Include="pybind11\tools\clang" />
+    <Folder Include="test" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

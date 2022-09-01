@@ -1,0 +1,1 @@
+MATCH (t:vertex {uri:'brick$Floor'})<-[:rdf$type]-(floor)-[:bf$hasPart*..]->(room)-[:rdf$type]->({uri:'brick$Room'}),({uri:'brick$HVAC_Zone'})<-[:rdf$type]-(zone)-[:bf$hasPart*..]->(room) RETURN DISTINCT floor.uri,room.uri,zone.uri

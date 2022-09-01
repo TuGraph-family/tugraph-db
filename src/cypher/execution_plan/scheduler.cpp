@@ -1,0 +1,139 @@
+﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+
+//
+// Created by wt on 18-8-14.
+//
+#include "antlr4-runtime.h"
+
+#include "core/task_tracker.h"
+
+#include "parser/generated/LcypherLexer.h"
+#include "parser/generated/LcypherParser.h"
+#include "parser/cypher_base_visitor.h"
+#include "parser/cypher_error_listener.h"
+
+#include "execution_plan.h"
+#include "scheduler.h"
+
+namespace cypher {
+
+inline fma_common::Logger &Logger() {
+    static fma_common::Logger &logger = fma_common::Logger::Get("server.cypher.execution_plan");
+    return logger;
+}
+
+void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {
+    using namespace parser;
+    using namespace antlr4;
+    auto t0 = fma_common::GetTime();
+    // <script, execution plan>
+    thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlan>> tls_plan_cache;
+    std::shared_ptr<ExecutionPlan> plan;
+    if (!tls_plan_cache.Get(script, plan)) {
+        ANTLRInputStream input(script);
+        LcypherLexer lexer(&input);
+        CommonTokenStream tokens(&lexer);
+        LcypherParser parser(&tokens);
+        /* We can set ErrorHandler here.
+         * setErrorHandler(std::make_shared<BailErrorStrategy>());
+         * add customized ErrorListener  */
+        parser.addErrorListener(&CypherErrorListener::INSTANCE);
+        CypherBaseVisitor visitor(parser.oC_Cypher());
+        plan = std::make_shared<ExecutionPlan>();
+        plan->Build(visitor.GetQuery(), visitor.CommandType());
+        plan->Validate(ctx);
+        if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
+            ctx->result_info_ = std::make_unique<ResultInfo>();
+            ctx->result_ = std::make_unique<lgraph::Result>();
+
+            ctx->result_->ResetHeader({{"@plan", lgraph::ResultElementType::FIELD}});
+            auto &r = ctx->result_->NewRecord();
+            r.Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
+            return;
+        }
+        FMA_DBG_STREAM(Logger()) << "Plan cache disabled.";
+        // FMA_DBG_STREAM(Logger())
+        //     << "Miss execution plan cache, build plan for this query.";
+    } else {
+        // FMA_DBG_STREAM(Logger())
+        //     << "Hit execution plan cache.";
+    }
+    elapsed.t_compile = fma_common::GetTime() - t0;
+    plan->DumpGraph();
+    plan->DumpPlan(0, false);
+    if (!plan->ReadOnly() && ctx->optimistic_) {
+        while (1) {
+            try {
+                plan->Execute(ctx);
+                break;
+            } catch (lgraph::TxnCommitException &e) {
+                FMA_DBG_STREAM(Logger()) << e.what();
+            }
+        }
+    } else {
+        plan->Execute(ctx);
+    }
+    elapsed.t_total = fma_common::GetTime() - t0;
+    elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
+    if (plan->CommandType() == CmdType::PROFILE) {
+        ctx->result_info_ = std::make_unique<ResultInfo>();
+        ctx->result_ = std::make_unique<lgraph::Result>();
+        ctx->result_->ResetHeader({{"@profile", lgraph::ResultElementType::FIELD}});
+
+        auto &r = ctx->result_->NewRecord();
+        r.Insert("@profile", lgraph::FieldData(plan->DumpGraph()));
+        return;
+    } else {
+        /* promote priority of the recent plan
+         * OR add the plan to the plan cache.  */
+        // tls_plan_cache.Put(script, plan);
+        // FMA_DBG_STREAM(Logger())
+        //     << "Current Plan Cache (tid" << std::this_thread::get_id() << "):";
+        // for (auto &p : tls_plan_cache.List())
+        //     FMA_DBG_STREAM(Logger()) << p.first << "\n";
+        // return;
+    }
+}
+
+bool Scheduler::DetermineReadOnly(const std::string &script) {
+    using namespace parser;
+    using namespace antlr4;
+    ANTLRInputStream input(script);
+    LcypherLexer lexer(&input);
+    CommonTokenStream tokens(&lexer);
+    LcypherParser parser(&tokens);
+    /* We can set ErrorHandler here.
+     * setErrorHandler(std::make_shared<BailErrorStrategy>());
+     * add customized ErrorListener  */
+    parser.addErrorListener(&CypherErrorListener::INSTANCE);
+    tree::ParseTree *tree = parser.oC_Cypher();
+    CypherBaseVisitor visitor = CypherBaseVisitor();
+    visitor.visit(tree);
+    for (const auto &sq : visitor.GetQuery()) {
+        if (!sq.ReadOnly()) return false;
+    }
+    return true;
+}
+
+//    ResultSet Scheduler::Eval(
+//            const std::shared_ptr<cypher::ExecutionPlan> &plan,
+//            lgraph::PluginManager *plugin_manager,
+//            lgraph::StateMachine *state_machine,
+//            cypher::PARAM_TAB *param_tab,
+//            double &elapsed)
+//    {
+//        // TODO: store script in the plan so we can track the task name
+//        lgraph::AutoTaskTracker task_tracker("[CYPHER_WITH_PARAM]");
+//        auto t0 = fma_common::GetTime();
+//        plan->Reset();
+//        plan->SetContext(param_tab, plugin_manager, state_machine);
+//        plan->Execute();
+//        elapsed = fma_common::GetTime() - t0;
+//        plan->DumpGraph();
+//        plan->DumpPlan();
+//        FMA_DBG_STREAM(Logger()) << "Current Plan Cache (" << _plan_cache.List().size() << "):";
+//        for (auto &p : _plan_cache.List()) FMA_DBG_STREAM(Logger()) << p.first << "\n";
+//        auto result = plan->GetResultSet();
+//        return result;
+//    }
+}  // namespace cypher

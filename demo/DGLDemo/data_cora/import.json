@@ -1,0 +1,70 @@
+{
+  "schema": [
+    {
+      "label": "paper",
+      "type": "VERTEX",
+      "primary": "id",
+      "properties": [
+        {
+          "name": "id",
+          "type": "INT32"
+        },
+        {
+          "name": "features",
+          "type": "STRING"
+        },
+        {
+          "name": "label",
+          "type": "INT32"
+        },
+        {
+          "name": "train_mask",
+          "type": "BOOL"
+        },
+        {
+          "name": "val_mask",
+          "type": "BOOL"
+        },
+        {
+          "name": "test_mask",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "label": "reference",
+      "type": "EDGE",
+      "properties": [
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "data_cora/vertices",
+      "format": "CSV",
+      "label": "paper",
+      "header": 0,
+      "columns": [
+        "id",
+        "features",
+        "label",
+        "train_mask",
+        "val_mask",
+        "test_mask"
+      ]
+    },
+    {
+      "path": "data_cora/edges",
+      "format": "CSV",
+      "label": "reference",
+      "header": 0,
+      "SRC_ID": "paper",
+      "DST_ID": "paper",
+      "columns": [
+        "SRC_ID",
+        "DST_ID"
+      ]
+    }
+  ]
+}
+

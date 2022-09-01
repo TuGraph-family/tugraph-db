@@ -1,0 +1,116 @@
+#!/usr/bin/python
+
+import sys
+import os
+import subprocess
+import json
+import getpass
+import shutil
+
+def print_usage():
+    print('Usage: lgraph [server|python|import|peek|plugin [list|install]]')
+    sys.exit()
+
+if len(sys.argv) <= 1:
+    print_usage()
+
+lgraph_env = os.environ.copy()
+lgraph_env['LD_LIBRARY_PATH'] = '/usr/local/lib64:' + lgraph_env.get('LD_LIBRARY_PATH', '')
+lgraph_env['PYTHONPATH'] = '/usr/local/lib64:' + lgraph_env.get('PYTHONPATH', '')
+
+cmd = sys.argv[1]
+
+if cmd == 'server':
+    p = subprocess.Popen(['lgraph_server', '-c', '/usr/local/etc/lgraph.json'] + sys.argv[2:], env=lgraph_env)
+elif cmd == 'python':
+    p = subprocess.Popen(['python3'] + sys.argv[2:], env=lgraph_env)
+elif cmd == 'import':
+    p = subprocess.Popen(['lgraph_import'] + sys.argv[2:], env=lgraph_env)
+elif cmd == 'peek':
+    p = subprocess.Popen(['lgraph_peek'] + sys.argv[2:], env=lgraph_env)
+elif cmd == 'plugin':
+    if len(sys.argv) <= 2:
+        print_usage()
+    try:
+        config = json.loads(open('/usr/local/etc/lgraph.json').read())
+    except:
+        print('Configuration JSON parse error')
+        sys.exit()
+    try:
+        import requests
+    except:
+        print('Please install the "requests" (python) library first')
+        sys.exit()
+    host = config.get('host', '0.0.0.0')
+    port = config.get('port', 7070)
+    root = 'http://%s:%s/db/' % (host, port)
+    sub_cmd = sys.argv[2]
+    username = raw_input('Username: ')
+    password = getpass.getpass('Password: ')
+    basic_auth = requests.auth.HTTPBasicAuth(username, password)
+    if sub_cmd == 'list':
+        try:
+            res = requests.get(url='%s/cpp_plugin' % root, auth=basic_auth)
+            output = ''
+            output += 'cpp_plugin/\n'
+            for name in res.json()['procedures']:
+                output += '\t%s\n' % name
+            res = requests.get(url='%s/python_plugin' % root, auth=basic_auth)
+            output += 'python_plugin/\n'
+            for name in res.json()['procedures']:
+                output += '\t%s\n' % name
+            print(output)
+        except:
+            print('Failed to list installed plugins')
+    elif sub_cmd == 'install':
+        if len(sys.argv) <= 3:
+            print('Please specify the file to install (*.cpp|*.py)')
+            sys.exit()
+        filename = sys.argv[3]
+        if not os.path.exists(filename):
+            print('The file does not exist')
+            sys.exit()
+        name = os.path.splitext(os.path.basename(filename))[0]
+        if filename.endswith('.cpp'):
+            include_dir = '/usr/local/include/lgraph'
+            library_dir = '/usr/local/lib64'
+            plugin_dir = config.get('cpp_plugin', '/usr/local/lib64/lgraph/cpp_plugin')
+            p = subprocess.Popen(['g++', '-fPIC', '-g', '--std=c++11', '-I%s' % os.path.dirname(filename), '-I%s' % include_dir, '-rdynamic', '-O3', '-fopenmp', '-o', '/tmp/%s.so' % name, filename, '%s/liblgraph.so' % library_dir, '-L%s' % plugin_dir, '-shared'])
+            c = p.wait()
+            if c!=0:
+                print('Compilation failed')
+                sys.exit()
+            target = '%s/%s.so' % (plugin_dir, name)
+            if os.path.exists(target):
+                os.remove(target)
+            shutil.move('/tmp/%s.so' % name, plugin_dir)
+            res = requests.patch(url='%s/cpp_plugin' % root, auth=basic_auth, json={'action':'load', 'name':name})
+            try:
+                ok = res.json()['ok']
+                print('C++ plugin "%s" successfully installed' % name)
+            except:
+                print('Installation failed: %s' % res.json()['exception'])
+        elif filename.endswith('.py'):
+            plugin_dir = config.get('python_plugin', '/usr/local/lib64/lgraph/python_plugin')
+            shutil.copy(filename, plugin_dir)
+            res = requests.patch(url='%s/python_plugin' % root, auth=basic_auth, json={'action':'load', 'name':name})
+            try:
+                ok = res.json()['ok']
+                print('Python plugin "%s" successfully installed' % name)
+            except:
+                print('Installation failed: %s' % res.json()['exception'])
+        else:
+            print('The file extension should be either cpp or py')
+            sys.exit()
+    else:
+        print('Unknown command')
+    sys.exit()
+else:
+    print_usage()
+
+while True:
+    try:
+        p.wait()
+        break
+    except KeyboardInterrupt:
+        pass

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+IFS=' '
+z40=0000000000000000000000000000000000000000
+
+echo "Perform cpp code linting"
+DIR=$(dirname "$(readlink -f "$0")")
+LINTER="$DIR/cpplint.py"
+while read local_ref local_sha remote_ref remote_sha;
+do
+    if [ "$local_sha" = $z40 ]; then
+        # Handle delete
+        continue
+    elif [ "$remote_sha" = $z40 ]; then
+        # New branch, get upstream branch name
+        range=`git rev-parse --abbrev-ref @{u} &>/dev/null`
+        if [ $? -ne 0 ]; then
+            range="HEAD^"
+        fi
+    else
+        # Update to existing branch
+        range="$remote_sha $local_sha"
+    fi
+    CHANGED_FILES=`git diff --name-only --diff-filter=d $range | grep '\.\(c\|cpp\|h\|hpp\|inl\)$' | grep -v 'deps/'`
+    if [ ! -z "$CHANGED_FILES" -a "$CHANGED_FILES" != " " ]; then
+        echo $CHANGED_FILES | xargs python3 $LINTER
+        RET=$?
+        if [ $RET -ne 0 ]; then
+            echo "Style check error, please fix them before pushing to the repo."
+            exit $RET
+        fi
+    fi
+done

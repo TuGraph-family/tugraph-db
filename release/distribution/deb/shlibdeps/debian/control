@@ -1,0 +1,11 @@
+Source: lgraph
+Package: lgraph
+Version: 1.3.1
+Section: database
+Priority: optional
+Depends:
+Suggests:
+Architecture: amd64
+Homepage: https://fma.ai
+Maintainer: wangtao <wangtao.waves@gmail.com>
+Description: LightningGraph. Built by wangtao.

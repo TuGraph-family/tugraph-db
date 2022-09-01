@@ -1,0 +1,1 @@
+MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->(t:vertex {uri:'brick$Zone_Temperature_Sensor'}) USING START ON t RETURN DISTINCT sensor.uri

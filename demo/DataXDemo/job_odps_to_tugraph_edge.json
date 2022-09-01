@@ -1,0 +1,65 @@
+{
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 1
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "odpsreader",
+          "parameter": {
+            "accessId": "accessId",
+            "accessKey": "accessKey",
+            "project": "project",
+            "table": "edgetable",
+            "column": [
+              "src",
+              "dst",
+              "timestamp"
+            ],
+            "splitMode": "record",
+            "odpsServer": "http://service.cn-beijing.maxcompute.aliyun.com/api",
+            "tunnelServer": "http://dt.odps.aliyun.com"
+          }
+        },
+        "writer": {
+          "name": "tugraphwriter",
+          "parameter": {
+            "host": "127.0.0.1",
+            "port": 7071,
+            "username": "admin",
+            "password": "73@TuGraph",
+            "graphName": "default",
+            "schema": [
+              {
+                "label": "likes",
+                "type": "EDGE",
+                "properties": [
+                  {
+                    "name": "timestamp",
+                    "type": "datetime"
+                  }
+                ]
+              }
+            ],
+            "files": [
+              {
+                "label": "likes",
+                "format": "JSON",
+                "SRC_ID": "person",
+                "DST_ID": "person",
+                "columns": [
+                  "SRC_ID",
+                  "DST_ID",
+                  "timestamp"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

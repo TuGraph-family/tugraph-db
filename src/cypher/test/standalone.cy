@@ -1,0 +1,2 @@
+CALL db.labels
+

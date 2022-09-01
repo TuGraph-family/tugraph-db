@@ -1,0 +1,52 @@
+{
+  "title": "cypher plan validate",
+  "description": "validate file used to check cypher plan opt",
+  "testCases": [
+    {
+      "dataset": "yago",
+      "querys": {
+        "vid": [
+          {
+            "query": "MATCH (n) WHERE id(n)=10 RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node By Id Seek[10,]\n",
+            "res": 1
+          },
+          {
+            "query": "MATCH (n) WHERE id(n) IN [1,2,4] RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node By Id Seek[1,2,4,]\n",
+            "res": 3
+          },
+          {
+            "query": "MATCH (n) WHERE id(n)=1 OR id(n)=3 OR id(n)=4 OR id(n)=18 OR id(n)=1111 RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node By Id Seek[1,3,4,18,1111,]\n",
+            "res": 4
+          }
+        ],
+        "uid": [
+          {
+            "query": "MATCH (n) where n.name=\"Rachel Kempson\" RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,]\n",
+            "res": 1
+          },
+          {
+            "query": "MATCH (n) where n.name in [\"Rachel Kempson\",\"Dennis Quaid\",\"none\"] RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,none,]\n",
+            "res": 2
+          },
+          {
+            "query": "MATCH (n) where n.name =\"Rachel Kempson\" or n.name= \"Dennis Quaid\" or n.name=\"none\" RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,none,]\n",
+            "res": 2
+          }
+        ],
+        "list": [
+          {
+            "query": "MATCH (n) RETURN id(n),label(n),properties(n);",
+            "plan": "Execution Plan:\nProduce Results\n    Project [id(n),label(n),properties(n)]\n        All Node Scan [n]\n",
+            "res": 21
+          }
+        ]
+      }
+    }
+  ]
+}

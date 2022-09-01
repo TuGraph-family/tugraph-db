@@ -1,0 +1,115 @@
+= Lcypher: Cypher for TuGraph
+
+== openCypher
+The Cypher Query Language Reference, Grammar specification, etc. we use are derived from openCypher. To learn more, please visit:
+
+* http://www.opencypher.org[openCypher official]
+* https://github.com/opencypher/openCypher.git[openCypher github]
+
+The version we use is openCypher v1.0.0-M09 (now May 2018).
+
+== Grammer
+=== Difference between Lcypher & Cypher
+* Label Number.
++
+Lcypher: Each node/relationship must has one and only one label. So error occurs when there is no label, and
+the 1st label will be picked as the label if there are more than one labels. +
+Cypher: One node/relationship may have 0 to many labels.
+* Label in NodePattern.
++
+Lcypher: Label is necessary in NodePattern. e.g.
++
+[source, cypher]
+----
+  MATCH (tom:Person {name: "Tom Hanks"}) RETURN tom
+----
++
+Cypher: Label(s) are not necessary. e.g.
++
+[source, cypher]
+----
+  MATCH (tom {name: "Tom Hanks"}) RETURN tom
+----
+* Schema.
++
+Lcypher: TuGraph has strong schema (for now, May 2018) +
+Cypher: Neo4j is schema-less
+
+=== Difference between Lcypher.g4 & https://s3.amazonaws.com/artifacts.opencypher.org/Cypher.g4[Cypher.g4]
+* Rename lexer rule 'NULL' to 'NULL_'.
++
+While it's ok when generating Java target, the C++ target goes wrong
+with 'NULL' (for NULL is a keyword of C/C++)
+* Hints
++
+Lcypher extends oC_Hint to OpenCypher.
+* [Note] "call" in "match"
++
+The following queries will cause parse exception while they *should not*:
++
+[source, cypher]
+----
+MATCH (v:call) RETURN v
+MATCH (v1)-[:call]->(v2) RETURN v2
+----
++
+`adaptivePredict` in `LcypherParser::oC_SingleQuery` throws exception.
+
+== Implementation
+=== Difference between TuGraph & Neo4j
+* Contain Self.
++
+TuGraph: In the following example, results contain _tom_ itself.
++
+[source, cypher]
+----
+MATCH (tom:Person {name:"Tom Hanks"})-[:ACTED_IN]->(m)<-[:ACTED_IN]-(coActors) RETURN coActors.name
+----
++
+Neo4j: Not so.
+* Return Object.
++
+When answering return objects(like 'RETURN tom'), Neo4j returns the whole data of the object, while TuGraph returns the IDs (vertex_id/<src_vid_, dst_vid, edge_id>).
+* Variables duplicated declaration. For syntax see Reference Section "Expressions, variables and parameters".
++
+Neo4j allows some forms of re-declarations, e.g.
++
+[source, cypher]
+----
+// the following statement causes SyntaxError
+CREATE (nm:Person {name:'Lana Wachowski', born:1965})
+CREATE (nm:Person {name:'Joel Silver', born:1952})
+
+// the following statement works fine
+MATCH (nm {born: 1967}),(nm {name: "Meg Ryan"}) RETURN nm
+----
++
+Lcypher prohibits all forms of re-declarations.
+* Expand Into [todo]
++
+https://neo4j.com/docs/developer-manual/current/cypher/execution-plans/operators/#query-plan-expand-into[Neo4j]:
+When both the start and end node have already been found, the Expand(Into) operator is used to find all relationships connecting the two nodes.
+(when there is circle in pattern graph)
++
+TuGraph: Looks like `Expand(ALL)` + `NodeHashJoin` in Neo4j.
+
+== Benchmark
+=== create
+
+Configuration:
+
+* 1 thread @lt22, nvme
+* batch: 1024
+* durable: false
+* vertexes: 64k
+* edges: 512k
+
+.create performance
+[%header,format=csv]
+|===
+Operation,Speed,Elapsed Time,Parse Time,Visit Time
+create vertex,12.5kops,5.20s,2.96s(57%),43%
+create vertex & edge,20.6kops,25.4s,14.2s(56%),44%
+create vertex(empty visitor),20kops,3.25s,2.99s,0.26s
+create vertex & edge(empty visitor),33kops,15.8s,14.2s,1.6s
+|===

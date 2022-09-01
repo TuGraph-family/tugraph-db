@@ -1,0 +1,12 @@
+*.so
+*.pyc
+client
+server
+test_server
+LightningGraph.cpp
+LightningGraph.h
+LightningGraph_server.skeleton.cpp
+protocol_constants.cpp
+protocol_constants.h
+protocol_types.cpp
+protocol_types.h

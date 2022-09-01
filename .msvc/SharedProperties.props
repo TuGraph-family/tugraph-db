@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>LGRAPH_USE_MOCK_KV=0;BOOST_USE_WINDOWS_H=1;_ENABLE_EXTENDED_ALIGNED_STORAGE=1;NOMINMAX=1;_MBCS;_TURN_OFF_PLATFORM_STRING=1;_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING=1;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)../include;$(SolutionDir)../deps/jwt-cpp/include;$(SolutionDir)../deps/fma-common;$(SolutionDir)../deps;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

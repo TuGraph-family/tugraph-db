@@ -1,0 +1,19 @@
+{
+    "directory" : "/var/lib/lgraph/data",
+    "license" : "/var/lib/lgraph/fma.lic",
+
+    "host" : "0.0.0.0",
+    "port" : 7070,
+    "rpc_port" : 9090,
+    "enable_rpc" : true,
+    "enable_ha" : false,
+
+    "verbose" : 1,
+    "log_dir" : "/var/log/lgraph_log",
+
+    "disable_auth" : false,
+    "ssl_auth" : false,
+    "server_key" : "/usr/local/etc/lgraph/server-key.pem",
+    "server_cert" : "/usr/local/etc/lgraph/server-cert.pem",
+    "web" : "/usr/local/share/lgraph/resource"
+}

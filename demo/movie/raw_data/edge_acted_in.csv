@@ -1,0 +1,667 @@
+LABEL=acted_in,SRC_LABEL=person,DST_LABEL=movie
+id:INT32:SRC_ID,id:INT32:DST_ID,role:STRING
+2,1,Morpheus
+2,28,Morpheus
+2,68,Morpheus
+3,1,Trinity
+3,28,Trinity
+3,68,Trinity
+4,130,Old Salty Dog / Mr. Meeks / Prescient 1
+4,1,Agent Smith
+4,28,Agent Smith
+4,68,Agent Smith
+4,641,Elrond
+4,698,Elrond
+4,797,Elrond
+5,1,Oracle
+5,28,Oracle
+6,1,Cypher
+7,1,Tank
+8,1,Mouse
+9,1,Dozer
+10,1,Neo
+10,28,Neo
+10,68,Neo
+11,1,White Rabbit Girl
+12,1,Spoon Boy
+29,28,The Architect
+29,68,The Architect
+30,28,The Merovingian
+30,68,The Merovingian
+31,28,Persephone
+31,68,Persephone
+32,28,Twin #2
+33,28,Twin #1
+34,28,Agent Johnson
+35,28,Captain Ballard
+35,68,Captain Ballard
+36,28,The Keymaker
+36,68,The Keymaker
+37,28,Commander Lock
+37,68,Commander Lock
+38,28,Seraph
+38,68,Seraph
+39,28,Councillor West
+39,68,Councillor West
+40,28,Niobe
+40,68,Niobe
+41,28,Zee
+41,68,Zee
+42,28,Soren
+43,28,Security Guard #5
+44,28,Maitre D'
+45,28,Councillor Dillard
+46,28,Link
+46,68,Link
+47,28,Cas
+47,68,Cas
+48,28,Kid
+49,28,Axel
+50,28,Rama-Kandra
+50,68,Rama-Kandra
+51,28,Councillor Hamann
+69,68,Oracle
+83,82,Butch Coolidge
+84,82,Vincent Vega
+85,82,Jules Winfield
+85,781,Stacks Edwards
+85,1412,Pat Novak
+85,2055,Nick Fury
+86,82,Wolf
+87,82,Mia Wallace
+88,82,Lance
+89,82,Marsellus Wallace
+90,82,Pumpkin
+91,82,Honey Bunny
+92,82,Fabienne
+93,82,Zed
+93,2767,Redfoot the Fence
+94,82,Jody
+95,82,Maynard
+96,82,Brett
+97,82,Buddy Holly
+97,3106,Carl Showalter
+98,82,Captain Koons
+99,82,Raquel
+100,82,Jimmie Dimmick
+101,82,Man No. 4
+102,82,Trudi
+103,82,Marvin
+104,82,Roger
+105,82,Dean Martin
+106,82,Long Hair Yuppy Scum
+107,82,Hit-and-run Witness
+109,750,Martini
+109,2398,The Lorax (voice)
+131,130,Old Salty Dog / Mr. Meeks / Prescient 1
+131,770,Forrest Gump
+132,130,Old Salty Dog / Mr. Meeks / Prescient 1
+133,130,Old Salty Dog / Mr. Meeks / Prescient 1
+133,3624,Denis Thatcher
+134,130,Madame Horrox / Older Ursula / Yusouf Suleiman / Abbess
+135,130,Rev. Giles Horrox / Hotel Heavy / Lloyd Hooks / Denholme Cavendish / Seer Rhee / Kona Chief
+136,130,Old Salty Dog / Mr. Meeks / Prescient 1
+137,130,Old Salty Dog / Mr. Meeks / Prescient 1
+138,130,Old Salty Dog / Mr. Meeks / Prescient 1
+139,130,Adam Ewing / Poor Hotel Guest / Megan's Dad / Highlander / Hae-Joo Chang / Adam / Zachry Brother-in-Law
+140,130,Cabin Boy / Robert Frobisher / Store Clerk / Georgette / Tribesman
+141,130,Talbot / Hotel Manager / Yoona-939 / Rose
+142,130,Autua / Lester Rey / Duophsyte
+143,130,Old Salty Dog / Mr. Meeks / Prescient 1
+144,130,Mr. Boerhaave / Guard / Leary the Healer
+458,457,Andy Dufresne
+459,457,Ellis Boyd 'Red' Redding
+459,532,Lucius Fox
+459,564,Fox
+459,1366,Vitruvius (voice)
+460,457,Warden Samuel Norton
+461,457,Heywood
+462,457,Captain Byron T. Hadley
+463,457,Tommy
+464,457,Bogs Diamond
+465,457,Brooks Hatlen
+472,471,Don Vito Corleone
+473,471,Michael Corleone
+473,496,Don Michael Corleone
+474,471,Santino 'Sonny' Corleone
+474,496,Sonny Corleone
+475,471,Pete Clemenza
+476,471,Tom Hagen
+476,496,Tom Hagen
+477,471,Capt. Mark McCluskey
+478,471,Emilio Barzini
+479,471,Virgil 'Der Türke' Sollozzo
+480,471,Kay Adams
+480,496,Kay Corleone
+481,471,Salvatore "Sally" Tessio
+482,471,Connie Corleone Rizzi
+482,496,Connie Corleone
+483,471,Carlo Rizzi
+484,471,Fredo Corleone
+484,496,Fredo Corleone
+485,471,Jack Woltz
+486,471,Carmine Cuneo
+487,471,Johnny Fontane
+488,471,Apollonia Vitelli-Corleone
+489,471,Moe Greene
+490,471,Baby in baptism scene
+497,496,Vito Corleone
+497,781,Jimmy Conway
+497,1118,Victor Tellegio
+497,3680,Al Capone
+498,496,Hyman Roth
+499,496,Frankie Pentangeli
+500,496,Senator Pat Geary
+501,496,Al Neri
+502,496,Don Fanucci
+503,496,Young Clemenza (as B. Kirby Jr.)
+504,496,Genco
+504,781,Frankie Carbone
+505,496,Deanna Corleone (as Mariana Hill)
+506,496,Johnny Ola
+507,496,Mrs. Marcia Roth
+508,496,F.B.I. Man #1
+508,2055,Security Guard
+509,496,Tony Rosato
+510,496,Senator #2
+510,3252,FBI Director Hayden Burke
+518,517,Tuco
+519,517,Blondie
+520,517,Sentenza/Angel Eyes
+521,517,Alcoholic Union Captain
+522,517,Member of Angel Eyes' Gang
+523,517,Cpl. Wallace
+533,532,Joker
+534,532,Rachel Dawes
+535,532,Harvey Dent
+536,532,Lt. James Gordon
+536,564,Commissioner Gordon
+536,1412,Norton
+537,737,Miles
+537,532,Alfred
+537,564,Jen
+538,737,Robert Fischer
+538,532,Scarecrow
+538,564,Dr. Jonathan Crane / Scarecrow
+539,532,Bruce Wayne
+539,564,Bruce Wayne / Batman
+539,1118,Irving Rosenfeld
+540,532,Engel
+541,532,Mayor of Gotham
+541,564,The Mayor
+542,532,The bank manager
+542,1768,John Carlyle
+543,532,Lau
+544,532,Salvatore Maroni
+545,532,Barbara Gordon
+546,532,Chechen
+547,532,Stephen
+548,532,Loeb
+565,564,Selina Kyle
+566,737,Eames
+566,564,Bane
+567,737,Arthur
+567,564,Blake
+568,564,Jen
+569,737,Mal
+569,564,Miranda
+570,564,Young Ra's Al Ghul
+571,564,Chanter (voice)
+572,564,Prisoner
+573,564,Deputy Commissioner Foley
+574,564,Young Talia Al Ghul
+575,564,Dr. Pavel (as Alon Moni Aboutboul)
+576,598,Oskar Schindler
+576,564,Ra's Al Ghul
+576,1366,Bad Cop/Good cop (voice)
+577,564,Mercenary Security #1
+578,564,Daggett
+579,564,Captain Jones
+580,564,CIA Op
+599,598,Itzhak Stern
+599,2885,Georges Méliès
+600,598,Amon Goeth
+601,598,Emilie Schindler
+602,598,Helen Hirsch
+603,598,Julian Scherner
+604,598,Rolf Czurda
+605,598,Herman Toffel
+606,598,Mr. Nussbaum
+616,615,Juror 8
+617,615,Juror 3
+618,615,Juror 10
+619,615,Juror 4
+620,615,Juror 7
+621,615,Juror 1
+622,615,Juror 2
+623,615,Juror 5
+624,615,Juror 6
+625,615,Juror 11
+626,615,Juror 12
+642,641,Frodo Baggins
+642,698,Frodo Baggins
+642,797,Frodo Baggins
+643,641,Gandalf the White
+643,698,Gandalf the Grey
+643,797,Gandalf the White
+644,641,Aragorn
+644,698,Aragorn
+644,797,Aragorn
+645,641,Arwen Evenstar
+645,698,Arwen Evenstar
+645,797,Arwen Evenstar
+646,641,Legolas
+646,698,Legolas
+646,797,Legolas
+647,641,Gimli & Treebeard (Voice)
+647,698,Gimli
+647,797,Gimli / Voice of Treebeard
+648,641,Sam Gamgee
+648,698,Samwise 'Sam' Gamgee
+648,797,Sam Gamgee
+649,641,Peregrin 'Pippin' Took
+649,698,Peregrin 'Pippin' Took
+649,797,Peregrin 'Pippin' Took
+650,641,Meriadoc 'Merry' Brandybuck
+650,698,Meriadoc 'Merry' Brandybuck
+650,797,Meriadoc 'Merry' Brandybuck
+651,641,Théoden King of Rohan
+651,797,Théoden
+652,641,Gollum
+652,698,Gollum
+652,797,Gollum
+653,641,Éowyn
+653,797,Éowyn
+654,641,Faramir
+654,797,Faramir
+654,1097,Dillios
+655,641,Éomer
+655,797,Éomer
+656,641,Denethor
+657,641,Bilbo Baggins
+657,698,Bilbo Baggins
+658,641,Galadriel
+658,698,Galadriel
+658,797,Galadriel
+658,1356,Rose Valland
+659,641,Gothmog & Witchking of Angmar
+659,698,Lurtz
+660,641,King of the Dead
+661,641,Rosie Cotton
+661,698,Rose 'Rosie' Cotton
+662,641,Boromir
+662,698,Boromir
+662,797,Boromir
+663,641,Celeborn
+663,698,Celeborn
+682,681,The Narrator
+683,681,Tyler Durden
+683,1693,Bass
+684,681,Marla Singer
+684,3390,Queen Elizabeth
+685,681,Robert 'Bob' Paulson
+686,681,Angel Face
+686,1596,Rayon
+687,681,Richard Chesler
+688,681,The Mechanic
+689,681,Ricky
+699,698,Saruman
+699,797,Saruman
+699,2885,Monsieur Labisse
+700,698,Haldir
+700,797,Haldir
+711,710,Luke Skywalker
+711,805,Luke Skywalker
+712,710,Han Solo
+712,805,Han Solo
+713,710,Princess Leia
+713,805,Leia Organa
+714,710,Darth Vader
+714,805,Darth Vader
+715,710,Lando Calrissian
+716,710,C-3PO
+716,805,C-3PO
+716,1366,C-3PO (voice)
+717,710,Chewbacca
+717,805,Chewbacca
+718,710,Darth Vader (Voice)
+718,805,Darth Vader (voice)
+719,710,R2-D2
+719,805,R2-D2
+720,710,Yoda (Voice)
+721,710,Ben 'Obi-wan' Kenobi
+721,805,Obi-Wan Kenobi
+722,710,Imperial Force General Veers
+723,710,Rebel Force Major Derlin
+738,737,Cobb
+739,737,Saito
+740,737,Ariadne
+741,737,Browning
+742,737,Nash
+743,737,Yusuf
+744,737,Maurice Fischer
+744,2654,William Crowthorn
+744,2767,Kobayashi
+745,737,Blonde
+751,750,Randle Patrick McMurphy
+752,750,Nurse Mildred Ratched
+753,750,Harding
+754,750,Orderly Turkle
+755,750,Billy Bibbit
+755,797,Gríma Wormtongue
+756,750,Taber
+757,750,Chief Bromden
+758,750,Ellis
+759,750,Jim Sefelt
+760,750,Fredrickson
+771,770,Jenny Curran
+771,2498,Wealthow
+772,770,Lt. Dan Taylor
+773,770,Pvt. Benjamin Buford 'Bubba' Blue
+774,770,Mrs. Gump
+775,770,Young Forrest Gump
+782,781,Henry Hill
+783,781,Tommy DeVito
+784,781,Karen Hill
+785,781,Sonny Bunz
+786,781,Frenchy
+787,781,Billy Batts
+788,781,Sandy
+789,781,Spider
+790,781,Paul Cicero
+798,797,Freda
+806,805,Grand Moff Tarkin
+807,805,Uncle Owen
+808,805,Aunt Beru
+809,805,Advisor to Grand Moff Tarkin
+810,805,Jek Tono Porkins (Red Six)
+811,805,Lt. Shann Childsen
+812,805,General Willard
+813,805,Red Two (Wedge) (as Dennis Lawson)
+814,805,Red Three (Biggs)
+815,805,Death Star Trooper (uncredited)
+1073,1096,Vivi Delay
+1074,1096,Ethan Runner
+1074,3680,Eliot Ness
+1075,1096,Zoey Renner
+1076,1096,Christine Renner
+1098,1097,Artemisia
+1099,1097,Queen Gorgo
+1100,1097,Scylias
+1101,1097,Xerxes
+1102,1097,Calisto
+1103,1097,Ephialtes
+1104,1097,Daxos
+1105,1097,Aesyklos
+1119,1118,Richie DiMaso
+1120,1118,Syndey Prosser
+1120,1550,Amy
+1121,1118,Carmine Polito
+1121,2232,Hansel
+1121,2055,Clint Barton / Hawkeye
+1122,1118,Rosalyn Rosenfeld
+1123,1118,Stoddard Thorsen
+1124,1118,Pete Musane
+1125,1118,Paco Hernandez
+1126,1118,Anthony Amado
+1127,1118,Dolly Polito
+1128,1118,Cosmo Girl
+1129,1118,Abbie Abrams
+1130,1118,Brenda
+1131,1118,Carl Elway
+1132,1118,Irv's Sheik Plant
+1242,1241,Anna (voice)
+1243,1241,Elsa (voice)
+1244,1241,Olaf (voice)
+1245,1241,Duke (voice)
+1246,1241,Pabbie / Grandpa (voice)
+1246,3459,Fletcher
+1247,1241,Oaken (voice)
+1248,1241,Kai (voice)
+1249,1241,Gerda
+1250,1241,Bishop (voice)
+1251,1241,King (voice)
+1294,1293,Dr. Ryan Stone
+1295,1356,George Stout
+1295,1293,Matt Kowalski
+1296,1293,Mission Control (voice)
+1357,1356,James Rorimer
+1357,1768,Max
+1358,1356,Richard Campbell
+1358,3915,Bob Harris
+1359,1356,Walter Garfield
+1360,1356,Donald Jeffries
+1361,1356,Jean Claude Clermont
+1362,1356,Preston Savitz
+1363,1356,Sam Epstein
+1364,1356,Commander Elya
+1367,1366,Wonder Woman (voice)
+1367,2055,Agent Maria Hill
+1368,1366,Superman (voice)
+1369,1366,Green Lantern (voice)
+1370,1366,Wyldstyle (voice)
+1371,1366,President Business (voice)
+1372,1366,Emmet (voice)
+1372,1550,Paul
+1373,1366,Batman (voice)
+1374,1366,Uni-Kitty (voice)
+1375,1366,Craggy (voice)
+1376,1366,Spaceman Benny (voice)
+1377,1366,Wally (voice)
+1378,1366,Abraham Lincoln (voice)
+1413,1412,RoboCop
+1414,1412,Raymond Sellars
+1415,1412,Pope
+1416,1412,Ellen Murphy
+1417,1412,Maddox
+1418,1412,Liz Kline
+1418,3390,Myrtle Logue
+1419,1412,Karen Dean
+1420,1412,Kim
+1551,1550,Theodore
+1552,1550,Samantha (voice)
+1552,2055,Natasha Romanoff / Black Widow
+1552,3915,Charlotte
+1553,1550,Catherine
+1554,1550,Blind Date
+1555,1550,Isabella
+1556,1550,Dr. Johnson
+1557,1550,Alien Child
+1558,1550,Chat Room Friend #2
+1559,1550,Sexy Kitten
+1560,1550,Alan Watts (voice)
+1597,1596,Ron Woodroof
+1598,1596,Dr. Eve Saks
+1599,1596,David Wayne
+1600,1596,Tucker
+1601,1596,T.J.
+1602,1596,Dr. Vass
+1603,1596,Dr. Sevard
+1694,1693,Solomon Northup
+1695,1693,Edwin Epps
+1696,1693,Mistress Epps
+1697,1693,John Tibeats
+1697,3459,Paul Sunday / Eli Sunday
+1698,1693,Ford
+1699,1693,Armsby
+1700,1693,Robert
+1701,1693,Freeman
+1702,1693,Mistress Harriet Shaw
+1703,1693,Hamilton
+1704,1693,Judge Turner
+1753,1768,Delacourt
+1753,3252,Clarice Starling
+1754,1768,Kruger
+1755,1768,Frey
+1756,1768,Julio
+1757,1768,Spider
+1758,1768,President Patel
+1759,1768,Sandro
+1760,1768,Young Max
+1761,1768,Manuel
+1762,1768,(uncredited)
+1763,1768,CCB Agent
+1764,1768,CCB Agent
+1765,1768,Technician
+1857,1856,Nod (voice)
+1858,1856,Mary Katherine (voice)
+1859,1856,Ronin (voice)
+1860,1856,Bomba (voice)
+1861,1856,Mub (voice)
+1862,1856,Queen Tara (voice)
+1863,1856,Taxi Driver (voice)
+1864,1856,Nim Galuu (voice)
+1865,1856,Bufo (voice)
+1866,1856,Mandrake (voice)
+1867,1856,Pinecone Jinn (voice)
+1868,1856,Thistle Jinn (voice)
+1936,1935,Grug (voice)
+1937,1935,Eep (voice)
+1938,1935,Guy (voice)
+1939,1935,Ugga (voice)
+1939,3753,Harper Lee
+1940,1935,Gran (voice)
+1941,1935,Thunk (voice)
+2009,2008,Mr. Peabody
+2010,2008,Sherman
+2011,2008,Penny Peterson
+2012,2008,Mrs. Grunion
+2013,2008,Paula Peterson
+2014,2008,Paul Peterson
+2015,2008,Principal Purdy
+2015,2398,Uncle Ubb (voice)
+2016,2008,Mason
+2017,2008,wooo
+2018,2008,Leonardo Da Vinci
+2019,2008,Patty Pearson
+2056,2055,Tony Stark / Iron Man
+2057,2055,Steve Rogers / Captain America
+2058,2055,Bruce Banner / The Hulk
+2059,2055,Thor
+2060,2055,Loki
+2061,2055,Agent Phil Coulson
+2061,2767,Dr. Walters
+2062,2055,Selvig
+2063,2055,Pepper Potts
+2064,2055,Jarvis (voice)
+2065,2055,World Security Council
+2066,2055,Shield Pilot
+2067,2055,World Security Council
+2068,2055,Old Man in TV Report
+2069,2055,Waitress
+2070,2055,Georgi Luchkov
+2071,2055,Senator Boynton
+2072,2055,Young Cop
+2233,2232,Gretel
+2234,2232,Muriel
+2235,2232,Mina
+2236,2232,Edward
+2237,2232,Berringer
+2237,3106,Gaear Grimsrud
+2238,2232,Horned Witch
+2239,2232,Tall Witch
+2240,2232,Red Haired Witch
+2241,2232,Candy Witch
+2242,2232,Father
+2399,2398,Ted (voice)
+2400,2398,Audrey (voice)
+2401,2398,Once-ler (voice)
+2402,2398,Marta (voice)
+2403,2398,O'Hare
+2404,2398,Grammy Norma (voice)
+2405,2398,Ted's Mom (voice)
+2406,2398,Once-ler's Mom (voice)
+2407,2398,Aunt Grizelda (voice)
+2408,2398,Brett / Chet (voice)
+2423,2422,Mulan (singing voice)
+2424,2422,Mushu (voice)
+2425,2422,Shang (voice)
+2426,2422,Mulan (voice)
+2427,2422,Shan-Yu (voice)
+2428,2422,Yao (voice)
+2429,2422,Grandmother Fa (voice)
+2430,2422,Chi Fu (voice)
+2431,2422,The Matchmaker (voice)
+2432,2422,The Emperor (voice)
+2433,2422,Fa Zhou (voice)
+2434,2422,Shang (singing voice)
+2435,2422,General Li (voice)
+2436,2422,First Ancestor (voice)
+2437,2422,Ling (voice)
+2438,2422,Khan / Cri-Kee (voice)
+2499,2498,Beowulf / Golden Man / Dragon
+2499,2885,Uncle Claude
+2500,2498,Grendel's Mother
+2501,2498,Hrothgar
+2501,3252,Dr. Hannibal Lecter
+2502,2498,Unferth
+2503,2498,Wiglaf
+2504,2498,Grendel
+2505,2498,Ursula
+2506,2498,Garmund
+2507,2498,Wulfgar
+2508,2498,Old Cain
+2509,2498,Eofor
+2655,2654,Solomon Kane
+2656,2654,Katherine Crowthorn
+2657,2654,Father Michael
+2658,2654,Josiah Kane
+2659,2654,Malachi
+2660,2654,Meredith Crowthorn
+2661,2654,Edward Crowthorn
+2662,2654,Devil's Reaper
+2663,2654,Skinhead
+2768,2767,Roger 'Verbal' Kint
+2769,2767,Michael McManus
+2770,2767,Dean Keaton
+2771,2767,Fred Fenster
+2772,2767,Todd Hockney
+2773,2767,Dave Kujan US Customs
+2774,2767,Jack Baer FBI
+2775,2767,Edie Finneran
+2776,2767,Sgt. Jeffrey Jeff Rabin
+2777,2767,Dr. Plummer
+2778,2767,Smuggler
+2886,2885,Hugo Cabret
+2887,2885,Isabelle
+2888,2885,The Station Inspector
+2889,2885,Hugo's Father
+2890,2885,Mama Jeanne
+2891,2885,Rene Rabard
+2892,2885,Lisette
+2893,2885,Madame Emilie
+2894,2885,Monsieur Frick
+3107,3106,Jerry Lundegaard
+3108,3106,Marge Gunderson
+3109,3106,Wade Gustafson
+3110,3106,Norm Gunderson
+3111,3106,Shep Proudfoot
+3253,3252,Ardelia Mapp
+3254,3252,Jack Crawford
+3255,3252,Dr. Frederick Chilton
+3256,3252,Barney Matthews
+3257,3252,Catherine Martin
+3258,3252,Jame Gumb
+3259,3252,Lamar
+3260,3252,Roden
+3261,3252,TV Anchor Man
+3262,3252,Senator Ruth Martin
+3263,3252,Lt. Boyle
+3264,3252,SWAT Commander
+3265,3252,SWAT Communicator
+3266,3252,FBI Agent in Memphis (uncredited)
+3391,3390,King George VI
+3392,3390,Lionel Logue
+3393,3390,King Edward VIII
+3394,3390,Winston Churchill
+3395,3390,King George V
+3396,3390,Archbishop Cosmo Lang
+3397,3390,Wallis Simpson
+3397,3390,Princess Margaret
+3460,3459,Daniel Plainview
+3461,3459,Henry
+3462,3459,H. B. Ailman
+3463,3459,Prescott
+3625,3624,Margaret Thatcher
+3626,3624,Geoffrey Howe
+3627,3624,Young Denis Thatcher

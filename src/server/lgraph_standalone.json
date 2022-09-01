@@ -1,0 +1,12 @@
+{
+  "host": "127.0.0.1",
+  "port": 7071,
+  "enable_rpc": true,
+  "rpc_port": 9091,
+  "verbose": 2,
+  "log_dir": "",
+  "ssl_auth": false,
+  "durable": true,
+  "server_key": "./server-key.pem",
+  "server_cert": "./server-cert.pem"
+}

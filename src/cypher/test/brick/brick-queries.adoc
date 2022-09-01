@@ -1,0 +1,353 @@
+= Brick Queries
+Ant Group <https://fma.ai>
+:Author Initials: WT
+:toc:
+:icons:
+:numbered:
+'''
+'''
+
+== Queries in Cypher
+.brick queries in SPARQL & Cypher (<<hoddb>>)
+|===
+|scenario |SPARQL |Cypher
+|VAV Enum (Building Dashboard)
+
+`rice data, consistent`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?vav WHERE {
+  ?vav rdf:type brick:VAV .
+}
+----
+a|
+[source,cypher]
+----
+MATCH (vav)-[:rdf$type]->({uri:'brick$VAV'})
+RETURN DISTINCT vav.uri
+----
+|Temp Sensors (Building Dashboard, Room Diagnostics)
+
+`rice data, consistent`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?sensor WHERE {
+  ?sensor rdf:type/rdfs:subClassOf* brick:Zone_Temperature_Sensor .
+}
+----
+a|
+[source,cypher]
+----
+MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->({uri:'brick$Zone_Temperature_Sensor'})
+RETURN DISTINCT sensor.uri
+----
+|AHU Children (Building Dashboard)
+
+`rice data, consistent`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?x WHERE {
+  ?ahu rdf:type brick:AHU .
+  ?ahu bf:feeds+ ?x .
+}
+----
+a|
+[source,cypher]
+----
+MATCH ({uri:'brick$AHU'})<-[:rdf$type]-(ahu)-[:bf$feeds*..]->(x)
+RETURN DISTINCT x.uri
+----
+|Spatial Mapping (Building Dashboard)
+
+`rice data, consistent`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?floor ?room ?zone WHERE {
+  ?floor rdf:type brick:Floor .
+  ?room rdf:type brick:Room .
+  ?zone rdf:type brick:HVAC_Zone .
+  ?room bf:isPartOf+ ?floor .
+  ?room bf:isPartOf+ ?zone .
+}
+----
+a|
+[source,cypher]
+----
+MATCH ({uri:'brick$Floor'})<-[:rdf$type]-(floor)-[:bf$hasPart*..]->(room)-[:rdf$type]->({uri:'brick$Room'}),
+({uri:'brick$HVAC_Zone'})<-[:rdf$type]-(zone)-[:bf$hasPart*..]->(room)
+RETURN DISTINCT floor.uri,room.uri,zone.uri
+----
+|Sensors In Rooms (Room Diagnostics)
+
+`rice data, consistent`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?sensor ?room
+WHERE {
+  { ?sensor rdf:type/rdfs:subClassOf* brick:Zone_Temperature_Sensor . }
+  UNION
+  { ?sensor rdf:type/rdfs:subClassOf* brick:Discharge_Air_Temperature_Sensor . }
+  UNION
+  { ?sensor rdf:type/rdfs:subClassOf* brick:Occupancy_Sensor . }
+  UNION
+  { ?sensor rdf:type/rdfs:subClassOf* brick:CO2_Sensor . }
+  ?vav rdf:type brick:VAV .
+  ?zone rdf:type brick:HVAC_Zone .
+  ?room rdf:type brick:Room .
+  ?vav bf:feeds+ ?zone .
+  ?zone bf:hasPart ?room .
+  {?sensor bf:isPointOf ?vav }
+  UNION
+  {?sensor bf:isPointOf ?room }
+}
+----
+a|
+[source,cypher]
+----
+MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->(class)
+      ,({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(zone)-[:rdf$type]->({uri:'brick$HVAC_Zone'})
+      ,(zone)-[:bf$hasPart]->(room)-[:rdf$type]->({uri:'brick$Room'})
+      ,(sensor)<-[:bf$hasPoint]-(vav)
+WHERE class.uri = 'brick$Zone_Temperature_Sensor'
+      OR class.uri = 'brick$Discharge_Air_Temperature_Sensor'
+      OR class.uri = 'brick$Occupancy_Sensor'
+      OR class.uri = 'brick$CO2_Sensor'
+RETURN DISTINCT sensor.uri,room.uri
+UNION
+MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->(class)
+      ,({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(zone)-[:rdf$type]->({uri:'brick$HVAC_Zone'})
+      ,(zone)-[:bf$hasPart]->(room)-[:rdf$type]->({uri:'brick$Room'})
+      ,(sensor)<-[:bf$hasPoint]-(room)
+WHERE class.uri = 'brick$Zone_Temperature_Sensor'
+      OR class.uri = 'brick$Discharge_Air_Temperature_Sensor'
+      OR class.uri = 'brick$Occupancy_Sensor'
+      OR class.uri = 'brick$CO2_Sensor'
+RETURN DISTINCT sensor.uri,room.uri
+----
+|VAV Relships (Building Dashboard)
+
+`[ebu3b, gtc] consistent`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?vav ?x ?y ?z ?a ?b WHERE {
+  ?vav rdf:type brick:VAV .
+  ?vav bf:feeds+ ?x .
+  ?vav bf:isFedBy+ ?y .
+  ?vav bf:hasPoint+ ?z .
+  ?vav bf:hasPart+ ?a .
+}
+----
+a|
+[source,cypher]
+----
+MATCH ({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(x)
+      ,(vav)<-[:bf$feeds*..]-(y)
+      ,(vav)<-[:bf$isPointOf*..]-(z)
+      ,(vav)<-[:bf$isPartOf*..]-(a)
+RETURN DISTINCT vav.uri,x.uri,y.uri,z.uri,a.uri
+----
+|Grey Box (Automatic Grey Box Modeler)
+
+`ghc data, rdflib unfinished`
+a|
+[source,SQL]
+----
+SELECT DISTINCT ?vav ?room ?temp_uuid ?valve_uuid ?setpoint_uuid WHERE {
+  ?vav rdf:type brick:VAV .
+  ?vav bf:hasPoint ?tempsensor .
+  ?tempsensor rdf:type/rdfs:subClassOf* brick:Temperature_Sensor .
+  ?tempsensor bf:uuid ?temp_uuid .
+  ?vav bf:hasPoint ?valvesensor .
+  ?valvesensor rdf:type/rdfs:subClassOf* brick:Valve_Command .
+  ?valvesensor bf:uuid ?valve_uuid .
+  ?vav bf:hasPoint ?setpoint .
+  ?setpoint rdf:type/rdfs:subClassOf* brick:Zone_Temperature_Setpoint .
+  ?setpoint bf:uuid ?setpoint_uuid .
+  ?room rdf:type brick:Room .
+  ?tempsensor bf:isLocatedIn ?room .
+}
+----
+a|
+[source,cypher]
+----
+MATCH ({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$hasPoint]->(tempsensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->({uri:'brick$Temperature_Sensor'})
+      ,(vav)-[:bf$hasPoint]->(valvesensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->({uri:'brick$Valve_Command'})
+      ,(vav)-[:bf$hasPoint]->(setpoint)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->({uri:'brick$Zone_Temperature_Setpoint'})
+      ,(tempsensor)-[:bf$isLocatedIn]->(room)-[:rdf$type]->({uri:'brick$Room'})
+RETURN vav.uri, room.uri, tempsensor.uri, valvesensor.uri, setpoint.uri
+----
+|===
+
+== Rest API
+=== Method 1: Web Root Service
+visit http://{host}:{port}/db
+
+=== Method 2: Curl
+[source,bash]
+----
+# example
+curl -XPOST \
+    'http://0.0.0.0:7078/db/cypher' \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -H 'Authorization: Basic YWRtaW46YWRtaW4xMjM0NTY=' \
+    -d '{"cypher":"MATCH (vav)-[:rdf$type]->({uri:\"brick$VAV\"}) RETURN DISTINCT vav.uri"}'
+
+# cypher strings:
+# 1.
+"MATCH (vav)-[:rdf$type]->({uri:\"brick$VAV\"}) RETURN DISTINCT vav.uri"
+# 2.
+"MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->({uri:\"brick$Zone_Temperature_Sensor\"}) RETURN DISTINCT sensor.uri"
+# 3.
+"MATCH ({uri:\"brick$AHU\"})<-[:rdf$type]->(ahu)-[:bf$feeds*..]->(x) RETURN DISTINCT x.uri"
+# 4.
+"MATCH ({uri:\"brick$Floor\"})<-[:rdf$type]-(floor)-[:bf$hasPart*..]->(room)-[:rdf$type]->({uri:\"brick$Room\"}),({uri:\"brick$HVAC_Zone\"})<-[:rdf$type]-(zone)-[:bf$hasPart*..]->(room) RETURN DISTINCT floor.uri,room.uri,zone.uri"
+# 5.
+<omitted>
+# 6.
+"MATCH ({uri:\"brick$VAV\"})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(x),(vav)<-[:bf$feeds*..]-(y),(vav)<-[:bf$isPointOf*..]-(z),(vav)<-[:bf$isPartOf*..]-(a) RETURN DISTINCT vav.uri,x.uri,y.uri,z.uri,a.uri"
+# 7.
+<omitted>
+----
+
+== Test Result
+=== LightningGraph
+.Query Results (results number)
+[format='csv', options='header']
+|===
+query no.,	rice,	soda,	ebu3b,	gtc,	ghc
+1,	8,	243,	238,	12,	447
+2,	22,	232,	241,	N/A,	316
+3,  8,	480,	476,	208,	1289
+4,	106,	241*,	244*,	57*,	N/A
+5,	254,	232,	261*,	106,	N/A
+6,	N/A,	N/A,	11854,	182844*,	N/A
+7,	N/A,	N/A,	N/A,	N/A,	2
+|===
+
+.Time Consuming (ms, without index)
+[format='csv', options='header']
+|===
+query no.,	rice,	soda,	ebu3b,	gtc,	ghc
+1,	15,	73,	36,	95,	[green]##54##
+2,	39,	54,	[red]##160##,	60,	[red]##240##
+3,  6,	13,	16,	8,	24
+4,	9,	14,	[green]##21##,	16,	14
+5,	[green]##240##,	[green]##320##,	1780,	[red]##530##,	[red]##1940##
+6,	6,	12,	[green]##240##,	[green]*1920*,	[red]##320##
+7,	[green]##10##, [green]##33##,	[green]##13##,	[green]##11##,	[green]##200##
+|===
+TIP: [green]##green## for the elapsed time which is long (>100ms) and much faster than neo4j (>50%),
+and [red]##red## is opposite.
+
+.Time Consuming (ms, with index)
+[format='csv', options='header']
+|===
+query no.,	rice,	soda,	ebu3b,	gtc,	ghc
+1,	0.1,	2,	2,	7,	3
+2,	1,	3,	5,	7,	10
+3,  0.1,	4,	4,	2,	9
+4,	5,	9,	15,	11,	8
+5,	71,	57,	162,	49,	44
+6,	2,	9,	237,	1951,	314
+7,	6,	27,	4,	4,	197
+|===
+
+----
+// query 4
+// soda
+MATCH ({uri:'brick$Floor'})<-[:rdf$type]-(floor)<-[:bf$isPartOf*..]-(room)-[:rdf$type]->({uri:'brick$Room'}),
+({uri:'brick$HVAC_Zone'})<-[:rdf$type]-(zone)-[:bf$hasPart*..]->(room)
+RETURN DISTINCT floor.uri,room.uri,zone.uri
+
+// ebu3b, gtc
+MATCH ({uri:'brick$Floor'})<-[:rdf$type]-(floor)<-[:bf$isPartOf*..]-(room)-[:rdf$type]->({uri:'brick$Room'}),
+({uri:'brick$HVAC_Zone'})<-[:rdf$type]-(zone)<-[:bf$isPartOf*..]-(room)
+RETURN DISTINCT floor.uri,room.uri,zone.uri
+
+// query 5
+// ebu3b
+MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->(class)
+      ,({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(zone)-[:rdf$type]->({uri:'brick$HVAC_Zone'})
+      ,(zone)<-[:bf$isPartOf]-(room)-[:rdf$type]->({uri:'brick$Room'})
+      ,(sensor)-[:bf$isPointOf]->(vav)
+WHERE class.uri = 'brick$Zone_Temperature_Sensor'
+      OR class.uri = 'brick$Discharge_Air_Temperature_Sensor'
+      OR class.uri = 'brick$Occupancy_Sensor'
+      OR class.uri = 'brick$CO2_Sensor'
+RETURN DISTINCT sensor.uri,room.uri
+UNION
+MATCH (sensor)-[:rdf$type]->()-[:rdfs$subClassOf*0..]->(class)
+      ,({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(zone)-[:rdf$type]->({uri:'brick$HVAC_Zone'})
+      ,(zone)<-[:bf$isPartOf]-(room)-[:rdf$type]->({uri:'brick$Room'})
+      ,(sensor)-[:bf$isPointOf]->(room)
+WHERE class.uri = 'brick$Zone_Temperature_Sensor'
+      OR class.uri = 'brick$Discharge_Air_Temperature_Sensor'
+      OR class.uri = 'brick$Occupancy_Sensor'
+      OR class.uri = 'brick$CO2_Sensor'
+RETURN DISTINCT sensor.uri,room.uri
+
+// query 6
+// gtc
+MATCH ({uri:'brick$VAV'})<-[:rdf$type]-(vav)-[:bf$feeds*..]->(x)
+      ,(vav)<-[:bf$feeds*..]-(y)
+      ,(vav)-[:bf$hasPoint*..]->(z)
+      ,(vav)<-[:bf$isPartOf*..]-(a)
+RETURN DISTINCT vav.uri,x.uri,y.uri,z.uri,a.uri
+----
+
+=== Neo4j
+.Time Consuming (ms, without index)
+[format='csv', options='header']
+|===
+query no.,	rice,	soda,	ebu3b,	gtc,	ghc
+1,	76,	69, 81,	74,	120
+2,	39,	34,	49,	33,	60
+3,  20,	49,	51,	55,	90
+4,	76, 55,	123,	58,	22
+5,	1627,	668,	2092,	347,	1142
+6,	17,	20,	328,	13681,	44
+7,	1176, 257,	1494,	1581,	1141
+|===
+
+.Time Consuming (ms, with index)
+[format='csv', options='header']
+|===
+query no.,	rice,	soda,	ebu3b,	gtc,	ghc
+1,	29,	71, 79,	69,	117
+2,	24,	40,	45,	43,	55
+3,  18,	54,	51,	58,	86
+4,	62, 94,	106,	74,	20
+5,	348,	885,	2066,	1592,	982
+6,	17,	24,	390,	14380,	35
+7,	1281, 1520,	1326,	2240,	92
+|===
+TIP: 1. create index by "CREATE INDEX ON :vertex(uri)"
+2. warm-up by "MATCH (n) RETURN n", ignore cached result
+
+=== HodDB (<<hoddb>>)
+.Time Consuming (ms)
+[format='csv', options='header']
+|===
+query no.,	ciee,	sdh,	soda
+1,	4,	5,  6
+2,	4,	5,	6
+3,  4,	6,	8
+4,	4,  9,	15
+5,	5,	10,	31
+6,	4,	26,	42
+7,	6,  26,	38
+|===
+TIP: 1. dataset size: ciee < sdh < soda
+2. take the mean value (μ)
+
+
+.Referrence
+[bibliography]
+[[[hoddb]]] Fierro G, Culler D E. Design and analysis of a query processor for brick[C]//Proceedings of the 4th ACM International Conference on Systems for Energy-Efficient Built Environments. ACM, 2017: 11.

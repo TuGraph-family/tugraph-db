@@ -1,0 +1,224 @@
+﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+
+//
+// Created by wt on 19-11-20.
+//
+#pragma once
+
+#include "core/data_type.h"
+#include "cypher_exception.h"
+
+namespace cypher {
+
+struct FieldData {
+    enum FieldType {
+        SCALAR,
+        ARRAY,
+    } type;
+
+    ::lgraph::FieldData scalar;
+    std::vector<::lgraph::FieldData>* array = nullptr;
+
+    FieldData() : type(SCALAR) {}
+
+    explicit FieldData(const ::lgraph::FieldData& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(::lgraph::FieldData&& rhs) : type(SCALAR), scalar(std::move(rhs)) {}
+
+    explicit FieldData(const std::vector<::lgraph::FieldData>& rhs) {
+        type = ARRAY;
+        array = new std::vector<::lgraph::FieldData>(rhs);
+    }
+
+    explicit FieldData(std::vector<::lgraph::FieldData>&& rhs) {
+        type = ARRAY;
+        array = new std::vector<::lgraph::FieldData>(std::move(rhs));
+    }
+
+    ~FieldData() {
+        if (type == ARRAY) delete array;
+    }
+
+    FieldData(const ::cypher::FieldData& rhs) {
+        type = rhs.type;
+        if (rhs.type == ARRAY) {
+            array = new std::vector<::lgraph::FieldData>(*rhs.array);
+        } else {
+            scalar = rhs.scalar;
+        }
+    }
+
+    FieldData(::cypher::FieldData&& rhs) {
+        type = rhs.type;
+        scalar = std::move(rhs.scalar);
+        array = rhs.array;
+        // rhs.scalar becomes FieldType::NUL after move
+        rhs.type = SCALAR;
+    }
+
+    FieldData& operator=(const ::lgraph::FieldData& rhs) {
+        if (type == ARRAY) delete array;
+        type = SCALAR;
+        scalar = rhs;
+        return *this;
+    }
+
+    FieldData& operator=(::lgraph::FieldData&& rhs) {
+        if (type == ARRAY) delete array;
+        type = SCALAR;
+        scalar = std::move(rhs);
+        return *this;
+    }
+
+    FieldData& operator=(const ::cypher::FieldData& rhs) {
+        if (this == &rhs) return *this;
+        if (type == ARRAY) delete array;
+        type = rhs.type;
+        if (rhs.type == ARRAY) {
+            array = new std::vector<::lgraph::FieldData>(*rhs.array);
+        } else {
+            scalar = rhs.scalar;
+        }
+        return *this;
+    }
+
+    FieldData& operator=(::cypher::FieldData&& rhs) {
+        if (this == &rhs) return *this;
+        if (type == ARRAY) delete array;
+        type = rhs.type;
+        scalar = std::move(rhs.scalar);
+        array = rhs.array;
+        // rhs.scalar becomes FieldType::NUL after move
+        rhs.type = SCALAR;
+        return *this;
+    }
+
+    bool operator==(const FieldData& rhs) const {
+        if (type != rhs.type)
+            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+        if (type == SCALAR) return scalar == rhs.scalar;
+        if (type == ARRAY) CYPHER_TODO();
+        return false;
+    }
+
+    bool operator!=(const FieldData& rhs) const { return !(*this == rhs); }
+
+    bool operator>(const FieldData& rhs) const {
+        if (type != rhs.type)
+            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+        if (type == SCALAR) return scalar > rhs.scalar;
+        if (type == ARRAY) CYPHER_TODO();
+        return false;
+    }
+
+    bool operator>=(const FieldData& rhs) const {
+        if (type != rhs.type)
+            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+        if (type == SCALAR) return scalar >= rhs.scalar;
+        if (type == ARRAY) CYPHER_TODO();
+        return false;
+    }
+
+    bool operator<(const FieldData& rhs) const { return !(*this >= rhs); }
+
+    bool operator<=(const FieldData& rhs) const { return !(*this > rhs); }
+
+    bool EqualNull() const {
+        if (type == SCALAR) {
+            return scalar.is_null();
+        } else {
+            CYPHER_THROW_ASSERT(type == ARRAY);
+            return !array || array->empty();
+        }
+    }
+
+    bool IsNull() const { return type == SCALAR && scalar.is_null(); }
+
+    bool IsBool() const { return type == SCALAR && scalar.type == lgraph::FieldType::BOOL; }
+
+    bool IsInteger() const {
+        return type == SCALAR && scalar.type >= lgraph::FieldType::INT8 &&
+               scalar.type <= lgraph::FieldType::INT64;
+    }
+
+    bool IsReal() const {
+        return type == SCALAR && (scalar.type == lgraph::FieldType::DOUBLE ||
+                                  scalar.type == lgraph::FieldType::FLOAT);
+    }
+
+    bool IsString() const { return type == SCALAR && scalar.type == lgraph::FieldType::STRING; }
+
+    static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }
+
+    std::string ToString(const std::string& null_value = "NUL") const {
+        if (type == SCALAR) {
+            return scalar.ToString(null_value);
+        } else {
+            CYPHER_THROW_ASSERT(type == ARRAY && array);
+            std::string str("[");
+            for (auto& s : *array) str.append(s.ToString(null_value)).append(",");
+            if (str.size() > 1) str.pop_back();
+            str.append("]");
+            return str;
+        }
+        throw std::runtime_error("internal error: unhandled type: " + std::to_string((int)type));
+    }
+};
+
+enum ExpandTowards {
+    FORWARD,        // outgoing expand
+    REVERSED,       // incoming expand
+    BIDIRECTIONAL,  // two way expand
+};
+
+namespace _detail {
+static std::string EdgeUid2String(const ::lgraph::EdgeUid& e) {
+    return fma_common::StringFormatter::Format("{}_{}_{}_{}", e.src, e.dst, e.lid, e.eid);
+}
+
+static ::lgraph::EdgeUid ExtractEdgeUid(const std::string& s) {
+    std::stringstream ss(s);
+    std::vector<int64_t> ns;
+    int64_t n;
+    char c;
+    while (ss >> n) {
+        ns.emplace_back(n);
+        if (!(ss >> c)) break;
+    }
+    if (ns.size() != 4) throw lgraph::InputError("Failed extract EdgeUid from string.");
+    return {ns[0], ns[1], static_cast<::lgraph::LabelId>(ns[2]), 0, ns[3]}; // TODO(heng)
+}
+
+static std::string AccessLevel2String(const ::lgraph_api::AccessLevel& ac) {
+    switch (ac) {
+    case ::lgraph_api::AccessLevel::NONE:
+        return "NONE";
+    case ::lgraph_api::AccessLevel::READ:
+        return "READ";
+    case ::lgraph_api::AccessLevel::WRITE:
+        return "WRITE";
+    case ::lgraph_api::AccessLevel::FULL:
+        return "FULL";
+    default:
+        CYPHER_THROW_ASSERT(false);
+        return {};
+    }
+}
+
+static ::lgraph_api::AccessLevel String2AccessLevel(std::string& s) {
+    static const std::unordered_map<std::string, ::lgraph_api::AccessLevel> acl_tab = {
+        {"NONE", ::lgraph_api::AccessLevel::NONE},
+        {"READ", ::lgraph_api::AccessLevel::READ},
+        {"WRITE", ::lgraph_api::AccessLevel::WRITE},
+        {"FULL", ::lgraph_api::AccessLevel::FULL},
+    };
+    std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+    auto it = acl_tab.find(s);
+    if (it == acl_tab.end()) {
+        throw lgraph::CypherException("Unrecognized AccessLevel value: " + s);
+    }
+    return it->second;
+}
+}  // namespace _detail
+
+}  // namespace cypher
