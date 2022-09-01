@@ -32,7 +32,10 @@ Performance and scalability:
 
 ## 1. Quick Start
 
-Please refer [doc-zh/1.Guide/3.quick-start.md]
+A easy way to start is using docker to set up, which can be found in DockerHub, named `tugraph/tugraph-db-[os]:[tugraph version]`,
+for example, `tugraph/tugraph-db-centos7:3.3.0`.
+
+For more detail, please refer [doc-zh/1.guide/3.quick-start.md]
 
 ## 2. Install
 
@@ -56,7 +59,10 @@ Please refer [doc-zh/1.Guide/3.quick-start.md]
 
 ## 3. Develop
 
-Please refer docs in [doc-zh]
+We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-env-[os]:[env version]`, 
+for example, `tugraph/tugraph-env-centos7:1.1.0`, which can help developer hand on easily.
+
+For more detail, please refer docs in [doc-zh]
 
 ## 4. Contact
 
