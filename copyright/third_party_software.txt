@@ -6,16 +6,12 @@ Software: brpc
 Repo: https://github.com/apache/incubator-brpc.git 
 License: Apache
 
-Software: braft
-Repo: https://github.com/fma-cloud/braft.git
-License: Apache
-
 Software: brpc-java
 Repo: https://github.com/baidu/brpc-java.git
 License: Apache
 
 Software: cpprestsdk
-Repo: https://github.com/fma-cloud/cpprestsdk.git
+Repo: https://github.com/microsoft/cpprestsdk.git
 License: MIT
 
 Software: lmdb
@@ -23,11 +19,11 @@ Repo:
 License: OpenLDAP Public
 
 Software: jwt-cpp
-Repo: https://github.com/fma-cloud/jwt-cpp.git
+Repo: https://github.com/Thalhammer/jwt-cpp.git
 License: MIT
 
 Software: tiny-process-library
-Repo: https://github.com/fma-cloud/tiny-process-library.git
+Repo: https://github.com/cpp-pm/tiny-process-library.git
 License: MIT
 
 Software: pybind11

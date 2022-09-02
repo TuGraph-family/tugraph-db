@@ -115,7 +115,7 @@ void LGraphServer::AdjustConfig() {
     if (config_->rpc_port == 0) config_->rpc_port = config_->http_port + 1;
 
 #ifndef _WIN32
-    // setup brpc and braft logger
+    // setup brpc logger
     if (config_->enable_rpc) {
         int blog_level;
         switch (config_->verbose) {
