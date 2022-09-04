@@ -1,10 +1,12 @@
 #!/bin/bash
 
+# Github standard hosted runner is 2core
+
 # set $WORKSPACE to root dir
 cd $WORKSPACE
-./cpplint/check_all.sh
+bash ./cpplint/check_all.sh
 cd deps
-SKIP_WEB=1 ./build_deps.sh -j6
+SKIP_WEB=1 bash ./build_deps.sh -j6
 cd $WORKSPACE
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
@@ -23,6 +25,6 @@ pytest ./ -k 'not TestJavaClient'
 # codecov
 cd $WORKSPACE
 mkdir testresult
-./ci/codecov.sh build $WORKSPACE/testresult
+bash ./ci/codecov.sh build $WORKSPACE/testresult
 wget http://aivolvo-dev.cn-hangzhou-alipay-b.oss-cdn.aliyun-inc.com/citools/lcov_cobertura.py
 python3  lcov_cobertura.py  $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle
