@@ -14,17 +14,20 @@ make lgraph -j6
 make lgraph_cypher_lib -j6
 make -j6
 cd $WORKSPACE
+
 # unittest
 cd build/output
 ./unit_test
 rm -rf testdb* .import_tmp
+
 # integrate tests
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp -r ../../test/integration/* ./
 pytest ./ -k 'not TestJavaClient'
+
 # codecov
 cd $WORKSPACE
 mkdir testresult
 bash ./ci/codecov.sh build $WORKSPACE/testresult
-wget http://aivolvo-dev.cn-hangzhou-alipay-b.oss-cdn.aliyun-inc.com/citools/lcov_cobertura.py
-python3  lcov_cobertura.py  $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle
+
+python3  ./ci/lcov_cobertura.py  $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle
