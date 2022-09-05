@@ -1,5 +1,7 @@
 # TuGraph
 
+![Build Status](https://github.com/Tugraph-db/Tugraph-db/actions/workflows/ci.yml/badge.svg)
+
 ## 0. Introduction
 TuGraph is an efficient graph database that supports high data volume, low latency lookup and fast graph analytics.
 
