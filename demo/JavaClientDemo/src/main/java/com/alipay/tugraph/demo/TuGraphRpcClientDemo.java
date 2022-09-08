@@ -1,241 +1,285 @@
 package com.alipay.tugraph.demo;
 import java.io.IOException;
-import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.JSONArray;
-import java.io.UnsupportedEncodingException;
-
-import com.alipay.tugraph.TuGraphRpcException;
-import lombok.extern.slf4j.Slf4j;
 import com.alipay.tugraph.TuGraphRpcClient;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TuGraphRpcClientDemo {
     static Logger log = LoggerFactory.getLogger(TuGraphRpcClientDemo.class);
-
-    public static String kHopParamGen() {
-        JSONObject object = new JSONObject();
-        object.put("root", 0);
-        object.put("depth", 2);
-        object.put("label", "Person");
-        object.put("field", "id");
-        object.put("multi_threads", true);
-        return object.toJSONString();
-    }
-
-    public static void loadPlugin(TuGraphRpcClient client) {
-    log.info("----------------testLoadPlugin--------------------");
+    TuGraphRpcClient client = new TuGraphRpcClient("list://11.166.81.245:19090","admin", "73@TuGraph");
+    void deleteAndCreate(String graphName) {
         try {
-            client.callCypher("CALL db.dropDB()", "default", 10);
-            boolean result = client.loadPlugin("./test/plugin/khop.so", "CPP", "khop", "SO", "test loadplugin", true, "default", 1000);
-            log.info("loadPlugin : " + result);
-            assert(result);
-            // should throw TuGraphRpcException
-            result = client.loadPlugin("./test/plugin/khop.so", "CPP", "khop", "SO", "test loadplugin", true, "default", 1000);
-            log.info("loadPlugin : " + result);
-        } catch (IOException e) {
-            log.info("catch IOException : " + e.getMessage());
-        } catch (TuGraphRpcException e) {
-            log.info("catch TuGraphRpcException : " + e.getMessage());
+            // delete graph
+            client.callCypher(String.format("CALL dbms.graph.deleteGraph('%s')", graphName), "default", 1000);
+        } catch (Exception e) {
+            log.info(e.toString());
         }
+        // create graph
+        client.callCypher(String.format("CALL dbms.graph.createGraph('%s', 'this is a demo graph', 20)", graphName), "default", 1000);
     }
 
-    public static void callPlugin(TuGraphRpcClient client) {
-        log.info("----------------testCallPlugin--------------------");
-        String result = client.callPlugin("CPP", "khop", kHopParamGen(), 1000, false, "default", 1000);
-        log.info("testCallPlugin : " + result);
-        JSONObject jsonObject = JSONObject.parseObject(result);
-        assert(jsonObject.containsKey("result"));
-        JSONObject obj = (JSONObject)jsonObject.getObject("result", JSONObject.class);
-        assert(obj.getIntValue("size") == 2192);
+    @Test
+    // import data by configuration file
+    void demo1() throws IOException {
+        String graphName = "demo1";
+        deleteAndCreate(graphName);
+        // create vertex and edge labels described in 'schema' section of `movie/import_for_java_demo.json`
+        client.importSchemaFromFile("movie/import_for_java_demo.json", graphName, 1000);
+
+        // get all vertex labels
+        String res = client.callCypher("CALL db.vertexLabels()", graphName, 1000);
+        log.info("CALL db.vertexLabels() : " + res);
+        // get all edge labels
+        res = client.callCypher("CALL db.edgeLabels()", graphName, 1000);
+        log.info("CALL db.edgeLabels() : " + res);
+
+        // import vertex and edge data described in 'files' section of `movie/import_for_java_demo.json`
+        client.importDataFromFile("movie/import_for_java_demo.json",",", true, 4, 0, graphName, 10000);
+
+        // count all vertexs
+        String vertexCount = client.callCypher("MATCH (n) RETURN count(n)", graphName, 1000);
+        log.info(vertexCount);
+        // count all edges
+        String edgeCount = client.callCypher("MATCH (n)-[r]->(m) RETURN count(r)", graphName, 1000);
+        log.info(edgeCount);
     }
 
-    public static void importSchemaFromContent(TuGraphRpcClient client) {
-        log.info("----------------testImportSchemaFromContent--------------------");
-        client.callCypher("CALL db.dropDB()", "default", 10);
-        String schema = "{\"schema\" :" +
-                        "    [" +
-                        "         {" +
-                        "             \"label\" : \"Person\"," +
-                        "             \"type\" : \"VERTEX\"," +
-                        "             \"primary\" : \"name\"," +
-                        "             \"properties\" : [" +
-                        "                 {\"name\" : \"name\", \"type\":\"STRING\"}," +
-                        "                 {\"name\" : \"birthyear\", \"type\":\"INT16\", \"optional\":true}," +
-                        "                 {\"name\" : \"phone\", \"type\":\"INT16\",\"unique\":true, \"index\":true}" +
-                        "             ]" +
-                        "         }," +
-                        "        {" +
-                        "            \"label\" : \"Film\"," +
-                        "            \"type\" : \"VERTEX\"," +
-                        "            \"primary\" : \"title\"," +
-                        "            \"properties\" : [" +
-                        "                {\"name\" : \"title\", \"type\":\"STRING\"} " +
-                        "            ]" +
-                        "        }," +
-                        "       {" +
-                        "	        \"label\": \"PLAY_IN\"," +
-                        "	        \"type\": \"EDGE\"," +
-                        "	        \"properties\": [{" +
-                        "		        \"name\": \"role\"," +
-                        "		        \"type\": \"STRING\", " +
-                        "		        \"optional\": true " +
-                        "	        }]," +
-                        "	        \"constraints\": [" +
-                        "		        [\"Person\", \"Film\"]" +
-                        "	        ]" +
-                        "       }" +
-                        "    ]" +
-                        "}";
-
-        try {
-            boolean ret = client.importSchemaFromContent(schema, "default", 1000);
-            log.info("importSchemaFromContent : " + ret);
-            assert(ret);
-        } catch (UnsupportedEncodingException e) {
-            log.info("catch exception : " + e.getMessage());
+    //
+    @Test
+    // import data by data block
+    void demo2() throws IOException {
+        String graphName = "demo2";
+        deleteAndCreate(graphName);
+        // create vertex and edge labels described in 'schema' section of `movie/import_for_java_demo.json`
+        client.importSchemaFromFile("movie/import_for_java_demo.json", graphName, 1000);
+/*
+{
+    "files": [
+        {
+            "format": "CSV",
+            "label": "person",
+            "columns": ["id", "name", "born", "poster_image"]
         }
+    ]
+}
+*/
+        String personDesc = "{\n" +
+                "            \"files\": [\n" +
+                "                {\n" +
+                "                    \"format\": \"CSV\",\n" +
+                "                    \"label\": \"person\",\n" +
+                "                    \"columns\": [\"id\", \"name\", \"born\", \"poster_image\"]\n" +
+                "                }\n" +
+                "            ]\n" +
+                "        }";
 
-        String res = client.callCypher("CALL db.vertexLabels()", "default", 10);
-        log.info("db.vertexLabels() : " + res);
-        JSONArray jsonArray = JSONArray.parseArray(res);
-        assert(jsonArray.size() == 2);
-        for (int idx = 0; idx < jsonArray.size(); ++idx) {
-            JSONObject obj = (JSONObject)jsonArray.get(idx);
-            assert("Person".equals(obj.getString("label")) || "Film".equals(obj.getString("label")));
+/*
+2,Laurence Fishburne,1961,https://image.tmdb.org/t/p/w185/mh0lZ1XsT84FayMNiT6Erh91mVu.jpg
+3,Carrie-Anne Moss,1967,https://image.tmdb.org/t/p/w185/8iATAc5z5XOKFFARLsvaawa8MTY.jpg
+4,Hugo Weaving,1960,https://image.tmdb.org/t/p/w185/3DKJSeTucd7krnxXkwcir6PgT88.jpg
+5,Gloria Foster,1933,https://image.tmdb.org/t/p/w185/ahwiARgfOYctk6sOLBBk5w7cfH5.jpg
+6,Joe Pantoliano,1951,https://image.tmdb.org/t/p/w185/zBvDX2HWepvW9im6ikgoyOL2Xj0.jpg
+7,Marcus Chong,1967,https://image.tmdb.org/t/p/w185/zYfXjMszFajTb93phn2Fi6LwEGN.jpg
+8,Matt Doran,1976,https://image.tmdb.org/t/p/w185/gLpWm3azLiXgDPRWo23AnG5WM7O.jpg
+9,Anthony Ray Parker,1958,https://image.tmdb.org/t/p/w185/iMHr0onfM8v4uVdPVnXxXx2xwwN.jpg
+10,Keanu Reeves,1964,https://image.tmdb.org/t/p/w185/id1qIb7cZs2eQno90KsKwG8VLGN.jpg
+*/
+
+        String personData = "2,Laurence Fishburne,1961,https://image.tmdb.org/t/p/w185/mh0lZ1XsT84FayMNiT6Erh91mVu.jpg\n" +
+                "3,Carrie-Anne Moss,1967,https://image.tmdb.org/t/p/w185/8iATAc5z5XOKFFARLsvaawa8MTY.jpg\n" +
+                "4,Hugo Weaving,1960,https://image.tmdb.org/t/p/w185/3DKJSeTucd7krnxXkwcir6PgT88.jpg\n" +
+                "5,Gloria Foster,1933,https://image.tmdb.org/t/p/w185/ahwiARgfOYctk6sOLBBk5w7cfH5.jpg\n" +
+                "6,Joe Pantoliano,1951,https://image.tmdb.org/t/p/w185/zBvDX2HWepvW9im6ikgoyOL2Xj0.jpg\n" +
+                "7,Marcus Chong,1967,https://image.tmdb.org/t/p/w185/zYfXjMszFajTb93phn2Fi6LwEGN.jpg\n" +
+                "8,Matt Doran,1976,https://image.tmdb.org/t/p/w185/gLpWm3azLiXgDPRWo23AnG5WM7O.jpg\n" +
+                "9,Anthony Ray Parker,1958,https://image.tmdb.org/t/p/w185/iMHr0onfM8v4uVdPVnXxXx2xwwN.jpg\n" +
+                "10,Keanu Reeves,1964,https://image.tmdb.org/t/p/w185/id1qIb7cZs2eQno90KsKwG8VLGN.jpg";
+
+        // import vertex data of 'person' label
+        // personData : data block in csv format
+        // personDesc : describe the detailed format of the data block
+        client.importDataFromContent(personDesc, personData, ",", true, 4, graphName, 10000);
+
+/*
+{
+    "files": [
+        {
+          "format": "CSV",
+          "label": "movie",
+          "columns": ["id","title","tagline","summary","poster_image","duration","rated"]
         }
-        res = client.callCypher("CALL db.edgeLabels()", "default", 10);
-        log.info("db.edgeLabels() : " + res);
-        JSONObject jsonObject = JSONObject.parseObject(res);
-        assert(jsonObject.containsKey("edgeLabels"));
-        assert("PLAY_IN".equals(jsonObject.getString("edgeLabels")));
+    ]
+}
+*/
+        String moiveDesc = "{\n" +
+                "    \"files\": [\n" +
+                "        {\n" +
+                "          \"format\": \"CSV\",\n" +
+                "          \"label\": \"movie\",\n" +
+                "          \"columns\": [\"id\",\"title\",\"tagline\",\"summary\",\"poster_image\",\"duration\",\"rated\"]\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
+
+/*
+82,Pulp Fiction,Just because you are a character doesn't mean you have character.,placeholder text,http://image.tmdb.org/t/p/w185/dM2w364MScsjFf8pfMbaWUcWrR.jpg,154,R
+130,Cloud Atlas,Everything is Connected,placeholder text,http://image.tmdb.org/t/p/w185/k9gWDjfXM80iXQLuMvPlZgSFJgR.jpg,172,R
+457,The Shawshank Redemption,Fear can hold you prisoner. Hope can set you free.,placeholder text,http://image.tmdb.org/t/p/w185/9O7gLzmreU0nGkIB6K3BsJbzvNv.jpg,142,R
+471,The Godfather,An offer you can't refuse.,placeholder text,http://image.tmdb.org/t/p/w185/d4KNaTrltq6bpkFS01pYtyXa09m.jpg,175,R
+496,The Godfather: Part II,I don't feel I have to wipe everybody out\ Tom. Just my enemies.,placeholder text,http://image.tmdb.org/t/p/w185/tHbMIIF51rguMNSastqoQwR0sBs.jpg,200,R
+517,The Good\ the Bad and the Ugly,For three men the Civil War wasn't hell. It was practice.,placeholder text,http://image.tmdb.org/t/p/w185/8PD1dgf0kQHtRawoSxp1jFemI1q.jpg,161,R
+532,The Dark Knight,Why So Serious?,placeholder text,http://image.tmdb.org/t/p/w185/1hRoyzDtpgMU7Dz4JF22RANzQO7.jpg,152,PG-13
+564,The Dark Knight Rises,The Legend Ends,placeholder text,http://image.tmdb.org/t/p/w185/dEYnvnUfXrqvqeRSqvIEtmzhoA8.jpg,165,PG-13
+*/
+        String moiveData = "82,Pulp Fiction,Just because you are a character doesn't mean you have character.,placeholder text,http://image.tmdb.org/t/p/w185/dM2w364MScsjFf8pfMbaWUcWrR.jpg,154,R\n" +
+                "130,Cloud Atlas,Everything is Connected,placeholder text,http://image.tmdb.org/t/p/w185/k9gWDjfXM80iXQLuMvPlZgSFJgR.jpg,172,R\n" +
+                "457,The Shawshank Redemption,Fear can hold you prisoner. Hope can set you free.,placeholder text,http://image.tmdb.org/t/p/w185/9O7gLzmreU0nGkIB6K3BsJbzvNv.jpg,142,R\n" +
+                "471,The Godfather,An offer you can't refuse.,placeholder text,http://image.tmdb.org/t/p/w185/d4KNaTrltq6bpkFS01pYtyXa09m.jpg,175,R\n" +
+                "496,The Godfather: Part II,I don't feel I have to wipe everybody out\\ Tom. Just my enemies.,placeholder text,http://image.tmdb.org/t/p/w185/tHbMIIF51rguMNSastqoQwR0sBs.jpg,200,R\n" +
+                "517,The Good\\ the Bad and the Ugly,For three men the Civil War wasn't hell. It was practice.,placeholder text,http://image.tmdb.org/t/p/w185/8PD1dgf0kQHtRawoSxp1jFemI1q.jpg,161,R\n" +
+                "532,The Dark Knight,Why So Serious?,placeholder text,http://image.tmdb.org/t/p/w185/1hRoyzDtpgMU7Dz4JF22RANzQO7.jpg,152,PG-13\n" +
+                "564,The Dark Knight Rises,The Legend Ends,placeholder text,http://image.tmdb.org/t/p/w185/dEYnvnUfXrqvqeRSqvIEtmzhoA8.jpg,165,PG-13";
+
+        // import vertex data of 'moive' label
+        // moiveData : data block in csv format
+        // moiveDesc : describe the detailed format of the data block
+        client.importDataFromContent(moiveDesc, moiveData, ",", true, 4, graphName, 10000);
+
+
+
+/*
+{
+    "files": [
+        {
+            "format":"CSV",
+            "label":"acted_in",
+            "SRC_ID":"person",
+            "DST_ID":"movie",
+            "columns": ["SRC_ID", "DST_ID", "role"]
+        }
+    ]
+}
+*/
+        String actedInDesc = "{\n" +
+                "    \"files\": [\n" +
+                "        {\n" +
+                "            \"format\":\"CSV\",\n" +
+                "            \"label\":\"acted_in\",\n" +
+                "            \"SRC_ID\":\"person\",\n" +
+                "            \"DST_ID\":\"movie\",\n" +
+                "            \"columns\": [\"SRC_ID\", \"DST_ID\", \"role\"]\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
+
+/*
+2,82,Morpheus
+2,130,Morpheus
+2,457,Morpheus
+3,496,Trinity
+3,517,Trinity
+3,564,Trinity
+*/
+
+        String actedInData = "2,82,Morpheus\n" +
+                "2,130,Morpheus\n" +
+                "2,457,Morpheus\n" +
+                "3,496,Trinity\n" +
+                "3,517,Trinity\n" +
+                "3,564,Trinity";
+
+        // import edge data of 'acted_in' label
+        // actedInData : data block in csv format
+        // actedInDesc : describe the detailed format of the data block
+        client.importDataFromContent(actedInDesc, actedInData, ",", true, 4, graphName, 10000);
+
+        // get all vertex labels
+        String res = client.callCypher("CALL db.vertexLabels()", graphName, 1000);
+        log.info("CALL db.vertexLabels() : " + res);
+        // get all edge labels
+        res = client.callCypher("CALL db.edgeLabels()", graphName, 1000);
+        log.info("CALL db.edgeLabels() : " + res);
+
+        // count all vertexs
+        String vertexCount = client.callCypher("MATCH (n) RETURN count(n)", graphName, 1000);
+        log.info(vertexCount);
+        // count all edges
+        String edgeCount = client.callCypher("MATCH (n)-[r]->(m) RETURN count(r)", graphName, 1000);
+        log.info(edgeCount);
     }
 
-    public static void importDataFromContent(TuGraphRpcClient client) {
-        log.info("----------------testImportDataFromContent--------------------");
-        String personDesc = "{\"files\": [" +
-                             "    {" +
-                             "        \"columns\": [" +
-                             "            \"name\"," +
-                             "            \"birthyear\"," +
-                             "            \"phone\"]," +
-                             "        \"format\": \"CSV\"," +
-                             "        \"header\": 0,"+
-                             "        \"label\": \"Person\" " +
-                             "        }"+
-                             "    ]" +
-                             "}";
+    @Test
+    // create vertex and edge labels by cypher statements
+    // create vertex and edge data by cypher statements
+    void demo3() throws IOException {
+        String graphName = "demo3";
+        deleteAndCreate(graphName);
+        // create vertex `person` label
+        client.callCypher("CALL db.createVertexLabel(" +
+                "'person'," +  // vertex name
+                "'id'," +      // primary property
+                "'id', int32, false," +
+                "'name', string, false," +
+                "'born', int32, true," +
+                "'poster_image', string, true" +
+                ")", graphName, 1000);
 
-        String person = "Rachel Kempson,1910,10086\n" +
-                         "Michael Redgrave,1908,10087\n" +
-                         "Vanessa Redgrave,1937,10088\n" +
-                         "Corin Redgrave,1939,10089\n" +
-                         "Liam Neeson,1952,10090\n" +
-                         "Natasha Richardson,1963,10091\n" +
-                         "Richard Harris,1930,10092\n" +
-                         "Dennis Quaid,1954,10093\n" +
-                         "Lindsay Lohan,1986,10094\n" +
-                         "Jemma Redgrave,1965,10095\n" +
-                         "Roy Redgrave,1873,10096\n" +
-                         "John Williams,1932,10097\n" +
-                         "Christopher Nolan,1970,10098\n";
+        // create vertex `movie` label
+        client.callCypher("CALL db.createVertexLabel(" +
+                "'movie'," +  // vertex name
+                "'id'," +     // primary property
+                "'id',int32, false," +
+                "'title', string, false," +
+                "'tagline', string, false," +
+                "'summary', string, true," +
+                "'poster_image', string, true," +
+                "'duration', int32, false," +
+                "'rated', string, true" +
+                ")", graphName, 1000);
 
+        // create edge `acted_in` label
+        client.callCypher(("CALL db.createEdgeLabel(" +
+                "'acted_in'," + // edge name
+                "'[]'," +      // edge constraints. empty array means no constraints;
+                "'role', string, false)"), graphName, 1000);
 
-        try {
-            boolean ret = client.importDataFromContent(personDesc, person, ",", true, 16, "default", 1000);
-            log.info("importDataFromContent : " + ret);
-            assert(ret);
-        } catch (UnsupportedEncodingException e) {
-           log.info("catch exception : " + e.getMessage());
-        }
-        String res = client.callCypher("MATCH (n) RETURN COUNT(n)", "default", 10);
-        log.info("MATCH (n) RETURN COUNT(n) : " + res);
-        JSONObject jsonObject = JSONObject.parseObject(res);
-        assert(jsonObject.containsKey("COUNT(n)"));
-        assert(jsonObject.getIntValue("COUNT(n)") == 13);
-    }
+        // doc-zh/3.developer-document/2.cypher.md
 
-    public static void importSchemaFromFile(TuGraphRpcClient client) {
-        log.info("----------------testImportSchemaFromFile--------------------");
-        client.callCypher("CALL db.dropDB()", "default", 10);
-        try {
-            boolean ret = client.importSchemaFromFile("./test/data/yago.conf", "default", 1000);
-            log.info("importSchemaFromFile : " + ret);
-            assert(ret);
-        } catch (IOException e) {
-            log.info("catch exception : " + e.getMessage());
-        }
+        // 2,Laurence Fishburne,1961,https://image.tmdb.org/t/p/w185/mh0lZ1XsT84FayMNiT6Erh91mVu.jpg
+        // create vertex by cypher
+        client.callCypher("CREATE (n:person {" +
+                "id: 2," +
+                "name: 'Laurence Fishburne'," +
+                "born: 1961," +
+                "poster_image: 'https://image.tmdb.org/t/p/w185/mh0lZ1XsT84FayMNiT6Erh91mVu.jpg'})", graphName, 1000);
 
-        String res = client.callCypher("CALL db.vertexLabels()", "default", 10);
-        log.info("db.vertexLabels() : " + res);
-        JSONArray array = JSONArray.parseArray(res);
-        assert(array.size() == 3);
-        for (int idx = 0; idx < array.size(); ++idx) {
-            JSONObject obj = (JSONObject)array.get(idx);
-            assert("Person".equals(obj.getString("label")) || "Film".equals(obj.getString("label"))
-                ||  "City".equals(obj.getString("label")));
-        }
+        // 130,Cloud Atlas,Everything is Connected,placeholder text,http://image.tmdb.org/t/p/w185/k9gWDjfXM80iXQLuMvPlZgSFJgR.jpg,172,R
+        // create vertex by cypher
+        client.callCypher("CREATE (n:movie {" +
+                "id: 130," +
+                "title: 'Cloud Atlas'," +
+                "tagline:'Everything is Connected'," +
+                "summary: 'placeholder text'," +
+                "poster_image: 'http://image.tmdb.org/t/p/w185/k9gWDjfXM80iXQLuMvPlZgSFJgR.jpg'," +
+                "duration: 172," +
+                "rated: 'R'})", graphName, 1000);
 
-        res = client.callCypher("CALL db.edgeLabels()", "default", 10);
-        log.info("db.edgeLabels() : " + res);
-        assert(array.size() == 6);
-        for (int idx = 0; idx < array.size(); ++idx) {
-            JSONObject obj = (JSONObject)array.get(idx);
-            assert("HAS_CHILD".equals(obj.getString("edgeLabels")) || "MARRIED".equals(obj.getString("edgeLabels"))
-                || "BORN_IN".equals(obj.getString("edgeLabels")) || "DIRECTED".equals(obj.getString("edgeLabels"))
-                || "WROTE_MUSIC_FOR".equals(obj.getString("edgeLabels"))
-                || "ACTED_IN".equals(obj.getString("edgeLabels")));
-        }
+        // create edge by cypher
+        client.callCypher("MATCH (a:person), (b:movie) WHERE a.id = 2 AND b.id = 130 CREATE (a)-[r:acted_in {role: 'Morpheus'}]->(b)", graphName, 1000);
 
-    }
+        // get all vertex labels
+        String res = client.callCypher("CALL db.vertexLabels()", graphName, 1000);
+        log.info("CALL db.vertexLabels() : " + res);
+        // get all edge labels
+        res = client.callCypher("CALL db.edgeLabels()", graphName, 1000);
+        log.info("CALL db.edgeLabels() : " + res);
 
-    public static void importDataFromFile(TuGraphRpcClient client) {
-        log.info("----------------testImportDataFromFile--------------------");
-        try {
-            boolean ret = client.importDataFromFile("./test/data/yago.conf", ",", true, 16, 0, "default", 1000000000);
-            log.info("importDataFromFile : " + ret);
-            assert(ret);
-        } catch (IOException e) {
-            log.info("catch exception : " + e.getMessage());
-        }
-        String res = client.callCypher("MATCH (n:Person) RETURN COUNT(n)", "default", 1000000000);
-        log.info("MATCH (n) RETURN COUNT(n) : " + res);
-        JSONObject jsonObject = JSONObject.parseObject(res);
-        assert(jsonObject.containsKey("COUNT(n)"));
-        assert(jsonObject.getIntValue("COUNT(n)") == 4847571);
-
-        res = client.callCypher("match(n) -[r]->(m) return count(r)", "default", 1000000000);
-        log.info("match(n) -[r]->(m) return count(r) : " + res);
-        jsonObject = JSONObject.parseObject(res);
-        assert(jsonObject.containsKey("count(r)"));
-        assert(jsonObject.getIntValue("count(r)") == 68993773);
-    }
-
-    public static TuGraphRpcClient startClient(String[] args) {
-        log.info("----------------startClient--------------------");
-        String hostPort = args[0];
-        String user = args[1];
-        String password = args[2];
-        String url = "list://" + hostPort;
-        TuGraphRpcClient client = new TuGraphRpcClient(url, user, password);
-        return client;
-    }
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
-            log.info("java -jar target/tugraph-rpc-client-demo-3.1.0-jar-with-dependencies.jar [host:port] [user] [password]");
-            return;
-        }
-        TuGraphRpcClient client = startClient(args);
-        try {
-            loadPlugin(client);
-            importSchemaFromContent(client);
-            importDataFromContent(client);
-            importSchemaFromFile(client);
-            importDataFromFile(client);
-            callPlugin(client);
-        } catch (TuGraphRpcException e) {
-            log.info("Exception at "+e.GetErrorMethod()+" with errorCodeName: "+e.GetErrorCodeName()+" and error: "+e.GetError());
-        }
+        // count all vertexs
+        String vertexCount = client.callCypher("MATCH (n) RETURN count(n)", graphName, 1000);
+        log.info(vertexCount);
+        // count all edges
+        String edgeCount = client.callCypher("MATCH (n)-[r]->(m) RETURN count(r)", graphName, 1000);
+        log.info(edgeCount);
     }
 }
