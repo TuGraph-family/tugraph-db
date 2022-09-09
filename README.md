@@ -66,6 +66,43 @@ for example, `tugraph/tugraph-env-centos7:1.1.0`, which can help developers get 
 
 For more details, please refer to the docs in [doc-zh]
 
+## 4. Change Log
+Request #33 (Open): Add slack link for tugraph-db community
+
+Request #31 (Open): Rewrite java client demo
+
+Request #30 (Open): Remove issue template in doc
+
+Request #29 (Merged): Resize Barcode
+
+Request #27 (Merged): Add rpm/deb/docker-image download link
+
+Request #25 (Merged): Add ci config for branches against master
+
+Request #21 (Open): Add release dockerfile
+
+Request #20 (Merged): Fix doc-zh typo
+
+Request #17 (Merged): Fix doc-zh typos
+
+Request #15 (Merged): Fix docs
+
+Request #14 (Closed): Quick-start add docker-image download link
+
+Request #13 (Closed): Update quick-start.md
+
+Request #10 (Merged): Add github actions CI config
+
+Request #8 (Merged): Update install.md
+
+Request #7 (Merged): Fix typo in LICENSE
+
+Request #6 (Merged): Fix README typos and expressions
+
+Request #2 (Merged): Change third-party library references to official git address
+
+Request #1 (Closed): Delete acl determine
+
 ## 4. Contact
 
 Email: tugraph@service.alipay.com
