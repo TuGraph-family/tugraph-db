@@ -37,7 +37,7 @@ Performance and scalability:
 An easy way to start is using docker to set up, which can be found in DockerHub, named `tugraph/tugraph-db-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-db-centos7:3.3.0`.
 
-For more details, please refer [quick start doc](doc-zh/1.guide/3.quick-start.md)
+For more details, please refer [quick start doc](doc-zh/1.guide/3.quick-start.md).
 
 ## 2. Install
 
@@ -61,7 +61,7 @@ We suggest to compile TuGraph in UNIX system, docker environment is a good choic
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-env-[os]:[env version]`, 
 for example, `tugraph/tugraph-env-centos7:1.1.0`, which can help developers get started easily.
 
-For more details, please refer to the [docs](doc-zh)
+For more details, please refer to the [docs](doc-zh).
 
 NOTICE: If you want to contribute, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
