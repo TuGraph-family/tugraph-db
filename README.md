@@ -41,7 +41,7 @@ For more details, please refer [quick start doc](doc-zh/1.guide/3.quick-start.md
 
 ## 2. Install
 
-We suggest to compile TuGraph in UNIX system, docker environment is a good choice. If you want to compile TuGraph in a new os, you can refer [Dockerfile](ci/images).
+We suggest to compile TuGraph in UNIX system, docker environment is a good choice. If you want to setup a new environment, please refer [Dockerfile](ci/images).
 
 ### 2.1 Compile the project with GCC
 1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
