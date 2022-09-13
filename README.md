@@ -71,7 +71,7 @@ For more details, please refer to the docs in [doc-zh]
 Email: tugraph@service.alipay.com
 
 Slack(English):
-[TuGraph-db.slack](https://tugraph-db.slack.com/)
+[TuGraph.slack](https://tugraph.slack.com/)
 
 DingTalk Group(Simplified Chinese):
 
