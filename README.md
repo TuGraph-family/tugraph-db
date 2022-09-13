@@ -37,23 +37,20 @@ Performance and scalability:
 An easy way to start is using docker to set up, which can be found in DockerHub, named `tugraph/tugraph-db-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-db-centos7:3.3.0`.
 
-For more details, please refer to [doc-zh/1.guide/3.quick-start.md]
+For more details, please refer [quick start doc](doc-zh/1.guide/3.quick-start.md)
 
 ## 2. Install
 
-### 2.1 Compile the project with GCC on UNIX:
+We suggest to compile TuGraph in UNIX system, docker environment is a good choice. If you want to compile TuGraph in a new os, you can refer [Dockerfile](ci/images).
+
+### 2.1 Compile the project with GCC
 1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 4. `make`
 5. `make package` or `cpack --config CPackConfig.cmake`
 
-### 2.2 Compile the project with Clang on macOS:
-1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
-2. `cmake ..`
-3. `make`
-
-### 2.3 Release Version:
+### 2.2 Compile Release
 1. Use gcc-5.4.0 or gcc-7.5.0
 2. Use CMAKE_BUILD_TYPE `Release`
 3. Check the package's directory tree (especially `include`)
@@ -64,20 +61,25 @@ For more details, please refer to [doc-zh/1.guide/3.quick-start.md]
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-env-[os]:[env version]`, 
 for example, `tugraph/tugraph-env-centos7:1.1.0`, which can help developers get started easily.
 
-For more details, please refer to the docs in [doc-zh]
+For more details, please refer to the [docs](doc-zh)
+
+NOTICE: If you want to contribute, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
 ## 4. Contact
 
 Email: tugraph@service.alipay.com
 
-Slack(English):
+Github Discussions (English)
+[Discussions](https://github.com/TuGraph-db/tugraph-db/discussions)
+
+Slack (English):
 [TuGraph.slack](https://tugraph.slack.com/)
 
-DingTalk Group(Simplified Chinese):
+DingTalk Group (Simplified Chinese):
 
 ![alert](./doc/images/dingtalk.png)
 
-WeChat Official Account(Simplified Chinese):
+WeChat Official Account (Simplified Chinese):
 
 ![alert](./doc/images/wechat.png)
 
