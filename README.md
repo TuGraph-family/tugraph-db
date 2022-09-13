@@ -70,11 +70,14 @@ For more details, please refer to the docs in [doc-zh]
 
 Email: tugraph@service.alipay.com
 
-DingTalk Group:
+Slack(English):
+[TuGraph.slack](https://tugraph.slack.com/)
+
+DingTalk Group(Simplified Chinese):
 
 ![alert](./doc/images/dingtalk.png)
 
-WeChat Official Account:
+WeChat Official Account(Simplified Chinese):
 
 ![alert](./doc/images/wechat.png)
 
