@@ -10,74 +10,66 @@ Functionalities:
 - Labeled property graph model
 - Full ACID support with serializable transactions
 - Graph analytics algorithms embedded with graph computing framework
-- OpenCypher query language
-- Primary/Secondary Index in vertex and edge
-- Full-Text Index support
-- Graph visualization with web interface
-- Java/Python/C++ clients available
-- RESTful and RPC API support
+- Full-Text/Primary/Secondary Index support
+- OpenCypher query API
 - Stored procedure with C++/Python API
-- Efficient development of new graph algorithms with Traversal API
-- Multi-graph support
-- Online/offline backup/restore
-- Various data source support, including CSV/JSON/MySQL/Hive, etc. (integrated DataX)
-- Monitoring System (integrated Prometheus and Grafana)
-- Job Management System
-- Unit Test and Integration Test
 
 Performance and scalability:
 
+- LDBC SNB world record holder (2022/9/1 https://ldbcouncil.org/benchmarks/snb/)
 - Supports up to tens of terabytes
 - Visit millions of vertices per second
 - Fast bulk import
-- LDBC SNB world record holder (2022/9/1 https://ldbcouncil.org/benchmarks/snb/)
+
+Welcome to our [website](https://www.tugraph.org)
 
 ## 1. Quick Start
 
 An easy way to start is using docker to set up, which can be found in DockerHub, named `tugraph/tugraph-db-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-db-centos7:3.3.0`.
 
-For more details, please refer to [doc-zh/1.guide/3.quick-start.md]
+For more details, please refer to [quick start doc](doc/zh-CN/1.guide/3.quick-start.md).
 
-## 2. Install
+## 2. Build from Source
 
-### 2.1 Compile the project with GCC on UNIX:
+It's recommended to build TuGraph in linux system, and docker environment is a good choice. If you want to setup a new environment, please refer to [Dockerfile](ci/images).
+
+Here are steps to compile TuGraph:
 1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 4. `make`
 5. `make package` or `cpack --config CPackConfig.cmake`
 
-### 2.2 Compile the project with Clang on macOS:
-1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
-2. `cmake ..`
-3. `make`
-
-### 2.3 Release Version:
-1. Use gcc-5.4.0 or gcc-7.5.0
-2. Use CMAKE_BUILD_TYPE `Release`
-3. Check the package's directory tree (especially `include`)
-4. Make sure the front-end is updated
-
 ## 3. Develop
 
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-env-[os]:[env version]`, 
 for example, `tugraph/tugraph-env-centos7:1.1.0`, which can help developers get started easily.
 
-For more details, please refer to the docs in [doc-zh]
+We have a [roadmap](doc/zh-CN/7.community/3.roadmap.md) to help you understand TuGraph.
+
+To contribute, please read [doc](doc/zh-CN/7.community/1.contributing.md)
+
+NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
 ## 4. Contact
 
 Email: tugraph@service.alipay.com
 
-Slack(English):
+Github Issue (For bug report and feature request)
+[Issue](https://github.com/TuGraph-db/tugraph-db/issues)
+
+Github Discussions (For general technical discussion)
+[Discussions](https://github.com/TuGraph-db/tugraph-db/discussions)
+
+Slack (For developer quick communication):
 [TuGraph.slack](https://tugraph.slack.com/)
 
-DingTalk Group(Simplified Chinese):
+DingTalk Group (For business and market communication):
 
 ![alert](./doc/images/dingtalk.png)
 
-WeChat Official Account(Simplified Chinese):
+WeChat Official Account (Simplified Chinese):
 
 ![alert](./doc/images/wechat.png)
 
