@@ -1,5 +1,5 @@
-ARG TuGraphEnvDockerImage
-FROM ${TuGraphEnvDockerImage}
+ARG CompileDockerImage
+FROM ${CompileDockerImage}
 
 COPY tugraph-db.build tugraph-db.build
 COPY demo /root/demo

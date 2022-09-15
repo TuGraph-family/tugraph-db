@@ -78,8 +78,8 @@ bash build.sh ${TuGraphPath} ${CompileDockerImage} ${RuntimeDockerImage} ${DataX
 ```bash
 cd ci/images/runtime
 bash build.sh /data/TuGraph \
-    tugraph/tugraph-env-centos7:1.1.0 \
-    tugraph/tugraph-db-centos7:3.3.0
+    tugraph/tugraph-compile-centos7:1.1.0 \
+    tugraph/tugraph-runtime-centos7:3.3.0
 ```
 
 ### 上传镜像
