@@ -10,7 +10,7 @@ Functionalities:
 - Labeled property graph model
 - Full ACID support with serializable transactions
 - Graph analytics algorithms embedded with graph computing framework
-- Full-Text/Primary/Secondary/Full-Text Index support
+- Full-Text/Primary/Secondary Index support
 - OpenCypher query API
 - Stored procedure with C++/Python API
 
@@ -28,13 +28,13 @@ Welcome to our [website](https://www.tugraph.org)
 An easy way to start is using docker to set up, which can be found in DockerHub, named `tugraph/tugraph-db-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-db-centos7:3.3.0`.
 
-For more details, please refer [quick start doc](doc/zh-CN/1.guide/3.quick-start.md).
+For more details, please refer to [quick start doc](doc/zh-CN/1.guide/3.quick-start.md).
 
-## 2. Install
+## 2. Build from Source
 
-We suggest to compile TuGraph in UNIX system, docker environment is a good choice. If you want to setup a new environment, please refer [Dockerfile](ci/images).
+It's recommended to build TuGraph in linux system, and docker environment is a good choice. If you want to setup a new environment, please refer to [Dockerfile](ci/images).
 
-Here's steps to compile TuGraph:
+Here are steps to compile TuGraph:
 1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
