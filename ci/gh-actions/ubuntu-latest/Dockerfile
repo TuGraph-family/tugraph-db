@@ -1,5 +1,5 @@
 # build for lgraph
-FROM tugraph/tugraph-env-centos7:latest
+FROM tugraph/tugraph-compile-centos7:latest
 
 RUN mkdir -p /root/tugraph-db/
 ENV WORKSPACE=/root/tugraph-db/
