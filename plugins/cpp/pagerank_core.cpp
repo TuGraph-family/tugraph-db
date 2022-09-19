@@ -1,11 +1,11 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 #include "./algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
-void PageRankCore(Graph<Empty>& graph, int num_iterations, ParallelVector<double>& curr) {
+void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<double>& curr) {
     auto all_vertices = graph.AllocVertexSubset();
     all_vertices.Fill();
     auto next = graph.AllocVertexArray<double>();

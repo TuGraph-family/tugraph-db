@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -16,7 +16,7 @@ using namespace lgraph_api::olap;
  *
  * \return  The number of visited vertices of graph.
  */
-size_t BFSCore(Graph<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent);
+size_t BFSCore(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent);
 
 /**
  * \brief   Compute the PageRank value.
@@ -26,7 +26,7 @@ size_t BFSCore(Graph<Empty>& graph, size_t root_vid, ParallelVector<size_t>& par
  * \param   [in,out]    curr     The ParallelVector to store pr value.
  *
  */
-void PageRankCore(Graph<Empty>& graph, int num_iterations, ParallelVector<double>& curr);
+void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<double>& curr);
 
 /**
  * \brief   Perform a SSSP from root vertex and return the result.
@@ -35,7 +35,7 @@ void PageRankCore(Graph<Empty>& graph, int num_iterations, ParallelVector<double
  * \param               root    The root vertex id to start sssp from.
  * \param   [in,out]    distance   The ParallelVector to store distance.
  */
-void SSSPCore(Graph<double>& graph, size_t root, ParallelVector<double>& distance);
+void SSSPCore(OlapBase<double>& graph, size_t root, ParallelVector<double>& distance);
 
 /**
  * \brief   Compute the weakly connected components.
@@ -43,7 +43,7 @@ void SSSPCore(Graph<double>& graph, size_t root, ParallelVector<double>& distanc
  * \param               graph   The graph to compute on, should be an *undirected* graph.
  * \param   [in,out]    label   the ParallelVector to store wcc_label.
  */
-void WCCCore(Graph<Empty>& graph, ParallelVector<size_t>& label);
+void WCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
 
 /**
  * \brief    Comoute the clustering coefficient of all vertices in the graph.
@@ -53,7 +53,7 @@ void WCCCore(Graph<Empty>& graph, ParallelVector<size_t>& label);
  *
  * \return    return the clustering coefficient of graph.
  */
-double LCCCore(Graph<Empty>& graph, ParallelVector<double>& score);
+double LCCCore(OlapBase<Empty>& graph, ParallelVector<double>& score);
 
 /**
  * \brief    Comoute the label propagation algorithm.
@@ -64,5 +64,5 @@ double LCCCore(Graph<Empty>& graph, ParallelVector<double>& score);
  *
  * \return    The value of modularity.
  */
-double LPACore(Graph<Empty>& graph, int num_iterations, bool sync_flag);
+double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag);
 

@@ -21,11 +21,11 @@ class MemoryBufferDevice : public fma_common::LogDevice {
 };
 
 void TuGraphTest::setup() {
-    if (_ut_buffer_log) {
-        static std::shared_ptr<MemoryBufferDevice> device(new MemoryBufferDevice());
-        device->Reset();
-        fma_common::Logger::Get().SetDevice(device);
-    }
+//    if (_ut_buffer_log) {
+//        static std::shared_ptr<MemoryBufferDevice> device(new MemoryBufferDevice());
+//        device->Reset();
+//        fma_common::Logger::Get().SetDevice(device);
+//    }
 }
 
 void TuGraphTest::teardown() {

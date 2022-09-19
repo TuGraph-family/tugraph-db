@@ -72,11 +72,7 @@ class SingleLanguagePluginManager {
     // throws on error
     virtual bool DelPlugin(const std::string& token, const std::string& name);
 
-    // is this a read-only plugin?
-    // returns 0 if this is a read-write plugin
-    // returns 1 if read-only
-    // returns -1 if no such plugin
-    virtual int IsReadOnlyPlugin(const std::string& token, const std::string& name_);
+    virtual bool IsReadOnlyPlugin(const std::string& token, const std::string& name_);
 
     // calls plugin
     // returns true if success, false if no such plugin
@@ -227,9 +223,9 @@ class PluginManager {
      * @param          name_        The name.
      * @param [in,out] is_read_only True if is read only, false if not.
      *
-     * @return  1 if read-only, 0 if read-write, -1 if no such plugin
+     * @return  true if read-only, false if read-write
      */
-    int IsReadOnlyPlugin(PluginType type, const std::string& token, const std::string& name_);
+    bool IsReadOnlyPlugin(PluginType type, const std::string& token, const std::string& name_);
 
     /**
      * Calls a plugin. Note that in_process is currently ignored for CPP.

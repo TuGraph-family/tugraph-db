@@ -248,7 +248,7 @@
     <ClInclude Include="..\..\include\lgraph\lgraph_index_iterator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\lgraph\lgraph_olap.h">
+    <ClInclude Include="..\..\include\lgraph\olap_on_db.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\lgraph\lgraph_traversal.h">

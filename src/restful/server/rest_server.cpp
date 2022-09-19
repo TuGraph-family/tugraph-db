@@ -350,16 +350,6 @@ web::json::value ProtoFieldDataToJson(const ProtoFieldData& data) {
     return web::json::value::null();
 }
 
-template <>
-inline web::json::value ValueToJson(const StateMachine::Peer& peer) {
-    web::json::value v;
-    v[RestStrings::RPC_ADDR] = ValueToJson(peer.rpc_addr);
-    v[RestStrings::REST_ADDR] = ValueToJson(peer.rest_addr);
-    v[RestStrings::STATE] = ValueToJson(peer.StateString());
-    return v;
-}
-
-
 RestServer::RestServer(StateMachine* state_machine, const Config& config,
                        const std::shared_ptr<GlobalConfig> service_config)
     : logger_(fma_common::Logger::Get("RestServer")),
@@ -1588,7 +1578,20 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
 
     LGraphRequest proto_req;
     proto_req.set_token(token);
-    proto_req.set_is_write_op(!cypher::Scheduler::DetermineReadOnly(query));
+    std::string name;
+    std::string type;
+    bool ret = cypher::Scheduler::DetermineReadOnly(query, name, type);
+    if (name.empty() || type.empty()) {
+        proto_req.set_is_write_op(!ret);
+    } else {
+        type.erase(remove(type.begin(), type.end(), '\"'), type.end());
+        name.erase(remove(name.begin(), name.end(), '\"'), name.end());
+        AccessControlledDB db = galaxy_->OpenGraph(user, graph);
+        ret = !db.IsReadOnlyPlugin(type == "CPP" ? PluginManager::PluginType::CPP
+                                                 : PluginManager::PluginType::PYTHON,
+                                   token, name);
+        proto_req.set_is_write_op(!ret);
+    }
 
     CypherRequest* creq = proto_req.mutable_cypher_request();
     creq->set_result_in_json_format(false);

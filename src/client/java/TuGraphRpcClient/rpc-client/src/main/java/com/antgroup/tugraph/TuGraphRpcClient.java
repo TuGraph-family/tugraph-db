@@ -1,5 +1,5 @@
 
-package com.alipay.tugraph;
+package com.antgroup.tugraph;
 import com.baidu.brpc.client.BrpcProxy;
 import com.baidu.brpc.client.RpcClient;
 import com.baidu.brpc.client.RpcClientOptions;
@@ -32,6 +32,7 @@ public class TuGraphRpcClient {
     private RpcClient client;
     private TuGraphService tuGraphService;
     private String token;
+    private String url;
     private long serverVersion;
     private static final int TIMEOUTINMS = 60 * 60 * 1000;
 
@@ -54,6 +55,7 @@ public class TuGraphRpcClient {
         }
         this.token = response.getAclResponse().getAuthResponse().getToken();
         this.serverVersion = response.getServerVersion();
+        this.url = url;
     }
 
     public void stopClient() {
@@ -278,6 +280,10 @@ public class TuGraphRpcClient {
             }
         }
         return list;
+    }
+
+    public String getUrl() {
+        return url;
     }
 
     public String callCypher(String cypher, String graph, double timeout) {

@@ -1,7 +1,7 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #include <unistd.h>
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 #include "./ut_utils.h"
 
 using namespace lgraph_api;

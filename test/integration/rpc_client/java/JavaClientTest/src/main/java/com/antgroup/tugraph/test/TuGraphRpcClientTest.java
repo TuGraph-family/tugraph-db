@@ -1,12 +1,12 @@
-package com.alipay.tugraph.test;
+package com.antgroup.tugraph.test;
 import java.io.IOException;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONArray;
 import java.io.UnsupportedEncodingException;
 
-import com.alipay.tugraph.TuGraphRpcException;
+import com.antgroup.tugraph.TuGraphRpcException;
 import lombok.extern.slf4j.Slf4j;
-import com.alipay.tugraph.TuGraphRpcClient;
+import com.antgroup.tugraph.TuGraphRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

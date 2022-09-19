@@ -50,8 +50,7 @@ class AccessControlledDB {
     bool GetPluginCode(plugin::Type plugin_type, const std::string& token, const std::string& name,
                        PluginCode& ret);
 
-    bool IsReadOnlyPlugin(plugin::Type type, const std::string& token, const std::string& name,
-                          bool& is_readonly);
+    bool IsReadOnlyPlugin(plugin::Type type, const std::string& token, const std::string& name);
 
     void DropAllData();
 

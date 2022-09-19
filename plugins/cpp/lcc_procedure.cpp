@@ -1,6 +1,6 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
 #include "./algo.h"
 
@@ -14,13 +14,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // prepare
     start_time = get_time();
     auto txn = db.CreateReadTxn();
-    Snapshot<Empty> snapshot(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    auto score = snapshot.AllocVertexArray<double>();
-    double average_clco = LCCCore(snapshot, score);
+    auto score = olapondb.AllocVertexArray<double>();
+    double average_clco = LCCCore(olapondb, score);
     auto core_cost = get_time() - start_time;
 
     // output
@@ -31,8 +31,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     {
         json output;
         output["average_clco"] = average_clco;
-        output["num_vertices"] = snapshot.NumVertices();
-        output["num_edges"] = snapshot.NumEdges();
+        output["num_vertices"] = olapondb.NumVertices();
+        output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;
         output["core_cost"] = core_cost;
         output["output_cost"] = output_cost;

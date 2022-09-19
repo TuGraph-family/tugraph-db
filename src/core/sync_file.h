@@ -42,7 +42,7 @@ class SyncFile {
 
     void Sync();
 
-    size_t TellP() const;
+    size_t TellP();
 };
 
 }  // namespace lgraph

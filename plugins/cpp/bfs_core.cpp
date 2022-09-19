@@ -1,12 +1,12 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 #include "./algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
-size_t BFSCore(Graph<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent) {
+size_t BFSCore(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent) {
     size_t root = root_vid;
     auto active_in = graph.AllocVertexSubset();
     active_in.Add(root);

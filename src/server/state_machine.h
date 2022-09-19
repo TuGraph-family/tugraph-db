@@ -99,8 +99,8 @@ class StateMachine {
                 return "LOADING_SNAPSHOT";
             case NodeState::REPLAYING_LOG:
                 return "REPLAYING_LOG";
-            case NodeState::JOINED_SLAVE:
-                return "SLAVE";
+            case NodeState::JOINED_FOLLOW:
+                return "FOLLOW";
             case NodeState::JOINED_MASTER:
                 return "MASTER";
             case NodeState::OFFLINE:

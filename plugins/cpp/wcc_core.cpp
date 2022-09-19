@@ -1,12 +1,12 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 #include "./algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
-void WCCCore(Graph<Empty>& graph, ParallelVector<size_t>& label) {
+void WCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label) {
     auto active_in = graph.AllocVertexSubset();
     active_in.Fill();
     auto active_out = graph.AllocVertexSubset();

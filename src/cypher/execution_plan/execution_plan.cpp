@@ -1009,7 +1009,8 @@ OpBase *ExecutionPlan::BuildPart(const parser::QueryPart &part, int part_id) {
     OpBase *segment_root = nullptr;
     /* init alias id map */
     auto &pattern_graph = _pattern_graphs[part_id];
-    _read_only = _read_only && part.ReadOnly();
+    std::string dummy;
+    _read_only = _read_only && part.ReadOnly(dummy, dummy);
 
     /* build the pattern graph */
     BuildQueryGraph(part, pattern_graph);
@@ -1310,7 +1311,9 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     ctx->ac_db_.reset(nullptr);
     std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
     if (entry_id != out_id)
-        throw lgraph::CypherException("Thread shift When execute, may cause memory limit issue");
+#ifndef NDEBUG
+        FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
+#endif
     return 0;
 }
 

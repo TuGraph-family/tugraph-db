@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 
 /**
  * We assume in this file:

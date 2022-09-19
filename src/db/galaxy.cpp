@@ -275,6 +275,21 @@ lgraph::AccessControlledDB lgraph::Galaxy::OpenGraph(const std::string& user,
     return AccessControlledDB(graphs_->GetGraphRef(graph), ar);
 }
 
+std::unordered_map<std::string, lgraph::AccessControlledDB> lgraph::Galaxy::OpenUserGraphs(
+    const std::string& curr_user,
+    const std::string& user) const {
+    std::unordered_map<std::string, AccessLevel> acl = ListUserGraphs(curr_user, user);
+    _HoldReadLock(acl_lock_);
+    std::unordered_map<std::string, lgraph::AccessControlledDB> ret;
+    AutoReadLock l2(graphs_lock_, GetMyThreadId());
+    for (auto & kv : acl) {
+        if (kv.second == AccessLevel::NONE || kv.first == _detail::META_GRAPH) continue;
+        ret.insert(std::make_pair(kv.first,
+                                  AccessControlledDB(graphs_->GetGraphRef(kv.first), kv.second)));
+    }
+    return ret;
+}
+
 lgraph::AccessLevel lgraph::Galaxy::GetAcl(const std::string& curr_user, const std::string& user,
                                            const std::string& graph) {
     CheckUserName(user);

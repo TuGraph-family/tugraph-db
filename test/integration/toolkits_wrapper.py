@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class ToolkitsWrapper:
     def __init__(self, cmd, flags):
-        self.cmd = shlex.split(cmd)
+        self.cmd = cmd
         self.successful_flags = flags
         self.log_file = "".join(random.sample(string.ascii_letters + string.digits, 8)) + ".log"
 
@@ -28,7 +28,7 @@ class ToolkitsWrapper:
 
     def run(self, dir = []):
         with open(self.log_file, 'w+') as file:
-            self.process = subprocess.Popen(self.cmd, stdout=file, stderr=file, close_fds=True)
+            self.process = subprocess.Popen(self.cmd, shell=True, stdout=file, stderr=file, close_fds=True)
             self.process.wait()
             if self.check_status():
                 return

@@ -123,6 +123,9 @@ class Galaxy {
 
     AccessControlledDB OpenGraph(const std::string& user, const std::string& graph) const;
 
+    std::unordered_map<std::string, lgraph::AccessControlledDB> OpenUserGraphs(
+        const std::string& curr_user, const std::string& user) const;
+
     //------------
     // IP whitelist
     std::unordered_set<std::string> GetIpWhiteList(const std::string& curr_user) const;

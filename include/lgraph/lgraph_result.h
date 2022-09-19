@@ -8,9 +8,11 @@
 #pragma once
 #include "lgraph/lgraph.h"
 #include "tools/json.hpp"
+#include "lgraph/lgraph_traversal.h"
+
+
 
 namespace lgraph_api {
-
 /**
  * @brief result type
  * @param INTEGER
@@ -21,7 +23,7 @@ namespace lgraph_api {
  * @param MAP <string, FieldData>
  * @param NODE VertexIterator, VertexId
  * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
- * @param PATH TODO
+ * @param PATH lgraph_api::Path
  * @param LIST <string, FieldData>
  * @param FIELD INTEGER, FLOAT, DOUBLE, BOOLEAN, STRING
  * @param GRAPH_ELEMENT TODO. NODE, RELATIONSHIP, PATH
@@ -46,9 +48,10 @@ enum class ResultElementType {
     ANY = 0x80
 };
 
-ResultElementType ResultElementTypeUpcast(ResultElementType);
-
 struct ResultElement;
+
+
+ResultElementType ResultElementTypeUpcast(ResultElementType);
 
 /**
  * @brief   You only initialize the class by Result instance. Record provide some insert method
@@ -76,27 +79,50 @@ class Record {
      * @param   fname   Field name you defined earlier.
      * @param   fv      Field value.
      */
-     void Insert(const std::string &fname, const FieldData &fv);
+    void Insert(const std::string &fname, const FieldData &fv);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
-     *          and value type must be same as you defined earlier.
-     * @param   key     title name you defined earlier.
-     * @param   value   VertextId
-     * @param   txn     Transaction
+     *          and value type must be same as you defined earlier. You can get properties
+     *          and label from the interface, this is different from InsertEdgeByID.
+     * @param   fname     title name you defined earlier.
+     * @param   vid       VertextId
+     * @param   txn       Transaction
      */
-    void InsertVertex(const std::string &key, const int64_t vid,
-        lgraph::Transaction* txn);
+    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
+    void Insert(const std::string &fname, const int64_t vid,
+           lgraph::Transaction* txn);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
-     *          and value type must be same as you defined earlier.
-     * @param   key     title name you defined earlier.
-     * @param   value   EdgeUid
+     *          and value type must be same as you defined earlier.  You can get properties
+     *          and label from the interface, this is different from InsertVertexByID.
+     * @param   fname     title name you defined earlier.
+     * @param   vid       VertextId
+     * @param   txn       Transaction
+     */
+    void Insert(const std::string &fname, const int64_t vid, lgraph_api::Transaction* txn);
+
+    /**
+     * @brief   insert a value to result table. You can insert a value by insert function,
+     *          and value type must be same as you defined earlier. You can get properties
+     *          and label from the interface, this is different from InsertVertexByID.
+     * @param   fname   title name you defined earlier.
+     * @param   euid    EdgeUid
      * @param   txn     Transaction
      */
-    void InsertEdge(const std::string &key, EdgeUid &uid,
-        lgraph::Transaction* txn);
+    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
+    void Insert(const std::string &fname, EdgeUid &euid, lgraph::Transaction* txn);
+
+    /**
+     * @brief   insert a value to result table. You can insert a value by insert function,
+     *          and value type must be same as you defined earlier. You can get properties
+     *          and label from the interface, this is different from InsertEdgeByID.
+     * @param   fname   title name you defined earlier.
+     * @param   euid    EdgeUid
+     * @param   txn     Transaction
+     */
+    void Insert(const std::string &fname, EdgeUid &euid, lgraph_api::Transaction* txn);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function, and
@@ -162,6 +188,26 @@ class Record {
     void Insert(const std::string &fname, const std::map<std::string, FieldData> &map);
 
     /**
+     * @brief   insert value into result table. You can insert a value by the function,
+     *          and value must be same as you defined earlier.
+     * @param  fname    one of title name you defined earlier.
+     * @param  path     Path of traverse api.
+     * @param  txn      Trasaction
+     */
+    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
+    void Insert(const std::string &fname, const traversal::Path &path, lgraph::Transaction* txn);
+
+    /**
+     * @brief   insert value into result table. You can insert a value by the function,
+     *          and value must be same as you defined earlier.
+     * @param  fname    one of title name you defined earlier.
+     * @param  path     Path of traverse api.
+     * @param  txn      Trasaction
+     */
+    void Insert(const std::string &fname, const traversal::Path &path,
+                lgraph_api::Transaction* txn);
+
+    /**
      * @brief   Get the size of record. If record is empty, return 0, max size is not beyond the
      *          length of your defined param list
      *
@@ -183,7 +229,7 @@ class Record {
  * @brief   Result table, result instance provide [NewRecord], [ResetHeader], [Dump] and [Load]
  *          method. Table also provide some method to view content of table. For example,
  *          [Header] and [Recordview].
- *          
+ *
  *          It's worth noting that you are best to define your header before using result table.
  *          eg.
  *                       auto result = Result({title, ResultElementType}...)
@@ -251,8 +297,8 @@ class Result {
      *
      * @returns One Record.
      */
-    const std::unordered_map<std::string, std::shared_ptr<ResultElement>> &RecordView(
-        int64_t row_num);
+    const std::unordered_map<std::string, std::shared_ptr<ResultElement>>&
+    RecordView(int64_t row_num);
 
     /**
      * @brief   return size of the table.

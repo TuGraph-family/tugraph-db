@@ -1,0 +1,144 @@
+/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+
+#pragma once
+
+#include <tuple>
+#include "lgraph/olap_profile.h"
+#include "lgraph/lgraph_utils.h"
+#include "lgraph/olap_base.h"
+#include "fma-common/configuration.h"
+
+namespace lgraph_api {
+namespace olap {
+
+enum SourceType {
+    BINARY_FILE,
+    TEXT_FILE,
+    ODPS
+};
+
+/**
+ * @brief   EdgeUnit<EdgeData> represents an edge with EdgeData as the weight type.
+ * @param               p           Beginning pointer of input edge.
+ * @param               end         Ending pointer of input edge.
+ * @param   [in,out]    e           Edge to store the result.
+ * @return
+ */
+
+template <typename EdgeData>
+std::tuple<size_t, bool> parse_line_unweighted(const char *p,
+                        const char *end, EdgeUnit<EdgeData> &e) {
+    const char *orig = p;
+    int64_t t = 0;
+    p += lgraph_api::ParseInt64(p, end, t);
+    e.src = t;
+
+    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
+
+    p += lgraph_api::ParseInt64(p, end, t);
+    e.dst = t;
+
+    while (p != end && *p != '\n') p++;
+
+    return std::tuple<size_t, bool>(p - orig, p != orig);
+}
+
+/**
+ * @brief   Parser for weighted edges.
+ * @param               EdgeData    Type of the edge data.
+ * @param               p           Beginning pointer of input edge.
+ * @param               end         Ending pointer of input edge.
+ * @param   [in,out]    e           Edge to store the result.
+ * @return
+ */
+template <typename EdgeData>
+std::tuple<size_t, bool> parse_line_weight(const char* p, const char* end, EdgeUnit<EdgeData>& e) {
+    const char* orig = p;
+    int64_t t = 0;
+    p += lgraph_api::ParseInt64(p, end, t);
+    e.src = t;
+
+    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
+    p += lgraph_api::ParseInt64(p, end, t);
+    e.dst = t;
+    double w = 1.0;
+    while (p != end && (*p == ' ' || *p == '\t' || *p == ','))  p++;
+    p += lgraph_api::ParseDouble(p, end, w);
+    e.edge_data = w;
+    while (p != end && *p != '\n') p++;
+
+    return std::tuple<size_t, bool>(p - orig, p != orig);
+}
+
+template<typename EdgeData>
+class ConfigBase {
+ public:
+    size_t num_vertices = 0;
+    SourceType  type;
+    std::string name = std::string("app");
+
+    // FILE
+    std::string input_dir = "";
+    std::string output_dir = "";
+    std::function<std::tuple<size_t, bool>(const char *, const char *, EdgeUnit<EdgeData> &)>
+            parse_line = parse_line_unweighted<EdgeData>;
+
+    ConfigBase(int &argc, char** &argv) {
+        fma_common::Configuration config;
+        this->AddParameterType(config);
+        config.ParseAndRemove(&argc, &argv);
+        config.ExitAfterHelp(false);
+        config.Finalize();
+        this->GetTypeFromString();
+    }
+
+    virtual void AddParameter(fma_common::Configuration& config) {
+        AddParameterFile(config);
+    }
+
+    virtual void Print() {
+        std::cout << "parameter:" << std::endl;
+        PrintFile();
+    }
+
+    SourceType GetType() {
+        return type;
+    }
+
+    void GetTypeFromString() {
+        if (type_str == "text") {
+            type = TEXT_FILE;
+        } else if (type_str == "binary") {
+            type = BINARY_FILE;
+        } else {
+            printf("Unrecognized source type: %s\n", type_str.c_str());
+            exit(-1);
+        }
+    }
+
+    void AddParameterType(fma_common::Configuration& config) {
+        config.Add(type_str, "type", true)
+                .Comment("source type, can be text/binary");
+    }
+
+ private:
+    std::string type_str = "text";
+    void AddParameterFile(fma_common::Configuration& config) {
+        config.Add(num_vertices, "vertices", true)
+                .Comment("total number of vertices");
+        config.Add(input_dir, "input_dir", false)
+                .Comment("input dir or input file of graph edgelist in txt");
+        config.Add(output_dir, "output_dir", true)
+                .Comment("output dir of result");
+    }
+
+    void PrintFile() {
+        if (num_vertices > 0) {
+            std::cout << "  vertices:     " << num_vertices   << std::endl;
+            std::cout << "  input_dir:    " << input_dir      << std::endl;
+            std::cout << "  output_dir:   " << output_dir     << std::endl;
+        }
+    }
+};
+}  // namespace olap
+}  // namespace lgraph_api

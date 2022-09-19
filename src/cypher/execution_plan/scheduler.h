@@ -39,6 +39,6 @@ class Scheduler {
         return nullptr;
     }
 
-    static bool DetermineReadOnly(const std::string &script);
+    static bool DetermineReadOnly(const std::string &script, std::string& name, std::string& type);
 };
 }  // namespace cypher

@@ -232,6 +232,12 @@ int test_query(cypher::RTContext *ctx) {
         {"MATCH (a)-[e]->(b) WHERE a.name='Liam Neeson' and b.title<>'' and "
          "(e.charactername='Henri Ducard' or e.relation = '') RETURN a,e,b",
          1},  // issue: #190
+        {"MATCH (a) WHERE a.name IN ['Dennis Quaid', 'Christopher Nolan'] WITH a "
+         "MATCH (b) WHERE b.name IN ['London'] RETURN a, b",
+         2},
+        {"MATCH (a) WHERE a.name IN ['Dennis Quaid', 'Christopher Nolan'] WITH a "
+         "MATCH (b) WHERE b.name IN ['London', 'Beijing', 'Houston'] RETURN a, b",
+         4},  // issue #305
         /* test multi-types relp */
         {"MATCH (n:Person {name:'Vanessa Redgrave'})-[:BORN_IN|ACTED_IN]->(m) RETURN m", 2},
         {"MATCH (n:Person {name:'Michael Redgrave'})<-[:MARRIED|HAS_CHILD]-(m) RETURN m", 2},
@@ -1085,7 +1091,6 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL dbms.procedures",
         "CALL dbms.procedures YIELD signature",
         "CALL dbms.procedures YIELD signature, name",
-        "CALL dbms.listServers",
         /* graph management */
         "CALL dbms.graph.createGraph('demo1')",
         "CALL dbms.graph.listGraphs()",
@@ -2072,8 +2077,11 @@ int test_edge_id_query(cypher::RTContext *ctx) {
 }
 
 void TestCypherDetermineReadonly() {
-    FMA_CHECK_EQ(cypher::Scheduler::DetermineReadOnly("match (n) return n limit 100"), true);
-    FMA_CHECK_EQ(cypher::Scheduler::DetermineReadOnly("CALL dbms.listGraphs()"), true);
+    std::string dummy;
+    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("match (n) return n limit 100",
+                                                      dummy, dummy), true);
+    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("CALL dbms.listGraphs()",
+                                                      dummy, dummy), true);
 }
 
 void TestCypherEmptyGraph(cypher::RTContext* ctx) {

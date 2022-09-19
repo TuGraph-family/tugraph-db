@@ -26,5 +26,5 @@ class TestJavaClient():
     @pytest.mark.parametrize("bash", [BASHOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("exec", [EXECOPT], indirect=True)
-    def test_cpp_client(self, bash, build_so, server, exec):
+    def test_java_client(self, bash, build_so, server, exec):
         pass

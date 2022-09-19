@@ -60,10 +60,8 @@ bool lgraph::AccessControlledDB::CallPlugin(plugin::Type plugin_type, const std:
                                             double timeout_seconds, bool in_process,
                                             std::string& output) {
     auto pm = graph_->GetPluginManager();
-    int r = pm->IsReadOnlyPlugin(plugin_type, token, name);
-    if (r < 0) return false;
-    bool read_only = (bool)r;
-    if (access_level_ < AccessLevel::WRITE && !read_only)
+    bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, token, name);
+    if (access_level_ < AccessLevel::WRITE && !is_readonly)
         throw AuthError("Write permission needed to call this plugin.");
     return pm->Call(plugin_type, token, this, name, request, timeout_seconds, in_process, output);
 }
@@ -79,11 +77,8 @@ bool lgraph::AccessControlledDB::GetPluginCode(plugin::Type plugin_type, const s
 }
 
 bool lgraph::AccessControlledDB::IsReadOnlyPlugin(plugin::Type type, const std::string& token,
-                                                  const std::string& name, bool& is_readonly) {
-    int r = graph_->GetPluginManager()->IsReadOnlyPlugin(type, token, name);
-    if (r < 0) return false;
-    is_readonly = (bool)r;
-    return true;
+                                                  const std::string& name) {
+    return graph_->GetPluginManager()->IsReadOnlyPlugin(type, token, name);
 }
 
 void lgraph::AccessControlledDB::DropAllData() {

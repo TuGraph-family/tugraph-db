@@ -597,7 +597,7 @@ enum NodeState {
     UNINITIALIZED = 1;
     LOADING_SNAPSHOT = 2;
     REPLAYING_LOG = 3;
-    JOINED_SLAVE = 4;
+    JOINED_FOLLOW = 4;
     JOINED_MASTER = 5;
     OFFLINE = 6;
 };

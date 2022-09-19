@@ -21,7 +21,7 @@
 
 #include <iostream>
 #include "lgraph/lgraph.h"
-#include "lgraph/lgraph_graph.h"
+#include "lgraph/olap_base.h"
 using namespace std;
 
 extern "C" bool Process(lgraph_api::GraphDB &db, const std::string &request, std::string &response);

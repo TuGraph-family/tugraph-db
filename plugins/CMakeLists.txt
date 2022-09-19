@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.2)
 project(TuGraph C CXX)
 
+set(LGRAPH_API_SRC 
+        ${CMAKE_SOURCE_DIR}/src/lgraph_api/olap_base.cpp
+        ${CMAKE_SOURCE_DIR}/src/lgraph_api/lgraph_utils.cpp
+        ${CMAKE_SOURCE_DIR}/src/lgraph_api/olap_profile.cpp)
+
 function(add_standalone APP)
-    add_executable(${APP}_standalone cpp/${APP}_core.cpp cpp/${APP}_standalone.cpp)
-    target_link_libraries(${APP}_standalone lgraph_server_lib)
+    add_executable(${APP}_standalone cpp/${APP}_core.cpp cpp/${APP}_standalone.cpp ${LGRAPH_API_SRC})
+    target_link_libraries(${APP}_standalone -lstdc++fs)
     set_target_properties( ${APP}_standalone PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
+    target_include_directories(${APP}_standalone PUBLIC ${CMAKE_SOURCE_DIR}/include
+                                                        ${CMAKE_SOURCE_DIR}/src)
 endfunction()
 
 function(add_embed APP)

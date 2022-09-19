@@ -268,6 +268,9 @@ class BuiltinProcedure {
     static void DbPluginListPlugin(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                    const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbPluginListUserPlugins(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                        const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbPluginGetPluginInfo(RTContext *ctx, const Record *record,
                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
                                                  std::vector<Record> *records);
@@ -300,11 +303,14 @@ class BuiltinProcedure {
     static void DbListLabelIndexes(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                             const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void ServerInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void DbMonitorServerInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                            const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void TuGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void DbMonitorTuGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                            const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsHaClusterInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                  const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 class AlgoFunc {
@@ -513,7 +519,9 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("dbms.procedures", BuiltinProcedure::DbmsProcedures, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"name", {0, lgraph::ResultElementType::STRING}},
-                                  {"signature", {1, lgraph::ResultElementType::STRING}}}),
+                                  {"signature", {1, lgraph::ResultElementType::STRING}},
+                                  {"read_only", {2, lgraph::ResultElementType::BOOLEAN}}}
+              , true, false),
 
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
@@ -772,6 +780,11 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"plugin_description", {0, lgraph::ResultElementType::MAP}}},
               false, true),
 
+    Procedure("db.plugin.listUserPlugins", BuiltinProcedure::DbPluginListUserPlugins, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"graph", {0, lgraph::ResultElementType::STRING}},
+                                  {"plugins", {1, lgraph::ResultElementType::MAP}}
+              }, true, true),
+
     Procedure("db.plugin.callPlugin", BuiltinProcedure::DbPluginCallPlugin,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph::ResultElementType::STRING}},
                                   {"plugin_name", {1, lgraph::ResultElementType::STRING}},
@@ -817,15 +830,19 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"task_id", {0, lgraph::ResultElementType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
 
-    Procedure("db.monitor.tuGraphInfo", BuiltinProcedure::TuGraphInfo, Procedure::SIG_SPEC{},
+    Procedure("db.monitor.tuGraphInfo", BuiltinProcedure::DbMonitorTuGraphInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"request", {0, lgraph::ResultElementType::STRING}}}, false, true),
 
-    Procedure("db.monitor.serverInfo", BuiltinProcedure::ServerInfo, Procedure::SIG_SPEC{},
+    Procedure("db.monitor.serverInfo", BuiltinProcedure::DbMonitorServerInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"cpu", {0, lgraph::ResultElementType::STRING}},
                                   {"memory", {1, lgraph::ResultElementType::STRING}},
                                   {"disk_rate", {2, lgraph::ResultElementType::STRING}},
                                   {"disk_storage", {3, lgraph::ResultElementType::STRING}}
-              },false, true)
+              },false, true),
+
+    Procedure("dbms.ha.clusterInfo", BuiltinProcedure::DbmsHaClusterInfo, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph::ResultElementType::LIST}}
+              },  true, true)
 };
 
 class ProcedureTable {

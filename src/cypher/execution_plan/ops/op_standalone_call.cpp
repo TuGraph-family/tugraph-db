@@ -14,25 +14,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
     auto &parameters = std::get<1>(call);
     auto &yield_items = std::get<2>(call);
     auto names = fma_common::Split(procedure_name, ".");
-    if (procedure_name == "dbms.listServers") {
-        std::vector<std::pair<std::string, lgraph::ResultElementType>> header;
-        header.emplace_back(std::make_pair("rpc.address", lgraph::ResultElementType::FIELD));
-        header.emplace_back(std::make_pair("rest.address", lgraph::ResultElementType::FIELD));
-        header.emplace_back(std::make_pair("server.state", lgraph::ResultElementType::FIELD));
-        // TODO: workaround for front-end // NOLINT
-        ctx->result_->ResetHeader(header);
-        if (ctx && ctx->sm_) {
-            auto peers = ctx->sm_->ListPeers();
-            for (auto &p : peers) {
-                // Record r;
-                auto &r = ctx->result_->NewRecord();
-                r.Insert("rpc.address", lgraph::FieldData(p.rpc_addr));
-                r.Insert("rest.address", lgraph::FieldData(p.rest_addr));
-                r.Insert("server.state", lgraph::FieldData(p.StateString()));
-            }
-        }
-        return OP_DEPLETED;
-    } else if (names.size() > 2 && names[0] == "plugin") {
+    if (names.size() > 2 && names[0] == "plugin") {
         std::string input, output;
         auto type = names[1] == "cpp" ? lgraph::PluginManager::PluginType::CPP
                                       : lgraph::PluginManager::PluginType::PYTHON;
@@ -96,7 +78,6 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         SetFunc(procedure_name);
         std::vector<Record> records;
         procedure_->function(ctx, nullptr, parameters, yield_items, &records);
-
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
             auto &record = ctx->result_->NewRecord();
@@ -137,10 +118,12 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         break;
                     }
                 default:
-                    if (v.constant.array != nullptr)
+                    if (v.constant.array != nullptr) {
                         record.Insert(title, lgraph::FieldData(v.ToString()));
-                    else
+                    }
+                    else {
                         record.Insert(title, v.constant.scalar);
+                    }
                 }
                 idx++;
             }

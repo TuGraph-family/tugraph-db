@@ -1,9 +1,10 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #include "fma-common/string_formatter.h"
+#include "lgraph/lgraph_result.h"
 #include "lgraph_api/result_element.h"
 #include "server/json_convert.h"
-#include "cypher/filter/iterator.h"
+#include "core/transaction.h"
 
 using json = nlohmann::json;
 
@@ -38,7 +39,8 @@ Record::Record(const std::vector<std::pair<std::string, ResultElementType>> &arg
 Record::Record(const Record &rhs) {
     header = rhs.header;
     for (auto r : rhs.record) {
-        record[r.first] = std::shared_ptr<ResultElement>(new ResultElement(*r.second));
+        record[r.first] = std::shared_ptr<ResultElement>(
+            new ResultElement(*r.second));
     }
 }
 
@@ -54,7 +56,8 @@ Record &Record::operator=(const Record &rhs) {
     if (this == &rhs) return *this;
     header = rhs.header;
     for (auto r : rhs.record) {
-        record[r.first] = std::shared_ptr<ResultElement>(new ResultElement(*r.second));
+        record[r.first] = std::shared_ptr<ResultElement>(
+            new ResultElement(*r.second));
     }
     return *this;
 }
@@ -71,34 +74,35 @@ Record &Record::operator=(Record &&rhs) {
 
 void Record::Insert(const std::string &key, const FieldData &value) {
     if (!HasKey(key)) {
-        throw std::runtime_error(FMA_FMT("[Result ERROR] the variable {} is not exist", key));
+        throw std::runtime_error(
+            FMA_FMT("[Result ERROR] the variable {} is not exist", key));
     }
-    // 为了可读写做妥协
     if (header[key] == ResultElementType::INTEGER &&
         (value.type == FieldType::INT8 || value.type == FieldType::INT16 ||
          value.type == FieldType::INT32 || value.type == FieldType::INT64)) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::INTEGER));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::INTEGER));
     } else if (header[key] == ResultElementType::FLOAT && value.type == FieldType::FLOAT) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::FLOAT));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::FLOAT));
     } else if (header[key] == ResultElementType::DOUBLE && value.type == FieldType::DOUBLE) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::DOUBLE));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::DOUBLE));
     } else if (header[key] == ResultElementType::BOOLEAN && value.type == FieldType::BOOL) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::BOOLEAN));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::BOOLEAN));
     } else if (header[key] == ResultElementType::STRING && value.type == FieldType::STRING) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::STRING));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::STRING));
     } else if (header[key] == ResultElementType::PATH && value.type == FieldType::STRING) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::PATH));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::PATH));
     } else if (header[key] == ResultElementType::ANY && value.type == FieldType::STRING) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::ANY));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value, ResultElementType::ANY));
     } else if (header[key] == ResultElementType::FIELD) {
-        record[key] = std::shared_ptr<ResultElement>(new ResultElement(value));
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(value));
     } else {
         throw std::runtime_error("[Result ERROR] type is valid");
     }
@@ -108,132 +112,223 @@ void Record::Insert(const std::string &key, const FieldData &value) {
 
 void Record::Insert(const std::string &key, const std::map<std::string, FieldData> &value) {
     if (!HasKey(key) || header[key] != ResultElementType::MAP) {
-        throw std::runtime_error(FMA_FMT("[Result ERROR] the variable {} is not exist", key));
+        throw std::runtime_error(
+            FMA_FMT("[Result ERROR] the variable {} is not exist", key));
     }
     std::map<std::string, json> j_value;
     for (auto &v : value) {
         j_value[v.first] = lgraph_rfc::FieldDataToJson(v.second);
     }
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(j_value));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(j_value));
     length_++;
 }
 
 void Record::Insert(const std::string &key, const std::vector<FieldData> &value) {
     if (!HasKey(key) || header[key] != ResultElementType::LIST) {
-        throw std::runtime_error(FMA_FMT("[Result ERROR] the variable {} is not exist", key));
+        throw std::runtime_error(
+            FMA_FMT("[Result ERROR] the variable {} is not exist", key));
     }
     std::vector<json> j_value;
     for (auto &v : value) {
         j_value.emplace_back(lgraph_rfc::FieldDataToJson(v));
     }
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(j_value));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(j_value));
     length_++;
 }
 
 void Record::Insert(const std::string &key, const lgraph_api::VertexIterator &vertex_it) {
     if (!HasKey(key) || header[key] != ResultElementType::NODE) {
-        throw std::runtime_error(FMA_FMT("[Plugin ERROR] the variable {} is not exist", key));
+        throw std::runtime_error(FMA_FMT(
+            "[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
     if (!vertex_it.IsValid()) {
         throw std::runtime_error("[Result ERROR] the vertex iterator is not valid");
     }
-    Node node;
+    lgraph_result::Node node;
     node.id = vertex_it.GetId();
     node.label = vertex_it.GetLabel();
     node.properties = vertex_it.GetAllFields();
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(node));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(node));
     length_++;
 }
 
 void Record::Insert(const std::string &key, const lgraph_api::InEdgeIterator &in_edge_it) {
     if (!HasKey(key) || header[key] != ResultElementType::RELATIONSHIP) {
-        throw std::runtime_error(FMA_FMT("[Plugin ERROR] the variable {} is not exist", key));
+        throw std::runtime_error(
+            FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
     if (!in_edge_it.IsValid()) {
-        throw std::runtime_error("[Plugin ERROR] the in_edge iterator is not valid");
+        throw std::runtime_error("[STANDARD RESULT ERROR] the in_edge iterator is not valid");
     }
-    Relationship repl;
+    lgraph_result::Relationship repl;
     auto uid = in_edge_it.GetUid();
     repl.id = uid.eid;
-    repl.start = uid.src;
-    repl.end = uid.dst;
+    repl.src = uid.src;
+    repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.label = in_edge_it.GetLabel();
     repl.properties = in_edge_it.GetAllFields();
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(repl));
     length_++;
 }
 
 void Record::Insert(const std::string &key, const lgraph_api::OutEdgeIterator &out_edge_it) {
     if (!HasKey(key) || header[key] != ResultElementType::RELATIONSHIP) {
-        throw std::runtime_error(FMA_FMT("[Plugin ERROR] the variable {} is not exist", key));
+        throw std::runtime_error(
+            FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
     if (!out_edge_it.IsValid()) {
-        throw std::runtime_error("[Plugin ERROR] the out_edge iterator is not valid");
+        throw std::runtime_error("[STANDARD RESULT ERROR] the out_edge iterator is not valid");
     }
-    Relationship repl;
+    lgraph_result::Relationship repl;
     auto uid = out_edge_it.GetUid();
     repl.id = uid.eid;
-    repl.start = uid.src;
-    repl.end = uid.dst;
+    repl.src = uid.src;
+    repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.label = out_edge_it.GetLabel();
     repl.properties = out_edge_it.GetAllFields();
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(repl));
     length_++;
 }
 
-void Record::InsertVertex(const std::string &key,
-        const int64_t vid,
-        lgraph::Transaction* txn) {
-    auto vit = std::make_unique<lgraph::VIter>(txn, lgraph::VIter::VERTEX_ITER, vid);
-    Node node;
+void Record::Insert(const std::string &key, const int64_t vid, lgraph::Transaction* txn) {
+    auto vit = txn->GetVertexIterator(vid);
+    lgraph_result::Node node;
     node.id = vid;
-    node.label = vit->GetLabel();
-    auto node_fields = vit->GetFields();
-    for (auto &property : node_fields) {
+    node.label = txn->GetVertexLabel(vit);
+    for (auto &property : txn->GetVertexFields(vit)) {
         node.properties.insert(property);
     }
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(node));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(node));
     length_++;
+}
+
+
+void Record::Insert(const std::string &key, const int64_t vid, lgraph_api::Transaction* txn) {
+    // WARNING: call deprecated interface.
+    // TODO(jiazheng.jia): Please move deprecated interface's code to here
+    // when you replace all of old interface to new one.
+    Insert(key, vid, txn->GetTxn().get());
 }
 
 void Record::InsertVertexByID(const std::string &key, int64_t node_id) {
-    Node node;
+    lgraph_result::Node node;
     node.id = node_id;
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(node));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(node));
     length_++;
 }
 
-void Record::InsertEdge(const std::string &key,
-        EdgeUid &uid,
-        lgraph::Transaction* txn) {
-    auto vit = std::make_unique<lgraph::EIter>(txn, uid);
-    Relationship repl;
+void Record::Insert(const std::string &key,
+                    EdgeUid &uid,
+                    lgraph::Transaction* txn) {
+    auto eit = txn->GetOutEdgeIterator(uid, false);
+    lgraph_result::Relationship repl;
     repl.id = uid.eid;
-    repl.start = uid.src;
-    repl.end = uid.dst;
+    repl.src = uid.src;
+    repl.dst = uid.dst;
     repl.label_id = uid.lid;
-    repl.label = vit->GetLabel();
-    auto rel_fields = vit->GetFields();
+    repl.label = txn->GetEdgeLabel(eit);
+    auto rel_fields = txn->GetEdgeFields(eit);
     for (auto &property : rel_fields) {
         repl.properties.insert(property);
     }
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(repl));
     length_++;
 }
 
+void Record::Insert(const std::string &key,
+                    EdgeUid &uid,
+                    lgraph_api::Transaction* txn) {
+    // WARNING: call deprecated interface.
+    // TODO(jiazheng.jia): Please move deprecated interface's code to here
+    // when you replace all of old interface to new one.
+    Insert(key, uid, txn->GetTxn().get());
+}
+
 void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
-    Relationship repl;
+    lgraph_result::Relationship repl;
     repl.id = uid.eid;
-    repl.start = uid.src;
-    repl.end = uid.dst;
+    repl.src = uid.src;
+    repl.dst = uid.dst;
     repl.label_id = uid.lid;
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
+    repl.tid = uid.tid;
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(repl));
     length_++;
 }
 
 Result::Result() : row_count_(-1) {}
+
+void Record::Insert(const std::string &key, const traversal::Path &path,
+                    lgraph::Transaction *txn) {
+    if (!HasKey(key) || header[key] != ResultElementType::PATH) {
+        throw std::runtime_error(FMA_FMT(
+            "[STANDARD RESULT ERROR] the variable {} is not exist", key));
+    }
+    lgraph_result::Path result_path;
+    if (path.Length() == 0) {
+        record[key] = std::shared_ptr<ResultElement>(
+            new ResultElement(result_path));
+    }
+    for (size_t i = 0; i < path.Length(); i++) {
+        lgraph_result::Node node;
+        auto vid = path.GetNthVertex(i).GetId();
+        auto vit = txn->GetVertexIterator(vid);
+        node.id = vid;
+        node.label = txn->GetVertexLabel(vit);
+        for (const auto &property : txn->GetVertexFields(vit)) {
+            node.properties[property.first] = property.second;
+        }
+        result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
+        auto edge = path.GetNthEdge(i);
+        lgraph_result::Relationship repl;
+        auto euid = lgraph::EdgeUid(edge.GetSrcVertex().GetId(),
+                                    edge.GetDstVertex().GetId(),
+                                    edge.GetLabelId(),
+                                    edge.GetTemporalId(),
+                                    edge.GetEdgeId());
+        auto eit = txn->GetOutEdgeIterator(euid, false);
+        repl.id = euid.eid;
+        repl.src = euid.src;
+        repl.dst = euid.dst;
+        repl.label_id = euid.lid;
+        repl.tid = euid.tid;
+        repl.label = txn->GetEdgeLabel(eit);
+        for (const auto &property : txn->GetEdgeFields(eit)) {
+            repl.properties[property.first] = property.second;
+        }
+        result_path.emplace_back(lgraph_result::PathElement(std::move(repl)));
+    }
+    lgraph_result::Node node;
+    auto vid = path.GetEndVertex().GetId();
+    auto vit = txn->GetVertexIterator(vid);
+    node.id = vid;
+    node.label = txn->GetVertexLabel(vit);
+    for (const auto &property : txn->GetVertexFields(vit)) {
+        node.properties[property.first] = property.second;
+    }
+    result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
+    record[key] = std::shared_ptr<ResultElement>(
+        new ResultElement(result_path));
+    length_++;
+}
+
+void Record::Insert(const std::string &key, const traversal::Path &path,
+                    lgraph_api::Transaction *txn) {
+    // WARNING: call deprecated interface.
+    // TODO(jiazheng.jia): Please move deprecated interface's code to here
+    // when you replace all of old interface to new one.
+    Insert(key, path, txn->GetTxn().get());
+}
 
 Result::Result(const std::initializer_list<std::pair<std::string, ResultElementType>> &args) {
     for (auto h : args) header.push_back(h);
@@ -269,8 +364,8 @@ Result::Result(const std::vector<std::pair<std::string, ResultElementType>> &arg
 
 int64_t Result::Size() const { return row_count_ + 1; }
 
-const std::unordered_map<std::string, std::shared_ptr<ResultElement>> &Result::RecordView(
-    int64_t row_num) {
+const std::unordered_map<std::string, std::shared_ptr<ResultElement>>&
+Result::RecordView(int64_t row_num) {
     if (row_num > row_count_) {
         throw std::runtime_error(
             FMA_FMT("[RecordView ERROR] table size is {}, but row_num is {}", row_count_, row_num));
@@ -364,7 +459,6 @@ void Result::Load(const std::string &output) {
                     record.Insert(title, FieldData(std::forward<bool>(col.value().get<bool>())));
                     break;
                 case ResultElementType::STRING:
-                case ResultElementType::PATH:
                 case ResultElementType::ANY:
                     record.Insert(
                         title,
@@ -390,32 +484,70 @@ void Result::Load(const std::string &output) {
                     break;
                 case ResultElementType::NODE:
                     {
-                        Node node;
+                        lgraph_result::Node node;
                         node.id = col.value()["identity"].get<int64_t>();
                         node.label = col.value()["label"].get<std::string>();
                         std::map<std::string, FieldData> properties;
                         for (auto &obj : col.value()["properties"].items())
                             properties[obj.key()] = lgraph_rfc::JsonToFieldData(obj.value());
                         node.properties = properties;
-                        record.record[title] =
-                            std::shared_ptr<ResultElement>(new ResultElement(node));
+                        record.record[title] = std::shared_ptr<ResultElement>(
+                            new ResultElement(node));
                         record.length_++;
                     }
                     break;
                 case ResultElementType::RELATIONSHIP:
                     {
-                        Relationship repl;
+                        lgraph_result::Relationship repl;
                         repl.id = col.value()["identity"].get<int64_t>();
-                        repl.start = col.value()["start"].get<int64_t>();
-                        repl.end = col.value()["end"].get<int64_t>();
+                        repl.src = col.value()["src"].get<int64_t>();
+                        repl.dst = col.value()["dst"].get<int64_t>();
                         repl.label_id = col.value()["label_id"].get<uint16_t>();
+                        repl.tid = col.value()["temporal_id"].get<int64_t>();
                         std::map<std::string, FieldData> properties;
                         for (auto &obj : col.value()["properties"].items())
                             properties[obj.key()] = lgraph_rfc::JsonToFieldData(obj.value());
                         repl.properties = properties;
-                        record.record[title] =
-                            std::shared_ptr<ResultElement>(new ResultElement(repl));
+                        record.record[title] = std::shared_ptr<ResultElement>(
+                            new ResultElement(repl));
                         record.length_++;
+                    }
+                    break;
+                case ResultElementType::PATH:
+                    {
+                        bool is_node = true;
+                        lgraph_result::Path path;
+                        for (auto& json_path : col.value()) {
+                            if (is_node) {
+                                lgraph_result::Node node;
+
+                                node.id = json_path["identity"].get<int64_t>();
+                                node.label = json_path["label"].get<std::string>();
+                                std::map<std::string, FieldData> properties;
+                                for (auto &obj : json_path["properties"].items())
+                                    properties[obj.key()] =
+                                        lgraph_rfc::JsonToFieldData(obj.value());
+                                node.properties = properties;
+                                path.emplace_back(lgraph_result::PathElement(node));
+                            } else {
+                                lgraph_result::Relationship repl;
+                                repl.id = col.value()["identity"].get<int64_t>();
+                                repl.src = col.value()["src"].get<int64_t>();
+                                repl.dst = col.value()["dst"].get<int64_t>();
+                                repl.label_id = col.value()["label_id"].get<uint16_t>();
+                                repl.tid = col.value()["temporal_id"].get<int64_t>();
+                                std::map<std::string, FieldData> properties;
+                                for (auto &obj : col.value()["properties"].items())
+                                    properties[obj.key()] =
+                                        lgraph_rfc::JsonToFieldData(obj.value());
+                                repl.properties = properties;
+                                path.emplace_back(lgraph_result::PathElement(repl));
+                            }
+                            is_node = !is_node;
+                            record.length_++;
+                            record.record[title] = std::shared_ptr<ResultElement>(
+                                new ResultElement(path));
+                        }
                     }
                     break;
                 default:

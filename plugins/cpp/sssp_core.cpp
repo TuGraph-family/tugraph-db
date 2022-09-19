@@ -1,12 +1,12 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 #include "./algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
-void SSSPCore(Graph<double>& graph, size_t root, ParallelVector<double>& distance) {
+void SSSPCore(OlapBase<double>& graph, size_t root, ParallelVector<double>& distance) {
     auto active_in = graph.AllocVertexSubset();
     active_in.Add(root);
     std::cout<< "root:" << root << std::endl;

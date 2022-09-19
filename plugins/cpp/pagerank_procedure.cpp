@@ -1,6 +1,6 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
 #include "./algo.h"
 
@@ -25,17 +25,17 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     }
 
     auto txn = db.CreateReadTxn();
-    Snapshot<Empty> snapshot(db, txn, SNAPSHOT_PARALLEL);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    ParallelVector<double> pr = snapshot.AllocVertexArray<double>();
-    PageRankCore(snapshot, num_iterations, pr);
-    auto all_vertices = snapshot.AllocVertexSubset();
+    ParallelVector<double> pr = olapondb.AllocVertexArray<double>();
+    PageRankCore(olapondb, num_iterations, pr);
+    auto all_vertices = olapondb.AllocVertexSubset();
     all_vertices.Fill();
     size_t max_pr_vi =
-        snapshot.ProcessVertexActive<size_t>([&](size_t vi) { return vi; }, all_vertices, 0,
+        olapondb.ProcessVertexActive<size_t>([&](size_t vi) { return vi; }, all_vertices, 0,
                                     [&](size_t a, size_t b) { return pr[a] > pr[b] ? a : b; });
     auto core_cost = get_time() - start_time;
 
@@ -48,10 +48,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // return
     {
         json output;
-        output["max_pr_id"] = snapshot.OriginalVid(max_pr_vi);
+        output["max_pr_id"] = olapondb.OriginalVid(max_pr_vi);
         output["max_pr_val"] = pr[max_pr_vi];
-        output["num_vertices"] = snapshot.NumVertices();
-        output["num_edges"] = snapshot.NumEdges();
+        output["num_vertices"] = olapondb.NumVertices();
+        output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;
         output["core_cost"] = core_cost;
         output["output_cost"] = output_cost;
