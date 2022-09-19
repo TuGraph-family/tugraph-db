@@ -134,9 +134,17 @@ RUN wget https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.6.0.zip \
   
 # prometheus-cpp-client
 RUN wget https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip \
-    && unzip v1.0.1.zip && mv prometheus-cpp-1.0.1 prometheus-cpp-client && cd /prometheus-cpp-client  && mkdir build && cd build \
+    && unzip v1.0.1.zip && mv prometheus-cpp-1.0.1 prometheus-cpp-client && cd /prometheus-cpp-client/3rdparty/ \
+    && wget https://github.com/civetweb/civetweb/archive/eefb26f82b233268fc98577d265352720d477ba4.zip \
+    && unzip eefb26f82b233268fc98577d265352720d477ba4.zip && rm -rf civetweb \
+    && mv civetweb-eefb26f82b233268fc98577d265352720d477ba4 civetweb \
+    && wget https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip \
+    && unzip e2239ee6043f73722e7aa812a459f54a28552929.zip && rm -rf googletest \
+    && mv googletest-e2239ee6043f73722e7aa812a459f54a28552929 googletest \
+    && cd .. && mkdir build && cd build \
     && cmake $CMAKE_OPT .. && make -j && make install \
     && rm -rf /prometheus-cpp-client*
+
 # pybind11
 RUN wget wget https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip \
     && unzip v2.10.0.zip && mv pybind11-2.10.0 pybind11 && cd /pybind11 && cp -r include/pybind11 /usr/local/include \
