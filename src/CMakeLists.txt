@@ -28,9 +28,6 @@ install(FILES
         DESTINATION etc)
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include
         DESTINATION ./)
-install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/../copyright
-        DESTINATION share/doc/lgraph/third_party_license)
 
 add_custom_command(TARGET lgraph_server
         POST_BUILD
