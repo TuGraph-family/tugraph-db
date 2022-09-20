@@ -27,7 +27,8 @@ cp -r ../../test/integration/* ./
 pytest ./ -k 'not TestJavaClient'
 
 # test package
-make package
+cd $WORKSPACE
+cd build && make package
 
 # codecov
 cd $WORKSPACE
