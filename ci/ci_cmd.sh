@@ -26,10 +26,6 @@ cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp -r ../../test/integration/* ./
 pytest ./ -k 'not TestJavaClient'
 
-# test package
-cd $WORKSPACE
-cd build && make package
-
 # codecov
 cd $WORKSPACE
 mkdir testresult
