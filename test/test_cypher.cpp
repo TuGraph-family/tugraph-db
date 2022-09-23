@@ -227,6 +227,8 @@ int test_query(cypher::RTContext *ctx) {
          0},  // issue: #168 #169
         {"MATCH (n:Person)-[b:BORN_IN]->(m) WHERE b.weight < 19.2 OR b.weight > 20.6 RETURN m",
          2},  // issue: #190
+        {"MATCH (n:Person)-[b:BORN_IN]->(m) WHERE (b.weight + b.weight) < 38.4 OR b.weight > 20.6 RETURN m",
+         2},
         {"MATCH (a)-[e]->(b) WHERE a.name='Liam Neeson' and b.title<>'' and "
          "(e.charactername='Henri Ducard' or e.relation = '') RETURN a,e,b",
          1},  // issue: #190
