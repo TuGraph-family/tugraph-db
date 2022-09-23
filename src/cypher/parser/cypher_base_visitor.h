@@ -1014,7 +1014,7 @@ class CypherBaseVisitor : public LcypherVisitor {
              * m <> n
              * count(*) AS f WHERE f > 1  */
             if (expr_a.type == Expression::PROPERTY || expr_a.type == Expression::FUNCTION ||
-                expr_a.type == Expression::VARIABLE) {
+                expr_a.type == Expression::VARIABLE || expr_a.type == Expression::MATH) {
                 std::pair<lgraph::CompareOp, Expression> partial =
                     visit(ctx->oC_PartialComparisonExpression(0));
                 /* Assert: the left & right alias are contained in alias_id_map */
