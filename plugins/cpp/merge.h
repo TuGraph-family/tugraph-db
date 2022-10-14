@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 
 struct MatchIterator {
     std::string label;

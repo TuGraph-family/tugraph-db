@@ -1,8 +1,7 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
+#include "lgraph/olap_base.h"
 #include "fma-common/logger.h"
-
-#include "lgraph/lgraph_graph.h"
 
 namespace lgraph_api {
 namespace olap {

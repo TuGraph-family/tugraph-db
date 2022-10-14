@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <math.h>
 #include <string>
+#include <vector>
 
 namespace lgraph_api {
 
@@ -15,6 +16,42 @@ namespace lgraph_api {
  * \return  Digit value of current time.
  */
 double get_time();
+
+/**
+ * \brief   Split the original string by format.
+ *
+ * \param   origin_string   original string to be split.
+ * \param   sub_strings     split substring.
+ * \param   string_delimiter    Split format.
+ */
+void split_string(std::string origin_string,
+                std::vector<std::string>& sub_strings, std::string string_delimiter);
+
+/**
+ * \brief   Encrypt the input string in ac4 format.
+ *
+ * \param   input   input string.
+ * \param   key     encryption key.
+ * \param   mode    encryption mode
+ * \return  Encrypted string
+ */
+std::string rc4(std::string& input, std::string key, std::string mode);
+
+/**
+ * \brief   Encode the input string in encode_base64 format.
+ *
+ * \param   input   input string.
+ * \return  Encrypted string
+ */
+std::string encode_base64(const std::string input);
+
+/**
+ * \brief   Decode the input string in decode_base64 format.
+ *
+ * \param   input   input string.
+ * \return  Decrypted string.
+ */
+std::string decode_base64(const std::string input);
 
 /**
  * \brief   Allocate memory with size in byte.

@@ -69,7 +69,7 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_db.cpp
         lgraph_api/lgraph_edge_iterator.cpp
         lgraph_api/lgraph_galaxy.cpp
-        lgraph_api/lgraph_graph.cpp
+        lgraph_api/olap_base.cpp
         lgraph_api/lgraph_vertex_index_iterator.cpp
         lgraph_api/lgraph_edge_index_iterator.cpp
         lgraph_api/lgraph_traversal.cpp

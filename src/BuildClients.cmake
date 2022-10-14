@@ -110,5 +110,6 @@ set_target_properties(${TARGET_OBJ} PROPERTIES PREFIX "")
 target_include_directories(lgraph_rest_client PRIVATE
         ${DEPS_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/cypher
         ${LGRAPH_INCLUDE_DIR}
         ${JNI_INCLUDE_DIRS})

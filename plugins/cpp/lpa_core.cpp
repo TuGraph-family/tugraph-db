@@ -1,13 +1,13 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #include <unordered_map>
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 #include "./algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
-ParallelVector<size_t> InitializeLabelWithOwnVid(Graph<Empty>& graph) {
+ParallelVector<size_t> InitializeLabelWithOwnVid(OlapBase<Empty>& graph) {
     ParallelVector<size_t> label = graph.AllocVertexArray<size_t>();
     size_t num_vertices = label.Size();
     graph.ProcessVertexInRange<size_t>(
@@ -18,7 +18,7 @@ ParallelVector<size_t> InitializeLabelWithOwnVid(Graph<Empty>& graph) {
         0, num_vertices);
     return label;
 }
-double calcu_modularity(Graph<Empty> & graph, ParallelVector<size_t> & label) {
+double calcu_modularity(OlapBase<Empty> & graph, ParallelVector<size_t> & label) {
     auto active = graph.AllocVertexSubset();
     active.Fill();
 
@@ -80,7 +80,7 @@ double calcu_modularity(Graph<Empty> & graph, ParallelVector<size_t> & label) {
         active) / num_edges;
 }
 
-double LPACore(Graph<Empty>& graph, int num_iterations, bool sync_flag) {
+double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag) {
     auto label = InitializeLabelWithOwnVid(graph);
     size_t num_vertices = label.Size();
     size_t num_vertices_graph = graph.NumVertices();

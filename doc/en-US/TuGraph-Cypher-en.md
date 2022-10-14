@@ -1,7 +1,7 @@
 
 # OpenCypher Support In TuGraph
 
-Version: 3.3.0
+Version: 3.3.1
 
 2022/07/19
 

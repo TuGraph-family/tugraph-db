@@ -21,6 +21,7 @@
 #include "core/field_extractor.h"
 #include "db/acl.h"
 #include "plugin/plugin_desc.h"
+#include "server/state_machine.h"
 
 namespace lgraph {
 
@@ -416,6 +417,14 @@ inline web::json::value ValueToJson(const DBConfig& conf) {
     ret[RestStrings::MAX_SIZE_GB] = conf.db_size / 1024 / 1024 / 1024;
     ret[RestStrings::DESC] = ValueToJson(conf.desc);
     return ret;
+}
+
+inline web::json::value ValueToJson(const StateMachine::Peer& peer) {
+    web::json::value v;
+    v[RestStrings::RPC_ADDR] = ValueToJson(peer.rpc_addr);
+    v[RestStrings::REST_ADDR] = ValueToJson(peer.rest_addr);
+    v[RestStrings::STATE] = ValueToJson(peer.StateString());
+    return v;
 }
 
 template <>

@@ -69,7 +69,7 @@
     <ClInclude Include="..\..\include\lgraph\lgraph_edge_iterator.h" />
     <ClInclude Include="..\..\include\lgraph\lgraph_exceptions.h" />
     <ClInclude Include="..\..\include\lgraph\lgraph_index_iterator.h" />
-    <ClInclude Include="..\..\include\lgraph\lgraph_olap.h" />
+    <ClInclude Include="..\..\include\lgraph\olap_on_db.h" />
     <ClInclude Include="..\..\include\lgraph\lgraph_traversal.h" />
     <ClInclude Include="..\..\include\lgraph\lgraph_txn.h" />
     <ClInclude Include="..\..\include\lgraph\lgraph_types.h" />

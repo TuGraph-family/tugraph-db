@@ -124,53 +124,6 @@ struct EdgeUnit<Empty> {
 } __attribute__((packed));
 
 /**
- * @brief   Default parser for unweighted edges.
- * @tparam              EdgeData    Type of the edge data.
- * @param               p           Beginning pointer of input edge.
- * @param               end         Ending pointer of input edge.
- * @param   [in,out]    e           Edge to store the result.
- * @return
- */
-template <typename EdgeData>
-bool parse_line_unweighted(const char *p, const char *end, EdgeUnit<EdgeData> &e) {
-    const char *orig = p;
-    int64_t t = 0;
-    p += lgraph_api::ParseInt64(p, end, t);
-    e.src = t;
-    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
-    p += lgraph_api::ParseInt64(p, end, t);
-    e.dst = t;
-    while (p != end && *p != '\n') p++;
-    return true;
-}
-
-/**
- * @brief   Parser for weighted edges.
- * @tparam              EdgeData    Type of the edge data.
- * @param               p           Beginning pointer of input edge.
- * @param               end         Ending pointer of input edge.
- * @param   [in,out]    e           Edge to store the result.
- * @returns True if parsing is successful, false otherwise.
- */
-
-template <typename EdgeData>
-bool parse_line_weight(const char *p, const char *end, EdgeUnit<EdgeData> &e) {
-    const char *orig = p;
-    int64_t t = 0;
-    p += lgraph_api::ParseInt64(p, end, t);
-    e.src = t;
-    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
-    p += lgraph_api::ParseInt64(p, end, t);
-    e.dst = t;
-    double w = 0.;
-    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
-    p += lgraph_api::ParseDouble(p, end, w);
-    e.edge_data = w;
-    while (p != end && *p != '\n') p++;
-    return true;
-}
-
-/**
  * @brief   Define the edge direction policy of graph
  *          The policy determines the graph symmetric and undirected feature.
  */
@@ -201,11 +154,11 @@ enum EdgeDirectionPolicy {
  */
 
 template <typename EdgeData>
-class Graph;
+class OlapBase;
 
 template <typename EdgeData>
 class AdjList {
-    friend class Graph<EdgeData>;
+    friend class OlapBase<EdgeData>;
     AdjUnit<EdgeData> *begin_;
     AdjUnit<EdgeData> *end_;
     AdjList(AdjUnit<EdgeData> *begin, AdjUnit<EdgeData> *end) : begin_(begin), end_(end) {}
@@ -649,7 +602,7 @@ static constexpr size_t MAX_NUM_EDGES = 1ul << 36;
  * @tparam  EdgeData    Type of the edge data.
  */
 template <typename EdgeData>
-class Graph {
+class OlapBase {
  protected:
     size_t num_vertices_;
     size_t num_edges_;
@@ -667,178 +620,21 @@ class Graph {
     ParallelVector<AdjUnit<EdgeData> > in_edges_;
     ParallelVector<bool> lock_array_;
 
-    void Construct() {
-        if (num_vertices_ == 0 || num_edges_ == 0) {
-            throw std::runtime_error("Construct empty graph");
-        }
-
-        lock_array_.ReAlloc(num_vertices_);
-        lock_array_.Resize(num_vertices_, false);
-
-        bool dual = true;
-        if (edge_direction_policy_ == MAKE_SYMMETRIC) {
-            out_edges_.ReAlloc(num_edges_ * 2);
-            out_edges_.Resize(num_edges_ * 2);
-        } else {
-            out_edges_.ReAlloc(num_edges_);
-            out_edges_.Resize(num_edges_);
-        }
-        out_degree_.ReAlloc(num_vertices_);
-        out_degree_.Resize(num_vertices_, (size_t)0);
-        out_index_.ReAlloc(num_vertices_ + 1);
-        out_index_.Resize(num_vertices_ + 1, (size_t)0);
-
-        if (edge_direction_policy_ == DUAL_DIRECTION) {
-            in_edges_.ReAlloc(num_edges_);
-            in_edges_.Resize(num_edges_);
-            in_degree_.ReAlloc(num_vertices_);
-            in_degree_.Resize(num_vertices_, (size_t)0);
-            in_index_.ReAlloc(num_vertices_ + 1);
-            in_index_.Resize(num_vertices_ + 1, (size_t)0);
-        }
-
-        if (edge_direction_policy_ == DUAL_DIRECTION) {
-            auto worker = Worker::SharedWorker();
-            worker->Delegate([&]() {
-#pragma omp parallel for default(none)
-              for (size_t ei = 0; ei < num_edges_; ei++) {
-                  size_t src = edge_list_[ei].src;
-                  size_t dst = edge_list_[ei].dst;
-                  __sync_fetch_and_add(&out_degree_[src], (size_t)1);
-                  __sync_fetch_and_add(&in_degree_[dst], (size_t)1);
-              }
-
-              memcpy(out_index_.Data() + 1, out_degree_.Data(), sizeof(size_t) * num_vertices_);
-              out_index_[0] = 0;
-              if (dual) {
-                  memcpy(in_index_.Data() + 1, in_degree_.Data(), sizeof(size_t) * num_vertices_);
-                  in_index_[0] = 0;
-              }
-
-              for (size_t vi = 0; vi < num_vertices_; vi++) {
-                  out_index_[vi + 1] += out_index_[vi];
-              }
-              if (dual) {
-                  for (size_t vi = 0; vi < num_vertices_; vi++) {
-                      in_index_[vi + 1] += in_index_[vi];
-                  }
-              }
-
-#pragma omp parallel for
-              for (size_t ei = 0; ei < num_edges_; ei++) {
-                  size_t src = edge_list_[ei].src;
-                  size_t dst = edge_list_[ei].dst;
-
-                  size_t pos = __sync_fetch_and_add(&out_index_[src], (size_t)1);
-                  out_edges_[pos].neighbour = dst;
-                  if (edge_data_size_ != 0) {
-                      out_edges_[pos].edge_data = edge_list_[ei].edge_data;
-                  }
-
-                  if (dual) {
-                      pos = __sync_fetch_and_add(&in_index_[dst], (size_t)1);
-                      in_edges_[pos].neighbour = src;
-                      if (edge_data_size_ != 0) {
-                          in_edges_[pos].edge_data = edge_list_[ei].edge_data;
-                      }
-                  }
-              }
-
-              memmove(out_index_.Data() + 1, out_index_.Data(), sizeof(size_t) * num_vertices_);
-              out_index_[0] = 0;
-              if (dual) {
-                  memmove(in_index_.Data() + 1, in_index_.Data(), sizeof(size_t) * num_vertices_);
-                  in_index_[0] = 0;
-              }
-            });
-        } else {
-            auto worker = Worker::SharedWorker();
-            worker->Delegate([&]() {
-#pragma omp parallel for default(none)
-              for (size_t ei = 0; ei < num_edges_; ei++) {
-                  size_t src = edge_list_[ei].src;
-                  size_t dst = edge_list_[ei].dst;
-                  __sync_fetch_and_add(&out_degree_[src], (size_t)1);
-                  if (edge_direction_policy_ == MAKE_SYMMETRIC) {
-                      __sync_fetch_and_add(&out_degree_[dst], (size_t)1);
-                  }
-              }
-
-              memcpy(out_index_.Data() + 1, out_degree_.Data(), sizeof(size_t) * num_vertices_);
-              out_index_[0] = 0;
-              for (size_t vi = 0; vi < num_vertices_; vi++) {
-                  out_index_[vi + 1] += out_index_[vi];
-              }
-
-#pragma omp parallel for
-              for (size_t ei = 0; ei < num_edges_; ei++) {
-                  size_t src = edge_list_[ei].src;
-                  size_t dst = edge_list_[ei].dst;
-
-                  size_t pos = __sync_fetch_and_add(&out_index_[src], (size_t)1);
-                  out_edges_[pos].neighbour = dst;
-                  if (edge_data_size_ != 0) {
-                      out_edges_[pos].edge_data = edge_list_[ei].edge_data;
-                  }
-
-                  if (edge_direction_policy_ == MAKE_SYMMETRIC) {
-                      pos = __sync_fetch_and_add(&out_index_[dst], (size_t)1);
-                      out_edges_[pos].neighbour = src;
-                      if (edge_data_size_ != 0) {
-                          out_edges_[pos].edge_data = edge_list_[ei].edge_data;
-                      }
-                  }
-              }
-
-              memmove(out_index_.Data() + 1, out_index_.Data(), sizeof(size_t) * num_vertices_);
-              out_index_[0] = 0;
-
-              if (edge_direction_policy_ == MAKE_SYMMETRIC) {
-                  num_edges_ *= 2;
-              }
-            });
-        }
-    }
-
-    size_t GetMaxVertexId() {
-        auto worker = Worker::SharedWorker();
-        size_t max_vertex_id = 0;
-        worker->Delegate([&]() {
-            thread_local size_t local_max_vertex_id = 0;
-#pragma omp parallel
-            {
-                int thread_id = omp_get_thread_num();
-                int num_threads = omp_get_num_threads();
-                size_t thread_length = num_edges_ / num_threads;
-                size_t start_index = thread_length * thread_id;
-                size_t end_index =
-                    (thread_id == num_threads - 1) ? num_edges_ : (start_index + thread_length);
-                for (size_t ei = start_index; ei < end_index; ei++) {
-                    local_max_vertex_id = std::max(local_max_vertex_id, edge_list_[ei].src);
-                    local_max_vertex_id = std::max(local_max_vertex_id, edge_list_[ei].dst);
-                }
-            }
-#pragma omp parallel
-            {
-#pragma omp critical
-                max_vertex_id = std::max(max_vertex_id, local_max_vertex_id);
-            };
-        });
-
-        return max_vertex_id;
-    }
+    virtual void Construct() = 0;
 
  public:
     /**
      * @brief   Constructor of Graph.
      */
-    Graph() {
+    OlapBase() {
         num_vertices_ = 0;
         num_edges_ = 0;
         edge_data_size_ = std::is_same<EdgeData, Empty>::value ? 0 : sizeof(EdgeData);
         adj_unit_size_ = edge_data_size_ + sizeof(size_t);
         edge_unit_size_ = adj_unit_size_ + sizeof(size_t);
     }
+
+    virtual bool CheckKillThisTask() = 0;
 
     /**
      * @brief     Access the out-degree of some vertex.
@@ -971,50 +767,55 @@ class Graph {
     }
 
     /**
-     * @brief   Load edge_list from txt file and construct graph.
+     * @brief   Judging whether it is sparse mode or dense mode according to the number of vertices.
      *
-     * @param   input_file              Input edge list file.
-     * @param   edge_direction_policy   Edge direction policy of graph.
-     * @param   parse_line              Parse function of input edge list file.
-     *                                  Default parse function is parse_line_weighted.
+     * @param   active_vertices     The ParallelBitset of active_vertices.
+     *
      */
-    void Load(std::string input_file, EdgeDirectionPolicy edge_direction_policy = DUAL_DIRECTION,
-              std::function<bool(const char *, const char *, EdgeUnit<EdgeData> &)> parse_line =
-                  parse_line_unweighted<EdgeData>) {
-        if (num_vertices_ != 0 || num_edges_ != 0) {
-            throw std::runtime_error("Graph should not be loaded twice!");
-        }
-
-        edge_direction_policy_ = edge_direction_policy;
-        edge_list_ = (EdgeUnit<EdgeData> *)alloc_buffer(edge_unit_size_ * MAX_NUM_EDGES);
-        auto worker = Worker::SharedWorker();
-        double cost = -get_time();
-
-        char *line_buffer = new char[1024];
-        size_t line_length;
-        FILE *f = fopen(input_file.c_str(), "r");
-
-        while (getline(&line_buffer, &line_length, f) != -1) {
-            if (parse_line(line_buffer, line_buffer + line_length, edge_list_[num_edges_])) {
-                num_edges_++;
-            }
-        }
-
-        fclose(f);
-        delete[] line_buffer;
-
-        num_vertices_ = GetMaxVertexId() + 1;
-        cost += get_time();
-        std::printf("  single pass read cost: %.2lf(s)\n", cost);
-
-        Construct();
-        dealloc_buffer(edge_list_, edge_unit_size_ * MAX_NUM_EDGES);
-    }
-
     bool IfSparse(ParallelBitset &active_vertices) {
         size_t active_edges = ProcessVertexInRange<size_t>(
             [&](size_t vtx) { return (size_t)out_degree_[vtx]; }, active_vertices);
         return (active_edges < num_edges_ / 20);
+    }
+
+    /**
+     * @brief   Assign vertices to the first loaded graph.
+     *
+     * @param   vertices     The vertex id (in the Graph) to lock/unlock.
+     *
+     */
+
+    void set_num_vertices(size_t vertices) {
+        if (this->num_vertices_ == 0) {
+            this->num_vertices_ = vertices;
+            printf("set |V| to %lu\n", vertices);
+        } else {
+            printf("|V| can only be set before loading!\n");
+        }
+    }
+
+    /**
+     * @brief   Load graph data from edge_array.
+     * 
+     * @param[in]   edge_array              The data in this array is read into the graph.
+     * @param       input_vertices          The number of vertices in the input graph data.
+     * @param       input_edges             The number of edges in the input graph data.
+     * @param       edge_direction_policy   Graph data loading method.
+     * 
+     */
+    void LoadFromArray(char * edge_array, size_t input_vertices,
+            size_t input_edges,  EdgeDirectionPolicy edge_direction_policy) {
+        set_num_vertices(input_vertices);
+        double prep_time = 0;
+        prep_time -= get_time();
+
+        this->num_edges_ = input_edges;
+        printf("|V| =  %lu, |E| = %lu\n", this->num_vertices_, this->num_edges_);
+        this->edge_list_ = (EdgeUnit<EdgeData> *)edge_array;
+        Construct();
+
+        prep_time += get_time();
+        printf("preprocessing used %.2lf seconds\n", prep_time);
     }
 
     /**
@@ -1036,7 +837,6 @@ class Graph {
     ReducedSum ProcessVertexInRange(
         std::function<ReducedSum(size_t)> work, size_t lower, size_t upper, ReducedSum zero = 0,
         std::function<ReducedSum(ReducedSum, ReducedSum)> reduce = reduce_plus<ReducedSum>) {
-        auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
         ReducedSum sum = zero;
         int num_threads = 0;
@@ -1082,7 +882,7 @@ class Graph {
                 while (true) {
                     size_t start = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
                     if (start >= thread_state[thread_id]->end) break;
-                    if (ShouldKillThisTask(task_ctx)) break;
+                    if (CheckKillThisTask()) break;
                     size_t end = start + 64;
                     if (end > thread_state[thread_id]->end) end = thread_state[thread_id]->end;
                     for (size_t i = start; i < end; i++) {
@@ -1096,7 +896,7 @@ class Graph {
                     while (true) {
                         size_t start = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
                         if (start >= thread_state[thread_id]->end) break;
-                        if (ShouldKillThisTask(task_ctx)) break;
+                        if (CheckKillThisTask()) break;
                         size_t end = start + 64;
                         if (end > thread_state[thread_id]->end) end = thread_state[thread_id]->end;
                         for (size_t i = start; i < end; i++) {
@@ -1123,7 +923,7 @@ class Graph {
 #endif
         }
         delete [] thread_state;
-        if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
+        if (CheckKillThisTask()) throw std::runtime_error("Task killed");
         return sum;
     }
 
@@ -1149,7 +949,6 @@ class Graph {
         std::function<ReducedSum(size_t)> work, ParallelBitset &active_vertices,
         ReducedSum zero = 0,
         std::function<ReducedSum(ReducedSum, ReducedSum)> reduce = reduce_plus<ReducedSum>) {
-        auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
         size_t num_vertices = active_vertices.Size();
         ReducedSum sum = zero;
@@ -1198,7 +997,7 @@ class Graph {
                 while (true) {
                     size_t vi = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
                     if (vi >= thread_state[thread_id]->end) break;
-                    if (ShouldKillThisTask(task_ctx)) break;
+                    if (CheckKillThisTask()) break;
                     uint64_t word = active_vertices.Data()[WORD_OFFSET(vi)];
                     size_t vi_copy = vi;
                     while (word != 0) {
@@ -1216,7 +1015,7 @@ class Graph {
                     while (true) {
                         size_t vi = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
                         if (vi >= thread_state[thread_id]->end) break;
-                        if (ShouldKillThisTask(task_ctx)) break;
+                        if (CheckKillThisTask()) break;
                         uint64_t word = active_vertices.Data()[WORD_OFFSET(vi)];
                         size_t vi_copy = vi;
                         while (word != 0) {
@@ -1247,74 +1046,10 @@ class Graph {
 #endif
         }
         delete [] thread_state;
-        if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
+        if (CheckKillThisTask()) throw std::runtime_error("Task killed");
         return sum;
     }
 };
-
-#include <sys/syscall.h>
-#include <unistd.h>
-
-#ifndef __APPLE__
-template <typename T>
-T ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
-                const std::vector<int64_t> vertices,
-                std::function<void(Transaction &, VertexIterator &, T &)> work,
-                std::function<void(const T &, T &)> reduce, size_t parallel_factor = 8) {
-    T results;
-    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
-    auto& worker = workers[wid];
-    worker.Delegate([&]() {
-#pragma omp parallel num_threads(parallel_factor)
-        {
-            T local_results;
-            auto txn_ = db.ForkTxn(txn);
-            int tid = omp_get_thread_num();
-            int num_th = omp_get_num_threads();
-            size_t start = vertices.size() / num_th * tid;
-            size_t end = vertices.size() / num_th * (tid + 1);
-            if (tid == num_th - 1) end = vertices.size();
-            auto vit = txn_.GetVertexIterator();
-            for (size_t i = start; i < end; i++) {
-                vit.Goto(vertices[i]);
-                work(txn_, vit, local_results);
-            }
-#pragma omp critical
-            {
-                reduce(local_results, results);
-            }
-        }
-    });
-    return results;
-}
-
-template <typename T>
-std::vector<T> ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
-                             const std::vector<int64_t> vertices,
-                             std::function<T(Transaction &, VertexIterator &, size_t)> work,
-                             size_t parallel_factor = 8) {
-    std::vector<T> results(vertices.size());
-    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
-    auto& worker = workers[wid];
-    worker.Delegate([&]() {
-#pragma omp parallel num_threads(parallel_factor)
-        {
-            auto txn_ = db.ForkTxn(txn);
-            int tid = omp_get_thread_num();
-            int num_th = omp_get_num_threads();
-            size_t start = vertices.size() / num_th * tid;
-            size_t end = vertices.size() / num_th * (tid + 1);
-            if (tid == num_th - 1) end = vertices.size();
-            auto vit = txn_.GetVertexIterator();
-            for (size_t i = start; i < end; i++) {
-                vit.Goto(vertices[i]);
-                results[i] = work(txn_, vit, i);
-            }
-        }
-    });
-    return results;
-}
-#endif
 
 }  // namespace olap
 }  // namespace lgraph_api

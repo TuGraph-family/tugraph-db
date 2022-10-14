@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 
 namespace lgraph_api {
 using namespace olap;

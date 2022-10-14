@@ -1,6 +1,6 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
 #include "./algo.h"
 
@@ -36,13 +36,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     lgraph_api::FieldData root_field_data(root_id);
     int64_t root_vid =
         txn.GetVertexIndexIterator(label, field, root_field_data, root_field_data).GetVid();
-    Snapshot<Empty> snapshot(db, txn, SNAPSHOT_PARALLEL);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    ParallelVector<size_t> parent = snapshot.AllocVertexArray<size_t>();
-    size_t count = BFSCore(snapshot, root_vid, parent);
+    ParallelVector<size_t> parent = olapondb.AllocVertexArray<size_t>();
+    size_t count = BFSCore(olapondb, root_vid, parent);
     auto core_cost = get_time() - start_time;
 
     // output
@@ -55,8 +55,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     {
         json output;
         output["found_vertices"] = count;
-        output["num_vertices"] = snapshot.NumVertices();
-        output["num_edges"] = snapshot.NumEdges();
+        output["num_vertices"] = olapondb.NumVertices();
+        output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;
         output["core_cost"] = core_cost;
         output["output_cost"] = output_cost;

@@ -28,19 +28,18 @@
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_atomic.h"
 #include "lgraph/lgraph_utils.h"
-#include "lgraph/lgraph_graph.h"
+#include "lgraph/olap_base.h"
 
 #include "libcuckoo/cuckoohash_map.hh"
 
 namespace lgraph_api {
-
 namespace olap {
 
 /**
- * The available options for (snapshot construction) flags.
+ * The available options for (graph construction) flags.
  */
 static constexpr size_t SNAPSHOT_PARALLEL = 1ul << 0;
-// Enforce parallelism when generating a snapshot (which consumes more memory)
+// Enforce parallelism when generating a graph (which consumes more memory)
 static constexpr size_t SNAPSHOT_UNDIRECTED = 1ul << 1;
 // Make the generated graph undirected (identical out edges and in edges)
 
@@ -73,7 +72,7 @@ static constexpr size_t SNAPSHOT_IN_EDGES = 1ul << 6;
  * @tparam  EdgeData    Type of the edge data.
  */
 template <typename EdgeData>
-class Snapshot : public Graph<EdgeData> {
+class OlapOnDB : public OlapBase<EdgeData> {
     GraphDB &db_;
     Transaction &txn_;
     ParallelVector<size_t> original_vids_;
@@ -102,6 +101,16 @@ class Snapshot : public Graph<EdgeData> {
         this->out_edges_.ReAlloc(MAX_NUM_EDGES);
         this->in_edges_.ReAlloc(MAX_NUM_EDGES);
         this->lock_array_.ReAlloc(this->num_vertices_);
+    }
+
+    /**
+     * @brief   This decision formula is used to
+     *          determine whether to stop the algorithm running in OlapOnDB.
+     */
+
+    bool CheckKillThisTask() {
+        auto task_ctx = GetThreadContext();
+        return ShouldKillThisTask(task_ctx);
     }
 
     void Construct() {
@@ -280,7 +289,7 @@ class Snapshot : public Graph<EdgeData> {
 
         if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
         if (this->num_vertices_ == 0) {
-            throw std::runtime_error("The snapshot cannot be empty");
+            throw std::runtime_error("The olapondb graph cannot be empty");
         }
         this->lock_array_.Resize(this->num_vertices_);
         this->lock_array_.Fill(false);
@@ -593,7 +602,7 @@ class Snapshot : public Graph<EdgeData> {
 
         if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
         if (this->num_vertices_ == 0) {
-            throw std::runtime_error("The snapshot cannot be empty");
+            throw std::runtime_error("The olapondb graph cannot be empty");
         }
         this->lock_array_.Resize(this->num_vertices_);
         this->lock_array_.Fill(false);
@@ -952,7 +961,7 @@ class Snapshot : public Graph<EdgeData> {
 
  public:
     /**
-     * @brief Generate a snapshot with LightningGraph.
+     * @brief Generate a graph with LightningGraph.
      *
      * @exception std::runtime_error  Raised when a runtime error condition
      *                                occurs.
@@ -973,16 +982,16 @@ class Snapshot : public Graph<EdgeData> {
      *                                    inconsistencies of the analysis, and
      *                                    vertex data extraction may not work for
      *                                    deleted vertices). The constructed
-     *                                    snapshot should contain all vertices
+     *                                    graph should contain all vertices
      *                                    whose vertex_filter calls return true
      *                                    and all edges *sourced from* these
      *                                    vertices whose out_edge_filter calls
      *                                    return true. If SNAPSHOT_UNDIRECTED is
      *                                    specified, the graph will be made
      *                                    symmetric (i.e. reversed edges are also
-     *                                    added to the snapshot).
+     *                                    added to the graph).
      */
-    Snapshot(GraphDB &db, Transaction &txn, size_t flags = 0,
+    OlapOnDB(GraphDB &db, Transaction &txn, size_t flags = 0,
              std::function<bool(VertexIterator &)> vertex_filter = nullptr,
              std::function<bool(OutEdgeIterator &, EdgeData &)> out_edge_filter = nullptr)
         : db_(db),
@@ -991,7 +1000,7 @@ class Snapshot : public Graph<EdgeData> {
           vertex_filter_(vertex_filter),
           out_edge_filter_(out_edge_filter) {
         if (txn.GetNumVertices() == 0) {
-            throw std::runtime_error("The snapshot cannot be empty");
+            throw std::runtime_error("The graph cannot be empty");
         }
         if (vertex_filter != nullptr) {
             flags_ |= SNAPSHOT_IDMAPPING;
@@ -1009,14 +1018,14 @@ class Snapshot : public Graph<EdgeData> {
         }
     }
 
-    Snapshot() = delete;
+    OlapOnDB() = delete;
 
-    Snapshot(const Snapshot<EdgeData> &rhs) = delete;
+    OlapOnDB(const OlapOnDB<EdgeData> &rhs) = delete;
 
-    Snapshot(Snapshot<EdgeData> &&rhs) = default;
+    OlapOnDB(OlapOnDB<EdgeData> &&rhs) = default;
 
     /**
-     * @brief    Extract a vertex array from the snapshot.
+     * @brief    Extract a vertex array from the graph.
      *
      * @param    extract    The function describing the extraction logic.
      *
@@ -1078,9 +1087,9 @@ class Snapshot : public Graph<EdgeData> {
     /**
      * @brief    Get the original vertex id (in LightningGraph) of some vertex.
      *
-     * @param    vid     The vertex id (in the snapshot) to access.
+     * @param    vid     The vertex id (in the graph) to access.
      *
-     * @return   The original id of the specified vertex in the snapshot.
+     * @return   The original id of the specified vertex in the graph.
      */
 
     size_t OriginalVid(size_t vid) {
@@ -1092,7 +1101,7 @@ class Snapshot : public Graph<EdgeData> {
     }
 
     /**
-     * @brief    Get the mapped vertex id (in the snapshot) of some vertex.
+     * @brief    Get the mapped vertex id (in the graph) of some vertex.
      *
      * @param    original_vid    The original vertex id (in LightningGraph) to
      *                           access.
@@ -1111,9 +1120,9 @@ class Snapshot : public Graph<EdgeData> {
 };
 
 /**
- * \brief   Default Parser for weighted edges for snapshot.
+ * \brief   Default Parser for weighted edges for graph.
  *
- * \return  Edge is converted into snapshot or not.
+ * \return  Edge is converted into graph or not.
  */
 template <typename EdgeData>
 std::function<bool(OutEdgeIterator &, EdgeData &)> edge_convert_default =
@@ -1125,7 +1134,7 @@ std::function<bool(OutEdgeIterator &, EdgeData &)> edge_convert_default =
 /**
  * \brief   Example parser for extract from edge property "weight"
  *
- * \return  Edge is converted into snapshot or not.
+ * \return  Edge is converted into graph or not.
  */
 template <typename EdgeData>
 std::function<bool(OutEdgeIterator &, EdgeData &)> edge_convert_weight =

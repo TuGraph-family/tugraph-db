@@ -141,14 +141,17 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, cons
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("name") && pp->ContainsYieldItem("signature"));
     cypher::VEC_STR titles;
     if (yield_items.empty()) {
-        for (auto &res : pp->result) titles.emplace_back(res.first);
+        titles.push_back("name");
+        titles.push_back("signature");
+        titles.push_back("read_only");
     } else {
         for (auto &item : yield_items) titles.emplace_back(item);
     }
     std::unordered_map<std::string, std::function<void(const Procedure &, Record &)>> lmap = {
         {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.name)); }},
         {"signature",
-         [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }}};
+         [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }},
+        {"read_only", [](const Procedure &p, Record &r) {r.AddConstant(lgraph::FieldData(p.read_only)); }}};
     for (auto &p : global_procedures) {
         Record r;
         for (auto &title : titles) {
@@ -1413,6 +1416,28 @@ void BuiltinProcedure::DbPluginListPlugin(RTContext *ctx, const Record *record,
     }
 }
 
+void BuiltinProcedure::DbPluginListUserPlugins(RTContext *ctx, const Record *record,
+                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               std::vector<Record> *records) {
+    if (ctx->txn_) ctx->txn_->Abort();
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: dbms.graph.listGraphs()",
+                                           args.size()))
+    std::unordered_map<std::string, lgraph::AccessControlledDB> dbs =
+        ctx->galaxy_->OpenUserGraphs(ctx->user_, ctx->user_);
+    for (auto & kv : ValidPluginType) {
+        for (auto & db : dbs) {
+            std::vector<lgraph::PluginDesc> descs = db.second.ListPlugins(kv.second, ctx->token_);
+            for (auto &d : descs) {
+                Record r;
+                r.AddConstant(lgraph::FieldData(db.first));
+                r.AddConstant(lgraph::FieldData(ValueToJson(d).serialize()));
+                records->emplace_back(r.Snapshot());
+            }
+        }
+    }
+}
+
 void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
                                           const VEC_EXPR &args, const VEC_STR &yield_items,
                                           std::vector<Record> *records) {
@@ -1433,9 +1458,6 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
     lgraph::PluginManager::PluginType type = plugin_type_it->second;
     lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     std::string name = args[1].String();
-    bool readonly = false;
-    bool found = db.IsReadOnlyPlugin(type, ctx->token_, name, readonly);
-    if (!found) lgraph::CypherException("Need write permission to do import.");
     lgraph::TimeoutTaskKiller timeout_killer;
     timeout_killer.SetTimeout(args[3].Double());
     std::string res;
@@ -1589,11 +1611,14 @@ void BuiltinProcedure::DbTaskTerminateTask(RTContext *ctx, const Record *record,
     }
 }
 
-void BuiltinProcedure::ServerInfo(RTContext *ctx,
+void BuiltinProcedure::DbMonitorServerInfo(RTContext *ctx,
                                 const Record *record,
                                 const VEC_EXPR &args,
                                 const VEC_STR &yield_items,
                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: db.monitor.serverInfo()",
+                                           args.size()))
     Record r;
     fma_common::HardwareInfo::CPURate cpuRate = fma_common::HardwareInfo::GetCPURate();
     r.AddConstant(lgraph::FieldData(lgraph::ValueToJson(cpuRate).serialize()));
@@ -1612,14 +1637,34 @@ void BuiltinProcedure::ServerInfo(RTContext *ctx,
     records->emplace_back(r.Snapshot());
 }
 
-void BuiltinProcedure::TuGraphInfo(RTContext *ctx,
+void BuiltinProcedure::DbMonitorTuGraphInfo(RTContext *ctx,
                                   const Record *record,
                                   const VEC_EXPR &args,
                                   const VEC_STR &yield_items,
                                   std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: db.monitor.tuGraphInfo()",
+                                           args.size()))
     if (!ctx) CYPHER_INTL_ERR();
     Record r;
     r.AddConstant(lgraph::FieldData(ValueToJson(ctx->sm_->GetStats()).serialize()));
+    records->emplace_back(r.Snapshot());
+}
+
+void BuiltinProcedure::DbmsHaClusterInfo(RTContext *ctx,
+                                         const Record *record,
+                                         const VEC_EXPR &args,
+                                         const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: dbms.ha.clusterInfo()",
+                                           args.size()))
+    if (ctx->txn_) ctx->txn_->Abort();
+    if (!ctx->sm_->IsInHaMode())
+        throw lgraph::InputError("The service should be started as a high availability cluster .");
+    auto peers = ctx->sm_->ListPeers();
+    Record r;
+    r.AddConstant(lgraph::FieldData(lgraph::ValueToJson(peers).serialize()));
     records->emplace_back(r.Snapshot());
 }
 

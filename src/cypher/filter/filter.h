@@ -25,7 +25,7 @@ struct FieldDataHash {
     size_t operator()(const lgraph::FieldData &fd) const {
         switch (fd.type) {
         case FieldType::NUL:
-            throw std::runtime_error("");
+            return 0;
         case FieldType::BOOL:
             return std::hash<bool>()(fd.AsBool());
         case FieldType::INT8:

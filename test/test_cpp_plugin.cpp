@@ -383,7 +383,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 // pm.DeleteAllPlugins(token);
                 // UT_LOG() << "del succ";
 
-                UT_EXPECT_EQ(pm.IsReadOnlyPlugin(token, "scan_graph"), -1);
+                UT_EXPECT_ANY_THROW(pm.IsReadOnlyPlugin(token, "scan_graph"));
                 UT_EXPECT_TRUE(pm.procedures_.empty());
             }
             {

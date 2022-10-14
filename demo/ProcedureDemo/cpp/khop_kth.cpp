@@ -2,7 +2,7 @@
  * 根据给定顶点，返回第k层的顶点个数
  */
 #include "lgraph/lgraph.h"
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 #include "lgraph/lgraph_traversal.h"
 
 #include "json.hpp"

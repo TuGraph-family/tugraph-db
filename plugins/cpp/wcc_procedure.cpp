@@ -1,6 +1,6 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
 #include "./algo.h"
 
@@ -8,7 +8,7 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
-void CountComp(Graph<Empty>& graph, ParallelVector<size_t>& label, size_t& max, size_t& num) {
+void CountComp(OlapBase<Empty>& graph, ParallelVector<size_t>& label, size_t& max, size_t& num) {
     ParallelVector<size_t> cnt = graph.AllocVertexArray<size_t>();
     cnt.Fill(0);
     graph.ProcessVertexInRange<size_t>([&](size_t v) {
@@ -46,20 +46,20 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         throw std::runtime_error("json parse error, output_file needed");
         return false;
     }
-    Snapshot<Empty> snapshot(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    ParallelVector<size_t> wcc_label = snapshot.AllocVertexArray<size_t>();
-    WCCCore(snapshot, wcc_label);
+    ParallelVector<size_t> wcc_label = olapondb.AllocVertexArray<size_t>();
+    WCCCore(olapondb, wcc_label);
     auto core_cost = get_time() - start_time;
 
     // output
     start_time = get_time();
     // TODO(any): write wcc_label back to graph
     size_t num_components, max_component;
-    CountComp(snapshot, wcc_label, max_component, num_components);
+    CountComp(olapondb, wcc_label, max_component, num_components);
     printf("max_component = %ld\n", max_component);
     printf("num_components = %ld\n", num_components);
     auto output_cost = get_time() - start_time;
@@ -69,8 +69,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         json output;
         output["num_components"] = num_components;
         output["max_component"] = max_component;
-        output["num_vertices"] = snapshot.NumVertices();
-        output["num_edges"] = snapshot.NumEdges();
+        output["num_vertices"] = olapondb.NumVertices();
+        output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;
         output["core_cost"] = core_cost;
         output["output_cost"] = output_cost;

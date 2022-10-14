@@ -1,6 +1,6 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "olap/olap_on_disk.h"
 #include "tools/json.hpp"
 #include "./algo.h"
 
@@ -8,35 +8,61 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
-int main(int argc, char** argv) {
-    double start_time;
+class MyConfig : public ConfigBase<Empty> {
+ public:
     size_t num_iterations = 20;
     bool sync_flag = 1;
+    std::string name = std::string("lpa");
+    void AddParameter(fma_common::Configuration & config) {
+        ConfigBase<Empty>::AddParameter(config);
+        config.Add(num_iterations, "num_iterations", true)
+                .Comment("the num_iterations of lpa");
+        config.Add(sync_flag, "sync_flag", true)
+                .Comment("the sync_flag of lpa");
+    }
+
+    void Print() {
+        ConfigBase<Empty>::Print();
+        std::cout << "  name: " << name << std::endl;
+        std::cout << "  num_iterations: " << num_iterations << std::endl;
+        std::cout << "  sync_flag: " << sync_flag << std::endl;
+    }
+
+    MyConfig(int &argc, char** &argv): ConfigBase<Empty>(argc, argv) {
+        fma_common::Configuration config;
+        AddParameter(config);
+        config.ExitAfterHelp(true);
+        config.ParseAndFinalize(argc, argv);
+        Print();
+    }
+};
+
+int main(int argc, char** argv) {
+    double start_time;
+    MemUsage memUsage;
+    memUsage.startMemRecord();
+
     // prepare
     start_time = get_time();
-    Graph<Empty> graph;
-    std::string output_file = "";
-    if (argc < 2) {
-        throw std::runtime_error("graph file cannot be empty!");
-    }
-    if (argc >= 3) {
-        num_iterations = std::atol(argv[2]);
-    }
-    if (argc >= 4) {
-        sync_flag = std::atol(argv[3]);
-    }
-    if (argc >= 5) {
-        output_file = std::string(argv[4]);
-    }
-    std::string filename(argv[1]);
-    graph.Load(filename, MAKE_SYMMETRIC);
+    MyConfig config(argc, argv);
+    std::string output_file = config.output_dir;
+    size_t num_iterations = config.num_iterations;
+    bool sync_flag = config.sync_flag;
+
+    OlapOnDisk<Empty> graph;
+    graph.Load(config, MAKE_SYMMETRIC);
+    memUsage.print();
+    memUsage.reset();
     auto prepare_cost = get_time() - start_time;
     printf("prepare_cost = %.2lf(s)\n", prepare_cost);
 
     // core
     start_time = get_time();
     double modularity = LPACore(graph, num_iterations, sync_flag);
+    memUsage.print();
+    memUsage.reset();
     auto core_cost = get_time() - start_time;
+    printf("core_cost = %.2lf(s)\n", core_cost);
 
     // output
     start_time = get_time();

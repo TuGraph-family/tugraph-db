@@ -11,12 +11,14 @@ namespace _detail {
 class _ShouldKillTask {
  public:
     bool operator()() const { return TaskTracker::GetInstance().ShouldKillCurrentTask(); }
+
+    operator bool() const { return true; }
 };
 }  // namespace _detail
 
 typedef fma_common::InterruptableTLSRWLock<_detail::_ShouldKillTask> KillableRWLock;
-typedef fma_common::InterruptableTLSAutoReadLock<KillableRWLock> AutoReadLock;
-typedef fma_common::InterruptableTLSAutoWriteLock<KillableRWLock> AutoWriteLock;
+typedef fma_common::TLSAutoReadLock<KillableRWLock> AutoReadLock;
+typedef fma_common::TLSAutoWriteLock<KillableRWLock> AutoWriteLock;
 
 #define _HoldReadLock(lock) ::lgraph::AutoReadLock _lock__(lock, ::lgraph::GetMyThreadId())
 #define _ReleaseReadLock() _lock__.Unlock();

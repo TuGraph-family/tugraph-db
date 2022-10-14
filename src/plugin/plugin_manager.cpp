@@ -388,17 +388,16 @@ bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& token,
     return true;
 }
 
-// returns -1 if plugin does not exist
-// 0 if read-write
-// 1 if read-only
-int lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& token,
+bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& token,
                                                           const std::string& name_) {
-    if (!IsValidPluginName(name_)) throw InvalidPluginNameException(name_);
+    if (!IsValidPluginName(name_)) {
+        throw InvalidPluginNameException(name_);
+    }
     std::string name = ToInternalName(name_);
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
-    if (it == procedures_.end()) return -1;
-    return it->second->read_only ? 1 : 0;
+    if (it == procedures_.end()) throw InputError("Plugin [{}] does not exist.", name);
+    return  it->second->read_only;
 }
 
 bool lgraph::SingleLanguagePluginManager::Call(const std::string& token,
@@ -544,7 +543,7 @@ bool lgraph::PluginManager::DelPlugin(PluginType type, const std::string& token,
     return SelectManager(type)->DelPlugin(token, name);
 }
 
-int lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string& token,
+bool lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string& token,
                                             const std::string& name_) {
     return SelectManager(type)->IsReadOnlyPlugin(token, name_);
 }

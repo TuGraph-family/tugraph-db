@@ -65,7 +65,22 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             throw InternalError("Cypher is not supported on Windows yet.");
 #else
             // determine if this is a write op
-            return !cypher::Scheduler::DetermineReadOnly(req->cypher_request().query());
+            std::string name;
+            std::string type;
+            bool ret = cypher::Scheduler::DetermineReadOnly(req->cypher_request().query(),
+                                                            name, type);
+            if (name.empty() || type.empty()) {
+                return !ret;
+            } else {
+                const CypherRequest& creq = req->cypher_request();
+                const std::string& user = GetCurrUser(req);
+                AccessControlledDB db = galaxy_->OpenGraph(user, creq.graph());
+                type.erase(remove(type.begin(), type.end(), '\"'), type.end());
+                name.erase(remove(name.begin(), name.end(), '\"'), name.end());
+                return !db.IsReadOnlyPlugin(type == "CPP" ? PluginManager::PluginType::CPP
+                                                          : PluginManager::PluginType::PYTHON,
+                                            req->token(), name);
+            }
 #endif
         } else {
             // must be plugin request
@@ -76,14 +91,10 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             }
             const std::string& user = GetCurrUser(req);
             AccessControlledDB db = galaxy_->OpenGraph(user, preq.graph());
-            bool is_read_only = false;
-            bool r = db.IsReadOnlyPlugin(
+            return !db.IsReadOnlyPlugin(
                 preq.type() == PluginRequest::CPP ? PluginManager::PluginType::CPP
                                                   : PluginManager::PluginType::PYTHON,
-                req->token(), preq.call_plugin_request().name(), is_read_only);
-            if (!r)
-                throw InputError("Plugin [{}] does not exist.", preq.call_plugin_request().name());
-            return !is_read_only;
+                req->token(), preq.call_plugin_request().name());
         }
     }
 }
@@ -919,7 +930,22 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
     if (lgraph_req->has_is_write_op()) {
         is_write = lgraph_req->is_write_op();
     } else {
-        is_write = !cypher::Scheduler::DetermineReadOnly(lgraph_req->cypher_request().query());
+        std::string name;
+        std::string type;
+        bool ret = cypher::Scheduler::DetermineReadOnly(lgraph_req->cypher_request().query(),
+                                                        name, type);
+        if (name.empty() || type.empty()) {
+            is_write = !ret;
+        } else {
+            const CypherRequest& creq = lgraph_req->cypher_request();
+            const std::string& user = GetCurrUser(lgraph_req);
+            AccessControlledDB db = galaxy_->OpenGraph(user, creq.graph());
+            type.erase(remove(type.begin(), type.end(), '\"'), type.end());
+            name.erase(remove(name.begin(), name.end(), '\"'), name.end());
+            is_write = !db.IsReadOnlyPlugin(type == "CPP" ? PluginManager::PluginType::CPP
+                                                          : PluginManager::PluginType::PYTHON,
+                                            lgraph_req->token(), name);
+        }
     }
     AutoTaskTracker task_tracker("[CYPHER] " + lgraph_req->cypher_request().query(), true,
                                  is_write);
@@ -1069,10 +1095,8 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, L
             if (lgraph_req->has_is_write_op()) {
                 is_write = lgraph_req->is_write_op();
             } else {
-                bool readonly = false;
-                bool r = db.IsReadOnlyPlugin(type, lgraph_req->token(), preq.name(), readonly);
-                if (!r) return RespondBadInput(resp, NotFoundMsg("Plugin", preq.name()));
-                is_write = !readonly;
+                bool r = db.IsReadOnlyPlugin(type, lgraph_req->token(), preq.name());
+                is_write = !r;
             }
             AutoTaskTracker task_tracker(
                 (type == PluginManager::PluginType::CPP ? "[CPP_PLUGIN] " : "[PYTHON_PLUGIN] ") +

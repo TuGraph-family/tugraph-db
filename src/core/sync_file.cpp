@@ -33,7 +33,7 @@ void lgraph::SyncFile::Close() {
 }
 
 void lgraph::SyncFile::Write(const void* buf, size_t s) {
-    file_.write(buf, s);
+    file_.write(static_cast<const char*>(buf), s);
 }
 
 void lgraph::SyncFile::Sync() {
@@ -76,7 +76,7 @@ void lgraph::SyncFile::Sync() {
     fsync(file_);
 }
 
-size_t lgraph::SyncFile::TellP() const {
+size_t lgraph::SyncFile::TellP() {
     return p_pos_;
 }
 #endif

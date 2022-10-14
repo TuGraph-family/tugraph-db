@@ -20,7 +20,7 @@ class ServerWrapper:
                     return True
         return False
 
-    def run(self, dir):
+    def run(self, dir = []):
         with open(self.log_file, 'w+') as file:
             self.process = subprocess.Popen(self.cmd, stdout=file, stderr=file, close_fds=True)
             for i in range(60):

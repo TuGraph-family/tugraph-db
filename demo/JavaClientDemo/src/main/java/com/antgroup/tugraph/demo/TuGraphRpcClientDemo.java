@@ -1,6 +1,6 @@
-package com.alipay.tugraph.demo;
+package com.antgroup.tugraph.demo;
 import java.io.IOException;
-import com.alipay.tugraph.TuGraphRpcClient;
+import com.antgroup.tugraph.TuGraphRpcClient;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

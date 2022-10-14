@@ -1,6 +1,6 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include "lgraph/lgraph_olap.h"
+#include "lgraph/olap_base.h"
 #include "./algo.h"
 
 using namespace lgraph_api;
@@ -50,7 +50,7 @@ int compare(const void *a, const void *b) {
     return (ptr_a->neighbour - ptr_b->neighbour);
 }
 
-double LCCCore(Graph<Empty>& graph, ParallelVector<double>& score) {
+double LCCCore(OlapBase<Empty>& graph, ParallelVector<double>& score) {
     score.Fill(0.0);
     size_t num_vertices = graph.NumVertices();
     auto num_triangle = graph.AllocVertexArray<size_t>();

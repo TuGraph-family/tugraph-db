@@ -251,11 +251,20 @@ struct QueryPart {
         }
     }
 
-    bool ReadOnly() const {
+    bool ReadOnly(std::string& name, std::string& type) const {
         if (sa_call_clause) {
             auto &func_name = std::get<0>(*sa_call_clause);
-            auto pp = cypher::global_ptable.GetProcedure(func_name);
-            if (pp && !pp->read_only) return false;
+            if (func_name == "db.plugin.callPlugin") {
+                auto &plugins = std::get<1>(*sa_call_clause);
+                if (plugins.size() > 2) {
+                    name = std::move(plugins[1].ToString());
+                    type = std::move(plugins[0].ToString());
+                }
+                return false;
+            } else {
+                auto pp = cypher::global_ptable.GetProcedure(func_name);
+                if (pp && !pp->read_only) return false;
+            }
         }
         /* create_clause && set_clause && delete_clause must set write txn */;
         return create_clause.empty() && set_clause.empty() && !delete_clause && !remove_clause &&
@@ -293,9 +302,9 @@ struct QueryPart {
 struct SglQuery {
     std::vector<QueryPart> parts;
 
-    bool ReadOnly() const {
+    bool ReadOnly(std::string& name, std::string& type) const {
         for (auto &part : parts) {
-            if (!part.ReadOnly()) return false;
+            if (!part.ReadOnly(name, type)) return false;
         }
         return true;
     }
