@@ -85,8 +85,9 @@ class OpMerge : public OpBase {
         std::vector<lgraph_api::FieldData> field_values;
         MatchIterator(lgraph::Transaction *txn, const std::string &l,
                       const std::vector<std::string> &fns,
-                      const std::vector<lgraph_api::FieldData> &fvs)
-            : label(l), _txn(txn), field_names(fns), field_values(fvs) {
+                      const std::vector<lgraph_api::FieldData> &fvs,
+                      Node *n)
+            : label(l), _txn(txn), field_names(fns), field_values(fvs), node_p(n){
             if (field_names.size() == field_values.size()) {
                 /* there must be at least 1 valid index */
                 for (int i = 0; i < (int)field_names.size(); i++) {
@@ -126,16 +127,23 @@ class OpMerge : public OpBase {
             return valid_;
         }
 
+        bool IsMatch() const{
+            return node_p->derivation_ ==  Node::Derivation::MATCHED;
+        }
+
         bool IsValid() const { return _iit && valid_; }
 
         bool IsIndexValid() const { return _iit != nullptr; }
 
-        int64_t GetVid() const { return IsValid() ? _iit->GetVid() : -1; }
+        int64_t GetVid() const { 
+            return IsMatch() ? node_p->PullVid() : IsValid() ? _iit->GetVid() : -1;
+        }
 
      private:
         lgraph::Transaction *_txn = nullptr;
         lgraph::VertexIndexIterator *_iit = nullptr;
         bool valid_ = false;
+        Node *node_p;
 
         bool CheckFields() const {
             if (!_iit || !_iit->IsValid()) return false;
@@ -205,7 +213,8 @@ class OpMerge : public OpBase {
             err = "invalid txn";
             return eid_res;
         }
-        if (!src.IsValid() || !dst.IsValid()) {
+        if ((!src.IsValid() && !src.IsMatch()) || 
+            (!dst.IsValid() && !dst.IsMatch())) {
             err = "invalid vertex";
             return eid_res;
         }
@@ -214,13 +223,21 @@ class OpMerge : public OpBase {
             return eid_res;
         }
         std::vector<int64_t> src_ids, dst_ids;
-        while (src.IsValid()) {
+        if (src.IsMatch()) {
             src_ids.emplace_back(src.GetVid());
-            src.Next();
+        } else {
+            while (src.IsValid()) {
+                src_ids.emplace_back(src.GetVid());
+                src.Next();
+            }
         }
-        while (dst.IsValid()) {
+        if (dst.IsMatch()) {
             dst_ids.emplace_back(dst.GetVid());
-            dst.Next();
+        } else {
+            while (dst.IsValid()) {
+                dst_ids.emplace_back(dst.GetVid());
+                dst.Next();
+            }
         }
         for (auto src_id : src_ids) {
             for (auto dst_id : dst_ids) {
@@ -278,6 +295,7 @@ class OpMerge : public OpBase {
         auto node_variable = std::get<0>(node_pattern);  // string
         auto &node_labels = std::get<1>(node_pattern);   // VEC_STR
         auto &properties = std::get<2>(node_pattern);    // TUP_PROPERTIES
+        auto &node_patt = pattern_graph_->GetNode(node_variable);
         if (node_labels.empty())
             throw lgraph::EvaluationException("vertex label missing in merge.");
         const std::string &node_label = *node_labels.begin();
@@ -287,9 +305,10 @@ class OpMerge : public OpBase {
         ExtractProperties(node_variable, on_create_set_items, field_names_on_create,
                           field_values_on_create);
         auto node_res =
-            MergeVertex(ctx, MatchIterator(ctx->txn_.get(), node_label, field_names, field_values),
+            MergeVertex(ctx, MatchIterator(ctx->txn_.get(), node_label, field_names, field_values, &node_patt),
                         field_names_on_create, field_values_on_create, field_names_on_match,
                         field_values_on_match, err_msg);
+        // TODO: When multiple nodes are matched, all data should be processed
         ctx->result_info_->statistics.vertices_created++;
         if (!node_variable.empty()) {
             auto node = &pattern_graph_->GetNode(node_variable);
@@ -355,9 +374,9 @@ class OpMerge : public OpBase {
         ExtractProperties(edge_variable, on_create_set_items, field_names_on_create,
                           field_values_on_create);
         auto res = MergeEdge(
-            ctx, MatchIterator(ctx->txn_.get(), src_label, src_field_name, src_field_value),
-            MatchIterator(ctx->txn_.get(), dst_label, dst_field_name, dst_field_value), label,
-            fields, values, field_names_on_create, field_values_on_create, field_names_on_match,
+            ctx, MatchIterator(ctx->txn_.get(), src_label, src_field_name, src_field_value, &src_node),
+            MatchIterator(ctx->txn_.get(), dst_label, dst_field_name, dst_field_value, &dst_node),
+            label, fields, values, field_names_on_create, field_values_on_create, field_names_on_match,
             field_values_on_match, err_msg);
         ctx->result_info_->statistics.edges_created++;
         if (!edge_variable.empty()) {

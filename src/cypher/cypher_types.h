@@ -173,7 +173,9 @@ enum ExpandTowards {
 
 namespace _detail {
 static std::string EdgeUid2String(const ::lgraph::EdgeUid& e) {
-    return fma_common::StringFormatter::Format("{}_{}_{}_{}", e.src, e.dst, e.lid, e.eid);
+    // WARNING: Five tuple is temporary solution.
+    //          You should rewrite the func when the finally plan have be proposed.
+    return fma_common::StringFormatter::Format("{}_{}_{}_{}_{}", e.src, e.dst, e.lid, e.tid, e.eid);
 }
 
 static ::lgraph::EdgeUid ExtractEdgeUid(const std::string& s) {
@@ -185,8 +187,11 @@ static ::lgraph::EdgeUid ExtractEdgeUid(const std::string& s) {
         ns.emplace_back(n);
         if (!(ss >> c)) break;
     }
-    if (ns.size() != 4) throw lgraph::InputError("Failed extract EdgeUid from string.");
-    return {ns[0], ns[1], static_cast<::lgraph::LabelId>(ns[2]), 0, ns[3]}; // TODO(heng)
+    // WARNING: Five tuple is temporary solution.
+    //          You should rewrite the line or func when the finally plan have be proposed.
+    // TODO(heng)
+    if (ns.size() != 5) throw lgraph::InputError("Failed extract EdgeUid from string.");
+    return {ns[0], ns[1], static_cast<::lgraph::LabelId>(ns[2]), ns[3], ns[4]};
 }
 
 static std::string AccessLevel2String(const ::lgraph_api::AccessLevel& ac) {

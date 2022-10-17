@@ -227,7 +227,8 @@ int test_query(cypher::RTContext *ctx) {
          0},  // issue: #168 #169
         {"MATCH (n:Person)-[b:BORN_IN]->(m) WHERE b.weight < 19.2 OR b.weight > 20.6 RETURN m",
          2},  // issue: #190
-        {"MATCH (n:Person)-[b:BORN_IN]->(m) WHERE (b.weight + b.weight) < 38.4 OR b.weight > 20.6 RETURN m",
+        {"MATCH (n:Person)-[b:BORN_IN]->(m) WHERE (b.weight + b.weight) "
+         "< 38.4 OR b.weight > 20.6 RETURN m",
          2},
         {"MATCH (a)-[e]->(b) WHERE a.name='Liam Neeson' and b.title<>'' and "
          "(e.charactername='Henri Ducard' or e.relation = '') RETURN a,e,b",
@@ -1346,51 +1347,67 @@ CREATE (a)-[:KNOWS {weight:10}]->(b),
 }
 
 int test_merge(cypher::RTContext *ctx) {
-    static const std::vector<std::string> scripts = {
+    static const std::vector<std::string> add = {
         "CALL db.createVertexLabel('Person', 'name', 'name', STRING, false, 'birthyear', INT16, "
         "true, 'gender', INT8,   true)\n",  // birthyear and gender can be null
         "CALL db.createVertexLabel('City', 'name', 'name', STRING, false, 'area', DOUBLE,false, "
         "'population', DOUBLE, true)\n",
         "CALL db.createEdgeLabel('Knows', '[]', 'intimacy', DOUBLE, true)\n",
+        "CALL db.createEdgeLabel('Livein', '[]')\n",
         "CALL db.addIndex('City', 'area', true)\n",
         "CREATE (n:Person {name: 'Liubei', birthyear: 161,gender:1})\n",
         "CREATE (n:Person {name: 'Caocao', birthyear: 155,gender:1})\n",
         "CREATE (n:Person {name: 'Sunquan', birthyear: 182,gender:1})\n",
+        "CREATE (n:Person {name: 'Guanyu', birthyear: 160,gender:1})\n",
+        "CREATE (n:Person {name: 'Zhangfei', birthyear: 153,gender:1})\n",
         "CREATE (n:City {name: 'Beijing', area:16410.54, population:2154.2})\n",
         "CREATE (n:City {name: 'Shanghai', area:6340.5, population:2423.78})\n",
     };
-    static const std::vector<std::string> query_scripts = {
-        "MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender\n",  // Merge single
+    eval_scripts(ctx, add);
+    static const std::vector<std::pair<std::string, int>> script_check = {
+        {"MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender\n", 1},  // Merge single
                                                                             // node
                                                                             // specifying
                                                                             // both label
                                                                             // and property
-        "MERGE (n:Person {name:'Zhugeliang'}) ON CREATE SET n.gender=1,n.birthyear=181 "
-        "RETURN n.name\n",  // merge with on create
-        "MERGE (n:Person {name:'Liubei'}) ON MATCH SET n.birthyear=2010 RETURN "
-        "n.birthyear\n",  // merge with macth // need to specific a property index
-        "MERGE(n:Person {name:'Liubei'}) ON CREATE SET n.gender=1 ON MATCH SET "
-        "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n",  // merge on create and
+        {"MERGE (n:Person {name:'Zhugeliang'}) ON CREATE SET n.gender=1,n.birthyear=181 "
+        "RETURN n.name\n", 1},  // merge with on create
+        {"MERGE (n:Person {name:'Liubei'}) ON MATCH SET n.birthyear=2010 RETURN "
+        "n.birthyear\n", 1},  // merge with macth // need to specific a property index
+        {"MERGE(n:Person {name:'Liubei'}) ON CREATE SET n.gender=1 ON MATCH SET "
+        "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n", 1},  // merge on create and
                                                                    // match a existed node
-        "MERGE(n:Person {name:'Huatuo'}) ON CREATE SET n.gender=1 ON MATCH SET "
-        "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n",  // merge on create and
+        {"MERGE(n:Person {name:'Huatuo'}) ON CREATE SET n.gender=1 ON MATCH SET "
+        "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n", 1},  // merge on create and
                                                                    // match acreate  node
-        "MERGE(n:Person {name:'Liubei'}) ON MATCH SET n.gender=0,n.birthyear=2050 RETURN "
-        "n.name, n.gender,n.birthyear\n",  // merge with on match setting multiple
+        {"MERGE(n:Person {name:'Liubei'}) ON MATCH SET n.gender=0,n.birthyear=2050 RETURN "
+        "n.name, n.gender,n.birthyear\n", 1},  // merge with on match setting multiple
                                            // properties // need to specific a property
                                            // index
-        "MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE "
-        "(n)-[r:Knows{intimacy:0.6}]->(m) RETURN r.intimacy\n",  // Create a realtionship
-        "MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE "
-        "(n)-[r:Knows]->(m) RETURN r.intimacy\n",  // Merge on a relationship  exit, return
+        {"MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE "
+        "(n)-[r:Knows{intimacy:0.6}]->(m) RETURN r.intimacy\n", 1},  // Create a realtionship
+        {"MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE "
+        "(n)-[r:Knows]->(m) RETURN r.intimacy\n", 1},  // Merge on a relationship  exit, return
                                                    // bug, dispaly null
-        "MERGE (n:Person {name:'Huatuo'}) RETURN n.name\n",  // Merge using unique
+        {"MATCH (n:Person),(m:City) WHERE n.name='Caocao' AND m.name='Beijing' MERGE "
+        "(n)-[r:Livein]->(m) RETURN r\n", 1},
+        {"MATCH (n:Person {name:'Caocao'}) MERGE (n)-[r:Knows]->(m:Person {name:'Sunquan'})"
+        "RETURN r\n", 1},
+        {"MATCH (n:Person),(m:City) WHERE n.birthyear >= 160 AND m.name = 'Beijing' MERGE "
+        "(n)-[r:Livein]->(m) RETURN r\n", 4},
+        {"MERGE (n:Person {name:'Caocao'})-[r:Knows]->(m:Person {name:'Caogai'})"
+        "RETURN r\n", 1},
+        // {"MERGE (n:Person {gender:1}) RETURN n\n", ?},       // create index on gender first
+                                                                // this query should return
+                                                                // multiple nodes, but currently
+                                                                // only one is returned
+        {"MERGE (n:Person {name:'Huatuo'}) RETURN n.name\n", 1},  // Merge using unique
                                                              // constraints creates a new
                                                              // node if no node is found
-        "MERGE (n:Person {name:'Xunyu'}) RETURN n.name\n",   // Merge using unique
+        {"MERGE (n:Person {name:'Xunyu'}) RETURN n.name\n", 1},   // Merge using unique
                                                              // constraints creates a new
                                                              // node if no node is found
-        "MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender\n",  // Merge using
+        {"MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender\n", 1},  // Merge using
                                                                             // unique
                                                                             // constraints
                                                                             // matches an
@@ -1401,28 +1418,34 @@ int test_merge(cypher::RTContext *ctx) {
         // n.name,n.area\n", "MERGE (n:City {name: 'Beijing', area:6340.5,population:2154.2})
         // RETURN n\n",//Merge with unique constraints and partial matches , error
         // information
-        "MERGE (node1: Person {name: 'lisi'}) ON CREATE SET node1.birthyear = 1903 WITH "
+        {"MERGE (node1: Person {name: 'lisi'}) ON CREATE SET node1.birthyear = 1903 WITH "
         "node1 MATCH (node1) WHERE node1.birthyear < 1904 SET node1.birthyear = 1904 "
-        "RETURN id(node1), node1.name, node1.birthyear\n",
-        "MERGE (n: Person {name: 'wangwu'}) ON CREATE SET n.birthyear = 1903 ON CREATE SET "
+        "RETURN id(node1), node1.name, node1.birthyear\n", 1},
+        {"MERGE (n: Person {name: 'wangwu'}) ON CREATE SET n.birthyear = 1903 ON CREATE SET "
         "n.name = 'wangwu2' WITH n MATCH (n) WHERE n.birthyear < 2002 SET n += {birthyear: "
-        "2002, name: 'wangwu2'} RETURN id(n), n.name, n.birthyear\n",
-        "MERGE (a:Person {name: 'zhangsan'}) SET a.birthyear = 2020",
-        "MERGE (a:Person {name: 'zhangsan'}) DELETE a",
-        "MERGE (a:Person {name: 'zhangsan'}) CREATE (b:Person {name : 'xiaoming'})",
-        "MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m",
-        "MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'})",
-        "MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) CREATE "
-        "(n)-[r:Knows]->(m) RETURN n, r, m",
-        "MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) MERGE "
-        "(n)-[r:Knows]->(m) return n, r, m",
-        "MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 CREATE (b:Person "
-        "{name:'wangwu'})",
-        "MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 MERGE (b:Person "
-        "{name:'wangwu'})",
+        "2002, name: 'wangwu2'} RETURN id(n), n.name, n.birthyear\n", 1},
+        {"MERGE (a:Person {name: 'zhangsan'}) SET a.birthyear = 2020 RETURN a.birthyear", 1},
+        {"MERGE (a:Person {name: 'zhangsan'}) DELETE a", 1},
+        {"MERGE (a:Person {name: 'zhangsan'}) CREATE (b:Person {name : 'xiaoming'})"
+        "RETURN b", 1},
+        {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m", 1},
+        {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m", 1},
+        {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) CREATE "
+        "(n)-[r:Knows]->(m) RETURN n, r, m", 1},
+        {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) MERGE "
+        "(n)-[r:Knows]->(m) return n, r, m", 1},
+        {"MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 CREATE (b:Person "
+        "{name:'wangwu'}) RETURN b", 1},
+        {"MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 MERGE (b:Person "
+        "{name:'wangwu'}) RETURN b", 1},
     };
-    eval_scripts(ctx, scripts);
-    eval_scripts(ctx, query_scripts);
+    std::vector<std::string> scripts;
+    std::vector<int> check;
+    for (auto &s : script_check) {
+        scripts.emplace_back(s.first);
+        check.emplace_back(s.second);
+    }
+    eval_scripts_check(ctx, scripts, check);
     return 0;
 }
 
@@ -2058,10 +2081,10 @@ int test_edge_id_query(cypher::RTContext *ctx) {
         {"MATCH (n)-[e]->() where id(n)=4 return euid(e)", 2},
         {"MATCH ()-[e]->(n) where id(n)=4 return euid(e)", 1},
         {"MATCH (n)-[e]-() where id(n)=4 return euid(e)", 3},
-        {"MATCH ()-[e]->() where euid(e)=\"0_2_0_0\" return e,labels(e),properties(e)", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0\" return properties(e)", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0\" return e.charactername", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"8_18_2_0\" set e.weight=1223 return "
+        {"MATCH ()-[e]->() where euid(e)=\"0_2_0_0_0\" return e,labels(e),properties(e)", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0_0\" return properties(e)", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0_0\" return e.charactername", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"8_18_2_0_0\" set e.weight=1223 return "
          "e,labels(e),properties(e)",
          1},
         {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0\" delete e", 1},

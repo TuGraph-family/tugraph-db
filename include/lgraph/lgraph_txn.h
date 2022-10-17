@@ -80,6 +80,13 @@ class Transaction {
     bool IsReadOnly() const;
 
     /**
+     * @brief   Get Transaction
+     *
+     * @returns Transaction
+     */
+    const std::shared_ptr<lgraph::Transaction> GetTxn();
+
+    /**
      * @brief   Get a vertex iterator pointing to the first vertex. If there is no vertex, the
      *          iterator is invalid.
      *
