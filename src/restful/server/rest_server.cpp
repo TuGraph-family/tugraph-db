@@ -1982,6 +1982,8 @@ void RestServer::HandlePostSubGraph(const std::string& user, const std::string& 
         web::json::value jrelp;
         jrelp[RestStrings::SRC] = web::json::value::number(relp.src());
         jrelp[RestStrings::DST] = web::json::value::number(relp.dst());
+        // WARNING: Five tuple is temporary solution.
+        //          You should rewrite the line or func when the finally plan have be proposed.
         jrelp[RestStrings::EUID] = web::json::value::string(_TU(fma_common::StringFormatter::Format(
             "{}_{}_{}_{}_{}", relp.src(), relp.dst(), relp.lid(), relp.tid(), relp.eid())));
         jrelp[RestStrings::LABEL] = web::json::value(_TU(relp.label()));

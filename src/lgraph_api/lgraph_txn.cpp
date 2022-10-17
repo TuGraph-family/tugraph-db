@@ -40,6 +40,8 @@ void Transaction::Abort() { txn_->Abort(); }
 
 bool Transaction::IsValid() const { return txn_->IsValid(); }
 
+const std::shared_ptr<lgraph::Transaction> Transaction::GetTxn() {return txn_; }
+
 bool Transaction::IsReadOnly() const { return txn_->IsReadOnly(); }
 
 VertexIterator Transaction::GetVertexIterator(int64_t vid, bool nearest) {

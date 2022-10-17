@@ -206,7 +206,7 @@ void Record::Insert(const std::string &key, const int64_t vid, lgraph::Transacti
         node.properties.insert(property);
     }
     record[key] = std::shared_ptr<ResultElement>(
-        new ResultElement(node));
+            new ResultElement(node));
     length_++;
 }
 
@@ -227,8 +227,8 @@ void Record::InsertVertexByID(const std::string &key, int64_t node_id) {
 }
 
 void Record::Insert(const std::string &key,
-                    EdgeUid &uid,
-                    lgraph::Transaction* txn) {
+        EdgeUid &uid,
+        lgraph::Transaction* txn) {
     auto eit = txn->GetOutEdgeIterator(uid, false);
     lgraph_result::Relationship repl;
     repl.id = uid.eid;
@@ -246,8 +246,8 @@ void Record::Insert(const std::string &key,
 }
 
 void Record::Insert(const std::string &key,
-                    EdgeUid &uid,
-                    lgraph_api::Transaction* txn) {
+        EdgeUid &uid,
+        lgraph_api::Transaction* txn) {
     // WARNING: call deprecated interface.
     // TODO(jiazheng.jia): Please move deprecated interface's code to here
     // when you replace all of old interface to new one.
@@ -292,10 +292,10 @@ void Record::Insert(const std::string &key, const traversal::Path &path,
         auto edge = path.GetNthEdge(i);
         lgraph_result::Relationship repl;
         auto euid = lgraph::EdgeUid(edge.GetSrcVertex().GetId(),
-                                    edge.GetDstVertex().GetId(),
-                                    edge.GetLabelId(),
-                                    edge.GetTemporalId(),
-                                    edge.GetEdgeId());
+                                        edge.GetDstVertex().GetId(),
+                                        edge.GetLabelId(),
+                                        edge.GetTemporalId(),
+                                        edge.GetEdgeId());
         auto eit = txn->GetOutEdgeIterator(euid, false);
         repl.id = euid.eid;
         repl.src = euid.src;
@@ -545,8 +545,8 @@ void Result::Load(const std::string &output) {
                             }
                             is_node = !is_node;
                             record.length_++;
-                            record.record[title] = std::shared_ptr<ResultElement>(
-                                new ResultElement(path));
+                        record.record[title] = std::shared_ptr<ResultElement>(
+                            new ResultElement(path));
                         }
                     }
                     break;

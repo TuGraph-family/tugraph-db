@@ -22,16 +22,17 @@ static void RRecordToURecord(
         switch (header[index].second) {
         case lgraph_api::ResultElementType::NODE:
             {
-                lgraph::VertexId vid = 0;
                 if (v.type == cypher::Entry::NODE_SNAPSHOT) {
-                    uint start = 2;
-                    uint end = v.ToString().size() - 3;
-                    vid = std::stoi(v.ToString().substr(start, end));
+                    std::regex regex_word("(V)\\[([0-9]+)\\]");
+                    std::smatch match_group;
+                    auto node_str = v.ToString();
+                    CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
+                    auto vid = static_cast<size_t>(std::stoll(match_group[2].str()));
                     record.InsertVertexByID(header[index].first, vid);
                 } else if (v.type == cypher::Entry::NODE) {
-                    vid = v.node->PullVid();
+                    auto vid = v.node->PullVid();
                     if (vid >= 0) {
-                        record.InsertVertex(header[index].first, vid, txn);
+                        record.Insert(header[index].first, vid, txn);
                     } else {
                         // OPTIONAL MATCH return null
                         record.InsertVertexByID(header[index].first, vid);
@@ -45,18 +46,29 @@ static void RRecordToURecord(
         case lgraph_api::ResultElementType::RELATIONSHIP:
             {
                 if (v.type == cypher::Entry::RELP_SNAPSHOT) {
+                    std::regex regex_word("(E)\\[([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+)\\]");
+                    std::smatch match_group;
+                    auto repl_str = v.ToString();
+                    CYPHER_THROW_ASSERT(std::regex_match(repl_str, match_group, regex_word));
+                    auto ids = match_group[2].str();
                     lgraph_api::EdgeUid edge_uid;
-                    auto edge_uid_vec =
-                        fma_common::Split(v.ToString().substr(2, v.ToString().size() - 3), "_");
-                    edge_uid.src = static_cast<int64_t>(std::stoll(edge_uid_vec[0]));
-                    edge_uid.dst = static_cast<int64_t>(std::stoll(edge_uid_vec[1]));
-                    edge_uid.lid = static_cast<uint16_t>(std::stoll(edge_uid_vec[2]));
-                    edge_uid.eid = static_cast<int64_t>(std::stoll(edge_uid_vec[3]));
-                    record.InsertEdgeByID(header[index].first, edge_uid);
+                    std::regex split_word("_");
+                    std::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
+                    // WARNING: This depend on EUID order.
+                    auto start = static_cast<size_t>(std::stoll(id++->str()));
+                    auto end = static_cast<size_t>(std::stoll(id++->str()));
+                    auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
+                    auto tid = static_cast<int64_t>(std::stoll(id++->str()));
+                    auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
+                    record.InsertEdgeByID(header[index].first, lgraph_api::EdgeUid(start,
+                                                                                   end,
+                                                                                   lid,
+                                                                                   tid,
+                                                                                   eid));
                 } else if (v.type == cypher::Entry::RELATIONSHIP) {
                     auto uit = v.relationship->ItRef();
                     auto uid = uit->GetUid();
-                    record.InsertEdge(header[index].first, uid, txn);
+                    record.Insert(header[index].first, uid, txn);
                 } else {
                     throw lgraph::CypherException("unhandled record entry type: " +
                                                   cypher::Entry::ToString(v.type));
@@ -65,57 +77,38 @@ static void RRecordToURecord(
             }
         case lgraph_api::ResultElementType::PATH:
             {
-                // TODO: After merging the PATH type, need to modify the code here
-                auto pathArrays = v.constant.array;
-                unordered_json result;
-                for (auto& pathArray : *pathArrays) {
-                   std::string arr = pathArray.ToString("NUL");
-                   unordered_json arrJson;
-                   std::map<std::string, unordered_json> properties;
-                   if (arr.at(0) == 'V') {
-                        auto strVid = arr.substr(arr.find("[") + 1, arr.find("]") - 2);
-                        lgraph::VertexId vid = std::atoll(strVid.c_str());
-                        auto vit = std::make_unique<lgraph::VIter>(txn,
-                                                               lgraph::VIter::VERTEX_ITER,
-                                                               vid);
-                        arrJson["identity"] = vid;
-                        arrJson["label"] = vit->GetLabel();
-                        auto node_fields = vit->GetFields();
-                        for (const auto &n : node_fields) {
-                            properties[n.first] = lgraph_rfc::FieldDataToJson(n.second);
-                        }
-                        if (!properties.empty()) {
-                            arrJson["properties"] = properties;
-                        }
-                        result[arr] = arrJson;
-                   } else if (arr.at(0) == 'E') {
-                        std::regex regex_word("E\\[([0-9]+)_([0-9]+)_([0-9]+)_([0-9]+)\\]");
-                        std::smatch match_group;
-                        CYPHER_THROW_ASSERT(std::regex_match(arr, match_group, regex_word));
-                        auto uid = lgraph::EdgeUid(static_cast<int64_t>(std::atoll(match_group[1].str().c_str())),
-                                                    static_cast<int64_t>(std::atoll(match_group[2].str().c_str())),
-                                                    static_cast<uint16_t>(std::atoll(match_group[3].str().c_str())),
-                                                    0, 
-                                                    static_cast<int64_t>(std::atoll(match_group[4].str().c_str())));
-                        auto vit = std::make_unique<lgraph::EIter>(txn, uid);
-                        auto rel_fields = vit->GetFields();
-                        arrJson["identity"] = uid.eid;
-                        arrJson["start"] = uid.src;
-                        arrJson["end"] = uid.dst;
-                        arrJson["label"] = vit->GetLabel();
-                        arrJson["label_id"] = uid.lid;
-                        for (const auto &r : rel_fields) {
-                            properties[r.first] = lgraph_rfc::FieldDataToJson(r.second);
-                        }
-                        if(!properties.empty()) {
-                            arrJson["properties"] = properties;
-                        }
-                        result[arr] = arrJson;
-                   } else {
-                        throw lgraph::CypherException("unhandled path array type: " + arr);
-                   }
+                using Vertex = lgraph_api::traversal::Vertex;
+                using Path = lgraph_api::traversal::Path;
+                using Edge = lgraph_api::traversal::Edge;
+                std::regex regex_word("(E|V)\\[([0-9]+|([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+))\\]");
+                std::smatch match_group;
+                auto node_str = v.constant.array->at(0).ToString();
+                CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
+                auto start = static_cast<size_t>(std::stoll(match_group[2].str()));
+                Path path{Vertex(start)};
+                std::regex split_word("_");
+                for (auto &path_pattern : *v.constant.array) {
+                    auto path_pattern_str = path_pattern.ToString();
+                    CYPHER_THROW_ASSERT(std::regex_match(path_pattern_str, match_group, regex_word));
+                    auto type = match_group[1].str();
+                    if (type == "V") continue;
+                    auto ids = match_group[2].str();
+                    std::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
+                    auto start = static_cast<size_t>(std::stoll(id++->str()));
+                    auto end = static_cast<size_t>(std::stoll(id++->str()));
+                    auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
+                    auto tid = static_cast<int64_t>(std::stoll(id++->str()));
+                    auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
+                    bool forward = true;
+                    if (path.GetEndVertex().GetId() != start) {
+                        auto tmp_id =start;
+                        forward = false;
+                        start = end;
+                        end = tmp_id;
+                    }
+                    path.Append(Edge(start, lid, tid, end, eid, forward));
                 }
-                record.Insert(header[index].first, lgraph_api::FieldData(result.dump()));
+                record.Insert(header[index].first, path, txn);
                 break;
             }
         default:

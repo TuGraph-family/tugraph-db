@@ -79,7 +79,7 @@ class Record {
      * @param   fname   Field name you defined earlier.
      * @param   fv      Field value.
      */
-    void Insert(const std::string &fname, const FieldData &fv);
+     void Insert(const std::string &fname, const FieldData &fv);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
@@ -91,7 +91,7 @@ class Record {
      */
     [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
     void Insert(const std::string &fname, const int64_t vid,
-           lgraph::Transaction* txn);
+        lgraph::Transaction* txn);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
@@ -229,7 +229,7 @@ class Record {
  * @brief   Result table, result instance provide [NewRecord], [ResetHeader], [Dump] and [Load]
  *          method. Table also provide some method to view content of table. For example,
  *          [Header] and [Recordview].
- *
+ *          
  *          It's worth noting that you are best to define your header before using result table.
  *          eg.
  *                       auto result = Result({title, ResultElementType}...)

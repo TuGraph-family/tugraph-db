@@ -178,8 +178,7 @@ struct FieldDataConvert {
 
         for (auto& h : header) {
             if (lgraph_api::ResultElementTypeUpcast(h.second) ==
-                    lgraph_api::ResultElementType::FIELD ||
-                h.second == lgraph_api::ResultElementType::PATH) {
+                    lgraph_api::ResultElementType::FIELD) {
                 FromLGraphT(*fds.at(h.first)->v.fieldData, ret->Add());
             } else {
                 FromLGraphT(FieldData(std::move(fds.at(h.first)->ToString())), ret->Add());
