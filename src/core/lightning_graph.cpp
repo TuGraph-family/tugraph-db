@@ -1099,8 +1099,11 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                  it.Next()) {
                 auto et = it.GetOutEdgeIterator();
                 while (et.IsValid()) {
-                    const Value& prop = it.GetProperty();
-                    if (schema_manager->GetRecordLabelId(prop) != label_id) continue;
+                    const Value& prop = et.GetProperty();
+                    if (et.GetLabelId() != label_id) {
+                        et.Next();
+                        continue;
+                    }
                     const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
                     CheckKeySizeForIndex(key);
                     key_euids.emplace_back(key, et.GetUid());
@@ -1526,7 +1529,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
     next_vertex_id = first_vertex;
     std::deque<KeyVid<T>> key_vids;
     std::deque<KeyEUid<T>> key_euids;
-    if (!_AddEmptyIndex(spec.label, spec.field, spec.unique, is_vertex)) {
+    if (!_AddEmptyIndex(spec.label, spec.field, spec.unique, is_vertex) && is_vertex) {
         throw InputError(fma_common::StringFormatter::Format(
             "Failed to create index {}:{}: index already exists", spec.label, spec.field));
     }
@@ -1549,9 +1552,12 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 key_vids.emplace_back(GetIndexKeyFromValue<T>(extractor->GetConstRef(v)),
                                       vit.GetId());
             }
-            if (!vit.IsValid()) next_vertex_id = GetNumVertices();
+            if (!vit.IsValid()) {
+                txn.Abort();
+                next_vertex_id = GetNumVertices();
+            }
+            txn.Abort();
         }
-        txn.Abort();
         FMA_LOG() << "Sorting by unique id";
         LGRAPH_PSORT(key_vids.begin(), key_vids.end());
         FMA_LOG() << "Dumping index";
@@ -1596,9 +1602,11 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
     } else {
         auto txn = CreateReadTxn();
         {
-            LabelId lid = txn.GetLabelId(true, spec.label);
-            FMA_LOG() << "Scanning vertexes for keys";
+            LabelId lid = txn.GetLabelId(false, spec.label);
+            FMA_LOG() << "Scanning edges for keys";
             auto vit = txn.GetVertexIterator(first_vertex, true);
+            Value v = vit.GetProperty();
+            auto start_lid = SchemaManager::GetRecordLabelId(v);
             auto schema = txn.curr_schema_->e_schema_manager.GetSchema(lid);
             FMA_DBG_ASSERT(schema);
             auto extractor = schema->GetFieldExtractor(spec.field);
@@ -1606,20 +1614,25 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             for (; vit.IsValid(); vit.Next()) {
                 Value v = vit.GetProperty();
                 auto eit = vit.GetOutEdgeIterator();
-                if (SchemaManager::GetRecordLabelId(v) != lid) {
+                for (; eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() == lid) {
+                        EdgeUid euid = eit.GetUid();
+                        key_euids.emplace_back(GetIndexKeyFromValue<T>(extractor->GetConstRef(v)),
+                                               euid);
+                    }
+                }
+                auto v_lid = SchemaManager::GetRecordLabelId(v);
+                if (v_lid != start_lid) {
                     next_vertex_id = vit.GetId();
                     break;
                 }
-                while (eit.IsValid()) {
-                    EdgeUid euid = eit.GetUid();
-                    key_euids.emplace_back(GetIndexKeyFromValue<T>(extractor->GetConstRef(v)),
-                                           euid);
-                    eit.Next();
-                }
             }
-            if (!vit.IsValid()) next_vertex_id = GetNumVertices();
+            if (!vit.IsValid()) {
+                txn.Abort();
+                next_vertex_id = GetNumVertices();
+            }
+            txn.Abort();
         }
-        txn.Abort();
         FMA_LOG() << "Sorting by unique id";
         LGRAPH_PSORT(key_euids.begin(), key_euids.end());
         FMA_LOG() << "Dumping index";
@@ -1666,7 +1679,11 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
                                              size_t commit_batch_size, bool is_vertex) {
     _HoldWriteLock(meta_lock_);
     std::map<std::string, std::vector<IndexSpecType>> label_indexes;
+    std::vector<IndexSpecType> edge_label_indexes;
     for (auto& idx : indexes) {
+        if (!is_vertex) {
+            edge_label_indexes.emplace_back(idx);
+        }
         label_indexes[idx.label].emplace_back(idx);
     }
     Transaction txn = CreateReadTxn();
@@ -1683,7 +1700,7 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
             }
         }
         // get field types
-        std::vector<FieldSpec> fields = txn.GetSchema(true, kv.first);
+        std::vector<FieldSpec> fields = txn.GetSchema(is_vertex, kv.first);
         std::map<std::string, FieldType> fts;
         for (auto& fd : fields) fts[fd.name] = fd.type;
         // check for field types
@@ -1699,7 +1716,7 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
     std::map<LabelId, bool> label_id_done;
     std::map<LabelId, std::string> label_id_name;
     for (auto& kv : label_indexes) {
-        LabelId lid = txn.GetLabelId(true, kv.first);
+        LabelId lid = txn.GetLabelId(is_vertex, kv.first);
         label_id_done[lid] = false;
         label_id_name[lid] = kv.first;
     }
@@ -1713,8 +1730,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         if (!vit.IsValid()) break;
         LabelId curr_lid = SchemaManager::GetRecordLabelId(vit.GetProperty());
         start_vid = vit.GetId();
-        if (label_id_done.find(curr_lid) != label_id_done.end()) {
-            if (label_id_done[curr_lid]) {
+        if (!is_vertex || label_id_done.find(curr_lid) != label_id_done.end()) {
+            if (is_vertex && label_id_done[curr_lid]) {
                 throw InternalError(fma_common::StringFormatter::Format(
                     "Vertex Ids are not totally ordered: "
                     "found vertex vid={} with label {} after scanning the last range. "
@@ -1725,8 +1742,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
             std::string label = txn.GetVertexLabel(vit);
             txn.Abort();
             VertexId next_vid = 0;
-            auto& indexes = label_indexes[label];
-            for (auto& idx : indexes) {
+            auto& indexs = is_vertex ? label_indexes[label] : edge_label_indexes;
+            for (auto& idx : indexs) {
                 switch (idx.type) {
                 case FieldType::BOOL:
                     _DumpIndex<int8_t>(idx.spec, start_vid, commit_batch_size, next_vid, is_vertex);
@@ -1785,15 +1802,16 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
             }
         }
     }
-
-    // check if there is still label left
-    for (auto& kv : label_id_done) {
-        if (!kv.second) {
-            const std::string& label = label_id_name[kv.first];
-            auto& specs = label_indexes[label];
-            FMA_WARN() << "Label " << label << " specified, but no vertex of that type exists.";
-            for (auto& spec : specs) {
-                _AddEmptyIndex(spec.spec.label, spec.spec.field, spec.spec.unique, is_vertex);
+    if (is_vertex) {
+        // check if there is still label left
+        for (auto& kv : label_id_done) {
+            if (!kv.second) {
+                const std::string& label = label_id_name[kv.first];
+                auto& specs = label_indexes[label];
+                FMA_WARN() << "Label " << label << " specified, but no vertex of that type exists.";
+                for (auto& spec : specs) {
+                    _AddEmptyIndex(spec.spec.label, spec.spec.field, spec.spec.unique, is_vertex);
+                }
             }
         }
     }
@@ -1898,17 +1916,21 @@ void LightningGraph::DropAllIndex() {
 
         bool success = true;
         for (auto& idx : indexes) {
-            if (!index_manager_->DeleteVertexIndex(txn.GetTxn(), idx.label, idx.field)) {
-                success = false;
-                break;
-            }
             auto v_schema = new_schema->v_schema_manager.GetSchema(idx.label);
             auto e_schema = new_schema->e_schema_manager.GetSchema(idx.label);
             if (v_schema) {
+                if (!index_manager_->DeleteVertexIndex(txn.GetTxn(), idx.label, idx.field)) {
+                    success = false;
+                    break;
+                }
                 auto ext = v_schema->GetFieldExtractor(idx.field);
                 v_schema->UnVertexIndex(ext->GetFieldId());
             }
             if (e_schema) {
+                if (!index_manager_->DeleteEdgeIndex(txn.GetTxn(), idx.label, idx.field)) {
+                    success = false;
+                    break;
+                }
                 auto ext = e_schema->GetFieldExtractor(idx.field);
                 e_schema->UnEdgeIndex(ext->GetFieldId());
             }
@@ -2010,8 +2032,7 @@ ScopedRef<SchemaInfo> LightningGraph::GetSchemaInfo() { return schema_.GetScoped
 void LightningGraph::Open() {
     Close();
     store_.reset(
-        new KvStore(config_.dir, config_.db_size, config_.durable,
-                    config_.create_if_not_exist));
+        new KvStore(config_.dir, config_.db_size, config_.durable, config_.create_if_not_exist));
     KvTransaction txn = store_->CreateWriteTxn();
     // load meta info
     meta_table_ =

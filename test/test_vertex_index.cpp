@@ -11,7 +11,7 @@
 using namespace lgraph;
 using namespace fma_common;
 
-class TestEdgeIndex : public TuGraphTest {};
+class TestVertexIndex : public TuGraphTest {};
 
 int TestVertexIndexImpl() {
     KvStore store("./testkv", (size_t)1 << 30, true);
@@ -22,6 +22,7 @@ int TestVertexIndexImpl() {
 
     // now create the index table
     txn = store.CreateWriteTxn();
+    int cnt = 0;
     // test integer keys
     {
         KvTable idx_tab =
@@ -50,44 +51,49 @@ int TestVertexIndexImpl() {
         UT_EXPECT_TRUE(idx.Update(txn, Value::ConstRef(2), Value::ConstRef(1), 0));
         // output indexed vids
         {
-            UT_LOG() << "[1, 1]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(1));
+            UT_EXPECT_EQ(it.GetVid(), 0);
+            cnt = 1;
+            it.Next();
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
+                if (cnt == 80) cnt += 10;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
+            cnt = 2;
         }
         {
-            UT_LOG() << "[2, 2]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(2), Value::ConstRef(2));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
+                cnt += 2;
                 it.Next();
+                if (cnt == 80) cnt += 10;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
-        }
-        {
-            UT_LOG() << "[1, 2]\n";
-            auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(2));
-            while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+            {
+                auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(2));
+                UT_EXPECT_EQ(it.GetVid(), 0);
+                cnt = 1;
                 it.Next();
+                while (it.IsValid()) {
+                    UT_EXPECT_EQ(it.GetVid(), cnt);
+                    it.Next();
+                    cnt += 2;
+                    if (cnt == 80) cnt += 10;
+                    if (cnt == 501) cnt = 2;
+                }
+                cnt = 1;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
-        }
-        {
-            UT_LOG() << "[2, 1]\n";
-            auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(2), Value::ConstRef(1));
-            while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
-                it.Next();
+            {
+                auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(2), Value::ConstRef(1));
+                while (it.IsValid()) {
+                    UT_EXPECT_EQ(it.GetVid(), cnt);
+                    it.Next();
+                    cnt += 2;
+                }
+                cnt = 1;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
         }
     }
     // test string keys
@@ -116,64 +122,63 @@ int TestVertexIndexImpl() {
         }
         // output indexed vids
         {
-            UT_LOG() << "[a, a]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("a"), Value::ConstRef("a"));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
+            cnt = 0;
         }
         {
-            UT_LOG() << "[b, b]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("b"), Value::ConstRef("b"));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
+                if (cnt == 80) cnt += 10;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
+            cnt = 1;
         }
         {
-            UT_LOG() << "[a, b]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("a"), Value::ConstRef("b"));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
+                if (cnt == 80) cnt += 10;
+                if (cnt == 501) cnt = 0;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
+            cnt = 0;
         }
         {
-            UT_LOG() << "[b, a]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("b"), Value::ConstRef("a"));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
+            cnt = 1;
         }
         {
-            UT_LOG() << "[a, bb]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("a"), Value::ConstRef("bb"));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
+                if (cnt == 80) cnt += 10;
+                if (cnt == 501) cnt = 0;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
+            cnt = 0;
         }
         {
-            UT_LOG() << "[aa, bb]\n";
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("aa"), Value::ConstRef("bb"));
             while (it.IsValid()) {
-                UT_LOG() << it.GetVid();
+                UT_EXPECT_EQ(it.GetVid(), cnt);
                 it.Next();
+                cnt += 2;
+                if (cnt == 80) cnt += 10;
             }
-            UT_LOG() << "\n";
-            UT_LOG() << "\n";
         }
     }
     // test index scan
@@ -216,6 +221,4 @@ int TestVertexIndexImpl() {
     return 0;
 }
 
-TEST_F(TestEdgeIndex, VertexIndex) {
-    TestVertexIndexImpl();
-}
+TEST_F(TestVertexIndex, VertexIndex) { TestVertexIndexImpl(); }

@@ -16,6 +16,7 @@
 
 #include "cypher/execution_plan/execution_plan.h"
 #include "cypher/execution_plan/scheduler.h"
+#include "lgraph/lgraph_utils.h"
 
 #include "cypher/parser/generated/LcypherLexer.h"
 #include "cypher/parser/generated/LcypherParser.h"
@@ -92,7 +93,7 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
                         const std::vector<int> &check) {
     for (int i = 0; i < (int)scripts.size(); i++) {
         auto s = scripts[i];
-        UT_LOG() << s;
+        UT_LOG() << i << "th:" << s;
         ANTLRInputStream input(s);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
@@ -1078,7 +1079,7 @@ int test_unwind(cypher::RTContext *ctx) {
 }
 
 int test_procedure(cypher::RTContext *ctx) {
-    static const std::vector<std::string> scripts = {
+    static std::vector<std::string> scripts = {
         "CALL db.createVertexLabel('Director', 'name', 'name', STRING, false, 'age', INT16, true)",
         "CALL db.createVertexLabel('P2', 'flag1', 'flag1', BOOL, false, 'flag2', Bool, true)",
         "CALL db.createEdgeLabel('LIKE', '[]')",
@@ -1178,6 +1179,10 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL db.plugin.getPluginInfo('PY','countPerson')",
         "CALL db.plugin.getPluginInfo('PY','countPerson',true)",
         "CALL dbms.task.listTasks()",
+        "CALL db.plugin.loadPlugin('CPP','scan_graph','','CPP','scan graph', true)",
+        "CALL plugin.cpp.scan_graph({scan_edges:true,times:2})",
+        "CALL db.plugin.loadPlugin('CPP','standard','',CPP','standard', true)",
+        "CALL plugin.cpp.standard({})",
     // "CALL dbms.task.terminateTask()",
 #if 0
         /* call plugin */
@@ -1226,6 +1231,34 @@ int test_procedure(cypher::RTContext *ctx) {
         "return node, r, n LIMIT 1"
         "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */"
     };
+
+    UT_LOG() << "Load Plugin File";
+    std::ifstream f;
+    std::string text = "";
+    std::string path[2] = {"../../test/test_plugins/scan_graph.cpp",
+                           "../../test/test_plugins/standard_result.cpp"};
+    std::string encode;
+    size_t pos = 72;
+    for (auto &i : path) {
+        f.open(i, std::ios::in);
+
+        std::string buf;
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        encode = lgraph_api::encode_base64(text);
+        if (pos == 72) {
+            scripts[pos] = "CALL db.plugin.loadPlugin('CPP','scan_graph','" + encode +
+                           "','CPP','scan graph', true)";
+        } else {
+            scripts[pos] = "CALL db.plugin.loadPlugin('CPP','standard','" + encode +
+                           "','CPP','standard', true)";
+        }
+        text.clear();
+        pos += 2;
+    }
     eval_scripts(ctx, scripts);
     return 0;
 }
@@ -1289,6 +1322,9 @@ CREATE (a)-[:KNOWS {weight:10}]->(b),
         "MATCH (n:Person {name:'E'}) SET n.name='X'",
         "MATCH (n:Person {name:'A'}), (m:Person {name:'B'}) SET n.age=50 SET m.age=51",
         "MATCH (n:Person {name:'A'})-[e:KNOWS]->(m:Person) SET n.age=50 SET e.weight=50",
+        "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = 34",
+        "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = id(n)",
+        "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m = {age: 33}",
         "match (n) return n,properties(n) /*debug*/",
         // "MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET n=m",
         "match (n) return n,properties(n) /*debug*/",
@@ -1366,52 +1402,63 @@ int test_merge(cypher::RTContext *ctx) {
     eval_scripts(ctx, add);
     static const std::vector<std::pair<std::string, int>> script_check = {
         {"MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender\n", 1},  // Merge single
-                                                                            // node
-                                                                            // specifying
-                                                                            // both label
-                                                                            // and property
+                                                                                 // node
+                                                                                 // specifying
+                                                                                 // both label
+                                                                                 // and property
         {"MERGE (n:Person {name:'Zhugeliang'}) ON CREATE SET n.gender=1,n.birthyear=181 "
-        "RETURN n.name\n", 1},  // merge with on create
+         "RETURN n.name\n",
+         1},  // merge with on create
         {"MERGE (n:Person {name:'Liubei'}) ON MATCH SET n.birthyear=2010 RETURN "
-        "n.birthyear\n", 1},  // merge with macth // need to specific a property index
+         "n.birthyear\n",
+         1},  // merge with macth // need to specific a property index
         {"MERGE(n:Person {name:'Liubei'}) ON CREATE SET n.gender=1 ON MATCH SET "
-        "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n", 1},  // merge on create and
-                                                                   // match a existed node
+         "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n",
+         1},  // merge on create and
+              // match a existed node
         {"MERGE(n:Person {name:'Huatuo'}) ON CREATE SET n.gender=1 ON MATCH SET "
-        "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n", 1},  // merge on create and
-                                                                   // match acreate  node
+         "n.birthyear=2020 RETURN n.name, n.gender,n.birthyear\n",
+         1},  // merge on create and
+              // match acreate  node
         {"MERGE(n:Person {name:'Liubei'}) ON MATCH SET n.gender=0,n.birthyear=2050 RETURN "
-        "n.name, n.gender,n.birthyear\n", 1},  // merge with on match setting multiple
-                                           // properties // need to specific a property
-                                           // index
+         "n.name, n.gender,n.birthyear\n",
+         1},  // merge with on match setting multiple
+              // properties // need to specific a property
+              // index
         {"MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE "
-        "(n)-[r:Knows{intimacy:0.6}]->(m) RETURN r.intimacy\n", 1},  // Create a realtionship
+         "(n)-[r:Knows{intimacy:0.6}]->(m) RETURN r.intimacy\n",
+         1},  // Create a realtionship
         {"MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE "
-        "(n)-[r:Knows]->(m) RETURN r.intimacy\n", 1},  // Merge on a relationship  exit, return
-                                                   // bug, dispaly null
+         "(n)-[r:Knows]->(m) RETURN r.intimacy\n",
+         1},  // Merge on a relationship  exit, return
+              // bug, dispaly null
         {"MATCH (n:Person),(m:City) WHERE n.name='Caocao' AND m.name='Beijing' MERGE "
-        "(n)-[r:Livein]->(m) RETURN r\n", 1},
+         "(n)-[r:Livein]->(m) RETURN r\n",
+         1},
         {"MATCH (n:Person {name:'Caocao'}) MERGE (n)-[r:Knows]->(m:Person {name:'Sunquan'})"
-        "RETURN r\n", 1},
+         "RETURN r\n",
+         1},
         {"MATCH (n:Person),(m:City) WHERE n.birthyear >= 160 AND m.name = 'Beijing' MERGE "
-        "(n)-[r:Livein]->(m) RETURN r\n", 4},
+         "(n)-[r:Livein]->(m) RETURN r\n",
+         4},
         {"MERGE (n:Person {name:'Caocao'})-[r:Knows]->(m:Person {name:'Caogai'})"
-        "RETURN r\n", 1},
+         "RETURN r\n",
+         1},
         // {"MERGE (n:Person {gender:1}) RETURN n\n", ?},       // create index on gender first
-                                                                // this query should return
-                                                                // multiple nodes, but currently
-                                                                // only one is returned
+        // this query should return
+        // multiple nodes, but currently
+        // only one is returned
         {"MERGE (n:Person {name:'Huatuo'}) RETURN n.name\n", 1},  // Merge using unique
-                                                             // constraints creates a new
-                                                             // node if no node is found
+                                                                  // constraints creates a new
+                                                                  // node if no node is found
         {"MERGE (n:Person {name:'Xunyu'}) RETURN n.name\n", 1},   // Merge using unique
-                                                             // constraints creates a new
-                                                             // node if no node is found
+                                                                  // constraints creates a new
+                                                                  // node if no node is found
         {"MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender\n", 1},  // Merge using
-                                                                            // unique
-                                                                            // constraints
-                                                                            // matches an
-                                                                            // existing node
+                                                                                 // unique
+                                                                                 // constraints
+                                                                                 // matches an
+                                                                                 // existing node
         // "MERGE (n:City {name: 'Beijing', area:1000,population:2154.2}) RETURN n\n",
         // Merge with unique constraints and partial matches , error information "MERGE
         // (n:City {name: 'Beijing', area:16410.54,population:2154.2}) RETURN
@@ -1419,25 +1466,32 @@ int test_merge(cypher::RTContext *ctx) {
         // RETURN n\n",//Merge with unique constraints and partial matches , error
         // information
         {"MERGE (node1: Person {name: 'lisi'}) ON CREATE SET node1.birthyear = 1903 WITH "
-        "node1 MATCH (node1) WHERE node1.birthyear < 1904 SET node1.birthyear = 1904 "
-        "RETURN id(node1), node1.name, node1.birthyear\n", 1},
+         "node1 MATCH (node1) WHERE node1.birthyear < 1904 SET node1.birthyear = 1904 "
+         "RETURN id(node1), node1.name, node1.birthyear\n",
+         1},
         {"MERGE (n: Person {name: 'wangwu'}) ON CREATE SET n.birthyear = 1903 ON CREATE SET "
-        "n.name = 'wangwu2' WITH n MATCH (n) WHERE n.birthyear < 2002 SET n += {birthyear: "
-        "2002, name: 'wangwu2'} RETURN id(n), n.name, n.birthyear\n", 1},
+         "n.name = 'wangwu2' WITH n MATCH (n) WHERE n.birthyear < 2002 SET n += {birthyear: "
+         "2002, name: 'wangwu2'} RETURN id(n), n.name, n.birthyear\n",
+         1},
         {"MERGE (a:Person {name: 'zhangsan'}) SET a.birthyear = 2020 RETURN a.birthyear", 1},
         {"MERGE (a:Person {name: 'zhangsan'}) DELETE a", 1},
         {"MERGE (a:Person {name: 'zhangsan'}) CREATE (b:Person {name : 'xiaoming'})"
-        "RETURN b", 1},
+         "RETURN b",
+         1},
         {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m", 1},
         {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m", 1},
         {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) CREATE "
-        "(n)-[r:Knows]->(m) RETURN n, r, m", 1},
+         "(n)-[r:Knows]->(m) RETURN n, r, m",
+         1},
         {"MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) MERGE "
-        "(n)-[r:Knows]->(m) return n, r, m", 1},
+         "(n)-[r:Knows]->(m) return n, r, m",
+         1},
         {"MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 CREATE (b:Person "
-        "{name:'wangwu'}) RETURN b", 1},
+         "{name:'wangwu'}) RETURN b",
+         1},
         {"MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 MERGE (b:Person "
-        "{name:'wangwu'}) RETURN b", 1},
+         "{name:'wangwu'}) RETURN b",
+         1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -2101,13 +2155,13 @@ int test_edge_id_query(cypher::RTContext *ctx) {
 
 void TestCypherDetermineReadonly() {
     std::string dummy;
-    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("match (n) return n limit 100",
-                                                      dummy, dummy), true);
-    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("CALL dbms.listGraphs()",
-                                                      dummy, dummy), true);
+    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("match (n) return n limit 100", dummy, dummy),
+                 true);
+    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("CALL dbms.listGraphs()", dummy, dummy),
+                 true);
 }
 
-void TestCypherEmptyGraph(cypher::RTContext* ctx) {
+void TestCypherEmptyGraph(cypher::RTContext *ctx) {
     ctx->graph_ = "";
     expected_exception_any(ctx, "MATCH (n:Person) RETURN n.name LIMIT 1");
     ctx->graph_ = "default";
@@ -2211,8 +2265,7 @@ TEST_P(TestCypher, Cypher) {
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
         TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
-        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID,
-        TC_EMPTY_GRAPH);
+        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH);
     test_case = GetParam().tc;
     database = GetParam().d;
     int argc = _ut_argc;
@@ -2244,13 +2297,11 @@ TEST_P(TestCypher, Cypher) {
     lgraph::Galaxy::Config gconf;
     gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
-    cypher::RTContext db(
-        nullptr,
-        &galaxy,
-        galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                  lgraph::_detail::DEFAULT_ADMIN_PASS),
-        lgraph::_detail::DEFAULT_ADMIN_NAME,
-        "default", lgraph::AclManager::FieldAccess());
+    cypher::RTContext db(nullptr, &galaxy,
+                         galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                             lgraph::_detail::DEFAULT_ADMIN_PASS),
+                         lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
+                         lgraph::AclManager::FieldAccess());
     db.param_tab_ = g_param_tab;
     try {
         switch (test_case) {

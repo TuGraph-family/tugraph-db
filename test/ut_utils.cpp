@@ -5,6 +5,7 @@
 
 class MemoryBufferDevice : public fma_common::LogDevice {
     mutable fma_common::OutputMemoryFileStream buf_;
+
  public:
     void WriteLine(const char* p, size_t s, fma_common::LogLevel level) override {
         buf_.Write(p, s);
@@ -15,17 +16,15 @@ class MemoryBufferDevice : public fma_common::LogDevice {
         buf_.Open("", 0, std::ofstream::app);
     }
 
-    void Print() const {
-        std::cerr << buf_.GetBuf();
-    }
+    void Print() const { std::cerr << buf_.GetBuf(); }
 };
 
 void TuGraphTest::setup() {
-//    if (_ut_buffer_log) {
-//        static std::shared_ptr<MemoryBufferDevice> device(new MemoryBufferDevice());
-//        device->Reset();
-//        fma_common::Logger::Get().SetDevice(device);
-//    }
+    if (_ut_buffer_log) {
+        static std::shared_ptr<MemoryBufferDevice> device(new MemoryBufferDevice());
+        device->Reset();
+        fma_common::Logger::Get().SetDevice(device);
+    }
 }
 
 void TuGraphTest::teardown() {
@@ -38,10 +37,6 @@ void TuGraphTest::teardown() {
     }
 }
 
-void TuGraphTest::SetUp() {
-    setup();
-}
+void TuGraphTest::SetUp() { setup(); }
 
-void TuGraphTest::TearDown() {
-    teardown();
-}
+void TuGraphTest::TearDown() { teardown(); }

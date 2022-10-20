@@ -316,18 +316,17 @@ json ResultElement::ToJson() {
     case ResultElementType::RELATIONSHIP:
         result = v.repl->ToJson();
         break;
-    case ResultElementType::PATH: {
-        for (auto p : *v.path) {
-            result.emplace_back(p.ToJson());
+    case ResultElementType::PATH:
+        {
+            for (auto p : *v.path) {
+                result.emplace_back(p.ToJson());
+            }
         }
-    }
     default:
         break;
     }
     return result;
 }
 
-std::string ResultElement::ToString() {
-    return ToJson().dump();
-}
+std::string ResultElement::ToString() { return ToJson().dump(); }
 }  // namespace lgraph_api

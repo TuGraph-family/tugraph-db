@@ -267,6 +267,12 @@ TEST_F(TestLGraph, LGraph) {
                                     {"weight", FieldType::FLOAT, false}};
     UT_EXPECT_TRUE(db.AddLabel("v", v_fds, true, "name", {}));
     UT_EXPECT_TRUE(db.AddLabel("e", e_fds, false, {}, {}));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", false, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", false, false));
+    db.DropAllIndex();
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "name", true, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", false, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", false, false));
     // UT_EXPECT_TRUE(db.BlockingAddIndex("v", "name", true));
     db.DropAllVertex();
     while (!db.IsIndexed("v", "name", true)) fma_common::SleepUs(100);
