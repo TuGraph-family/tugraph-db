@@ -236,6 +236,8 @@ class StateMachine {
     bool ApplyConfigRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
                             bool is_rest_request);
 
+    bool ApplyRestoreRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
+                             bool is_rest_request);
     bool ApplyGraphRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
                            bool is_rest_request);
 
@@ -253,9 +255,6 @@ class StateMachine {
 
     bool ApplyImportRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
                             bool is_rest_request);
-
-    bool ApplyRestoreRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                             bool is_rest_request);
 
     bool ApplySchemaRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
                             bool is_rest_request);

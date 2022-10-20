@@ -521,7 +521,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const FieldData& key_end) {
     EdgeIndex* index = GetEdgeIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError("VertexIndex is not created for this field");
+        throw InputError("EdgeIndex is not created for this field");
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -538,7 +538,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t fiel
                                                     const FieldData& key_end) {
     EdgeIndex* index = GetEdgeIndex(label_id, field_id);
     if (!index || !index->IsReady()) {
-        throw InputError("VertexIndex is not created for this field");
+        throw InputError("EdgeIndex is not created for this field");
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -556,7 +556,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const std::string& key_end = "") {
     EdgeIndex* index = GetEdgeIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError("VertexIndex is not created for this field");
+        throw InputError("EdgeIndex is not created for this field");
     }
     Value ks, ke;
     if (!key_start.empty()) {
@@ -595,9 +595,7 @@ void Transaction::ImportAppendDataRaw(const Value& key, const Value& value) {
     graph_->AppendDataRaw(txn_, key, value);
 }
 
-void Transaction::RefreshNextVid() {
-    graph_->RefreshNextVid(txn_);
-}
+void Transaction::RefreshNextVid() { graph_->RefreshNextVid(txn_); }
 
 BlobManager::BlobKey Transaction::_GetNextBlobKey() { return blob_manager_->GetNextBlobKey(txn_); }
 
@@ -971,9 +969,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     return newvid;
 }
 
-TemporalId Transaction::ParseTemporalId(const FieldData& fd) {
-    return fd.AsInt64();
-}
+TemporalId Transaction::ParseTemporalId(const FieldData& fd) { return fd.AsInt64(); }
 
 TemporalId Transaction::ParseTemporalId(const std::string& str) {
     TemporalId tid = 0;
@@ -1031,9 +1027,9 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
 
 template <typename LabelT, typename FieldT, typename DataT>
 typename std::enable_if<IS_LABEL_TYPE(LabelT) && IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT),
-    bool>::type
+                        bool>::type
 Transaction::UpsertEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_fields,
-           const FieldT* fields, const DataT* values) {
+                        const FieldT* fields, const DataT* values) {
     _detail::CheckVid(src);
     _detail::CheckVid(dst);
     ThrowIfReadOnlyTxn();

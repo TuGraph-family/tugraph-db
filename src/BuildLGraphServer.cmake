@@ -62,19 +62,19 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             -Wl,-Bstatic
             cpprest
             ${BRPC_LIB}
+            ${PROTOBUF_LIBRARY}
             ${GFLAGS_LIBRARY}
             ${GPERFTOOLS_LIBRARIES}
             ${LEVELDB_LIB}
             snappy
-            -Wl,-Bdynamic
             # end static linking
-            Threads::Threads
-            rt
-            ssl
-            crypto
+            libssl.a
+            libcrypto.a
+            -Wl,-Bdynamic
+            krb5
+            k5crypto
             dl
-            z
-            ltdl
+            c
             )
 else ()
     target_link_libraries(lgraph_server_lib
@@ -110,3 +110,5 @@ add_executable(lgraph_server
 
 target_link_libraries(lgraph_server
         lgraph_server_lib)
+
+

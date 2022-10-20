@@ -17,8 +17,11 @@ bool ShouldKillThisTask(ThreadContextPtr ctx) {
     return lgraph::TaskTracker::ShouldKillTask((lgraph::TaskTracker::ThreadContext*)ctx);
 }
 
-#define THROW_IF_RO() \
-    if (read_only_) throw WriteNotAllowedError("Write transaction is not allowed in read-only DB.");
+#define THROW_IF_RO()                                        \
+    if (read_only_)                                          \
+        throw WriteNotAllowedError(                          \
+            "Write transaction is not allowed in read-only " \
+            "DB.");
 #define THROW_IF_INVALID() \
     if (!db_) throw InvalidGraphDBError();
 

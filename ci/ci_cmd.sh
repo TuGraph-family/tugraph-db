@@ -24,7 +24,7 @@ rm -rf testdb* .import_tmp
 # integrate tests
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp -r ../../test/integration/* ./
-pytest ./ -k 'not TestJavaClient'
+pytest ./
 
 # codecov
 cd $WORKSPACE

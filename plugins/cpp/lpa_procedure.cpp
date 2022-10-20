@@ -8,8 +8,6 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
-
-
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     double start_time;
 
@@ -19,14 +17,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     int sync_flag = 1;
     try {
         json input = json::parse(request);
-        if (input["num_iterations"].is_number()) {
-            num_iterations = input["num_iterations"].get<int64_t>();
-        }
-        if (input["sync_flag"].is_number()) {
-            sync_flag = input["sync_flag"].get<int64_t>();
-        }
+        parse_from_json(num_iterations, "num_iterations", input);
+        parse_from_json(sync_flag, "sync_flag", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();

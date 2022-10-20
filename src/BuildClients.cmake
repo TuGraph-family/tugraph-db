@@ -48,18 +48,19 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             -Wl,--no-whole-archive
             gflags
             snappy
+            libssl.a
+            libcrypto.a
             -Wl,-Bstatic
             ${Boost_LIBRARIES}
-            stdc++fs
-            stdc++
+            -static-libstdc++
+            -static-libgcc
+            libstdc++fs.a
             -Wl,-Bdynamic
-            # end static linking
+            krb5
+            k5crypto
             rt
-            ssl
-            crypto
             dl
             z
-            ltdl
             )
 else ()
     target_link_libraries(${TARGET_OBJ}

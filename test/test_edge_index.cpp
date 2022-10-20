@@ -52,12 +52,17 @@ int TestEdgeIndexImpl() {
                 UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, j));
             }
         }
+        auto tit = idx.GetUnmanagedIterator(txn, Value::ConstRef(2), Value::ConstRef(2));
+        while (tit.GetSrcVid() != 80) tit.Next();
+        UT_EXPECT_TRUE(tit.IsValid());
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
                 UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(2), i, i + 2, 1, j));
             }
         }
+        tit.RefreshContentIfKvIteratorModified();
+        UT_EXPECT_TRUE(tit.IsValid());
         // test updates
         UT_EXPECT_TRUE(idx.Update(txn, Value::ConstRef(2), Value::ConstRef(1), 0, 2, 1, 1));
         // output indexed euids
@@ -116,6 +121,62 @@ int TestEdgeIndexImpl() {
             UT_EXPECT_FALSE(it.IsValid());
         }
     }
+    // test Fullkeys
+    {
+        KvTable idx_tab =
+            EdgeIndex::OpenTable(txn, store, "stringss_index_test", FieldType::STRING, true);
+        EdgeIndex idx(idx_tab, FieldType::STRING, true);
+        // add many euids; should split after some point
+        for (int64_t i = 1; i < 500; i += 2) {
+            UT_EXPECT_TRUE(
+                idx.Add(txn, Value::ConstRef("amazon story" + std::to_string(i)), i, i + 2, 1, 1));
+        }
+        for (int64_t i = 100; i < 600; i += 2) {
+            UT_EXPECT_TRUE(
+                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+        }
+        // add some euids
+        for (int64_t i = 98; i >= 0; i -= 2) {
+            UT_EXPECT_TRUE(
+                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+        }
+        // add some euids which already exist
+        for (int64_t i = 88; i >= 80; i -= 2) {
+            UT_EXPECT_TRUE(
+                !idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+        }
+        // delete some euids
+        for (int64_t i = 88; i >= 80; i -= 2) {
+            UT_EXPECT_TRUE(
+                idx.Delete(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+        }
+        // output indexed eids
+        {
+            auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("amazon story"),
+                                               Value::ConstRef("a"));
+            int64_t local_vid = 1;
+            int64_t local_eid = 1;
+            while (it.IsValid()) {
+                UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
+                local_vid += 2;
+                it.Next();
+            }
+        }
+        {
+            auto it =
+                idx.GetUnmanagedIterator(txn, Value::ConstRef("breakup"), Value::ConstRef("b"));
+            int64_t local_vid = 0;
+            int64_t local_eid = 1;
+            while (it.IsValid()) {
+                if (local_vid == 80) local_vid += 10;
+                UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
+                UT_EXPECT_EQ(it.GetEid(), local_eid);
+                local_vid += 2;
+                it.Next();
+            }
+        }
+    }
+
     // test string keys
     {
         KvTable idx_tab =

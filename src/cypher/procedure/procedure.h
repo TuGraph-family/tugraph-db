@@ -39,8 +39,7 @@ static const std::unordered_map<std::string, lgraph::AccessLevel> ValidAccessLev
 static const std::unordered_map<std::string, lgraph::FieldAccessLevel> ValidFieldAccessLevels = {
     {"NONE", lgraph::FieldAccessLevel::NONE},
     {"READ", lgraph::FieldAccessLevel::READ},
-    {"WRITE", lgraph::FieldAccessLevel::WRITE}
-};
+    {"WRITE", lgraph::FieldAccessLevel::WRITE}};
 
 static const std::unordered_map<std::string, lgraph::PluginManager::PluginType> ValidPluginType = {
     {"CPP", lgraph::PluginManager::PluginType::CPP},
@@ -116,19 +115,19 @@ class BuiltinProcedure {
                                  const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                           const VEC_STR &yield_items, std::vector<Record> *records);
+                               const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbAddFullTextIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                           const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void DbDeleteFullTextIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                    const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void DbRebuildFullTextIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void DbDeleteFullTextIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbRebuildFullTextIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbFullTextIndexes(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
+                                  const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsProcedures(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
@@ -271,9 +270,8 @@ class BuiltinProcedure {
     static void DbPluginListUserPlugins(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                         const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void DbPluginGetPluginInfo(RTContext *ctx, const Record *record,
-                                                 const VEC_EXPR &args, const VEC_STR &yield_items,
-                                                 std::vector<Record> *records);
+    static void DbPluginGetPluginInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                      const VEC_STR &yield_items, std::vector<Record> *records);
     static void DbPluginCallPlugin(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                    const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -287,7 +285,7 @@ class BuiltinProcedure {
                               const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbDeleteEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                              const VEC_STR &yield_items, std::vector<Record> *records);
+                                  const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
@@ -301,13 +299,13 @@ class BuiltinProcedure {
     static void DbTaskTerminateTask(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                     const VEC_STR &yield_items, std::vector<Record> *records);
     static void DbListLabelIndexes(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                            const VEC_STR &yield_items, std::vector<Record> *records);
+                                   const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbMonitorServerInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                           const VEC_STR &yield_items, std::vector<Record> *records);
+                                    const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbMonitorTuGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                           const VEC_STR &yield_items, std::vector<Record> *records);
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsHaClusterInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
@@ -486,7 +484,7 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.addIndex", BuiltinProcedure::DbAddVertexIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph::ResultElementType::STRING}},
                                   {"field_name", {1, lgraph::ResultElementType::STRING}},
-                                  {"is_unique",  {2, lgraph::ResultElementType::BOOLEAN}}},
+                                  {"is_unique", {2, lgraph::ResultElementType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
 
     Procedure("db.addEdgeIndex", BuiltinProcedure::DbAddEdgeIndex,
@@ -514,14 +512,14 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.fullTextIndexes", BuiltinProcedure::DbFullTextIndexes, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"is_vertex", {0, lgraph::ResultElementType::BOOLEAN}},
-                      {"label", {1, lgraph::ResultElementType::STRING}},
-                      {"field", {2, lgraph::ResultElementType::STRING}}}),
+                                  {"label", {1, lgraph::ResultElementType::STRING}},
+                                  {"field", {2, lgraph::ResultElementType::STRING}}}),
 
     Procedure("dbms.procedures", BuiltinProcedure::DbmsProcedures, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"name", {0, lgraph::ResultElementType::STRING}},
                                   {"signature", {1, lgraph::ResultElementType::STRING}},
-                                  {"read_only", {2, lgraph::ResultElementType::BOOLEAN}}}
-              , true, false),
+                                  {"read_only", {2, lgraph::ResultElementType::BOOLEAN}}},
+              true, false),
 
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
@@ -717,14 +715,14 @@ static std::vector<Procedure> global_procedures = {
                                   {"access_level", {1, lgraph::ResultElementType::MAP}}},
               Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
 
-    Procedure("dbms.security.modRoleFieldAccessLevel", BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel,
-              Procedure::SIG_SPEC{
-                  {"role", {0, lgraph::ResultElementType::STRING}},
-                  {"graph", {0, lgraph::ResultElementType::STRING}},
-                  {"label", {0, lgraph::ResultElementType::STRING}},
-                  {"field", {0, lgraph::ResultElementType::STRING}},
-                  {"label_type", {0, lgraph::ResultElementType::STRING}},
-                  {"field_access_level", {0, lgraph::ResultElementType::STRING}}},
+    Procedure("dbms.security.modRoleFieldAccessLevel",
+              BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel,
+              Procedure::SIG_SPEC{{"role", {0, lgraph::ResultElementType::STRING}},
+                                  {"graph", {0, lgraph::ResultElementType::STRING}},
+                                  {"label", {0, lgraph::ResultElementType::STRING}},
+                                  {"field", {0, lgraph::ResultElementType::STRING}},
+                                  {"label_type", {0, lgraph::ResultElementType::STRING}},
+                                  {"field_access_level", {0, lgraph::ResultElementType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
 
     Procedure("dbms.security.disableUser", BuiltinProcedure::DbmsSecurityDisableUser,
@@ -773,17 +771,19 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.plugin.getPluginInfo", BuiltinProcedure::DbPluginGetPluginInfo,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph::ResultElementType::STRING}},
                                   {"plugin_name", {1, lgraph::ResultElementType::STRING}}},
-              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph::ResultElementType::MAP}}}, false, true),
+              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph::ResultElementType::MAP}}},
+              false, true),
 
     Procedure("db.plugin.listPlugin", BuiltinProcedure::DbPluginListPlugin,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph::ResultElementType::STRING}}},
               Procedure::SIG_SPEC{{"plugin_description", {0, lgraph::ResultElementType::MAP}}},
               false, true),
 
-    Procedure("db.plugin.listUserPlugins", BuiltinProcedure::DbPluginListUserPlugins, Procedure::SIG_SPEC{},
+    Procedure("db.plugin.listUserPlugins", BuiltinProcedure::DbPluginListUserPlugins,
+              Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"graph", {0, lgraph::ResultElementType::STRING}},
-                                  {"plugins", {1, lgraph::ResultElementType::MAP}}
-              }, true, true),
+                                  {"plugins", {1, lgraph::ResultElementType::MAP}}},
+              true, true),
 
     Procedure("db.plugin.callPlugin", BuiltinProcedure::DbPluginCallPlugin,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph::ResultElementType::STRING}},
@@ -824,26 +824,27 @@ static std::vector<Procedure> global_procedures = {
     Procedure("dbms.task.listTasks", BuiltinProcedure::DbTaskListTasks, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{
                   {"tasks_info", {1, lgraph::ResultElementType::MAP}},
-              },true, true),
+              },
+              true, true),
 
     Procedure("dbms.task.terminateTask", BuiltinProcedure::DbTaskTerminateTask,
               Procedure::SIG_SPEC{{"task_id", {0, lgraph::ResultElementType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
 
-    Procedure("db.monitor.tuGraphInfo", BuiltinProcedure::DbMonitorTuGraphInfo, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"request", {0, lgraph::ResultElementType::STRING}}}, false, true),
+    Procedure(
+        "db.monitor.tuGraphInfo", BuiltinProcedure::DbMonitorTuGraphInfo, Procedure::SIG_SPEC{},
+        Procedure::SIG_SPEC{{"request", {0, lgraph::ResultElementType::STRING}}}, false, true),
 
     Procedure("db.monitor.serverInfo", BuiltinProcedure::DbMonitorServerInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"cpu", {0, lgraph::ResultElementType::STRING}},
                                   {"memory", {1, lgraph::ResultElementType::STRING}},
                                   {"disk_rate", {2, lgraph::ResultElementType::STRING}},
-                                  {"disk_storage", {3, lgraph::ResultElementType::STRING}}
-              },false, true),
+                                  {"disk_storage", {3, lgraph::ResultElementType::STRING}}},
+              false, true),
 
     Procedure("dbms.ha.clusterInfo", BuiltinProcedure::DbmsHaClusterInfo, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph::ResultElementType::LIST}}
-              },  true, true)
-};
+              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph::ResultElementType::LIST}}}, true,
+              true)};
 
 class ProcedureTable {
     std::unordered_map<std::string, Procedure> ptable_;

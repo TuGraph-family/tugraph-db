@@ -48,11 +48,10 @@ static void CreateSampleDB(const std::string& dir) {
         true, "id", {}));
     lg.BlockingAddIndex("person", "name", false, true);
     lg.BlockingAddIndex("person", "age", false, true);
-    UT_EXPECT_TRUE(
-        lg.AddLabel("knows", std::vector<FieldSpec>(
-                                 {FieldSpec("weight", FieldType::FLOAT, true),
-                                  FieldSpec("ts", FieldType::INT64, true)}),
-                    false, "ts", {}));
+    UT_EXPECT_TRUE(lg.AddLabel("knows",
+                               std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
+                                                       FieldSpec("ts", FieldType::INT64, true)}),
+                               false, "ts", {}));
     lg.BlockingAddIndex("knows", "weight", false, false);
     auto txn = lg.CreateWriteTxn();
     VertexId v0 =
@@ -194,8 +193,8 @@ TEST_F(TestSchemaChange, DelFields) {
         for (auto it = txn.GetVertexIterator(); it.IsValid(); it.Next()) {
             str += FMA_FMT("{}: {}\n", it.GetId(), txn.GetVertexFields(it));
             for (auto eit = it.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
-                str += FMA_FMT("    -[{}]->[{}]: {}\n",
-                    eit.GetUid(), eit.GetDst(), txn.GetEdgeFields(eit));
+                str += FMA_FMT("    -[{}]->[{}]: {}\n", eit.GetUid(), eit.GetDst(),
+                               txn.GetEdgeFields(eit));
             }
             for (auto eit = it.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
                 str += FMA_FMT("    <-[{}]-[{}]: {}\n", eit.GetUid(), eit.GetSrc(),
@@ -235,6 +234,7 @@ TEST_F(TestSchemaChange, DelFields) {
         auto iit = txn.GetVertexIndexIterator("person", "name", "p1", "p1");
         UT_EXPECT_TRUE(iit.IsValid());
         auto eit = txn.GetEdgeIndexIterator("knows", "weight", "1.25", "1.25");
+        eit.RefreshContentIfKvIteratorModified();
         UT_EXPECT_TRUE(eit.IsValid());
         auto fvs = txn.GetVertexFields(txn.GetVertexIterator(iit.GetVid()));
         std::map<std::string, FieldData> fvmap(fvs.begin(), fvs.end());
