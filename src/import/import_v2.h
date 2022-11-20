@@ -106,7 +106,8 @@ class Importer {
 
         template <class F>
         void foreach(F fn){
-#pragma omp parallel for schedule(dynamic)
+// TODO(jiazhenjiang): mutil-thread memory issues need to be fixed
+// #pragma omp parallel for schedule(dynamic)
             for (decltype(parent_t::index_) index = 0; index < parent_t::buckets_->size();
                  ++index) {
                 for (decltype(parent_t::slot_) slot = 0; slot < Map::slot_per_bucket(); ++slot) {

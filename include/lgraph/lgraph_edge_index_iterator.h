@@ -15,7 +15,7 @@ namespace lgraph_api {
 class Transaction;
 
 /**
- * \brief   EdgeIndexIterator can be used to access a set of vertices that has
+ * \brief   EdgeIndexIterator can be used to access a set of edges that has
  *          the same indexed value. If the index is unique (that is, each
  *            Edge has a unique index value), then each   EdgeIndexIterator will
  *          only have one edge unique id, and will become invalid after Next()

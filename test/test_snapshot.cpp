@@ -90,4 +90,5 @@ TEST_F(TestSnapshot, Snapshot) {
         // load snapshot
         UT_EXPECT_TRUE(galaxy.LoadSnapshot(path_snap));
     }
+    fma_common::file_system::RemoveDir("./snap");
 }
