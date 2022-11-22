@@ -44,7 +44,7 @@ typedef const void *ThreadContextPtr;
  *        ShouldKillThisTask() is equivalent to ShouldKillThisTask(GetThreadContext()). In
  *        order to save the cost of GetThreadContext(), you can store the context and use it in
  *        ShouldKillThisTask(ctx).
- *        
+ *
  *        Example: ```c++ ThreadContextPtr ctx = GetThreadContext();
  *        while (HasMoreWorkToDo()) {
  *            if (ShouldKillThisTask(ctx)) {
@@ -77,7 +77,7 @@ class Transaction;
  * @brief GraphDB represents a graph instance. In TuGraph, each graph instance has its own schema
  *        and access control settings. Accessing a GraphDB without appropriate access rights
  *        yields WriteNotAllowedError.
- *        
+ *
  *        A GraphDB becomes invalid if Close() is called, in which case all transactions and
  *        iterators associated with that GraphDB become invalid. Further operation on that
  *        GraphDB yields InvalidGraphDBError.
@@ -210,8 +210,8 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the label already exists.
      */
-    bool AddVertexLabel(const std::string &label,
-                        const std::vector<FieldSpec> &fds, const std::string &primary_field);
+    bool AddVertexLabel(const std::string &label, const std::vector<FieldSpec> &fds,
+                        const std::string &primary_field);
 
     /**
      * @brief   Deletes a vertex label and all the vertices with this label.
@@ -244,8 +244,8 @@ class GraphDB {
      * @returns True if it succeeds, false if the label does not exist.
      */
     bool AlterVertexLabelDelFields(const std::string &label,
-                        const std::vector<std::string> &del_fields,
-                        size_t *n_modified = nullptr);
+                                   const std::vector<std::string> &del_fields,
+                                   size_t *n_modified = nullptr);
 
     /**
      * @brief   Add fields to a vertex label. The new fields in existing vertices will be filled
@@ -265,9 +265,9 @@ class GraphDB {
      * @returns True if it succeeds, false if the label does not exist.
      */
     bool AlterVertexLabelAddFields(const std::string &label,
-                                    const std::vector<FieldSpec> &add_fields,
-                                    const std::vector<FieldData> &default_values,
-                                    size_t *n_modified = nullptr);
+                                   const std::vector<FieldSpec> &add_fields,
+                                   const std::vector<FieldData> &default_values,
+                                   size_t *n_modified = nullptr);
 
     /**
      * @brief   Modify fields in a vertex label, either chage the data type or optional, or both.
@@ -285,8 +285,8 @@ class GraphDB {
      * @returns True if it succeeds, false if the label does not exist.
      */
     bool AlterVertexLabelModFields(const std::string &label,
-                                    const std::vector<FieldSpec> &mod_fields,
-                                    size_t *n_modified = nullptr);
+                                   const std::vector<FieldSpec> &mod_fields,
+                                   size_t *n_modified = nullptr);
 
     /**
      * @brief   Add a edge label, specifying its schema. It is allowed to specify edge constrains,
@@ -303,7 +303,7 @@ class GraphDB {
      *
      * @param   label               The label name.
      * @param   fds                 The field specifications.
-     * @param   temporal_field      The temporal field for tid.                             
+     * @param   temporal_field      The temporal field for tid.
      * @param   edge_constraints    (Optional) The edge constraints. An empty constrain means no
      *                              restriction.
      *
@@ -311,7 +311,7 @@ class GraphDB {
      */
     bool AddEdgeLabel(
         const std::string &label, const std::vector<FieldSpec> &fds,
-        const std::string& temporal_field = {},
+        const std::string &temporal_field = {},
         const std::vector<std::pair<std::string, std::string>> &edge_constraints = {});
 
     /**
@@ -326,8 +326,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if label does not exist.
      */
-    bool DeleteEdgeLabel(const std::string &label,
-                        size_t *n_modified = nullptr);
+    bool DeleteEdgeLabel(const std::string &label, size_t *n_modified = nullptr);
 
     /**
      * @brief   Modify edge constraint. Existing edges that violate the new constrain will be
@@ -363,8 +362,8 @@ class GraphDB {
      * @returns True if it succeeds, false if it fails.
      */
     bool AlterEdgeLabelDelFields(const std::string &label,
-                                const std::vector<std::string> &del_fields,
-                                size_t *n_modified = nullptr);
+                                 const std::vector<std::string> &del_fields,
+                                 size_t *n_modified = nullptr);
 
     /**
      * @brief   Add fields to an edge label. The new fields in existing edges will be set to
@@ -384,10 +383,9 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the edge label does not exist.
      */
-    bool AlterEdgeLabelAddFields(const std::string &label,
-                                const std::vector<FieldSpec> &add_fields,
-                                const std::vector<FieldData> &default_values,
-                                size_t *n_modified = nullptr);
+    bool AlterEdgeLabelAddFields(const std::string &label, const std::vector<FieldSpec> &add_fields,
+                                 const std::vector<FieldData> &default_values,
+                                 size_t *n_modified = nullptr);
 
     /**
      * @brief   Modify fields in an edge label. Data type and OPTIONAL can be modified.
@@ -404,10 +402,8 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the label does not exist.
      */
-    bool AlterEdgeLabelModFields(const std::string &label,
-                                const std::vector<FieldSpec> &mod_fields,
-                                size_t *n_modified = nullptr);
-
+    bool AlterEdgeLabelModFields(const std::string &label, const std::vector<FieldSpec> &mod_fields,
+                                 size_t *n_modified = nullptr);
 
     //********************************
     // VertexIndex related
@@ -429,8 +425,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddVertexIndex(const std::string &label, const std::string &field,
-                        bool is_unique);
+    bool AddVertexIndex(const std::string &label, const std::string &field, bool is_unique);
 
     /**
      * @brief   Adds an index to 'label:field'. This function blocks until the index is fully
@@ -448,8 +443,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddEdgeIndex(const std::string &label, const std::string &field,
-                    bool is_unique);
+    bool AddEdgeIndex(const std::string &label, const std::string &field, bool is_unique);
 
     /**
      * @brief   Check if this vertex_label:field is indexed.
@@ -538,7 +532,8 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the fulltext index already exists.
      */
-    bool AddVertexFullTextIndex(const std::string& vertex_label, const std::string& field);
+
+    bool AddVertexFullTextIndex(const std::string &vertex_label, const std::string &field);
 
     /**
      * @brief   Add fulltext index to 'edge_label:field'
@@ -553,7 +548,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the fulltext index already exists.
      */
-    bool AddEdgeFullTextIndex(const std::string& edge_label, const std::string& field);
+    bool AddEdgeFullTextIndex(const std::string &edge_label, const std::string &field);
 
     /**
      * @brief   Delete the fulltext index of 'vertex_label:field'
@@ -568,7 +563,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the fulltext index does not exists.
      */
-    bool DeleteVertexFullTextIndex(const std::string& vertex_label, const std::string& field);
+    bool DeleteVertexFullTextIndex(const std::string &vertex_label, const std::string &field);
 
     /**
      * @brief   Delete the fulltext index of 'edge_label:field'
@@ -583,7 +578,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the fulltext index does not exists.
      */
-    bool DeleteEdgeFullTextIndex(const std::string& edge_label, const std::string& field);
+    bool DeleteEdgeFullTextIndex(const std::string &edge_label, const std::string &field);
 
     /**
      * @brief   Rebuild the fulltext index of `vertex_labels` and `edge_labels`.
@@ -591,8 +586,8 @@ class GraphDB {
      * @param   vertex_labels   The vertex labels whose fulltext index need to rebuild.
      * @param   edge_labels     The edge labels whose fulltext index need to rebuild.
      */
-    void RebuildFullTextIndex(const std::set<std::string>& vertex_labels,
-                            const std::set<std::string>& edge_labels);
+    void RebuildFullTextIndex(const std::set<std::string> &vertex_labels,
+                              const std::set<std::string> &edge_labels);
 
     /**
      * @brief   List fulltext indexes of vertex and edge
@@ -617,8 +612,9 @@ class GraphDB {
      *
      * @returns Vertex vids and score. Throws exception on error.
      */
-    std::vector<std::pair<int64_t, float>> QueryVertexByFullTextIndex(const std::string& label,
-                                                    const std::string& query, int top_n);
+    std::vector<std::pair<int64_t, float>> QueryVertexByFullTextIndex(const std::string &label,
+                                                                      const std::string &query,
+                                                                      int top_n);
 
     /**
      * @brief   Query edge by fulltext index
@@ -632,10 +628,9 @@ class GraphDB {
      *
      * @returns Edge uids and score. Throws exception on error.
      */
-    std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string& label,
-                                                const std::string& query, int top_n);
+    std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string &label,
+                                                                    const std::string &query,
+                                                                    int top_n);
 };
 
 }  // namespace lgraph_api
-
-

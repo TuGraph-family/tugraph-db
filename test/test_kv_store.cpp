@@ -30,7 +30,7 @@ static void DumpTable(KvTable& tab, KvTransaction& txn,
     }
 }
 
-static void DumpTable(KvTable& tab, KvTransaction& txn, fma_common::OutputFmaStream &out,
+static void DumpTable(KvTable& tab, KvTransaction& txn, fma_common::OutputFmaStream& out,
                       const std::function<std::string(const Value&)>& print_key,
                       const std::function<std::string(const Value&)>& print_value) {
     auto it = tab.GetIterator(txn);
@@ -43,17 +43,16 @@ static void DumpTable(KvTable& tab, KvTransaction& txn, fma_common::OutputFmaStr
     }
 }
 
-static void DumpKv(const std::string &kv_path, const std::string &dump_dir) {
+static void DumpKv(const std::string& kv_path, const std::string& dump_dir) {
     KvStore store(kv_path);
     auto txn = store.CreateWriteTxn();
     auto tables = store.ListAllTables(txn);
     fma_common::OutputFmaStream out;
-    for (auto &table : tables) {
+    for (auto& table : tables) {
         out.Open(dump_dir + "/" + table, 1 << 16);
         auto tbl = store.OpenTable(txn, table, true, ComparatorDesc::DefaultComparator());
         DumpTable(
-            tbl, txn, out,
-            [](const Value& v) { return v.DebugString(1000); },
+            tbl, txn, out, [](const Value& v) { return v.DebugString(1000); },
             [](const Value& v) { return v.DebugString(1000); });
         out.Close();
     }
@@ -162,8 +161,7 @@ TEST_F(TestKvStore, KvStore) {
 #else
     const std::string no_permission_dir = "/dev/null";
 #endif
-    UT_EXPECT_THROW(KvStore store_fail(no_permission_dir, (size_t)1 << db_size, true),
-                    KvException);
+    UT_EXPECT_THROW(KvStore store_fail(no_permission_dir, (size_t)1 << db_size, true), KvException);
 
 #if (!LGRAPH_USE_MOCK_KV)
     try {
@@ -644,8 +642,10 @@ TEST_F(TestKvStore, KvStore) {
         DumpTable(
             name_age, txn, [](const Value& v) { return v.AsString(); },
             [](const Value& v) { return ToString(v.AsType<int>()); });
+        name_age.Print(
+            txn, [](const Value& v) { return v.AsString(); },
+            [](const Value& v) { return ToString(v.AsType<int>()); });
         txn.Commit();
-
         // Testing read
         UT_LOG() << "";
         UT_LOG() << "Checking consistency of the tables...";
@@ -860,8 +860,8 @@ TEST_F(TestKvStore, KvStore) {
         for (int i = 0; i < nt; i++) {
             threads.emplace_back([&store, &table, &results, i, &barrier]() {
                 auto txn = store.CreateWriteTxn(true);
-                UT_EXPECT_TRUE(table.SetValue(txn, Value::ConstRef<int>(0),
-                                              Value::ConstRef<int>(1), false));
+                UT_EXPECT_TRUE(
+                    table.SetValue(txn, Value::ConstRef<int>(0), Value::ConstRef<int>(1), false));
                 try {
                     UT_LOG() << "transaction " << i << " waiting";
                     barrier.Wait();
@@ -892,16 +892,14 @@ TEST_F(TestKvStore, KvStore) {
         Barrier barrier2(2);
         std::thread child_thread([&store, &table, &barrier1, &barrier2]() {
             auto txn = store.CreateWriteTxn(true);
-            UT_EXPECT_TRUE(
-                table.SetValue(txn, Value::ConstRef<int>(0), Value::ConstRef<int>(2)));
+            UT_EXPECT_TRUE(table.SetValue(txn, Value::ConstRef<int>(0), Value::ConstRef<int>(2)));
             barrier1.Wait();
             barrier2.Wait();
             UT_EXPECT_ANY_THROW(txn.Commit());
             UT_LOG() << "optimistic txn failed to commit due to conflicts";
         });
         txn = store.CreateWriteTxn();
-        UT_EXPECT_TRUE(
-            table.SetValue(txn, Value::ConstRef<int>(0), Value::ConstRef<int>(2)));
+        UT_EXPECT_TRUE(table.SetValue(txn, Value::ConstRef<int>(0), Value::ConstRef<int>(2)));
         barrier1.Wait();
         txn.Commit();
         barrier2.Wait();

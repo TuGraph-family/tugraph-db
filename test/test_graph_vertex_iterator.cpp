@@ -75,6 +75,8 @@ TEST_F(TestGraphVertexIterator, GraphVertexIterator) {
             UT_EXPECT_EQ(it_b.GetProperty().AsString(), std::string(2096, 'c'));
             UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 0, GenProp(10, 'a')));
             UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 2, GenProp(10, 'c')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 2, GenProp(0, 'c')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 2, GenProp(10, 'c')));
             it_b.RefreshContentIfKvIteratorModified();
             UT_EXPECT_EQ(it_b.GetId(), 2);
             UT_EXPECT_EQ(it_b.GetProperty().AsString(), std::string(10, 'c'));

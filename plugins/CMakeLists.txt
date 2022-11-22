@@ -8,7 +8,7 @@ set(LGRAPH_API_SRC
 
 function(add_standalone APP)
     add_executable(${APP}_standalone cpp/${APP}_core.cpp cpp/${APP}_standalone.cpp ${LGRAPH_API_SRC})
-    target_link_libraries(${APP}_standalone -lstdc++fs)
+    target_link_libraries(${APP}_standalone libstdc++fs.a libgomp.a dl)
     set_target_properties( ${APP}_standalone PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
     target_include_directories(${APP}_standalone PUBLIC ${CMAKE_SOURCE_DIR}/include
@@ -17,10 +17,19 @@ endfunction()
 
 function(add_embed APP)
     add_executable(${APP}_embed cpp/${APP}_core.cpp cpp/${APP}_procedure.cpp embed_main.cpp)
-    target_link_libraries(${APP}_embed lgraph_server_lib)
+    target_link_libraries(${APP}_embed lgraph libgomp.a dl)
     set_target_properties( ${APP}_embed PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
 endfunction()
+
+function(add_embed2 APP)
+    add_executable(${APP}_embed cpp/${APP}.cpp embed_main.cpp)
+    target_link_libraries(${APP}_embed lgraph libgomp.a dl)
+    set_target_properties( ${APP}_embed PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
+    target_include_directories(${APP}_embed PUBLIC ${CMAKE_SOURCE_DIR}/include)
+endfunction()
+
 
 add_standalone(bfs)
 add_standalone(pagerank)
@@ -35,3 +44,6 @@ add_embed(sssp)
 add_embed(wcc)
 add_embed(lcc)
 add_embed(lpa)
+
+add_embed2(khop_kth)
+add_embed2(khop_within)

@@ -8,46 +8,6 @@
 #include "import/import_config_parser.h"
 
 namespace lgraph {
-void Schema::UpdateVertexIndex(KvTransaction& txn, VertexId vid, const Value& old_record,
-                               const Value& new_record) {
-    for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        bool oldnull = fe.GetIsNull(old_record);
-        bool newnull = fe.GetIsNull(new_record);
-        if (oldnull && newnull) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (oldnull && !newnull) {
-            // new is not null, add
-            if (!index->Add(txn, fe.GetConstRef(new_record), vid)) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Failed to update-index vertex [{}] with field value [{}:{}]: indexed value "
-                    "already exists.",
-                    vid, fe.Name(), fe.FieldToString(new_record)));
-                return;
-            }
-        } else if (!oldnull && newnull) {
-            // old is not null, new is null, delete
-            if (!index->Delete(txn, fe.GetConstRef(old_record), vid)) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Failed to update-index vertex [{}] with field value [{}:{}]: original index "
-                    "value does not exist.",
-                    vid, fe.Name(), fe.FieldToString(new_record)));
-                return;
-            }
-        } else {
-            // both not null
-            if (!index->Update(txn, fe.GetConstRef(old_record), fe.GetConstRef(new_record), vid)) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Failed to update-index vertex [{}] with field value [{}:{}]: original index "
-                    "value does not exist.",
-                    vid, fe.Name(), fe.FieldToString(new_record)));
-                return;
-            }
-        }
-    }
-}
 
 void Schema::DeleteEdgeFullTextIndex(EdgeUid euid, std::vector<FTIndexEntry>& buffers) {
     if (fulltext_fields_.empty()) {
@@ -154,51 +114,8 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     }
 }
 
-void Schema::UpdateEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst,
-                             LabelId lid, EdgeId eid,
-                             const Value& old_record, const Value& new_record) {
-    for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        bool oldnull = fe.GetIsNull(old_record);
-        bool newnull = fe.GetIsNull(new_record);
-        if (oldnull && newnull) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (oldnull && !newnull) {
-            // new is not null, add
-            if (!index->Add(txn, fe.GetConstRef(new_record), vid, dst, lid, eid)) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Failed to update-index vertex [{}] with field value [{}:{}]: indexed value "
-                    "already exists.",
-                    vid, fe.Name(), fe.FieldToString(new_record)));
-                return;
-            }
-        } else if (!oldnull && newnull) {
-            // old is not null, new is null, delete
-            if (!index->Delete(txn, fe.GetConstRef(old_record), vid, dst, lid, eid)) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Failed to update-index vertex [{}] with field value [{}:{}]: original index "
-                    "value does not exist.",
-                    vid, fe.Name(), fe.FieldToString(new_record)));
-                return;
-            }
-        } else {
-            // both not null
-            if (!index->Update(txn, fe.GetConstRef(old_record),
-                fe.GetConstRef(new_record), vid, dst, lid, eid)) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Failed to update-index vertex [{}] with field value [{}:{}]: original index "
-                    "value does not exist.",
-                    vid, fe.Name(), fe.FieldToString(new_record)));
-                return;
-            }
-        }
-    }
-}
-
-void Schema::DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst,
-                             LabelId lid, EdgeId eid, const Value& record) {
+void Schema::DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
+                             EdgeId eid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
@@ -214,24 +131,8 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst,
     }
 }
 
-void Schema::DeletePartialEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst,
-                                    LabelId lid, EdgeId eid, const Value& record) {
-    for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        /* the aim of this method is delete the residual indexes, so do not delete
-         * the unique index.
-         **/
-        if (!index->IsUnique()) {
-            index->Delete(txn, fe.GetConstRef(record), vid, dst, lid, eid);
-        }
-    }
-}
-
-void Schema::AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst,
-                            LabelId lid, EdgeId eid, const Value& record) {
+void Schema::AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid, EdgeId eid,
+                            const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;

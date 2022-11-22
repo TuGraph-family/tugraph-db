@@ -6,9 +6,8 @@
 #include "db/galaxy.h"
 #include "db/token_manager.h"
 
-lgraph::Galaxy::Galaxy(const std::string& dir,
-                       bool create_if_not_exist)
-    :  Galaxy(Config{dir, false, true, "fma.ai"}, create_if_not_exist, nullptr) {}
+lgraph::Galaxy::Galaxy(const std::string& dir, bool create_if_not_exist)
+    : Galaxy(Config{dir, false, true, "fma.ai"}, create_if_not_exist, nullptr) {}
 
 static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
     return parent_dir + "/.meta";
@@ -276,13 +275,12 @@ lgraph::AccessControlledDB lgraph::Galaxy::OpenGraph(const std::string& user,
 }
 
 std::unordered_map<std::string, lgraph::AccessControlledDB> lgraph::Galaxy::OpenUserGraphs(
-    const std::string& curr_user,
-    const std::string& user) const {
+    const std::string& curr_user, const std::string& user) const {
     std::unordered_map<std::string, AccessLevel> acl = ListUserGraphs(curr_user, user);
     _HoldReadLock(acl_lock_);
     std::unordered_map<std::string, lgraph::AccessControlledDB> ret;
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
-    for (auto & kv : acl) {
+    for (auto& kv : acl) {
         if (kv.second == AccessLevel::NONE || kv.first == _detail::META_GRAPH) continue;
         ret.insert(std::make_pair(kv.first,
                                   AccessControlledDB(graphs_->GetGraphRef(kv.first), kv.second)));
@@ -436,18 +434,17 @@ void lgraph::Galaxy::ReloadFromDisk(bool create_if_not_exist) {
     acl_.reset();
     store_.reset();
     KvStore::SetLastOpIdOfAllStores(-1);
-    store_.reset(
-        new KvStore(GetMetaStoreDir(config_.dir), (size_t)1 << 30, config_.durable,
-                    create_if_not_exist));
+    store_.reset(new KvStore(GetMetaStoreDir(config_.dir), (size_t)1 << 30, config_.durable,
+                             create_if_not_exist));
     auto txn = store_->CreateWriteTxn(false);
-    db_info_table_ = store_->OpenTable(txn, _detail::META_TABLE, true,
-        ComparatorDesc::DefaultComparator());
+    db_info_table_ =
+        store_->OpenTable(txn, _detail::META_TABLE, true, ComparatorDesc::DefaultComparator());
     CheckTuGraphVersion(txn);
     // load configs
     LoadConfigTable(txn);
     // load ip whitelist
     ip_whitelist_table_ = store_->OpenTable(txn, _detail::IP_WHITELIST_TABLE, true,
-        ComparatorDesc::DefaultComparator());
+                                            ComparatorDesc::DefaultComparator());
     LoadIpWhitelist(txn);
     // now load contents
     GraphManager::Config gmc(*global_config_);
@@ -628,8 +625,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
     }
 }
 
-std::tuple<int, int, int> lgraph::Galaxy::GetAndSetTuGraphVersionIfNecessary(
-    KvTransaction& txn) {
+std::tuple<int, int, int> lgraph::Galaxy::GetAndSetTuGraphVersionIfNecessary(KvTransaction& txn) {
     auto it = db_info_table_.GetIterator(txn, Value::ConstRef(_detail::VER_MAJOR_KEY));
     if (!it.IsValid()) {
         // no version info, set it
@@ -664,8 +660,8 @@ void lgraph::Galaxy::CheckTuGraphVersion(KvTransaction& txn) {
     }
     if (minor != _detail::VER_MINOR) {
         FMA_WARN_STREAM(logger_) << "DB is created with ver " << major << "." << minor
-                                 << ", while current TuGraph is ver " << _detail::VER_MAJOR
-                                 << "." << _detail::VER_MINOR
+                                 << ", while current TuGraph is ver " << _detail::VER_MAJOR << "."
+                                 << _detail::VER_MINOR
                                  << ". TuGraph may work just fine, but be ware of compatibility "
                                     "warnings in release notes.";
     }
@@ -706,8 +702,7 @@ bool lgraph::Galaxy::ModAllRoleAccessLevel(
     });
 }
 
-bool lgraph::Galaxy::ModRoleAccessLevel(const std::string& role,
-                                        const AclManager::AclTable& acs) {
+bool lgraph::Galaxy::ModRoleAccessLevel(const std::string& role, const AclManager::AclTable& acs) {
     for (auto& kv : acs) {
         if (!this->graphs_->GraphExists(kv.first))
             throw InputError(FMA_FMT("Graph {} does not exist.", kv.first));
@@ -748,8 +743,8 @@ lgraph::AclManager::FieldAccess lgraph::Galaxy::GetRoleFieldAccessLevel(const st
     return merged_access;
 }
 
-bool lgraph::Galaxy::ModUserDisable(const std::string& curr_user,
-                                    const std::string& user, bool disable) {
+bool lgraph::Galaxy::ModUserDisable(const std::string& curr_user, const std::string& user,
+                                    bool disable) {
     _HoldWriteLock(reload_lock_);
     return ModifyACL([&](AclManager* new_acl, KvTransaction& txn) {
         return new_acl->ModUserDisable(txn, curr_user, user, disable);
@@ -808,6 +803,6 @@ bool lgraph::Galaxy::AddUserRoles(const std::string& current_user, const std::st
                                   const std::vector<std::string>& roles) {
     _HoldWriteLock(reload_lock_);
     return ModifyACL([&](AclManager* new_acl, KvTransaction& txn) {
-        return new_acl->RebuildUserRoles(txn, current_user, user, roles);
+        return new_acl->AddUserRoles(txn, current_user, user, roles);
     });
 }

@@ -34,6 +34,8 @@ TEST_F(TestTypeConvert, TypeConvert) {
     UT_EXPECT_EQ(
         ValueToFieldData(Value::ConstRef(MaxMinus2<double>()), FieldType::DOUBLE).AsDouble(),
         MaxMinus2<double>());
+    std::string blobs = "for blob data";
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(blobs), FieldType::STRING).AsString(), blobs);
     std::string s = "to lbr data";
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(s), FieldType::STRING).AsString(), s);
 }
