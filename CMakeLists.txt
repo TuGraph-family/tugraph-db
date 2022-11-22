@@ -39,3 +39,4 @@ add_subdirectory(release)
 # fix dependency
 set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog)
 add_dependencies(unit_test ${LGRAPH_TOOLKITS} lgraph_server)
+
