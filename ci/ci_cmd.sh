@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# Standard Github-hosted runner is 2core currently.
-# Larger runner will support soon(current in Beta).
+set -e
 
 # set $WORKSPACE to root dir
 cd $WORKSPACE
