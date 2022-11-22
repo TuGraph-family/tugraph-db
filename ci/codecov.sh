@@ -11,3 +11,4 @@ lcov --remove $2/coverage.info '*/include/libcuckoo/*' --output-file $2/coverage
 lcov --remove $2/coverage.info '*/src/cypher/parser/*' --output-file $2/coverage.info # filter out system
 lcov --remove $2/coverage.info '*/include/tools/json.hpp' --output-file $2/coverage.info # filter out system
 # lcov --list $2/coverage.info #debug info
+bash <(curl -s https://codecov.io/bash) -f $2/coverage.info || echo "Codecov did not collect coverage reports"
