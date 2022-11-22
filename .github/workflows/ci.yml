@@ -9,6 +9,7 @@ on:
 
 env:
   TEST_TAG: tugraph/tugraph-ut:test
+  CODECOV_TOKEN: b67f87a8-ffd6-49be-81eb-c5bc17dea676
 
 jobs:
   docker:
@@ -27,3 +28,5 @@ jobs:
           context: .
           load: true
           tags: ${{ env.TEST_TAG }}
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
