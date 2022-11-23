@@ -1587,9 +1587,9 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
         type.erase(remove(type.begin(), type.end(), '\"'), type.end());
         name.erase(remove(name.begin(), name.end(), '\"'), name.end());
         AccessControlledDB db = galaxy_->OpenGraph(user, graph);
-        ret = !db.IsReadOnlyPlugin(type == "CPP" ? PluginManager::PluginType::CPP
-                                                 : PluginManager::PluginType::PYTHON,
-                                   token, name);
+        ret = !db.IsReadOnlyPlugin(
+            type == "CPP" ? PluginManager::PluginType::CPP : PluginManager::PluginType::PYTHON,
+            token, name);
         proto_req.set_is_write_op(!ret);
     }
 
@@ -2695,6 +2695,8 @@ void RestServer::handle_get(http_request request) {
             return HandleGetRole(user, request, relative_path, paths);
         case RestPathCases::TASK:
             return HandleGetTask(user, request, relative_path, paths);
+        case RestPathCases::GRAPH:
+            return HandleGetGraph(user, request, relative_path, paths);
         case RestPathCases::DB:
             {
                 // /db

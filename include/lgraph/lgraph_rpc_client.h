@@ -36,8 +36,7 @@ class RpcClient {
      */
     RpcClient(const std::string& url, const std::string& user, const std::string& password);
 
-    ~RpcClient() {
-    }
+    ~RpcClient() {}
 
     // TODO(jzj)
     int64_t Restore(const std::vector<BackupLogEntry>& requests);
@@ -189,13 +188,14 @@ class RpcClient {
 
     bool HandleCypherRequest(LGraphResponse* res, const std::string& query,
                              const std::string& graph, bool json_format, double timeout);
+#ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
 
     std::string SingleElementExtractor(const CypherResult cypher);
 
     std::string MultElementExtractor(const CypherResult cypher);
 
     std::string CypherResultExtractor(const CypherResult cypher);
-
+#endif
     std::string CypherResponseExtractor(const CypherResponse cypher);
 
     std::string token;

@@ -35,13 +35,13 @@ struct PathElement {
     lgraph_api::ResultElementType type_;
     union {
         Node *node;
-        Relationship* repl;
+        Relationship *repl;
     } v;
-    explicit PathElement(const Node& node) {
+    explicit PathElement(const Node &node) {
         type_ = lgraph_api::ResultElementType::NODE;
         v.node = new Node(node);
     }
-    explicit PathElement(const Relationship& repl) {
+    explicit PathElement(const Relationship &repl) {
         type_ = lgraph_api::ResultElementType::RELATIONSHIP;
         v.repl = new Relationship(repl);
     }
@@ -75,8 +75,7 @@ struct ResultElement {
         type_ = ResultElementType::ANY;
         v.fieldData = new FieldData(data);
     }
-    explicit ResultElement(const FieldData &data,
-                           const ResultElementType &type) {
+    explicit ResultElement(const FieldData &data, const ResultElementType &type) {
         type_ = type;
         v.fieldData = new FieldData(data);
     }
@@ -105,7 +104,6 @@ struct ResultElement {
 
     ResultElement(const ResultElement &);
     ResultElement(const ResultElement &&);
-
     inline ResultElement &operator=(const ResultElement &);
 
     inline ResultElement &operator=(const ResultElement &&);

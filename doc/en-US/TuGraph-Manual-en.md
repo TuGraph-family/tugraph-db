@@ -1,11 +1,5 @@
 # TuGraph Users' Manual
 
-Version: 3.3.1
-
-2022/07/19
-
-Ant Group
-
 ---
 
 ## Table Of Contents

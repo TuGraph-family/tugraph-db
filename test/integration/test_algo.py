@@ -126,3 +126,21 @@ class TestExec():
     @pytest.mark.parametrize("algo", [LPASTANDOPT], indirect=True)
     def test_exec_lpa_standalone(self, algo):
         pass    
+
+    KHOPKTH = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/khop_kth_embed ./testdb",
+        "result" : ['''"size":3168''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KHOPKTH], indirect=True)
+    def test_exec_khopkth_embed(self, importor, algo):
+        pass
+
+    KHOPWITHIN = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/khop_within_embed ./testdb",
+        "result" : ['''"size":3259''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KHOPWITHIN], indirect=True)
+    def test_exec_khopwithin_embed(self, importor, algo):
+        pass

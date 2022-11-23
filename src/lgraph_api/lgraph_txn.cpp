@@ -40,7 +40,7 @@ void Transaction::Abort() { txn_->Abort(); }
 
 bool Transaction::IsValid() const { return txn_->IsValid(); }
 
-const std::shared_ptr<lgraph::Transaction> Transaction::GetTxn() {return txn_; }
+const std::shared_ptr<lgraph::Transaction> Transaction::GetTxn() { return txn_; }
 
 bool Transaction::IsReadOnly() const { return txn_->IsReadOnly(); }
 
@@ -229,15 +229,16 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(size_t label_id, size_t 
                                                         const FieldData& key_start,
                                                         const FieldData& key_end) {
     ThrowIfInvalid();
-    return VertexIndexIterator(txn_->GetVertexIndexIterator(label_id, field_id,
-                                                            key_start, key_end), txn_);
+    return VertexIndexIterator(txn_->GetVertexIndexIterator(label_id, field_id, key_start, key_end),
+                               txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t field_id,
-                                            const FieldData& key_start, const FieldData& key_end) {
+                                                    const FieldData& key_start,
+                                                    const FieldData& key_end) {
     ThrowIfInvalid();
-    return EdgeIndexIterator(txn_->GetEdgeIndexIterator(label_id, field_id,
-                                                        key_start, key_end), txn_);
+    return EdgeIndexIterator(txn_->GetEdgeIndexIterator(label_id, field_id, key_start, key_end),
+                             txn_);
 }
 
 VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label,
@@ -245,8 +246,8 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                                         const FieldData& key_start,
                                                         const FieldData& key_end) {
     ThrowIfInvalid();
-    return VertexIndexIterator(txn_->GetVertexIndexIterator(label, field,
-                                                            key_start, key_end), txn_);
+    return VertexIndexIterator(txn_->GetVertexIndexIterator(label, field, key_start, key_end),
+                               txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
@@ -254,8 +255,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const FieldData& key_start,
                                                     const FieldData& key_end) {
     ThrowIfInvalid();
-    return EdgeIndexIterator(txn_->GetEdgeIndexIterator(label, field,
-                                                        key_start, key_end), txn_);
+    return EdgeIndexIterator(txn_->GetEdgeIndexIterator(label, field, key_start, key_end), txn_);
 }
 
 VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label,
@@ -263,8 +263,8 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                                         const std::string& key_start,
                                                         const std::string& key_end) {
     ThrowIfInvalid();
-    return VertexIndexIterator(txn_->GetVertexIndexIterator(label, field,
-                                                            key_start, key_end), txn_);
+    return VertexIndexIterator(txn_->GetVertexIndexIterator(label, field, key_start, key_end),
+                               txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
@@ -293,20 +293,18 @@ VertexIterator Transaction::GetVertexByUniqueIndex(const std::string& label_name
                                                    const std::string& field_name,
                                                    const std::string& field_value_string) {
     ThrowIfInvalid();
-    lgraph::VertexIndexIterator iit =
-            txn_->GetVertexIndexIterator(label_name, field_name,
-                                        field_value_string, field_value_string);
+    lgraph::VertexIndexIterator iit = txn_->GetVertexIndexIterator(
+        label_name, field_name, field_value_string, field_value_string);
     if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
 OutEdgeIterator Transaction::GetEdgeByUniqueIndex(const std::string& label_name,
-                                                   const std::string& field_name,
-                                                   const std::string& field_value_string) {
+                                                  const std::string& field_name,
+                                                  const std::string& field_value_string) {
     ThrowIfInvalid();
     lgraph::EdgeIndexIterator eit =
-        txn_->GetEdgeIndexIterator(label_name, field_name,
-                                   field_value_string, field_value_string);
+        txn_->GetEdgeIndexIterator(label_name, field_name, field_value_string, field_value_string);
     if (!eit.IsValid()) throw std::runtime_error("No Edge found with specified index value.");
     EdgeUid euid;
     euid = eit.GetUid();
@@ -318,14 +316,14 @@ VertexIterator Transaction::GetVertexByUniqueIndex(const std::string& label_name
                                                    const FieldData& field_value) {
     ThrowIfInvalid();
     lgraph::VertexIndexIterator iit =
-            txn_->GetVertexIndexIterator(label_name, field_name, field_value, field_value);
+        txn_->GetVertexIndexIterator(label_name, field_name, field_value, field_value);
     if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
 OutEdgeIterator Transaction::GetEdgeByUniqueIndex(const std::string& label_name,
-                                                   const std::string& field_name,
-                                                   const FieldData& field_value) {
+                                                  const std::string& field_name,
+                                                  const FieldData& field_value) {
     ThrowIfInvalid();
     lgraph::EdgeIndexIterator eit =
         txn_->GetEdgeIndexIterator(label_name, field_name, field_value, field_value);
@@ -339,14 +337,14 @@ VertexIterator Transaction::GetVertexByUniqueIndex(size_t label_id, size_t field
                                                    const FieldData& field_value) {
     ThrowIfInvalid();
     lgraph::VertexIndexIterator iit =
-            txn_->GetVertexIndexIterator(label_id, field_id, field_value, field_value);
+        txn_->GetVertexIndexIterator(label_id, field_id, field_value, field_value);
     if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
 
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
 OutEdgeIterator Transaction::GetEdgeByUniqueIndex(size_t label_id, size_t field_id,
-                                                   const FieldData& field_value) {
+                                                  const FieldData& field_value) {
     ThrowIfInvalid();
     lgraph::EdgeIndexIterator eit =
         txn_->GetEdgeIndexIterator(label_id, field_id, field_value, field_value);

@@ -58,14 +58,12 @@ manager to get the information on data fields.
 */
 class IndexManager {
  private:
-    static std::string GetVertexIndexTableName(const std::string& label,
-                                         const std::string& field) {
+    static std::string GetVertexIndexTableName(const std::string& label, const std::string& field) {
         return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
                _detail::VERTEX_INDEX;
     }
 
-    static std::string GetEdgeIndexTableName(const std::string& label,
-                                             const std::string& field) {
+    static std::string GetEdgeIndexTableName(const std::string& label, const std::string& field) {
         return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
                _detail::EDGE_INDEX;
     }
@@ -119,8 +117,7 @@ class IndexManager {
      * \param           table       The table.
      * \param [in,out]  db If non-null, the database.
      */
-    IndexManager(KvTransaction& txn, SchemaManager* v_schema_info,
-                 SchemaManager * e_schema_info,
+    IndexManager(KvTransaction& txn, SchemaManager* v_schema_info, SchemaManager* e_schema_info,
                  const KvTable& index_list_table, LightningGraph* db);
 
     ~IndexManager();
@@ -144,7 +141,7 @@ class IndexManager {
                         FieldType dt, bool is_unique, std::unique_ptr<VertexIndex>& index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
-                  FieldType dt, bool is_unique, std::unique_ptr<EdgeIndex>& index);
+                      FieldType dt, bool is_unique, std::unique_ptr<EdgeIndex>& index);
 
     bool AddFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                           const std::string& field);
@@ -160,16 +157,20 @@ class IndexManager {
     std::vector<IndexSpec> ListAllIndexes(KvTransaction& txn) {
         std::vector<IndexSpec> indexes;
         IndexSpec is;
+        size_t v_index_len = strlen(_detail::VERTEX_INDEX);
+        size_t e_index_len = strlen(_detail::EDGE_INDEX);
         for (auto it = index_list_table_.GetIterator(txn); it.IsValid(); it.Next()) {
             std::string index_name = it.GetKey().AsString();
-            if (fma_common::StartsWith(index_name, _detail::VERTEX_INDEX)) {
+            if (index_name.size() > v_index_len &&
+                index_name.substr(index_name.size() - v_index_len) == _detail::VERTEX_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it.GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
                 is.unique = ent.is_unique;
                 indexes.emplace_back(std::move(is));
             }
-            if (fma_common::StartsWith(index_name, _detail::EDGE_INDEX)) {
+            if (index_name.size() > e_index_len &&
+                index_name.substr(index_name.size() - e_index_len) == _detail::EDGE_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it.GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
@@ -188,8 +189,7 @@ class IndexManager {
 
     template <typename T>
     static void BuildEdgeIndexBatch(KvTransaction& txn, graph::VertexIterator& vit,
-                                    size_t batch_size, VertexId& next_vid,
-                                    const Schema* schema,
+                                    size_t batch_size, VertexId& next_vid, const Schema* schema,
                                     const _detail::FieldExtractor* extractor);
 };
 }  // namespace lgraph

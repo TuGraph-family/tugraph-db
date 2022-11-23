@@ -50,16 +50,15 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             snappy
             -Wl,-Bstatic
             ${Boost_LIBRARIES}
-            stdc++fs
-            stdc++
+            -static-libstdc++
+            -static-libgcc
+            libstdc++fs.a
             -Wl,-Bdynamic
-            # end static linking
-            rt
             ssl
             crypto
+            rt
             dl
             z
-            ltdl
             )
 else ()
     target_link_libraries(${TARGET_OBJ}

@@ -7,7 +7,6 @@
 #include "fma-common/utils.h"
 #include "fma-common/unit_test_utils.h"
 
-
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
 #include "core/full_text_index.h"
@@ -391,6 +390,7 @@ TEST_F(TestFullIndex, FullIndex) {
         txn.Commit();
         auto vids = db.QueryVertexByFullTextIndex("v1", "description:HUAWEI", 10);
         UT_EXPECT_EQ(vids.size(), 1);
+        UT_EXPECT_TRUE(db.DeleteFullTextIndex(true, "v1", "description"));
     }
 }
 #endif
