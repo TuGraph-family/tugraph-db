@@ -111,6 +111,7 @@ bool RpcClient::CallCypher(std::string& result, const std::string& cypher, const
     return true;
 }
 
+#ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
 std::string RpcClient::SingleElementExtractor(const CypherResult cypher) {
     nlohmann::json arr;
     int rsize = cypher.result_size();
@@ -222,6 +223,7 @@ std::string RpcClient::CypherResultExtractor(const CypherResult cypher) {
     if (hsize == 1) return SingleElementExtractor(cypher);
     return MultElementExtractor(cypher);
 }
+#endif
 
 std::string RpcClient::CypherResponseExtractor(const CypherResponse cypher) {
     switch (cypher.Result_case()) {
@@ -231,7 +233,9 @@ std::string RpcClient::CypherResponseExtractor(const CypherResponse cypher) {
         }
     case CypherResponse::kBinaryResult:
         {
+#ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
             return CypherResultExtractor(cypher.binary_result());
+#endif
         }
     case CypherResponse::RESULT_NOT_SET:
         FMA_ERR() << "CypherResponse::RESULT_NOT_SET";

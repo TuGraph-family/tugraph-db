@@ -74,29 +74,25 @@ class AclManager {
         template <typename StreamT>
         size_t Serialize(StreamT& stream) const {
             return fma_common::BinaryWrite(stream, is_vertex) +
-                   fma_common::BinaryWrite(stream, label) +
-                   fma_common::BinaryWrite(stream, field);
+                   fma_common::BinaryWrite(stream, label) + fma_common::BinaryWrite(stream, field);
         }
 
         template <typename StreamT>
         size_t Deserialize(StreamT& stream) {
             return fma_common::BinaryRead(stream, is_vertex) +
-                   fma_common::BinaryRead(stream, label) +
-                   fma_common::BinaryRead(stream, field);
+                   fma_common::BinaryRead(stream, label) + fma_common::BinaryRead(stream, field);
         }
 
         LabelFieldSpec() {}
 
-        LabelFieldSpec(bool is_vertex_, const std::string &label_, const std::string &field_) {
+        LabelFieldSpec(bool is_vertex_, const std::string& label_, const std::string& field_) {
             is_vertex = is_vertex_;
             label = label_;
             field = field_;
         }
 
         bool operator==(const LabelFieldSpec& other) const {
-            if (is_vertex == other.is_vertex
-                && label == other.label
-                && field == other.field)
+            if (is_vertex == other.is_vertex && label == other.label && field == other.field)
                 return true;
             return false;
         }
@@ -104,7 +100,7 @@ class AclManager {
 
     class LabelFieldInfoHash {
      public:
-        size_t operator() (const LabelFieldSpec&p) const noexcept {
+        size_t operator()(const LabelFieldSpec& p) const noexcept {
             size_t res = 0;
             boost::hash_combine(res, p.is_vertex);
             boost::hash_combine(res, p.label);
@@ -318,8 +314,7 @@ class AclManager {
     bool ModAllRoleAccessLevel(KvTransaction& txn, const std::string& role,
                                const std::unordered_map<std::string, AccessLevel>& acs);
 
-    bool ModRoleAccessLevel(KvTransaction& txn, const std::string& role,
-                            const AclTable& acs);
+    bool ModRoleAccessLevel(KvTransaction& txn, const std::string& role, const AclTable& acs);
 
     bool ModRoleFieldAccessLevel(KvTransaction& txn, const std::string& role,
                                  const FieldAccessTable& acs);

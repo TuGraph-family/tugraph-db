@@ -7,6 +7,8 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include "tools/json.hpp"
+using json = nlohmann::json;
 
 namespace lgraph_api {
 
@@ -24,8 +26,8 @@ double get_time();
  * \param   sub_strings     split substring.
  * \param   string_delimiter    Split format.
  */
-void split_string(std::string origin_string,
-                std::vector<std::string>& sub_strings, std::string string_delimiter);
+void split_string(std::string origin_string, std::vector<std::string>& sub_strings,
+                  std::string string_delimiter);
 
 /**
  * \brief   Encrypt the input string in ac4 format.
@@ -172,4 +174,69 @@ inline size_t ParseDouble(const char* b, const char* e, double& d) {
     if (neg) d = -d;
     return b - orig;
 }
+
+/**
+ * \brief   Parse parameter from nlohmann::json.
+ *
+ * \param[out]   value  value to store parameter
+ * \param        key    key of the parameter in the input
+ * \param        input  input json
+ */
+template <class DataType>
+void parse_from_json(DataType& value, const char* key, json& input) {
+    if (!input[key].is_null()) {
+        try {
+            value = input[key].get<DataType>();
+        } catch (std::exception& e) {
+            std::string type_name;
+            if (std::is_same<DataType, int>::value) {
+                type_name = "int";
+            } else if (std::is_same<DataType, double>::value) {
+                type_name = "double";
+            } else if (std::is_same<DataType, std::string>::value) {
+                type_name = "string";
+            } else if (std::is_same<DataType, int64_t>::value) {
+                type_name = "int64";
+            } else if (std::is_same<DataType, bool>::value) {
+                type_name = "bool";
+            } else {
+                type_name = typeid(DataType).name();
+            }
+            throw std::runtime_error(std::string(key) + " need to be " + type_name);
+        }
+    }
+}
+
+/**
+ * \brief   Parse vector parameter from nlohmann::json.
+ *
+ * \param[out]   value  value to store parameter
+ * \param        key    key of the parameter in the input
+ * \param        input  input json
+ */
+template <class DataType>
+void parse_from_json(std::vector<DataType>& value, const char* key, json& input) {
+    if (!input[key].is_null()) {
+        try {
+            value = input[key].get<std::vector<DataType>>();
+        } catch (std::exception& e) {
+            std::string type_name;
+            if (std::is_same<DataType, int>::value) {
+                type_name = "vector<int>";
+            } else if (std::is_same<DataType, double>::value) {
+                type_name = "vector<double>";
+            } else if (std::is_same<DataType, std::string>::value) {
+                type_name = "vector<string>";
+            } else if (std::is_same<DataType, int64_t>::value) {
+                type_name = "vector<int64>";
+            } else if (std::is_same<DataType, bool>::value) {
+                type_name = "vector<bool>";
+            } else {
+                type_name = "vector<" + std::string(typeid(DataType).name()) + ">";
+            }
+            throw std::runtime_error(std::string(key) + " need to be " + type_name);
+        }
+    }
+}
+
 }  // namespace lgraph_api

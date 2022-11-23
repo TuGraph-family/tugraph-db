@@ -118,6 +118,7 @@ TEST_F(TestSchema, GetFieldId) {
     size_t fid;
     UT_EXPECT_TRUE(!s.TryGetFieldId("non-existing", fid));
 }
+
 TEST_F(TestSchema, DumpRecord) {
     Value v_old("name");
     Value v_new("name1");
@@ -175,8 +176,6 @@ TEST_F(TestSchema, DumpRecord) {
     Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
     // UT_LOG() << "record: " << schema.DumpRecord(record);
     auto field_id = schema.GetFieldId("float");
-    schema.UpdateVertexIndex(kv_store, 0, v_old, v_new);
-
     const _detail::FieldExtractor* fe_0 = schema.GetFieldExtractor("name");
     const _detail::FieldExtractor* fe_1 = schema.GetFieldExtractor("uid");
     const _detail::FieldExtractor* fe_2 = schema.GetFieldExtractor("weight");

@@ -13,29 +13,23 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-    int64_t root_id = 0;
+    std::string root_id = "0";
     std::string label = "node";
     std::string field = "id";
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        if (input["root_id"].is_number()) {
-            root_id = input["root_id"].get<int64_t>();
-        }
-        if (input["label"].is_string()) {
-            label = input["label"].get<std::string>();
-        }
-        if (input["field"].is_string()) {
-            field = input["field"].get<std::string>();
-        }
+        parse_from_json(root_id, "root_id", input);
+        parse_from_json(label, "label", input);
+        parse_from_json(field, "field", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
+
     auto txn = db.CreateReadTxn();
-    lgraph_api::FieldData root_field_data(root_id);
-    int64_t root_vid =
-        txn.GetVertexIndexIterator(label, field, root_field_data, root_field_data).GetVid();
+    int64_t root_vid = txn.GetVertexIndexIterator(label, field, root_id, root_id).GetVid();
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
     auto prepare_cost = get_time() - start_time;
 

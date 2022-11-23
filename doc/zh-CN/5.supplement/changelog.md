@@ -1,5 +1,25 @@
 # 更新内容说明
 
+# 3.3.2 (2022-11-21)
+
+**Breaking Changes:**
+
+1. Add OGM support
+
+2. Improve UT coverage to 87%
+
+3. Use static library for link
+
+**Improvements And Bug Fixes:**
+
+1. Fix python procedure api doc
+
+2. Update docs
+
+3. Add khop procedure
+
+4. Other bug fix
+
 # 3.3.1 (2022-10-14)
 
 **Breaking Changes:**
