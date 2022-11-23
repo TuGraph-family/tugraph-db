@@ -773,7 +773,7 @@ class OlapBase {
      *
      */
     bool IfSparse(ParallelBitset &active_vertices) {
-        size_t active_edges = ProcessVertexInRange<size_t>(
+        size_t active_edges = ProcessVertexActive<size_t>(
             [&](size_t vtx) { return (size_t)out_degree_[vtx]; }, active_vertices);
         return (active_edges < num_edges_ / 20);
     }

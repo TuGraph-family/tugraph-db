@@ -62,7 +62,8 @@ class OpSet : public OpBase {
         fields.emplace_back(property_expression.second);
         ExtractProperties(ctx, value, values);
         auto idx = GetRecordIdx(node_variable);
-        ctx->txn_->SetVertexProperty(record->values[idx].node->ItRef()->GetId(), fields, values);
+        auto vid = record->values[idx].node->PullVid();
+        ctx->txn_->SetVertexProperty(vid, fields, values);
         ctx->txn_->RefreshIterators();
         ctx->result_info_->statistics.properties_set += fields.size();
     }
@@ -81,7 +82,8 @@ class OpSet : public OpBase {
                     ExtractProperties(ctx, m.second, values);
                 }
                 auto idx = GetRecordIdx(lhs);
-                ctx->txn_->SetVertexProperty(record->values[idx].node->ItRef()->GetId(), fields,
+                auto vid = record->values[idx].node->PullVid();
+                ctx->txn_->SetVertexProperty(vid, fields,
                                              values);
                 ctx->txn_->RefreshIterators();
                 ctx->result_info_->statistics.properties_set += fields.size();
@@ -93,7 +95,8 @@ class OpSet : public OpBase {
             auto src = record->values[GetRecordIdx(rhs.String())];
             auto dst = record->values[GetRecordIdx(lhs)];
             GetVertexFields(ctx, src.node->ItRef()->GetId(), fields, values);
-            ctx->txn_->SetVertexProperty(dst.node->ItRef()->GetId(), fields, values);
+            auto vid = dst.node->PullVid();
+            ctx->txn_->SetVertexProperty(vid, fields, values);
             ctx->txn_->RefreshIterators();
             ctx->result_info_->statistics.properties_set += fields.size();
         } else if (rhs.type == parser::Expression::DataType::NULL_) {
@@ -101,7 +104,8 @@ class OpSet : public OpBase {
             auto idx = GetRecordIdx(lhs);
             if (record->values[idx].node && record->values[idx].node->ItRef() &&
                 record->values[idx].node->ItRef()->IsValid()) {
-                vertices_to_delete_.emplace_back(record->values[idx].node->ItRef()->GetId());
+                auto vid = record->values[idx].node->PullVid();
+                vertices_to_delete_.emplace_back(vid);
                 ctx->result_info_->statistics.properties_set++;
             }
         } else {

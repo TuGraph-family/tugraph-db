@@ -4,7 +4,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <boost/lexical_cast.hpp>
-
+#include "./ut_utils.h"
 #include "fma-common/configuration.h"
 #include "fma-common/unit_test_utils.h"
 #include "restful/server/stdafx.h"
@@ -93,13 +93,13 @@ void* test_rpc_server(void*) {
     std::unique_lock<std::mutex> l(lock_rpc);
     if (stage_3 == 0) {
         on_initialize_rpc_server();
-        FMA_LOG() << "rpc server is running";
+        UT_LOG() << "rpc server is running";
         stage_3++;
         cond.notify_one();
     }
     if (stage_3 != 2) cond.wait(l);
     on_shutdown_rpc_server();
-    FMA_LOG() << __func__ << " thread exit";
+    UT_LOG() << __func__ << " thread exit";
     delete ptr_state_machine;
     return nullptr;
 }
@@ -112,7 +112,7 @@ static void CreateCsvFiles(const std::map<std::string, std::string>& data) {
         stream.Open(file_name);
         stream.Write(data.data(), data.size());
         stream.Close();
-        FMA_LOG() << file_name << " created";
+        UT_LOG() << file_name << " created";
     }
 }
 
@@ -805,148 +805,239 @@ bool ObjectHasListValue(const web::json::value& val, const std::string& obj,
     return false;
 }
 void test_label(lgraph::RpcClient& client) {
-    FMA_LOG() << "test createVertexLabel , deleteLabel , vertexLabels";
+    UT_LOG() << "test createVertexLabel , deleteLabel , vertexLabels";
     std::string str;
     // db.addLabel test
     bool ret = client.CallCypher(
         str,
         "CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(
         str,
         "CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)");
-    UT_EXPECT_EQ(ret, false);
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(
         str,
         "CALL db.createVertexLabel('dirctor', 'name', 'name', string, false, 'age', int8, true)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(HasElement(json_val, "actor", "label"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "dirctor", "label"), true);
+    UT_EXPECT_TRUE(HasElement(json_val, "actor", "label"));
+    UT_EXPECT_TRUE(HasElement(json_val, "dirctor", "label"));
+    UT_EXPECT_FALSE(HasElement(json_val, "actoddr", "label"));
 
     ret = client.CallCypher(str, "CALL db.deleteLabel('vertex', 'actor')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.deleteLabel('vertex', 'dirctor')");
-    UT_EXPECT_EQ(ret, true);
-
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_FALSE(client.CallCypher(str, "CALL db.deleteLabel('vertex', 'dirctor')"));
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(HasElement(json_val, "actor", "label"), false);
-    UT_EXPECT_EQ(HasElement(json_val, "dirctor", "label"), false);
+    UT_EXPECT_FALSE(HasElement(json_val, "actor", "label"));
+    UT_EXPECT_FALSE(HasElement(json_val, "dirctor", "label"));
     ret = client.CallCypher(
         str,
         "CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_relationshipTypes(lgraph::RpcClient& client) {
-    FMA_LOG() << "test createEdgeLabel , deleteLabel , edgeLabels";
+    UT_LOG() << "test createEdgeLabel , deleteLabel , edgeLabels";
     std::string str;
     bool ret = client.CallCypher(str,
                                  "CALL db.createEdgeLabel('followed', '[]', 'address', string, "
                                  "false, 'date', int32, false)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str,
                             "CALL db.createEdgeLabel('followed', '[]', 'address', string, false, "
                             "'date', int32, false)");
-    UT_EXPECT_EQ(ret, false);
+    UT_EXPECT_FALSE(ret);
+
+    ret = client.CallCypher(
+        str,
+        "CALL db.createEdgeLabel('followed', '[[\"df\",[\"wq\"]]]', 'address', string, false, "
+        "'date', int32, false)");
+    UT_EXPECT_FALSE(ret);
+
+    ret = client.CallCypher(str,
+                            "CALL db.createLabel('edge', 'name', '[\"df\"]', ['zv', string, "
+                            "true], ['zz', int8, false])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(
+        str,
+        "CALL db.createLabel('edge', 'name', '[[\"df\",[\"wq\"]]]', ['zv', string, "
+        "true], ['zz', int8, false])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(
+        str,
+        "CALL db.createLabel('edge', 'followed', '[[\"df\",\"wq\"]]', ['zv', string, "
+        "true], ['zz', int8, false])");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(
         str,
         "CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "followed", "edgeLabels"), true);
     UT_EXPECT_EQ(HasElement(json_val, "married", "edgeLabels"), true);
 
     ret = client.CallCypher(str, "CALL db.deleteLabel('edge', 'followed')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.deleteLabel('edge', 'married')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "followed", "edgeLabels"), false);
     UT_EXPECT_EQ(HasElement(json_val, "married", "edgeLabels"), false);
     ret = client.CallCypher(
         str,
         "CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_index(lgraph::RpcClient& client) {
-    FMA_LOG() << "test addIndex , deleteIndex , indexes";
+    UT_LOG() << "test addIndex , deleteIndex , indexes";
     std::string str;
+    std::string test_str;
     bool ret = client.CallCypher(str, "CALL db.addIndex('actor', 'age', false)");
-
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(
+        str, "CALL db.createEdgeLabel('index_edge', '[]', 'index_value', string, false)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.addIndex(true, 'actor', 'age')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.addFullTextIndex(true, 'actor', 'age')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.addFullTextIndex(true, 'actor', 'age')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.deleteFullTextIndex(true, 'actor', 'age')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('\"actor\"', '\"age\"')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('[\"actor\"]', '\"age\"')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('[\"actor\"]', '[\"age\"]')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.fullTextIndexes()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge', 'index_value', false)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge', 'index_value', false)");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.indexes()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     UT_EXPECT_EQ(ElementCount(json_val, "actor", "label"), 2);
 
     // delete index
     ret = client.CallCypher(str, "CALL db.deleteIndex('actor', 'age')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.CallCypher(str, "CALL db.deleteIndex('actor', 'age')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.deleteIndex('actor', 'name')");
-    UT_EXPECT_EQ(ret, false);
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.indexes()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "actor", "label"), 1);
+
+    ret = client.CallCypher(test_str, "CALL db.deleteEdgeIndex('index_edge', 'index_value')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(test_str, "CALL db.deleteEdgeIndex('index_edge', 'index_value')");
+    UT_EXPECT_FALSE(ret);
 }
 
 void test_warmup(lgraph::RpcClient& client) {
-    FMA_LOG() << "test warmup";
+    UT_LOG() << "test warmup";
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.warmup()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+}
+
+void test_info(lgraph::RpcClient& client) {
+    UT_LOG() << "test info";
+    std::string str;
+    bool ret = client.CallCypher(str, "CALL db.monitor.serverInfo()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.monitor.tuGraphInfo()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.task.terminateTask('12')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL dbms.takeSnapshot('snapsfiles')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL dbms.takeSnapshot()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.ha.clusterInfo()");
+    UT_EXPECT_FALSE(ret);
 }
 
 void test_createlabel(lgraph::RpcClient& client) {
-    FMA_LOG() << "test createLabel , labels , getLabelSchema";
+    UT_LOG() << "test createLabel , labels , getLabelSchema";
     std::string str;
+    std::string test_str2;
     bool ret = client.CallCypher(str,
                                  "CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, "
                                  "true], ['sleep', int8, false])");
-    UT_EXPECT_EQ(ret, true);
+
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(test_str2, "CALL db.createLabel('animal')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "animal", "label"), true);
 
     ret = client.CallCypher(str, "CALL db.getLabelSchema('vertex', 'animal')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(test_str2, "CALL db.getLabelSchema('animdal')");
+    UT_EXPECT_FALSE(ret);
+
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "sleep", "name"), true);
     UT_EXPECT_EQ(HasElement(json_val, "eat", "name"), true);
 }
 
 void test_label_field(lgraph::RpcClient& client) {
-    FMA_LOG()
+    UT_LOG()
         << "test alterLabelAddFields , alterLabelModFields , alterLabelDelFields , getLabelSchema";
     std::string str;
     bool ret = client.CallCypher(str,
                                  "CALL db.alterLabelAddFields('vertex', 'animal',"
                                  "['run', string, '',true], ['jeep', int8, 10,false])");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL db.alterLabelAddFields('vertex', 'animal_not_exist',"
+                            "['run', string, '',true], ['jeep', int8, 10,false])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL db.alterLabelAddFields('vertex', 'animal',"
+                            "['run', string, '',true], ['jeep', int12, 10,false])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.alterLabelAddFields('vertex', 'animal')");
+    UT_EXPECT_FALSE(ret);
+
+    ret = client.CallCypher(str, "db.propertyKeys()");
+    UT_EXPECT_FALSE(ret);
+
     ret = client.CallCypher(str, "CALL db.getLabelSchema('vertex', 'animal')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "run", "name"), true);
     UT_EXPECT_EQ(HasElement(json_val, "jeep", "name"), true);
@@ -954,46 +1045,61 @@ void test_label_field(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal',"
                             "['run', int8, false], ['jeep', int32, true])");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL db.alterLabelModFields('vertex', 'animal_not_exist',['run', "
+                            "int8, false], ['jeep', int32, true])");
+    UT_EXPECT_FALSE(ret);
+
+    ret = client.CallCypher(str, "CALL db.alterLabelModFields('vertex', 'animal')");
+    UT_EXPECT_FALSE(ret);
+
     ret = client.CallCypher(str, "CALL db.getLabelSchema('vertex', 'animal')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(CheckElementEqual(json_val, "run", "INT8", "name", "type", "STRING", "STRING"),
-                  true);
+                 true);
     UT_EXPECT_EQ(CheckElementEqual(json_val, "jeep", "INT32", "name", "type", "STRING", "STRING"),
-                  true);
+                 true);
 
+    ret = client.CallCypher(
+        str, "CALL db.alterLabelDelFields('vertex', 'animal_not_exist', ['run', 'jeep'])");
+    UT_EXPECT_FALSE(ret);
     ret =
         client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'animal', ['run', 'jeep'])");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'animal')");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL db.getLabelSchema('vertex', 'animal')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "run", "name"), false);
     UT_EXPECT_EQ(HasElement(json_val, "jeep", "name"), false);
 }
 
 void test_procedure(lgraph::RpcClient& client) {
-    FMA_LOG() << "test procedures";
+    UT_LOG() << "test procedures";
     std::string str;
     bool ret = client.CallCypher(str, "CALL dbms.procedures()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.is_array(), true);
 }
 
 void test_graph(lgraph::RpcClient& client) {
-    FMA_LOG() << "test createGraph , listGraphs , modGraph , deleteGraph";
+    UT_LOG() << "test createGraph , listGraphs , modGraph , deleteGraph";
     std::string str;
     bool ret = client.CallCypher(
         str, "CALL dbms.graph.createGraph('test_graph1', 'this is a test graph1', 20)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(
         str, "CALL dbms.graph.createGraph('test_graph2', 'this is a test graph2', 100)");
-    UT_EXPECT_EQ(ret, true);
-
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(
+        str, "CALL dbms.graph.createGraph('test_graph2', 'this is a test graph2', 100)");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL dbms.graph.listGraphs()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "test_graph1", "graph_name"), true);
     UT_EXPECT_EQ(HasElement(json_val, "test_graph2", "graph_name"), true);
@@ -1001,29 +1107,48 @@ void test_graph(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.graph.modGraph('test_graph1',"
                             " {max_size_GB:200, description:'modify graph1 desc'})");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.graph.modGraph('test_graph1',"
+                            " {max_size_GBs:200, description:'modify graph1 desc'})");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.graph.modGraph('test_graph1',"
+                            " {max_size_GB:2.3, description:'modify graph1 desc'})");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.graph.modGraph('test_graph_not_exist',"
+                            " {max_size_GB:200, description:'modify graph1 desc'})");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.graph.modGraph('test_graph1',"
+                            " {max_size_GB:200, description:['modify graph1 desc']})");
+    UT_EXPECT_FALSE(ret);
+
     ret = client.CallCypher(str,
                             "CALL dbms.graph.modGraph('test_graph2',"
                             " {max_size_GB:500, description:'modify graph2 desc'})");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.graph.listGraphs()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "configuration", "description",
-                                          "modify graph1 desc", "STRING"),
-                  true);
+                                         "modify graph1 desc", "STRING"),
+                 true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "configuration", "description",
-                                          "modify graph2 desc", "STRING"),
-                  true);
+                                         "modify graph2 desc", "STRING"),
+                 true);
 
     ret = client.CallCypher(str, "CALL dbms.graph.deleteGraph('test_graph1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL dbms.graph.deleteGraph('test_graph2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.graph.deleteGraph('test_graph_not_exist')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.graph.listGraphs()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "test_graph1", "graph_name"), false);
     UT_EXPECT_EQ(HasElement(json_val, "test_graph2", "graph_name"), false);
@@ -1031,52 +1156,52 @@ void test_graph(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.graph.createGraph('test_graph1',"
                             " 'this is a test graph1', 20)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL dbms.graph.createGraph('test_graph2',"
                             " 'this is a test graph2', 100)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_allow_host(lgraph::RpcClient& client) {
-    FMA_LOG() << "test addAllowedHosts , listAllowedHosts , deleteAllowedHosts";
+    UT_LOG() << "test addAllowedHosts , listAllowedHosts , deleteAllowedHosts";
     std::string str;
     bool ret =
         client.CallCypher(str, "CALL dbms.security.addAllowedHosts('172.172.1.1', '127.0.0.1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.listAllowedHosts()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "172.172.1.1", "host"), true);
     UT_EXPECT_EQ(HasElement(json_val, "127.0.0.1", "host"), true);
 
     ret =
         client.CallCypher(str, "CALL dbms.security.deleteAllowedHosts('172.172.1.1', '127.0.0.1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.listAllowedHosts()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "172.172.1.1", "host"), false);
     UT_EXPECT_EQ(HasElement(json_val, "127.0.0.1", "host"), false);
 }
 
 void test_configration(lgraph::RpcClient& client) {
-    FMA_LOG() << "test config.list , config.update";
+    UT_LOG() << "test config.list , config.update";
     std::string str;
     bool ret = client.CallCypher(str, "CALL dbms.config.list()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str,
-                            "CALL dbms.config.update({db_async:true,"
+                            "CALL dbms.config.update({durable:true,"
                             " enable_audit_log:true, enable_ip_check:true})");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.config.list()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ((CheckElementEqual(json_val, "db_async", "1", "name", "value", "STRING", "BOOL")),
+    UT_EXPECT_EQ((CheckElementEqual(json_val, "durable", "1", "name", "value", "STRING", "BOOL")),
                  true);
     UT_EXPECT_EQ(
         (CheckElementEqual(json_val, "enable_audit_log", "1", "name", "value", "STRING", "BOOL")),
@@ -1087,29 +1212,38 @@ void test_configration(lgraph::RpcClient& client) {
 }
 
 void test_role(lgraph::RpcClient& client) {
-    FMA_LOG() << "test createRole , listRoles , modRoleDesc , disableRole ,"
-                 " getRoleInfo , rebuildRoleAccessLevel , modSpecifiedAccessLevel , deleteRole";
+    UT_LOG() << "test createRole , listRoles , modRoleDesc , disableRole ,"
+                " getRoleInfo , rebuildRoleAccessLevel , modSpecifiedAccessLevel , deleteRole";
     std::string str;
     bool ret =
         client.CallCypher(str, "CALL dbms.security.createRole('test_role1', 'this is test role1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret =
         client.CallCypher(str, "CALL dbms.security.createRole('test_role2', 'this is test role2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret =
+        client.CallCypher(str, "CALL dbms.security.createRole('test_role2', 'this is test role2')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.listRoles()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "test_role1", "role_name"), true);
     UT_EXPECT_EQ(HasElement(json_val, "test_role2", "role_name"), true);
 
     ret = client.CallCypher(str, "CALL dbms.security.modRoleDesc('test_role2', 'modified role2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.CallCypher(
+        str, "CALL dbms.security.modRoleDesc('test_role_not_exist', 'modified role2')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.disableRole('test_role2', true)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.security.disableRole('test_role_not_exist', true)");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.getRoleInfo('test_role2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(
         CheckObjectElementEqual(json_val, "role_info", "description", "modified role2", "STRING"),
@@ -1119,9 +1253,13 @@ void test_role(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.security.rebuildRoleAccessLevel('test_role1',"
                             " {test_graph1:'READ', test_graph2:'WRITE'})");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.rebuildRoleAccessLevel('test_role_not_exist',"
+                            " {test_graph1:'READ'})");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.getRoleInfo('test_role1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(CheckInnerObjectElementEqual(json_val, "role_info", "permissions", "test_graph1",
                                               "READ", "STRING"),
@@ -1133,67 +1271,99 @@ void test_role(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.security.modRoleAccessLevel('test_role1',"
                             " {test_graph1:'FULL', test_graph2:'NONE'})");
-    FMA_LOG() << str;
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.modRoleAccessLevel('test_role_not_exist',"
+                            " {test_graph1:'FULL', test_graph2:'NONE'})");
+    UT_EXPECT_FALSE(ret);
+
+    ret = client.CallCypher(str,
+                            "CALL "
+                            "dbms.security.modRoleFieldAccessLevel('test_role1','default','animal',"
+                            "'run','vertex','WRITE')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL "
+                            "dbms.security.modRoleFieldAccessLevel('test_role1','default','animal',"
+                            "'run','edge','WRITE')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL "
+                            "dbms.security.modRoleFieldAccessLevel('test_role1','default','animal',"
+                            "'run','vertex_edge','WRITE')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(
+        str,
+        "CALL "
+        "dbms.security.modRoleFieldAccessLevel('test_role_not_exist','default','animal',"
+        "'run','vertex','WRITE')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.getRoleInfo('test_role1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(CheckInnerObjectElementEqual(json_val, "role_info", "permissions", "test_graph1",
                                               "FULL", "STRING"),
                  true);
 
     ret = client.CallCypher(str, "CALL dbms.security.deleteRole('test_role1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.deleteRole('test_role2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.security.deleteRole('test_role2')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.listRoles()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     UT_EXPECT_EQ(HasElement(json_val, "role_name", "test_role1"), false);
     UT_EXPECT_EQ(HasElement(json_val, "role_name", "test_role2"), false);
 
     ret = client.CallCypher(str,
                             "CALL dbms.security.createRole('test_role1', "
                             " 'this is test role1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL dbms.security.createRole('test_role2', "
                             "'this is test role2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL dbms.security.createRole('test_role3', "
                             " 'this is test role3')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL dbms.security.createRole('test_role4', "
                             "'this is test role4')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL dbms.security.createRole('test_role5', "
                             "'this is test role5')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_user(lgraph::RpcClient& client) {
-    FMA_LOG() << "test createUser , setCurrentDesc , listUsers , showCurrentUser ,"
-                 " setUserDesc , disableUser , getUserInfo , addUserRoles ,"
-                 " rebuildUserRoles , deleteUserRoles , deleteUserRoles";
+    UT_LOG() << "test createUser , setCurrentDesc , listUsers , showCurrentUser ,"
+                " setUserDesc , disableUser , getUserInfo , addUserRoles ,"
+                " rebuildUserRoles , deleteUserRoles , deleteUserRoles";
     std::string str;
     bool ret = client.CallCypher(str,
                                  "CALL dbms.security.createUser('test_user1', "
                                  "'this is test user1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL dbms.security.createUser('test_user2', "
                             "'this is test user2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.createUser('test_user2', "
+                            "'this is test user2')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.setCurrentDesc('modified user desc')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.listUsers()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "test_user1", "user_name"), true);
     UT_EXPECT_EQ(HasElement(json_val, "test_user2", "user_name"), true);
@@ -1202,19 +1372,25 @@ void test_user(lgraph::RpcClient& client) {
                  true);
 
     ret = client.CallCypher(str, "CALL dbms.security.showCurrentUser()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "admin", "current_user"), true);
 
     ret = client.CallCypher(str,
                             "CALL dbms.security.setUserDesc('test_user2',"
                             " 'modified user2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.setUserDesc('test_user_not_exist',"
+                            " 'modified user2')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL dbms.security.disableUser('test_user2', true)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.security.disableUser('test_user_not_exist', true)");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.getUserInfo('test_user2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(
         CheckObjectElementEqual(json_val, "user_info", "description", "modified user2", "STRING"),
@@ -1224,9 +1400,18 @@ void test_user(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.security.addUserRoles('test_user1', ['test_role1',"
                             " 'test_role2', 'test_role3', 'test_role4', 'test_role5'])");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.addUserRoles('test_user_not_exist', ['test_role1',"
+                            " 'test_role2', 'test_role3', 'test_role4', 'test_role5'])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.addUserRoles('test_user1', [['test_role1'],"
+                            " 'test_role2', 'test_role3', 'test_role4', 'test_role5'])");
+    UT_EXPECT_FALSE(ret);
+
     ret = client.CallCypher(str, "CALL dbms.security.listUsers()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role1"), true);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role2"), true);
@@ -1234,9 +1419,17 @@ void test_user(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.security.rebuildUserRoles('test_user1',"
                             " ['test_role3', 'test_role4', 'test_role5'])");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.rebuildUserRoles('test_user1',"
+                            " [['test_role3'], 'test_role4', 'test_role5'])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.rebuildUserRoles('test_user_not_exist',"
+                            " ['test_role3', 'test_role4', 'test_role5'])");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.listUsers()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role1"), false);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role2"), false);
@@ -1244,54 +1437,70 @@ void test_user(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.security.deleteUserRoles('test_user1',"
                             " ['test_role3', 'test_role4'])");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.deleteUserRoles('test_user1',"
+                            " [['test_role3'], 'test_role4'])");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.deleteUserRoles('test_user_not_exist',"
+                            " ['test_role3', 'test_role4'])");
+    UT_EXPECT_FALSE(ret);
+
     ret = client.CallCypher(str, "CALL dbms.security.listUsers()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role3"), false);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role4"), false);
     UT_EXPECT_EQ(ObjectHasListValue(json_val, "user_info", "roles", "test_role5"), true);
 
     ret = client.CallCypher(str, "CALL dbms.security.deleteUser('test_user1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.deleteUser('test_user2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.security.deleteUser('test_user2')");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL dbms.security.listUsers()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "test_user1", "user_name"), false);
     UT_EXPECT_EQ(HasElement(json_val, "test_user2", "user_name"), false);
 }
 
 void test_flushDb(lgraph::RpcClient& client) {
-    FMA_LOG() << "test flushDB";
+    UT_LOG() << "test flushDB";
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.flushDB()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    client.CallCypher(str, "CALL dbms.listBackupFiles()");
 }
 void test_password(lgraph::RpcClient& client) {
-    FMA_LOG() << "test changeUserPassword , changePassword";
+    UT_LOG() << "test changeUserPassword , changePassword";
     std::string str;
     bool ret = client.CallCypher(str,
                                  "CALL dbms.security.createUser('test_pw_user',"
                                  " '13579@TuGraph')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     {
         lgraph::RpcClient new_client("0.0.0.0:19099", "test_pw_user", "13579@TuGraph");
         ret = new_client.CallCypher(str, "CALL dbms.security.showCurrentUser()", "");
-        UT_EXPECT_EQ(ret, true);
+        UT_EXPECT_TRUE(ret);
         web::json::value json_val = web::json::value::parse(str);
         UT_EXPECT_EQ(HasElement(json_val, "test_pw_user", "current_user"), true);
         ret = client.CallCypher(str,
                                 "CALL dbms.security.changeUserPassword('test_pw_user',"
                                 " '24680@TuGraph')");
-        UT_EXPECT_EQ(ret, true);
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str,
+                                "CALL dbms.security.changeUserPassword('test_not_exist_user',"
+                                " '24680@TuGraph')");
+        UT_EXPECT_FALSE(ret);
     }
 
     {
         lgraph::RpcClient new_client("0.0.0.0:19099", "test_pw_user", "24680@TuGraph");
         ret = new_client.CallCypher(str, "CALL dbms.security.showCurrentUser()", "");
-        UT_EXPECT_EQ(ret, true);
+        UT_EXPECT_TRUE(ret);
         web::json::value json_val = web::json::value::parse(str);
         UT_EXPECT_EQ(HasElement(json_val, "test_pw_user", "current_user"), true);
 
@@ -1299,59 +1508,65 @@ void test_password(lgraph::RpcClient& client) {
                                     "CALL dbms.security.changePassword('24680@TuGraph',"
                                     " '13579@TuGraph')",
                                     "");
-        UT_EXPECT_EQ(ret, true);
+        UT_EXPECT_TRUE(ret);
     }
 
     {
         lgraph::RpcClient new_client("0.0.0.0:19099", "test_pw_user", "13579@TuGraph");
         ret = new_client.CallCypher(str, "CALL dbms.security.showCurrentUser()", "");
-        UT_EXPECT_EQ(ret, true);
+        UT_EXPECT_TRUE(ret);
         web::json::value json_val = web::json::value::parse(str);
         UT_EXPECT_EQ(HasElement(json_val, "test_pw_user", "current_user"), true);
     }
 }
 
 void test_cpp_plugin(lgraph::RpcClient& client) {
-    FMA_LOG() << "test listPlugin , deletePlugin , LoadPlugin , CallPlugin";
+    UT_LOG() << "test listPlugin , deletePlugin , LoadPlugin , CallPlugin";
     build_so();
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.dropDB()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.is_null(), true);
 
     std::string code_so_path = "./sortstr.so";
     ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO", "this is a test plugin",
                             true);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO", "this is a test plugin",
                             true);
-    UT_EXPECT_EQ(ret, false);
+    UT_EXPECT_FALSE(ret);
 
     std::string code_scan_graph_path = "./scan_graph.so";
     ret = client.LoadPlugin(str, code_scan_graph_path, "CPP", "test_plugin2", "SO",
                             "this is a test plugin", true);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     std::string code_add_label_path = "./add_label.so";
     ret = client.LoadPlugin(str, code_add_label_path, "CPP", "test_plugin3", "SO",
                             "this is a test plugin", false);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     std::string code_zip_path = "../../test/test_plugins/sortstr.zip";
     ret = client.LoadPlugin(str, code_zip_path, "CPP", "test_plugin4", "ZIP",
                             "this is a test plugin", true);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     std::string code_cpp_path = "../../test/test_plugins/sortstr.cpp";
     ret = client.LoadPlugin(str, code_cpp_path, "CPP", "test_plugin5", "CPP",
                             "this is a test plugin", true);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.CallCypher(str, "CALL db.plugin.getPluginInfo('PY','countPersons')");
+    UT_EXPECT_FALSE(ret);
+
+    ret = client.CallCypher(str, "CALL db.plugin.listUserPlugins()");
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.plugin.listPlugin('CPP')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 5);
     UT_EXPECT_EQ(
@@ -1371,29 +1586,29 @@ void test_cpp_plugin(lgraph::RpcClient& client) {
         true);
 
     ret = client.CallPlugin(str, "CPP", "test_plugin1", "bcefg");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "bcefg", "result"), true);
 
     ret =
         client.CallPlugin(str, "CPP", "test_plugin2", "{\"scan_edges\":true, \"times\":2}", 100.10);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
 
     ret = client.CallPlugin(str, "CPP", "test_plugin3", "{\"label\":\"vertex1\"}", 20.0);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "vertex1", "label"), true);
 
     ret = client.CallPlugin(str, "CPP", "test_plugin4", "9876543210", 10);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "0123456789", "result"), true);
 
     ret = client.CallPlugin(str, "CPP", "test_plugin5", "a2o4i18u5eq3", 10.1);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "123458aeioqu", "result"), true);
 }
@@ -1405,68 +1620,70 @@ void test_python_plugin(lgraph::RpcClient& client) {
     WritePythonPlugin();
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.dropDB()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.is_null(), true);
 
     ret = client.LoadPlugin(str, code_sleep, "PY", "python_plugin1", "PY", "this is a test plugin",
                             true);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.LoadPlugin(str, code_read, "PY", "python_plugin2", "PY", "this is a test plugin",
                             true);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.plugin.listPlugin('PY')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 2);
 
     ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('PY', 'python_plugin1')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('PY', 'python_plugin2')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('PY', 'python_plugin2')");
+    UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.plugin.listPlugin('PY')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.is_null(), true);
 }
 
 void test_cypher(lgraph::RpcClient& client) {
-    FMA_LOG() << "test CallCypher";
+    UT_LOG() << "test CallCypher";
     std::string str;
     bool ret = client.CallCypher(str, "match (n) return count(n)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(n)"].as_integer(), 6);
 }
 
 void test_import_file(lgraph::RpcClient& client) {
-    FMA_LOG() << "test ImportSchemaFromFile,ImportDataFromFile";
+    UT_LOG() << "test ImportSchemaFromFile,ImportDataFromFile";
     WriteYagoFiles();
     std::string conf_file("./yago.conf");
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.dropDB()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.is_null(), true);
     ret = client.ImportSchemaFromFile(str, conf_file);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 3);
     UT_EXPECT_EQ(HasElement(json_val, "Person", "label"), true);
     UT_EXPECT_EQ(HasElement(json_val, "City", "label"), true);
     UT_EXPECT_EQ(HasElement(json_val, "Film", "label"), true);
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 6);
     UT_EXPECT_EQ(HasElement(json_val, "HAS_CHILD", "edgeLabels"), true);
@@ -1476,7 +1693,7 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(HasElement(json_val, "WROTE_MUSIC_FOR", "edgeLabels"), true);
     UT_EXPECT_EQ(HasElement(json_val, "ACTED_IN", "edgeLabels"), true);
     ret = client.ImportDataFromFile(str, conf_file, ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 13);
@@ -1490,56 +1707,56 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 5);
 
     ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 7);
 
     ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 4);
 
     ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 6);
 
     ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 1);
 
     ret = client.CallCypher(str, "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 2);
 
     ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 8);
 }
 
 void test_import_content(lgraph::RpcClient& client) {
-    FMA_LOG() << "test ImportSchemaFromContent,ImportDataFromContent";
+    UT_LOG() << "test ImportSchemaFromContent,ImportDataFromContent";
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.dropDB()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.is_null(), true);
     ret = client.ImportSchemaFromContent(str, sImportContent["schema"]);
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 3);
     UT_EXPECT_EQ(HasElement(json_val, "Person", "label"), true);
     UT_EXPECT_EQ(HasElement(json_val, "City", "label"), true);
     UT_EXPECT_EQ(HasElement(json_val, "Film", "label"), true);
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 7);
     UT_EXPECT_EQ(HasElement(json_val, "HAS_CHILD", "edgeLabels"), true);
@@ -1551,75 +1768,75 @@ void test_import_content(lgraph::RpcClient& client) {
 
     ret = client.ImportDataFromContent(str, sImportContent["person_desc"], sImportContent["person"],
                                        ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 13);
 
     ret =
         client.ImportDataFromContent(str, sImportContent["city_desc"], sImportContent["city"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:City) return count(m)");
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 3);
 
     ret =
         client.ImportDataFromContent(str, sImportContent["film_desc"], sImportContent["film"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Film) return count(m)");
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 5);
 
     ret = client.ImportDataFromContent(str, sImportContent["has_child_desc"],
                                        sImportContent["has_child"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 7);
 
     ret = client.ImportDataFromContent(str, sImportContent["married_desc"],
                                        sImportContent["married"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 4);
 
     ret = client.ImportDataFromContent(str, sImportContent["born_in_desc"],
                                        sImportContent["born_in"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 6);
 
     ret = client.ImportDataFromContent(str, sImportContent["directed_desc"],
                                        sImportContent["directed"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 1);
 
     ret = client.ImportDataFromContent(str, sImportContent["wrote_desc"], sImportContent["wrote"],
                                        ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 2);
 
     ret = client.ImportDataFromContent(str, sImportContent["acted_in_desc"],
                                        sImportContent["acted_in"], ",");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 8);
 
     ret = client.CallCypher(str, "CALL db.getVertexSchema('Person')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["schema"]["properties"].size(), 3);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "label", "Person", "STRING"), true);
@@ -1627,7 +1844,7 @@ void test_import_content(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "type", "VERTEX", "STRING"), true);
 
     ret = client.CallCypher(str, "CALL db.getEdgeSchema('PLAY_IN')");
-    UT_EXPECT_EQ(ret, true);
+    UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val["schema"]["constraints"].size(), 1);
     UT_EXPECT_EQ(json_val["schema"]["constraints"][0].size(), 2);
@@ -1639,9 +1856,8 @@ void* test_rpc_client(void*) {
     using namespace lgraph;
     std::unique_lock<std::mutex> l(lock_rpc);
     if (stage_3 == 0) cond.wait(l);
-
     // start test user login
-    FMA_LOG() << "admin user login";
+    UT_LOG() << "admin user login";
     RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
 
     test_cypher(client3);
@@ -1663,7 +1879,7 @@ void* test_rpc_client(void*) {
     test_graph(client3);
 
     test_allow_host(client3);
-
+    test_info(client3);
     test_configration(client3);
 
     test_role(client3);
@@ -1684,7 +1900,7 @@ void* test_rpc_client(void*) {
 
     stage_3++;
     cond.notify_one();
-    FMA_LOG() << __func__ << " thread exit";
+    UT_LOG() << __func__ << " thread exit";
     return nullptr;
 }
 
@@ -1696,5 +1912,4 @@ TEST_F(TestRPC, RPC) {
                                 std::thread(test_rpc_client, nullptr)};
     tid_https[0].join();
     tid_https[1].join();
-    return 0;
 }

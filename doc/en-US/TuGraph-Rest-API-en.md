@@ -1,11 +1,5 @@
 # TuGraph REST API User Guide
 
-Version: 3.3.1
-
-2022/07/19
-
-Ant Group
-
 ----
 
 - [Introduction](#introduction)

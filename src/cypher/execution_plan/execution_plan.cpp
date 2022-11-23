@@ -1310,8 +1310,8 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     ctx->txn_.reset(nullptr);
     ctx->ac_db_.reset(nullptr);
     std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
-    if (entry_id != out_id)
 #ifndef NDEBUG
+    if (entry_id != out_id)
         FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
 #endif
     return 0;

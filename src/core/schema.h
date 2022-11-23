@@ -179,8 +179,7 @@ class Schema {
         std::string name = GetTemporalField();
         int ret = -1;
         for (size_t i = 0; i < n_fields; ++i) {
-            if (field_names[i] == name)
-                ret = static_cast<int>(i);
+            if (field_names[i] == name) ret = static_cast<int>(i);
         }
         return ret;
     }
@@ -189,8 +188,7 @@ class Schema {
         size_t id = GetTemporalFieldId();
         int ret = -1;
         for (size_t i = 0; i < n_fields; ++i) {
-            if (field_ids[i] == id)
-                ret = static_cast<int>(i);
+            if (field_ids[i] == id) ret = static_cast<int>(i);
         }
         return ret;
     }
@@ -379,13 +377,6 @@ class Schema {
 
     const std::unordered_set<size_t>& GetIndexedFields() const { return indexed_fields_; }
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
-
-    void UpdateVertexIndex(KvTransaction& txn, VertexId vid, const Value& old_record,
-                           const Value& new_record);
-
-    void UpdateEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid, EdgeId eid,
-                         const Value& old_record, const Value& new_record);
-
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid, EdgeId eid,

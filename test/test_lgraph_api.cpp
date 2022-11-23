@@ -28,13 +28,12 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
     const std::string& dir = "./testdb";
     lgraph::AutoCleanDir cleaner(dir);
     Galaxy galaxy(dir, false, true);
-    galaxy.SetCurrentUser(lgraph::_detail::DEFAULT_ADMIN_NAME,
-        lgraph::_detail::DEFAULT_ADMIN_PASS);
+    galaxy.SetCurrentUser(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
     auto graph = galaxy.OpenGraph(lgraph::_detail::DEFAULT_GRAPH_DB_NAME);
     graph.AddVertexLabel(std::string("v"),
-                          std::vector<FieldSpec>({{"id", FieldType::STRING, false},
-                                                  {"content", FieldType::STRING, true}}),
-                          "id");
+                         std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                 {"content", FieldType::STRING, true}}),
+                         "id");
 
     Barrier bar(n_threads);
     std::atomic<size_t> n_success(0);
@@ -173,6 +172,8 @@ TEST_F(TestLGraphApi, LGraphApi) {
         Galaxy galaxy(path);
         galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
         GraphDB db = galaxy.OpenGraph("default");
+        UT_EXPECT_EQ(db.GetDescription(), "");
+        UT_EXPECT_EQ(db.GetMaxSize(), 1LL << 40);
         // add vertex label
         std::string vertex_label("vertex");
         std::vector<std::string> vertex_feild_name = {"id", "type", "content"};
@@ -208,6 +209,8 @@ TEST_F(TestLGraphApi, LGraphApi) {
         Galaxy galaxy(path);
         galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
         GraphDB db = galaxy.OpenGraph("default");
+        db = galaxy.OpenGraph("default");
+        UT_EXPECT_FALSE(ShouldKillThisTask());
         db.DropAllData();
         // add vertex label
         std::string vlabel = "v";
@@ -240,6 +243,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esw", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esp", "weight"));
             auto txn1 = db.CreateWriteTxn();
+            UT_EXPECT_TRUE(txn1.IsEdgeIndexed("esw", "weight"));
+            std::vector<size_t> edge_field_ids =
+                txn1.GetEdgeFieldIds(1, std::vector<std::string>{"weight"});
+            UT_EXPECT_EQ(edge_field_ids[0], 0);
             for (int i = 0; i < 4; i++) {
                 UT_EXPECT_TRUE(
                     txn1.AddEdge(i, (i + 1) % 4, "esw", {"weight"}, {FieldData(int64_t(i))}) ==
@@ -250,12 +257,43 @@ TEST_F(TestLGraphApi, LGraphApi) {
                     txn1.AddEdge(i, (i + 1) % 4, "esp", {"weight"}, {FieldData(int64_t(i))}) ==
                     EdgeUid(i, (i + 1) % 4, 2, 0, 0));
             }
+            UT_EXPECT_FALSE(txn1.GetEdgeByUniqueIndex("esw", "weight", "1").IsValid());
+            UT_EXPECT_FALSE(txn1.GetEdgeByUniqueIndex("esw", "weight", FieldData(1)).IsValid());
+            UT_EXPECT_FALSE(txn1.GetEdgeByUniqueIndex(1, 0, FieldData(1)).IsValid());
             auto eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
             auto eit2 = txn1.GetEdgeIndexIterator("esw", "weight", "2", "3");
+            auto test_edge_iter1 =
+                txn1.GetEdgeIndexIterator("esw", "weight", FieldData(1), FieldData(2));
+            UT_EXPECT_TRUE(test_edge_iter1.IsValid());
+            UT_EXPECT_TRUE(txn1.GetOutEdgeIterator(0, 1, 1).IsValid());
+            UT_EXPECT_FALSE(txn1.GetOutEdgeIterator(0, 1, 0).IsValid());
+            UT_EXPECT_TRUE(txn1.GetInEdgeIterator(0, 1, 1).IsValid());
+            UT_EXPECT_FALSE(txn1.GetInEdgeIterator(1, 0, 0).IsValid());
+            auto out_eit = txn1.GetOutEdgeIterator(0, 1, 1);
+            out_eit.SetFields(std::vector<std::string>{"weight"}, std::vector<std::string>{"0"});
+            UT_EXPECT_EQ(out_eit.GetFields(std::vector<std::string>{"weight"})[0].AsInt64(), 0);
+            auto in_eit = txn1.GetInEdgeIterator(0, 1, 1);
+            UT_EXPECT_EQ(in_eit.GetFields(std::vector<std::string>{"weight"})[0].AsInt64(), 0);
+            UT_EXPECT_EQ(in_eit.GetFields(std::vector<std::size_t>{0})[0].AsInt64(), 0);
+
+            EdgeIndexIterator test_eit1(txn1.GetEdgeIndexIterator("esw", "weight", "1", "2"));
+            test_eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
+            auto test_eit2 = txn1.GetEdgeIndexIterator("esw", "weight", "2", "3");
+            test_eit2.Next();
+            UT_EXPECT_TRUE(test_eit2.IsValid());
+            test_eit2.Close();
+            UT_EXPECT_FALSE(test_eit2.IsValid());
+            UT_EXPECT_EQ(test_eit1.GetSrc(), 1);
+            UT_EXPECT_EQ(test_eit1.GetDst(), 2);
+            UT_EXPECT_EQ(test_eit1.GetEdgeId(), 0);
+            UT_EXPECT_EQ(test_eit1.GetLabelId(), 1);
+            UT_EXPECT_EQ(test_eit1.GetUid().src, 1);
+
             UT_EXPECT_TRUE(eit1.IsValid());
             UT_EXPECT_TRUE(eit2.IsValid());
             UT_EXPECT_EQ(eit1.GetIndexValue().ToString(), "1");
             UT_EXPECT_EQ(eit2.GetIndexValue().ToString(), "2");
+
             auto eit3 = txn1.GetEdgeIndexIterator("esp", "weight", "1", "2");
             auto eit4 = txn1.GetEdgeIndexIterator("esp", "weight", "2", "3");
             UT_EXPECT_TRUE(eit3.IsValid());
@@ -269,6 +307,21 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_TRUE(db.DeleteEdgeLabel("esw"));
             UT_EXPECT_TRUE(db.DeleteEdgeLabel("esp"));
             UT_EXPECT_TRUE(db.DeleteVertexLabel("esk"));
+        }
+        UT_LOG() << "\tTesting FullTextIndex";
+        {
+            UT_EXPECT_ANY_THROW(db.AddVertexFullTextIndex("esw", "esp"));
+            UT_EXPECT_ANY_THROW(db.AddEdgeFullTextIndex("esw", "esp"));
+            UT_EXPECT_ANY_THROW(db.DeleteVertexFullTextIndex("esw", "esp"));
+            UT_EXPECT_ANY_THROW(db.DeleteEdgeFullTextIndex("esw", "esp"));
+            std::set<std::string> vertex_labels;
+            vertex_labels.insert("esw");
+            std::set<std::string> edge_labels;
+            edge_labels.insert("esp");
+            db.RebuildFullTextIndex(vertex_labels, edge_labels);
+            db.ListFullTextIndexes();
+            UT_EXPECT_ANY_THROW(db.QueryVertexByFullTextIndex("esw", "name", 1));
+            UT_EXPECT_ANY_THROW(db.QueryEdgeByFullTextIndex("esp", "id", 1));
         }
         UT_LOG() << "\tTesting delete";
         {
@@ -470,14 +523,14 @@ TEST_F(TestLGraphApi, LGraphApi) {
             db.AddEdgeLabel("et",
                             std::vector<lgraph_api::FieldSpec>{
                                 lgraph_api::FieldSpec("ts", FieldType::INT64, false),
-                                lgraph_api::FieldSpec("tt", FieldType::INT64, false)}, "ts",
-                            {});
+                                lgraph_api::FieldSpec("tt", FieldType::INT64, false)},
+                            "ts", {});
             auto AddEdgeWithInt = [&](int64_t src, int64_t dst, const int64_t i) {
-              auto txn = db.CreateWriteTxn();
-              auto eid = txn.AddEdge(src, dst, "et", std::vector<std::string>{"ts", "tt"},
-                                     std::vector<FieldData>{FieldData(i), FieldData(i)});
-              txn.Commit();
-              return eid;
+                auto txn = db.CreateWriteTxn();
+                auto eid = txn.AddEdge(src, dst, "et", std::vector<std::string>{"ts", "tt"},
+                                       std::vector<FieldData>{FieldData(i), FieldData(i)});
+                txn.Commit();
+                return eid;
             };
             auto eid1 = AddEdgeWithInt(vid1, vid2, 12);
             auto txn = db.CreateWriteTxn();
@@ -550,14 +603,44 @@ TEST_F(TestLGraphApi, LGraphApi) {
                                          std::vector<FieldSpec>({{"id", FieldType::INT32, false},
                                                                  {"img", FieldType::BLOB, true}}),
                                          "id"));
+
         UT_EXPECT_TRUE(db.AddVertexLabel("v2",
                                          std::vector<FieldSpec>({{"id2", FieldType::INT32, false},
                                                                  {"valid", FieldType::BOOL, true}}),
                                          "id2"));
+        UT_EXPECT_TRUE(db.AddVertexLabel("test_v",
+                                         std::vector<FieldSpec>({{"id3", FieldType::INT32, false},
+                                                                 {"img3", FieldType::BOOL, true}}),
+                                         "id3"));
+        UT_EXPECT_TRUE(db.AlterVertexLabelAddFields(
+            "test_v", std::vector<FieldSpec>({{"test3", FieldType::STRING, false}}),
+            std::vector<FieldData>{FieldData("test_value")}));
+
+        UT_EXPECT_TRUE(db.AlterVertexLabelModFields(
+            "test_v", std::vector<FieldSpec>({{"test3", FieldType::STRING, true}})));
+
+        UT_EXPECT_TRUE(db.AlterVertexLabelDelFields("test_v", std::vector<std::string>({"test3"})));
+
         UT_EXPECT_TRUE(db.AddEdgeLabel(
             "e1", std::vector<FieldSpec>({{"weight", FieldType::FLOAT, false}}), {}));
         UT_EXPECT_TRUE(db.AddEdgeLabel(
             "e2", std::vector<FieldSpec>({{"weight2", FieldType::DOUBLE, false}}), {}));
+        UT_EXPECT_TRUE(db.AddEdgeLabel(
+            "test_edge", std::vector<FieldSpec>({{"test_weight", FieldType::STRING, false}}), {}));
+
+        UT_EXPECT_TRUE(db.AlterEdgeLabelAddFields(
+            "test_edge", std::vector<FieldSpec>({{"test_edge", FieldType::STRING, false}}),
+            std::vector<FieldData>{FieldData("test_value")}));
+
+        UT_EXPECT_TRUE(db.AlterEdgeLabelModFields(
+            "test_edge", std::vector<FieldSpec>({{"test_edge", FieldType::STRING, true}})));
+
+        UT_EXPECT_TRUE(db.AlterLabelModEdgeConstraints(
+            "test_edge", std::vector<std::pair<std::string, std::string>>{{"v1", "v2"}}));
+
+        UT_EXPECT_TRUE(
+            db.AlterEdgeLabelDelFields("test_edge", std::vector<std::string>({"test_edge"})));
+
         UT_EXPECT_TRUE(db.DeleteVertexLabel("v2"));
         UT_EXPECT_TRUE(db.DeleteEdgeLabel("e2"));
         auto txn = db.CreateWriteTxn();
@@ -605,6 +688,48 @@ TEST_F(TestLGraphApi, LGraphApi) {
                     std::vector<std::string>{std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1'),
                                              std::string("333")}),
                 "key size");
+        }
+        {
+            UT_LOG() << "Test Exception";
+            UT_EXPECT_THROW(throw OutOfRangeError("Out of Range"), OutOfRangeError);
+            UT_EXPECT_THROW_MSG(throw InvalidGalaxyError(), "Invalid Galaxy");
+            UT_EXPECT_THROW_MSG(throw InvalidGraphDBError(), "Invalid GraphDB.");
+            UT_EXPECT_THROW_MSG(throw InvalidTxnError(), "Invalid transaction.");
+            UT_EXPECT_THROW_MSG(throw InvalidIteratorError(), "Invalid iterator.");
+            UT_EXPECT_THROW_MSG(throw InvalidForkError(), "Write transactions cannot be forked.");
+            UT_EXPECT_THROW_MSG(throw TaskKilledException(), "Task killed.");
+            UT_EXPECT_THROW_MSG(throw IOError(), "IO Error.");
+        }
+        {
+            UT_LOG() << "Test Lgraph Types";
+            UT_EXPECT_EQ(to_string(FieldAccessLevel::NONE), "NONE");
+            UT_EXPECT_EQ(to_string(FieldAccessLevel::READ), "READ");
+            UT_EXPECT_EQ(to_string(FieldAccessLevel::WRITE), "WRITE");
+            UT_EXPECT_EQ(to_string(FieldType::NUL), "NUL");
+            UT_EXPECT_EQ(to_string(FieldType::INT32), "INT32");
+            UT_EXPECT_EQ(to_string(FieldType::INT64), "INT64");
+            UT_EXPECT_EQ(to_string(FieldType::FLOAT), "FLOAT");
+            UT_EXPECT_EQ(to_string(FieldType::DOUBLE), "DOUBLE");
+            UT_EXPECT_EQ(to_string(FieldType::DATE), "DATE");
+            UT_EXPECT_EQ(to_string(FieldType::DATETIME), "DATETIME");
+            UT_EXPECT_EQ(to_string(FieldType::BLOB), "BLOB");
+            UT_EXPECT_EQ(PluginCodeTypeStr(PluginCodeType::CPP), "cpp");
+            UT_EXPECT_EQ(PluginCodeTypeStr(PluginCodeType::ZIP), "zip");
+            UT_EXPECT_TRUE(FieldData::Bool(true).AsBool());
+            UT_EXPECT_EQ(FieldData::Int16(32767).AsInt16(), 32767);
+            UT_EXPECT_EQ(FieldData::Int32(32767).AsInt32(), 32767);
+            UT_EXPECT_EQ(FieldData::Int64(32767).AsInt64(), 32767);
+            UT_EXPECT_EQ(FieldData::Float(1.2).AsFloat(), (float)(1.2));
+            UT_EXPECT_EQ(FieldData::Double(1.2).AsDouble(), (double)(1.2));
+            UT_EXPECT_THROW(FieldData::Bool(true).real(), std::bad_cast);
+            UT_EXPECT_THROW(FieldData::Bool(true).integer(), std::bad_cast);
+            UT_EXPECT_THROW(FieldData::Bool(true).string(), std::bad_cast);
+            UT_EXPECT_THROW(FieldData::Bool(true).AsBase64Blob(), std::bad_cast);
+            UT_EXPECT_FALSE(FieldData::Bool(true) > FieldData::Bool(true));
+            UT_EXPECT_TRUE(FieldData::Bool(true) >= FieldData::Bool(true));
+            UT_EXPECT_TRUE(FieldData::Float(1.2) >= FieldData::Float(1.19));
+            UT_EXPECT_TRUE(FieldData::Int32(2) > FieldData::Float(1.2));
+            UT_EXPECT_THROW((FieldData::String("2") > FieldData::Float(1.2)), std::runtime_error);
         }
     }
     // #endif

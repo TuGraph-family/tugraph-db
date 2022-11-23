@@ -5,14 +5,13 @@
 
 TuGraph Procedure API - Python
 ====================================
-Version: 3.3.1
+Version: 3.3.2
 
 Copyright (C) 2018-2022 Ant Group.
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
 Introduction
 ------------------

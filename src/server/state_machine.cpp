@@ -67,8 +67,8 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             // determine if this is a write op
             std::string name;
             std::string type;
-            bool ret = cypher::Scheduler::DetermineReadOnly(req->cypher_request().query(),
-                                                            name, type);
+            bool ret =
+                cypher::Scheduler::DetermineReadOnly(req->cypher_request().query(), name, type);
             if (name.empty() || type.empty()) {
                 return !ret;
             } else {
@@ -91,10 +91,10 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             }
             const std::string& user = GetCurrUser(req);
             AccessControlledDB db = galaxy_->OpenGraph(user, preq.graph());
-            return !db.IsReadOnlyPlugin(
-                preq.type() == PluginRequest::CPP ? PluginManager::PluginType::CPP
-                                                  : PluginManager::PluginType::PYTHON,
-                req->token(), preq.call_plugin_request().name());
+            return !db.IsReadOnlyPlugin(preq.type() == PluginRequest::CPP
+                                            ? PluginManager::PluginType::CPP
+                                            : PluginManager::PluginType::PYTHON,
+                                        req->token(), preq.call_plugin_request().name());
         }
     }
 }
@@ -281,19 +281,14 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
         auto param = preq.param();
         boost::replace_all(param, "\n", "");
         FMA_DBG_STREAM(logger_) << fma_common::StringFormatter::Format(
-            "[Calling Plugin] plugin_name={}, elapsed={}, res={}, param=[{}]",
-            preq.name(),
-            end_time - start_time,
-            LGraphResponse_ErrorCode_Name(resp->error_code()),
-            param);
+            "[Calling Plugin] plugin_name={}, elapsed={}, res={}, param=[{}]", preq.name(),
+            end_time - start_time, LGraphResponse_ErrorCode_Name(resp->error_code()), param);
     } else if (req->Req_case() == LGraphRequest::kCypherRequest) {
         auto query = req->cypher_request().query();
         boost::replace_all(query, "\n", "");
         FMA_DBG_STREAM(logger_) << fma_common::StringFormatter::Format(
-            "[Calling Cypher] elapsed={}, res={}, cypher=[{}]",
-            end_time - start_time,
-            LGraphResponse_ErrorCode_Name(resp->error_code()),
-            query);
+            "[Calling Cypher] elapsed={}, res={}, cypher=[{}]", end_time - start_time,
+            LGraphResponse_ErrorCode_Name(resp->error_code()), query);
     }
     if (resp->error_code() == LGraphResponse::SUCCESS)
         AUDIT_LOG_SUCC();
@@ -393,7 +388,6 @@ bool lgraph::StateMachine::ApplySchemaRequest(const LGraphRequest* req, LGraphRe
     resp->mutable_schema_response()->set_log(std::move(log));
     return RespondSuccess(resp);
 }
-
 bool lgraph::StateMachine::ApplyImportRequest(const LGraphRequest* req, LGraphResponse* resp,
                                               bool is_rest_request) {
     if (req->Req_case() != LGraphRequest::kImportRequest) {
@@ -513,20 +507,6 @@ bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req, LG
             bool r = galaxy_->DeleteGraph(curr_user, dr.name());
             RETURN_SUCCESS_OR_BAD_INPUT(r, resp, FMA_FMT("Graph [{}] does not exist.", dr.name()));
         }
-    case GraphRequest::kListGraphsRequest:
-        {
-            AutoTaskTracker task_tracker(false, false);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, false,
-                                          req.DebugString());
-            const ListGraphsRequest& lr = req.list_graphs_request();
-            auto graphs = galaxy_->ListGraphs(curr_user);
-            ListGraphsResponse* lresp = gresp->mutable_list_graphs_response();
-            for (auto& g : graphs) {
-                lresp->add_names(g.first);
-                convert::FromLGraphT(g.second, lresp->add_configs());
-            }
-            return RespondSuccess(resp);
-        }
     default:
         {
             BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
@@ -598,54 +578,6 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
             bool success = galaxy_->DeleteUser(curr_user, areq.user());
             RETURN_SUCCESS_OR_BAD_INPUT(success, resp,
                                         FMA_FMT("User [{}] does not exist.", areq.user()));
-        }
-    case AclRequest::kListRoleInfoRequest:
-        {
-            AutoTaskTracker task_tracker(false, false);
-            const auto& areq = req.list_role_info_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, false,
-                                          req.DebugString());
-            auto rinfo = galaxy_->GetRoleInfo(curr_user, areq.role());
-            auto* aresp = resp->mutable_acl_response()->mutable_list_role_info_response();
-            ProtoRoleInfo pri = convert::FromLGraphT(rinfo);
-            aresp->mutable_info()->Swap(&pri);
-            return RespondSuccess(resp);
-        }
-    case AclRequest::kListRoleRequest:
-        {
-            AutoTaskTracker task_tracker(false, false);
-            const auto& areq = req.list_role_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, false,
-                                          req.DebugString());
-            auto roles = galaxy_->ListRoles(curr_user);
-            auto* aresp = resp->mutable_acl_response()->mutable_list_role_response();
-            for (auto& kv : roles)
-                (*aresp->mutable_roles())[kv.first] = convert::FromLGraphT(kv.second);
-            return RespondSuccess(resp);
-        }
-    case AclRequest::kListUserInfoRequest:
-        {
-            AutoTaskTracker task_tracker(false, false);
-            const auto& areq = req.list_user_info_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, false,
-                                          req.DebugString());
-            auto uinfo = galaxy_->GetUserInfo(curr_user, areq.user());
-            auto* aresp = resp->mutable_acl_response()->mutable_list_user_info_response();
-            ProtoUserInfo pui = convert::FromLGraphT(uinfo);
-            aresp->mutable_info()->Swap(&pui);
-            return RespondSuccess(resp);
-        }
-    case AclRequest::kListUserRequest:
-        {
-            AutoTaskTracker task_tracker(false, false);
-            const auto& areq = req.list_user_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, false,
-                                          req.DebugString());
-            auto roles = galaxy_->ListUsers(curr_user);
-            auto* aresp = resp->mutable_acl_response()->mutable_list_user_response();
-            for (auto& kv : roles)
-                (*aresp->mutable_users())[kv.first] = convert::FromLGraphT(kv.second);
-            return RespondSuccess(resp);
         }
     case AclRequest::kModRoleRequest:
         {
@@ -722,9 +654,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
             if (success) {
                 return RespondSuccess(resp);
             } else {
-                return RespondBadInput(
-                    resp, FMA_FMT("VertexIndex [{}:{}] already exists.",
-                                  ireq.label(), ireq.field()));
+                return RespondBadInput(resp, FMA_FMT("VertexIndex [{}:{}] already exists.",
+                                                     ireq.label(), ireq.field()));
             }
         }
     case GraphApiRequest::kDelIndexRequest:
@@ -737,9 +668,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
             if (success) {
                 return RespondSuccess(resp);
             } else {
-                return RespondBadInput(
-                    resp, FMA_FMT("VertexIndex [{}:{}] does not exists.",
-                                  ireq.label(), ireq.field()));
+                return RespondBadInput(resp, FMA_FMT("VertexIndex [{}:{}] does not exists.",
+                                                     ireq.label(), ireq.field()));
             }
         }
     // vertex
@@ -932,8 +862,8 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
     } else {
         std::string name;
         std::string type;
-        bool ret = cypher::Scheduler::DetermineReadOnly(lgraph_req->cypher_request().query(),
-                                                        name, type);
+        bool ret =
+            cypher::Scheduler::DetermineReadOnly(lgraph_req->cypher_request().query(), name, type);
         if (name.empty() || type.empty()) {
             is_write = !ret;
         } else {
@@ -942,9 +872,9 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
             AccessControlledDB db = galaxy_->OpenGraph(user, creq.graph());
             type.erase(remove(type.begin(), type.end(), '\"'), type.end());
             name.erase(remove(name.begin(), name.end(), '\"'), name.end());
-            is_write = !db.IsReadOnlyPlugin(type == "CPP" ? PluginManager::PluginType::CPP
-                                                          : PluginManager::PluginType::PYTHON,
-                                            lgraph_req->token(), name);
+            is_write = !db.IsReadOnlyPlugin(
+                type == "CPP" ? PluginManager::PluginType::CPP : PluginManager::PluginType::PYTHON,
+                lgraph_req->token(), name);
         }
     }
     AutoTaskTracker task_tracker("[CYPHER] " + lgraph_req->cypher_request().query(), true,
@@ -955,8 +885,8 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
     CypherResponse* cresp = resp->mutable_cypher_response();
     const std::string& user = galaxy_->ParseAndValidateToken(lgraph_req->token());
     auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
-    cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(),
-                          user, req.graph(), field_access);
+    cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
+                          field_access);
 
     BEG_AUDIT_LOG_IF_NOT_REST_REQ(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
                                   "[CYPHER] " + req.query());

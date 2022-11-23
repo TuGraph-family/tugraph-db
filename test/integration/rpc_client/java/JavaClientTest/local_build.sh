@@ -1,15 +1,5 @@
-#!/usr/bin/env bash
 
-# prepare protobuf
-PROTO_DIR=`pwd`/../../src/protobuf/
-echo ${PROTO_DIR}
-mkdir -p `pwd`/../../src/client/java/TuGraphRpcClient/rpc-client/src/main/proto/
-ln -sf ${PROTO_DIR}/ha.proto `pwd`/../../src/client/java/TuGraphRpcClient/rpc-client/src/main/proto/lgraph.proto
+mvn install:install-file -Dfile=../../src/client/java/TuGraphRpcClient/rpc-client/target/tugraph-java-rpc-client-0.0.1.jar  -DgroupId=om.antgroup.tugraph -DartifactId=tugraph-rpc-client-parent -Dversion=0.0.1  -Dpackaging=jar
 
-#build TuGraphRpcClient
-mvn clean -f  ../../src/client/java/TuGraphRpcClient/pom.xml install -DskipTests
-
-#build JavaClientTest
-mvn clean -f rpc_client/java/JavaClientTest/pom.xml install -DskipTests
 
 

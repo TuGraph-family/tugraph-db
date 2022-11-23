@@ -1,11 +1,5 @@
 # TuGraph Stored Procedure Guide
 
-Version: 3.3.1
-
-2022/07/19
-
-Ant Group
-
 ---
 
 ## Table of Contents
