@@ -46,9 +46,11 @@ add_executable(lgraph_binlog lgraph_binlog.cpp
                ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
 target_link_libraries(lgraph_binlog lgraph_server_lib)
 
-set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog)
+set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog lgraph_monitor)
 
 # install
 install(TARGETS ${LGRAPH_TOOLKITS}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib64)
+
+

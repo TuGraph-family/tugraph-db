@@ -16,7 +16,9 @@ add_executable(unit_test
         main.cpp
         ut_utils.cpp
         test_audit_logger.cpp
+        test_backup_restore.cpp
         test_batch_vertex_index.cpp
+        test_batch_edge_index.cpp
         test_blob_manager.cpp
         test_cache_aligned_vector.cpp
         test_concurrent_gettime.cpp
@@ -56,6 +58,7 @@ add_executable(unit_test
         test_lgraph_export.cpp
         test_lgraph_monkey.cpp
         test_lgraph_server.cpp
+        test_lgraph_utils.cpp
         test_kv_store.cpp
         test_lgraph.cpp
         test_lgraph_api.cpp
@@ -80,6 +83,7 @@ add_executable(unit_test
         test_restful_abnormal_branch.cpp
         test_restful_base_operation.cpp
         test_restful_import_online.cpp
+        test_rpc.cpp
         test_schema.cpp
         test_schema_change.cpp
         test_schema_manager.cpp

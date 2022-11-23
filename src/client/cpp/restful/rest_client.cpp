@@ -124,6 +124,34 @@ json::value RestClient::DoGraphGet(const std::string& db, const std::string& url
     return DoGet("/db/" + db + url, expect_return);
 }
 
+json::value RestClient::GetLabelNum(const std::string& graph) {
+    return DoGraphGet(graph, "/relationship", true);
+}
+
+json::value RestClient::ListUserLabel(const std::string& graph) {
+    return DoGraphGet(graph, "/label", true);
+}
+
+json::value RestClient::ListUserGraph(const std::string& user_name) {
+    return DoGet(FMA_FMT("/user/{}/graph", user_name), true);
+}
+
+json::value RestClient::ListGraphs(const std::string& graph) {
+    if (graph.size() == 0) {
+        return DoGet("/graph", true);
+    } else {
+        return DoGet(FMA_FMT("/graph/{}", graph), true);
+    }
+}
+
+json::value RestClient::ListRoles(const std::string& role) {
+    if (role.size() == 0) {
+        return DoGet("/role", true);
+    } else {
+        return DoGet(FMA_FMT("/role/{}", role), true);
+    }
+}
+
 json::value RestClient::DoDelete(const std::string& url, bool expect_return) {
     http_response response;
     try {
@@ -164,6 +192,17 @@ void RestClient::DoPut(const std::string& url, const json::value& body) {
 void RestClient::DoGraphPut(const std::string& db, const std::string& url,
                             const json::value& body) {
     return DoPut("/db/" + db + url, body);
+}
+
+void RestClient::SetConfig(std::map<std::string, FieldData>& configs) {
+    json::value body;
+    body = ValueToJson(configs);
+    return DoPut("/config", body);
+}
+
+void RestClient::SetMisc() {
+    json::value body;
+    DoPost("/misc/sync_meta", body, false);
 }
 
 RestClient::RestClient(const std::string& url, const std::string& cert_path, size_t timeout_seconds)
@@ -647,10 +686,7 @@ std::map<std::string, FieldData> RestClient::GetEdge(const std::string& db,
                                                      const lgraph::EdgeUid& euid,
                                                      std::string& label) {
     std::map<std::string, FieldData> ret;
-    auto response = DoGraphGet(
-        db,
-        FMA_FMT("/relationship/{}", euid.ToString()),
-        true);
+    auto response = DoGraphGet(db, FMA_FMT("/relationship/{}", euid.ToString()), true);
     JsonToType(response[RestStrings::LABEL], label);
     json::object jsob = response[RestStrings::PROP].as_object();
     json::object::iterator iter;
@@ -659,8 +695,7 @@ std::map<std::string, FieldData> RestClient::GetEdge(const std::string& db,
         JsonToType(iter->second, fd);
         ret.insert(std::make_pair(_TS(iter->first), fd));
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetEdge "
-                            << FMA_FMT("{}", euid.ToString())
+    FMA_DBG_STREAM(logger_) << "[RestClient] GetEdge " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
     return ret;
 }
@@ -668,9 +703,7 @@ std::map<std::string, FieldData> RestClient::GetEdge(const std::string& db,
 std::map<std::string, FieldData> RestClient::GetEdgeFields(const std::string& db,
                                                            const lgraph::EdgeUid& euid) {
     std::map<std::string, FieldData> ret;
-    auto response = DoGraphGet(db,
-                               FMA_FMT("/relationship/{}/property", euid.ToString()),
-                               true);
+    auto response = DoGraphGet(db, FMA_FMT("/relationship/{}/property", euid.ToString()), true);
     json::object jsob = response.as_object();
     json::object::iterator iter;
     FieldData fd;
@@ -689,12 +722,10 @@ FieldData RestClient::GetEdgeField(const std::string& db, const lgraph::EdgeUid&
     auto resp =
         DoGraphGet(db, FMA_FMT("/relationship/{}/property/{}", euid.ToString(), field_name), true);
     if (JsonToType(resp, ret)) {
-        FMA_DBG_STREAM(logger_) << "[RestClient] GetEdgeField "
-                                << FMA_FMT("{}:", euid.ToString())
+        FMA_DBG_STREAM(logger_) << "[RestClient] GetEdgeField " << FMA_FMT("{}:", euid.ToString())
                                 << field_name << " succeeded";
     } else {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetEdgeField "
-                                 << FMA_FMT("{}:", euid.ToString())
+        FMA_WARN_STREAM(logger_) << "[RestClient] GetEdgeField " << FMA_FMT("{}:", euid.ToString())
                                  << field_name << " failed";
     }
     return ret;
@@ -734,10 +765,8 @@ void RestClient::SetEdgeProperty(const std::string& db, const lgraph::EdgeUid& e
     }
     json::value body_data;
     body_data[_TU(RestStrings::PROP)] = js_prop;
-    DoGraphPut(db, FMA_FMT("/relationship/{}", euid.ToString()),
-               body_data);
-    FMA_DBG_STREAM(logger_) << "[RestClient] SetEdgeProperty "
-                            << FMA_FMT("{}", euid.ToString())
+    DoGraphPut(db, FMA_FMT("/relationship/{}", euid.ToString()), body_data);
+    FMA_DBG_STREAM(logger_) << "[RestClient] SetEdgeProperty " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
 }
 
@@ -752,10 +781,8 @@ void RestClient::DeleteVertex(const std::string& db, lgraph::VertexId vid, size_
 }
 
 void RestClient::DeleteEdge(const std::string& db, const lgraph::EdgeUid& euid) {
-    DoGraphDelete(db, FMA_FMT("/relationship/{}", euid.ToString()),
-                  false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] DeleteEdge "
-                            << FMA_FMT("{}", euid.ToString())
+    DoGraphDelete(db, FMA_FMT("/relationship/{}", euid.ToString()), false);
+    FMA_DBG_STREAM(logger_) << "[RestClient] DeleteEdge " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
 }
 
@@ -866,19 +893,18 @@ void RestClient::CreateRole(const std::string& role, const std::string& desc) {
 void RestClient::DeleteRole(const std::string& role) { DoDelete("/role/" + role, false); }
 
 void RestClient::DisableRole(const std::string& role) {
-    DoPost(FMA_FMT("/role/{}/disable"), json::value(), false);
+    DoPost(FMA_FMT("/role/{}/disable", role), json::value(), false);
 }
 
 void RestClient::EnableRole(const std::string& role) {
-    DoPost(FMA_FMT("/role/{}/enable"), json::value(), false);
+    DoPost(FMA_FMT("/role/{}/enable", role), json::value(), false);
 }
 
 void RestClient::SetRoleGraphAccess(
     const std::string& role, const std::map<std::string, lgraph_api::AccessLevel>& graph_access) {
     json::value body;
-    body[RestStrings::ROLE] = json::value(_TU(role));
-    body[RestStrings::GRAPH] = ValueToJson(graph_access);
-    DoPost(FMA_FMT("/role/{}/{}", role, _TS(RestStrings::GRAPH)), body, false);
+    body = ValueToJson(graph_access);
+    DoPost(FMA_FMT("/role/{}/{}", role, RestStrings::PERMISSIONS), body, false);
 }
 
 void RestClient::SetRoleDesc(const std::string& role, const std::string& desc) {
@@ -928,7 +954,6 @@ bool RestClient::GetServerInfo(RestClient::CPURate& cpu_rate, RestClient::Memory
         int64_t port, rpc_port;
         if (!ExtractTypedField(js_db_config, _TU("durable"), db_config.durable) ||
             !ExtractTypedField(js_db_config, _TU("disable_auth"), db_config.disable_auth) ||
-//            !ExtractTypedField(js_db_config, _TU("enable_ha"), db_config.enable_ha) ||
             !ExtractTypedField(js_db_config, _TU("enable_rpc"), db_config.enable_rpc) ||
             !ExtractTypedField(js_db_config, _TU("bind_host"), db_config.host) ||
             !ExtractTypedField(js_db_config, _TU("port"), port) ||
@@ -1041,30 +1066,6 @@ std::string RestClient::ExecutePlugin(const std::string& db, bool is_cpp,
 void RestClient::DeletePlugin(const std::string& db, bool is_cpp, const std::string& plugin_name) {
     DoGraphDelete(db, FMA_FMT("/{}_plugin/{}", is_cpp ? "cpp" : "python", plugin_name), false);
     FMA_DBG_STREAM(logger_) << "[RestClient] DeletePlugin " << plugin_name << " succeeded";
-}
-
-void RestClient::ConstructBodyData(std::vector<std::string>& field_names,
-                                   const json::value& field_data_json, json::value& body_data) {
-    const auto& field_data = field_data_json.as_array();
-    if (field_names.size() != field_data.size()) {
-        throw lgraph_api::InputError("invalid input, file_names and file_data size mismatch.");
-    }
-    auto data = json::value::object();
-    for (size_t i = 0; i < field_names.size(); i++) data[_TU(field_names[i])] = field_data.at(i);
-    body_data[_TU("data")] = data;
-}
-
-void RestClient::ConstructBodyData(lgraph::VertexId dst, std::string label,
-                                   std::vector<std::string>& field_names,
-                                   const json::value& field_data_json, json::value& body_data) {
-    if (dst >= 0) body_data[_TU("destination")] = json::value::number(dst);
-    body_data[_TU("label")] = json::value::string(_TU(label));
-    ConstructBodyData(field_names, field_data_json, body_data);
-}
-
-void RestClient::ConstructBodyData(std::string label, std::vector<std::string>& field_names,
-                                   const json::value& field_data_json, json::value& body_data) {
-    ConstructBodyData(-1, label, field_names, field_data_json, body_data);
 }
 
 EdgeUid RestClient::AddEdge(const std::string& db, lgraph::VertexId src, lgraph::VertexId dst,

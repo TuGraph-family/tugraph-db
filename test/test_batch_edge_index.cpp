@@ -16,17 +16,12 @@ class TestBatchEdgeIndex : public TuGraphTest {
         pad = "73@TuGraph";
         db_path = "./testdb";
         graph = "default";
-        indexes_str =
-            "person:uid:false,person:name:false,person:age:false,person:age16:false,person:age32:"
-            "false,"
-            "person:agef:false,person:aged:false";
+        indexes_str = "knows:weight:false,knows:since:false";
         n_dump_key = 10;
         dump_only = false;
         verbose = 1;
     }
-    void TearDown() {
-        TuGraphTest::TearDown();
-    }
+    void TearDown() { TuGraphTest::TearDown(); }
 
     std::string usr;
     std::string pad;
@@ -43,26 +38,15 @@ class TestBatchEdgeIndex : public TuGraphTest {
 TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     using namespace fma_common;
     using namespace lgraph;
-
-    std::string db_path = "./testdb";
-    std::string graph = "default";
-    std::string indexes_str =
-        "person:uid:false,person:name:false,person:age:false,"
-        "person:age16:false,person:age32:false,"
-        "person:agef:false,person:aged:false";
-    size_t n_dump_key = 10;
-    bool dump_only = false;
-    int verbose = 1;
-    std::string log;
-    std::string user, password;
-    int argc = param_argc;
-    char** argv = param_argv;
-
+    user = usr;
+    password = pad;
+    int argc = _ut_argc;
+    char** argv = _ut_argv;
     Configuration config;
     config.Add(db_path, "dir", true).Comment("DB data dir");
     config.Add(graph, "g,graph", true).Comment("Graph name");
-    config.Add(user, "u,user", false).Comment("User name");
-    config.Add(password, "p,password", false).Comment("Password");
+    config.Add(user, "u,user", true).Comment("User name");
+    config.Add(password, "p,password", true).Comment("Password");
     config.Add(indexes_str, "indexes", true)
         .Comment("Indexes to build, in the form of [label:field:unique],[l:f:u]");
     config.Add(n_dump_key, "n_dump", true)
@@ -72,9 +56,8 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     config.Add(log, "log", true).Comment("Log location");
     config.ExitAfterHelp();
     config.ParseAndFinalize(argc, argv);
-
     GraphFactory gf;
-    gf.create_snapshot();
+    gf.create_modern();
 
     fma_common::LogLevel level;
     if (verbose == 0)
@@ -91,68 +74,56 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     fma_common::Logger::Get().SetFormatter(
         std::shared_ptr<fma_common::LogFormatter>(new fma_common::TimedModuleLogFormatter()));
 
-    try {
-        if (indexes_str.empty()) {
-            UT_ERR() << "Empty index.";
-            return 1;
-        }
-        std::vector<std::string> indx = fma_common::Split(indexes_str, ",");
-        std::vector<lgraph::IndexSpec> idx_specs;
-        idx_specs.reserve(indx.size());
-        for (auto& str : indx) {
-            // parse index specifier
-            auto tokens = fma_common::Split(str, ":");
-            if (tokens.size() != 3) {
-                UT_ERR() << "Failed to parse index specifier: " << str;
-                return 1;
-            }
-            lgraph::IndexSpec spec;
-            spec.label = fma_common::Strip(tokens[0], "\t ");
-            spec.field = fma_common::Strip(tokens[1], "\t ");
-            size_t r = fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "),
-                                                           spec.unique);
-            if (spec.label.empty() || spec.field.empty() || !r) {
-                UT_ERR() << "Failed to parse index specifier: " << str;
-                return 1;
-            }
-            idx_specs.emplace_back(std::move(spec));
-        }
-        UT_LOG() << "We will build the following indexes: ";
-        for (auto& spec : idx_specs) {
-            UT_LOG() << "\tlabel=" << spec.label << ", field=" << spec.field
-                     << ", unique=" << spec.unique;
-        }
-
-        lgraph::Galaxy::Config conf;
-        conf.dir = db_path;
-        lgraph::Galaxy galaxy(conf, true, nullptr);
-        if (galaxy.GetUserToken(user, password).empty()) throw AuthError("Bad user/password.");
-        lgraph::AccessControlledDB ac_db = galaxy.OpenGraph(user, graph);
-        LightningGraph* db = ac_db.GetLightningGraph();
-
-        if (!dump_only) {
-            UT_LOG() << "Creating batch index";
-            UT_EXPECT_EXCEPTION(db->OfflineCreateBatchEdgeIndex(idx_specs, 1 << 30));
-        }
-        UT_LOG() << "Dumping index result";
-        auto txn = db->CreateReadTxn();
-        for (auto& spec : idx_specs) {
-            UT_LOG() << "\n\nDumping index " << spec.label << ":" << spec.field << "\n";
-            size_t nk = 0;
-            for (auto it = txn.GetEdgeIndexIterator(spec.label, spec.field, "", ""); it.IsValid();
-                 it.Next()) {
-                if (nk >= n_dump_key) break;
-                nk++;
-                auto k = it.GetKey();
-                if (k.Size() < 480) {
-                    UT_LOG() << it.GetKeyData().ToString() << " -> " << it.GetVid();
-                } else {
-                    UT_LOG() << txn.GetVertexField(it.GetVid(), spec.field).ToString() << " -> "
-                             << it.GetVid();
-                }
-            }
-        }
-    } catch (std::exception& e) {
-        UT_ERR() << "Error creating batch index: \n\t" << e.what();
+    if (indexes_str.empty()) {
+        UT_ERR() << "Empty index.";
     }
+    std::vector<std::string> indx = fma_common::Split(indexes_str, ",");
+    std::vector<lgraph::IndexSpec> idx_specs;
+    idx_specs.reserve(indx.size());
+    for (auto& str : indx) {
+        // parse index specifier
+        auto tokens = fma_common::Split(str, ":");
+        if (tokens.size() != 3) {
+            UT_ERR() << "Failed to parse index specifier: " << str;
+        }
+        lgraph::IndexSpec spec;
+        spec.label = fma_common::Strip(tokens[0], "\t ");
+        spec.field = fma_common::Strip(tokens[1], "\t ");
+        size_t r =
+            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), spec.unique);
+        if (spec.label.empty() || spec.field.empty() || !r) {
+            UT_ERR() << "Failed to parse index specifier: " << str;
+        }
+        idx_specs.emplace_back(std::move(spec));
+    }
+    UT_LOG() << "We will build the following indexes: ";
+    for (auto& spec : idx_specs) {
+        UT_LOG() << "\tlabel=" << spec.label << ", field=" << spec.field
+                 << ", unique=" << spec.unique;
+    }
+
+    lgraph::Galaxy::Config conf;
+    conf.dir = db_path;
+    lgraph::Galaxy galaxy(conf, true, nullptr);
+    if (galaxy.GetUserToken(user, password).empty()) throw AuthError("Bad user/password.");
+    lgraph::AccessControlledDB ac_db = galaxy.OpenGraph(user, graph);
+    LightningGraph* db = ac_db.GetLightningGraph();
+
+    db->OfflineCreateBatchIndex(idx_specs, 1 << 30, false);
+    UT_LOG() << "Dumping index result";
+    auto txn = db->CreateReadTxn();
+    for (auto& spec : idx_specs) {
+        UT_LOG() << "\n\nDumping index " << spec.label << ":" << spec.field << "\n";
+        size_t nk = 0;
+        for (auto it = txn.GetEdgeIndexIterator(spec.label, spec.field, "", ""); it.IsValid();
+             it.Next()) {
+            if (nk >= n_dump_key) break;
+            nk++;
+            auto k = it.GetKey();
+            if (k.Size() < 480) {
+                UT_LOG() << it.GetKeyData().ToString() << " -> " << it.GetSrcVid();
+            }
+        }
+    }
+    fma_common::file_system::RemoveDir(db_path);
 }

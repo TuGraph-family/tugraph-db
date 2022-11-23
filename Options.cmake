@@ -1,6 +1,6 @@
 set(LGRAPH_VERSION_MAJOR 3)
 set(LGRAPH_VERSION_MINOR 3)
-set(LGRAPH_VERSION_PATCH 1)
+set(LGRAPH_VERSION_PATCH 2)
 
 # options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)
@@ -77,6 +77,14 @@ else (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is disabled.")
 endif (ENABLE_FULLTEXT_INDEX)
 
+option(ENABLE_Address_Sanitizer "Enable Address Sanitizer." OFF)
+if (ENABLE_Address_Sanitizer)
+    message("Address Sanitizer is enabled.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -static-libasan")
+else (ENABLE_FULLTEXT_INDEX)
+    message("Address Sanitizer is disabled.")
+endif (ENABLE_Address_Sanitizer)
+
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)
     message(WARNING "Build type not set, falling back to Release mode.
@@ -126,8 +134,7 @@ else ()
 endif ()
 
 # check OpenMP
-find_package(OpenMP REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 # check c++14
 include(CheckCXXCompilerFlag)

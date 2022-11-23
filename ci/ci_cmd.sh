@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# Standard Github-hosted runner is 2core currently.
-# Larger runner will support soon(current in Beta).
+set -e
 
 # set $WORKSPACE to root dir
 cd $WORKSPACE
@@ -24,7 +22,7 @@ rm -rf testdb* .import_tmp
 # integrate tests
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp -r ../../test/integration/* ./
-pytest ./ -k 'not TestJavaClient'
+pytest ./
 
 # codecov
 cd $WORKSPACE

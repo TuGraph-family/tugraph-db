@@ -185,6 +185,11 @@ class RestClient {
                                          const std::map<std::string, FieldData>& param);
 
     web::json::value GetSubGraph(const std::string& db, const std::vector<int64_t>& vec_vertex);
+    web::json::value GetLabelNum(const std::string& graph);
+    web::json::value ListUserLabel(const std::string& graph);
+    web::json::value ListUserGraph(const std::string& user_name);
+    web::json::value ListGraphs(const std::string& graph);
+    web::json::value ListRoles(const std::string& role);
 
     std::map<std::string, lgraph_api::UserInfo> ListUsers();
 
@@ -214,6 +219,10 @@ class RestClient {
 
     void EnableRole(const std::string& role);
 
+    void SetConfig(std::map<std::string, FieldData>& configs);
+
+    void SetMisc();
+
     void SetRoleGraphAccess(const std::string& role,
                             const std::map<std::string, lgraph_api::AccessLevel>& graph_access);
 
@@ -240,13 +249,4 @@ class RestClient {
     std::map<std::string, std::string> _header;
     fma_common::Logger& logger_;
     void* http_client_ = nullptr;
-
-    void ConstructBodyData(std::vector<std::string>& field_names,
-                           const web::json::value& field_data_json, web::json::value& body_data);
-
-    void ConstructBodyData(int64_t dst, std::string label, std::vector<std::string>& field_names,
-                           const web::json::value& field_data_json, web::json::value& body_data);
-
-    void ConstructBodyData(std::string label, std::vector<std::string>& field_names,
-                           const web::json::value& field_data_json, web::json::value& body_data);
 };

@@ -285,30 +285,6 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
             need_refresh_acl_table = true;
             break;
         }
-    case ModUserRequest::kAddRoles:
-        {
-            if (!IsAdmin(curr_user)) throw AuthError("Non-admin uesr cannot modify roles.");
-            auto& new_roles = request.add_roles().values();
-            CheckRolesExist(txn, new_roles);
-            size_t old_size = uinfo.roles.size();
-            uinfo.roles.insert(new_roles.begin(), new_roles.end());
-            need_refresh_acl_table = (old_size != uinfo.roles.size());
-            break;
-        }
-    case ModUserRequest::kDelRoles:
-        {
-            if (!IsAdmin(curr_user)) throw AuthError("Non-admin uesr cannot modify roles.");
-            size_t old_size = uinfo.roles.size();
-            auto& new_roles = request.del_roles().values();
-            CheckRolesExist(txn, new_roles);
-            for (auto& role : new_roles) {
-                if (role == user) throw InputError("Cannnot delete primary role from user.");
-                if (uinfo.roles.erase(role)) need_refresh_acl_table = true;
-            }
-            if (curr_user == user && uinfo.roles.find(_detail::ADMIN_ROLE) == uinfo.roles.end())
-                throw InputError("User cannot remove itself from admin.");
-            break;
-        }
     default:
         throw InternalError(FMA_FMT("Unhandled ModUserRequest type: {}", request.action_case()));
     }
@@ -363,8 +339,7 @@ lgraph::AclManager::UserInfo lgraph::AclManager::GetUserInfo(KvTransaction& txn,
     return GetUserInfoFromKv(txn, user);
 }
 
-size_t lgraph::AclManager::GetUserMemoryLimit(KvTransaction& txn,
-                                              const std::string& curr_user,
+size_t lgraph::AclManager::GetUserMemoryLimit(KvTransaction& txn, const std::string& curr_user,
                                               const std::string& user) {
     if (curr_user != user && !IsAdmin(curr_user)) {
         throw AuthError("Non-admin user cannot get other users' info.");
@@ -653,8 +628,8 @@ bool lgraph::AclManager::ModRoleDesc(KvTransaction& txn, const std::string& role
 }
 
 bool lgraph::AclManager::ModAllRoleAccessLevel(
-        KvTransaction& txn, const std::string& role,
-        const std::unordered_map<std::string, AccessLevel>& acs) {
+    KvTransaction& txn, const std::string& role,
+    const std::unordered_map<std::string, AccessLevel>& acs) {
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     {
@@ -727,8 +702,7 @@ bool lgraph::AclManager::ModRoleFieldAccessLevel(KvTransaction& txn, const std::
                 rinfo.field_access[graph].erase(field_acs.first);
             else
                 rinfo.field_access[graph][field_acs.first] = field_acs.second;
-            if (rinfo.field_access[graph].empty())
-                rinfo.field_access.erase(graph);
+            if (rinfo.field_access[graph].empty()) rinfo.field_access.erase(graph);
         }
     }
     StoreRoleInfoToKv(txn, role, rinfo);
@@ -884,8 +858,9 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
     if (ait == user_cache_.end()) return false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
     CheckRolesExist(txn, roles);
-    size_t old_size = uinfo.roles.size();
+    uinfo.roles.clear();
     uinfo.roles.insert(roles.begin(), roles.end());
+    uinfo.roles.insert(user);  // user always has a primary role
     ait->second.UpdateAuthInfo(uinfo);
     bool was_admin = ait->second.is_admin;
     ait->second.UpdateAclInfo(txn, role_tbl_, uinfo);
@@ -896,6 +871,7 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
     StoreUserInfoToKv(txn, user, uinfo);
     return true;
 }
+
 bool lgraph::AclManager::SetUserMemoryLimit(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const size_t& memory_limit) {
     if (!IsAdmin(current_user)) throw AuthError("Non-admin user cannot modify other users.");

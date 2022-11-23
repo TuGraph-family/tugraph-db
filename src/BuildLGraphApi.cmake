@@ -9,9 +9,9 @@ find_package(Threads REQUIRED)
 
 if (ENABLE_FULLTEXT_INDEX)
     # jni
-    if(APPLE)
+    if (APPLE)
         SET(JAVA_INCLUDE_PATH "$ENV{JAVA_INCLUDE_PATH}")
-    endif()
+    endif ()
     find_package(JNI REQUIRED)
 endif ()
 
@@ -62,9 +62,6 @@ set(LGRAPH_DB_SRC
         db/graph_manager.cpp
         db/token_manager.cpp)
 
-set(LGRAPH_ALGO_SRC
-        algo/algo.cpp)
-
 set(LGRAPH_API_SRC
         lgraph_api/lgraph_db.cpp
         lgraph_api/lgraph_edge_iterator.cpp
@@ -104,22 +101,21 @@ target_include_directories(lgraph PUBLIC
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(lgraph PUBLIC
-            rt
-            gomp
-            pthread
-            -Wl,-Bstatic
-            ${Boost_LIBRARIES}
+            libgomp.a
             -static-libstdc++
             -static-libgcc
+            libstdc++fs.a
+            ${Boost_LIBRARIES}
             -Wl,-Bdynamic
-            stdc++fs
-            stdc++
-            crypto
             -Wl,--whole-archive
             ${PROTOBUF_LIBRARY}
             -Wl,--no-whole-archive
             ${JAVA_JVM_LIBRARY}
-            z)
+            crypto
+            pthread
+            rt
+            z
+            )
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(lgraph PUBLIC

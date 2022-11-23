@@ -54,7 +54,7 @@ TEST_P(TestRestClient, RestClient) {
         lgraph::WriteCertFiles(cert_path, key_path);
         url = UT_FMT("https://{}:{}", host, port);
     }
-    std::string db_dir = "./testdb";
+    std::string db_dir = "./restdb";
     gconfig->bind_host = host;
     gconfig->http_port = port;
     gconfig->enable_ssl = enable_ssl;
@@ -105,10 +105,91 @@ TEST_P(TestRestClient, RestClient) {
     DefineTest("CreateUser") {
         Setup();
         client->AddUser(new_user, false, new_pass, new_desc1);
+        client->DisableUser(new_user);
+        client->EnableUser(new_user);
         auto uinfo = client->GetUserInfo(new_user);
         UT_EXPECT_EQ(uinfo.desc, new_desc1);
         UT_EXPECT_TRUE(uinfo.roles == std::set<std::string>({new_user}));
         UT_EXPECT_TRUE(!uinfo.disabled);
+    }
+    DefineTest("CreateRole") {
+        Setup();
+        client->CreateRole("test_role", "role for test");
+        client->DisableRole("test_role");
+        client->EnableRole("test_role");
+        client->SetRoleDesc("test_role", "role for set role desc");
+        std::map<std::string, lgraph_api::AccessLevel> graph_level;
+        graph_level.insert(std::make_pair(db_name, lgraph_api::AccessLevel::FULL));
+        client->SetRoleGraphAccess("test_role", graph_level);
+        std::map<std::string, FieldData> configs;
+        configs.insert(std::make_pair("durable", FieldData(true)));
+        client->SetConfig(configs);
+        UT_EXPECT_THROW_MSG(client->SetMisc(),
+                            "is_write_op must be set for non-Cypher and non-plugin request.");
+        client->GetLabelNum("default");
+        client->ListUserLabel("default");
+        client->ListUserGraph("admin");
+        client->ListGraphs("default");
+        client->ListGraphs("");
+        client->ListRoles("test_role");
+        client->ListRoles("");
+    }
+    DefineTest("AddLabel") {
+        Setup();
+        EdgeConstraints ec;
+        ec.push_back(std::make_pair("vert", "vert"));
+        UT_LOG() << "AddVertexLabel";
+        UT_EXPECT_TRUE(client->AddVertexLabel(
+            db_name, "vert",
+            std::vector<FieldSpec>({FieldSpec("vids", FieldType::STRING, false),
+                                    FieldSpec("namez", FieldType::STRING, false)}),
+            "vids"));
+        UT_LOG() << "AddEdgeLabel";
+        UT_EXPECT_TRUE(client->AddEdgeLabel(
+            db_name, "edg",
+            std::vector<FieldSpec>({FieldSpec("eids", FieldType::STRING, false),
+                                    FieldSpec("namee", FieldType::STRING, false)}),
+            ec));
+        std::vector<std::string> res1;
+        std::vector<std::string> res2;
+        res1 = client->ListVertexLabels(db_name);
+        res2 = client->ListEdgeLabels(db_name);
+        UT_EXPECT_EQ(res1.size(), 1);
+        UT_EXPECT_EQ(res2.size(), 1);
+    }
+    DefineTest("AddVertexAndEdge") {
+        int64_t v1 = client->AddVertex(db_name, "vert", std::vector<std::string>({"vids", "namez"}),
+                                       std::vector<std::string>({"1", "vertex1"}));
+        UT_EXPECT_NE(v1, -1);
+        UT_EXPECT_EQ(client->AddVertex(db_name, "vert", std::vector<std::string>({"vids", "namez"}),
+                                       std::vector<std::string>({"1"})),
+                     -1);
+        int64_t v2 = client->AddVertex(db_name, "vert", std::vector<std::string>({"vids", "namez"}),
+                                       std::vector<std::string>({"2", "vertex2"}));
+        UT_EXPECT_NE(v2, -1);
+        int64_t v3 = client->AddVertex(db_name, "vert", std::vector<std::string>({"vids", "namez"}),
+                                       std::vector<FieldData>({FieldData("2")}));
+
+        UT_EXPECT_EQ(v3, -1);
+        auto v4 = client->AddVertexes(db_name, "vert", std::vector<std::string>({"vids", "namez"}),
+                                      std::vector<std::vector<FieldData>>({{FieldData("2")}}));
+        UT_EXPECT_EQ(v4.size(), 0);
+        client->AddEdge(db_name, v1, v2, "edg", std::vector<std::string>({"eids", "namee"}),
+                        std::vector<std::string>({"1", "edges"}));
+        UT_EXPECT_EQ(
+            client
+                ->AddEdge(db_name, v1, v2, "edg", std::vector<std::string>({"eids", "namee"}),
+                          std::vector<std::string>({"1"}))
+                .src,
+            0);
+        auto e1 =
+            client->AddEdge(db_name, v1, v2, "ert", std::vector<std::string>({"vids", "namez"}),
+                            std::vector<FieldData>({FieldData("2")}));
+        UT_EXPECT_EQ(e1.src, 0);
+        UT_EXPECT_THROW(
+            client->SetVertexProperty(db_name, 1, std::vector<std::string>({"vids", "namez"}),
+                                      std::vector<FieldData>({FieldData("2")})),
+            std::runtime_error);
     }
 
     DefineTest("ModUser") {
@@ -118,6 +199,7 @@ TEST_P(TestRestClient, RestClient) {
         client->SetUserDesc(new_user, new_desc2);
         UT_EXPECT_EQ(client->GetUserInfo(new_user).desc, new_desc2);
     }
+    fma_common::file_system::RemoveDir(db_dir);
 }
 
 INSTANTIATE_TEST_CASE_P(TestRestClient, TestRestClient, testing::Values(true, false));

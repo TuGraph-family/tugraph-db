@@ -38,4 +38,5 @@ TEST_F(TestBlobManager, BlobManager) {
         it.Close();
         txn.Commit();
     }
+    fma_common::file_system::RemoveDir(dir);
 }

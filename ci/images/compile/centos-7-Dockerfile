@@ -24,33 +24,38 @@ RUN yum update -y && yum install -y \
     java-1.8.0-openjdk* \
     libcurl-devel.x86_64
 
-# install g++ 5.4.0
-RUN wget http://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.gz \
-    && tar xf gcc-5.4.0.tar.gz && cd gcc-5.4.0 \
+# install g++ 8.4.0
+RUN wget http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz \
+    && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
     && ./contrib/download_prerequisites && mkdir build && cd build \
-    && ../configure -enable-checking=release -enable-languages=c,c++ -disable-multilib \
+    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
     && make -j4 && make install \
-    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.21 /usr/lib64/ \
-    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.21 libstdc++.so.6 \
+    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
+    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
     && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
+
 # install python3
 RUN wget https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz \
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install && python3 -m pip install pexpect requests && rm -rf /Python*
+
 # install cmake
 RUN wget https://cmake.org/files/v3.14/cmake-3.14.1.tar.gz \
     && tar xf cmake-3.14.1.tar.gz && cd cmake-3.14.1 \
     && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
+
 # install boost-1.68
 RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz \
     && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
     && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace \
     && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
+
 # install protobuf
 RUN wget https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz \
     && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
     && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
     && make -j4 && make install && ldconfig && rm -rf /protobuf-*
+
 # install snappy
 RUN wget https://github.com/google/snappy/archive/refs/tags/1.1.9.zip \ 
     && unzip 1.1.9.zip && mv snappy-1.1.9 snapppy && cd snapppy/third_party/ \
@@ -60,11 +65,13 @@ RUN wget https://github.com/google/snappy/archive/refs/tags/1.1.9.zip \
     && unzip bf585a2789e30585b4e3ce6baf11ef2750b54677.zip && rm -rf benchmark && mv benchmark-bf585a2789e30585b4e3ce6baf11ef2750b54677 benchmark \
     && cd .. && mkdir build && cd build \
     && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make -j4 && make install && rm -rf /snappy*
+
 # install gflags
 RUN wget https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.tar.gz \
     && tar xf gflags-2.2.1.tar.gz && cd gflags-2.2.1 \
     && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS=-fPIC .. \
     && make -j4 && make install && rm -rf /gflags-*
+
 # install leveldb
 RUN wget https://github.com/google/leveldb/archive/refs/tags/v1.20.zip \
     && unzip v1.20.zip && mv leveldb-1.20 leveldb \
@@ -75,20 +82,26 @@ RUN wget https://github.com/google/leveldb/archive/refs/tags/v1.20.zip \
     && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so.1 \
     && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so \
     && rm -rf /leveldb*
+
 # install node.js
-RUN wget https://npm.taobao.org/mirrors/node/v10.13.0/node-v10.13.0.tar.gz \
-    && tar xf node-v10.13.0.tar.gz && cd node-v10.13.0/ && ./configure \
-    && make -j4 && make install && npm config set registry https://registry.npm.taobao.org && rm -rf /node-*
+RUN wget https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz \
+    && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \
+    && ln -s /node-v16.6.0-linux-x64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com
+
 # install lcov
 RUN yum -y install perl-Digest-MD5 \
     && wget http://downloads.sourceforge.net/ltp/lcov-1.14-1.noarch.rpm \
     && rpm -ivh lcov-1.14-1.noarch.rpm \
     && rm lcov-1.14-1.noarch.rpm
+
 # install prometheus
 RUN cd opt \
     && wget https://github.com/prometheus/prometheus/releases/download/v2.36.1/prometheus-2.36.1.linux-amd64.tar.gz \
     && tar xf prometheus-*.tar.gz \
     && rm -r prometheus-2.36.1.linux-amd64.tar.gz
+
 # install grafana
 RUN cd opt \
     && wget https://dl.grafana.com/enterprise/release/grafana-enterprise-8.5.5.linux-amd64.tar.gz \
@@ -120,6 +133,7 @@ RUN wget https://github.com/microsoft/cpprestsdk/archive/refs/tags/v2.10.18.zip 
     && cd .. && mkdir build && cd build \
     && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make -j && make install \
     && rm -rf /cpprestsdk*  
+
 # googletest
 RUN wget https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip \
     && unzip release-1.12.1.zip && mv googletest-release-1.12.1 googletest && cd /googletest && mkdir build && cd build \
@@ -146,7 +160,7 @@ RUN wget https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip \
     && rm -rf /prometheus-cpp-client*
 
 # pybind11
-RUN wget wget https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip \
+RUN wget https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip \
     && unzip v2.10.0.zip && mv pybind11-2.10.0 pybind11 && cd /pybind11 && cp -r include/pybind11 /usr/local/include \
     && rm -rf /pybind11*
 
@@ -155,6 +169,8 @@ RUN wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip \
     && unzip v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
     && mkdir build && cd build && cmake $CMAKE_OPT .. && make -j && make install \
     && rm -rf /braft*
+
+RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
 ENV JAVA_HOME=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \

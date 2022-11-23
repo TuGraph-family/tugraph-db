@@ -11,20 +11,22 @@ using json = nlohmann::json;
 void CountComp(OlapBase<Empty>& graph, ParallelVector<size_t>& label, size_t& max, size_t& num) {
     ParallelVector<size_t> cnt = graph.AllocVertexArray<size_t>();
     cnt.Fill(0);
-    graph.ProcessVertexInRange<size_t>([&](size_t v) {
-      if (graph.OutDegree(v) == 0) return 0;
-      size_t v_label = label[v];
-      write_add(&cnt[v_label], (size_t)1);
-      return 0;
-    }, 0, label.Size());
+    graph.ProcessVertexInRange<size_t>(
+        [&](size_t v) {
+            if (graph.OutDegree(v) == 0) return 0;
+            size_t v_label = label[v];
+            write_add(&cnt[v_label], (size_t)1);
+            return 0;
+        },
+        0, label.Size());
     max = 0;
-    num = graph.ProcessVertexInRange<size_t>([&](size_t v) {
-      if (max < cnt[v])
-          write_max(&max, cnt[v]);
-      return (graph.OutDegree(v) > 0 && cnt[v] > 0) ? 1 : 0;
-    }, 0, label.Size());
+    num = graph.ProcessVertexInRange<size_t>(
+        [&](size_t v) {
+            if (max < cnt[v]) write_max(&max, cnt[v]);
+            return (graph.OutDegree(v) > 0 && cnt[v] > 0) ? 1 : 0;
+        },
+        0, label.Size());
 }
-
 
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     double start_time;
@@ -36,14 +38,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::string field = "id";
     try {
         json input = json::parse(request);
-        if (input["label"].is_string()) {
-            label = input["label"].get<std::string>();
-        }
-        if (input["field"].is_string()) {
-            field = input["field"].get<std::string>();
-        }
+        parse_from_json(label, "label", input);
+        parse_from_json(field, "field", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error, output_file needed");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);

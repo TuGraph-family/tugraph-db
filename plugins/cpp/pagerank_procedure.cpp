@@ -16,11 +16,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     int num_iterations = 20;
     try {
         json input = json::parse(request);
-        if (input["num_iterations"].is_number()) {
-            num_iterations = input["num_iterations"].get<int>();
-        }
+        parse_from_json(num_iterations, "num_iterations", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
 
@@ -34,9 +33,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     PageRankCore(olapondb, num_iterations, pr);
     auto all_vertices = olapondb.AllocVertexSubset();
     all_vertices.Fill();
-    size_t max_pr_vi =
-        olapondb.ProcessVertexActive<size_t>([&](size_t vi) { return vi; }, all_vertices, 0,
-                                    [&](size_t a, size_t b) { return pr[a] > pr[b] ? a : b; });
+    size_t max_pr_vi = olapondb.ProcessVertexActive<size_t>(
+        [&](size_t vi) { return vi; }, all_vertices, 0,
+        [&](size_t a, size_t b) { return pr[a] > pr[b] ? a : b; });
     auto core_cost = get_time() - start_time;
 
     // output
