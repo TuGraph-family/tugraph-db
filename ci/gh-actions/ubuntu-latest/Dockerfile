@@ -6,4 +6,6 @@ ENV WORKSPACE=/root/tugraph-db/
 COPY . /root/tugraph-db/
 WORKDIR /root/tugraph-db/
 
-RUN bash /root/tugraph-db/ci/ci_cmd.sh
+RUN --mount=type=secret,id=CODECOV_TOKEN \
+    export CODECOV_TOKEN=$(cat /run/secrets/CODECOV_TOKEN) && \
+    bash /root/tugraph-db/ci/ci_cmd.sh

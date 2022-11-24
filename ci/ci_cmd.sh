@@ -27,6 +27,6 @@ pytest ./
 # codecov
 cd $WORKSPACE
 mkdir testresult
-bash ./ci/codecov.sh build $WORKSPACE/testresult
+bash ./ci/codecov.sh build $WORKSPACE/testresult $CODECOV_TOKEN
 
 python3  ./ci/lcov_cobertura.py  $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle
