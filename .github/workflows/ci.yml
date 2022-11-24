@@ -27,3 +27,5 @@ jobs:
           context: .
           load: true
           tags: ${{ env.TEST_TAG }}
+          secrets: |
+            "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
