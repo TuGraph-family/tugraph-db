@@ -5,6 +5,7 @@
 #include "core/graph_data_pack.h"
 #include "core/iterator_base.h"
 #include "core/kv_store.h"
+#include "core/schema_manager.h"
 
 int TestOutEdgeIterator(int, char**);
 int TestInRefIterator(int, char**);
@@ -80,6 +81,39 @@ inline void ThrowVertexNotExist<PackType::OUT_EDGE>() {
     throw InputError("Source vertex does not exist");
 }
 }  // namespace _detail
+
+struct EdgeConstraintsChecker {
+    explicit EdgeConstraintsChecker(
+        const std::unordered_map<LabelId, std::unordered_set<LabelId>>& _constraints)
+        : constraints(_constraints) {}
+    const std::unordered_map<LabelId, std::unordered_set<LabelId>>& constraints;
+    const std::unordered_set<LabelId>* dst_lids = nullptr;
+
+    void Check(PackType pt, LabelId lid) {
+        if (PackType::OUT_EDGE == pt) {
+            auto iter = constraints.find(lid);
+            if (iter == constraints.end()) {
+                throw InputError("Does not meet the edge constraints");
+            } else {
+                dst_lids = &(iter->second);
+            }
+        } else if (PackType::IN_EDGE == pt) {
+            if (!dst_lids->count(lid)) {
+                throw InputError("Does not meet the edge constraints");
+            }
+        }
+    }
+
+    void Check(LabelId src_lid, LabelId dst_lid) {
+        auto iter = constraints.find(src_lid);
+        if (iter == constraints.end()) {
+            throw InputError("Does not meet the edge constraints");
+        }
+        if (!iter->second.count(dst_lid)) {
+            throw InputError("Does not meet the edge constraints");
+        }
+    }
+};
 
 template <PackType ET>  // ET is either IN_EDGE or OUT_EDGE
 class EdgeIteratorImpl {
@@ -350,7 +384,8 @@ class EdgeIteratorImpl {
         // @TODO: optimize
         for (InputIt i = begin; i != end; ++i) {
             auto eid =
-                InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), 0), std::get<2>(*i), it);
+                InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), 0),
+                           std::get<2>(*i), it);
             if (ET == PackType::OUT_EDGE && add_fulltext_index) {
                 add_fulltext_index(vid1, std::get<1>(*i), std::get<0>(*i), 0, eid, std::get<2>(*i));
             }
@@ -361,7 +396,8 @@ class EdgeIteratorImpl {
      * previous edge.
      */
     static EdgeId InsertEdge(EdgeSid esid, const Value& prop, KvIterator& it,
-                             EdgeId* eid_ptr = nullptr) {
+                             EdgeId* eid_ptr = nullptr,
+                             EdgeConstraintsChecker* ec = nullptr) {
         CheckPropSize(prop);
         it.GotoClosestKey(KeyPacker::CreatePackedDataKey(esid.src));
         if (!it.IsValid()) _detail::ThrowVertexNotExist<ET>();
@@ -372,8 +408,18 @@ class EdgeIteratorImpl {
         EdgeValue ev;
         if (pt == PackType::PACKED_DATA) {
             ev = _detail::GetEdgeValue<ET>(PackedDataValue(it.GetValue()));
+            if (ec) {
+                auto lid = SchemaManager::GetRecordLabelId(
+                    PackedDataValue(it.GetValue()).GetVertexData().GetVertexProperty());
+                ec->Check(ET, lid);
+            }
         } else {
             FMA_DBG_CHECK_EQ(pt, PackType::VERTEX_ONLY);
+            if (ec) {
+                auto lid =
+                    SchemaManager::GetRecordLabelId(VertexValue(it.GetValue()).GetVertexProperty());
+                ec->Check(ET, lid);
+            }
             if (eid_ptr == nullptr) {
                 // When inserting a new edge, we first insert out edge
                 // then in edge. The EdgeId is obtained when inserting

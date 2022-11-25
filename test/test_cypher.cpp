@@ -240,6 +240,9 @@ int test_query(cypher::RTContext *ctx) {
         {"MATCH (a) WHERE a.name IN ['Dennis Quaid', 'Christopher Nolan'] WITH a "
          "MATCH (b) WHERE b.name IN ['London', 'Beijing', 'Houston'] RETURN a, b",
          4},  // issue #305
+        {"MATCH (n:Person) WHERE n.name = 'Vanessa Redgrave' "
+         "OR NOT n.name <> 'Dennis Quaid' RETURN n.name",
+         2},  // issue #332
         /* test multi-types relp */
         {"MATCH (n:Person {name:'Vanessa Redgrave'})-[:BORN_IN|ACTED_IN]->(m) RETURN m", 2},
         {"MATCH (n:Person {name:'Michael Redgrave'})<-[:MARRIED|HAS_CHILD]-(m) RETURN m", 2},
@@ -1085,6 +1088,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL db.createEdgeLabel('LIKE', '[]')",
 
         "CALL db.addIndex('Person', 'birthyear', false)",
+        "CAll db.subgraph([1,2,3])",
         "CALL db.vertexLabels",
         "CALL db.edgeLabels",
         "CALL db.indexes",
@@ -1238,7 +1242,7 @@ int test_procedure(cypher::RTContext *ctx) {
     std::string path[2] = {"../../test/test_plugins/scan_graph.cpp",
                            "../../test/test_plugins/standard_result.cpp"};
     std::string encode;
-    size_t pos = 72;
+    size_t pos = 73;
     for (auto &i : path) {
         f.open(i, std::ios::in);
 
@@ -1249,7 +1253,7 @@ int test_procedure(cypher::RTContext *ctx) {
         }
         f.close();
         encode = lgraph_api::encode_base64(text);
-        if (pos == 72) {
+        if (pos == 73) {
             scripts[pos] = "CALL db.plugin.loadPlugin('CPP','scan_graph','" + encode +
                            "','CPP','scan graph', true)";
         } else {
@@ -2074,6 +2078,16 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     expected_exception_any(ctx, "DELETE []");
     expected_exception_any(ctx, "DELETE [x in [1, 2, 3] | x]");
     expected_exception_any(ctx, "DELETE TRUE");
+
+    // issue #312
+    auto graph = ctx->graph_;
+    ctx->graph_ = "";
+    expected_exception_any(ctx, "MATCH (n) RETURN n LIMIT 5");
+    expected_exception_any(ctx, "CALL db.vertexLabels");
+    expected_exception_any(ctx, "CALL db.warmup");
+    eval_script(ctx, "CALL dbms.graph.listGraphs()");
+    ctx->graph_ = graph;
+    // issue #312
     return 0;
 }
 
@@ -2297,6 +2311,7 @@ TEST_P(TestCypher, Cypher) {
     lgraph::Galaxy::Config gconf;
     gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
+
     cypher::RTContext db(nullptr, &galaxy,
                          galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
                                              lgraph::_detail::DEFAULT_ADMIN_PASS),

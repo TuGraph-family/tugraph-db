@@ -70,6 +70,9 @@ class BuiltinProcedure {
                                     std::unordered_map<std::string, lgraph::AccessLevel> &leves);
 
  public:
+    static void DbSubgraph(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                           const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbVertexLabels(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -128,6 +131,11 @@ class BuiltinProcedure {
 
     static void DbFullTextIndexes(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbAddEdgeConstraints(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                    const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbClearEdgeConstraints(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsProcedures(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
@@ -384,6 +392,12 @@ struct Procedure {
 };
 
 static std::vector<Procedure> global_procedures = {
+    Procedure("db.subgraph", BuiltinProcedure::DbSubgraph,
+              Procedure::SIG_SPEC{{"vids", {0, lgraph::ResultElementType::LIST}}},
+              Procedure::SIG_SPEC{
+                  {"subgraph", {0, lgraph::ResultElementType::STRING}}
+              }),
+
     Procedure("db.vertexLabels", BuiltinProcedure::DbVertexLabels, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"label", {0, lgraph::ResultElementType::STRING}}}),
 
@@ -514,6 +528,15 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"is_vertex", {0, lgraph::ResultElementType::BOOLEAN}},
                                   {"label", {1, lgraph::ResultElementType::STRING}},
                                   {"field", {2, lgraph::ResultElementType::STRING}}}),
+
+    Procedure("db.addEdgeConstraints", BuiltinProcedure::DbAddEdgeConstraints,
+          Procedure::SIG_SPEC{{"label_name", {0, lgraph::ResultElementType::STRING}},
+                              {"constraints", {1, lgraph::ResultElementType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
+
+    Procedure("db.clearEdgeConstraints", BuiltinProcedure::DbClearEdgeConstraints,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph::ResultElementType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph::ResultElementType::NUL}}}, false, true),
 
     Procedure("dbms.procedures", BuiltinProcedure::DbmsProcedures, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"name", {0, lgraph::ResultElementType::STRING}},

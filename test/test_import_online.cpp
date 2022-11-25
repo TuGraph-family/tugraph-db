@@ -1005,5 +1005,78 @@ TEST_F(TestImportOnline, ImportOnline) {
 )");
             TryImport("Import finished", 0, config_file);
         }
+        {
+            db_cleaner.Clean();
+            auto server = StartServer();
+            WriteFile(config_file, R"(
+{
+    "schema": [
+        {
+            "label" : "node1",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "node2",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "node3",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "node1_node2",
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "weight", "type":"FLOAT"}
+            ],
+            "constraints" : [["node1", "node2"]]
+        }
+    ]
+}
+                          )");
+            TryImport("Import finished", 0, config_file);
+            WriteFile(config_file, R"(
+{
+    "files" : [
+        {
+            "path" : "./import_data/node1.csv",
+            "format" : "JSON",
+            "label" : "node1",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "./import_data/node2.csv",
+            "format" : "JSON",
+            "label" : "node3",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "./import_data/edge1.csv",
+            "format" : "JSON",
+            "label" : "node1_node2",
+            "SRC_ID" : "node1",
+            "DST_ID" : "node3",
+            "columns" : ["SRC_ID","DST_ID","weight"]
+        }
+    ]
+}
+                          )");
+            WriteFile(v1, R"(["1"])");
+            WriteFile(v2, R"(["3"])");
+            WriteFile(e1, R"(["1","3",1.1])");
+            TryImport("Does not meet the edge constraints", 1, config_file);
+        }
     }
 }

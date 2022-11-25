@@ -885,3 +885,38 @@ bool lgraph::AclManager::SetUserMemoryLimit(KvTransaction& txn, const std::strin
     StoreUserInfoToKv(txn, user, uinfo);
     return true;
 }
+
+void lgraph::AclManager::BindTokenUser(const std::string& old_token,
+                const std::string& new_token, const std::string& user) {
+    if (token_mapping.find(old_token) != token_mapping.end()) {
+        token_mapping.erase(old_token);
+    }
+    token_mapping.emplace(new_token, user);
+}
+
+bool lgraph::AclManager::DecipherToken(const std::string& token,
+                                std::string& user, std::string& pwd) {
+    if (token_mapping.find(token) != token_mapping.end()) {
+        user = token_mapping[token];
+        auto v = user_cache_.find(user);
+        if (v == user_cache_.end()) return false;
+        if (v->second.disabled) return false;
+        if (v->second.builtin_auth) {
+            pwd = v->second.password_md5;
+        } else {
+            throw InternalError("External authentication not supported yet.");
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {
+    if (token_mapping.find(token) != token_mapping.end()) {
+        token_mapping.erase(token);
+        return true;
+    } else {
+        return false;
+    }
+}

@@ -24,6 +24,7 @@ struct BasicConfigs {
         , jwt_secret("fma.ai")
         , enable_rpc(false)
         , rpc_port(9091)
+        , use_pthread(false)
         , verbose(1)
         , log_dir()
         , max_log_file_size_mb(64)
@@ -49,6 +50,7 @@ struct BasicConfigs {
           , jwt_secret(basicConfigs.jwt_secret)
           , enable_rpc(basicConfigs.enable_rpc)
           , rpc_port(basicConfigs.rpc_port)
+          , use_pthread(basicConfigs.use_pthread)
           , verbose(basicConfigs.verbose)
           , log_dir(basicConfigs.log_dir)
           , max_log_file_size_mb(basicConfigs.max_log_file_size_mb)
@@ -76,6 +78,7 @@ struct BasicConfigs {
     // rpc
     bool enable_rpc;
     uint16_t rpc_port;
+    bool use_pthread;
     // log
     int verbose;
     std::string log_dir;

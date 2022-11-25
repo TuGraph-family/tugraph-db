@@ -4,11 +4,16 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
 #include "gtest/gtest.h"
+#include "gflags/gflags.h"
 
 int _ut_argc;
 char** _ut_argv;
 bool _ut_buffer_log = true;
 bool _ut_run_benchmarks = false;
+
+namespace brpc {
+DECLARE_bool(usercode_in_pthread);
+}
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
@@ -29,7 +34,9 @@ int main(int argc, char** argv) {
     else
         level = fma_common::LogLevel::LL_DEBUG;
     fma_common::Logger::Get().SetLevel(level);
+    fma_common::Logger::Get().SetFormatter(std::make_shared<fma_common::TimedLogFormatter>());
     _ut_argc = argc;
     _ut_argv = argv;
+    brpc::FLAGS_usercode_in_pthread = true;
     return RUN_ALL_TESTS();
 }

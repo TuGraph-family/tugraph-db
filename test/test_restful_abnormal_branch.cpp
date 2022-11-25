@@ -532,7 +532,7 @@ void test_client_other_branch(RestClient& rest_client) {
         request.set_method(methods::DEL);
         request.set_request_uri(_TU("/db/" + db_name + "/python_plugin/13"));
         response = client->request(request).get();
-        UT_EXPECT_EQ(response.status_code(), status_codes::BadRequest);
+        UT_EXPECT_EQ(response.status_code(), status_codes::Unauthorized);
 
         request.set_method(methods::DEL);
         request.set_request_uri(_TU("/db/" + db_name + "/error/11"));
@@ -578,7 +578,7 @@ void test_client_other_branch(RestClient& rest_client) {
 
     // test put
     {
-        SetAuthInfo(author, request);
+        LoginAndSetHeader(*client, request, "qw", "111");
 
         UT_LOG() << "\ntest put branch of excepiton";
         request.set_method(methods::PUT);

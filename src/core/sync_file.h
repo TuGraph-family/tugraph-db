@@ -10,6 +10,8 @@
 #include <unistd.h>
 #endif
 
+#include "fma-common/fma_stream.h"
+
 namespace lgraph {
 
 /**
@@ -24,6 +26,7 @@ class SyncFile {
     size_t p_pos_ = 0;
 #endif
     std::string path_;
+    fma_common::OutputMemoryFileStream buffer_;
 
  public:
     SyncFile() {}

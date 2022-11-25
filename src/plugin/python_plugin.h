@@ -192,7 +192,7 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  The plugin.
      */
-    void LoadPlugin(const std::string& token, const std::string& name,
+    void LoadPlugin(const std::string& user, const std::string& name,
                     PluginInfoBase* pinfo) override;
 
     /**
@@ -204,7 +204,7 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  A plugin::ErrorCode.
      */
-    void UnloadPlugin(const std::string& token, const std::string& name,
+    void UnloadPlugin(const std::string& user, const std::string& name,
                       PluginInfoBase* pinfo) override;
 
     /**
@@ -241,12 +241,12 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  A plugin::ErrorCode.
      */
-    void DoCall(const std::string& token, AccessControlledDB* db_with_access_control,
+    void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
                 const std::string name, const PluginInfoBase* pinfo, const std::string& request,
                 double timeout, bool in_process, std::string& output) override;
 
  protected:
-    python_plugin::TaskOutput::ErrorCode CallInternal(const std::string& token,
+    python_plugin::TaskOutput::ErrorCode CallInternal(const std::string& user,
                                                       const std::string& function,
                                                       const std::string& input, double timeout,
                                                       bool in_process, bool read_only,
@@ -268,12 +268,12 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
 
     ~PythonPluginManagerImpl() {}
 
-    virtual void LoadPlugin(const std::string& token, const std::string& name,
+    virtual void LoadPlugin(const std::string& user, const std::string& name,
                             PluginInfoBase* pinfo, std::string& error) {
         throw std::runtime_error("Python plugin is disabled in this version.");
     }
 
-    virtual void UnloadPlugin(const std::string& token, const std::string& name,
+    virtual void UnloadPlugin(const std::string& user, const std::string& name,
                               PluginInfoBase* pinfo, std::string& error) {
         throw std::runtime_error("Python plugin is disabled in this version.");
     }
@@ -288,7 +288,7 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
 
     std::string GetTaskName(const std::string& name) override { return "[PYTHON_PLUGIN] " + name; }
 
-    virtual void DoCall(const std::string& token, AccessControlledDB* db_with_access_control,
+    virtual void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
                         const std::string name, PluginInfoBase* pinfo, const std::string& request,
                         double timeout, bool in_process, std::string& output) {
         throw std::runtime_error("Python plugin is disabled in this version.");

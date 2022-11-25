@@ -64,6 +64,7 @@ add_executable(unit_test
         test_lgraph_api.cpp
         test_managed_object.cpp
         test_mdb.cpp
+        test_mdb_wal_perf.cpp
         test_memorylimit.cpp
         test_merge.cpp
         test_move_constructors.cpp
@@ -99,6 +100,8 @@ add_executable(unit_test
         test_value.cpp
         test_vertex_index.cpp
         test_vid_table.cpp
+        test_edge_constraint.cpp
+        test_olap_vertex_traversal.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
 

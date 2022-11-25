@@ -126,6 +126,24 @@ class SchemaManager {
         return lbs;
     }
 
+    void RefreshEdgeConstraintsLids(SchemaManager& vertex_sm) {
+        for (auto& s : schemas_) {
+            std::unordered_map<LabelId, std::unordered_set<LabelId>> lids;
+            for (auto& constraint : s.GetEdgeConstraints()) {
+                auto src_schema = vertex_sm.GetSchema(constraint.first);
+                auto dst_schema = vertex_sm.GetSchema(constraint.second);
+                // If schema is nullptr, means it has been deleted.
+                // In this case, assign an illegal label id.
+                LabelId src = src_schema ? src_schema->GetLabelId()
+                                         : std::numeric_limits<LabelId>::max();
+                LabelId dst = dst_schema ? dst_schema->GetLabelId()
+                                         : std::numeric_limits<LabelId>::max();
+                lids[src].insert(dst);
+            }
+            s.SetEdgeConstraintsLids(std::move(lids));
+        }
+    }
+
     std::vector<std::string> GetAllLabels() const {
         std::vector<std::string> lbs;
         lbs.reserve(schemas_.size());

@@ -68,6 +68,21 @@ class Filter {
         STRING_FILTER,
     };
 
+    static inline std::string ToString(const Type &type) {
+        switch (type) {
+            case Type::EMPTY: return "EMPTY";
+            case Type::UNARY: return "UNARY";
+            case Type::BINARY: return "BINARY";
+            case Type::RANGE_FILTER: return "RANGE_FILTER";
+            case Type::TEST_NULL_FILTER: return "TEST_NULL_FILTER";
+            case Type::TEST_IN_FILTER: return "TEST_IN_FILTER";
+            case Type::TEST_EXISTS_FILTER: return "TEST_EXISTS_FILTER";
+            case Type::LABEL_FILTER: return "LABEL_FILTER";
+            case Type::STRING_FILTER: return "STRING_FILTER";
+            default: throw lgraph::CypherException("unknown RecordEntryType");
+        }
+    }
+
     // disable copy constructor & assignment
     Filter(const Filter &rhs) = delete;
 

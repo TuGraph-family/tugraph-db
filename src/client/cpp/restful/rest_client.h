@@ -78,6 +78,10 @@ class RestClient {
 
     bool Login(const std::string& username, const std::string& password);
 
+    std::string Refresh(const std::string& token);
+
+    bool Logout(const std::string& token);
+
     void* GetClient() const;
 
     std::string SendImportData(const std::string& db, const std::string& desc,

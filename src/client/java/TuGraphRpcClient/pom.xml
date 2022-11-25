@@ -18,8 +18,7 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
-    <url>http://maven.apache.org</url>
-    <description>Java implementation for BRPC</description>
+    <description>TuGraph Java Client using BRPC</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -31,26 +30,6 @@
         <module>rpc-client</module>
     </modules>
 
-    <issueManagement>
-        <system>GitHub Issues</system>
-        <url>https://github.com/baidu/brpc-java/issues</url>
-    </issueManagement>
-
-    <developers>
-        <developer>
-            <id>baidu.com</id>
-            <name>The Brpc Java Project Contributors</name>
-            <email>ad-plt@baidu.com</email>
-            <url>http://www.baidu.com/</url>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:git://github.com/baidu/brpc-java.git</connection>
-        <developerConnection>scm:git:git@github.com:baidu/brpc-java.git</developerConnection>
-        <url>https://github.com/baidu/brpc-java</url>
-    </scm>
-
     <licenses>
         <license>
             <name>Apache 2.0</name>
@@ -58,11 +37,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-
-    <organization>
-        <name>Baidu, Inc.</name>
-        <url>http://www.baidu.com</url>
-    </organization>
 
     <profiles>
         <profile>

@@ -114,7 +114,7 @@ TEST_F(TestGraph, Graph) {
     }
     for (size_t i = 0; i < nv; i++) {
         for (size_t j = 0; j < epv; j++) {
-            UT_EXPECT_TRUE(graph.AddEdge(txn, i, 0, j % nv, GenProp(epsize, i + j)) ==
+            UT_EXPECT_TRUE(graph.AddEdge(txn, i, 0, j % nv, GenProp(epsize, i + j), {}) ==
                            EdgeUid(i, j % nv, 0, 0, j / nv));
         }
     }

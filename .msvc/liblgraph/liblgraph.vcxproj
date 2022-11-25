@@ -138,12 +138,9 @@
     <ClCompile Include="..\..\src\lgraph_api\lgraph_edge_index_iterator.cpp" />
     <ClCompile Include="..\..\src\lgraph_api\lgraph_edge_iterator.cpp" />
     <ClCompile Include="..\..\src\lgraph_api\lgraph_galaxy.cpp" />
-    <ClCompile Include="..\..\src\lgraph_api\lgraph_result.cpp" />
     <ClCompile Include="..\..\src\lgraph_api\lgraph_txn.cpp" />
-    <ClCompile Include="..\..\src\lgraph_api\lgraph_utils.cpp" />
     <ClCompile Include="..\..\src\lgraph_api\lgraph_vertex_index_iterator.cpp" />
     <ClCompile Include="..\..\src\lgraph_api\lgraph_vertex_iterator.cpp" />
-    <ClCompile Include="..\..\src\lgraph_api\result_element.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\lgraph\base64_encode.h" />

@@ -36,7 +36,7 @@ class RpcClient {
      */
     RpcClient(const std::string& url, const std::string& user, const std::string& password);
 
-    ~RpcClient() {}
+    ~RpcClient();
 
     // TODO(jzj)
     int64_t Restore(const std::vector<BackupLogEntry>& requests);
@@ -182,6 +182,8 @@ class RpcClient {
     bool CallCypher(std::string& result, const std::string& cypher,
                     const std::string& graph = "default", bool json_format = true,
                     double timeout = 0);
+
+    void Logout();
 
  private:
     LGraphResponse HandleRequest(LGraphRequest* req);

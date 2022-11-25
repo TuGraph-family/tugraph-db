@@ -14,11 +14,13 @@ class AccessControlledDB {
     LightningGraph* graph_;
     AutoReadLock graph_ref_lock_;
     AccessLevel access_level_;
+    std::string user_;
 
     DISABLE_COPY(AccessControlledDB);
 
  public:
-    AccessControlledDB(ScopedRef<LightningGraph>&& g, AccessLevel access_level);
+    AccessControlledDB(ScopedRef<LightningGraph>&& g, AccessLevel access_level,
+                       const std::string& user);
 
     // unmanaged db instance with full access, just for testing
     explicit AccessControlledDB(LightningGraph* graph);
@@ -31,7 +33,7 @@ class AccessControlledDB {
 
     Transaction CreateReadTxn();
 
-    Transaction CreateWriteTxn(bool optimistic = false, bool flush = true);
+    Transaction CreateWriteTxn(bool optimistic = false);
 
     Transaction ForkTxn(Transaction& txn);
 
@@ -78,6 +80,10 @@ class AccessControlledDB {
 
     bool AlterLabelModFields(const std::string& label, const std::vector<FieldSpec>& mod_fields,
                              bool is_vertex, size_t* n_modified);
+    bool AddEdgeConstraints(
+        const std::string& label,
+        const std::vector<std::pair<std::string, std::string>>& constraints);
+    bool ClearEdgeConstraints(const std::string& label);
 
     bool AddVertexIndex(const std::string& label, const std::string& field, bool is_unique);
 
@@ -124,6 +130,10 @@ class AccessControlledDB {
 
     inline void CheckFullAccess() const {
         if (access_level_ < AccessLevel::FULL) throw AuthError("No full permission.");
+    }
+
+    inline void CheckAdmin() const {
+        if (user_ != _detail::DEFAULT_ADMIN_NAME) throw AuthError("Not the admin user.");
     }
 };
 }  // namespace lgraph

@@ -250,6 +250,23 @@ bool RestClient::Login(const std::string& username, const std::string& password)
     return true;
 }
 
+std::string RestClient::Refresh(const std::string& token) {
+    json::value body;
+    auto response = DoPost("/refresh", body, true);
+    auto new_token = response.at(_TU("jwt")).as_string();
+    std::string auth_value = std::string("Bearer ") + ToStdString(new_token);
+    _header["Authorization"] = auth_value;
+    FMA_DBG_STREAM(logger_) << "[RestClient] Refresh " << " succeeded";
+    return new_token;
+}
+
+bool RestClient::Logout(const std::string& token) {
+    json::value body;
+    auto response = DoPost("/logout", body, true);
+    if (response.is_null()) return false;
+    return true;
+}
+
 std::string RestClient::SendImportData(const std::string& db, const std::string& desc,
                                        const std::string& data, bool continue_on_error,
                                        const std::string& delimiter) {

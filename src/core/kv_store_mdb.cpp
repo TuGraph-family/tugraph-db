@@ -12,31 +12,27 @@ namespace lgraph {
 static const std::string DATA_FILE_NAME = "data.mdb";  // NOLINT
 std::atomic<int64_t> KvStore::last_op_id_(-1);
 
-void KvStore::Open(const std::string& path, size_t db_size, bool durable,
-                   bool create_if_not_exist) {
+void KvStore::Open(bool create_if_not_exist) {
     auto& fs = fma_common::FileSystem::GetFileSystem(fma_common::FilePath::SchemeType::LOCAL);
     if (create_if_not_exist) {
-        if (!fs.IsDir(path) && !fs.Mkdir(path)) {
-            throw KvException(std::string("Failed to create data directory ") + path);
+        if (!fs.IsDir(path_) && !fs.Mkdir(path_)) {
+            throw KvException(std::string("Failed to create data directory ") + path_);
         }
     } else {
-        if (!fs.IsDir(path) || !fs.FileExists(path + "/" + DATA_FILE_NAME)) {
-            throw KvException("Data directory " + path + " does not contain valid data.");
+        if (!fs.IsDir(path_) || !fs.FileExists(path_ + "/" + DATA_FILE_NAME)) {
+            throw KvException("Data directory " + path_ + " does not contain valid data.");
         }
     }
     THROW_ON_ERR(mdb_env_create(&env_));
-    THROW_ON_ERR(mdb_env_set_mapsize(env_, db_size));
+    THROW_ON_ERR(mdb_env_set_mapsize(env_, db_size_));
     THROW_ON_ERR(mdb_env_set_maxdbs(env_, 255));
-    THROW_ON_ERR(mdb_env_set_maxreaders(env_, 240));
+    THROW_ON_ERR(mdb_env_set_maxreaders(env_, 1200));
 #if LGRAPH_SHARE_DIR
     unsigned int flags = MDB_NOMEMINIT | MDB_NORDAHEAD | MDB_NOTLS | MDB_NOSYNC;
 #else
     unsigned int flags = MDB_NOMEMINIT | MDB_NORDAHEAD | MDB_NOSYNC;
 #endif
-    THROW_ON_ERR(mdb_env_open(env_, path.c_str(), flags, 0664));
-    path_ = path;
-    db_size_ = db_size;
-    durable_ = durable;
+    THROW_ON_ERR(mdb_env_open(env_, path_.c_str(), flags, 0664));
     // update last op id of all stores with the value stored in this one
     MDB_txn* txn;
     THROW_ON_ERR(mdb_txn_begin(env_, nullptr, MDB_RDONLY, &txn));
@@ -45,9 +41,9 @@ void KvStore::Open(const std::string& path, size_t db_size, bool durable,
     KvStore::UpdateLastOpIdWithStoredValue(last_op_id);
     // start wal
     wal_.reset();
-    if (durable) {
-        // TODO(hct): set wal flush interval
-        wal_.reset(new Wal(env_, path_, 60 * 1000));
+    if (durable_) {
+        wal_.reset(new Wal(env_, path_,
+                           wal_log_rotate_interval_ms_, wal_batch_commit_interval_ms_));
     }
 }
 
@@ -62,12 +58,19 @@ void KvStore::ReopenFromSnapshot(const std::string& snapshot_path) {
     if (!fs.CopyToLocal(src, dst)) {
         throw KvException("Failed to copy snapshot file from " + src + " to " + dst);
     }
-    Open(path_, db_size_, durable_, true);
+    Open(false);
 }
 
 KvStore::KvStore(const std::string& path, size_t db_size, bool durable,
-                 bool create_if_not_exist) {
-    Open(path, db_size, durable, create_if_not_exist);
+                 bool create_if_not_exist,
+                 size_t wal_log_rotate_interval_ms,
+                 size_t wal_batch_commit_interval_ms)
+    : path_(path),
+    db_size_(db_size),
+    durable_(durable),
+    wal_log_rotate_interval_ms_(wal_log_rotate_interval_ms),
+    wal_batch_commit_interval_ms_(wal_batch_commit_interval_ms) {
+    Open(create_if_not_exist);
     finished_ = false;
     validator_ = std::thread([this]() { this->ServeValidation(); });
 }
@@ -82,10 +85,10 @@ KvStore::~KvStore() {
     validator_.join();
 }
 
-KvTransaction KvStore::CreateReadTxn() { return KvTransaction(*this, true, false, false); }
+KvTransaction KvStore::CreateReadTxn() { return KvTransaction(*this, true, false); }
 
-KvTransaction KvStore::CreateWriteTxn(bool optimistic, bool flush) {
-    return KvTransaction(*this, false, optimistic, flush);
+KvTransaction KvStore::CreateWriteTxn(bool optimistic) {
+    return KvTransaction(*this, false, optimistic);
 }
 
 KvTable KvStore::OpenTable(KvTransaction& txn, const std::string& table_name,
@@ -298,9 +301,12 @@ void KvStore::ServeValidation() {
         }
         // set last op id
         mdb_txn_set_last_op_id(root_txn, GetLastOpIdOfAllStores());
-        if (wal_.get())
-            wal_->WriteTxnCommit(write_version);
+        std::future<void> future;
+        if (wal_)
+            future = wal_->WriteTxnCommit(write_version, false);
         ec = mdb_txn_commit(root_txn);
+        // mdb_txn locks the thread, we need to release the txn before waiting
+        if (wal_) wal_->WaitForWalFlush(future);
         if (ec == MDB_SUCCESS) {
             for (size_t i = 0; i < txns.size(); i++) {
                 txns[i]->commit_status_ = (results[i] == MDB_SUCCESS) ? 1 : -1;

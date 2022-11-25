@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #pragma once
 
@@ -45,38 +45,38 @@ class SingleLanguagePluginManager {
 
     virtual ~SingleLanguagePluginManager();
 
-    void DeleteAllPlugins(const std::string& token, KvTransaction& txn);
+    void DeleteAllPlugins(const std::string& user, KvTransaction& txn);
 
-    void DeleteAllPlugins(const std::string& token);
+    void DeleteAllPlugins(const std::string& user);
 
     /**
      * List all plugins
      *
      * @return  A std::vector&lt;PluginManager::PluginDesc&gt;
      */
-    virtual std::vector<PluginDesc> ListPlugins(const std::string& token);
+    virtual std::vector<PluginDesc> ListPlugins(const std::string& user);
 
     // get plugin code
     // return true if success, false if plugin does not exist
-    virtual bool GetPluginCode(const std::string& token, const std::string& name, PluginCode& ret);
+    virtual bool GetPluginCode(const std::string& user, const std::string& name, PluginCode& ret);
 
     // load plugin from code
     // return true if success, false if plugin already exists
     // throws on error
-    virtual bool LoadPluginFromCode(const std::string& token, const std::string& name,
+    virtual bool LoadPluginFromCode(const std::string& user, const std::string& name,
                                     const std::string& code, plugin::CodeType code_type,
                                     const std::string& desc, bool read_only);
 
     // delete plugin
     // return true if success, false if plugin does not exist
     // throws on error
-    virtual bool DelPlugin(const std::string& token, const std::string& name);
+    virtual bool DelPlugin(const std::string& user, const std::string& name);
 
-    virtual bool IsReadOnlyPlugin(const std::string& token, const std::string& name_);
+    virtual bool IsReadOnlyPlugin(const std::string& user, const std::string& name_);
 
     // calls plugin
     // returns true if success, false if no such plugin
-    virtual bool Call(const std::string& token, AccessControlledDB* db_with_access_control,
+    virtual bool Call(const std::string& user, AccessControlledDB* db_with_access_control,
                       const std::string& name_, const std::string& request, double timeout,
                       bool in_process, std::string& output);
 
@@ -129,14 +129,14 @@ class SingleLanguagePluginManager {
 
     void UnloadAllPlugins();
 
-    void LoadPluginFromPyOrSo(const std::string& token, KvTransaction& txn, const std::string& name,
+    void LoadPluginFromPyOrSo(const std::string& user, KvTransaction& txn, const std::string& name,
                               const std::string& exe, const std::string& desc, bool read_only);
 
-    void CompileAndLoadPluginFromZip(const std::string& token, KvTransaction& txn,
+    void CompileAndLoadPluginFromZip(const std::string& user, KvTransaction& txn,
                                      const std::string& name, const std::string& zip,
                                      const std::string& desc, bool read_only);
 
-    void CompileAndLoadPluginFromCpp(const std::string& token, KvTransaction& txn,
+    void CompileAndLoadPluginFromCpp(const std::string& user, KvTransaction& txn,
                                      const std::string& name, const std::string& cpp,
                                      const std::string& desc, bool read_only);
 
@@ -172,26 +172,26 @@ class PluginManager {
 
     ~PluginManager();
 
-    std::vector<PluginDesc> ListPlugins(PluginType type, const std::string& token);
+    std::vector<PluginDesc> ListPlugins(PluginType type, const std::string& user);
 
     /**
      * Loads plugin from code
      *
      * @param          type                 The language type, CPP or PYTHON.
-     * @param          token                The token.
+     * @param          user                 The user.
      * @param          name                 The plugin name.
      * @param          ret                  The code structure, include desc.
      *
      * @return  true if success, false if not found the plugin.
      */
-    bool GetPluginCode(PluginType type, const std::string& token, const std::string& name,
+    bool GetPluginCode(PluginType type, const std::string& user, const std::string& name,
                        PluginCode& ret);
 
     /**
      * Loads plugin from code
      *
      * @param          type                 The language type, CPP or PYTHON.
-     * @param          token                The token.
+     * @param          user                 The user.
      * @param          name                 The plugin name.
      * @param          code                 The code.
      * @param          code_type            The code type, py, so, cpp or zip.
@@ -200,7 +200,7 @@ class PluginManager {
      *
      * @return  true if success, false if plugin already exists
      */
-    virtual bool LoadPluginFromCode(PluginType type, const std::string& token,
+    virtual bool LoadPluginFromCode(PluginType type, const std::string& user,
                                     const std::string& name, const std::string& code,
                                     plugin::CodeType code_type, const std::string& desc,
                                     bool read_only);
@@ -214,7 +214,7 @@ class PluginManager {
      *
      * @return  A plugin::ErrorCode.
      */
-    bool DelPlugin(PluginType type, const std::string& token, const std::string& name);
+    bool DelPlugin(PluginType type, const std::string& user, const std::string& name);
 
     /**
      * Is this plugin read-only?
@@ -225,7 +225,7 @@ class PluginManager {
      *
      * @return  true if read-only, false if read-write
      */
-    bool IsReadOnlyPlugin(PluginType type, const std::string& token, const std::string& name_);
+    bool IsReadOnlyPlugin(PluginType type, const std::string& user, const std::string& name_);
 
     /**
      * Calls a plugin. Note that in_process is currently ignored for CPP.
@@ -239,7 +239,7 @@ class PluginManager {
      *
      * @return  true if success, false if no such plugin
      */
-    bool Call(PluginType type, const std::string& token, AccessControlledDB* db_with_access_control,
+    bool Call(PluginType type, const std::string& user, AccessControlledDB* db_with_access_control,
               const std::string& name_, const std::string& request, double timeout, bool in_process,
               std::string& output);
 

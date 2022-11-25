@@ -41,7 +41,7 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
     std::vector<std::thread> threads;
     for (size_t i = 0; i < n_threads; i++) {
         threads.emplace_back([&, i]() {
-            auto txn = graph.CreateWriteTxn(true, false);
+            auto txn = graph.CreateWriteTxn(true);
             // If two optimistic txns add vertices at the same time, one with small property,
             // the other with large property, then we will create two KVs, one with PackedData
             // type, the other with VertexOnly type, and the conflict resolution will fail to
@@ -237,13 +237,18 @@ TEST_F(TestLGraphApi, LGraphApi) {
                               "fs");
             db.AddEdgeLabel("esp", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
+            db.AddEdgeLabel("unique", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
+                            {});
             db.AddEdgeIndex("esw", "weight", false);
             db.AddVertexIndex("esk", "fs", false);
             db.AddEdgeIndex("esp", "weight", false);
+            db.AddEdgeIndex("unique", "weight", true);
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esw", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esp", "weight"));
+            UT_EXPECT_TRUE(db.IsEdgeIndexed("unique", "weight"));
             auto txn1 = db.CreateWriteTxn();
             UT_EXPECT_TRUE(txn1.IsEdgeIndexed("esw", "weight"));
+            UT_EXPECT_TRUE(txn1.IsEdgeIndexed("unique", "weight"));
             std::vector<size_t> edge_field_ids =
                 txn1.GetEdgeFieldIds(1, std::vector<std::string>{"weight"});
             UT_EXPECT_EQ(edge_field_ids[0], 0);
@@ -257,9 +262,21 @@ TEST_F(TestLGraphApi, LGraphApi) {
                     txn1.AddEdge(i, (i + 1) % 4, "esp", {"weight"}, {FieldData(int64_t(i))}) ==
                     EdgeUid(i, (i + 1) % 4, 2, 0, 0));
             }
-            UT_EXPECT_FALSE(txn1.GetEdgeByUniqueIndex("esw", "weight", "1").IsValid());
-            UT_EXPECT_FALSE(txn1.GetEdgeByUniqueIndex("esw", "weight", FieldData(1)).IsValid());
-            UT_EXPECT_FALSE(txn1.GetEdgeByUniqueIndex(1, 0, FieldData(1)).IsValid());
+            for (int i = 0; i < 4; i++) {
+                auto s = txn1.AddEdge(i, (i + 1) % 4, "unique",
+                                      {"weight"}, {FieldData(int64_t(i))});
+                UT_EXPECT_TRUE(s == EdgeUid(i, (i + 1) % 4, 3, 0, 0));
+            }
+            auto uet = txn1.GetEdgeByUniqueIndex("unique", "weight", "1");
+
+            UT_EXPECT_TRUE(uet.IsValid());
+            UT_EXPECT_EQ(uet.GetSrc(), 1);
+            UT_EXPECT_EQ(uet.GetDst(), 2);
+            UT_EXPECT_EQ(uet.GetLabelId(), 3);
+            UT_EXPECT_EQ(uet.GetTemporalId(), 0);
+            UT_EXPECT_EQ(uet.GetEdgeId(), 0);
+            UT_EXPECT_TRUE(txn1.GetEdgeByUniqueIndex("unique", "weight", FieldData(1)).IsValid());
+            UT_EXPECT_TRUE(txn1.GetEdgeByUniqueIndex(3, 0, FieldData(1)).IsValid());
             auto eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
             auto eit2 = txn1.GetEdgeIndexIterator("esw", "weight", "2", "3");
             auto test_edge_iter1 =

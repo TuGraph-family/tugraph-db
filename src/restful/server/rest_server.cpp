@@ -350,6 +350,15 @@ web::json::value ProtoFieldDataToJson(const ProtoFieldData& data) {
     return web::json::value::null();
 }
 
+template <>
+inline web::json::value ValueToJson(const StateMachine::Peer& peer) {
+    web::json::value v;
+    v[RestStrings::RPC_ADDR] = ValueToJson(peer.rpc_addr);
+    v[RestStrings::REST_ADDR] = ValueToJson(peer.rest_addr);
+    v[RestStrings::STATE] = ValueToJson(peer.StateString());
+    return v;
+}
+
 RestServer::RestServer(StateMachine* state_machine, const Config& config,
                        const std::shared_ptr<GlobalConfig> service_config)
     : logger_(fma_common::Logger::Get("RestServer")),
@@ -1522,6 +1531,43 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     return RespondSuccess(request, response);
 }
 
+// /refresh
+void RestServer::HandlePostRefresh(const std::string& user, const std::string& token,
+                                const web::http::http_request& request,
+                                const utility::string_t& relative_path,
+                                const std::vector<utility::string_t>& paths,
+                                const web::json::value& body) const {
+    if (paths.size() != 1) {
+        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
+        return RespondBadURI(request);
+    }
+    if (token.empty()) return RespondUnauthorized(request, "Bad token.");
+    _HoldReadLock(galaxy_->GetReloadLock());
+    std::string new_token = galaxy_->RefreshUserToken(token, user);
+    web::json::value response;
+    response[RestStrings::TOKEN] = web::json::value::string(_TU(new_token));
+    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(user));
+    return RespondSuccess(request, response);
+}
+
+// /logout
+void RestServer::HandlePostLogout(const std::string& user, const std::string& token,
+                                const web::http::http_request& request,
+                                 const utility::string_t& relative_path,
+                                 const std::vector<utility::string_t>& paths,
+                                 const web::json::value& body) const {
+    if (paths.size() != 1) {
+        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
+        return RespondBadURI(request);
+    }
+    if (token.empty()) return RespondUnauthorized(request, "Bad token.");
+    _HoldReadLock(galaxy_->GetReloadLock());
+    if (!galaxy_->UnBindTokenUser(token)) return RespondUnauthorized(request, "Bad token.");
+    web::json::value response;
+    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(user));
+    return RespondSuccess(request, response);
+}
+
 // /misc/
 //    /misc/sync_meta
 void RestServer::HandlePostMisc(const std::string& user, const std::string& token,
@@ -1982,8 +2028,6 @@ void RestServer::HandlePostSubGraph(const std::string& user, const std::string& 
         web::json::value jrelp;
         jrelp[RestStrings::SRC] = web::json::value::number(relp.src());
         jrelp[RestStrings::DST] = web::json::value::number(relp.dst());
-        // WARNING: Five tuple is temporary solution.
-        //          You should rewrite the line or func when the finally plan have be proposed.
         jrelp[RestStrings::EUID] = web::json::value::string(_TU(fma_common::StringFormatter::Format(
             "{}_{}_{}_{}_{}", relp.src(), relp.dst(), relp.lid(), relp.tid(), relp.eid())));
         jrelp[RestStrings::LABEL] = web::json::value(_TU(relp.label()));
@@ -2197,6 +2241,9 @@ void RestServer::HandlePostUser(const std::string& user, const std::string& toke
     }
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
+        if (paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
+            if (!galaxy_->UnBindTokenUser(token)) return RespondBadRequest(request, "Bad token.");
+        }
         return RespondSuccess(request);
     }
     return RespondRSMError(request, proto_resp, relative_path, "User");
@@ -2760,12 +2807,15 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         auto paths = uri::split_path(relative_path);
         if (paths.empty()) return RespondBadURI(request);
         if (RedirectIfServerTooOld(request, relative_path)) return;
-
         RestPathCases fpc = GetRestPathCase(paths[0]);
-
         std::string token;
         std::string user;
         if (fpc != RestPathCases::LOGIN) user = GetUser(request, &token);
+        if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
+                                    && !galaxy_->JudgeRefreshTime(token)) {
+            throw AuthError("The token is unvalid.");
+            exit(-1);
+        }
         FMA_DBG_STREAM(logger_) << "\n----------------"
                                 << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"
                                 << _TS(body.serialize()).substr(0, 1024) << "\n--------------";
@@ -2773,7 +2823,6 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         // release read lock in case request is handled in another thread and requires
         // write lock
         _ReleaseReadLock();
-
         switch (fpc) {
         case RestPathCases::MISC:
             return HandlePostMisc(user, token, request, relative_path, paths, body);
@@ -2824,6 +2873,10 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
                     return RespondBadURI(request);
                 }
             }
+        case RestPathCases::REFRESH:
+            return HandlePostRefresh(user, token, request, relative_path, paths, body);
+        case RestPathCases::LOGOUT:
+            return HandlePostLogout(user, token, request, relative_path, paths, body);
         default:
             return RespondBadURI(request);
         }

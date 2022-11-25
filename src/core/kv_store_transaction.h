@@ -12,7 +12,6 @@
 #include "core/kv_store_table.h"
 #include "core/lmdb_profiler.h"
 #include "core/lmdb/lmdb.h"
-#include "core/wal.h"
 
 
 namespace lgraph {
@@ -23,6 +22,8 @@ class KvTable;
 class KvTransaction;
 
 class KvStore;
+
+class Wal;
 
 class DeltaStore {
     friend class KvTable;
@@ -78,7 +79,7 @@ class KvTransaction {
 
     DISABLE_COPY(KvTransaction);
 
-    KvTransaction(KvStore& store, bool read_only, bool optimistic, bool flush);
+    KvTransaction(KvStore& store, bool read_only, bool optimistic);
 
     KvTransaction(KvTransaction&& rhs);
 

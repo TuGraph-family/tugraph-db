@@ -8,9 +8,10 @@
 #pragma once
 #include "lgraph/lgraph.h"
 #include "tools/json.hpp"
+
+#ifndef _WIN32
 #include "lgraph/lgraph_traversal.h"
-
-
+#endif
 
 namespace lgraph_api {
 /**
@@ -187,6 +188,7 @@ class Record {
      */
     void Insert(const std::string &fname, const std::map<std::string, FieldData> &map);
 
+#ifndef _WIN32
     /**
      * @brief   insert value into result table. You can insert a value by the function,
      *          and value must be same as you defined earlier.
@@ -206,6 +208,7 @@ class Record {
      */
     void Insert(const std::string &fname, const traversal::Path &path,
                 lgraph_api::Transaction* txn);
+#endif
 
     /**
      * @brief   Get the size of record. If record is empty, return 0, max size is not beyond the

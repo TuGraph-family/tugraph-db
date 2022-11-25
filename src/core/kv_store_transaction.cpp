@@ -1,11 +1,12 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #if (!LGRAPH_USE_MOCK_KV)
+#include <chrono>
+
 #include "core/kv_store_transaction.h"
 #include "core/kv_store_table.h"
 #include "core/kv_store.h"
-
-#include <chrono>
+#include "core/wal.h"
 
 using namespace std::chrono_literals;
 
@@ -77,14 +78,13 @@ DeltaStore& KvTransaction::GetDelta(KvTable& table) {
         .first->second;
 }
 
-KvTransaction::KvTransaction(KvStore& store, bool read_only, bool optimistic, bool flush) {
+KvTransaction::KvTransaction(KvStore& store, bool read_only, bool optimistic) {
     store_ = &store;
     wal_ = store_->GetWal();
     read_only_ = read_only;
     optimistic_ = optimistic;
-    int flags = 0;
+    int flags = MDB_NOSYNC;
     if (read_only_ || optimistic_) flags |= MDB_RDONLY;
-    if (!read_only_ && !flush) flags |= MDB_NOSYNC;
     THROW_ON_ERR(MdbTxnBegin(store.env_, nullptr, flags, &txn_));
     version_ = mdb_txn_id(txn_);
     // write wal if this is a write txn and not optimisitc
@@ -138,10 +138,16 @@ void KvTransaction::Commit() {
         if (read_only_ || !optimistic_) {
             if (!read_only_) {
                 mdb_txn_set_last_op_id(txn_, KvStore::GetLastOpIdOfAllStores());
-                if (wal_) wal_->WriteTxnCommit(version_);
-                int r = MdbTxnCommit(txn_);
-                if (r != MDB_SUCCESS)
-                    THROW_ERR(r);
+                if (wal_) {
+                    std::future<void> future;
+                    if (wal_) future = wal_->WriteTxnCommit(version_, false);
+                    int r = MdbTxnCommit(txn_);
+                    if (wal_) wal_->WaitForWalFlush(future);
+                    if (r != MDB_SUCCESS)
+                        THROW_ERR(r);
+                } else {
+                    THROW_ON_ERR(MdbTxnCommit(txn_));
+                }
             } else {
                 mdb_txn_abort(txn_);
             }

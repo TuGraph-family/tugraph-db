@@ -85,9 +85,10 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
                                                          it);
         EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, 300, 0, 0), GenProp(6553),
                                                          it);
-        EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(EdgeSid(vid, 300, 0, 0), GenProp(6553), it);
-        EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(EdgeSid(vid, 200, 100, 0), GenProp(31000),
-                                                        it);
+        EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
+            EdgeSid(vid, 300, 0, 0), GenProp(6553), it);
+        EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
+            EdgeSid(vid, 200, 100, 0), GenProp(31000), it);
         InEdgeIterator ieit(&txn, table, EdgeUid(200, vid, 100, 0, 0), false);
         UT_EXPECT_TRUE(ieit.IsValid());
         UT_EXPECT_EQ(ieit.GetSrc(), 200);
@@ -115,8 +116,9 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             TemporalId tid = rand_r(&seed) % 20;
             VertexId src = rand_r(&seed) % 20;
             size_t psize = rand_r(&seed) % 16;
-            eid = EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(EdgeSid(vid + 10, src, 12, tid),
-                                                                  GenProp(psize), it);
+            eid = EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
+                EdgeSid(vid + 10, src, 12, tid), GenProp(psize),
+                it);
             ins.emplace_back(EdgeUid(src, vid + 10, 12, tid, eid), psize);
         }
         typedef std::pair<EdgeUid, size_t> EdgeSizePair;
@@ -145,20 +147,24 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
         PackedDataValue pdv;
         table.AddKV(txn, KeyPacker::CreatePackedDataKey(vid + 1), pdv.GetBuf());
         std::vector<std::pair<EdgeUid, size_t>> edges;
-        EdgeId eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid + 1, 200, 100, 0),
-                                                                      GenProp(1), it);
+        EdgeId eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
+            EdgeSid(vid + 1, 200, 100, 0), GenProp(1),
+            it);
         edges.emplace_back(EdgeUid(vid + 1, 200, 100, 0, eid), 1);
         // insert from front
-        eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid + 1, 300, 99, 0),
-                                                               GenProp(2), it);
+        eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
+            EdgeSid(vid + 1, 300, 99, 0), GenProp(2),
+            it);
         edges.emplace_back(EdgeUid(vid + 1, 300, 99, 0, eid), 2);
         // insert from back
-        eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid + 1, 100, 200, 0),
-                                                               GenProp(3), it);
+        eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
+            EdgeSid(vid + 1, 100, 200, 0), GenProp(3),
+            it);
         edges.emplace_back(EdgeUid(vid + 1, 100, 200, 0, eid), 3);
         // insert into middle
-        eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid + 1, 400, 99, 0),
-                                                               GenProp(4), it);
+        eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
+            EdgeSid(vid + 1, 400, 99, 0), GenProp(4),
+            it);
         edges.emplace_back(EdgeUid(vid + 1, 400, 99, 0, eid), 4);
         // randomly insert a lot
         std::vector<std::pair<EdgeUid, size_t>> ins;
@@ -166,8 +172,9 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             LabelId lid = rand_r(&seed);
             VertexId src = rand_r(&seed);
             size_t psize = rand_r(&seed) % 16;
-            eid = EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(EdgeSid(vid + 1, src, lid, 0),
-                                                                  GenProp(psize), it);
+            eid = EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
+                EdgeSid(vid + 1, src, lid, 0), GenProp(psize),
+                it);
             ins.emplace_back(EdgeUid(src, vid + 1, lid, 0, eid), psize);
         }
         // validate
@@ -391,8 +398,9 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
         if (it == all_pairs.end()) {
             int insert = (rand_r(&seed) % 2) == 0;
             if (insert) {
-                eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, dst, lid, 0),
-                                                                       GenProp(s), kvit);
+                eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
+                    EdgeSid(vid, dst, lid, 0), GenProp(s),
+                    kvit);
                 auto map_it = all_pairs.lower_bound(std::make_pair(dst, 0));
                 all_pairs.emplace(std::make_pair(dst, eid), s);
             }

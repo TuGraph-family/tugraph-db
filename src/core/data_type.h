@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #pragma once
 
@@ -61,16 +61,13 @@ struct EdgeSid {
         return src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid == rhs.tid;
     }
 
-    EdgeUid ConstructEdgeUid(EdgeId eid) const {
-        return {src, dst, lid, tid, eid};
-    }
+    EdgeUid ConstructEdgeUid(EdgeId eid) const { return {src, dst, lid, tid, eid}; }
 
     std::string ToString() const {
         return std::to_string(src) + "_" + std::to_string(dst) + "_" + std::to_string(lid) + "_" +
                std::to_string(tid);
     }
 };
-
 
 //===============================
 // Exceptions
@@ -97,8 +94,7 @@ class InternalError : public std::exception {
 #if LGRAPH_ENABLE_BOOST_STACKTRACE
         std::ostringstream oss;
         oss << boost::stacktrace::stacktrace();
-        err_.append("\nBEGIN_STACK =============\n" + oss.str() +
-                    "\nEND_STACK =============\n");
+        err_.append("\nBEGIN_STACK =============\n" + oss.str() + "\nEND_STACK =============\n");
 #endif
     }
 
@@ -108,8 +104,7 @@ class InternalError : public std::exception {
 #if LGRAPH_ENABLE_BOOST_STACKTRACE
         std::ostringstream oss;
         oss << boost::stacktrace::stacktrace();
-        err_.append("\nBEGIN_STACK =============\n" + oss.str() +
-                    "\nEND_STACK =============\n");
+        err_.append("\nBEGIN_STACK =============\n" + oss.str() + "\nEND_STACK =============\n");
 #endif
     }
 
@@ -293,13 +288,15 @@ namespace _detail {
 static const size_t VID_SIZE = 5;
 static const size_t EID_SIZE = 4;
 static const size_t LID_BEGIN = 10;
-static const size_t EID_BEGIN = 12;
-static const size_t EUID_SIZE = 16;
+static const size_t TID_BEGIN = 12;
+static const size_t EID_BEGIN = 20;
+static const size_t EUID_SIZE = 24;
 static const size_t LID_SIZE = sizeof(LabelId);
-static const size_t PID_SIZE = sizeof(TemporalId);
+static const size_t TID_SIZE = sizeof(TemporalId);
 // maximum label id. -1 is reserved, so maximum is 65534
 static const int64_t MAX_VID = (((int64_t)1) << (VID_SIZE * 8)) - 2;
 static const int64_t MAX_EID = (((int64_t)1) << (EID_SIZE * 8)) - 2;
+static const int64_t MAX_TID = std::numeric_limits<TemporalId>::max() - 2;
 static const LabelId MAX_LID = std::numeric_limits<LabelId>::max() - 2;
 static const size_t NODE_SPLIT_THRESHOLD = 1000;
 static const size_t MAX_PROP_SIZE = 32767;
@@ -357,11 +354,15 @@ inline LabelId GetLabelId(const char* p) {
     return lid;
 }
 
+inline TemporalId GetTemporalId(const char* p) { return GetNByteIdFromBuf<TID_SIZE>(p); }
+
 inline void WriteVid(char* p, VertexId id) { SetNByteIdToBuf<VID_SIZE>(p, id); }
 
 inline void WriteEid(char* p, EdgeId id) { SetNByteIdToBuf<EID_SIZE>(p, id); }
 
 inline void WriteLabelId(char* p, LabelId id) { memcpy(p, &id, LID_SIZE); }
+
+inline void WriteTemporalId(char* p, TemporalId id) { SetNByteIdToBuf<TID_SIZE>(p, id); }
 
 inline PackDataOffset GetOffset(const char* offset_array, size_t i) {
     PackDataOffset r;
@@ -386,6 +387,12 @@ inline void CheckEid(EdgeId eid) {
     }
 }
 
+inline void CheckTid(TemporalId tid) {
+    if (tid > ::lgraph::_detail::MAX_TID) {
+        throw InputError("edge id out of range: must be a number between 0 and 1<<32 - 2");
+    }
+}
+
 inline void CheckLid(size_t lid) {
     if (lid > ::lgraph::_detail::MAX_LID) {
         throw InputError("label id out of range: must be a number between 0 and 65534");
@@ -396,7 +403,9 @@ inline void CheckEdgeUid(const EdgeUid& euid) {
     _detail::CheckVid(euid.src);
     _detail::CheckLid(euid.lid);
     _detail::CheckVid(euid.dst);
+    _detail::CheckTid(euid.tid);
     _detail::CheckEid(euid.eid);
 }
 }  // namespace _detail
 }  // namespace lgraph
+

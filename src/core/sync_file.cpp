@@ -56,6 +56,7 @@ void lgraph::SyncFile::Open(const std::string &path) {
 
 void lgraph::SyncFile::Close() {
     if (file_ != -1) {
+        Sync();
         path_.clear();
         close(file_);
         file_ = -1;
@@ -64,15 +65,20 @@ void lgraph::SyncFile::Close() {
 }
 
 void lgraph::SyncFile::Write(const void *buf, size_t s) {
-    ssize_t r = write(file_, buf, s);
-    if (r == -1)
-        throw lgraph_api::IOError(
-            FMA_FMT("Failed to write to file {}: {}",
-                    path_, std::string(strerror(errno))));
+    buffer_.Write(buf, s);
     p_pos_ += s;
 }
 
 void lgraph::SyncFile::Sync() {
+    // write buffer
+    auto& buf = buffer_.GetBuf();
+    ssize_t r = write(file_, buf.data(), buf.size());
+    if (r == -1)
+        throw lgraph_api::IOError(
+            FMA_FMT("Failed to write to file {}: {}",
+                    path_, std::string(strerror(errno))));
+    buf.clear();
+    // sync
     fsync(file_);
 }
 

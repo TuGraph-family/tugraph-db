@@ -32,24 +32,24 @@ int TestEdgeIndexImpl() {
         // add many eids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), i, i + 2, 1, j));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), i, i + 2, 1, i, j));
             }
         }
         for (int64_t i = 100; i < 600; i += 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, j));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
             }
         }
         // add some eids
         for (int64_t i = 98; i >= 0; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, j));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
             }
         }
         // add some euids which already exist
         for (int64_t i = 88; i >= 80; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, j));
+                UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
             }
         }
         auto tit = idx.GetUnmanagedIterator(txn, Value::ConstRef(2), Value::ConstRef(2));
@@ -58,13 +58,13 @@ int TestEdgeIndexImpl() {
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(2), i, i + 2, 1, j));
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
             }
         }
         tit.RefreshContentIfKvIteratorModified();
         UT_EXPECT_TRUE(tit.IsValid());
         // test updates
-        UT_EXPECT_TRUE(idx.Update(txn, Value::ConstRef(2), Value::ConstRef(1), 0, 2, 1, 1));
+        UT_EXPECT_TRUE(idx.Update(txn, Value::ConstRef(2), Value::ConstRef(1), 0, 2, 1, 0, 1));
         // output indexed euids
         {
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(1));
@@ -76,6 +76,7 @@ int TestEdgeIndexImpl() {
                 local_eid = (local_eid % 100) + 1;
                 UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
                 UT_EXPECT_EQ(it.GetEid(), local_eid);
+                UT_EXPECT_EQ(it.GetTemporalId(), local_vid);
                 it.Next();
             }
         }
@@ -129,26 +130,27 @@ int TestEdgeIndexImpl() {
         // add many euids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             UT_EXPECT_TRUE(
-                idx.Add(txn, Value::ConstRef("amazon story" + std::to_string(i)), i, i + 2, 1, 1));
+                idx.Add(txn, Value::ConstRef("amazon story" +
+                        std::to_string(i)), i, i + 2, 1, 0, 1));
         }
         for (int64_t i = 100; i < 600; i += 2) {
             UT_EXPECT_TRUE(
-                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
         }
         // add some euids
         for (int64_t i = 98; i >= 0; i -= 2) {
             UT_EXPECT_TRUE(
-                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
         }
         // add some euids which already exist
         for (int64_t i = 88; i >= 80; i -= 2) {
             UT_EXPECT_TRUE(
-                !idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+                !idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
         }
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
             UT_EXPECT_TRUE(
-                idx.Delete(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 1));
+                idx.Delete(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
         }
         // output indexed eids
         {
@@ -184,22 +186,22 @@ int TestEdgeIndexImpl() {
         EdgeIndex idx(idx_tab, FieldType::STRING, false);
         // add many euids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
-            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("a"), i, i + 2, 1, 1));
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("a"), i, i + 2, 1, 0, 1));
         }
         for (int64_t i = 100; i < 600; i += 2) {
-            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 1));
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
         }
         // add some euids
         for (int64_t i = 98; i >= 0; i -= 2) {
-            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 1));
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
         }
         // add some euids which already exist
         for (int64_t i = 88; i >= 80; i -= 2) {
-            UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 1));
+            UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
         }
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
-            UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef("b"), i, i + 2, 1, 1));
+            UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
         }
         // output indexed eids
         {
@@ -290,10 +292,10 @@ int TestEdgeIndexImpl() {
             EdgeIndex idx(idx_tab, FieldType::STRING, false);
             // add many vids; should split after some point
             for (int64_t i = 0; i < 500; i += 1) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("1"), i, i + 2, 1, 1));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("1"), i, i + 2, 1, 0, 1));
             }
             for (int64_t i = 500; i < 600; i += 1) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("2"), i, i + 2, 1, 1));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("2"), i, i + 2, 1, 0, 1));
             }
             size_t n = 0;
             for (auto it = idx.GetUnmanagedIterator(txn, Value(), Value()); it.IsValid(); it.Next())
@@ -308,7 +310,7 @@ int TestEdgeIndexImpl() {
             // add many vids; should split after some point
             for (int32_t i = 0; i < 100; i += 1) {
                 for (int j = 1; j <= 100; ++j) {
-                    UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), i, i + 2, 1, j));
+                    UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), i, i + 2, 1, 0, j));
                 }
             }
             size_t n = 0;

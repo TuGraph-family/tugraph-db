@@ -37,16 +37,18 @@ namespace _detail {
  * \param           src_vid     The src_vid.
  * \param           src_vid     The dst_vid.
  * \param           lid         The label id.
+ * \param           tid         The temporal id.
  * \param           eid     The eid.
  * \return  The patched key.
  */
 static Value PatchKeyWithEUid(const Value& key, VertexId src_vid, VertexId end_vid, LabelId lid,
-                              EdgeId eid) {
+                              TemporalId tid, EdgeId eid) {
     Value key_euid(key.Size() + EUID_SIZE);
     memcpy(key_euid.Data(), key.Data(), key.Size());
     WriteVid(key_euid.Data() + key.Size(), src_vid);
     WriteVid(key_euid.Data() + key.Size() + VID_SIZE, end_vid);
     WriteLabelId(key_euid.Data() + key.Size() + LID_BEGIN, lid);
+    WriteTemporalId(key_euid.Data() + key.Size() + TID_BEGIN, tid);
     WriteEid(key_euid.Data() + key.Size() + EID_BEGIN, eid);
     return key_euid;
 }
@@ -57,7 +59,7 @@ class EdgeIndex;
 class EdgeIndexIterator;
 
 /**
- * An EdgeIndexValue packs multiple src_vids ,dst_vids, lids and eids into a single value.
+ * An EdgeIndexValue packs multiple src_vids ,dst_vids, lids, tids and eids into a single value.
  */
 class EdgeIndexValue {
     /**
@@ -89,10 +91,12 @@ class EdgeIndexValue {
             auto src_vid = (*et).src;
             auto dst_vid = (*et).dst;
             auto lid = (*et).lid;
+            auto tid = (*et).tid;
             auto eid = (*et).eid;
             _detail::WriteVid(p, src_vid);
             _detail::WriteVid(p + _detail::VID_SIZE, dst_vid);
             _detail::WriteLabelId(p + _detail::LID_BEGIN, lid);
+            _detail::WriteTemporalId(p + _detail::TID_BEGIN, tid);
             _detail::WriteEid(p + _detail::EID_BEGIN, eid);
             p += _detail::EUID_SIZE;
         }
@@ -112,6 +116,10 @@ class EdgeIndexValue {
         return _detail::GetLabelId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::LID_BEGIN);
     }
 
+    LabelId GetNthTid(int n) const {
+        return _detail::GetTemporalId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::TID_BEGIN);
+    }
+
     EdgeId GetNthEid(int n) const {
         return _detail::GetEid(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::EID_BEGIN);
     }
@@ -122,13 +130,15 @@ class EdgeIndexValue {
      * \param           src_vid     The src_vid.
      * \param           dst_vid     The dst_vid.
      * \param           lid         The label id.
+     * \param           tid         The temporal id.
      * \param           eid         The eid.
      * \param [in,out]  found       Is this vid found?
      *
      * \return  Position where the euid is found.
      * list.
      */
-    int SearchEUid(VertexId src_vid, VertexId dst_vid, LabelId lid, EdgeId eid, bool& found) const {
+    int SearchEUid(VertexId src_vid, VertexId dst_vid, LabelId lid, TemporalId tid, EdgeId eid,
+                   bool& found) const {
         if (GetEUidCount() == 0) {
             found = false;
             return 0;
@@ -140,6 +150,7 @@ class EdgeIndexValue {
             VertexId src_pivot = GetNthSrcVid(p);
             VertexId dst_pivot = GetNthDstVid(p);
             LabelId lid_pivot = GetNthLid(p);
+            TemporalId tid_pivot = GetNthTid(p);
             EdgeId eid_pivot = GetNthEid(p);
             if (src_pivot == src_vid) {
                 if (dst_pivot < dst_vid) {
@@ -152,13 +163,19 @@ class EdgeIndexValue {
                     } else if (lid_pivot > lid) {
                         beg = p + 1;
                     } else {
-                        if (eid < eid_pivot) {
+                        if (tid_pivot < tid) {
                             end = p;
-                        } else if (eid > eid_pivot) {
+                        } else if (tid_pivot > tid) {
                             beg = p + 1;
                         } else {
-                            found = true;
-                            return p;
+                            if (eid < eid_pivot) {
+                                end = p;
+                            } else if (eid > eid_pivot) {
+                                beg = p + 1;
+                            } else {
+                                found = true;
+                                return p;
+                            }
                         }
                     }
                 }
@@ -179,6 +196,7 @@ class EdgeIndexValue {
      * \param           src_vid     The src_vid.
      * \param           dst_vid     The dst_vid.
      * \param           lid         The label id.
+     * \param           tid         The temporal id.
      * \param           eid         The edge id.
      * \return  The status of the operation.
      *
@@ -187,18 +205,20 @@ class EdgeIndexValue {
      *   1, the key does not change
      *   2, the key changes
      */
-    uint8_t InsertEUid(VertexId src_vid, VertexId dst_vid, LabelId lid, EdgeId eid) {
+    uint8_t InsertEUid(VertexId src_vid, VertexId dst_vid, LabelId lid, TemporalId tid,
+                       EdgeId eid) {
         bool exists;
-        int pos = SearchEUid(src_vid, dst_vid, lid, eid, exists);
+        int pos = SearchEUid(src_vid, dst_vid, lid, tid, eid, exists);
         if (exists) {
             return 0;
         }
         bool tail = (pos == GetEUidCount());
-        InsertEUidAtNthPos(pos, src_vid, dst_vid, lid, eid);
+        InsertEUidAtNthPos(pos, src_vid, dst_vid, lid, tid, eid);
         return !tail ? 1 : 2;
     }
 
-    void InsertEUidAtNthPos(int pos, VertexId src_vid, VertexId dst_vid, LabelId lid, EdgeId eid) {
+    void InsertEUidAtNthPos(int pos, VertexId src_vid, VertexId dst_vid, LabelId lid,
+                            TemporalId tid, EdgeId eid) {
         // insert the vid
         size_t bytes_after_p = v_.Size() - (1 + (_detail::EUID_SIZE)*pos);
         v_.Resize(v_.Size() + _detail::EUID_SIZE);
@@ -207,6 +227,7 @@ class EdgeIndexValue {
         _detail::WriteVid(ptr, src_vid);
         _detail::WriteVid(ptr + _detail::VID_SIZE, dst_vid);
         _detail::WriteLabelId(ptr + _detail::LID_BEGIN, lid);
+        _detail::WriteTemporalId(ptr + _detail::TID_BEGIN, tid);
         _detail::WriteEid(ptr + _detail::EID_BEGIN, eid);
         (*(uint8_t*)v_.Data())++;
     }
@@ -217,6 +238,7 @@ class EdgeIndexValue {
      * \param           src_vid     The vid.
      * \param           dst_vid     The dst_vid.
      * \param           lid         The label id.
+     * \param           tid         The temporal id.
      * \param           eid         The edge id.
      * \return  The status of the operation.
      *
@@ -225,9 +247,10 @@ class EdgeIndexValue {
      *   1, the key does not change
      *   2, the key changes
      */
-    uint8_t DeleteEUidIfExist(VertexId src_vid, VertexId dst_vid, LabelId lid, EdgeId eid) {
+    uint8_t DeleteEUidIfExist(VertexId src_vid, VertexId dst_vid, LabelId lid, TemporalId tid,
+                              EdgeId eid) {
         bool exists;
-        int pos = SearchEUid(src_vid, dst_vid, lid, eid, exists);
+        int pos = SearchEUid(src_vid, dst_vid, lid, tid, eid, exists);
         if (!exists) {
             return 0;
         }
@@ -309,16 +332,17 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
      * \param           src_vid     The src vid from which to start searching.
      * \param           dst_vid     The dst vid from which to start searching.
      * \param           lid         The label id form which to start searching.
+     * \param           tid         The Temporal id form which to start searching.
      * \param           eid         The eid from which to start searching.
      * \param           unique      Whether the index is a unique index.
      */
     EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& table, const Value& key_start,
                       const Value& key_end, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                      EdgeId eid, bool unique);
+                      TemporalId tid, EdgeId eid, bool unique);
 
     EdgeIndexIterator(EdgeIndex* idx, KvTransaction* txn, KvTable& table, const Value& key_start,
                       const Value& key_end, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                      EdgeId eid, bool unique);
+                      TemporalId tid, EdgeId eid, bool unique);
 
     bool KeyOutOfRange() {
         if (key_end_.Empty() || (!unique_ && key_end_.Size() == _detail::EUID_SIZE)) return false;
@@ -369,11 +393,13 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
             src_vid_ = iv_.GetNthSrcVid(pos_);
             dst_vid_ = iv_.GetNthDstVid(pos_);
             lid_ = iv_.GetNthLid(pos_);
+            tid_ = iv_.GetNthTid(pos_);
             eid_ = iv_.GetNthEid(pos_);
         } else {
             src_vid_ = _detail::GetVid(it_.GetValue().Data());
             dst_vid_ = _detail::GetVid(it_.GetValue().Data() + _detail::VID_SIZE);
             lid_ = _detail::GetLabelId(it_.GetValue().Data() + _detail::LID_BEGIN);
+            tid_ = _detail::GetTemporalId(it_.GetValue().Data() + _detail::TID_BEGIN);
             eid_ = _detail::GetEid(it_.GetValue().Data() + _detail::EID_BEGIN);
         }
     }
@@ -408,6 +434,7 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
             src_vid_ = iv_.GetNthSrcVid(pos_);
             dst_vid_ = iv_.GetNthDstVid(pos_);
             lid_ = iv_.GetNthLid(pos_);
+            tid_ = iv_.GetNthTid(pos_);
             eid_ = iv_.GetNthEid(pos_);
             return true;
         }
@@ -468,9 +495,9 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
         if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
             valid_ = false;
             // now it_ points to a valid position, but not necessary the right one
-            it_.GotoClosestKey(
-                unique_ ? curr_key_
-                        : _detail::PatchKeyWithEUid(curr_key_, src_vid_, dst_vid_, lid_, eid_));
+            it_.GotoClosestKey(unique_ ? curr_key_
+                                       : _detail::PatchKeyWithEUid(curr_key_, src_vid_, dst_vid_,
+                                                                   lid_, tid_, eid_));
             FMA_DBG_ASSERT(it_.IsValid());
             if (KeyOutOfRange()) return;
             if (unique_) {
@@ -480,13 +507,14 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
             } else {
                 // non-unique, need to find correct pos_
                 iv_ = EdgeIndexValue(it_.GetValue());
-                pos_ = iv_.SearchEUid(src_vid_, dst_vid_, lid_, eid_, valid_);
+                pos_ = iv_.SearchEUid(src_vid_, dst_vid_, lid_, tid_, eid_, valid_);
                 if (pos_ >= iv_.GetEUidCount()) return;
                 valid_ = true;
                 curr_key_.Copy(GetKey());
                 src_vid_ = iv_.GetNthSrcVid(pos_);
                 dst_vid_ = iv_.GetNthDstVid(pos_);
                 lid_ = iv_.GetNthLid(pos_);
+                tid_ = iv_.GetNthTid(pos_);
                 eid_ = iv_.GetNthEid(pos_);
                 return;
             }
@@ -544,6 +572,7 @@ class EdgeIndex {
         _detail::WriteVid(v.Data(), euid.src);
         _detail::WriteVid(v.Data() + _detail::VID_SIZE, euid.dst);
         _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, euid.lid);
+        _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, euid.tid);
         _detail::WriteEid(v.Data() + _detail::EID_BEGIN, euid.eid);
         table_.AppendKv(txn, k, v);
     }
@@ -570,11 +599,11 @@ class EdgeIndex {
         }
     }
 
-#define _GET_UNM_EDGE_INDEX_ITER_WITH_EMPTY_START_KEY(ft)                                  \
-    do {                                                                                   \
-        auto d = field_data_helper::MinStoreValue<FieldType::ft>();                        \
-        return EdgeIndexIterator(this, &txn, table_, Value::ConstRef(d),                   \
-                                 std::forward<V2>(key_end), vid, vid2, lid, eid, unique_); \
+#define _GET_UNM_EDGE_INDEX_ITER_WITH_EMPTY_START_KEY(ft)                                       \
+    do {                                                                                        \
+        auto d = field_data_helper::MinStoreValue<FieldType::ft>();                             \
+        return EdgeIndexIterator(this, &txn, table_, Value::ConstRef(d),                        \
+                                 std::forward<V2>(key_end), vid, vid2, lid, tid, eid, unique_); \
     } while (0)
 
     /**
@@ -586,13 +615,14 @@ class EdgeIndex {
      * \param           vid         The vid to start from.
      * \param           vid2         The dst_vid to start from.
      * \param           lid         The label id to start from.
+     * \param           tid         The temporal id to start from.
      * \param           eid         The eid to start from.
      * \return  The index iterator.
      */
     template <typename V1, typename V2>
     EdgeIndexIterator GetUnmanagedIterator(KvTransaction& txn, V1&& key_start, V2&& key_end,
                                            VertexId vid = 0, VertexId vid2 = 0, LabelId lid = 0,
-                                           EdgeId eid = 0) {
+                                           TemporalId tid = 0, EdgeId eid = 0) {
         if (key_start.Empty()) {
             switch (key_type_) {
             case FieldType::BOOL:
@@ -617,7 +647,7 @@ class EdgeIndex {
                 {
                     return EdgeIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
                                              _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                             vid2, lid, eid, unique_);
+                                             vid2, lid, tid, eid, unique_);
                     break;
                 }
             case FieldType::BLOB:
@@ -625,12 +655,14 @@ class EdgeIndex {
             default:
                 FMA_ASSERT(false);
                 return EdgeIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
-                                         std::forward<V2>(key_end), vid, vid2, lid, eid, unique_);
+                                         std::forward<V2>(key_end), vid, vid2, lid, tid, eid,
+                                         unique_);
             }
         } else {
-            return EdgeIndexIterator(
-                this, &txn, table_, _detail::CutKeyIfLong(std::forward<V1>(key_start)),
-                _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid, vid2, lid, eid, unique_);
+            return EdgeIndexIterator(this, &txn, table_,
+                                     _detail::CutKeyIfLong(std::forward<V1>(key_start)),
+                                     _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid, vid2,
+                                     lid, tid, eid, unique_);
         }
     }
 
@@ -638,12 +670,13 @@ class EdgeIndex {
     do {                                                                                           \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();                                \
         return EdgeIndexIterator(this, txn, table_, Value::ConstRef(d), std::forward<V2>(key_end), \
-                                 vid, vid2, lid, eid, unique_);                                    \
+                                 vid, vid2, lid, tid, eid, unique_);                               \
     } while (0)
 
     template <typename V1, typename V2>
     EdgeIndexIterator GetIterator(Transaction* txn, V1&& key_start, V2&& key_end, VertexId vid = 0,
-                                  VertexId vid2 = 0, LabelId lid = 0, EdgeId eid = 0) {
+                                  VertexId vid2 = 0, LabelId lid = 0, TemporalId tid = 0,
+                                  EdgeId eid = 0) {
         if (key_start.Empty()) {
             switch (key_type_) {
             case FieldType::BOOL:
@@ -668,7 +701,7 @@ class EdgeIndex {
                 {
                     return EdgeIndexIterator(this, txn, table_, std::forward<V1>(key_start),
                                              _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                             vid2, lid, eid, unique_);
+                                             vid2, lid, tid, eid, unique_);
                     break;
                 }
             case FieldType::BLOB:
@@ -676,12 +709,14 @@ class EdgeIndex {
             default:
                 FMA_ASSERT(false);
                 return EdgeIndexIterator(this, txn, table_, std::forward<V1>(key_start),
-                                         std::forward<V2>(key_end), vid, vid2, lid, eid, unique_);
+                                         std::forward<V2>(key_end), vid, vid2, lid, tid, eid,
+                                         unique_);
             }
         } else {
-            return EdgeIndexIterator(
-                this, txn, table_, _detail::CutKeyIfLong(std::forward<V1>(key_start)),
-                _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid, vid2, lid, eid, unique_);
+            return EdgeIndexIterator(this, txn, table_,
+                                     _detail::CutKeyIfLong(std::forward<V1>(key_start)),
+                                     _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid, vid2,
+                                     lid, tid, eid, unique_);
         }
     }
 
@@ -706,6 +741,8 @@ class EdgeIndex {
                     std::to_string(_detail::GetVid(iv.GetBuf().Data() + _detail::VID_SIZE)));
                 line.append(
                     std::to_string(_detail::GetLabelId(iv.GetBuf().Data() + _detail::LID_BEGIN)));
+                line.append(std::to_string(
+                    _detail::GetTemporalId(iv.GetBuf().Data() + _detail::TID_BEGIN)));
                 line.append(
                     std::to_string(_detail::GetEid(iv.GetBuf().Data() + _detail::EID_BEGIN)));
             } else {
@@ -713,6 +750,7 @@ class EdgeIndex {
                     line.append(std::to_string(iv.GetNthSrcVid(i)));
                     line.append(std::to_string(iv.GetNthDstVid(i)));
                     line.append(std::to_string(iv.GetNthLid(i)));
+                    line.append(std::to_string(iv.GetNthTid(i)));
                     line.append(std::to_string(iv.GetNthEid(i)));
                     line.append(",");
                 }
@@ -742,13 +780,14 @@ class EdgeIndex {
      * \param           src_vid The src vid.
      * \param           dst_vid The dst vid.
      * \param           lid The label id.
+     * \param           tid the temporal id.
      * \param           eid The eid.
      * \return  Whether the operation succeeds or not.
      */
     bool Delete(KvTransaction& txn, const Value& k, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                EdgeId eid) {
+                TemporalId tid, EdgeId eid) {
         Value key = _detail::CutKeyIfLong(k);
-        EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, src_vid, dst_vid, lid, eid);
+        EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, src_vid, dst_vid, lid, tid, eid);
         if (!it.IsValid() || it.KeyOutOfRange()) {
             // no such key_vid
             return false;
@@ -757,7 +796,7 @@ class EdgeIndex {
             it.it_.DeleteKey();
             return true;
         } else {
-            uint8_t ret = it.iv_.DeleteEUidIfExist(src_vid, dst_vid, lid, eid);
+            uint8_t ret = it.iv_.DeleteEUidIfExist(src_vid, dst_vid, lid, tid, eid);
             if (ret == 1) {
                 // the key does not change after deletion
                 it.it_.SetValue(it.iv_.GetBuf());
@@ -787,15 +826,16 @@ class EdgeIndex {
      * \param           src_vid The src vid.
      * \param           dst_vid The dst vid.
      * \param           lid     the label id.
+     * \param           tid     the temporal id.
      * \param           eid     The eid.
      * \return  Whether the operation succeeds or not.
      */
     bool Update(KvTransaction& txn, const Value& old_key, const Value& new_key, VertexId src_vid,
-                VertexId dst_vid, LabelId lid, EdgeId eid) {
-        if (!Delete(txn, old_key, src_vid, dst_vid, lid, eid)) {
+                VertexId dst_vid, LabelId lid, TemporalId tid, EdgeId eid) {
+        if (!Delete(txn, old_key, src_vid, dst_vid, lid, tid, eid)) {
             return false;
         }
-        return Add(txn, new_key, src_vid, dst_vid, lid, eid);
+        return Add(txn, new_key, src_vid, dst_vid, lid, tid, eid);
     }
 
     /**
@@ -808,11 +848,12 @@ class EdgeIndex {
      * \param           src_vid The vid.
      * \param           dst_vid     The dst_vid.
      * \param           lid     The label id.
+     * \param           tid     The temporal id.
      * \param           eid     The eid.
      * \return  Whether the operation succeeds or not.
      */
     bool Add(KvTransaction& txn, const Value& k, VertexId src_vid, VertexId dst_vid, LabelId lid,
-             EdgeId eid, bool throw_on_long_key = true) {
+             TemporalId tid, EdgeId eid, bool throw_on_long_key = true) {
         if (k.Size() > _detail::MAX_KEY_SIZE && throw_on_long_key) {
             throw InputError("EdgeIndex key size too large, must be less than 480.");
         }
@@ -822,22 +863,23 @@ class EdgeIndex {
             _detail::WriteVid(v.Data(), src_vid);
             _detail::WriteVid(v.Data() + _detail::VID_SIZE, dst_vid);
             _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, lid);
+            _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, tid);
             _detail::WriteEid(v.Data() + _detail::EID_BEGIN, eid);
             return table_.AddKV(txn, key, v);
         }
-        EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, src_vid, dst_vid, lid, eid);
+        EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, src_vid, dst_vid, lid, tid, eid);
         if (!it.IsValid() || it.KeyOutOfRange()) {
             if (!it.PrevKV() || !it.KeyEquals(key)) {
                 // create a new EdgeIndexValue
                 EdgeIndexValue iv;
-                uint8_t r = iv.InsertEUid(src_vid, dst_vid, lid, eid);
+                uint8_t r = iv.InsertEUid(src_vid, dst_vid, lid, tid, eid);
                 FMA_DBG_CHECK_NEQ(r, 0);
                 bool r2 = table_.AddKV(txn, iv.CreateKey(key), iv.GetBuf());
                 FMA_DBG_ASSERT(r2);
                 return true;
             }
         }
-        uint8_t ret = it.iv_.InsertEUid(src_vid, dst_vid, lid, eid);
+        uint8_t ret = it.iv_.InsertEUid(src_vid, dst_vid, lid, tid, eid);
         if (it.iv_.TooLarge()) {
             EdgeIndexValue right = it.iv_.SplitRightHalf();
             // remove the original EdgeIndexValue
@@ -869,3 +911,4 @@ class EdgeIndex {
 
 inline FieldType EdgeIndexIterator::KeyType() const { return index_->KeyType(); }
 }  // namespace lgraph
+

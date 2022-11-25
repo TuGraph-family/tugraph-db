@@ -44,8 +44,8 @@ public class TuGraphRpcClient {
         options.setReadTimeoutMillis(TIMEOUTINMS);
         client = new RpcClient(url, options);
         tuGraphService = BrpcProxy.getProxy(client, TuGraphService.class);
-
-        Lgraph.AuthRequest authReq = Lgraph.AuthRequest.newBuilder().setUser(user).setPassword(pass).build();
+        Lgraph.LoginRequest loginReq = Lgraph.LoginRequest.newBuilder().setUser(user).setPassword(pass).build();
+        Lgraph.AuthRequest authReq = Lgraph.AuthRequest.newBuilder().setLogin(loginReq).build();
         Lgraph.AclRequest req = Lgraph.AclRequest.newBuilder().setAuthRequest(authReq).build();
         Lgraph.LGraphRequest request = Lgraph.LGraphRequest.newBuilder().setAclRequest(req).setToken("").setIsWriteOp(false).build();
 
@@ -488,5 +488,26 @@ public class TuGraphRpcClient {
             }
         }
         return true;
+    }
+
+    // When the scope of the client object ends, the token is automatically deleted, making the token invalid.
+    public void logout() {
+        Lgraph.LogoutRequest logoutReq = Lgraph.LogoutRequest.newBuilder().setToken(this.token).build();
+        Lgraph.AuthRequest authReq = Lgraph.AuthRequest.newBuilder().setLogout(logoutReq).build();
+        Lgraph.AclRequest req = Lgraph.AclRequest.newBuilder().setAuthRequest(authReq).build();
+        Lgraph.LGraphRequest request = Lgraph.LGraphRequest.newBuilder().setAclRequest(req).setToken(this.token).setIsWriteOp(false).build();
+
+        Lgraph.LGraphResponse response = tuGraphService.HandleRequest(request);
+        if (response.getErrorCode().getNumber() != Lgraph.LGraphResponse.ErrorCode.SUCCESS_VALUE) {
+            throw new TuGraphRpcException(response.getErrorCode(), response.getError(), "TuGraphRpcClient");
+        }
+    }
+
+    protected void finalize() throws Throwable {
+        try {
+            logout();
+        } catch (Exception e) {
+            System.out.print(e.getClass().getName());
+        }
     }
 }
