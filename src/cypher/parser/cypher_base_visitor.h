@@ -411,7 +411,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         std::string procedure_name = std::get<0>(invocation);
         auto is_found = false;
         auto pp = cypher::global_ptable.GetProcedure(procedure_name);
- 
+        if (!pp) {
+            throw lgraph::InputError("unregistered standalone function: " + procedure_name);
+        }
         auto concat_str = [](const cypher::Procedure* pp){
             if (pp->result.empty()) return std::string("[]");
             std::string args = "[";

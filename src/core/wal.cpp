@@ -25,21 +25,32 @@ enum WalOpType {
     INVALID_ENTRY = 255
 };
 
-template <typename T>
-void LogToFile(SyncFile &of, const T &d) {
-    of.Write((const char*)&d, sizeof(d));
-}
+template<typename StreamT, typename DT>
+struct LogWriter {
+    static void Write(StreamT& of, const DT& d) {
+        of.Write((const char*)&d, sizeof(d));
+    }
+};
 
-template<>
-void LogToFile<std::string>(SyncFile& of, const std::string& str) {
-    LogToFile(of, str.size());
-    of.Write(str.data(), str.size());
-}
+template<typename StreamT>
+struct LogWriter<StreamT, std::string> {
+    static void Write(StreamT& of, const std::string& d) {
+        LogWriter<StreamT, size_t>::Write(of, d.size());
+        of.Write(d.data(), d.size());
+    }
+};
 
-template<>
-void LogToFile<Value>(SyncFile &of, const Value& v) {
-    LogToFile(of, v.Size());
-    of.Write(v.Data(), v.Size());
+template<typename StreamT>
+struct LogWriter<StreamT, Value> {
+    static void Write(StreamT& of, const Value& d) {
+        LogWriter<StreamT, size_t>::Write(of, d.Size());
+        of.Write(d.Data(), d.Size());
+    }
+};
+
+template <typename StreamT, typename T>
+void LogToFile(StreamT &of, const T &d) {
+    LogWriter<StreamT, T>::Write(of, d);
 }
 
 template<typename T>
@@ -70,11 +81,13 @@ inline Value ReadT<Value>(std::ifstream &in) {
     return ret;
 }
 
-template<>
-void LogToFile<ComparatorDesc>(SyncFile &of, const ComparatorDesc &d) {
-    LogToFile(of, d.comp_type);
-    LogToFile(of, d.data_type);
-}
+template<typename StreamT>
+struct LogWriter<StreamT, ComparatorDesc> {
+    static void Write(StreamT &of, const ComparatorDesc &d) {
+        LogWriter<StreamT, ComparatorDesc::Type>::Write(of, d.comp_type);
+        LogWriter<StreamT, FieldType>::Write(of, d.data_type);
+    }
+};
 
 template<>
 inline ComparatorDesc ReadT<ComparatorDesc>(std::ifstream &in) {
@@ -140,30 +153,35 @@ struct LogEntry {
         DeleteContent();
     }
 
-    static void WriteHeader(SyncFile &of, mdb_size_t txn_id, size_t op_id, WalOpType op_type) {
+    template<typename StreamT>
+    static void WriteHeader(StreamT &of, mdb_size_t txn_id, size_t op_id, WalOpType op_type) {
         LogToFile(of, _wal::MAGIC_NUM);
         LogToFile(of, txn_id);
         LogToFile(of, op_id);
         LogToFile(of, op_type);
     }
 
-    static void LogTxnBegin(SyncFile &of, mdb_size_t txn_id, size_t op_id, bool is_child) {
+    template<typename StreamT>
+    static void LogTxnBegin(StreamT &of, mdb_size_t txn_id, size_t op_id, bool is_child) {
         WriteHeader(of, txn_id, op_id, WalOpType::TXN_BEGIN);
         LogToFile(of, is_child);
     }
 
-    static void LogTxnCommit(SyncFile &of, mdb_size_t txn_id, size_t op_id, bool is_child) {
+    template<typename StreamT>
+    static void LogTxnCommit(StreamT &of, mdb_size_t txn_id, size_t op_id, bool is_child) {
         WriteHeader(of, txn_id, op_id, WalOpType::TXN_COMMIT);
         LogToFile(of, is_child);
     }
 
-    static void LogTxnAbort(SyncFile &of, mdb_size_t txn_id, size_t op_id, bool is_child) {
+    template<typename StreamT>
+    static void LogTxnAbort(StreamT &of, mdb_size_t txn_id, size_t op_id, bool is_child) {
         WriteHeader(of, txn_id, op_id, WalOpType::TXN_ABORT);
         LogToFile(of, is_child);
     }
 
+    template<typename StreamT>
     static void LogTableOpen(
-        SyncFile &of,
+        StreamT &of,
         mdb_size_t txn_id,
         size_t op_id,
         MDB_dbi dbi,
@@ -175,21 +193,24 @@ struct LogEntry {
         LogToFile(of, desc);
     }
 
-    static void LogTableDrop(SyncFile &of, mdb_size_t txn_id, size_t op_id, MDB_dbi dbi) {
+    template<typename StreamT>
+    static void LogTableDrop(StreamT &of, mdb_size_t txn_id, size_t op_id, MDB_dbi dbi) {
         WriteHeader(of, txn_id, op_id, WalOpType::TABLE_DROP);
         LogToFile(of, dbi);
     }
 
-    static void LogKvPut(SyncFile &of, mdb_size_t txn_id, size_t op_id, MDB_dbi dbi,
+    template<typename StreamT>
+    static void LogKvPut(StreamT &of, mdb_size_t txn_id, size_t op_id, MDB_dbi dbi,
                          const Value &k,
-                          const Value &v) {
+                         const Value &v) {
         WriteHeader(of, txn_id, op_id, WalOpType::KV_PUT);
         LogToFile(of, dbi);
         LogToFile(of, k);
         LogToFile(of, v);
     }
 
-    static void LogKvDel(SyncFile &of, mdb_size_t txn_id, size_t op_id, MDB_dbi dbi,
+    template<typename StreamT>
+    static void LogKvDel(StreamT &of, mdb_size_t txn_id, size_t op_id, MDB_dbi dbi,
                          const Value &k) {
         WriteHeader(of, txn_id, op_id, WalOpType::KV_DEL);
         LogToFile(of, dbi);
@@ -231,43 +252,6 @@ struct LogEntry {
         op_type = WalOpType::INVALID_ENTRY;
     }
 };
-
-template<>
-void LogToFile<LogEntry>(SyncFile &of, const LogEntry &l) {
-    // write header
-    LogToFile(of, _wal::MAGIC_NUM);
-    LogToFile(of, l.txn_id);
-    LogToFile(of, l.op_id);
-    LogToFile(of, l.op_type);
-    // now write other contents
-    switch (l.op_type) {
-    case WalOpType::TXN_BEGIN:
-    case WalOpType::TXN_COMMIT:
-    case WalOpType::TXN_ABORT:
-        LogToFile(of, l.is_child);
-        break;
-    case WalOpType::TABLE_DROP:
-        LogToFile(of, l.dbi);
-        break;
-    case WalOpType::TABLE_OPEN:
-        LogToFile(of, l.dbi);
-        LogToFile(of, l.GetTableOpenContent());
-        break;
-    case WalOpType::KV_PUT: {
-            LogToFile(of, l.dbi);
-            auto &p = l.GetKvPutContent();
-            LogToFile(of, p.first);
-            LogToFile(of, p.second);
-            break;
-        }
-    case WalOpType::KV_DEL:
-        LogToFile(of, l.dbi);
-        LogToFile(of, l.GetKeyDelContent());
-    default:
-        FMA_WARN() << "Illegal op type: " << l.op_type;
-        break;
-    }
-}
 
 template<typename T>
 void ReadInto(std::ifstream &in, T &d) {
@@ -344,19 +328,53 @@ inline LogEntry ReadNextLog(std::ifstream &in, bool &success) {
 void Wal::WriteTxnBegin(mdb_size_t txn_id, bool is_child) {
     if (!is_child) op_id_ = 0;
     curr_txn_id_ = txn_id;
-    LogEntry::LogTxnBegin(log_file_, txn_id, op_id_++, is_child);
+    LogEntry::LogTxnBegin(*log_file_.load(), txn_id, op_id_++, is_child);
 }
 
-void Wal::WriteTxnCommit(mdb_size_t txn_id, bool is_child) {
-    LogEntry::LogTxnCommit(log_file_, txn_id, op_id_++, is_child);
-    if (!is_child) {
-        log_file_.Sync();
-        FlushDbAndRotateLogIfNecessary();
+std::future<void> Wal::WriteTxnCommit(mdb_size_t txn_id, bool is_child) {
+    if (!is_child) op_id_ = -1;
+    SyncFile* file = log_file_.load();
+    LogEntry::LogTxnCommit(*file, txn_id, op_id_++, is_child);
+    // child txns are not flushed
+    if (is_child) return {};
+    // we only flush root txns
+    bool need_rotate = false;
+    std::future<void> ret;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        waiting_txns_.emplace_back(txn_id, file);
+        ret = waiting_txns_.back().promise.get_future();
+        auto now = std::chrono::system_clock::now();
+        need_rotate =
+            (now - last_log_rotate_time_ > std::chrono::milliseconds(log_rotate_interval_));
+        // only one thread can operate log_file_ at a time, so just store nullptr
+        // here to allow FlusherThread to detect log rotation
+        if (need_rotate) log_file_.store(nullptr);
+        // kick wal flusher
+        cond_.notify_one();
+    }
+    if (need_rotate) {
+        // need rotate
+        OpenNextLogForWrite();
+        last_log_rotate_time_ = std::chrono::system_clock::now();
+    }
+    return ret;
+}
+
+void Wal::WaitForWalFlush(std::future<void>& future) {
+    if (!future.valid()) return;
+    while (true) {
+        // check if already flushed by someone else
+        auto status = future.wait_for(std::chrono::seconds(1));
+        if (status == std::future_status::ready) return;
+        // might be exiting
+        if (exit_flag_) return;
     }
 }
 
 void Wal::WriteTxnAbort(mdb_size_t txn_id, bool is_child) {
-    LogEntry::LogTxnAbort(log_file_, txn_id, op_id_++, is_child);
+    if (!is_child) op_id_ = -1;
+    LogEntry::LogTxnAbort(*log_file_.load(), txn_id, op_id_++, is_child);
 }
 
 void Wal::WriteTableOpen(
@@ -368,27 +386,37 @@ void Wal::WriteTableOpen(
 }
 
 void Wal::WriteTableDrop(MDB_dbi dbi) {
-    LogEntry::LogTableDrop(log_file_, curr_txn_id_, op_id_++, dbi);
+    LogEntry::LogTableDrop(*log_file_.load(), curr_txn_id_, op_id_++, dbi);
 }
 
 void Wal::WriteKvPut(MDB_dbi dbi, const Value &key, const Value &value) {
-    LogEntry::LogKvPut(log_file_, curr_txn_id_, op_id_++, dbi, key, value);
+    LogEntry::LogKvPut(*log_file_.load(), curr_txn_id_, op_id_++, dbi, key, value);
 }
 
 void Wal::WriteKvDel(MDB_dbi dbi, const Value &key) {
-    LogEntry::LogKvDel(log_file_, curr_txn_id_, op_id_++, dbi, key);
+    LogEntry::LogKvDel(*log_file_.load(), curr_txn_id_, op_id_++, dbi, key);
 }
 
-Wal::Wal(MDB_env* env, const std::string &log_dir, size_t flush_interval_ms)
-    : env_(env), log_dir_(log_dir), flush_interval_ms_(flush_interval_ms) {
+Wal::Wal(MDB_env* env,
+         const std::string &log_dir,
+         size_t flush_interval_ms,
+         size_t batch_commit_interval_ms)
+    : env_(env),
+      log_dir_(log_dir),
+      exit_flag_(false),
+      log_rotate_interval_(flush_interval_ms),
+      batch_time_ms_(batch_commit_interval_ms) {
     // redo the logs by scanning existing log files
-    dbi_log_path_ = FMA_FMT("{}/{}", log_dir_, _wal::WAL_DBI_FILE_PREFIX);
     ReplayLogs();
     // open dbi_file for write
-    dbi_file_.Open(dbi_log_path_);
-    // now re-open wal for write
+    dbi_file_.Open(GetDbiFilePath());
+    op_id_ = -1;
+    // now open wal for write
     OpenNextLogForWrite();
-    last_flush_time_ = std::chrono::system_clock::now();
+    last_log_rotate_time_ = std::chrono::system_clock::now();
+    last_batch_time_ = std::chrono::system_clock::now();
+    // ok, start wal flusher
+    wal_flusher_ = std::thread([this](){FlusherThread();});
 }
 
 inline void TryDeleteLog(const std::string &path) {
@@ -398,21 +426,25 @@ inline void TryDeleteLog(const std::string &path) {
 }
 
 Wal::~Wal() {
+    exit_flag_ = true;
+    wal_flusher_.join();
     int ec = mdb_env_sync(env_, true);
-    for (auto &t : delete_tasks_) {
-        t.second->Cancel();
-        TryDeleteLog(t.first);
+    if (ec != MDB_SUCCESS) return;
+    // try to delete all log files
+    std::set<std::string> to_delete;
+    for (auto& t : waiting_txns_) {
+        to_delete.insert(t.file->Path());
     }
-    if (ec == MDB_SUCCESS) {
-        log_file_.Close();
-        dbi_file_.Close();
-        TryDeleteLog(curr_log_path_);
-        TryDeleteLog(dbi_log_path_);
-    }
+    waiting_txns_.clear();
+    to_delete.insert(log_file_.load()->Path());
+    to_delete.insert(dbi_file_.Path());
+    log_file_.load()->Close();
+    dbi_file_.Close();
+    for (auto& f : to_delete) TryDeleteLog(f);
 }
 
 void Wal::ReplayLogs()  {
-    std::ifstream dbi_in(dbi_log_path_, std::ios::binary);
+    std::ifstream dbi_in(GetDbiFilePath(), std::ios::binary);
     if (!dbi_in.good()) {
         FMA_DBG() << "No wal found, starting clean.";
         return;
@@ -672,58 +704,86 @@ void Wal::ReplayLogs()  {
     }
 }
 
-void Wal::FlushDbAndRotateLogIfNecessary() {
-    auto now = std::chrono::system_clock::now();
-    if (now - last_flush_time_ <= std::chrono::milliseconds(flush_interval_ms_)) {
-        return;
-    }
-    // need to rotate file
-    last_flush_time_ = now;
-    // if no log has been written in current log file, just return
-    if (log_file_.TellP() == 0) return;
-    std::string old_log_path = curr_log_path_;
-    // close current file and open new one
-    OpenNextLogForWrite();
-    // schedule a task to flush and delete
-    {
-        std::lock_guard<std::mutex> l(tasks_lock_);
-        delete_tasks_[old_log_path] =
-            fma_common::TimedTaskScheduler::GetInstance().RunAfterDuration(
-                0,  // start right now
-                [this, old_log_path](fma_common::TimedTask* self) {
-                    // flush env
-                    mdb_env_sync(env_, true);
-                    // delete file
-                    TryDeleteLog(old_log_path);
-                    // delete task ptr from delete_tasks
-                    if (tasks_lock_.try_lock()) {
-                        // try_lock is used here to avoid deadlock.
-                        // In ~Wal() the main thread will try to lock tasks_lock_ and then
-                        // call task->Cancel(), which requires locking task->lock.
-                        // While this task is holding task->lock when it executes, if it tries
-                        // to get tasks_lock, a deadlock will happen.
-                        delete_tasks_.erase(old_log_path);
-                        std::vector<std::string> executed_tasks;
-                        for (auto &t : delete_tasks_) {
-                            if (t.second->Executed()) executed_tasks.push_back(t.first);
-                        }
-                        for (auto &t : executed_tasks) delete_tasks_.erase(t);
-                        tasks_lock_.unlock();
-                    }
-                });
+void Wal::FlusherThread() {
+    double last_report = fma_common::GetTime();
+    std::unordered_map<size_t, size_t> hist;
+#if WAL_PROFILE
+    double total_sync_time = 0;
+    size_t nsyncs = 0;
+    size_t ntxns = 0;
+#endif
+    while (true) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (exit_flag_) break;
+        bool need_flush = true;
+        if (waiting_txns_.empty()) {
+            // wait for new txns
+            cond_.wait_for(lock, std::chrono::milliseconds(batch_time_ms_));
+            need_flush = !waiting_txns_.empty();
+        }
+        if (need_flush) {
+            // modification to log_file_ and waiting_txns_ is guarded by mutex_
+            // if a log_file_ is updated, and a new log is set, the old one must
+            // have been put into waiting_txns
+            SyncFile* curr_file = log_file_.load();
+            std::deque<WaitingTxn> txns;
+            txns.swap(waiting_txns_);
+            lock.unlock();  // unlock before doing IO
+#if WAL_PROFILE
+            hist[txns.size()]++;
+            ntxns += txns.size();
+            double end = fma_common::GetTime();
+            if (end - last_report > 1) {
+                last_report = end;
+                FMA_LOG() << "hist: " << fma_common::ToString(hist);
+                hist.clear();
+                FMA_LOG() << "ntxns: " << ntxns
+                          << ", sync time: " << total_sync_time
+                          << ", nsync: " << nsyncs
+                          << ", avg sync time: " << total_sync_time / nsyncs;
+                total_sync_time = 0;
+                nsyncs = 0;
+                ntxns = 0;
+            }
+            double t1 = fma_common::GetTime();
+#endif
+            // flush
+            if (curr_file == nullptr)
+                txns.back().file->Sync();
+            else
+                curr_file->Sync();
+#if WAL_PROFILE
+            double t2 = fma_common::GetTime();
+            total_sync_time += (t2 - t1);
+            nsyncs++;
+#endif
+            std::set<SyncFile*> files_to_delete;
+            for (auto& t : txns) {
+                if (t.file != curr_file) files_to_delete.insert(t.file);
+                // wake up txn thread
+                t.promise.set_value();
+            }
+            // now delete files
+            for (auto& f : files_to_delete) {
+                auto path = f->Path();
+                f->Close();
+                fma_common::file_system::RemoveFile(path);
+                delete f;
+            }
+        }
     }
 }
 
 void Wal::OpenNextLogForWrite() {
-    // get next log file path
-    curr_log_path_ = GetLogFilePathFromId(next_log_file_id_++);
-    // open log file
-    log_file_.Close();
-    log_file_.Open(curr_log_path_);
+    log_file_.store(new SyncFile(GetLogFilePathFromId(next_log_file_id_++)));
 }
 
 std::string Wal::GetLogFilePathFromId(uint64_t log_file_id) const {
     return FMA_FMT("{}/{}{}", log_dir_, _wal::WAL_FILE_PREFIX, log_file_id);
+}
+
+std::string Wal::GetDbiFilePath() const {
+    return FMA_FMT("{}/{}", log_dir_, _wal::WAL_DBI_FILE_PREFIX);
 }
 
 }  // namespace lgraph

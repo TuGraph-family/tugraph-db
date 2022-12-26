@@ -55,8 +55,10 @@ class LocateNodeByVid : public OptPass {
     }
 
     lgraph::VertexId getVidFromRangeFilter(const std::shared_ptr<lgraph::Filter> &filter) {
+        if (filter->Type() != lgraph::Filter::Type::RANGE_FILTER) {
+            return -1;
+        }
         auto range_filter = std::dynamic_pointer_cast<lgraph::RangeFilter>(filter);
-        // FMA_LOG() << range_filter->_ae_left.ToString();
         if (range_filter->_ae_left.type == ArithExprNode::AR_EXP_OP &&
             range_filter->_ae_left.op.func_name == "id" &&
             range_filter->_compare_op == lgraph::LBR_EQ) {
@@ -127,7 +129,6 @@ class LocateNodeByVid : public OptPass {
             std::reverse(target_vids.begin(), target_vids.end());
             return true;
         }
-
         return false;
     }
 

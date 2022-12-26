@@ -83,6 +83,21 @@ TEST_F(TestGalaxy, Galaxy) {
             fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
             { Galaxy galaxy("./testdb2", false, false); }
         }
+        {
+            fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
+            lgraph::Galaxy::Config conf;
+            conf.dir = "./testdb";
+            auto global_config = std::make_shared<lgraph::GlobalConfig>();
+            global_config->ft_index_options.enable_fulltext_index = true;
+            lgraph::Galaxy galaxy(conf, true, global_config);
+            lgraph::DBConfig db_conf;
+            db_conf.db_size = 1 << 30;
+            galaxy.CreateGraph("admin", "graph1", db_conf);
+            lgraph::GraphManager::ModGraphActions act;
+            act.mod_size = true;
+            act.max_size = (size_t)1 << 31;
+            galaxy.ModGraph("admin", "graph1", act);
+        }
     }
 
     DefineTest("AddDeleteGraph") {

@@ -317,9 +317,20 @@ message GraphResponse {
 //--------------------------------
 // auth
 message AuthRequest {
+    oneof action {
+        LoginRequest login = 1;
+        LogoutRequest logout = 2;
+    };
+};
+
+message LoginRequest {
     required string user = 1;
     required string password = 2;
-};
+}
+
+message LogoutRequest {
+    required string token = 1;
+}
 
 message AuthResponse {
     required string token = 1;
@@ -663,6 +674,7 @@ message LGraphRequest {
     optional int64 client_version = 1;
     required string token = 2;
     optional bool is_write_op = 3;
+    optional string user = 4;
     oneof Req {
         GraphApiRequest graph_api_request = 11;
         CypherRequest cypher_request = 12;

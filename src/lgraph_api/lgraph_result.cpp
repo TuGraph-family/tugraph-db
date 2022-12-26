@@ -160,6 +160,8 @@ void Record::Insert(const std::string &key, const lgraph_api::InEdgeIterator &in
     repl.src = uid.src;
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
+    repl.tid = uid.tid;
+    repl.forward = false;
     repl.label = in_edge_it.GetLabel();
     repl.properties = in_edge_it.GetAllFields();
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
@@ -181,6 +183,8 @@ void Record::Insert(const std::string &key, const lgraph_api::OutEdgeIterator &o
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.label = out_edge_it.GetLabel();
+    repl.tid = uid.tid;
+    repl.forward = true;
     repl.properties = out_edge_it.GetAllFields();
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
     length_++;
@@ -220,6 +224,8 @@ void Record::Insert(const std::string &key, EdgeUid &uid, lgraph::Transaction *t
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.label = txn->GetEdgeLabel(eit);
+    repl.tid = uid.tid;
+    // repl.forward is unknown
     auto rel_fields = txn->GetEdgeFields(eit);
     for (auto &property : rel_fields) {
         repl.properties.insert(property);
@@ -242,6 +248,8 @@ void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.tid = uid.tid;
+    // repl.label is unknown
+    // repl.forward is unknown
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
     length_++;
 }
@@ -278,6 +286,7 @@ void Record::Insert(const std::string &key, const traversal::Path &path, lgraph:
         repl.label_id = euid.lid;
         repl.tid = euid.tid;
         repl.label = txn->GetEdgeLabel(eit);
+        repl.forward = (vid == euid.src);
         for (const auto &property : txn->GetEdgeFields(eit)) {
             repl.properties[property.first] = property.second;
         }

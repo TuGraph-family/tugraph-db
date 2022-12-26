@@ -26,7 +26,7 @@ function(GenerateVersionInfo ver_major ver_minor ver_patch infile outfile)
         set(GIT_COMMIT_HASH "")
     endif (EXISTS "${CMAKE_SOURCE_DIR}/.git")
 
-    set(WEB_DIR ${CMAKE_SOURCE_DIR}/deps/TuGraph-Web)
+    set(WEB_DIR ${CMAKE_SOURCE_DIR}/deps/tugraph-web)
     if (EXISTS "${WEB_DIR}/.git")
         # get WEB_GIT_COMMIT_HASH
         execute_process(

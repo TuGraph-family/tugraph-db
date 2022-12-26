@@ -208,11 +208,13 @@ public class TuGraphRpcClientTest {
         String user = args[1];
         String password = args[2];
         String url = "list://" + hostPort;
+        log.info("----------------new_Client--------------------");
         TuGraphRpcClient client = new TuGraphRpcClient(url, user, password);
         return client;
     }
 
     public static void main(String[] args) throws Exception {
+        log.info("----------------startMain--------------------");
         if (args.length != 3) {
             log.info("java -jar target/tugraph-rpc-client-demo-3.1.0-jar-with-dependencies.jar [host:port] [user] [password]");
             return;
@@ -227,6 +229,13 @@ public class TuGraphRpcClientTest {
             importDataFromFile(client);
         } catch (TuGraphRpcException e) {
             log.info("Exception at "+e.GetErrorMethod()+" with errorCodeName: "+e.GetErrorCodeName()+" and error: "+e.GetError());
+        }
+        log.info("----------------testRpcClientLogout--------------------");
+        client.logout();
+        try {
+            loadPlugin(client);
+        } catch (TuGraphRpcException e) {
+            log.info("rpc client has logout !!");
         }
     }
 }

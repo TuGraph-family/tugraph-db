@@ -42,19 +42,11 @@ class KvStore {
     std::atomic<bool> finished_;
     std::thread validator_;
 
+    size_t wal_log_rotate_interval_ms_;
+    size_t wal_batch_commit_interval_ms_;
     std::unique_ptr<Wal> wal_;
 
-    /**
-     * Opens the KvStore in the given location.
-     *
-     * \exception   KvException Thrown when a Kv error condition occurs.
-     *
-     * \param   path    Location where data is stored. For LMDB, this is a directory.
-     * \param   db_size Maximum size of the database.
-     * \param   durable True if durable.
-     */
-    void Open(const std::string& path, size_t db_size,
-              bool durable, bool create_if_not_exist);
+    void Open(bool create_if_not_exist);
 
     void ReopenFromSnapshot(const std::string& snapshot_path);
 
@@ -85,7 +77,10 @@ class KvStore {
 #else
             size_t db_size = _detail::DEFAULT_GRAPH_SIZE,
 #endif
-            bool durable = true, bool create_if_not_exist = true);
+            bool durable = true,
+            bool create_if_not_exist = true,
+            size_t wal_log_rotate_interval_ms = 60 * 1000,
+            size_t wal_batch_commit_interval_ms = 10);
 
     ~KvStore();
 
@@ -102,11 +97,10 @@ class KvStore {
      & Please note that optimistic write transactions cannot support DUPSORT tables right now.
      *
      * \param   optimistic    (Optional) True to issue optimistic writes.
-     * \param   flush   (Optional) True to flush to disk when transaction commits.
      *
      * \return  The new write transaction.
      */
-    KvTransaction CreateWriteTxn(bool optimistic = false, bool flush = true);
+    KvTransaction CreateWriteTxn(bool optimistic = false);
 
     /**
      * Opens a table and adds it to the OpendTable list. If create_if_not_exist is true, then the

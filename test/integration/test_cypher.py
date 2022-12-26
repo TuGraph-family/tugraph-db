@@ -21,6 +21,10 @@ class TestCypher():
     def test_config_update_one(self, server, client):
         ret = client.callCypher("CALL dbms.config.update({enable_ip_check:false, durable:true, optimistic_txn:false, enable_audit_log:true})", "default")
         assert ret[0]
+
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_config_list_one(self, server, client):
         ret = client.callCypher("CALL dbms.config.list()", "default")
         configs = json.loads(ret[1])
         dict = {}
@@ -37,6 +41,10 @@ class TestCypher():
     def test_config_update_two(self, server, client):
         ret = client.callCypher("CALL dbms.config.update({enable_ip_check:true, durable:false, optimistic_txn:true, enable_audit_log:false})", "default")
         assert ret[0]
+
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_config_list_two(self, server, client):
         ret = client.callCypher("CALL dbms.config.list()", "default")
         configs = json.loads(ret[1])
         dict = {}

@@ -83,13 +83,11 @@ void Transaction::LeaveTxn() {
     LightningGraph::InTransaction() = false;
 }
 
-Transaction::Transaction(bool read_only, bool optimistic, bool flush_when_commit, bool get_lock,
-                         LightningGraph* db)
+Transaction::Transaction(bool read_only, bool optimistic, LightningGraph* db)
     : read_only_(read_only),
       db_(db),
       managed_schema_ptr_(db->schema_.GetScopedRef()),
       graph_(db->graph_.get()),
-      write_mutex_((!optimistic && get_lock) ? &db->write_lock_ : nullptr),
       index_manager_(db->index_manager_.get()),
       blob_manager_(db->blob_manager_.get()),
       fulltext_index_(db->fulltext_index_.get()) {
@@ -97,8 +95,7 @@ Transaction::Transaction(bool read_only, bool optimistic, bool flush_when_commit
     if (read_only) {
         txn_ = db->store_->CreateReadTxn();
     } else {
-        if (write_mutex_) write_mutex_->lock();
-        txn_ = db->store_->CreateWriteTxn(optimistic, flush_when_commit);
+        txn_ = db->store_->CreateWriteTxn(optimistic);
     }
     curr_schema_ = managed_schema_ptr_.Get();
 }
@@ -109,7 +106,6 @@ Transaction::Transaction(LightningGraph* db, KvTransaction& txn)
       db_(db),
       managed_schema_ptr_(db->schema_.GetScopedRef()),
       graph_(db->graph_.get()),
-      write_mutex_(nullptr),
       index_manager_(db->index_manager_.get()),
       blob_manager_(db->blob_manager_.get()),
       fulltext_index_(db->fulltext_index_.get()) {
@@ -163,7 +159,6 @@ Transaction::Transaction(Transaction&& rhs)
       managed_schema_ptr_(std::move(rhs.managed_schema_ptr_)),
       curr_schema_(rhs.curr_schema_),
       graph_(rhs.graph_),
-      write_mutex_(rhs.write_mutex_),
       index_manager_(rhs.index_manager_),
       blob_manager_(rhs.blob_manager_),
       fulltext_index_(rhs.fulltext_index_),
@@ -184,7 +179,6 @@ Transaction& Transaction::operator=(Transaction&& rhs) {
     managed_schema_ptr_ = std::move(rhs.managed_schema_ptr_);
     curr_schema_ = rhs.curr_schema_;
     graph_ = std::move(rhs.graph_);
-    write_mutex_ = rhs.write_mutex_;
     index_manager_ = rhs.index_manager_;
     blob_manager_ = rhs.blob_manager_;
     fulltext_index_ = rhs.fulltext_index_;
@@ -332,10 +326,6 @@ void Transaction::Commit() {
     managed_schema_ptr_.Release();
     LeaveTxn();
     if (!read_only_) {
-        if (write_mutex_) {
-            write_mutex_->unlock();
-            write_mutex_ = nullptr;
-        }
         read_only_ = true;
     }
 }
@@ -347,10 +337,6 @@ void Transaction::Abort() {
     managed_schema_ptr_.Release();
     LeaveTxn();
     if (!read_only_) {
-        if (write_mutex_) {
-            write_mutex_->unlock();
-            write_mutex_ = nullptr;
-        }
         read_only_ = true;
     }
 }
@@ -403,8 +389,8 @@ Transaction::DeleteEdge(EIT& eit) {
     auto euid = eit.GetUid();
     auto schema = curr_schema_->e_schema_manager.GetSchema(euid.lid);
     if (schema->HasBlob()) DeleteBlobs(eit.GetProperty(), schema, blob_manager_, txn_);
-    schema->DeleteEdgeIndex(txn_, eit.GetSrc(), eit.GetDst(), eit.GetLabelId(), eit.GetEdgeId(),
-                            prop);
+    schema->DeleteEdgeIndex(txn_, eit.GetSrc(), eit.GetDst(), eit.GetLabelId(), eit.GetTemporalId(),
+                            eit.GetEdgeId(), prop);
     graph_->DeleteEdge(txn_, eit);
     if (fulltext_index_) {
         schema->DeleteEdgeFullTextIndex(euid, fulltext_buffers_);
@@ -1015,10 +1001,13 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
             tid = ParseTemporalId(values[pos]);
         }
     }
-    EdgeUid euid = graph_->AddEdge(txn_, EdgeSid(src, dst, schema->GetLabelId(), tid), prop);
+    const auto& constraints = schema->GetEdgeConstraintsLids();
+    EdgeUid euid = graph_->AddEdge(
+        txn_, EdgeSid(src, dst, schema->GetLabelId(), tid), prop, constraints);
     EdgeId eid = euid.eid;
+    tid = euid.tid;
     LabelId lid = euid.lid;
-    schema->AddEdgeToIndex(txn_, src, dst, lid, eid, prop);
+    schema->AddEdgeToIndex(txn_, src, dst, lid, tid, eid, prop);
     if (fulltext_index_) {
         schema->AddEdgeToFullTextIndex(euid, prop, fulltext_buffers_);
     }

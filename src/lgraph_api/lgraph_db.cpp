@@ -60,10 +60,10 @@ Transaction GraphDB::CreateReadTxn() {
     return Transaction(db_->CreateReadTxn());
 }
 
-Transaction GraphDB::CreateWriteTxn(bool optimistic, bool no_flush) {
+Transaction GraphDB::CreateWriteTxn(bool optimistic) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return Transaction(db_->CreateWriteTxn(optimistic, !no_flush));
+    return Transaction(db_->CreateWriteTxn(optimistic));
 }
 
 Transaction GraphDB::ForkTxn(Transaction& txn) {

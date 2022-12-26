@@ -135,6 +135,9 @@
     <ClCompile Include="..\..\src\core\kv_table_comparators.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\sync_file.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\algo\algo.h">

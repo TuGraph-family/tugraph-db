@@ -70,6 +70,7 @@ void on_initialize_rpc_server() {
     sm_config.db_dir = "./testdb";
     sm_config.rpc_port = 19099;
 
+    gconfig->ft_index_options.enable_fulltext_index = true;
     ptr_state_machine = new lgraph::StateMachine(sm_config, gconfig);
     RPCService* ptr_rpc_service = new RPCService(ptr_state_machine);
 
@@ -707,6 +708,7 @@ bool Equal(const web::json::value& lval, const std::string& rval, const std::str
     } catch (boost::bad_lexical_cast& e) {
         return false;
     }
+    return false;
 }
 
 bool CheckElementEqual(const web::json::value& val, const std::string& val1,
@@ -804,6 +806,7 @@ bool ObjectHasListValue(const web::json::value& val, const std::string& obj,
     }
     return false;
 }
+
 void test_label(lgraph::RpcClient& client) {
     UT_LOG() << "test createVertexLabel , deleteLabel , vertexLabels";
     std::string str;
@@ -918,16 +921,18 @@ void test_index(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.addIndex(true, 'actor', 'age')");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL db.addFullTextIndex(true, 'actor', 'age')");
-    UT_EXPECT_FALSE(ret);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.addFullTextIndex(true, 'actor', 'age')");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL db.deleteFullTextIndex(true, 'actor', 'age')");
-    UT_EXPECT_FALSE(ret);
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('\"actor\"', '\"age\"')");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('[\"actor\"]', '\"age\"')");
     UT_EXPECT_FALSE(ret);
-    ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('[\"actor\"]', '[\"age\"]')");
+    ret = client.CallCypher(str, "CALL db.addFullTextIndex(true, 'actor', 'age')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.rebuildFullTextIndex('[\"actor\"]', '[]')");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.fullTextIndexes()");
     UT_EXPECT_TRUE(ret);
@@ -1197,8 +1202,12 @@ void test_configration(lgraph::RpcClient& client) {
                             "CALL dbms.config.update({durable:true,"
                             " enable_audit_log:true, enable_ip_check:true})");
     UT_EXPECT_TRUE(ret);
+}
 
-    ret = client.CallCypher(str, "CALL dbms.config.list()");
+void test_configration_valid(lgraph::RpcClient& client) {
+    UT_LOG() << "test config.list , config.update is valid";
+    std::string str;
+    bool ret = client.CallCypher(str, "CALL dbms.config.list()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ((CheckElementEqual(json_val, "durable", "1", "name", "value", "STRING", "BOOL")),
@@ -1209,6 +1218,34 @@ void test_configration(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(
         (CheckElementEqual(json_val, "enable_ip_check", "1", "name", "value", "STRING", "BOOL")),
         true);
+}
+
+void test_plugin_privilege(lgraph::RpcClient& client) {
+    std::string str;
+    bool ret =
+        client.CallCypher(str, "CALL dbms.security.createRole('role_full', 'this is test role')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.modRoleAccessLevel('role_full',"
+                            " {default:'FULL'})");
+    ret = client.CallCypher(str,
+                                 "CALL dbms.security.createUser('user_full', 'user_full')");
+    ret = client.CallCypher(str,
+                            "CALL dbms.security.addUserRoles('user_full', ['role_full'])");
+    lgraph::RpcClient client_non_admin("0.0.0.0:19099", "user_full", "user_full");
+    std::string code_cpp_path = "../../test/test_plugins/sortstr.cpp";
+    // non-admin is not allowed to upload plugin
+    ret = client_non_admin.LoadPlugin(str, code_cpp_path, "CPP", "test_plugin_1", "CPP",
+                            "this is a test plugin", true);
+    UT_EXPECT_FALSE(ret);
+    ret = client.LoadPlugin(str, code_cpp_path, "CPP", "test_plugin_1", "CPP",
+                             "this is a test plugin", true);
+    UT_EXPECT_TRUE(ret);
+    // non-admin is not allowed to delete plugin
+    ret = client_non_admin.CallCypher(str, "CALL db.plugin.deletePlugin('CPP', 'test_plugin_1')");
+    UT_EXPECT_FALSE(ret);
+    ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('CPP', 'test_plugin_1')");
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_role(lgraph::RpcClient& client) {
@@ -1858,45 +1895,52 @@ void* test_rpc_client(void*) {
     if (stage_3 == 0) cond.wait(l);
     // start test user login
     UT_LOG() << "admin user login";
-    RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
+    {
+        RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
 
-    test_cypher(client3);
+        test_cypher(client3);
 
-    test_label(client3);
+        test_label(client3);
 
-    test_relationshipTypes(client3);
+        test_relationshipTypes(client3);
 
-    test_index(client3);
+        test_index(client3);
 
-    test_warmup(client3);
+        test_warmup(client3);
 
-    test_createlabel(client3);
+        test_createlabel(client3);
 
-    test_label_field(client3);
+        test_label_field(client3);
 
-    test_procedure(client3);
+        test_procedure(client3);
 
-    test_graph(client3);
+        test_graph(client3);
 
-    test_allow_host(client3);
-    test_info(client3);
-    test_configration(client3);
+        test_allow_host(client3);
+        test_info(client3);
+        test_configration(client3);
+    }
+    {
+        RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
+        test_configration_valid(client3);
+        test_role(client3);
 
-    test_role(client3);
+        test_user(client3);
 
-    test_user(client3);
+        test_flushDb(client3);
 
-    test_flushDb(client3);
+        test_password(client3);
 
-    test_password(client3);
+        test_cpp_plugin(client3);
 
-    test_cpp_plugin(client3);
+        test_python_plugin(client3);
 
-    test_python_plugin(client3);
+        test_import_file(client3);
 
-    test_import_file(client3);
+        test_import_content(client3);
 
-    test_import_content(client3);
+        test_plugin_privilege(client3);
+    }
 
     stage_3++;
     cond.notify_one();

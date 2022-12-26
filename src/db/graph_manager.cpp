@@ -119,7 +119,18 @@ bool lgraph::GraphManager::ModGraph(KvTransaction& txn, const std::string& name,
                                     const ModGraphActions& actions) {
     auto it = graphs_.find(name);
     if (it == graphs_.end()) return false;
-    DBConfig config = it->second.GetScopedRef()->GetConfig();
+    auto db = it->second.GetScopedRef();
+    DBConfig old_config = db->GetConfig();
+    // close graph
+    db->Close();
+    // setup rollback actions in case of exception
+    CleanupActions rollback;
+    rollback.Emplace([&](){
+        UpdateDBConfigWithGMConfig(old_config, config_);
+        db->ReloadFromDisk(old_config);
+    });
+    // now update config
+    DBConfig config = old_config;
     config.dir = fma_common::FilePath(config.dir).Name();
     if (actions.mod_desc) {
         if (actions.desc.size() > _detail::MAX_DESC_LEN)
@@ -136,10 +147,10 @@ bool lgraph::GraphManager::ModGraph(KvTransaction& txn, const std::string& name,
     // re-open
     UpdateDBConfigWithGMConfig(config, config_);
     config.dir = GetGraphActualDir(parent_dir_, config.dir);
-    FMA_DBG() << "Openning graph with config {" << fma_common::ToString(config) << "}";
-    std::unique_ptr<LightningGraph> graph(new LightningGraph(config));
-    GcDb& gcobj = it->second;
-    gcobj.Assign(graph.release());
+    FMA_DBG() << "Re-openning graph with config {" << fma_common::ToString(config) << "}";
+    db->ReloadFromDisk(config);
+    // cancel rollback
+    rollback.CancelAll();
     return true;
 }
 

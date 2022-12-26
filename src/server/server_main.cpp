@@ -3,7 +3,6 @@
 #include <fma-common/configuration.h>
 #include "server/lgraph_server.h"
 #include "server/service.h"
-
 namespace lgraph {
 class LGraphDaemon : public Service {
     LGraphServer server_;

@@ -14,6 +14,7 @@
 #include "./graph_factory.h"
 #include "./test_tools.h"
 #include "./ut_utils.h"
+#include "db/galaxy.h"
 using namespace utility;               // Common utilities like string conversions
 using namespace web;                   // Common features like URIs.
 using namespace web::http;             // Common HTTP functionality
@@ -253,6 +254,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         fds.emplace_back(FieldSpec("name", FieldType::STRING, false));
         fds.emplace_back(FieldSpec("address", FieldType::STRING, false));
         fds.emplace_back(FieldSpec("scale", FieldType::INT32, false));
+
         UT_EXPECT_EQ(client.AddVertexLabel(db_name, "company", fds, "name"), true);
         UT_EXPECT_ANY_THROW(client.AddVertexLabel(db_name, "company", fds, "name"));
 
@@ -288,9 +290,50 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
     }
     UT_LOG() << "Testing schema succeeded";
 
+    // test refresh
+    UT_LOG() << "Testing refresh";
+    {
+        auto* client1 = static_cast<http_client*>(client.GetClient());
+        json::value body;
+        body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
+        body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
+        Galaxy galaxy("./testdb");
+        auto re = client1->request(methods::POST, _TU("/login"), body).get();
+        auto token = re.extract_json().get().at(_TU("jwt")).as_string();
+        galaxy.ModifyValidTime(1);
+        sleep(1);
+        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);
+        galaxy.ModifyValidTime(600);
+        auto new_token = client.Refresh(token);
+        UT_EXPECT_EQ(new_token != token, true);
+        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), true);
+        galaxy.ModifyValidTime(1);
+        sleep(1);
+        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), false);
+    }
+    UT_LOG() << "Testing refresh succeeded";
+
+    // test logout
+    UT_LOG() << "Testing logout";
+    {
+        auto* client1 = static_cast<http_client*>(client.GetClient());
+        json::value body;
+        body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
+        body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
+        auto response = client1->request(methods::POST, _TU("/login"), body).get();
+        auto token = response.extract_json().get().at(_TU("jwt")).as_string();
+        UT_EXPECT_EQ(client.Logout(token), true);
+        UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: Invalid token.");
+        UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: Invalid token.");
+        UT_EXPECT_THROW_MSG(client.EvalCypher(db_name,
+            "CALL db.addIndex('person', 'age', false)"), "Unauthorized: Invalid token.");
+    }
+    UT_LOG() << "Testing logout succeeded";
+
     // index
     UT_LOG() << "Testing index";
     {
+        client.Login(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
         UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "person", "uid", true));
         UT_EXPECT_EQ(client.AddIndex(db_name, "person", "name", false), true);
         UT_EXPECT_EQ(client.AddIndex(db_name, "person", "age", false), true);
@@ -537,6 +580,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         std::string node;
         std::string relationship;
 
+        client.Login(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
         client.GetServerInfo(cpuRate, memInfo, dbSpace, dbConfig, lgraph_version, node,
                              relationship);
         UT_LOG() << dbConfig.enable_ip_check << ":" << dbConfig.optimistic_txn << ":"
@@ -664,7 +708,6 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         UT_EXPECT_ANY_THROW(
             client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
                               PluginDesc("py_test", "test python plugin ECHO", true), code));
-
         // cpp
         auto plugins = client.GetPlugin(db_name, true);
         UT_EXPECT_EQ(plugins.size(), 0);
@@ -687,13 +730,11 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         UT_EXPECT_EQ(plugin.read_only, true);
         UT_EXPECT_EQ(plugin.code_type, "py");
         UT_EXPECT_EQ(plugin.code, lgraph_api::base64::Encode(code));
-
         UT_EXPECT_EQ(client.ExecutePlugin(db_name, false, "py_test"), "Test python plugin\n");
         UT_EXPECT_EQ(client.ExecutePlugin(db_name, false, "py_test_input",
                                           "test python plugin with input.\n"),
                      "test python plugin with input.\n");
         UT_EXPECT_ANY_THROW(client.ExecutePlugin(db_name, false, "py_test_not_exist"));
-
         client.DeletePlugin(db_name, false, "py_test_input");
 
         plugins = client.GetPlugin(db_name, false);

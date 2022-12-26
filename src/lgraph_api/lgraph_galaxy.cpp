@@ -2,6 +2,7 @@
 
 #include "db/db.h"
 #include "db/galaxy.h"
+#include "db/acl.h"
 
 #include "lgraph/lgraph_galaxy.h"
 
@@ -58,9 +59,9 @@ void lgraph_api::Galaxy::SetCurrentUser(const std::string& user, const std::stri
     user_ = user;
 }
 
-void lgraph_api::Galaxy::SetToken(const std::string& token) {
+void lgraph_api::Galaxy::SetUser(const std::string& user) {
     CHECK_DB_NOT_NULL();
-    user_ = db_->ParseAndValidateToken(token);
+    user_ = user;
 }
 
 bool lgraph_api::Galaxy::DeleteGraph(const std::string& graph_name) {

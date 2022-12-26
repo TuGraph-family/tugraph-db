@@ -62,23 +62,46 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user,
     _HoldReadLock(acl_lock_);
     bool r = acl_->ValidateUser(user, password);
     if (!r) return "";
-    return token_manager_.IssueToken(user, password);
+    std::string jwt = token_manager_.IssueFirstToken();
+    acl_->BindTokenUser("", jwt, user);
+    return jwt;
 }
 
 std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) const {
     std::string user, password;
-    token_manager_.DecipherToken(token, user, password);
     _HoldReadLock(acl_lock_);
-    if (!acl_->ValidateUser(user, password)) throw AuthError("Invalid token.");
+    if (!acl_->DecipherToken(token, user, password)) throw AuthError("Invalid token.");
     return user;
+}
+
+std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
+                                        const std::string& user) const {
+    std::string new_token = token_manager_.UpdateToken(token);
+    if (new_token != "") {
+        acl_->BindTokenUser(token, new_token, user);
+    } else {
+        throw InputError("token has time out.");
+    }
+    return new_token;
+}
+
+bool lgraph::Galaxy::UnBindTokenUser(const std::string& token) {
+    return acl_->UnBindTokenUser(token);
+}
+
+bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {
+    return token_manager_.JudgeRefreshTime(token);
+}
+
+void lgraph::Galaxy::ModifyValidTime(const int& valid_time) {
+    token_manager_.ModifyValidTime(valid_time);
 }
 
 std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token,
                                                         bool* is_admin) const {
     std::string user, password;
-    token_manager_.DecipherToken(token, user, password);
     _HoldReadLock(acl_lock_);
-    if (!acl_->ValidateUser(user, password)) throw AuthError("Invalid token.");
+    if (!acl_->DecipherToken(token, user, password)) throw AuthError("Invalid token.");
     if (is_admin) *is_admin = acl_->IsAdmin(user);
     return user;
 }
@@ -88,11 +111,11 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
     CheckGraphName(graph);
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
-    AutoReadLock l1(acl_lock_, GetMyThreadId());  // upgrade to write lock
+    AutoWriteLock l1(acl_lock_, GetMyThreadId());  // upgrade to write lock
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
-    auto txn = store_->CreateWriteTxn(false, true);
+    auto txn = store_->CreateWriteTxn(false);
     bool r = gm_new->CreateGraph(txn, graph, config);
     if (!r) return r;
     acl_new->AddGraph(txn, curr_user, graph);
@@ -112,7 +135,7 @@ bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
     auto gref = graphs_->GetGraphRef(graph);
-    auto txn = store_->CreateWriteTxn(false, true);
+    auto txn = store_->CreateWriteTxn(false);
     acl_new->DelGraph(txn, curr_user, graph);
     auto db = gm_new->DelGraph(txn, graph);
     if (!db) return false;
@@ -271,7 +294,7 @@ lgraph::AccessControlledDB lgraph::Galaxy::OpenGraph(const std::string& user,
     if (ar == AccessLevel::NONE)
         throw AuthError("User does not have access to the graph specified.");
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
-    return AccessControlledDB(graphs_->GetGraphRef(graph), ar);
+    return AccessControlledDB(graphs_->GetGraphRef(graph), ar, user);
 }
 
 std::unordered_map<std::string, lgraph::AccessControlledDB> lgraph::Galaxy::OpenUserGraphs(
@@ -283,7 +306,7 @@ std::unordered_map<std::string, lgraph::AccessControlledDB> lgraph::Galaxy::Open
     for (auto& kv : acl) {
         if (kv.second == AccessLevel::NONE || kv.first == _detail::META_GRAPH) continue;
         ret.insert(std::make_pair(kv.first,
-                                  AccessControlledDB(graphs_->GetGraphRef(kv.first), kv.second)));
+              AccessControlledDB(graphs_->GetGraphRef(kv.first), kv.second, user)));
     }
     return ret;
 }

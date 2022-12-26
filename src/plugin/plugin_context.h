@@ -104,7 +104,7 @@ class AutoRemoveMQ {
 };
 
 struct TaskInput {
-    std::string token;
+    std::string user;
     std::string graph;
     std::string plugin_dir;
     std::string function;
@@ -115,14 +115,14 @@ struct TaskInput {
 
     template <typename T>
     size_t Serialize(T& os) const {
-        return fma_common::BinaryWrite(os, token) + fma_common::BinaryWrite(os, graph) +
+        return fma_common::BinaryWrite(os, user) + fma_common::BinaryWrite(os, graph) +
                fma_common::BinaryWrite(os, plugin_dir) + fma_common::BinaryWrite(os, function) +
                fma_common::BinaryWrite(os, input) + fma_common::BinaryWrite(os, read_only);
     }
 
     template <typename T>
     size_t Deserialize(T& is) {
-        return fma_common::BinaryRead(is, token) + fma_common::BinaryRead(is, graph) +
+        return fma_common::BinaryRead(is, user) + fma_common::BinaryRead(is, graph) +
                fma_common::BinaryRead(is, plugin_dir) + fma_common::BinaryRead(is, function) +
                fma_common::BinaryRead(is, input) + fma_common::BinaryRead(is, read_only);
     }

@@ -4,18 +4,17 @@
 #include "core/transaction.h"
 
 namespace lgraph {
-EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, Transaction* txn,
-                                     KvTable& table, const Value& key_start,
-                                     const Value& key_end, VertexId vid,
-                                     VertexId vid2, LabelId lid, EdgeId eid,
+EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& table,
+                                     const Value& key_start, const Value& key_end, VertexId vid,
+                                     VertexId vid2, LabelId lid, TemporalId tid, EdgeId eid,
                                      bool unique)
     : IteratorBase(txn),
       index_(idx),
       it_(txn->GetTxn(), table,
-          unique ? key_start : _detail::PatchKeyWithEUid(key_start, vid, vid2, lid, eid),
+          unique ? key_start : _detail::PatchKeyWithEUid(key_start, vid, vid2, lid, tid, eid),
           true),
-      key_end_(unique ? Value::MakeCopy(key_end) :
-                        _detail::PatchKeyWithEUid(key_end, -1, -1, -1, -1)),
+      key_end_(unique ? Value::MakeCopy(key_end)
+                      : _detail::PatchKeyWithEUid(key_end, -1, -1, -1, -1, -1)),
       iv_(),
       valid_(false),
       pos_(0),
@@ -26,17 +25,17 @@ EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, Transaction* txn,
     LoadContentFromIt();
 }
 
-EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, KvTransaction* txn,
-                                     KvTable& table, const Value& key_start,
-                                     const Value& key_end, VertexId vid,
-                                     VertexId vid2, LabelId lid, EdgeId eid, bool unique)
+EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, KvTransaction* txn, KvTable& table,
+                                     const Value& key_start, const Value& key_end, VertexId vid,
+                                     VertexId vid2, LabelId lid, TemporalId tid, EdgeId eid,
+                                     bool unique)
     : IteratorBase(nullptr),
       index_(idx),
       it_(*txn, table,
-          unique ? key_start : _detail::PatchKeyWithEUid(key_start, vid, vid2, lid, eid),
+          unique ? key_start : _detail::PatchKeyWithEUid(key_start, vid, vid2, lid, tid, eid),
           true),
-      key_end_(unique ? Value::MakeCopy(key_end) :
-                      _detail::PatchKeyWithEUid(key_end, -1, -1, -1, -1)),
+      key_end_(unique ? Value::MakeCopy(key_end)
+                      : _detail::PatchKeyWithEUid(key_end, -1, -1, -1, -1, -1)),
       iv_(),
       valid_(false),
       pos_(0),
@@ -59,6 +58,7 @@ EdgeIndexIterator::EdgeIndexIterator(EdgeIndexIterator&& rhs)
       src_vid_(rhs.src_vid_),
       dst_vid_(rhs.dst_vid_),
       lid_(rhs.lid_),
+      tid_(rhs.tid_),
       eid_(rhs.eid_),
       unique_(rhs.unique_) {
     rhs.valid_ = false;
@@ -69,3 +69,4 @@ void EdgeIndexIterator::CloseImpl() {
     valid_ = false;
 }
 }  // namespace lgraph
+

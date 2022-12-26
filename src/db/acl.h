@@ -181,6 +181,9 @@ class AclManager {
     // {user: use_built_in}
     std::unordered_map<std::string, CachedUserInfo> user_cache_;
 
+    // {jwt: user_name}
+    std::unordered_map<std::string, std::string> token_mapping;
+
     // user -> UserInfo
     KvTable user_tbl_;
     // role -> RoleInfo
@@ -345,5 +348,12 @@ class AclManager {
 
     bool SetUserMemoryLimit(KvTransaction& txn, const std::string& current_user,
                             const std::string& user, const size_t& memmory_limit);
+
+    void BindTokenUser(const std::string& old_token, const std::string& new_token,
+                                                        const std::string& user);
+
+    bool DecipherToken(const std::string& token, std::string& user, std::string& pwd);
+
+    bool UnBindTokenUser(const std::string& token);
 };
 }  // namespace lgraph

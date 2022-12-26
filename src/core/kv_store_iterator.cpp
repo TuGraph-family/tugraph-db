@@ -2,6 +2,7 @@
 
 #if (!LGRAPH_USE_MOCK_KV)
 #include "core/kv_store_iterator.h"
+#include "core/wal.h"
 
 namespace lgraph {
 

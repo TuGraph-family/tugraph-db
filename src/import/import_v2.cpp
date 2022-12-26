@@ -263,7 +263,7 @@ class BufferedBlobWriter {
         : max_buf_size_(max_buf_size),
           writer_(
               [db](Buffer&& buf) {
-                  auto txn = db->CreateWriteTxn(false, false);
+                  auto txn = db->CreateWriteTxn();
                   txn._BatchAddBlobs(buf);
                   txn.Commit();
               },

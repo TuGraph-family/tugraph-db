@@ -3,6 +3,7 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 
 #include "core/graph_vertex_iterator.h"
 #include "core/kv_store.h"
@@ -14,6 +15,7 @@ class Importer;
 class ImportOnline;
 }  // namespace import_v2
 namespace graph {
+
 /**
  * A graph stored in kv-store.
  *
@@ -182,13 +184,15 @@ class Graph {
      * \param           src     Source of the edge.
      * \param           dst     Destination of the edge.
      * \param           prop    The edge property.
+     * \param           constraints edge constraints
      *
      * \return  The id of the newly added edge. The edge id of the first src->dst edge is 0, and
      *          increments by one whenever a new src->dst edge is added.
      */
-    EdgeUid AddEdge(KvTransaction& txn, VertexId src, LabelId lid, VertexId dst,
-                    const Value& prop) {
-        return AddEdge(txn, EdgeSid(src, dst, lid, 0), prop);
+    EdgeUid AddEdge(KvTransaction& txn, VertexId src, LabelId lid, VertexId dst, const Value& prop,
+                    const std::unordered_map<LabelId, std::unordered_set<LabelId>>&
+                        constraints = {}) {
+        return AddEdge(txn, EdgeSid(src, dst, lid, 0), prop, constraints);
     }
 
     /**
@@ -199,21 +203,24 @@ class Graph {
      * \param           tid     The Temporal id.
      * \param           dst     Destination of the edge.
      * \param           prop    The edge property.
+     * \param           constraints edge constraints
      *
      * \return  The id of the newly added edge. The edge id of the first src->dst edge is 0, and
      *          increments by one whenever a new src->dst edge is added.
      */
-    EdgeUid AddEdge(KvTransaction& txn, EdgeSid esid, const Value& prop) {
+    EdgeUid AddEdge(KvTransaction& txn, EdgeSid esid, const Value& prop,
+                    const std::unordered_map<LabelId, std::unordered_set<LabelId>>&
+                        constraints) {
         // add out-going edge
         KvIterator it(txn, table_);
-        // test if dst exists
-        VIteratorImpl vit(it);
-        vit.Goto(esid.dst, false);
-        if (!vit.IsValid()) throw InputError("Destination vertex does not exist");
-        EdgeId eid = OutIteratorImpl::InsertEdge(esid, prop, it);
+        std::unique_ptr<EdgeConstraintsChecker> ec;
+        if (!constraints.empty()) {
+            ec = std::make_unique<EdgeConstraintsChecker>(constraints);
+        }
+        EdgeId eid = OutIteratorImpl::InsertEdge(esid, prop, it, nullptr, ec.get());
         EdgeSid esid_reverse = esid;
         esid_reverse.Reverse();
-        EdgeId ee = InIteratorImpl::InsertEdge(esid_reverse, prop, it, &eid);
+        EdgeId ee = InIteratorImpl::InsertEdge(esid_reverse, prop, it, &eid, ec.get());
         FMA_DBG_CHECK_EQ(ee, eid);
         return esid.ConstructEdgeUid(eid);
     }
@@ -374,6 +381,7 @@ class Graph {
 
     VertexId GetLooseNumVertex(KvTransaction& txn) { return GetNextVid(txn); }
 
+#ifdef _USELESS_CODE
     // Adds a bunch of out-edges and in-edges for the same vertex.
     // Make sure out-edge and in-edges are inserted in the same order.
     // For example, (V->U, e1) and (V->U, e2) appears as {e1, e2} in
@@ -396,8 +404,6 @@ class Graph {
             InIteratorImpl::InsertEdge(EdgeSid(vid, src, lid, 0), prop, it);
         }
     }
-
-#ifdef _USELESS_CODE
     void ImportVertexDataRaw(KvTransaction& txn, const std::string& vdata, VertexId expected,
                              const std::vector<std::tuple<LabelId, VertexId, std::string>>& outs,
                              const std::vector<std::tuple<LabelId, VertexId, std::string>>& ins) {

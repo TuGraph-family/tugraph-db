@@ -39,12 +39,6 @@
     <ClCompile Include="..\..\src\lgraph_api\lgraph_vertex_index_iterator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\lgraph_api\lgraph_result.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\lgraph_api\result_element.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\lgraph\base64_encode.h">

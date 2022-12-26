@@ -200,6 +200,24 @@ class GCRefCountedPtr {
         SetPtr(new _detail::RefCountedObj<T>(ptr));
     }
 
+    /**
+     * @breif Wait for reference to current version to clear out and then assign new version.
+     */
+    void WaitAndAssign(T*ptr) {
+        bool assigned = false;
+        std::mutex mu;
+        std::condition_variable cond;
+        Assign(ptr,
+               nullptr,
+               [&](){
+                   std::lock_guard<std::mutex> l(mu);
+                   assigned = true;
+                   cond.notify_all();
+               });
+        std::unique_lock<std::mutex> l(mu);
+        while (!assigned) cond.wait(l);
+    }
+
     ScopedRef<T> GetScopedRef() const { return ScopedRef<T>(GetPtr(), GetMyThreadId()); }
 
     template <typename... DT>

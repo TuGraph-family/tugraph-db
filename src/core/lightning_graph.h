@@ -44,7 +44,6 @@ class LightningGraph {
     std::unique_ptr<BlobManager> blob_manager_ = nullptr;
     std::unique_ptr<FullTextIndex> fulltext_index_ = nullptr;
     GCRefCountedPtr<SchemaInfo> schema_;
-    std::mutex write_lock_;
     KillableRWLock meta_lock_;  // lock to hold when doing meta update, especially when AlterLabel
 
     fma_common::Logger& logger_ = fma_common::Logger::Get("LightningGraph");
@@ -73,13 +72,12 @@ class LightningGraph {
     Transaction ForkTxn(Transaction& txn);
 
     /**
-     * Creates a read-write transaction
+     * @brief  Creates a read-write transaction
+     * @param   optimistic  Create an optimistic txn. Multiple optimistic txns can run in parallel.
      *
-     * \param   flush   Flush to disk when transaction commits.
-     *
-     * \return  The new write transaction.
+     * @returns  The new write transaction.
      */
-    Transaction CreateWriteTxn(bool optimistic = false, bool flush = true, bool get_lock = true);
+    Transaction CreateWriteTxn(bool optimistic = false);
 
     /** Flush any buffered data. Use this when opening the DB with durable = false. */
     void Persist() {
@@ -165,6 +163,8 @@ class LightningGraph {
                              size_t* n_modified);
     bool AlterLabelModFields(const std::string& label, const std::vector<FieldSpec>& mod_fields,
                              bool is_vertex, size_t* n_modified);
+    bool AddEdgeConstraints(const std::string& edge_label, const EdgeConstraints& constraints);
+    bool ClearEdgeConstraints(const std::string& edge_label);
 
     /**
      * Adds an index to 'label:field', but do not actually build it. Used internally

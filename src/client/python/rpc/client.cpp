@@ -9,7 +9,6 @@ namespace py = pybind11;
 void register_python_client(pybind11::module& m) {
     // define lgraph::RpcClient class
     py::class_<LgraphPythonClient> c(m, "client", "this is a python rpc client");
-
     // define the constructor
     c.def(pybind11::init<const std::string &, const std::string &, const std::string &>(),
             "Client Login\n"
@@ -138,6 +137,13 @@ void register_python_client(pybind11::module& m) {
           pybind11::arg("json_format") = true,
           pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
+
+    c.def("logout", &LgraphPythonClient::Logout,
+          "Execute unbind token\n");
+
+
+    c.def("close", &LgraphPythonClient::Close,
+          "close the channel \n");
 }
 
 PYBIND11_MODULE(python_client, m) {

@@ -58,7 +58,7 @@ class Transaction {
     ScopedRef<SchemaInfo> managed_schema_ptr_;
     SchemaInfo* curr_schema_ = nullptr;
     graph::Graph* graph_ = nullptr;
-    std::mutex* write_mutex_ = nullptr;
+
     IndexManager* index_manager_ = nullptr;
     BlobManager* blob_manager_ = nullptr;
     std::vector<IteratorBase*> iterators_;
@@ -75,18 +75,12 @@ class Transaction {
     /**
      * Constructor
      *
-     * \param           read_only           True if this is a read-only
-     * transaction. \param           optimistic          True to begin an
-     * optimistic write transaction. \param           flush_when_commit   Whether
-     * to flush to disk when commit. \param [in,out]  store_              If
-     * non-null, the store. \param [in,out]  schema_gc           GC manged
-     * SchemaInfo object. \param [in,out]  graph               Graph pointer.
-     * \param [in,out]  write_mutex         Write mutex pointer. We need this to
-     * guarantee there is only one writer at a time. \param [in,out] index_manager
-     * VertexIndex manager pointer.
+     * @param  read_only        True if this is a read-only transaction.
+     * @param  optimistic       True to begin an optimistic write transaction.
+     * @param  get_lock         Whether to acquire db write lock in transaction.
+     * @param  db               Pointer to the db.
      */
-    Transaction(bool read_only, bool optimistic, bool flush_when_commit, bool get_lock,
-                LightningGraph* db);
+    Transaction(bool read_only, bool optimistic, LightningGraph* db);
 
     // used in ForkTxn
     Transaction(LightningGraph* db, KvTransaction& txn);

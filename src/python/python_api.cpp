@@ -330,9 +330,9 @@ void register_python_api(pybind11::module& m) {
                "user: user name\n"
                "password: password of the user",
                pybind11::arg("user"), pybind11::arg("password"));
-    galaxy.def("SetToken", &Galaxy::SetToken,
-               "Validate the given token and set current user given in the token.",
-               pybind11::arg("token"));
+    galaxy.def("SetUser", &Galaxy::SetUser,
+               "Validate the given user and set current user given in the user.",
+               pybind11::arg("user"));
     galaxy.def("Close", &Galaxy::Close, "Closes this galaxy")
         .def("CreateGraph", &Galaxy::CreateGraph,
              "Creates a graph.\n"
@@ -423,14 +423,8 @@ void register_python_api(pybind11::module& m) {
             "Release memory of this GraphDB.");
     graph_db.def("Close", &GraphDB::Close, "Closes the DB.")
         .def("CreateWriteTxn", &GraphDB::CreateWriteTxn,
-             "Create a write transaction.\n"
-             "If async==true, the data will be written to disk asynchronously, "
-             "thus there is risk of data loss in case of sudden OS shutdown or "
-             "power loss. "
-             "You can use Flush() to sync all the data written so far to disk. "
-             "Note that optimistic write transactions may fail to commit due to "
-             "write conflicts.",
-             pybind11::arg("optimistic") = false, pybind11::arg("async") = false,
+             "Create a write transaction.\n",
+             pybind11::arg("optimistic") = false,
              pybind11::return_value_policy::move)
         .def("CreateReadTxn", &GraphDB::CreateReadTxn, pybind11::return_value_policy::move)
         .def("Flush", &GraphDB::Flush, "Flushes written data into disk.")
@@ -1459,7 +1453,7 @@ void register_lgraph_plugin(pybind11::module& m) {
                 return input;
             },
             "Read TaskInput from message queue")
-        .def_readonly("token", &lgraph::python_plugin::TaskInput::token, "Token to be used")
+        .def_readonly("user", &lgraph::python_plugin::TaskInput::user, "user to be used")
         .def_readonly("graph", &lgraph::python_plugin::TaskInput::graph, "Graph to be used")
         .def_readonly("plugin_dir", &lgraph::python_plugin::TaskInput::plugin_dir,
                       "Directory where .py files are stored")

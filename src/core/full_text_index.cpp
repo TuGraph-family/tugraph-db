@@ -184,7 +184,10 @@ void LuceneJNIEnv::CheckException(const std::string &call_method) {
 LuceneJNIEnv::LuceneJNIEnv() {
     std::call_once(once_flag, InitJniEnv);
     if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_8) == JNI_EDETACHED) {
-        vm->AttachCurrentThread(reinterpret_cast<void **>(&env), nullptr);
+        auto s = vm->AttachCurrentThread(reinterpret_cast<void **>(&env), nullptr);
+        if (s != JNI_OK) {
+            throw FTIndexException("jvm AttachCurrentThread failed");
+        }
         need_detach = true;
     }
     luceneClass = env->FindClass("Lucene");

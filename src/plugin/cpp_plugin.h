@@ -44,7 +44,7 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  The plugin.
      */
-    void LoadPlugin(const std::string& token, const std::string& name,
+    void LoadPlugin(const std::string& user, const std::string& name,
                     PluginInfoBase* pinfo) override;
 
     /**
@@ -55,7 +55,7 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  A plugin::ErrorCode.
      */
-    void UnloadPlugin(const std::string& token, const std::string& name,
+    void UnloadPlugin(const std::string& user, const std::string& name,
                       PluginInfoBase* pinfo) override;
 
     /**
@@ -97,7 +97,7 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  A plugin::ErrorCode.
      */
-    void DoCall(const std::string& token, AccessControlledDB* db_with_access_control,
+    void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
                 const std::string name, const PluginInfoBase* pinfo, const std::string& request,
                 double timeout, bool in_process, std::string& output) override;
 };

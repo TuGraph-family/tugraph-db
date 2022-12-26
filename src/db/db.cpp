@@ -3,23 +3,27 @@
 #include "db/db.h"
 
 lgraph::AccessControlledDB::AccessControlledDB(ScopedRef<LightningGraph>&& ref,
-                                               AccessLevel access_level)
+                                               AccessLevel access_level,
+                                               const std::string& user)
     : graph_ref_(std::move(ref)),
       graph_(graph_ref_.Get()),
       graph_ref_lock_(graph_->GetReloadLock(), GetMyThreadId()),
-      access_level_(access_level) {}
+      access_level_(access_level),
+      user_(user) {}
 
 lgraph::AccessControlledDB::AccessControlledDB(lgraph::LightningGraph* db)
     : graph_ref_(nullptr, GetMyThreadId()),
       graph_(db),
       graph_ref_lock_(db->GetReloadLock(), GetMyThreadId()),
-      access_level_(AccessLevel::FULL) {}
+      access_level_(AccessLevel::FULL),
+      user_(_detail::DEFAULT_ADMIN_NAME) {}
 
 lgraph::AccessControlledDB::AccessControlledDB(AccessControlledDB&& rhs)
     : graph_ref_(std::move(rhs.graph_ref_)),
       graph_(rhs.graph_),
       graph_ref_lock_(graph_->GetReloadLock(), GetMyThreadId()),
-      access_level_(rhs.access_level_) {}
+      access_level_(rhs.access_level_),
+      user_(std::move(rhs.user_)) {}
 
 const lgraph::DBConfig& lgraph::AccessControlledDB::GetConfig() const {
     CheckReadAccess();
@@ -31,54 +35,54 @@ lgraph::Transaction lgraph::AccessControlledDB::CreateReadTxn() {
     return graph_->CreateReadTxn();
 }
 
-lgraph::Transaction lgraph::AccessControlledDB::CreateWriteTxn(bool optimistic, bool flush) {
+lgraph::Transaction lgraph::AccessControlledDB::CreateWriteTxn(bool optimistic) {
     CheckWriteAccess();
-    return graph_->CreateWriteTxn(optimistic, flush);
+    return graph_->CreateWriteTxn(optimistic);
 }
 
 lgraph::Transaction lgraph::AccessControlledDB::ForkTxn(Transaction& txn) {
     return graph_->ForkTxn(txn);
 }
 
-bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std::string& token,
+bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std::string& user,
                                             const std::string& name, const std::string& code,
                                             plugin::CodeType code_type, const std::string& desc,
                                             bool is_read_only) {
-    CheckFullAccess();
-    return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, token, name, code, code_type,
+    CheckAdmin();
+    return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, code_type,
                                                           desc, is_read_only);
 }
 
-bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& token,
+bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& user,
                                            const std::string& name) {
-    CheckFullAccess();
-    return graph_->GetPluginManager()->DelPlugin(plugin_type, token, name);
+    CheckAdmin();
+    return graph_->GetPluginManager()->DelPlugin(plugin_type, user, name);
 }
 
-bool lgraph::AccessControlledDB::CallPlugin(plugin::Type plugin_type, const std::string& token,
+bool lgraph::AccessControlledDB::CallPlugin(plugin::Type plugin_type, const std::string& user,
                                             const std::string& name, const std::string& request,
                                             double timeout_seconds, bool in_process,
                                             std::string& output) {
     auto pm = graph_->GetPluginManager();
-    bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, token, name);
+    bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
     if (access_level_ < AccessLevel::WRITE && !is_readonly)
         throw AuthError("Write permission needed to call this plugin.");
-    return pm->Call(plugin_type, token, this, name, request, timeout_seconds, in_process, output);
+    return pm->Call(plugin_type, user, this, name, request, timeout_seconds, in_process, output);
 }
 
 std::vector<lgraph::PluginDesc> lgraph::AccessControlledDB::ListPlugins(plugin::Type plugin_type,
-                                                                        const std::string& token) {
-    return graph_->GetPluginManager()->ListPlugins(plugin_type, token);
+                                                                        const std::string& user) {
+    return graph_->GetPluginManager()->ListPlugins(plugin_type, user);
 }
 
-bool lgraph::AccessControlledDB::GetPluginCode(plugin::Type plugin_type, const std::string& token,
+bool lgraph::AccessControlledDB::GetPluginCode(plugin::Type plugin_type, const std::string& user,
                                                const std::string& name, lgraph::PluginCode& ret) {
-    return graph_->GetPluginManager()->GetPluginCode(plugin_type, token, name, ret);
+    return graph_->GetPluginManager()->GetPluginCode(plugin_type, user, name, ret);
 }
 
-bool lgraph::AccessControlledDB::IsReadOnlyPlugin(plugin::Type type, const std::string& token,
+bool lgraph::AccessControlledDB::IsReadOnlyPlugin(plugin::Type type, const std::string& user,
                                                   const std::string& name) {
-    return graph_->GetPluginManager()->IsReadOnlyPlugin(type, token, name);
+    return graph_->GetPluginManager()->IsReadOnlyPlugin(type, user, name);
 }
 
 void lgraph::AccessControlledDB::DropAllData() {
@@ -141,6 +145,18 @@ bool lgraph::AccessControlledDB::AlterLabelModFields(const std::string& label,
                                                      bool is_vertex, size_t* n_modified) {
     CheckFullAccess();
     return graph_->AlterLabelModFields(label, mod_fields, is_vertex, n_modified);
+}
+
+bool lgraph::AccessControlledDB::AddEdgeConstraints(
+    const std::string& label,
+    const std::vector<std::pair<std::string, std::string>>& constraints) {
+    CheckFullAccess();
+    return graph_->AddEdgeConstraints(label, constraints);
+}
+
+bool lgraph::AccessControlledDB::ClearEdgeConstraints(const std::string& label) {
+    CheckFullAccess();
+    return graph_->ClearEdgeConstraints(label);
 }
 
 bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const std::string& field,
