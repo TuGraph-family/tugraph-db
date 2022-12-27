@@ -9,11 +9,12 @@ on:
 env:
   TEST_TAG: tugraph/tugraph-ut:test
 
+# Issues TODO:
 # 1. Seems GitHub limits the output passed among jobs up to 1MB,
 #    so we can't break down the entire workflow to multi-jobs.
-# 2. Since we have submodules in repo, the git binary in docker image
+# 2. For submodules in the repo inside the single job, the git binary in docker image
 #    should be upgrade to at least 2.18 in order to use actions/checkout@v3
-#    inside docker instead of running ut, it via Dockerfile
+#    inside docker instead of running ut and it via Dockerfile.
 jobs:
   docker:
     runs-on: ubuntu-latest
