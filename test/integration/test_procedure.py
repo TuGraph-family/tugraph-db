@@ -538,7 +538,7 @@ class TestProcedure():
         confs = json.loads(ret[1])
         for conf in confs:
             if conf.get("name") == "durable":
-                assert conf.get("value") == True
+                assert conf.get("value") == False
             if conf.get("name") == "enable_audit_log":
                 assert conf.get("value") == False
 
