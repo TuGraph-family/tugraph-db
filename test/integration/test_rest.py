@@ -2,6 +2,8 @@
 import logging
 import pytest
 import os
+import asyncio
+import warnings
 
 log = logging.getLogger(__name__)
 
@@ -15,43 +17,53 @@ def Process(db, input):
     return (True, input)
 '''
 
-class TestRest():
 
+def async_test(coro):
+    def wrapper(*args, **kwargs):
+        warnings.simplefilter("ignore", ResourceWarning)
+        loop = asyncio.new_event_loop()
+        return loop.run_until_complete(coro(*args, **kwargs))
+    return wrapper
+
+
+class TestRest():
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("rest", [RESTTOPT], indirect=True)
+    @async_test
     def test_get_info(self, server, rest):
-        res = rest.get_server_info()
+        res = await rest.get_server_info()
         log.info("res : %s", res)
         assert('cpu' in res)
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("rest", [RESTTOPT], indirect=True)
+    @async_test
     def test_plugin_load_unload(self, server, rest):
         path = './tmp_plugin.py'
         with open(path, 'w') as f:
             f.write(echo_plugin_content)
         # load success
-        rest.load_plugin(name='echo', desc='an echo plugin',
+        await rest.load_plugin(name='echo', desc='an echo plugin',
                             file_type='py', file_path=path,
                             read_only=True,
                             raw_output=False)
         # loading an existing plugin, expect 400
-        r = rest.load_plugin(name='echo', desc='an echo plugin',
+        await r = rest.load_plugin(name='echo', desc='an echo plugin',
                                 file_type='py', file_path=path,
                                 read_only=True,
                                 raw_output=True)
         assert(r[0] == 400)
         # now try calling the plugin
-        r = rest.call_plugin(plugin_type='py', plugin_name='echo', input='hello world')
+        await r = rest.call_plugin(plugin_type='py', plugin_name='echo', input='hello world')
         assert(r['result'] == 'hello world')
         # list plugins
-        r = rest.list_plugins(plugin_type='py')
+        r = await rest.list_plugins(plugin_type='py')
         assert(len(r) == 1)
         assert(r[0]['name'] == 'echo')
         # try delete the plugin
-        r = rest.del_plugin(plugin_type='py', plugin_name='echo')
+        r = await rest.del_plugin(plugin_type='py', plugin_name='echo')
         # now list again, and should get empty list
-        r = rest.list_plugins(plugin_type='py')
+        r = await rest.list_plugins(plugin_type='py')
         assert(len(r) == 0)
         os.remove(path)
