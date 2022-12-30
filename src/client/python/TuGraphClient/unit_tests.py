@@ -1,9 +1,19 @@
 import os
 import sys
+import asyncio
+import warnings
 import unittest
 
 from TuGraphClient import TuGraphClient
 from TestTools import *
+
+
+def async_test(coro):
+    def wrapper(*args, **kwargs):
+        warnings.simplefilter("ignore", ResourceWarning)
+        loop = asyncio.new_event_loop()
+        return loop.run_until_complete(coro(*args, **kwargs))
+    return wrapper
 
 
 class ServerProcessTest(unittest.TestCase):
@@ -17,8 +27,46 @@ class ServerProcessTest(unittest.TestCase):
 
 
 class TuGraphClientTest(unittest.TestCase):
-    def test_login(self):
-        c = TuGraphClient('localhost:7071', 'admin', '73@TuGraph')
+
+    def setUp(self):
+        self.url = 'localhost:7071'
+        self.client = TuGraphClient(self.url, 'admin', '73@TuGraph')
+
+    @async_test
+    async def test_list_graph(self):
+        graphs = await self.client.list_graphs()
+        self.assertTrue('default' in graphs)
+
+    @async_test
+    async def test_list_plugins(self):
+        cpp_plugins = await self.client.list_plugins('cpp')
+        py_plugins = await self.client.list_plugins('py')
+        self.assertEqual([], cpp_plugins)
+        self.assertEqual([], py_plugins)
+
+    @async_test
+    async def test_get_server_info(self):
+        server_info = await self.client.get_server_info()
+        self.assertTrue('cpu' in server_info)
+        self.assertTrue('db_config' in server_info)
+        self.assertTrue('db_space' in server_info)
+        self.assertTrue('lgraph_version' in server_info)
+        self.assertTrue('memory' in server_info)
+        self.assertTrue('up_time' in server_info)
+
+    def test_get_server_list(self):
+        server_list = self.client.get_server_list()
+        self.assertTrue(len(server_list) > 0)
+        self.assertTrue(self.url in server_list)
+
+    @async_test
+    async def test_cypher(self):
+        result = await self.client.call_cypher('match (a) return a limit 1')
+        self.assertTrue('elapsed' in result)
+        self.assertTrue('header' in result)
+        self.assertTrue('result' in result)
+        self.assertTrue('size' in result)
+        self.assertEqual([{'name': 'a', 'type': 1}], result['header'])
 
 
 if __name__ == '__main__':
