@@ -1,12 +1,10 @@
 #!/bin/python3
 
+import asyncio
 import base64
-import json
 import logging
-import os
-import random
-import requests
-import time
+import requests_async as requests
+from functools import partial
 
 
 # TODO: implement load balancing
@@ -27,9 +25,10 @@ class TuGraphClient:
         self.servers = []
         self.master = ''
         self.worker_threads = []
-        self.__login_and_get_host_list__()
+        asyncio.get_event_loop().run_until_complete(self.__login_and_get_host_list__())
+        # asyncio.gather(self.__login_and_get_host_list__())
 
-    def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=True):
+    async def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=True):
         '''
         Retry getting results with get_func
         If connection error, retry.
@@ -48,7 +47,7 @@ class TuGraphClient:
 
         for i in range(0, retries):
             try:
-                r = get_func()
+                r = await get_func()
                 if r.status_code == 307:
                     location = r.json()['location']
                     self.curr_server = location
@@ -70,8 +69,8 @@ class TuGraphClient:
                     js = {}
                     try:
                         js = r.json()
-                    except:
-                        pass
+                    except Exception as e:
+                        logging.error(e)
                     return (200, js)
                 else:
                     return (r.status_code, 'Unexpected return code from server: {}'.format(r.status_code))
@@ -83,85 +82,91 @@ class TuGraphClient:
                     else:
                         return (-1, msg)
                 else:
-                    time.sleep(retry_interval_s)
+                    await asyncio.sleep(retry_interval_s)
 
-    def __get_with_retry__(self, relative_url, return_json_only=True):
+    async def __get_with_retry__(self, relative_url, return_json_only=True):
         '''
         Returns json response if return_json_only=True, otherwise return (status_code, json/err_msg)
         '''
-        get_func = lambda url=relative_url: requests.get(url=self.__get_url_base__() + url, headers=self.http_headers)
-        r = self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
+        get_func = partial(requests.get, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
+        r = await self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
         if return_json_only:
             return r[1]
         else:
             return r
 
-    def __post_with_retry__(self, relative_url, data_dict, return_json_only=True):
+    async def __post_with_retry__(self, relative_url, data_dict, return_json_only=True):
         '''
         Returns json response if return_json_only=True, otherwise return (status_code, json/err_msg)
         '''
-        get_func = lambda url=relative_url, dict=data_dict: requests.post(url=self.__get_url_base__() + url,
-                                                                          headers=self.http_headers, json=dict)
-        r = self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
+        get_func = partial(
+            requests.post,
+            url=self.__get_url_base__() + relative_url,
+            headers=self.http_headers,
+            json=data_dict
+        )
+        r = await self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
         if return_json_only:
             return r[1]
         else:
             return r
 
-    def __del_with_retry__(self, relative_url):
+    async def __del_with_retry__(self, relative_url):
         '''
         Raises if there is error.
         '''
-        get_func = lambda url=relative_url: requests.delete(url=self.__get_url_base__() + url,
-                                                            headers=self.http_headers)
-        return self.__get_result_with_retry__(get_func, True)
+        get_func = partial(requests.delete, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
+        return await self.__get_result_with_retry__(get_func, True)
 
-    def __try_get__(self, relative_url):
+    async def __try_get__(self, relative_url):
         '''
         Returns (status_code, json/err_msg)
         '''
-        get_func = lambda url=relative_url: requests.get(url=self.__get_url_base__() + url, headers=self.http_headers)
-        return self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        get_func = partial(requests.get, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
+        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
 
-    def __try_post__(self, relative_url, data_dict):
+    async def __try_post__(self, relative_url, data_dict):
         '''
         Returns (status_code, json/err_msg)
         '''
-        get_func = lambda url=relative_url, dict=data_dict: requests.post(url=self.__get_url_base__() + url,
-                                                                          headers=self.http_headers, json=dict)
-        return self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        get_func = partial(
+            requests.post,
+            url=self.__get_url_base__() + relative_url,
+            headers=self.http_headers,
+            json=data_dict,
+        )
+        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
 
-    def __try_del__(self, relative_url):
+    async def __try_del__(self, relative_url):
         '''
         Returns (status_code, json/err_msg)
         '''
-        get_func = lambda url=relative_url: requests.delete(url=self.__get_url_base__() + url,
-                                                            headers=self.http_headers)
-        return self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        get_func = partial(requests.delete, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
+        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
 
     def __get_url_base__(self):
         return ('https://{}/' if self.use_https else 'http://{}/').format(self.curr_server)
 
-    def __login_and_get_host_list__(self):
+    async def __login_and_get_host_list__(self):
         # try:
         j_data = {}
         j_data["user"] = self.username
         j_data["password"] = self.password
-        r = self.__post_with_retry__('login', j_data)
+        r = await self.__post_with_retry__('login', j_data)
         jwt = r['jwt']
         self.http_headers["Authorization"] = "Bearer " + jwt
         # except Exception as e:
         #    raise IOError('Failed to login to server {}: {}'.format(self.curr_server, e))
         try:
-            r = self.__get_with_retry__('info/ha_state')
+            r = await self.__get_with_retry__('info/ha_state')
             if r == 'NO_HA':
                 self.servers = [self.curr_server]
                 self.master = self.curr_server
                 return
             # in ha mode
-            r = self.__get_with_retry__('info/peers')
+            r = await self.__get_with_retry__('info/peers')
             self.servers = [p['rest_address'] for p in r]
-            r = self.__get_with_retry__('info/leader')
+            r = await self.__get_with_retry__('info/leader')
             self.master = r['rest_address']
         except Exception as e:
             raise IOError('Failed to get peer and master info: {}'.format(e))
@@ -175,22 +180,22 @@ class TuGraphClient:
     def get_curr_master(self):
         return self.master
 
-    def list_graphs(self):
-        r = self.__get_with_retry__('db')
+    async def list_graphs(self):
+        r = await self.__get_with_retry__('db')
         return list(r.keys())
 
     def set_curr_graph(self, graph):
         self.graph = graph
 
-    def call_cypher(self, cypher, raw_output=False, timeout=0):
+    async def call_cypher(self, cypher, raw_output=False, timeout=0):
         data = {"script": cypher, "graph": self.graph, "timeout": timeout}
         if raw_output:
-            r = self.__try_post__('cypher', data)
+            r = await self.__try_post__('cypher', data)
         else:
-            r = self.__post_with_retry__('cypher', data)
+            r = await self.__post_with_retry__('cypher', data)
         return r
 
-    def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
+    async def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
         '''
         Load a plugin from local file.
         mode: can be 'zip', 'cpp', 'so', 'py'
@@ -214,15 +219,15 @@ class TuGraphClient:
             if raw_output:
                 return (False, err)
             else:
-                raise Exception(err);
+                raise Exception(err)
         plugin_url = "db/{}/{}".format(self.graph, url)
         if raw_output:
-            r = self.__try_post__(plugin_url, data)
+            r = await self.__try_post__(plugin_url, data)
         else:
-            r = self.__post_with_retry__(plugin_url, data)
+            r = await self.__post_with_retry__(plugin_url, data)
         return r
 
-    def __get_plugin_url__(self, plugin_type_str, dont_raise):
+    def __get_plugin_url__(self, plugin_type_str, raw_output):
         if plugin_type_str == 'cpp':
             url = 'cpp_plugin'
             return (url, None)
@@ -236,7 +241,7 @@ class TuGraphClient:
             else:
                 raise Exception(err)
 
-    def call_plugin(self, plugin_type, plugin_name, input, raw_output=False, timeout=0):
+    async def call_plugin(self, plugin_type, plugin_name, input, raw_output=False, timeout=0):
         '''
         Calls a plugin
 
@@ -253,49 +258,46 @@ class TuGraphClient:
         data = {"data": input, "timeout": timeout}
         plugin_url = "db/{}/{}/{}".format(self.graph, url, plugin_name)
         if raw_output:
-            r = self.__try_post__(plugin_url, data)
+            r = await self.__try_post__(plugin_url, data)
         else:
-            r = self.__post_with_retry__(plugin_url, data)
+            r = await self.__post_with_retry__(plugin_url, data)
         return r
 
-    def del_plugin(self, plugin_type, plugin_name, raw_output=False):
+    async def del_plugin(self, plugin_type, plugin_name, raw_output=False):
         url = self.__get_plugin_url__(plugin_type, raw_output)
         if url[0] is None:
             return (False, url[1])
         url = url[0]
         plugin_url = "db/{}/{}/{}".format(self.graph, url, plugin_name)
         if raw_output:
-            r = self.__try_del__(plugin_url)
+            r = await self.__try_del__(plugin_url)
         else:
-            r = self.__del_with_retry__(plugin_url)
+            r = await self.__del_with_retry__(plugin_url)
         return r
 
-    def list_plugins(self, plugin_type, raw_output=False):
+    async def list_plugins(self, plugin_type, raw_output=False):
         url = self.__get_plugin_url__(plugin_type, raw_output)
         if url[0] is None:
             return (False, url[1])
         url = url[0]
         plugin_url = "db/{}/{}".format(self.graph, url)
         if raw_output:
-            r = self.__try_get__(plugin_url)
+            r = await self.__try_get__(plugin_url)
         else:
-            r = self.__get_with_retry__(plugin_url)
+            r = await self.__get_with_retry__(plugin_url)
         return r
 
-    def get_plugin_info(self, plugin_type, plugin_name, raw_output=False):
+    async def get_plugin_info(self, plugin_type, plugin_name, raw_output=False):
         url = self.__get_plugin_url__(plugin_type, raw_output)
         if url[0] is None:
             return (False, url[1])
         url = url[0]
         plugin_url = "db/{}/{}/{}".format(self.graph, url, plugin_name)
         if raw_output:
-            r = self.__try_get__(plugin_url)
+            r = await self.__try_get__(plugin_url)
         else:
-            r = self.__get_with_retry__(plugin_url)
+            r = await self.__get_with_retry__(plugin_url)
         return r
 
-    def call_cypher_async(self, cypher, callback):
-        pass
-
-    def get_server_info(self):
-        return self.__get_with_retry__('info')
+    async def get_server_info(self):
+        return await self.__get_with_retry__('info')
