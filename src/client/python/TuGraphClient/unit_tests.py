@@ -11,7 +11,7 @@ from TestTools import *
 def async_test(coro):
     def wrapper(*args, **kwargs):
         warnings.simplefilter("ignore", ResourceWarning)
-        loop = asyncio.new_event_loop()
+        loop = asyncio.get_event_loop()
         return loop.run_until_complete(coro(*args, **kwargs))
     return wrapper
 
