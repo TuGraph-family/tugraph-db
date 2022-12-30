@@ -4,6 +4,7 @@ import json
 import asyncio
 import base64
 import logging
+import warnings
 from functools import partial
 import httpx
 
@@ -12,7 +13,9 @@ requests = httpx.AsyncClient()
 
 
 # TODO: implement load balancing
-class TuGraphClient:
+class AsyncTuGraphClient:
+    # 默认的客户端使用异步方式访问
+
     def __init__(self, start_host_port, username, password, graph='default', use_https=False, load_balance=False,
                  retry=3, retry_interval_s=1):
         self.http_headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -307,3 +310,41 @@ class TuGraphClient:
 
     async def get_server_info(self):
         return await self.__get_with_retry__('info')
+
+
+def async_wrapper(coro):
+    def wrapper(*args, **kwargs):
+        warnings.simplefilter("ignore", ResourceWarning)
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(coro(*args, **kwargs))
+    return wrapper
+
+
+class TuGraphClient(AsyncTuGraphClient):
+    # 还是暴露之前的TuGraphClient
+    # 将之前暴露的8个接口重新封装成可以直接同步方式调用
+
+    def list_graphs(self):
+        return async_wrapper(super().list_graphs)()
+
+    def call_cypher(self, cypher, raw_output=False, timeout=0):
+        return async_wrapper(super().call_cypher)(cypher, raw_output=raw_output, timeout=timeout)
+
+    def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
+        return async_wrapper(super().load_plugin)(name, desc, file_type, file_path, read_only, raw_output=raw_output)
+
+    def call_plugin(self, plugin_type, plugin_name, input, raw_output=False, timeout=0):
+        return async_wrapper(super().call_plugin)(plugin_type, plugin_name, input, raw_output=raw_output, timeout=timeout)
+
+    def del_plugin(self, plugin_type, plugin_name, raw_output=False):
+        return async_wrapper(super().del_plugin)(plugin_type, plugin_name, raw_output=raw_output)
+
+    def list_plugins(self, plugin_type, raw_output=False):
+        return async_wrapper(super().list_plugins)(plugin_type, raw_output=raw_output)
+
+    def get_plugin_info(self, plugin_type, plugin_name, raw_output=False):
+        return async_wrapper(super().get_plugin_info)(plugin_type, plugin_name, raw_output=raw_output)
+
+    def get_server_info(self):
+        return async_wrapper(super().get_server_info)()
+
