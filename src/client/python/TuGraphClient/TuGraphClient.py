@@ -68,7 +68,6 @@ class TuGraphClient:
                 if r.status_code == 400 or r.status_code == 500:
                     # if raise, just raise exception
                     # otherwise, return 
-                    logging.info("raise_on_error: %r %r", raise_on_error, r.status_code)
                     if raise_on_error:
                         raise Exception('Error returned from server, code=[{}], msg=[{}]'.format(
                             r.status_code,
