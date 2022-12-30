@@ -19,8 +19,11 @@ cd build/output
 ./unit_test
 rm -rf testdb* .import_tmp
 
+# run TuGraphClient unit_tests
+python3 ../../src/client/python/TuGraphClient/setup.py test
+# install TuGraphClient
+python3 ../../src/client/python/TuGraphClient/setup.py install
 # integrate tests
-cd ../../src/client/python/TuGraphClient && python3 setup.py install && cd -
 cp -r ../../test/integration/* ./
 pytest ./
 

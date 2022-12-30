@@ -3,9 +3,8 @@ import sys
 import asyncio
 import warnings
 import unittest
-
+import subprocess
 from TuGraphClient import AsyncTuGraphClient, TuGraphClient
-# from TestTools import *
 
 
 def async_test(coro):
@@ -16,34 +15,31 @@ def async_test(coro):
     return wrapper
 
 
-class ServerProcessTest(unittest.TestCase):
-    def test_start(self):
-        executable = '.\server.exe' if os.name == 'nt' else './lgraph_server'
-        conf = GlobalConfig()
-        conf.db_dir = './testdb'
-        p = ServerProcess(executable, './lgraph_standalone.json', conf)
-        self.assertTrue(p.expect('Server started.') is not None)
-        p.kill()
-
-
 class AsyncTuGraphClientTest(unittest.TestCase):
 
     def setUp(self):
-        self.url = 'localhost:7071'
+        self.url = 'localhost:7070'
+        # start server
+        self.process = subprocess.Popen('lgraph_server', close_fds=True)
+        # init client and async client
         self.client = TuGraphClient(self.url, 'admin', '73@TuGraph')
         self.aclient = AsyncTuGraphClient(self.url, 'admin', '73@TuGraph')
+
+    def tearDown(self):
+        self.process.kill()
+        self.process.wait()
 
     @async_test
     async def test_async_list_graph(self):
         graphs = await self.aclient.list_graphs()
         self.assertTrue('default' in graphs)
 
-    def test_async_list_graph(self):
+    def test_list_graph(self):
         graphs = self.client.list_graphs()
         self.assertTrue('default' in graphs)
 
     @async_test
-    async def test_list_plugins(self):
+    async def test_async_list_plugins(self):
         cpp_plugins = await self.aclient.list_plugins('cpp')
         py_plugins = await self.aclient.list_plugins('py')
         self.assertEqual([], cpp_plugins)
