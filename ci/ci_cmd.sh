@@ -20,7 +20,7 @@ cd build/output
 rm -rf testdb* .import_tmp
 
 # integrate tests
-cd ../../src/client/python/TuGraphClient && python3 setup.py install && cd ..
+cd ../../src/client/python/TuGraphClient && python3 setup.py install && cd -
 cp -r ../../test/integration/* ./
 pytest ./
 
