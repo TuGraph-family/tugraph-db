@@ -1,10 +1,14 @@
 #!/bin/python3
 
+import json
 import asyncio
 import base64
 import logging
-import requests_async as requests
 from functools import partial
+import httpx
+
+
+requests = httpx.AsyncClient()
 
 
 # TODO: implement load balancing
@@ -48,8 +52,13 @@ class TuGraphClient:
         for i in range(0, retries):
             try:
                 r = await get_func()
+                js = {}
+                try:
+                    js = json.loads(r.text or "{}")
+                except Exception as e:
+                    logging.error(e)
                 if r.status_code == 307:
-                    location = r.json()['location']
+                    location = js['location']
                     self.curr_server = location
                     logging.info('Redirected to server: {}'.format(location))
                     continue
@@ -59,22 +68,20 @@ class TuGraphClient:
                 if r.status_code == 400 or r.status_code == 500:
                     # if raise, just raise exception
                     # otherwise, return 
+                    logging.info("raise_on_error: %r %r", raise_on_error, r.status_code)
                     if raise_on_error:
-                        raise Exception('Error returned from server, code=[{}], msg=[{}]'.format(r.status_code,
-                                                                                                 r.json()[
-                                                                                                     'error_message']))
+                        raise Exception('Error returned from server, code=[{}], msg=[{}]'.format(
+                            r.status_code,
+                            js['error_message']
+                        ))
                     else:
-                        return (r.status_code, r.json()['error_message'])
+                        return (r.status_code, js['error_message'])
                 if r.status_code == 200:
-                    js = {}
-                    try:
-                        js = r.json()
-                    except Exception as e:
-                        logging.error(e)
                     return (200, js)
                 else:
                     return (r.status_code, 'Unexpected return code from server: {}'.format(r.status_code))
             except Exception as e:
+                logging.exception(e)
                 msg = 'Failed to get response from server after retrying: {}'.format(e)
                 if (i == retries - 1):
                     if raise_on_error:

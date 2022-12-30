@@ -5,7 +5,7 @@ setup(
     version='1.12.0',
     description='rest client for TuGraph',
     install_requires=[
-        'requests-async'
+        'httpx'
     ],
     packages=[''],
     entry_points={}
