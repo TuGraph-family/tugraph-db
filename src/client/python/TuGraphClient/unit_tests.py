@@ -1,9 +1,9 @@
-import os
-import sys
+import logging
 import asyncio
 import warnings
 import unittest
 import subprocess
+import time
 from TuGraphClient import AsyncTuGraphClient, TuGraphClient
 
 
@@ -18,16 +18,31 @@ def async_test(coro):
 class AsyncTuGraphClientTest(unittest.TestCase):
 
     def setUp(self):
-        self.url = 'localhost:7070'
-        # start server
-        self.process = subprocess.Popen('lgraph_server', close_fds=True)
+        self.url = 'localhost:7071'
+        try:
+            # start server in ci command
+            self.log = open('/tmp/out.log', 'w+')
+            pwd = '/root/tugraph-db/build/output'
+            self.process = subprocess.Popen([
+                pwd + '/lgraph_server',
+                '-c', pwd + '/lgraph_standalone.json'
+            ], stdout=self.log, stderr=self.log, close_fds=True)
+            time.sleep(3)
+        except Exception as e:
+            # in dev environment, start server before run tests
+            logging.debug(e)
+
         # init client and async client
         self.client = TuGraphClient(self.url, 'admin', '73@TuGraph')
         self.aclient = AsyncTuGraphClient(self.url, 'admin', '73@TuGraph')
 
     def tearDown(self):
-        self.process.kill()
-        self.process.wait()
+        try:
+            self.process.kill()
+            self.process.wait()
+            self.log.close()
+        except Exception as e:
+            logging.debug(e)
 
     @async_test
     async def test_async_list_graph(self):

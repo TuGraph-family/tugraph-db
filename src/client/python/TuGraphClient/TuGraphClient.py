@@ -4,6 +4,7 @@ import json
 import asyncio
 import base64
 import logging
+import warnings
 from functools import partial
 import httpx
 
@@ -34,6 +35,7 @@ class AsyncTuGraphClient:
         self._sync(self.__login_and_get_host_list__)
 
     def _sync(self, func):
+        warnings.simplefilter("ignore", DeprecationWarning)
         return asyncio.get_event_loop().run_until_complete(func())
 
     async def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=True):

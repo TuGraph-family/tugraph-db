@@ -6,7 +6,6 @@ setup(
     description='rest client for TuGraph',
     install_requires=[
         'httpx',
-        'httpcore',
     ],
     test_suite="unit_tests",
     packages=[''],
