@@ -10,6 +10,7 @@ import httpx
 
 
 requests = httpx.AsyncClient()
+warnings.simplefilter("ignore", UserWarning)
 
 
 # TODO: implement load balancing
