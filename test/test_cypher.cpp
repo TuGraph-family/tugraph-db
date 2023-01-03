@@ -1,4 +1,16 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 #include <db/galaxy.h>
 #include "fma-common/configuration.h"
@@ -266,6 +278,12 @@ int test_query(cypher::RTContext *ctx) {
         {"MATCH (n:Person{name:'Vanessa Redgrave'}),(m:Person{name: 'Michael Redgrave'}) WHERE "
          "n.birthyear > 1960 and m.birthyear < 2000 RETURN n.name LIMIT 1",
          0},  // #issue 192
+        /* test parallel traversal optimization */
+        {"MATCH (n:Person) RETURN count(n)", 1},
+        {"MATCH (n:Person) WHERE n.birthyear > 1900 AND n.birthyear < 2000 RETURN count(n)", 1},
+        {"MATCH (n:Person) RETURN n.birthyear, count(n)", 13},
+        {"MATCH (f:Film)<-[:ACTED_IN]-(p:Person)-[:BORN_IN]->(c:City) "
+         "RETURN c.name, count(f) AS sum ORDER BY sum DESC", 3},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -2078,7 +2096,12 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     expected_exception_any(ctx, "DELETE []");
     expected_exception_any(ctx, "DELETE [x in [1, 2, 3] | x]");
     expected_exception_any(ctx, "DELETE TRUE");
-
+    // issue #199
+    expected_exception_any(ctx,
+        "MATCH (n:Person {name:'Liam Neeson'}), "
+        "(m:Person {name:'Liam Neeson'}), "
+        "(o:Person {name:'Liam Neeson'}) "
+        "WHERE custom.myadd('asd')='1' RETURN 1");
     // issue #312
     auto graph = ctx->graph_;
     ctx->graph_ = "";
@@ -2087,7 +2110,7 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     expected_exception_any(ctx, "CALL db.warmup");
     eval_script(ctx, "CALL dbms.graph.listGraphs()");
     ctx->graph_ = graph;
-    // issue #312
+    // issue #312 end
     return 0;
 }
 

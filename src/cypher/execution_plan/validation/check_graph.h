@@ -53,6 +53,7 @@ class CheckGraphVisitor : public Visitor {
     void Visit(const VarLenExpand &op) override {};
     void Visit(const VarLenExpandInto &op) override {};
     void Visit(const ImmediateArgument &op) override {};
+    void Visit(const Traversal &op) override {};
 
  private:
     cypher::RTContext* ctx_ = nullptr;

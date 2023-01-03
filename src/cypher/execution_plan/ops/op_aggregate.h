@@ -1,4 +1,16 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by wt on 19-2-13.
@@ -175,6 +187,23 @@ class Aggregate : public OpBase {
             state_ = Consuming;
         }
         return HandOff(ctx);
+    }
+
+    ResultSetHeader GetResultSetHeader() {
+        return result_set_header_;
+    }
+
+    std::vector<ArithExprNode> GetNoneAggregatedExpressions() {
+        return noneaggregated_expressions_;
+    }
+
+    std::vector<ArithExprNode> GetAggregatedExpressions() {
+        std::vector<ArithExprNode> agg_exprs;
+        for (auto &ae : aggregated_expressions_) {
+            ArithExprNode new_ae(ae, sym_tab_);
+            agg_exprs.emplace_back(new_ae);
+        }
+        return agg_exprs;
     }
 
     /* Restart */

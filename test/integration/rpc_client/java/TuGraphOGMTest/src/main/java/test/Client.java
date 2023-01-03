@@ -1,8 +1,8 @@
 package test;
 
-import org.neo4j.ogm.config.Configuration;
-import org.neo4j.ogm.driver.Driver;
-import org.neo4j.ogm.drivers.rpc.driver.RpcDriver;
+import com.antgroup.tugraph.ogm.config.Configuration;
+import com.antgroup.tugraph.ogm.driver.Driver;
+import com.antgroup.tugraph.ogm.drivers.rpc.driver.RpcDriver;
 
 public class Client {
     private static Configuration.Builder baseConfigurationBuilder;

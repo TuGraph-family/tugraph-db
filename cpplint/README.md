@@ -28,3 +28,14 @@ clang-format -i src/algo/algo.cpp
 clang-format tool needs to be installed on your own computer by yourself.
 clang-format will look for the default configuration file `.clang-format` from the root path, which has been placed in the code repository and describes Google's cpp style.
 For more Google's cpp style details, see [English Version](https://google.github.io/styleguide/cppguide.html#Forward_Declarations) or [中文版](https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html)
+
+## Attention
+
+If you get errors that cpplint DO NOT recognize the Copyright, just take care of the BOM character with the next command(ueff).
+``` bash
+find src test include toolkits plugins -name "*.cpp" -o -name "*.h" | grep -v "/lmdb/" | xargs  sed  -i '' '1s/^\xef\xbb\xbf//'
+```
+In cpplint/cpplint.py:1850, the code are also modified to ignore BOM marker
+``` python
+if lines[lineix].replace('\ufeff', '').strip().startswith('/*'):
+```

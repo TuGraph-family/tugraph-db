@@ -1,4 +1,16 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by wt on 19-11-27.
@@ -11,6 +23,7 @@
 #include "var_len_expand_with_limit.h"
 #include "locate_node_by_vid.h"
 #include "locate_node_by_indexed_prop.h"
+#include "parallel_traversal.h"
 
 namespace cypher {
 
@@ -26,6 +39,7 @@ class PassManager {
         all_passes_.emplace_back(new PassVarLenExpandWithLimit());
         all_passes_.emplace_back(new LocateNodeByVid());
         all_passes_.emplace_back(new LocateNodeByIndexedProp());
+        all_passes_.emplace_back(new ParallelTraversal());
     }
 
     ~PassManager() {
