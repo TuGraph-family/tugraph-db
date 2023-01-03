@@ -1,5 +1,7 @@
+#!/usr/bin/env bash
 
-mvn install:install-file -Dfile=../../src/client/java/TuGraphRpcClient/rpc-client/target/tugraph-java-rpc-client-0.0.1.jar  -DgroupId=om.antgroup.tugraph -DartifactId=tugraph-rpc-client-parent -Dversion=0.0.1  -Dpackaging=jar
+#build TuGraphRpcClient
+mvn clean -f  ../../src/client/java/TuGraphRpcClient/pom.xml install -DskipTests
 
-
-
+#build JavaClientTest
+mvn clean -f rpc_client/java/JavaClientTest/pom.xml install -DskipTests

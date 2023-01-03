@@ -52,5 +52,8 @@ mv $MY_WORKSPACE/* $MY_WORKSPACE/.[^.]* $WORKSPACE
 fi
 
 cd $WORKSPACE
-
+cd $WORKSPACE/testresult/
+ls -al
+cd $WORKSPACE/testresult/gtest
+ls -al
 python3  ./ci/lcov_cobertura.py $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle

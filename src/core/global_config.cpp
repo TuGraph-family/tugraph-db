@@ -131,7 +131,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     // configure parameters
     bool standalone = (cmd == "run");
     std::string cwd = fma_common::FileSystem::GetWorkingDirectory();
-    durable = true;
+    durable = false;
     db_dir = cwd + "/lgraph_db";
     bind_host = "0.0.0.0";
     log_dir = standalone ? "" : "/var/log/lgraph/";

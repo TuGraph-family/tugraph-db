@@ -620,7 +620,143 @@ class OlapBase {
     ParallelVector<AdjUnit<EdgeData> > in_edges_;
     ParallelVector<bool> lock_array_;
 
-    virtual void Construct() = 0;
+    virtual void Construct() {
+        if (this->num_vertices_ == 0 || this->num_edges_ == 0) {
+            throw std::runtime_error("Construct empty graph");
+        }
+
+        this->lock_array_.ReAlloc(this->num_vertices_);
+        this->lock_array_.Resize(this->num_vertices_, false);
+
+        bool dual = true;
+        if (this->edge_direction_policy_ == MAKE_SYMMETRIC) {
+            this->out_edges_.ReAlloc(this->num_edges_ * 2);
+            this->out_edges_.Resize(this->num_edges_ * 2);
+        } else {
+            this->out_edges_.ReAlloc(this->num_edges_);
+            this->out_edges_.Resize(this->num_edges_);
+        }
+        this->out_degree_.ReAlloc(this->num_vertices_);
+        this->out_degree_.Resize(this->num_vertices_, (size_t)0);
+        this->out_index_.ReAlloc(this->num_vertices_ + 1);
+        this->out_index_.Resize(this->num_vertices_ + 1, (size_t)0);
+
+        if (this->edge_direction_policy_ == DUAL_DIRECTION) {
+            this->in_edges_.ReAlloc(this->num_edges_);
+            this->in_edges_.Resize(this->num_edges_);
+            this->in_degree_.ReAlloc(this->num_vertices_);
+            this->in_degree_.Resize(this->num_vertices_, (size_t)0);
+            this->in_index_.ReAlloc(this->num_vertices_ + 1);
+            this->in_index_.Resize(this->num_vertices_ + 1, (size_t)0);
+        }
+
+        if (this->edge_direction_policy_ == DUAL_DIRECTION) {
+            auto worker = Worker::SharedWorker();
+            worker->Delegate([&]() {
+#pragma omp parallel for default(none)
+              for (size_t ei = 0; ei < this->num_edges_; ei++) {
+                  size_t src = this->edge_list_[ei].src;
+                  size_t dst = this->edge_list_[ei].dst;
+                  __sync_fetch_and_add(&this->out_degree_[src], (size_t)1);
+                  __sync_fetch_and_add(&this->in_degree_[dst], (size_t)1);
+              }
+
+              memcpy(this->out_index_.Data() + 1, this->out_degree_.Data(),
+                                        sizeof(size_t) * this->num_vertices_);
+              this->out_index_[0] = 0;
+              if (dual) {
+                  memcpy(this->in_index_.Data() + 1, this->in_degree_.Data(),
+                                        sizeof(size_t) * this->num_vertices_);
+                  this->in_index_[0] = 0;
+              }
+
+              for (size_t vi = 0; vi < this->num_vertices_; vi++) {
+                  this->out_index_[vi + 1] += this->out_index_[vi];
+              }
+              if (dual) {
+                  for (size_t vi = 0; vi < this->num_vertices_; vi++) {
+                      this->in_index_[vi + 1] += this->in_index_[vi];
+                  }
+              }
+
+#pragma omp parallel for
+              for (size_t ei = 0; ei < this->num_edges_; ei++) {
+                  size_t src = this->edge_list_[ei].src;
+                  size_t dst = this->edge_list_[ei].dst;
+
+                  size_t pos = __sync_fetch_and_add(&this->out_index_[src], (size_t)1);
+                  this->out_edges_[pos].neighbour = dst;
+                  if (this->edge_data_size_ != 0) {
+                      this->out_edges_[pos].edge_data = this->edge_list_[ei].edge_data;
+                  }
+
+                  if (dual) {
+                      pos = __sync_fetch_and_add(&this->in_index_[dst], (size_t)1);
+                      this->in_edges_[pos].neighbour = src;
+                      if (this->edge_data_size_ != 0) {
+                          this->in_edges_[pos].edge_data = this->edge_list_[ei].edge_data;
+                      }
+                  }
+              }
+
+              memmove(this->out_index_.Data() + 1, this->out_index_.Data(),
+                                                sizeof(size_t) * this->num_vertices_);
+              this->out_index_[0] = 0;
+              if (dual) {
+                  memmove(this->in_index_.Data() + 1, this->in_index_.Data(),
+                                                sizeof(size_t) * this->num_vertices_);
+                  this->in_index_[0] = 0;
+              }
+            });
+        } else {
+            auto worker = Worker::SharedWorker();
+            worker->Delegate([&]() {
+#pragma omp parallel for default(none)
+              for (size_t ei = 0; ei < this->num_edges_; ei++) {
+                  size_t src = this->edge_list_[ei].src;
+                  size_t dst = this->edge_list_[ei].dst;
+                  __sync_fetch_and_add(&this->out_degree_[src], (size_t)1);
+                  if (this->edge_direction_policy_ == MAKE_SYMMETRIC) {
+                      __sync_fetch_and_add(&this->out_degree_[dst], (size_t)1);
+                  }
+              }
+
+              memcpy(this->out_index_.Data() + 1, this->out_degree_.Data(),
+                                                sizeof(size_t) * this->num_vertices_);
+              this->out_index_[0] = 0;
+              for (size_t vi = 0; vi < this->num_vertices_; vi++) {
+                  this->out_index_[vi + 1] += this->out_index_[vi];
+              }
+
+#pragma omp parallel for
+              for (size_t ei = 0; ei < this->num_edges_; ei++) {
+                  size_t src = this->edge_list_[ei].src;
+                  size_t dst = this->edge_list_[ei].dst;
+                  size_t pos = __sync_fetch_and_add(&this->out_index_[src], (size_t)1);
+                  this->out_edges_[pos].neighbour = dst;
+                  if (this->edge_data_size_ != 0) {
+                      this->out_edges_[pos].edge_data = this->edge_list_[ei].edge_data;
+                  }
+
+                  if (this->edge_direction_policy_ == MAKE_SYMMETRIC) {
+                      pos = __sync_fetch_and_add(&this->out_index_[dst], (size_t)1);
+                      this->out_edges_[pos].neighbour = src;
+                      if (this->edge_data_size_ != 0) {
+                          this->out_edges_[pos].edge_data = this->edge_list_[ei].edge_data;
+                      }
+                  }
+              }
+
+              memmove(this->out_index_.Data() + 1, this->out_index_.Data(),
+                                                sizeof(size_t) * this->num_vertices_);
+              this->out_index_[0] = 0;
+
+              if (this->edge_direction_policy_ == MAKE_SYMMETRIC) {
+                  this->num_edges_ *= 2;
+              }
+            });
+        }
+    }
 
  public:
     /**
@@ -634,7 +770,7 @@ class OlapBase {
         edge_unit_size_ = adj_unit_size_ + sizeof(size_t);
     }
 
-    virtual bool CheckKillThisTask() = 0;
+    virtual bool CheckKillThisTask() {return false;}
 
     /**
      * @brief     Access the out-degree of some vertex.
@@ -812,6 +948,7 @@ class OlapBase {
         this->num_edges_ = input_edges;
         printf("|V| =  %lu, |E| = %lu\n", this->num_vertices_, this->num_edges_);
         this->edge_list_ = (EdgeUnit<EdgeData> *)edge_array;
+        this->edge_direction_policy_ = edge_direction_policy;
         Construct();
 
         prep_time += get_time();
