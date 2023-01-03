@@ -61,6 +61,9 @@ class LocateNodeByIndexedProp : public OptPass {
 
     bool getValueFromRangeFilter(const std::shared_ptr<lgraph::Filter> &filter, std::string &field,
                                  lgraph::FieldData &value) {
+        if (filter->Type() != lgraph::Filter::Type::RANGE_FILTER) {
+            return false;
+        }
         auto range_filter = std::dynamic_pointer_cast<lgraph::RangeFilter>(filter);
         if (range_filter->_ae_left.type == ArithExprNode::AR_EXP_OPERAND &&
             range_filter->_ae_left.operand.type == ArithOperandNode::AR_OPERAND_VARIADIC &&
@@ -80,6 +83,7 @@ class LocateNodeByIndexedProp : public OptPass {
         }
         return false;
     }
+
     bool _CheckPropFilter(OpFilter *&op_filter, std::string &field, lgraph::FieldData &value,
                           std::vector<lgraph::FieldData> &target_value_datas) {
         /**
@@ -121,7 +125,6 @@ class LocateNodeByIndexedProp : public OptPass {
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
         }
-
         return false;
     }
 

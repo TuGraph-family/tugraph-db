@@ -14,21 +14,15 @@ LightningGraph::LightningGraph(const DBConfig& conf) : config_(conf) { Open(); }
 LightningGraph::~LightningGraph() { Close(); }
 
 void LightningGraph::Close() {
+    _HoldWriteLock(meta_lock_);
     fulltext_index_.reset();
     index_manager_.reset();
     graph_.reset();
     store_.reset();
 }
 
-/**
- * Creates a read-write transaction
- *
- * \param   flush   Flush to disk when transaction commits.
- *
- * \return  The new write transaction.
- */
-Transaction LightningGraph::CreateWriteTxn(bool optimistic, bool flush, bool get_lock) {
-    return Transaction(false, optimistic, flush, get_lock, this);
+Transaction LightningGraph::CreateWriteTxn(bool optimistic) {
+    return Transaction(false, optimistic, this);
 }
 
 void LightningGraph::DropAllData() {
@@ -55,8 +49,8 @@ void LightningGraph::DropAllData() {
 
 void LightningGraph::DropAllVertex() {
     try {
-        std::lock_guard<std::mutex> l(write_lock_);
-        Transaction txn = CreateWriteTxn(false, true, false);
+        _HoldWriteLock(meta_lock_);
+        Transaction txn = CreateWriteTxn(false);
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         // clear indexes
         auto indexes = index_manager_->ListAllIndexes(txn.GetTxn());
@@ -144,7 +138,7 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
             fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
             fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
             throw InputError(FMA_FMT(
-                "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"", label));
+                R"(Label[{}]: Property name cannot be "SKIP" or "SRC_ID" or "DST_ID")", label));
         }
         auto ret = unique_fds.insert(fds[i].name);
         if (!ret.second)
@@ -168,13 +162,32 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
                     FMA_FMT("Vertex[{}]: Primary property can not be optional", label));
         }
         if (!found) throw InputError(FMA_FMT("Vertex[{}]: No primary property found", label));
+    } else {
+        auto temp = edge_constraints;
+        std::sort(temp.begin(), temp.end());
+        auto iter = std::unique(temp.begin(), temp.end());
+        if (iter != temp.end()) {
+            throw InputError(
+                FMA_FMT("Duplicate constraints: [{}, {}]", iter->first, iter->second));
+        }
+        ScopedRef<SchemaInfo> schema = schema_.GetScopedRef();
+        auto schema_info = schema.Get();
+        for (auto& constraint : edge_constraints) {
+            for (auto& vertex_label : {constraint.first, constraint.second}) {
+                if (!schema_info->v_schema_manager.GetSchema(vertex_label)) {
+                    throw InputError(FMA_FMT("No such vertex label: {}", vertex_label));
+                }
+            }
+        }
     }
     for (size_t i = 0; i < n_fields; i++) {
         auto& fn = fds[i].name;
         CheckIsValidLabelFieldName<false>(fn);
     }
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    // Need to hold a write lock here since if two threads tries to add label concurrently, data
+    // race to schema_ may happen.
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
     SchemaManager* sm = is_vertex ? &new_schema->v_schema_manager : &new_schema->e_schema_manager;
@@ -192,8 +205,13 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), index.release());
     }
-    txn.Commit();
-    schema_.Assign(new_schema.release());
+    if (r) {
+        // refill `EdgeConstraintsLids` with right vertex label id.
+        new_schema->e_schema_manager.RefreshEdgeConstraintsLids(
+            new_schema->v_schema_manager);
+        txn.Commit();
+        schema_.Assign(new_schema.release());
+    }
     return r;
 }
 
@@ -224,8 +242,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
     size_t commit_size = 4096;
     // check that label and field names are legal
     CheckIsValidLabelFieldName<true>(label);
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, false, false);
+    Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     SchemaManager* curr_sm =
         is_vertex ? &curr_schema_info->v_schema_manager : &curr_schema_info->e_schema_manager;
@@ -297,7 +314,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
                         modified++;
                         if (modified != 0 && modified % commit_size == 0) {
                             txn.Commit();
-                            txn = CreateWriteTxn(false, false, false);
+                            txn = CreateWriteTxn(false);
                         }
                     }
                 }
@@ -313,7 +330,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
                     modified++;
                     if (modified != 0 && modified % commit_size == 0) {
                         txn.Commit();
-                        txn = CreateWriteTxn(false, false, false);
+                        txn = CreateWriteTxn(false);
                     }
                 }
                 FMA_DBG_CHECK_EQ(modified, unique_idx->GetNumKeys(txn.GetTxn()));
@@ -366,6 +383,11 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
     SchemaManager* new_sm =
         is_vertex ? &new_schema->v_schema_manager : &new_schema->e_schema_manager;
     bool r = new_sm->DeleteLabel(txn.GetTxn(), label);
+    if (is_vertex) {
+        // refill `EdgeConstraintsLids` with right vertex label id.
+        new_schema->e_schema_manager.RefreshEdgeConstraintsLids(
+            new_schema->v_schema_manager);
+    }
     txn.Commit();
     // delete fulltext index if has any
     if (fulltext_index_) {
@@ -393,8 +415,7 @@ bool LightningGraph::_AlterLabel(
     const ModifyEdgeIndex& modify_edge_index, size_t* n_modified, size_t commit_size) {
     FMA_DBG_STREAM(logger_) << "_AlterLabel(batch_size=" << commit_size << ")";
     _HoldWriteLock(meta_lock_);
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, false, false);
+    Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     SchemaManager* curr_sm =
         is_vertex ? &curr_schema_info->v_schema_manager : &curr_schema_info->e_schema_manager;
@@ -410,7 +431,7 @@ bool LightningGraph::_AlterLabel(
     LabelId new_lid = new_sm->AlterLabel(txn.GetTxn(), label, gen_new_schema(curr_schema));
     Schema* new_schema = new_sm->GetSchema(new_lid);
 
-    // TODO: commit periodically to avoid too large transaction // NOLINT
+    // TODO(hct): commit periodically to avoid too large transaction
     // Problem: If an exception occurs during vertex/edge update, we cannot rollback the committed
     // changes. We need a way to guarantee data consistency.
 
@@ -501,11 +522,82 @@ bool LightningGraph::_AlterLabel(
 }
 
 /* edge_constraints can only append, no delete allowed */
+bool LightningGraph::ClearEdgeConstraints(const std::string& edge_label) {
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
+    ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
+    std::unique_ptr<SchemaInfo> new_schema_info(new SchemaInfo(*curr_schema_info.Get()));
+    Schema* e_schema = new_schema_info->e_schema_manager.GetSchema(edge_label);
+    if (!e_schema) {
+        throw InputError("No such edge label: " + edge_label);
+    }
+    Schema new_e_schema(*e_schema);
+    new_e_schema.SetEdgeConstraints(EdgeConstraints());
+    new_schema_info->e_schema_manager.AlterLabel(txn.GetTxn(), edge_label, new_e_schema);
+    new_schema_info->e_schema_manager.RefreshEdgeConstraintsLids(new_schema_info->v_schema_manager);
+    txn.Commit();
+    // assign new schema
+    schema_.Assign(new_schema_info.release());
+    return true;
+}
+
+bool LightningGraph::AddEdgeConstraints(const std::string& edge_label,
+                                             const EdgeConstraints& constraints) {
+    {
+        // check empty
+        if (constraints.empty()) {
+            throw InputError(FMA_FMT("Constraints are empty"));
+        }
+        // check duplicate
+        auto temp = constraints;
+        std::sort(temp.begin(), temp.end());
+        auto iter = std::unique(temp.begin(), temp.end());
+        if (iter != temp.end()) {
+            throw InputError(
+                FMA_FMT("Duplicate constraints: [{}, {}]", iter->first, iter->second));
+        }
+    }
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
+    ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
+    std::unique_ptr<SchemaInfo> new_schema_info(new SchemaInfo(*curr_schema_info.Get()));
+    Schema* e_schema = new_schema_info->e_schema_manager.GetSchema(edge_label);
+    if (!e_schema) {
+        throw InputError("No such edge label: " + edge_label);
+    }
+    Schema new_e_schema(*e_schema);
+    EdgeConstraints ecs = new_e_schema.GetEdgeConstraints();
+    if (ecs.empty()) {
+        throw InputError(FMA_FMT("Failed to add constraint: "
+            "edge[{}] constraints are empty", edge_label));
+    }
+    for (auto& ec : constraints) {
+        for (auto& vertex_label : {ec.first, ec.second}) {
+            if (!new_schema_info->v_schema_manager.GetSchema(vertex_label)) {
+                throw InputError(FMA_FMT("No such vertex label: {}", vertex_label));
+            }
+        }
+        auto iter = std::find_if(ecs.begin(), ecs.end(),
+                                 [&ec](auto &item){return ec == item;});
+        if (iter != ecs.end()) {
+            throw InputError(FMA_FMT("Failed to add constraint: "
+                "constraint [{},{}] already exist", ec.first, ec.second));
+        }
+    }
+    ecs.insert(ecs.end(), constraints.begin(), constraints.end());
+    new_e_schema.SetEdgeConstraints(ecs);
+    new_schema_info->e_schema_manager.AlterLabel(txn.GetTxn(), edge_label, new_e_schema);
+    new_schema_info->e_schema_manager.RefreshEdgeConstraintsLids(new_schema_info->v_schema_manager);
+    txn.Commit();
+    // assign new schema
+    schema_.Assign(new_schema_info.release());
+    return true;
+}
+
 bool LightningGraph::AlterLabelModEdgeConstraints(const std::string& label,
                                                   const EdgeConstraints& edge_constraints) {
-    _HoldWriteLock(meta_lock_);
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, false, false);
+    _HoldReadLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     std::unique_ptr<SchemaInfo> new_schema_info(new SchemaInfo(*curr_schema_info.Get()));
     std::unique_ptr<SchemaInfo> backup_schema(new SchemaInfo(*curr_schema_info.Get()));
@@ -546,6 +638,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
                                          bool is_vertex, size_t* n_modified) {
     FMA_INFO_STREAM(logger_) << FMA_FMT("Deleting fields {} from {} label [{}].", del_fields_,
                                         is_vertex ? "vertex" : "edge", label);
+    _HoldReadLock(meta_lock_);
     // make unique
     std::vector<std::string> del_fields(del_fields_);
     std::sort(del_fields.begin(), del_fields.end());
@@ -634,6 +727,7 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
                                          bool is_vertex, size_t* n_modified) {
     FMA_INFO_STREAM(logger_) << FMA_FMT("Adding fields {} with values {} to {} label [{}].", to_add,
                                         default_values, is_vertex ? "vertex" : "edge", label);
+    _HoldReadLock(meta_lock_);
     if (to_add.empty()) throw InputError("No fields specified.");
     if (to_add.size() != default_values.size())
         throw InputError("Number of fields and default values are not equal.");
@@ -719,6 +813,7 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
                                          size_t* n_modified) {
     FMA_INFO_STREAM(logger_) << FMA_FMT("Modifying fields {} in {} label [{}].", to_mod,
                                         is_vertex ? "vertex" : "edge", label);
+    _HoldReadLock(meta_lock_);
     if (to_mod.empty()) throw InputError("No fields specified.");
     // de-duplicate
     {
@@ -846,8 +941,8 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
  */
 bool LightningGraph::_AddEmptyIndex(const std::string& label, const std::string& field,
                                     bool is_unique, bool is_vertex) {
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
                                : new_schema->e_schema_manager.GetSchema(label);
@@ -1159,7 +1254,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 // multiple blocks, use regular index calls
                 for (auto& kv : key_euids) {
                     edge_index->Add(txn.GetTxn(), GetKeyConstRef(kv.key), kv.euid.src, kv.euid.dst,
-                                    kv.euid.lid, kv.euid.eid);
+                                    kv.euid.lid, kv.euid.tid, kv.euid.eid);
                 }
             }
         }
@@ -1273,8 +1368,7 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
     if (!fulltext_index_) {
         return;
     }
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     for (auto id : v_lids) {
         fulltext_index_->DeleteLabel(true, id);
@@ -1328,8 +1422,8 @@ bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
     if (!fulltext_index_) {
         throw InputError("Fulltext index is not enabled");
     }
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = nullptr;
     if (is_vertex) {
@@ -1360,8 +1454,8 @@ bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
 bool LightningGraph::BlockingAddIndex(const std::string& label, const std::string& field,
                                       bool is_unique, bool is_vertex, bool known_vid_range,
                                       VertexId start_vid, VertexId end_vid) {
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
                                : new_schema->e_schema_manager.GetSchema(label);
@@ -1836,8 +1930,8 @@ bool LightningGraph::IsIndexed(const std::string& label, const std::string& fiel
 
 bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& label,
                                          const std::string& field) {
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = nullptr;
     if (is_vertex) {
@@ -1867,8 +1961,8 @@ bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& labe
 
 bool LightningGraph::DeleteIndex(const std::string& label, const std::string& field,
                                  bool is_vertex) {
-    std::lock_guard<std::mutex> l(write_lock_);
-    Transaction txn = CreateWriteTxn(false, true, false);
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
     Schema* schema = is_vertex ? curr_schema->v_schema_manager.GetSchema(label)
                                : curr_schema->e_schema_manager.GetSchema(label);
@@ -1907,8 +2001,8 @@ bool LightningGraph::DeleteIndex(const std::string& label, const std::string& fi
 
 void LightningGraph::DropAllIndex() {
     try {
-        std::lock_guard<std::mutex> l(write_lock_);
-        Transaction txn = CreateWriteTxn(false, true, false);
+        _HoldWriteLock(meta_lock_);
+        Transaction txn = CreateWriteTxn(false);
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
         std::unique_ptr<SchemaInfo> backup_schema(new SchemaInfo(*curr_schema.Get()));
@@ -2042,6 +2136,7 @@ void LightningGraph::Open() {
     SchemaManager vs(txn, v_s_tbl, true);
     KvTable e_s_tbl = SchemaManager::OpenTable(txn, *store_, _detail::E_SCHEMA_TABLE);
     SchemaManager es(txn, e_s_tbl, false);
+    es.RefreshEdgeConstraintsLids(vs);
     schema_.Assign(new SchemaInfo{std::move(vs), std::move(es)});
     // open graph
     KvTable g_tbl = graph::Graph::OpenTable(txn, *store_, _detail::GRAPH_TABLE);
@@ -2088,8 +2183,6 @@ void LightningGraph::Open() {
 Transaction LightningGraph::CreateReadTxn() {
     return Transaction(true,   // read_only
                        false,  // optimistic
-                       false,  // flush
-                       false,  // get_lock
                        this);  // db
 }
 

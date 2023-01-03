@@ -67,6 +67,7 @@ class Schema {
     // When Schema is VERTEX type, `edge_constraints_` is always empty.
     EdgeConstraints edge_constraints_;
     std::unordered_set<size_t> fulltext_fields_;
+    std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
@@ -127,6 +128,15 @@ class Schema {
     void SetSchema(bool is_vertex, const std::vector<FieldSpec>& fields, const std::string& primary,
                    const EdgeConstraints& edge_constraints) {
         SetSchema(is_vertex, fields.size(), fields.data(), primary, edge_constraints);
+    }
+
+    void SetEdgeConstraintsLids(std::unordered_map<LabelId, std::unordered_set<LabelId>> lids) {
+        edge_constraints_lids_ = std::move(lids);
+    }
+
+    const std::unordered_map<LabelId, std::unordered_set<LabelId>>&
+    GetEdgeConstraintsLids() const {
+        return edge_constraints_lids_;
     }
 
     // del fields, assuming fields is already de-duplicated
@@ -379,8 +389,8 @@ class Schema {
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid, EdgeId eid,
-                         const Value& record);
+    void DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
+                         TemporalId tid, EdgeId eid, const Value& record);
 
     void DeleteVertexFullTextIndex(VertexId vid, std::vector<FTIndexEntry>& buffers);
 
@@ -398,8 +408,8 @@ class Schema {
 
     void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid, EdgeId eid,
-                        const Value& record);
+    void AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
+                        TemporalId tid, EdgeId eid, const Value& record);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);

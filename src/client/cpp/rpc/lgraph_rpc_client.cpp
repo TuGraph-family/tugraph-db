@@ -41,7 +41,7 @@ RpcClient::RpcClient(const std::string& url, const std::string& user, const std:
     LGraphRequest request;
     request.set_is_write_op(false);
     auto* req = request.mutable_acl_request();
-    auto* auth = req->mutable_auth_request();
+    auto* auth = req->mutable_auth_request()->mutable_login();
     auth->set_user(user);
     auth->set_password(pass);
     // send data
@@ -403,6 +403,24 @@ bool RpcClient::ImportDataFromContent(std::string& result, const std::string& de
         return false;
     }
     return true;
+}
+
+void RpcClient::Logout() {
+    LGraphRequest request;
+    request.set_is_write_op(false);
+    auto* req = request.mutable_acl_request();
+    auto* auth = req->mutable_auth_request()->mutable_logout();
+    auth->set_token(token);
+    HandleRequest(&request);
+    FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient logout succeeded";
+}
+
+RpcClient::~RpcClient() {
+    try {
+        Logout();
+    } catch (const RpcConnectionException & e) {
+        FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient Commection Exception";
+    }
 }
 
 }  // end of namespace lgraph

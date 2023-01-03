@@ -1,19 +1,15 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
-#include <sys/time.h>
 #include <assert.h>
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include "fma-common/utils.h"
 #include "lgraph/lgraph_utils.h"
 
 namespace lgraph_api {
 
-double get_time() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec + (tv.tv_usec / 1e6);
-}
+double get_time() { return fma_common::GetTime(); }
 
 void split_string(std::string origin_string, std::vector<std::string>& sub_strings,
                             std::string string_delimiter = ",") {

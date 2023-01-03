@@ -1,5 +1,25 @@
 # 更新内容说明
 
+# 3.3.3 (2022-12-23)
+
+**Breaking Changes:**
+
+1. Improve WAL performance
+
+2. Add English Doc
+
+3. Update JWT security issues
+
+**Improvements And Bug Fixes:**
+
+1. Fix edge constraints issues
+
+2. Add ubuntu docker
+
+3. Use pthread in fulltext
+
+4. Other bug fix
+
 # 3.3.2 (2022-11-21)
 
 **Breaking Changes:**

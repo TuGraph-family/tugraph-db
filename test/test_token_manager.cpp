@@ -6,6 +6,7 @@
 #include "db/token_manager.h"
 #include "./test_tools.h"
 #include "./ut_utils.h"
+#include "db/acl.h"
 
 class TestTokenManager : public TuGraphTest {};
 
@@ -21,13 +22,9 @@ TEST_F(TestTokenManager, TokenManager) {
     UT_LOG() << "===Generating and validating...";
     TokenManager m("secret");
     TokenManager m2("another_secret");
-    std::string tok1 = m.IssueToken("user1", "password1");
-    std::string user1, password1;
-    m.DecipherToken(tok1, user1, password1);
-    UT_EXPECT_EQ(user1, "user1");
-    UT_EXPECT_EQ(password1, "password1");
-    // invalid token
-    UT_EXPECT_ANY_THROW(m.DecipherToken("invalid token", user1, password1));
-    // different secret
-    UT_EXPECT_ANY_THROW(m2.DecipherToken(tok1, user1, password1));
+
+    std::string tok1 = m.IssueFirstToken();
+    UT_EXPECT_EQ(m.JudgeRefreshTime(tok1), true);
+    std::string tok2 = m.UpdateToken(tok1);
+    UT_EXPECT_EQ(m.JudgeRefreshTime(tok2), true);
 }

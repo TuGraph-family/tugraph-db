@@ -144,6 +144,19 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     const std::string& label = fd.label;
     const std::string& src_label = fd.edge_src.label;
     const std::string& dst_label = fd.edge_dst.label;
+
+    {
+        auto schema = txn.GetSchema(label, false);
+        if (!schema)
+            throw InputError(FMA_FMT("Edge Label [{}] does not exist.", label));
+        const auto& ec = schema->GetEdgeConstraintsLids();
+        if (!ec.empty()) {
+            graph::EdgeConstraintsChecker ecc(ec);
+            ecc.Check(txn.GetLabelId(true, src_label),
+                      txn.GetLabelId(true, dst_label));
+        }
+    }
+
     std::vector<std::string> field_names;
     size_t src_id_pos_in_parsed_fds = fd.GetEdgeSrcColumnIDExcludeSkip();
     size_t dst_id_pos_in_parsed_fds = fd.GetEdgeDstColumnIDExcludeSkip();
@@ -316,18 +329,6 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
         SchemaDesc schema;
         schema.ConstructFromDB(txn);
         txn.Abort();
-        if (!schema.FindEdgeLabel(fd.label).MeetEdgeConstraints(
-                fd.edge_src.label, fd.edge_dst.label)) {
-            nlohmann::json json;
-            for (auto& item : schema.FindEdgeLabel(fd.label).edge_constraints) {
-                nlohmann::json j;
-                j[0] = item.first;
-                j[1] = item.second;
-                json.push_back(j);
-            }
-            std::throw_with_nested(
-                InputError(FMA_FMT("not meet the edge constraints : {}", json.dump())));
-        }
         fd.edge_src.id = schema.FindVertexLabel(fd.edge_src.label).GetPrimaryColumn().name;
         fd.edge_dst.id = schema.FindVertexLabel(fd.edge_dst.label).GetPrimaryColumn().name;
     }

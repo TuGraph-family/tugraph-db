@@ -87,9 +87,9 @@ RUN wget https://github.com/google/leveldb/archive/refs/tags/v1.20.zip \
 
 # install lcov
 RUN yum -y install perl-Digest-MD5 perl.x86_64 \
-    && wget http://downloads.sourceforge.net/ltp/lcov-1.14-1.noarch.rpm \
-    && rpm -ivh lcov-1.14-1.noarch.rpm \
-    && rm lcov-1.14-1.noarch.rpm
+    && wget http://downloads.sourceforge.net/ltp/lcov-1.16-1.noarch.rpm \
+    && rpm -ivh lcov-1.16-1.noarch.rpm \
+    && rm lcov-1.16-1.noarch.rpm
 
 # install prometheus
 RUN cd opt \

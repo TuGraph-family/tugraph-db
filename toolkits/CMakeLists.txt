@@ -13,18 +13,20 @@ target_link_libraries(lgraph_import
         lgraph_cypher_lib
         lgraph_server_lib)
 
-add_executable(lgraph_monitor
-        lgraph_monitor.cpp
-        ${LGRAPH_ROOT_DIR}/src/monitor/prometheus_monitor.cpp)
+if (ENABLE_FULLTEXT_INDEX)
+    add_executable(lgraph_monitor
+            lgraph_monitor.cpp
+            ${LGRAPH_ROOT_DIR}/src/monitor/prometheus_monitor.cpp)
 
-target_include_directories(lgraph_monitor PUBLIC
-        ${LGRAPH_ROOT_DIR}/include
-        ${LGRAPH_ROOT_DIR}/src)
+    target_include_directories(lgraph_monitor PUBLIC
+            ${LGRAPH_ROOT_DIR}/include
+            ${LGRAPH_ROOT_DIR}/src)
 
-target_link_libraries(lgraph_monitor
-        liblgraph_rpc_client
-        libprometheus-cpp-pull.a
-        libprometheus-cpp-core.a)
+    target_link_libraries(lgraph_monitor
+            liblgraph_rpc_client
+            libprometheus-cpp-pull.a
+            libprometheus-cpp-core.a)
+endif(ENABLE_FULLTEXT_INDEX)
 
 add_executable(lgraph_backup lgraph_backup.cpp)
 target_link_libraries(lgraph_backup lgraph_server_lib)

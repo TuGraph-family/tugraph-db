@@ -35,26 +35,26 @@ lgraph::SingleLanguagePluginManager::SingleLanguagePluginManager(
 
 lgraph::SingleLanguagePluginManager::~SingleLanguagePluginManager() { UnloadAllPlugins(); }
 
-void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& token,
+void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& user,
                                                            KvTransaction& txn) {
     auto& fs = fma_common::FileSystem::GetFileSystem(plugin_dir_);
     for (auto& kv : procedures_) {
         std::string error;
-        impl_->UnloadPlugin(token, kv.first, kv.second);
+        impl_->UnloadPlugin(user, kv.first, kv.second);
         fs.Remove(impl_->GetPluginPath(kv.first));
     }
     procedures_.clear();
     table_.Drop(txn);
 }
 
-void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& token) {
+void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& user) {
     auto txn = db_->CreateWriteTxn();
-    DeleteAllPlugins(token, txn.GetTxn());
+    DeleteAllPlugins(user, txn.GetTxn());
     txn.Commit();
 }
 
 std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins(
-    const std::string& token) {
+    const std::string& user) {
     AutoReadLock lock(lock_, GetMyThreadId());
     std::vector<PluginDesc> plugins;
     for (auto it = procedures_.begin(); it != procedures_.end(); it++) {
@@ -63,7 +63,7 @@ std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins
     return plugins;
 }
 
-bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& token,
+bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& user,
                                                         const std::string& name_,
                                                         lgraph::PluginCode& ret) {
     std::string name = ToInternalName(name_);
@@ -257,7 +257,7 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
 }
 
 void lgraph::SingleLanguagePluginManager::LoadPluginFromPyOrSo(
-    const std::string& token, KvTransaction& txn, const std::string& name, const std::string& exe,
+    const std::string& user, KvTransaction& txn, const std::string& name, const std::string& exe,
     const std::string& desc, bool read_only) {
     std::string plugin_path = impl_->GetPluginPath(name);
     // write so
@@ -268,7 +268,7 @@ void lgraph::SingleLanguagePluginManager::LoadPluginFromPyOrSo(
     PluginInfoBase* pinfo = pinfo_.get();
     pinfo->desc = desc;
     pinfo->read_only = read_only;
-    impl_->LoadPlugin(token, name, pinfo);
+    impl_->LoadPlugin(user, name, pinfo);
     procedures_.emplace(name, pinfo_.release());
 
     // update kv and memory status
@@ -279,23 +279,23 @@ void lgraph::SingleLanguagePluginManager::LoadPluginFromPyOrSo(
 }
 
 void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromCpp(
-    const std::string& token, KvTransaction& txn, const std::string& name, const std::string& cpp,
+    const std::string& user, KvTransaction& txn, const std::string& name, const std::string& cpp,
     const std::string& desc, bool read_only) {
     std::string exe = CompilePluginFromCpp(name, cpp);
-    LoadPluginFromPyOrSo(token, txn, name, exe, desc, read_only);
+    LoadPluginFromPyOrSo(user, txn, name, exe, desc, read_only);
     UpdateCppToKvStore(txn, name, cpp);
 }
 
 void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromZip(
-    const std::string& token, KvTransaction& txn, const std::string& name, const std::string& zip,
+    const std::string& user, KvTransaction& txn, const std::string& name, const std::string& zip,
     const std::string& desc, bool read_only) {
     std::string exe = CompilePluginFromZip(name, zip);
-    LoadPluginFromPyOrSo(token, txn, name, exe, desc, read_only);
+    LoadPluginFromPyOrSo(user, txn, name, exe, desc, read_only);
     UpdateZipToKvStore(txn, name, zip);
 }
 
 bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
-    const std::string& token, const std::string& name_, const std::string& code,
+    const std::string& user, const std::string& name_, const std::string& code,
     plugin::CodeType code_type, const std::string& desc, bool read_only) {
     // check input
     if (code.empty()) throw InputError("Code cannot be empty.");
@@ -316,7 +316,7 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
         if (it != procedures_.end()) {
             // unload plugin
             try {
-                impl_->UnloadPlugin(token, name, it->second);
+                impl_->UnloadPlugin(user, name, it->second);
             } catch (...) {
             }
             // delete pinfo
@@ -333,13 +333,13 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     switch (code_type) {
     case plugin::CodeType::SO:
     case plugin::CodeType::PY:
-        LoadPluginFromPyOrSo(token, txn.GetTxn(), name, code, desc, read_only);
+        LoadPluginFromPyOrSo(user, txn.GetTxn(), name, code, desc, read_only);
         break;
     case plugin::CodeType::CPP:
-        CompileAndLoadPluginFromCpp(token, txn.GetTxn(), name, code, desc, read_only);
+        CompileAndLoadPluginFromCpp(user, txn.GetTxn(), name, code, desc, read_only);
         break;
     case plugin::CodeType::ZIP:
-        CompileAndLoadPluginFromZip(token, txn.GetTxn(), name, code, desc, read_only);
+        CompileAndLoadPluginFromZip(user, txn.GetTxn(), name, code, desc, read_only);
         break;
     default:
         throw InternalError("Unhandled code_type [{}].", code_type);
@@ -352,7 +352,7 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     return true;
 }
 
-bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& token,
+bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& user,
                                                     const std::string& name_) {
     if (!IsValidPluginName(name_)) throw InvalidPluginNameException(name_);
     std::string name = ToInternalName(name_);
@@ -374,12 +374,12 @@ bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& token,
 
     std::unique_ptr<PluginInfoBase> old_pinfo(std::move(it->second));
     procedures_.erase(it);
-    impl_->UnloadPlugin(token, name, old_pinfo.get());
+    impl_->UnloadPlugin(user, name, old_pinfo.get());
     AutoCleanupAction rollback([&]() {
         // exception can only occur before txn commit,
         // so no need to revert kv state
         // file is deleted after commit, so no need to write file again
-        impl_->LoadPlugin(token, name, old_pinfo.get());
+        impl_->LoadPlugin(user, name, old_pinfo.get());
         procedures_.emplace(name, old_pinfo.release());
     });
     db_txn.Commit();
@@ -388,7 +388,7 @@ bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& token,
     return true;
 }
 
-bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& token,
+bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& user,
                                                           const std::string& name_) {
     if (!IsValidPluginName(name_)) {
         throw InvalidPluginNameException(name_);
@@ -400,7 +400,7 @@ bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& to
     return  it->second->read_only;
 }
 
-bool lgraph::SingleLanguagePluginManager::Call(const std::string& token,
+bool lgraph::SingleLanguagePluginManager::Call(const std::string& user,
                                                AccessControlledDB* db_with_access_control,
                                                const std::string& name_, const std::string& request,
                                                double timeout, bool in_process,
@@ -409,7 +409,7 @@ bool lgraph::SingleLanguagePluginManager::Call(const std::string& token,
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
     if (it == procedures_.end()) return false;
-    impl_->DoCall(token, db_with_access_control, name, it->second, request, timeout, in_process,
+    impl_->DoCall(user, db_with_access_control, name, it->second, request, timeout, in_process,
                   output);
     return true;
 }
@@ -518,40 +518,40 @@ lgraph::PluginManager::PluginManager(LightningGraph* db, const std::string& grap
 lgraph::PluginManager::~PluginManager() {}
 
 std::vector<lgraph::PluginDesc> lgraph::PluginManager::ListPlugins(PluginType type,
-                                                                   const std::string& token) {
-    return SelectManager(type)->ListPlugins(token);
+                                                                   const std::string& user) {
+    return SelectManager(type)->ListPlugins(user);
 }
 
-bool lgraph::PluginManager::GetPluginCode(PluginType type, const std::string& token,
+bool lgraph::PluginManager::GetPluginCode(PluginType type, const std::string& user,
                                           const std::string& name, lgraph::PluginCode& ret) {
-    bool rt = SelectManager(type)->GetPluginCode(token, name, ret);
+    bool rt = SelectManager(type)->GetPluginCode(user, name, ret);
     if (ret.code_type == "so_or_py") {
         ret.code_type = (type == PluginType::CPP) ? "so" : "py";
     }
     return rt;
 }
 
-bool lgraph::PluginManager::LoadPluginFromCode(PluginType type, const std::string& token,
+bool lgraph::PluginManager::LoadPluginFromCode(PluginType type, const std::string& user,
                                                const std::string& name, const std::string& code,
                                                plugin::CodeType code_type, const std::string& desc,
                                                bool read_only) {
-    return SelectManager(type)->LoadPluginFromCode(token, name, code, code_type, desc, read_only);
+    return SelectManager(type)->LoadPluginFromCode(user, name, code, code_type, desc, read_only);
 }
 
-bool lgraph::PluginManager::DelPlugin(PluginType type, const std::string& token,
+bool lgraph::PluginManager::DelPlugin(PluginType type, const std::string& user,
                                       const std::string& name) {
-    return SelectManager(type)->DelPlugin(token, name);
+    return SelectManager(type)->DelPlugin(user, name);
 }
 
-bool lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string& token,
+bool lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string& user,
                                             const std::string& name_) {
-    return SelectManager(type)->IsReadOnlyPlugin(token, name_);
+    return SelectManager(type)->IsReadOnlyPlugin(user, name_);
 }
 
-bool lgraph::PluginManager::Call(PluginType type, const std::string& token,
+bool lgraph::PluginManager::Call(PluginType type, const std::string& user,
                                  AccessControlledDB* db_with_access_control,
                                  const std::string& name_, const std::string& request,
                                  double timeout, bool in_process, std::string& output) {
-    return SelectManager(type)->Call(token, db_with_access_control, name_, request, timeout,
+    return SelectManager(type)->Call(user, db_with_access_control, name_, request, timeout,
                                      in_process, output);
 }

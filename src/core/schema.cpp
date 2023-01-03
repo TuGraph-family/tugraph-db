@@ -115,14 +115,14 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
 }
 
 void Schema::DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                             EdgeId eid, const Value& record) {
+                             TemporalId tid, EdgeId eid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         EdgeIndex* index = fe.GetEdgeIndex();
         FMA_ASSERT(index);
         // update field index
-        if (!index->Delete(txn, fe.GetConstRef(record), vid, dst, lid, eid)) {
+        if (!index->Delete(txn, fe.GetConstRef(record), vid, dst, lid, tid, eid)) {
             throw InputError(
                 fma_common::StringFormatter::Format("Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
@@ -131,15 +131,15 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, Lab
     }
 }
 
-void Schema::AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid, EdgeId eid,
-                            const Value& record) {
+void Schema::AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
+                            TemporalId tid, EdgeId eid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         EdgeIndex* index = fe.GetEdgeIndex();
         FMA_ASSERT(index);
         // update field index
-        if (!index->Add(txn, fe.GetConstRef(record), vid, dst, lid, eid)) {
+        if (!index->Add(txn, fe.GetConstRef(record), vid, dst, lid, tid, eid)) {
             throw InputError(fma_common::StringFormatter::Format(
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record)));

@@ -136,7 +136,7 @@ class PluginManager:
     '''
 
     def RunTask(self, task):
-        token = task.token
+        user = task.user
         graph = task.graph
         plugin_dir = task.plugin_dir
         function = task.function
@@ -157,7 +157,7 @@ class PluginManager:
                 if (error_code != PluginErrorCode.SUCCESS):
                     return (error_code, output)
                 with Galaxy(self.db_dir, False, False) as galaxy:
-                    galaxy.SetToken(token)
+                    galaxy.SetUser(user)
                     with galaxy.OpenGraph(graph, read_only) as db:
                         (error_code, output) = self.InvokeFunction(db, function, input, read_only)
         except (KeyboardInterrupt, SystemExit):

@@ -1,6 +1,6 @@
 set(LGRAPH_VERSION_MAJOR 3)
 set(LGRAPH_VERSION_MINOR 3)
-set(LGRAPH_VERSION_PATCH 2)
+set(LGRAPH_VERSION_PATCH 3)
 
 # options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)
@@ -53,7 +53,19 @@ else (ENABLE_SQL_IO)
     message("SQL import/export is disabled.")
 endif (ENABLE_SQL_IO)
 
+option(ENABLE_ASAN "Enable Address Sanitizer." OFF)
+if (ENABLE_ASAN)
+    message("Address Sanitizer is enabled.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -static-libasan")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address -static-libasan ")
+else (ENABLE_ASAN)
+    message("Address Sanitizer is disabled.")
+endif (ENABLE_ASAN)
+
 option(ENABLE_PYTHON_PLUGIN "Enable Python plugin." ON)
+if (ENABLE_ASAN)
+    set(ENABLE_PYTHON_PLUGIN 0)
+endif (ENABLE_ASAN)
 if (ENABLE_PYTHON_PLUGIN)
     message("Python support is enabled.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLGRAPH_ENABLE_PYTHON_PLUGIN=1")
@@ -76,14 +88,6 @@ if (ENABLE_FULLTEXT_INDEX)
 else (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is disabled.")
 endif (ENABLE_FULLTEXT_INDEX)
-
-option(ENABLE_Address_Sanitizer "Enable Address Sanitizer." OFF)
-if (ENABLE_Address_Sanitizer)
-    message("Address Sanitizer is enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -static-libasan")
-else (ENABLE_FULLTEXT_INDEX)
-    message("Address Sanitizer is disabled.")
-endif (ENABLE_Address_Sanitizer)
 
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)

@@ -62,8 +62,8 @@ class KeyPacker {
     static const size_t FID_OFF = 0;                                      // first vid
     static const size_t PT_OFF = FID_OFF + ::lgraph::_detail::VID_SIZE;   // pair type
     static const size_t LID_OFF = PT_OFF + 1;                             // label
-    static const size_t PID_OFF = LID_OFF + ::lgraph::_detail::LID_SIZE;  // primary id
-    static const size_t SID_OFF = PID_OFF + ::lgraph::_detail::PID_SIZE;  // second vid
+    static const size_t TID_OFF = LID_OFF + ::lgraph::_detail::LID_SIZE;  // primary id
+    static const size_t SID_OFF = TID_OFF + ::lgraph::_detail::TID_SIZE;  // second vid
     static const size_t EID_OFF = SID_OFF + ::lgraph::_detail::VID_SIZE;  // edge id
     static const size_t EDGE_KEY_SIZE = EID_OFF + ::lgraph::_detail::EID_SIZE;
 
@@ -217,7 +217,7 @@ class KeyPacker {
         SetNByteIntId<::lgraph::_detail::VID_SIZE>(v.Data(), euid.src);
         SetPackType(v.Data() + PT_OFF, et);
         SetNByteIntId<::lgraph::_detail::LID_SIZE>(v.Data() + LID_OFF, euid.lid);
-        SetNByteIntId<::lgraph::_detail::PID_SIZE>(v.Data() + PID_OFF, euid.tid);
+        SetNByteIntId<::lgraph::_detail::TID_SIZE>(v.Data() + TID_OFF, euid.tid);
         SetNByteIntId<::lgraph::_detail::VID_SIZE>(v.Data() + SID_OFF, euid.dst);
         SetNByteIntId<::lgraph::_detail::EID_SIZE>(v.Data() + EID_OFF, euid.eid);
         return v;

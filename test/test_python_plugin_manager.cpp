@@ -95,22 +95,22 @@ def Process(db, input):
         fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
         fma_common::file_system::RemoveDir(plugin_dir);
         Galaxy galaxy("./testdb");
-        AccessControlledDB db = galaxy.OpenGraph("admin", "default");
-        std::string token = galaxy.GetUserToken("admin", "73@TuGraph");
+        AccessControlledDB db = galaxy.OpenGraph(lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
+        std::string token = galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME, "73@TuGraph");
         if (token.empty()) UT_ERR() << "Bad user/password.";
 
         UT_LOG() << "Testing normal actions";
         PluginTester manager(db.GetLightningGraph(), plugin_dir, "python_plugin", n_workers);
-        UT_EXPECT_TRUE(manager.LoadPluginFromCode(token, "sleep", code_sleep, plugin::CodeType::PY,
-                                                  "sleep for n seconds", true));
+        UT_EXPECT_TRUE(manager.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                "sleep", code_sleep, plugin::CodeType::PY, "sleep for n seconds", true));
         UT_LOG() << "Testing normal actions1";
-        UT_EXPECT_TRUE(manager.LoadPluginFromCode(token, "scan_graph", code_read,
-                                                  plugin::CodeType::PY,
-                                                  "scan graph for at most n vertices", true));
-        UT_EXPECT_TRUE(manager.LoadPluginFromCode(token, "add", code_write, plugin::CodeType::PY,
-                                                  "write a vertex", true));
+        UT_EXPECT_TRUE(manager.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                "scan_graph", code_read, plugin::CodeType::PY,
+                                "scan graph for at most n vertices", true));
+        UT_EXPECT_TRUE(manager.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                "add", code_write, plugin::CodeType::PY, "write a vertex", true));
         UT_EXPECT_EQ(manager.procedures_.size(), 3);
-        auto plugins = manager.ListPlugins(token);
+        auto plugins = manager.ListPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         UT_EXPECT_EQ(plugins.size(), 3);
         UT_EXPECT_EQ(plugins[0].name, "add");
         UT_EXPECT_EQ(plugins[0].read_only, true);
@@ -119,25 +119,26 @@ def Process(db, input):
 
         PluginCode pc;
         UT_LOG() << "Test retrieving plugin (code_type: py)";
-        UT_EXPECT_TRUE(manager.GetPluginCode(token, "sleep", pc));
+        UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sleep", pc));
         UT_EXPECT_TRUE(code_sleep.compare(pc.code) == 0 && pc.code_type == "so_or_py");
         UT_EXPECT_TRUE(pc.read_only);
         UT_EXPECT_EQ(pc.desc, "sleep for n seconds");
         UT_EXPECT_EQ(pc.name, "sleep");
 
-        UT_EXPECT_TRUE(manager.GetPluginCode(token, "scan_graph", pc));
+        UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                                                    "scan_graph", pc));
         UT_EXPECT_TRUE(code_read.compare(pc.code) == 0 && pc.code_type == "so_or_py");
-        UT_EXPECT_TRUE(manager.GetPluginCode(token, "add", pc));
+        UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "add", pc));
         UT_EXPECT_TRUE(code_write.compare(pc.code) == 0 && pc.code_type == "so_or_py");
 
         UT_LOG() << "Updating plugin";
         // already exists
-        UT_EXPECT_TRUE(!manager.LoadPluginFromCode(token, "add", code_write, plugin::CodeType::PY,
-                                                   "write v2", false));
-        UT_EXPECT_TRUE(manager.DelPlugin(token, "add"));
-        UT_EXPECT_TRUE(manager.LoadPluginFromCode(token, "add", code_write, plugin::CodeType::PY,
-                                                  "write v2", false));
-        plugins = manager.ListPlugins(token);
+        UT_EXPECT_TRUE(!manager.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                    "add", code_write, plugin::CodeType::PY, "write v2", false));
+        UT_EXPECT_TRUE(manager.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add"));
+        UT_EXPECT_TRUE(manager.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                    "add", code_write, plugin::CodeType::PY, "write v2", false));
+        plugins = manager.ListPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         UT_EXPECT_EQ(plugins.size(), 3);
         UT_EXPECT_EQ(plugins[0].name, "add");
         UT_EXPECT_EQ(plugins[0].desc, "write v2");
@@ -145,20 +146,23 @@ def Process(db, input):
 
         UT_LOG() << "Calling plugins";
         std::string output;
-        UT_EXPECT_TRUE(manager.Call(token, &db, "sleep", "1", 0, true, output));
+        UT_EXPECT_TRUE(manager.Call(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                            &db, "sleep", "1", 0, true, output));
         UT_LOG() << "Calling plugin with seperate process";
         double t1 = GetTime();
         std::vector<std::thread> threads;
         for (size_t i = 0; i < n_jobs; i++) {
             threads.emplace_back([&]() {
                 std::string output;
-                UT_EXPECT_TRUE(manager.Call(token, &db, "sleep", "1", 0, false, output));
+                UT_EXPECT_TRUE(manager.Call(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                            &db, "sleep", "1", 0, false, output));
             });
         }
         for (auto& t : threads) t.join();
         double t2 = GetTime();
         // UT_EXPECT_LT((t2 - t1), (n_jobs + n_workers - 1) /n_workers + 0.5);
-        UT_EXPECT_TRUE(manager.Call(token, &db, "scan_graph", "0", 0, true, output));
+        UT_EXPECT_TRUE(manager.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                            "scan_graph", "0", 0, true, output));
         UT_LOG() << "Scan graph returned: " << output;
     } catch (std::exception& e) {
         UT_EXPECT_TRUE(false);

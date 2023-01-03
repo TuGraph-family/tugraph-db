@@ -23,6 +23,9 @@
 #ifndef _WIN32
 #include "brpc/server.h"
 #include "butil/logging.h"
+namespace brpc {
+DECLARE_bool(usercode_in_pthread);
+}
 #endif
 
 namespace lgraph {
@@ -213,6 +216,9 @@ int LGraphServer::Start() {
             crossplat::threadpool::initialize_with_threads(config_->thread_limit);
 
         if (config_->enable_rpc) {
+            if (config_->use_pthread) {
+                brpc::FLAGS_usercode_in_pthread = true;
+            }
             // start RPC service
             if (StartRpcService() == -1)
                 return -1;

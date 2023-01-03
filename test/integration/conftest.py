@@ -23,6 +23,7 @@ def server(request):
     log.info("Server started")
     yield
     server.stop(dirs)
+    log.info("Server stoped")
 
 server_1 = server
 server_2 = server
@@ -35,12 +36,15 @@ def client(request):
         try:
             c = python_client.client(request.param.get("host"), request.param.get("user"), request.param.get("password"))
             log.info("client succeed")
-            return c
+            break
         except Exception as e:
             time.sleep(1)
             log.info("retry connect %s times", i + 1)
             continue
             raise Exception("client create failed")
+    yield c
+    c.close()
+    log.info("Client stoped")
 
 client_1 = client
 client_2 = client
@@ -174,6 +178,8 @@ def exec(request):
                 log.info(line)
     exec.stop()
     assert exec.get_ret_code() == 0
+    yield
+    exec.stop()
 
 @pytest.fixture(scope="function")
 def algo(request):
@@ -206,4 +212,4 @@ def rest(request):
     log.info("client start")
     rest = TuGraphClient('localhost:{}'.format(request.param.get("port")), request.param.get("user"), request.param.get("password"))
     log.info("client succeed")
-    return rest
+    yield rest

@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
 #pragma once
 
@@ -86,14 +86,14 @@ class Galaxy {
     void SetCurrentUser(const std::string& user, const std::string& password);
 
     /**
-     * @brief   Validate token and set current user
+     * @brief   Set current user
      *
      * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
      * @exception   UnauthorizedError   Thrown if token is incorrect.
      *
-     * @param   token   The JWT token.
+     * @param   user   The current user.
      */
-    void SetToken(const std::string& token);
+    void SetUser(const std::string& user);
 
     /**
      * @brief   Validate token and set current user

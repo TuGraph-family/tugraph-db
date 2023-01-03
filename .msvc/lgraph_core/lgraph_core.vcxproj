@@ -32,6 +32,7 @@
     <ClCompile Include="..\..\src\core\graph_edge_iterator.cpp" />
     <ClCompile Include="..\..\src\core\graph_vertex_iterator.cpp" />
     <ClCompile Include="..\..\src\core\kv_table_comparators.cpp" />
+    <ClCompile Include="..\..\src\core\sync_file.cpp" />
     <ClCompile Include="..\..\src\core\wal.cpp" />
     <ClCompile Include="..\..\src\core\index_manager.cpp" />
     <ClCompile Include="..\..\src\core\iterator_base.cpp" />

@@ -88,13 +88,14 @@ RUN wget https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux
     && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \
     && ln -s /node-v16.6.0-linux-x64/bin/npm /usr/local/bin/ \
     && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
-    && npm config set registry https://registry.npmmirror.com
+    && npm config set registry https://registry.npmmirror.com \
+    && rm -rf /node-v16.6.0-linux-x64.tar.gz
 
 # install lcov
 RUN yum -y install perl-Digest-MD5 \
-    && wget http://downloads.sourceforge.net/ltp/lcov-1.14-1.noarch.rpm \
-    && rpm -ivh lcov-1.14-1.noarch.rpm \
-    && rm lcov-1.14-1.noarch.rpm
+    && wget http://downloads.sourceforge.net/ltp/lcov-1.16-1.noarch.rpm \
+    && rpm -ivh lcov-1.16-1.noarch.rpm \
+    && rm lcov-1.16-1.noarch.rpm
 
 # install prometheus
 RUN cd opt \
@@ -112,6 +113,7 @@ RUN cd opt \
 # install pytest
 RUN python3 -m pip install pytest
 
+#install maven
 RUN cd opt \
     && wget --no-check-certificate https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz \
     && tar xf apache-maven-3.8.6-bin.tar.gz \

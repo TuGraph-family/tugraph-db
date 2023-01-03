@@ -76,6 +76,18 @@ class Galaxy {
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;
 
+    // refresh token
+    std::string RefreshUserToken(const std::string& token, const std::string& user) const;
+
+    // unbind token and user
+    bool UnBindTokenUser(const std::string& token);
+
+    // judge token
+    bool JudgeRefreshTime(const std::string& token);
+
+    // modify tokenmanager validtime
+    void ModifyValidTime(const int& valid_time);
+
     // parse user token and check if user is admin
     // returns user name
     std::string ParseTokenAndCheckIfIsAdmin(const std::string& token, bool* is_admin) const;

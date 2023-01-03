@@ -8,6 +8,9 @@ log = logging.getLogger(__name__)
 SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",
              "cleanup_dir":["./testdb"]}
 
+SERVEROPT_1 = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",
+             "cleanup_dir":[]}
+
 CLIENTOPT = {"host":"127.0.0.1:9092", "user":"admin", "password":"73@TuGraph"}
 
 IMPORTOPT = {"cmd":"./lgraph_import --config_file ./data/yago/yago.conf --dir ./testdb --user admin --password 73@TuGraph --graph default --overwrite 1",
@@ -307,6 +310,11 @@ class TestProcedure():
         res = json.loads(ret[1])
         assert res == None
 
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_subgraph(self, server, client):
+        ret = client.callCypher("CALL db.subgraph([0,1,2])", "default")
+        assert ret[0]
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
@@ -459,7 +467,7 @@ class TestProcedure():
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 81
+        assert len(procedures) == 84
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
@@ -522,7 +530,7 @@ class TestProcedure():
         assert len(allows) == 1
 
 
-    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("server", [SERVEROPT_1], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_configration(self, server, client):
         ret = client.callCypher("CALL dbms.config.list()", "default")
@@ -530,13 +538,16 @@ class TestProcedure():
         confs = json.loads(ret[1])
         for conf in confs:
             if conf.get("name") == "durable":
-                assert conf.get("value") == True
+                assert conf.get("value") == False
             if conf.get("name") == "enable_audit_log":
                 assert conf.get("value") == False
 
         ret = client.callCypher("CALL dbms.config.update({durable:true,enable_audit_log:true})", "default")
         assert ret[0]
 
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_configration_two(self, server, client):
         ret = client.callCypher("CALL dbms.config.list()", "default")
         assert ret[0]
         confs = json.loads(ret[1])
@@ -860,8 +871,3 @@ class TestProcedure():
         assert ret[0]
         res = json.loads(ret[1])
         assert res.get("count(r)") == 8
-
-
-
-
-

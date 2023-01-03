@@ -21,7 +21,7 @@ CppPluginManagerImpl::CppPluginManagerImpl(LightningGraph* db, const std::string
 
 CppPluginManagerImpl::~CppPluginManagerImpl() {}
 
-void CppPluginManagerImpl::DoCall(const std::string& token,
+void CppPluginManagerImpl::DoCall(const std::string& user,
                                   AccessControlledDB* db_with_access_control,
                                   const std::string name, const PluginInfoBase* pinfo,
                                   const std::string& request, double timeout, bool in_process,
@@ -38,7 +38,7 @@ void CppPluginManagerImpl::DoCall(const std::string& token,
     if (!r) throw InputError(FMA_FMT("Plugin returned false. Output: {}.", output));
 }
 
-void CppPluginManagerImpl::LoadPlugin(const std::string& token, const std::string& name,
+void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string& name,
                                       PluginInfoBase* pinfo) {
     using namespace lgraph::dll;
     PluginInfo* info = dynamic_cast<PluginInfo*>(pinfo);
@@ -52,7 +52,7 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& token, const std::strin
     }
 }
 
-void CppPluginManagerImpl::UnloadPlugin(const std::string& token, const std::string& name,
+void CppPluginManagerImpl::UnloadPlugin(const std::string& user, const std::string& name,
                                         PluginInfoBase* pinfo) {
     using namespace lgraph::dll;
     PluginInfo* info = dynamic_cast<PluginInfo*>(pinfo);

@@ -156,7 +156,7 @@ public class TestBase extends Client{
         for (String key : r.keySet()) {
             log.info(key + ": " + r.get(key));
         }
-        assertThat(r).hasSize(6);
+        assertThat(r).hasSize(7);
     }
 
     private static void testUpdate() {

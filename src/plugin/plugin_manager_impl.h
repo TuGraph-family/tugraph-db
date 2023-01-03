@@ -46,11 +46,11 @@ class PluginManagerImplBase {
      * function just checks if name.so has the right plugin function and then stores the function
      * pointer in pinfo.
      */
-    virtual void LoadPlugin(const std::string& token, const std::string& name,
+    virtual void LoadPlugin(const std::string& user, const std::string& name,
                             PluginInfoBase* pinfo) = 0;
 
     // unload a plugin
-    virtual void UnloadPlugin(const std::string& token, const std::string& name,
+    virtual void UnloadPlugin(const std::string& user, const std::string& name,
                               PluginInfoBase* pinfo) = 0;
 
     /**
@@ -90,7 +90,7 @@ class PluginManagerImplBase {
      * @param [in,out] output       The output.
      *
      */
-    virtual void DoCall(const std::string& token, AccessControlledDB* db_with_access_control,
+    virtual void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
                         const std::string name, const PluginInfoBase* pinfo,
                         const std::string& request, double timeout, bool in_process,
                         std::string& output) = 0;

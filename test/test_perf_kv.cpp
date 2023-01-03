@@ -10,6 +10,7 @@
 
 #include "core/kv_store.h"
 #include "./ut_utils.h"
+#include "./random_port.h"
 
 class TestPerfKv : public TuGraphTest {};
 
@@ -317,4 +318,164 @@ TEST_F(TestPerfKv, PerfKv) {
         TestPerfKvIdPropShuffle(durable, power, prop_size);
     else if (test_case & 0x8)
         TestPerfKvIdPropRandom(durable, power, prop_size, read_comp);
+}
+
+class TestPerfKvImpl : public testing::Test {
+ protected:
+    std::string path_ = "./testkv";
+    size_t n_threads_ = 10;
+    size_t n_tests_ = 3;
+    size_t n_commits_ = 100;
+    size_t n_writes_ = 10;
+    size_t ksize_ = 8;
+    size_t vsize_ = 128;
+    double total_time = 0;
+    Value vbuf_;
+
+    TestPerfKvImpl() {
+        fma_common::Configuration conf;
+        conf.Add(path_, "path", true)
+            .Comment("Path of the test file.");
+        conf.Add(n_threads_, "nthreads", true)
+            .Comment("Number of concurrent threads to use");
+        conf.Add(n_tests_, "niter", true)
+            .Comment("Number of tests to run.");
+        conf.Add(n_commits_, "ncommits", true)
+            .Comment("Number of commits in each test.");
+        conf.Add(n_writes_, "nwrites", true)
+            .Comment("Number of writes to perform in each commit.");
+        conf.Add(ksize_, "ksize", true)
+            .Comment("Size of each key");
+        conf.Add(vsize_, "vsize", true)
+            .Comment("Size of each value");
+        conf.ParseAndFinalize(_ut_argc, _ut_argv);
+        vbuf_.Resize(vsize_);
+        memset(vbuf_.Data(), 'a', vsize_);
+    }
+
+    void SetUp() {
+        if (!_ut_run_benchmarks)
+            GTEST_SKIP() << "--run_benchmarks not set, skipping benchmarks.";
+        total_time = 0;
+    }
+
+    void TearDown() {
+        size_t n_kvs = n_tests_ * n_commits_ * n_writes_;
+        size_t n_bytes = n_kvs * (ksize_ + vsize_);
+
+        UT_LOG() << "Average throughput: "
+                 << (double)n_kvs / total_time << " KV/s, "
+                 << (double)n_bytes / 1024 / 1024 / total_time << " MB/s";
+    }
+
+    template<typename OneIteration>
+    void Run(const OneIteration& it) {
+        for (size_t iter = 0; iter < n_tests_; iter++) {
+            UT_DBG() << "Running iteration " << iter;
+            // setup
+            AutoCleanDir _(path_);
+            double start_time = fma_common::GetTime();
+            // perform one iteration
+            it();
+            // cleanup
+            double end_time = fma_common::GetTime();
+            double time_used = end_time - start_time;
+            total_time += time_used;
+            size_t n_kvs = n_commits_ * n_writes_;
+            size_t n_bytes = n_kvs * (ksize_ + vsize_);
+            UT_DBG() << "Finished one iteration in "
+                     << time_used << " seconds, "
+                     << "throughput: "
+                     << (double)n_kvs / time_used << " KV/s, "
+                     << (double)n_bytes / 1024 / 1024 / time_used << " MB/s";
+        }
+    }
+
+    Value GenRandomKey() const {
+        Value ret(ksize_);
+        char* p = ret.Data();
+        for (size_t i = 0; i < ksize_; i++) {
+            p[i] = myrand() % 128;
+        }
+        return ret;
+    }
+
+    void OneIterationWithKvStore(bool durable) {
+        KvStore store(path_, 1<<30, durable, true);
+        auto txn = store.CreateWriteTxn();
+        KvTable table = store.OpenTable(txn, "default", true,
+                                        lgraph::ComparatorDesc::DefaultComparator());
+        txn.Commit();
+        std::vector<std::thread> threads;
+        size_t txn_per_thread = (n_commits_ + n_threads_ - 1) / n_threads_;
+        for (size_t thrid = 0; thrid < n_threads_; thrid++) {
+            size_t start = txn_per_thread * thrid;
+            size_t end = std::min(start + txn_per_thread, n_commits_);
+            threads.emplace_back([&, start, end](){
+                Value key(ksize_);
+                char* p = key.Data();
+                RandomSeed rs;
+                for (size_t txnid = start; txnid < end; txnid++) {
+                    auto txn = store.CreateWriteTxn();
+                    for (size_t kid = 0; kid < n_writes_; kid++) {
+                        for (size_t i = 0; i < ksize_; i++) p[i] = rand_r(&rs) % 128;
+                        table.SetValue(txn, key, vbuf_);
+                    }
+                    txn.Commit();
+                }
+            });
+        }
+        for (auto& t : threads) t.join();
+    }
+
+    void OneIterationWithLmdb(bool durable) {
+        try {
+            MDB_val value = vbuf_.MakeMdbVal();
+            MDB_env* env;
+            THROW_ON_ERR(mdb_env_create(&env));
+            THROW_ON_ERR(mdb_env_set_mapsize(env, 1<<30));
+            THROW_ON_ERR(mdb_env_set_maxdbs(env, 16));
+            THROW_ON_ERR(mdb_env_set_maxreaders(env, 240));
+            // open store
+            int env_flags = MDB_NOMEMINIT | MDB_NORDAHEAD;
+            if (!durable) env_flags |= MDB_NOSYNC;
+            THROW_ON_ERR(mdb_env_open(env, path_.c_str(), env_flags, 0664));
+            // open table
+            int txn_flags = durable ? 0 : MDB_NOSYNC;
+            MDB_txn* txn;
+            THROW_ON_ERR(mdb_txn_begin(env, 0, txn_flags, &txn));
+            MDB_dbi dbi;
+            THROW_ON_ERR(mdb_dbi_open(txn, "default", MDB_CREATE, &dbi));
+            THROW_ON_ERR(mdb_txn_commit(txn));
+            for (size_t t = 0; t < n_commits_; t++) {
+                MDB_txn* txn;
+                THROW_ON_ERR(mdb_txn_begin(env, 0, txn_flags, &txn));
+                for (size_t k = 0; k < n_writes_; k++) {
+                    Value key = GenRandomKey();
+                    MDB_val kk = key.MakeMdbVal();
+                    THROW_ON_ERR(mdb_put(txn, dbi, &kk, &value, 0));
+                }
+                THROW_ON_ERR(mdb_txn_commit(txn));
+            }
+            mdb_env_close(env);
+        } catch(std::exception& e) {
+            UT_ERR() << "Error: " << e.what();
+        }
+    }
+};
+
+TEST_F(TestPerfKvImpl, lmdb_sync) {
+    Run([&](){ OneIterationWithLmdb(true); });
+}
+
+TEST_F(TestPerfKvImpl, lmdb_async) {
+    Run([&](){ OneIterationWithLmdb(false); });
+}
+
+TEST_F(TestPerfKvImpl, async) {
+    Run([&](){ OneIterationWithKvStore(false); });
+}
+
+TEST_F(TestPerfKvImpl, wal) {
+    Run([&](){ OneIterationWithKvStore(true); });
 }

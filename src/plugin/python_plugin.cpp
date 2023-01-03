@@ -13,6 +13,7 @@
 
 #include "plugin/python_plugin.h"
 #include "plugin/plugin_context.h"
+#include "db/galaxy.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -38,10 +39,10 @@ PythonPluginManagerImpl::PythonPluginManagerImpl(LightningGraph* db, const std::
 
 PythonPluginManagerImpl::~PythonPluginManagerImpl() { KillAllProcesses(); }
 
-void PythonPluginManagerImpl::LoadPlugin(const std::string& token, const std::string& name,
+void PythonPluginManagerImpl::LoadPlugin(const std::string& user, const std::string& name,
                                          PluginInfoBase* pinfo) {
     std::string output;
-    auto ec = CallInternal(token, "__lgraph_load_module__", name, 0, true, false, output);
+    auto ec = CallInternal(user, "__lgraph_load_module__", name, 0, true, false, output);
     switch (ec) {
     case python_plugin::TaskOutput::ErrorCode::SUCCESS:
         break;
@@ -54,24 +55,24 @@ void PythonPluginManagerImpl::LoadPlugin(const std::string& token, const std::st
     }
 }
 
-void PythonPluginManagerImpl::UnloadPlugin(const std::string& token, const std::string& name,
+void PythonPluginManagerImpl::UnloadPlugin(const std::string& user, const std::string& name,
                                            PluginInfoBase* pinfo) {
     // TODO: currently we do not track the modules in each process, so it is possible // NOLINT
     // for a process to not have a already-existing module.
-    // return CallInternal(token, "__lgraph_del_module__", name, 0, true, false, error);
+    // return CallInternal(user, "__lgraph_del_module__", name, 0, true, false, error);
 }
 
-void PythonPluginManagerImpl::DoCall(const std::string& token,
+void PythonPluginManagerImpl::DoCall(const std::string& user,
                                      AccessControlledDB* db_with_access_control,
                                      const std::string name, const PluginInfoBase* pinfo,
                                      const std::string& request, double timeout, bool in_process,
                                      std::string& output) {
-    auto ec = CallInternal(token, name, request, timeout, in_process, pinfo->read_only, output);
+    auto ec = CallInternal(user, name, request, timeout, in_process, pinfo->read_only, output);
     switch (ec) {
     case python_plugin::TaskOutput::ErrorCode::SUCCESS:
         break;
     case python_plugin::TaskOutput::ErrorCode::INTERNAL_ERR:
-        throw InputError(FMA_FMT("Plugin failed unexpectly. Stderr:\n{}", output));
+        throw InputError(FMA_FMT("Plugin failed unexpectly_1. Stderr:\n{}", output));
     case python_plugin::TaskOutput::ErrorCode::INPUT_ERR:
         throw InputError("Plugin returned false. Look in output for more information.");
     default:
@@ -81,7 +82,7 @@ void PythonPluginManagerImpl::DoCall(const std::string& token,
 
 // Run by the rest handling threads. Pushes the task to Python and wait for its finish.
 python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
-    const std::string& token, const std::string& function, const std::string& input, double timeout,
+    const std::string& user, const std::string& function, const std::string& input, double timeout,
     bool in_process, bool read_only, std::string& output) {
     // check timeout
     if (timeout <= 0) timeout = (double)3600 * 24 * 365;
@@ -107,11 +108,12 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
             _busy_processes.erase(ptr);
         });
     }
+
     proc->ClearOutput();
     // write task
     python_plugin::TaskInput task_input;
+    task_input.user = user;
     task_input.graph = graph_name_;
-    task_input.token = token;
     task_input.plugin_dir = plugin_dir_;
     task_input.function = function;
     task_input.input = input;

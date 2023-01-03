@@ -8,6 +8,7 @@
 #include "core/kv_store_iterator.h"
 #include "core/kv_store_table.h"
 #include "core/kv_store_transaction.h"
+#include "core/wal.h"
 
 namespace lgraph {
 size_t KvTable::GetVersion(KvTransaction& txn, const Value& key) {

@@ -32,7 +32,7 @@ TEST_F(TestTransaction, TestConcurrentVertexAdd) {
     std::vector<std::thread> threads;
     for (size_t i = 0; i < n_threads; i++) {
         threads.emplace_back([&, i]() {
-            auto txn = db.CreateWriteTxn(true, false, false);
+            auto txn = db.CreateWriteTxn(true);
             txn.AddVertex(std::string("v"), std::vector<std::string>{"id"},
                           std::vector<std::string>{std::to_string(i)});
             bar.Wait();
@@ -85,7 +85,7 @@ TEST_F(TestTransaction, Transaction) {
         }
         {
             UT_LOG() << "Case 3";
-            auto txn = db.CreateWriteTxn(true, true, false);  // optimistic write
+            auto txn = db.CreateWriteTxn(true);  // optimistic write
             auto txn2 = std::move(txn);
             CAC(txn);
             CAC(txn2);
@@ -99,14 +99,14 @@ TEST_F(TestTransaction, Transaction) {
         }
         {
             UT_LOG() << "Case 5";
-            auto txn = db.CreateWriteTxn(false, true, false);
+            auto txn = db.CreateWriteTxn(false);
             auto txn2 = std::move(txn);
             CAC(txn);
             CAC(txn2);
         }
         {
             UT_LOG() << "Case 6";
-            auto txn = db.CreateWriteTxn(true, true, false);  // optimistic write
+            auto txn = db.CreateWriteTxn(true);  // optimistic write
             auto txn2 = std::move(txn);
             CAC(txn);
             CAC(txn2);
@@ -137,7 +137,7 @@ TEST_F(TestTransaction, Transaction) {
             std::atomic<size_t> np(0);
             for (size_t i = 0; i < nt; i++) {
                 thrds.emplace_back([&db, &np]() {
-                    auto txn = db.CreateWriteTxn(false, true, false);
+                    auto txn = db.CreateWriteTxn(false);
                     size_t i = np.fetch_add(1);
                     UT_EXPECT_EQ(i, 0);
                     SleepS(0.1);
@@ -155,7 +155,7 @@ TEST_F(TestTransaction, Transaction) {
             for (size_t i = 0; i < nt; i++) {
                 thrds.emplace_back(
                     [&db, &np](int ti) {
-                        auto txn = db.CreateWriteTxn(true, true, false);
+                        auto txn = db.CreateWriteTxn(true);
                         size_t i = np.fetch_add(1);
                         // UT_EXPECT_EQ(i, 0);
                         UT_LOG() << ti << " got " << i;
@@ -193,7 +193,7 @@ TEST_F(TestTransaction, Transaction) {
             UT_EXPECT_THROW(db.CreateWriteTxn(), std::exception);
         }
         {
-            auto txn = db.CreateWriteTxn(false, true, false);
+            auto txn = db.CreateWriteTxn(false);
             UT_EXPECT_THROW(db.CreateReadTxn(), std::exception);
             UT_EXPECT_THROW(db.CreateWriteTxn(), std::exception);
         }

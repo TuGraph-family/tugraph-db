@@ -118,23 +118,19 @@ class GraphDB {
     /**
      * @brief   Creates a write transaction. Write operations can only be performed in write
      *          transactions, otherwise exceptions will be thrown. A write transaction can be
-     *          optimistic or async. Optimistic transactions can run in parallel and any conflict
+     *          optimistic. Optimistic transactions can run in parallel and any conflict
      *          will be detected during commit. If a transaction conflicts with an ealier one, a
-     *          TxnConflictError will be thrown during commit. An async transaction does not
-     *          flush content to disk when it commits. Instead, written contents are written to
-     *          disk asynchronously. Thus it sacrifices the durability property of the database,
-     *          in return of (much) better write performance.
+     *          TxnConflictError will be thrown during commit.
      *
      * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
      * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
      *                                      level.
      *
      * @param   optimistic  (Optional) True to create an optimistic transaction.
-     * @param   async       (Optional) True to disable flushing on commit.
      *
      * @returns The new write transaction.
      */
-    Transaction CreateWriteTxn(bool optimistic = false, bool async = false);
+    Transaction CreateWriteTxn(bool optimistic = false);
 
     /**
      * @brief   Forks a read transaction. The resulting read transaction will share the same view

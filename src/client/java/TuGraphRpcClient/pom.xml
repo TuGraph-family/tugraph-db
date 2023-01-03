@@ -18,38 +18,24 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
-    <url>http://maven.apache.org</url>
-    <description>Java implementation for BRPC</description>
+    <description>TuGraph Java Client using BRPC</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netty.version>4.1.44.Final</netty.version>
         <lombok.version>1.18.8</lombok.version>
+        <maven.staging.plugin>1.6.7</maven.staging.plugin>
+        <maven.gpg.plugin>1.6</maven.gpg.plugin>
+        <maven.compiler.plugin>3.6.1</maven.compiler.plugin>
+        <maven.source.plugin>2.2.1</maven.source.plugin>
+        <maven.javadoc.plugin>2.9.1</maven.javadoc.plugin>
+        <protoc.jar.maven.plugin>3.6.0</protoc.jar.maven.plugin>
+        <jdk.version>1.8</jdk.version>
     </properties>
 
     <modules>
         <module>rpc-client</module>
     </modules>
-
-    <issueManagement>
-        <system>GitHub Issues</system>
-        <url>https://github.com/baidu/brpc-java/issues</url>
-    </issueManagement>
-
-    <developers>
-        <developer>
-            <id>baidu.com</id>
-            <name>The Brpc Java Project Contributors</name>
-            <email>ad-plt@baidu.com</email>
-            <url>http://www.baidu.com/</url>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:git://github.com/baidu/brpc-java.git</connection>
-        <developerConnection>scm:git:git@github.com:baidu/brpc-java.git</developerConnection>
-        <url>https://github.com/baidu/brpc-java</url>
-    </scm>
 
     <licenses>
         <license>
@@ -59,20 +45,26 @@
         </license>
     </licenses>
 
-    <organization>
-        <name>Baidu, Inc.</name>
-        <url>http://www.baidu.com</url>
-    </organization>
-
     <profiles>
         <profile>
             <id>release</id>
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>${maven.staging.plugin}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                    <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <version>${maven.gpg.plugin}</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -83,40 +75,55 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <executions>
-                            <execution>
-                                <id>attach-javadoc</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <doclint>none</doclint>
-                            <charset>UTF-8</charset>
-                            <encoding>UTF-8</encoding>
-                            <docencoding>UTF-8</docencoding>
-                        </configuration>
-                    </plugin>
                 </plugins>
             </build>
             <distributionManagement>
-                <snapshotRepository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-                </snapshotRepository>
                 <repository>
                     <id>oss</id>
                     <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
                 </repository>
             </distributionManagement>
         </profile>
+        <profile>
+            <id>snapshot</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>${maven.staging.plugin}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven.gpg.plugin}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
     </profiles>
+
 
     <build>
         <plugins>
@@ -127,11 +134,6 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass></mainClass>
-                        </manifest>
-                    </archive>
                 </configuration>
                 <executions>
                     <execution>
@@ -146,39 +148,44 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>${maven.compiler.plugin}</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${jdk.version}</source>
+                    <target>${jdk.version}</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
-                <configuration>
-                    <attach>true</attach>
-                </configuration>
+                <version>${maven.source.plugin}</version>
                 <executions>
                     <execution>
+                        <id>attach-sources</id>
                         <phase>package</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <includes>
-                                <include>com/baidu/brpc/**</include>
-                            </includes>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin}</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.github.os72</groupId>
                 <artifactId>protoc-jar-maven-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>${protoc.jar.maven.plugin}</version>
                 <executions>
                     <execution>
                         <id>generate-sources</id>
@@ -371,4 +378,11 @@
             <artifactId>brpc-java-naming-consul</artifactId>
         </dependency>
     </dependencies>
+<repositories>
+    <repository>
+        <id>aliyun</id>
+        <name>AliYun</name>
+        <url>https://maven.aliyun.com/repository/public</url>
+    </repository>
+</repositories>
 </project>

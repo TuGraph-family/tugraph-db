@@ -55,11 +55,14 @@ void build_so() {
     std::string cmd;
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./sortstr.so",
                   "../../test/test_plugins/sortstr.cpp", LIBLGRAPH);
+    FMA_LOG() << "cmd_sort:" << cmd;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./scan_graph.so",
                   "../../test/test_plugins/scan_graph.cpp", LIBLGRAPH);
+    FMA_LOG() << "cmd_scan_graph:" << cmd;
     rt = system(cmd.c_str());
+    FMA_LOG() << "rt:" << rt;
     UT_EXPECT_EQ(rt, 0);
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./echo_binary.so",
                   "../../plugins/cpp/echo_binary.cpp", LIBLGRAPH);
@@ -109,19 +112,19 @@ TEST_F(TestCppPlugin, CppPlugin) {
     read_code("./plugin_add_label.dll", code_add_label);
 
     UT_LOG() << "Load scan_graph plugin";
-    UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph, plugin::CodeType::SO,
-                                         "scan graph v1", true));
-    UT_EXPECT_TRUE(!pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph,
-                                           plugin::CodeType::SO, "scan graph",
-                                           true));  // already exists
-    UT_EXPECT_TRUE(pm.DelPlugin(token, "scan_graph"));
-    UT_EXPECT_TRUE(!pm.DelPlugin(token, "scan_graph"));  // does not exist
-    UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph, plugin::CodeType::SO,
-                                         "scan graph v2", true));
+    UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
+            code_scan_graph, plugin::CodeType::SO, "scan graph v1", true));
+    UT_EXPECT_TRUE(!pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
+                code_scan_graph, plugin::CodeType::SO, "scan graph", true));  // already exists
+    UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+    UT_EXPECT_TRUE(!pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                                "scan_graph"));  // does not exist
+    UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
+                code_scan_graph, plugin::CodeType::SO, "scan graph v2", true));
 
     UT_LOG() << "Load add_label plugin";
-    UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "add_label", code_add_label, plugin::CodeType::SO,
-                                         "add label v1", false));
+    UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label",
+                code_add_label, plugin::CodeType::SO, "add label v1", false));
 
     UT_LOG() << "Test loaded plugins info";
     auto& funcs = pm.procedures_;
@@ -137,19 +140,23 @@ TEST_F(TestCppPlugin, CppPlugin) {
     std::string output;
     UT_LOG() << "Test call plugin";
     UT_EXPECT_TRUE(
-        pm.Call(token, &db, "scan_graph", "{\"scan_edges\":true, \"times\":2}", 0, true, output));
+        pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
+                                "{\"scan_edges\":true, \"times\":2}", 0, true, output));
     UT_EXPECT_EQ(output, "{\"num_edges\":0,\"num_vertices\":0}");
-    UT_EXPECT_TRUE(!pm.Call(token, &db, "does_not_exist", "", 2, true, output));
+    UT_EXPECT_TRUE(!pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                "does_not_exist", "", 2, true, output));
     // bad argument causes Process to return false and output is used to return error message
-    UT_EXPECT_THROW(pm.Call(token, &db, "scan_graph", "", 0, true, output), InputError);
+    UT_EXPECT_THROW(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                    "scan_graph", "", 0, true, output), InputError);
     UT_EXPECT_TRUE(StartsWith(output, "error parsing json: "));
 
     // calling add_label
-    UT_EXPECT_TRUE(pm.Call(token, &db, "add_label", "{\"label\":\"vertex1\"}", 0, true, output));
+    UT_EXPECT_TRUE(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                "add_label", "{\"label\":\"vertex1\"}", 0, true, output));
     // second insert fails because label already exists and Process returns false
 
-    UT_EXPECT_THROW(pm.Call(token, &db, "add_label", "{\"label\":\"vertex1\"}", 0, true, output),
-                    InputError);
+    UT_EXPECT_THROW(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                        "add_label", "{\"label\":\"vertex1\"}", 0, true, output), InputError);
 
     {
         lgraph_api::GraphDB gdb(&db, true, false);
@@ -159,33 +166,34 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_EQ(labels.front(), "vertex1");
     }
     {
-        UT_EXPECT_EQ(pm.IsReadOnlyPlugin(token, "scan_graph"), 1);
-        UT_EXPECT_EQ(pm.IsReadOnlyPlugin(token, "add_label"), 0);
-        UT_EXPECT_EQ(pm.IsReadOnlyPlugin(token, "does_not_exist"), -1);
+        UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"), 1);
+        UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"), 0);
+        UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                                                        "does_not_exist"), -1);
     }
     if (0) {
         // delete on windows does not work well, the .so file cannot be deleted
-        UT_EXPECT_TRUE(pm.DelPlugin(token, "add_label"));
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "add_label", code_add_label,
-                                             plugin::CodeType::SO, "add label v2", true));
+        UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                    "add_label", code_add_label, plugin::CodeType::SO, "add label v2", true));
         // since add_label is now declared read-only, it should fail with an exception
         UT_EXPECT_THROW(
-            pm.Call(token, &db, "add_label", "{\"label\":\"vertex1\"}", 0, true, output),
-            InputError);
+            pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+                    "{\"label\":\"vertex1\"}", 0, true, output), InputError);
     }
     {
         UT_LOG() << "Test delete";
         {
             // PluginTester pm(&db, plugin_dir, plugin_table);
-            UT_EXPECT_TRUE(pm.DelPlugin(token, "scan_graph"));
-            UT_EXPECT_TRUE(!pm.DelPlugin(token, "scan_graph"));
-            UT_EXPECT_TRUE(pm.DelPlugin(token, "add_label"));
+            UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+            UT_EXPECT_TRUE(!pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+            UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"));
             UT_EXPECT_TRUE(pm.procedures_.empty());
         }
         {
             PluginTester pm(db.GetLightningGraph(), plugin_dir, plugin_table);
             UT_EXPECT_TRUE(pm.procedures_.empty());
-            UT_EXPECT_TRUE(pm.ListPlugins(token).empty());
+            UT_EXPECT_TRUE(pm.ListPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME).empty());
         }
     }
 #else
@@ -240,28 +248,28 @@ TEST_F(TestCppPlugin, CppPlugin) {
 
         // test exception branch
         UT_EXPECT_THROW(
-            pm.LoadPluginFromCode(token, "#name", "", plugin::CodeType::SO, "desc", true),
-            InputError);
+            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                "#name", "", plugin::CodeType::SO, "desc", true), InputError);
 
         UT_LOG() << "Test loading empty plugin code";
         UT_EXPECT_THROW(
-            pm.LoadPluginFromCode(token, "name", "", plugin::CodeType::SO, "desc", true),
-            InputError);
+            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+            "name", "", plugin::CodeType::SO, "desc", true), InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: so)";
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(token, "name", "invalid_code", plugin::CodeType::SO,
-                                              "desc", true),
+        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+            "name", "invalid_code", plugin::CodeType::SO, "desc", true),
                         InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: zip)";
 
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(token, "name", "invalid_code", plugin::CodeType::ZIP,
-                                              "desc", true),
+        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name",
+                        "invalid_code", plugin::CodeType::ZIP, "desc", true),
                         InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: cpp)";
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(token, "name", "invalid_code", plugin::CodeType::CPP,
-                                              "desc", true),
+        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                        "name", "invalid_code", plugin::CodeType::CPP, "desc", true),
                         InputError);
 
         UT_EXPECT_TRUE(pm.procedures_.empty());
@@ -271,45 +279,45 @@ TEST_F(TestCppPlugin, CppPlugin) {
         PluginTester pm(db.GetLightningGraph(), plugin_dir, plugin_table);
 
         UT_LOG() << "Test loading of plugins (code_type: so)";
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "sortstr_so", code_so, plugin::CodeType::SO,
-                                             "sortstr so", true));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so",
+                        code_so, plugin::CodeType::SO, "sortstr so", true));
 
         UT_LOG() << "Test loading of plugins (code_type: cpp)";
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "sortstr_cpp", code_cpp, plugin::CodeType::CPP,
-                                             "sortstr cpp", true));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp",
+                    code_cpp, plugin::CodeType::CPP, "sortstr cpp", true));
 
         UT_LOG() << "Test loading of plugins (code_type: zip)";
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "sortstr_zip", code_zip, plugin::CodeType::ZIP,
-                                             "sortstr zip", true));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip",
+                    code_zip, plugin::CodeType::ZIP, "sortstr zip", true));
 
         PluginCode pc;
         UT_LOG() << "Test retrieving plugin (code_type: so)";
-        UT_EXPECT_TRUE(pm.GetPluginCode(token, "sortstr_so", pc));
+        UT_EXPECT_TRUE(pm.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so", pc));
         UT_EXPECT_TRUE(code_so.compare(pc.code) == 0 && pc.code_type == "so_or_py");
         UT_EXPECT_EQ(pc.read_only, true);
         UT_EXPECT_EQ(pc.desc, "sortstr so");
         UT_EXPECT_EQ(pc.name, "sortstr_so");
 
         UT_LOG() << "Test retrieving plugin (code_type: zip)";
-        UT_EXPECT_TRUE(pm.GetPluginCode(token, "sortstr_zip", pc));
+        UT_EXPECT_TRUE(pm.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip", pc));
         UT_EXPECT_TRUE(pc.code.compare(code_zip) == 0 && pc.code_type == "zip");
 
         UT_LOG() << "Test retrieving plugin (code_type: cpp)";
-        UT_EXPECT_TRUE(pm.GetPluginCode(token, "sortstr_cpp", pc));
+        UT_EXPECT_TRUE(pm.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp", pc));
         UT_EXPECT_TRUE(pc.code.compare(code_cpp) == 0 && pc.code_type == "cpp");
 
         UT_LOG() << "Load scan_graph plugin";
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph,
-                                             plugin::CodeType::SO, "scan graph v1", true));
-        UT_EXPECT_TRUE(!pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph,
-                                              plugin::CodeType::SO, "scan graph", true));
-        UT_EXPECT_TRUE(pm.DelPlugin(token, "scan_graph"));
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph,
-                                             plugin::CodeType::SO, "scan graph v2", true));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                    "scan_graph", code_scan_graph, plugin::CodeType::SO, "scan graph v1", true));
+        UT_EXPECT_TRUE(!pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                "scan_graph", code_scan_graph, plugin::CodeType::SO, "scan graph", true));
+        UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                "scan_graph", code_scan_graph, plugin::CodeType::SO, "scan graph v2", true));
 
         UT_LOG() << "Load add_label plugin";
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "add_label", code_add_label,
-                                             plugin::CodeType::SO, "add label v1", false));
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                "add_label", code_add_label, plugin::CodeType::SO, "add label v1", false));
 
         UT_LOG() << "Test loaded plugins info";
         auto& funcs = pm.procedures_;
@@ -327,26 +335,30 @@ TEST_F(TestCppPlugin, CppPlugin) {
         // test call
         std::string output;
         UT_LOG() << "Test call plugin";
-        UT_EXPECT_TRUE(pm.Call(token, &db, "sortstr_so", "dbac", 0, true, output));
+        UT_EXPECT_TRUE(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                            "sortstr_so", "dbac", 0, true, output));
         UT_EXPECT_EQ(output, "abcd");
 
-        UT_EXPECT_TRUE(pm.Call(token, &db, "scan_graph", "{\"scan_edges\":true, \"times\":2}", 0,
-                               true, output));
+        UT_EXPECT_TRUE(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                    "scan_graph", "{\"scan_edges\":true, \"times\":2}", 0, true, output));
         UT_EXPECT_EQ(output, "{\"num_edges\":0,\"num_vertices\":0}");
         UT_EXPECT_TRUE(
-            !pm.Call(token, &db, "no_such_plugin", "{\"scan_edges\":true}", 2, true, output));
+            !pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "no_such_plugin",
+                                        "{\"scan_edges\":true}", 2, true, output));
         // bad argument causes Process to return false and output is used to return error
         // message
-        UT_EXPECT_THROW(pm.Call(token, &db, "scan_graph", "", 0, true, output), InputError);
+        UT_EXPECT_THROW(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                    "scan_graph", "", 0, true, output), InputError);
         UT_EXPECT_TRUE(StartsWith(output, "error parsing json: "));
 
         // calling add_label
         UT_EXPECT_TRUE(
-            pm.Call(token, &db, "add_label", "{\"label\":\"vertex1\"}", 0, true, output));
+            pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+                                    "{\"label\":\"vertex1\"}", 0, true, output));
         // second insert fails because label already exists and Process returns false
         UT_EXPECT_THROW(
-            pm.Call(token, &db, "add_label", "{\"label\":\"vertex1\"}", 0, true, output),
-            InputError);
+            pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+                                    "{\"label\":\"vertex1\"}", 0, true, output), InputError);
 
         {
             lgraph_api::GraphDB gdb(&db, true, false);
@@ -356,34 +368,35 @@ TEST_F(TestCppPlugin, CppPlugin) {
             UT_EXPECT_EQ(labels.front(), "vertex1");
         }
         {
-            UT_EXPECT_EQ(pm.IsReadOnlyPlugin(token, "scan_graph"), 1);
-            UT_EXPECT_EQ(pm.IsReadOnlyPlugin(token, "add_label"), 0);
+            UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"), 1);
+            UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"), 0);
         }
         {
-            UT_EXPECT_TRUE(pm.DelPlugin(token, "add_label"));
-            UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "add_label", code_add_label,
-                                                 plugin::CodeType::SO, "add label v2", true));
+            UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"));
+            UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                        "add_label", code_add_label, plugin::CodeType::SO, "add label v2", true));
             // since add_label is now declared read-only, it should fail with an exception
             UT_EXPECT_THROW(
-                pm.Call(token, &db, "add_label", "{\"label\":\"vertex1\"}", 0, true, output),
-                InputError);
+                pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+                                    "{\"label\":\"vertex1\"}", 0, true, output), InputError);
         }
         {
             UT_LOG() << "Test delete";
             {
                 // PluginTester pm(&db, plugin_dir, plugin_table);
-                UT_EXPECT_TRUE(pm.DelPlugin(token, "scan_graph"));
-                UT_EXPECT_TRUE(!pm.DelPlugin(token, "scan_graph"));
-                UT_EXPECT_TRUE(pm.DelPlugin(token, "add_label"));
-                UT_EXPECT_TRUE(pm.DelPlugin(token, "sortstr_so"));
-                UT_EXPECT_TRUE(pm.DelPlugin(token, "sortstr_cpp"));
-                UT_EXPECT_TRUE(pm.DelPlugin(token, "sortstr_zip"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+                UT_EXPECT_TRUE(!pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip"));
 
                 // pm.UnloadAllPlugins();
-                // pm.DeleteAllPlugins(token);
+                // pm.DeleteAllPlugins("admin");
                 // UT_LOG() << "del succ";
 
-                UT_EXPECT_ANY_THROW(pm.IsReadOnlyPlugin(token, "scan_graph"));
+                UT_EXPECT_ANY_THROW(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                                                                "scan_graph"));
                 UT_EXPECT_TRUE(pm.procedures_.empty());
             }
             {
@@ -394,20 +407,22 @@ TEST_F(TestCppPlugin, CppPlugin) {
 
         {
             UT_LOG() << "Testing repeated load/delete";
-            UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "scan_graph", code_scan_graph,
-                                                 plugin::CodeType::SO, "scan graph v1", true));
-            UT_EXPECT_TRUE(pm.Call(token, &db, "scan_graph", "{\"scan_edges\":true, \"times\":2}",
-                                   0, true, output));
+            UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                        "scan_graph", code_scan_graph, plugin::CodeType::SO,
+                                                            "scan graph v1", true));
+            UT_EXPECT_TRUE(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
+                        "{\"scan_edges\":true, \"times\":2}", 0, true, output));
             for (size_t i = 0; i < 300; i++) {
-                UT_EXPECT_TRUE(pm.LoadPluginFromCode(token, "sortstr_so", code_so,
-                                                     plugin::CodeType::SO, "sortstr so", true));
+                UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                            "sortstr_so", code_so, plugin::CodeType::SO, "sortstr so", true));
                 std::string output;
-                UT_EXPECT_TRUE(pm.Call(token, &db, "sortstr_so", "dbac", 0, true, output));
-                UT_EXPECT_TRUE(pm.DelPlugin(token, "sortstr_so"));
+                UT_EXPECT_TRUE(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                                "sortstr_so", "dbac", 0, true, output));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so"));
             }
-            pm.DeleteAllPlugins(token);
-            UT_EXPECT_ANY_THROW(pm.LoadPluginFromCode(token, "testa", "#include <stdlib.h>",
-                                                      (plugin::CodeType)6, "test", true));
+            pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
+            UT_EXPECT_ANY_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                        "testa", "#include <stdlib.h>", (plugin::CodeType)6, "test", true));
         }
     }
 #endif

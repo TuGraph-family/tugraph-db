@@ -37,7 +37,7 @@ nlohmann::json Relationship::ToJson() {
     result["dst"] = dst;
     result["forward"] = forward;
     result["temporal_id"] = tid;
-    if (label.empty()) {
+    if (!label.empty()) {
         result["label"] = label;
     }
     result["label_id"] = label_id;

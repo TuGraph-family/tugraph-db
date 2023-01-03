@@ -131,7 +131,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     // configure parameters
     bool standalone = (cmd == "run");
     std::string cwd = fma_common::FileSystem::GetWorkingDirectory();
-    durable = true;
+    durable = false;
     db_dir = cwd + "/lgraph_db";
     bind_host = "0.0.0.0";
     log_dir = standalone ? "" : "/var/log/lgraph/";
@@ -192,6 +192,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("How verbose the output should be. 0-only warnings and errors; 1-normal; 2-debug");
     argparser.Add(enable_rpc, "enable_rpc", true).Comment("Whether to enable RPC server.");
     argparser.Add(rpc_port, "rpc_port", true).Comment("The RPC port used in HA mode.");
+    argparser.Add(use_pthread, "use_pthread", true)
+        .Comment("Whether to use pthread mode in brpc, default is bthread.");
     argparser.Add(txn_optimistic, lgraph::_detail::OPT_TXN_OPTIMISTIC, true)
         .Comment("Enable optimistic multi-writer transaction for Cypher.");
     argparser.Add(http_disable_auth, "disable_auth", true)

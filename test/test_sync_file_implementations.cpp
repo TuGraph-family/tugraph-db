@@ -11,7 +11,7 @@
 #include "fma-common/file_system.h"
 #include "./ut_utils.h"
 
-class TestSyncFileImpl : public testing::Test {
+class TestSyncFileImpl : public TuGraphTest {
  protected:
     std::string path_ = "./test_file";
     size_t n_tests_ = 3;
@@ -40,6 +40,7 @@ class TestSyncFileImpl : public testing::Test {
     }
 
     void SetUp() {
+        TuGraphTest::SetUp();
         if (!_ut_run_benchmarks)
             GTEST_SKIP() << "--run_benchmarks not set skipping benchmarks.";
         total_time = 0;
@@ -50,6 +51,7 @@ class TestSyncFileImpl : public testing::Test {
         UT_LOG() << "Average throughput: "
                  << (double)n_bytes / 1024 / 1024 / total_time
                  << " MB/s";
+        TuGraphTest::TearDown();
     }
 
     void StartOneTest() {

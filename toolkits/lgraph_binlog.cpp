@@ -181,7 +181,11 @@ int main(int argc, char** argv) {
                 log_sink = [&](const lgraph::BackupLogEntry& l) -> bool {
                     try {
                         lgraph::LGraphResponse resp;
-                        sm.ApplyRequestDirectly(&l.req(), &resp, false);
+                        lgraph::LGraphRequest m_req;
+                        m_req.CopyFrom(l.req());
+                        m_req.release_user();
+                        m_req.set_user(user);
+                        sm.ApplyRequestDirectly(&m_req, &resp, false);
                         if (resp.error_code() !=
                             lgraph::LGraphResponse::ErrorCode::LGraphResponse_ErrorCode_SUCCESS) {
                             throw std::runtime_error(resp.error());

@@ -40,7 +40,9 @@ class RestServer {
         GRAPH = 16,
         ROLE = 17,
         CONFIG = 18,
-        SCHEMA = 19
+        SCHEMA = 19,
+        REFRESH = 20,
+        LOGOUT = 21
     };
 
     static std::unordered_map<utility::string_t, RestPathCases> GetPathToCaseDict() {
@@ -64,7 +66,9 @@ class RestServer {
              {RestStrings::DB, RestPathCases::DB},
              {RestStrings::GRAPH, RestPathCases::GRAPH},
              {RestStrings::ROLE, RestPathCases::ROLE},
-             {RestStrings::CONFIG, RestPathCases::CONFIG}});
+             {RestStrings::CONFIG, RestPathCases::CONFIG},
+             {RestStrings::REFRESH, RestPathCases::REFRESH},
+             {RestStrings::LOGOUT, RestPathCases::LOGOUT}});
     }
 
  public:
@@ -161,6 +165,16 @@ class RestServer {
                          const utility::string_t& relative_path,
                          const std::vector<utility::string_t>& paths,
                          const web::json::value& body) const;
+    void HandlePostRefresh(const std::string& user, const std::string& token,
+                        const web::http::http_request& request,
+                        const utility::string_t& relative_path,
+                        const std::vector<utility::string_t>& paths,
+                        const web::json::value& body) const;
+    void HandlePostLogout(const std::string& user, const std::string& token,
+                        const web::http::http_request& request,
+                        const utility::string_t& relative_path,
+                        const std::vector<utility::string_t>& paths,
+                        const web::json::value& body) const;
     void HandlePostMisc(const std::string& user, const std::string& token,
                         const web::http::http_request& request,
                         const utility::string_t& relative_path,
