@@ -12,8 +12,7 @@ coverage:
     patch: yes
     changes: no
 
-github_checks:
-  annotations: false
+github_checks: false
 
 parsers:
   gcov:
