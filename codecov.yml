@@ -7,10 +7,10 @@ coverage:
   round: down
   range: "60...100"
 
-status:
-  project: yes
-  patch: yes
-  changes: no
+  status:
+    project: yes
+    patch: yes
+    changes: no
 
 github_checks:
   annotations: false
