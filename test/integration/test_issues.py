@@ -276,3 +276,16 @@ class TestIssues():
         assert ret[0]
         has_edge = json.loads(ret[1])
         assert(has_edge["COUNT(r)"] == 1)
+
+    IMPORT_OPT = {"cmd":"./lgraph_import --config_file ./import.config --dir ./testdb --user admin --password 73@TuGraph --graph default --overwrite 1 --continue_on_error true",
+                  "cleanup_dir":["./.import_tmp", "./testdb"]}
+
+    @pytest.mark.parametrize("importor", [IMPORT_OPT], indirect=True)
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_issues_199(self, file_build_1, importor, server, client):
+        ret = client.callCypher(
+            "MATCH (n {id:1}), (m {id:1}), (o {id:2}) "
+            "WHERE custom.myadd('asd')='1' RETURN 1")
+        assert not ret[0]
+        assert 'does not exist.' in ret[1]

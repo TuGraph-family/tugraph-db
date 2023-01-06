@@ -3,12 +3,12 @@ package test;
 import com.alibaba.fastjson.JSONObject;
 import entity.Actor;
 import entity.Movie;
-import org.neo4j.ogm.cypher.ComparisonOperator;
-import org.neo4j.ogm.model.QueryStatistics;
-import org.neo4j.ogm.model.Result;
-import org.neo4j.ogm.session.Session;
-import org.neo4j.ogm.session.SessionFactory;
-import org.neo4j.ogm.cypher.Filter;
+import com.antgroup.tugraph.ogm.cypher.ComparisonOperator;
+import com.antgroup.tugraph.ogm.model.QueryStatistics;
+import com.antgroup.tugraph.ogm.model.Result;
+import com.antgroup.tugraph.ogm.session.Session;
+import com.antgroup.tugraph.ogm.session.SessionFactory;
+import com.antgroup.tugraph.ogm.cypher.Filter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,7 @@ public class TestBase extends Client{
 
     public static void main(String[] args) {
         if (args.length != 3) {
-            log.info("java -jar target/TuGpraphOgmTest-1.0-SNAPSHOT.jar [host:port] [user] [password]");
+            log.info("java -jar target/TuGraphOGMTest-0.1.0.jar [host:port] [user] [password]");
             return;
         }
         sessionFactory = new SessionFactory(getDriver(args), "entity");

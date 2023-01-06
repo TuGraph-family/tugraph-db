@@ -1,4 +1,16 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by wt on 6/29/18.
@@ -333,9 +345,6 @@ class RangeFilter : public Filter {
     cypher::ArithExprNode _ae_left;   // can be: n, n.name, id(n), etc.
     cypher::ArithExprNode _ae_right;  // value to compare against
 
-    friend class cypher::LocateNodeByVid;
-    friend class cypher::LocateNodeByIndexedProp;
-
  public:
     RangeFilter() { _type = RANGE_FILTER; }
 
@@ -417,6 +426,16 @@ class RangeFilter : public Filter {
         default:
             return false;
         }
+    }
+
+    lgraph::CompareOp GetCompareOp() {
+        return _compare_op;
+    }   
+    cypher::ArithExprNode GetAeLeft() {
+        return _ae_left;
+    }
+    cypher::ArithExprNode GetAeRight() {
+        return _ae_right;
     }
 
     static std::map<lgraph::CompareOp, std::string> _compare_name;

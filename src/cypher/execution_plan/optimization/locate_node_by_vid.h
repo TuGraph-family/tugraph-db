@@ -59,13 +59,13 @@ class LocateNodeByVid : public OptPass {
             return -1;
         }
         auto range_filter = std::dynamic_pointer_cast<lgraph::RangeFilter>(filter);
-        if (range_filter->_ae_left.type == ArithExprNode::AR_EXP_OP &&
-            range_filter->_ae_left.op.func_name == "id" &&
-            range_filter->_compare_op == lgraph::LBR_EQ) {
-            if (!range_filter->_ae_right.operand.constant.IsInteger()) {
+        if (range_filter->GetAeLeft().type == ArithExprNode::AR_EXP_OP &&
+            range_filter->GetAeLeft().op.func_name == "id" &&
+            range_filter->GetCompareOp() == lgraph::LBR_EQ) {
+            if (!range_filter->GetAeRight().operand.constant.IsInteger()) {
                 return -1;  // TODO: 右值可能不是integer,这里用-1做flag合适嘛？
             };
-            return range_filter->_ae_right.operand.constant.scalar.integer();
+            return range_filter->GetAeRight().operand.constant.scalar.integer();
         }
         return -1;
     }

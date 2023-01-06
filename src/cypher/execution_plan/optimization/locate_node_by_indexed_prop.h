@@ -65,20 +65,20 @@ class LocateNodeByIndexedProp : public OptPass {
             return false;
         }
         auto range_filter = std::dynamic_pointer_cast<lgraph::RangeFilter>(filter);
-        if (range_filter->_ae_left.type == ArithExprNode::AR_EXP_OPERAND &&
-            range_filter->_ae_left.operand.type == ArithOperandNode::AR_OPERAND_VARIADIC &&
-            !range_filter->_ae_left.operand.variadic.entity_prop.empty() &&
-            range_filter->_compare_op == lgraph::LBR_EQ &&
-            range_filter->_ae_right.operand.type == ArithOperandNode::AR_OPERAND_CONSTANT) {
+        if (range_filter->GetAeLeft().type == ArithExprNode::AR_EXP_OPERAND &&
+            range_filter->GetAeLeft().operand.type == ArithOperandNode::AR_OPERAND_VARIADIC &&
+            !range_filter->GetAeLeft().operand.variadic.entity_prop.empty() &&
+            range_filter->GetCompareOp() == lgraph::LBR_EQ &&
+            range_filter->GetAeRight().operand.type == ArithOperandNode::AR_OPERAND_CONSTANT) {
             if (field.empty()) {
                 //右值可能会不是constant? 如果是para类型？需要处理嘛？
-                field = range_filter->_ae_left.operand.variadic.entity_prop;
+                field = range_filter->GetAeLeft().operand.variadic.entity_prop;
             }
-            if (field != range_filter->_ae_left.operand.variadic.entity_prop) {
+            if (field != range_filter->GetAeLeft().operand.variadic.entity_prop) {
                 return false;
             }
             //这里默认是scalar,数组情况后续处理
-            value = range_filter->_ae_right.operand.constant.scalar;
+            value = range_filter->GetAeRight().operand.constant.scalar;
             return true;
         }
         return false;
