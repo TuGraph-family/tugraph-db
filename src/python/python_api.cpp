@@ -25,9 +25,44 @@
 #include "lgraph/lgraph.h"
 #include "plugin/plugin_context.h"
 
+#include "antlr4-runtime/antlr4-runtime.h"
+#include "cypher/parser/generated/LcypherLexer.h"
+#include "cypher/parser/generated/LcypherParser.h"
+#include "cypher/parser/cypher_base_visitor.h"
+#include "cypher/parser/cypher_error_listener.h"
+#include "cypher/execution_plan/execution_plan.h"
+#include "cypher/execution_plan/scheduler.h"
+
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
 
+using namespace antlr4;
+using namespace parser;
+
 namespace lgraph_api {
+
+class CGalaxy: public Galaxy {
+  public:
+
+    std::string Cypher(const std::string& graph, const std::string& script) {
+      // return script;
+      cypher::RTContext ctx(nullptr, db_, token_, user_, graph, lgraph::AclManager::FieldAccess());
+      ANTLRInputStream input(script);
+      LcypherLexer lexer(&input);
+      CommonTokenStream tokens(&lexer);
+      LcypherParser parser(&tokens);
+      parser.addErrorListener(&CypherErrorListener::INSTANCE);
+      CypherBaseVisitor visitor(parser.oC_Cypher());
+      cypher::ExecutionPlan execution_plan;
+      execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
+      execution_plan.Validate(&ctx);
+      execution_plan.DumpGraph();
+      execution_plan.DumpPlan(0, false);
+      execution_plan.Execute(&ctx);
+      return ctx.result_->Dump(false);
+    };
+};
+
+
 namespace python {
 inline FieldData ObjectToFieldData(const pybind11::object& o) {
     if (pybind11::isinstance<FieldData>(o)) {
@@ -300,6 +335,29 @@ void register_python_api(pybind11::module& m) {
     //======================================
     // Register APIs
     //======================================
+    pybind11::class_<CGalaxy> cgalaxy(
+        m, "CGalaxy",
+        "A galaxy is a TuGraph instance that holds multiple GraphDBs.\n"
+        "A galaxy is stored in a directory and manages users and GraphDBs. "
+        "Each (user, GraphDB) pair can have different access levels. "
+        "You can use db=Galaxy.OpenGraph(graph) to open a graph. "
+        "Since garbage collection in Python is automatic, you need to "
+        "close the galaxy with Galaxy.Close() when you are done with it.");
+    cgalaxy
+        .def("Cypher", &CGalaxy::Cypher, "cyphery.", pybind11::arg("graph"), pybind11::arg("script"))
+        .def(
+            "__enter__", [&](CGalaxy& r) -> CGalaxy& { return r; }, "Init galaxy.")
+        .def(
+            "__exit__",
+            [&](CGalaxy& g, pybind11::object exc_type, pybind11::object exc_value,
+                pybind11::object traceback) { g.Close(); },
+            "Release memory of this galaxy.");
+    cgalaxy.def("SetCurrentUser", &Galaxy::SetCurrentUser,
+               "Validate user password and set current user.\n"
+               "user: user name\n"
+               "password: password of the user",
+               pybind11::arg("user"), pybind11::arg("password"));
+
     pybind11::class_<Galaxy> galaxy(
         m, "Galaxy",
         "A galaxy is a TuGraph instance that holds multiple GraphDBs.\n"

@@ -54,8 +54,8 @@ lgraph_api::Galaxy::~Galaxy() { Close(); }
 
 void lgraph_api::Galaxy::SetCurrentUser(const std::string& user, const std::string& password) {
     CHECK_DB_NOT_NULL();
-    std::string token = db_->GetUserToken(user, password);
-    if (token.empty()) throw lgraph_api::UnauthorizedError("Bad user/password.");
+    token_ = db_->GetUserToken(user, password);
+    if (token_.empty()) throw lgraph_api::UnauthorizedError("Bad user/password.");
     user_ = user;
 }
 

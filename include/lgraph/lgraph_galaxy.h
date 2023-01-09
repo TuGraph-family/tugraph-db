@@ -22,7 +22,9 @@ namespace lgraph_api {
  *          performing a lot of writing, but can cause data loss for online processing.
  */
 class Galaxy {
+  protected:
     std::string user_;
+    std::string token_;
     lgraph::Galaxy* db_;
 
     explicit Galaxy(lgraph::Galaxy* db);
