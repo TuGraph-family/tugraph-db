@@ -16,17 +16,21 @@ target_include_directories(lgraph_python PRIVATE
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(lgraph_python PUBLIC
             ${PYTHON_LIBRARIES}
+            lgraph
+            lgraph_cypher_lib
+            lgraph_server_lib
             boost_system
             cpprest
-            lgraph_server_lib
             )
 else ()
     target_link_libraries(lgraph_python PUBLIC
+            lgraph
+            lgraph_cypher_lib
+            lgraph_server_lib
             boost_system
             cpprest
-            lgraph_server_lib
             )
 endif ()
 
 set_target_properties(lgraph_python
-        PROPERTIES PREFIX "")
+    PROPERTIES PREFIX "")
