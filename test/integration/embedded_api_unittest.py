@@ -53,6 +53,10 @@ class LGraphUnitTests():
     def test_db(self):
         with Galaxy("./testdb", True, True) as galaxy:
             galaxy.SetCurrentUser("admin", "73@TuGraph")
+            res = galaxy.Cypher("default", "match(a) return a")
+            print("test Cypher")
+            print(res)
+
             with galaxy.OpenGraph("default") as db:
                 db.DropAllData()
                 lv_0 = "person"
@@ -352,10 +356,6 @@ class LGraphUnitTests():
                 with db.CreateReadTxn() as txn:
                     assert (txn.GetVertexIterator(1).ListSrcVids()[0] == [0])
                     assert (txn.GetVertexIterator(1).ListDstVids()[0] == [0])
-        with CGalaxy("./testdb", True, True) as galaxy:
-            galaxy.SetCurrentUser("admin", "73@TuGraph")
-            res = galaxy.Cypher("test", "match(a) return a")
-            print(res)
 
 
 if __name__ == '__main__':
