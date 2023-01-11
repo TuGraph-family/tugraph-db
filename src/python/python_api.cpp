@@ -42,20 +42,19 @@ using namespace parser;
 
 namespace lgraph_api {
 
-class CGalaxy: public Galaxy {
+namespace python {
+
+class Galaxy: public lgraph_api::Galaxy {
   public:
 
-    CGalaxy(const std::string& dir, bool durable = false, bool create_if_not_exist = true): Galaxy(dir, durable, create_if_not_exist) {};
+    Galaxy(const std::string& dir, bool durable = false, bool create_if_not_exist = true): lgraph_api::Galaxy(dir, durable, create_if_not_exist) {};
 
-    CGalaxy(const std::string& dir, const std::string& user, const std::string& password,
-        bool durable, bool create_if_not_exist): Galaxy(dir, user, password, durable, create_if_not_exist) {};
+    Galaxy(const std::string& dir, const std::string& user, const std::string& password,
+        bool durable, bool create_if_not_exist): lgraph_api::Galaxy(dir, user, password, durable, create_if_not_exist) {};
 
-    // ~CGalaxy() : ~Galaxy(){ };
-    ~CGalaxy() { this->Close();};
-
+    ~Galaxy() { this->Close();};
 
     std::string Cypher(const std::string& graph, const std::string& script) {
-      // return script;
       cypher::RTContext ctx(nullptr, db_, token_, user_, graph, lgraph::AclManager::FieldAccess());
       ANTLRInputStream input(script);
       LcypherLexer lexer(&input);
@@ -69,12 +68,10 @@ class CGalaxy: public Galaxy {
       execution_plan.DumpGraph();
       execution_plan.DumpPlan(0, false);
       execution_plan.Execute(&ctx);
-      return ctx.result_->Dump(false);
+      return ctx.result_->Dump(true);
     };
 };
 
-
-namespace python {
 inline FieldData ObjectToFieldData(const pybind11::object& o) {
     if (pybind11::isinstance<FieldData>(o)) {
         return o.cast<FieldData>();
@@ -346,47 +343,6 @@ void register_python_api(pybind11::module& m) {
     //======================================
     // Register APIs
     //======================================
-    pybind11::class_<CGalaxy> cgalaxy(
-        m, "CGalaxy",
-        "A galaxy is a TuGraph instance that holds multiple GraphDBs.\n"
-        "A galaxy is stored in a directory and manages users and GraphDBs. "
-        "Each (user, GraphDB) pair can have different access levels. "
-        "You can use db=Galaxy.OpenGraph(graph) to open a graph. "
-        "Since garbage collection in Python is automatic, you need to "
-        "close the galaxy with Galaxy.Close() when you are done with it.");
-    cgalaxy
-        .def("Cypher", &CGalaxy::Cypher, "cyphery.", pybind11::arg("graph"), pybind11::arg("script"))
-        .def(
-            "__enter__", [&](CGalaxy& r) -> CGalaxy& { return r; }, "Init galaxy.")
-        .def(
-            "__exit__",
-            [&](CGalaxy& g, pybind11::object exc_type, pybind11::object exc_value,
-                pybind11::object traceback) { g.Close(); },
-            "Release memory of this galaxy.");
-    cgalaxy.def(pybind11::init<const std::string&, const std::string&, const std::string&, bool, bool>(),
-               "Initializes a galaxy instance stored in dir.\n"
-               "dir: directory of the database\n"
-               "durable: whether to turn on durable mode. Note that a database can only be opened"
-               "by one process in durable mode.\n"
-               "create_if_not_exist: whether to create the database if dir does not exist",
-               pybind11::arg("dir"), pybind11::arg("user"), pybind11::arg("password"), pybind11::arg("durable") = false,
-               pybind11::arg("create_if_not_exist") = false,
-               pybind11::return_value_policy::move);
-    cgalaxy.def(pybind11::init<const std::string&, bool, bool>(),
-               "Initializes a galaxy instance stored in dir.\n"
-               "dir: directory of the database\n"
-               "durable: whether to turn on durable mode. Note that a database can only be opened"
-               "by one process in durable mode.\n"
-               "create_if_not_exist: whether to create the database if dir does not exist",
-               pybind11::arg("dir"), pybind11::arg("durable") = false,
-               pybind11::arg("create_if_not_exist") = false,
-               pybind11::return_value_policy::move);
-    cgalaxy.def("SetCurrentUser", &Galaxy::SetCurrentUser,
-               "Validate user password and set current user.\n"
-               "user: user name\n"
-               "password: password of the user",
-               pybind11::arg("user"), pybind11::arg("password"));
-
     pybind11::class_<Galaxy> galaxy(
         m, "Galaxy",
         "A galaxy is a TuGraph instance that holds multiple GraphDBs.\n"
@@ -396,6 +352,7 @@ void register_python_api(pybind11::module& m) {
         "Since garbage collection in Python is automatic, you need to "
         "close the galaxy with Galaxy.Close() when you are done with it.");
     galaxy
+        .def("Cypher", &Galaxy::Cypher, "Execute Cypher script.", pybind11::arg("graph"), pybind11::arg("script"))
         .def(
             "__enter__", [&](Galaxy& r) -> Galaxy& { return r; }, "Init galaxy.")
         .def(
@@ -403,6 +360,15 @@ void register_python_api(pybind11::module& m) {
             [&](Galaxy& g, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { g.Close(); },
             "Release memory of this galaxy.");
+    galaxy.def(pybind11::init<const std::string&, const std::string&, const std::string&, bool, bool>(),
+               "Initializes a galaxy instance stored in dir.\n"
+               "dir: directory of the database\n"
+               "durable: whether to turn on durable mode. Note that a database can only be opened"
+               "by one process in durable mode.\n"
+               "create_if_not_exist: whether to create the database if dir does not exist",
+               pybind11::arg("dir"), pybind11::arg("user"), pybind11::arg("password"), pybind11::arg("durable") = false,
+               pybind11::arg("create_if_not_exist") = false,
+               pybind11::return_value_policy::move);
     galaxy.def(pybind11::init<const std::string&, bool, bool>(),
                "Initializes a galaxy instance stored in dir.\n"
                "dir: directory of the database\n"
