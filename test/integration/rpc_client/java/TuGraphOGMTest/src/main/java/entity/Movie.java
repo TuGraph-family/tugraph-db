@@ -2,9 +2,9 @@ package entity;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.neo4j.ogm.annotation.Id;
-import org.neo4j.ogm.annotation.NodeEntity;
-import org.neo4j.ogm.annotation.Relationship;
+import com.antgroup.tugraph.ogm.annotation.Id;
+import com.antgroup.tugraph.ogm.annotation.NodeEntity;
+import com.antgroup.tugraph.ogm.annotation.Relationship;
 
 @NodeEntity
 public class Movie {

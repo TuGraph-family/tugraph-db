@@ -156,4 +156,11 @@
             <scope>compile</scope>
         </dependency>
     </dependencies>
+    <repositories>
+        <repository>
+            <id>aliyun</id>
+            <name>AliYun</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+        </repository>
+    </repositories>
 </project>

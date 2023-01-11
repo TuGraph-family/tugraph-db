@@ -24,6 +24,12 @@ cd $WORKSPACE/build/output
 OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
 rm -rf testdb* .import_tmp
 
+cd $WORKSPACE/src/client/python/TuGraphClient
+# install TuGraphClient
+python3 setup.py install
+# run TuGraphClient unit_tests
+python3 setup.py test
+
 # integrate tests
 cd $WORKSPACE/build/output
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .

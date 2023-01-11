@@ -1,4 +1,16 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by wt on 6/14/18.
@@ -38,3 +50,4 @@
 #include "op_topn.h"
 #include "op_union.h"
 #include "op_node_by_id_seek.h"
+#include "op_traversal.h"
