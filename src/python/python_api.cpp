@@ -33,6 +33,8 @@
 #include "cypher/execution_plan/execution_plan.h"
 #include "cypher/execution_plan/scheduler.h"
 
+#include "server/state_machine.h"
+
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
 
 using namespace antlr4;
@@ -42,6 +44,15 @@ namespace lgraph_api {
 
 class CGalaxy: public Galaxy {
   public:
+
+    CGalaxy(const std::string& dir, bool durable = false, bool create_if_not_exist = true): Galaxy(dir, durable, create_if_not_exist) {};
+
+    CGalaxy(const std::string& dir, const std::string& user, const std::string& password,
+        bool durable, bool create_if_not_exist): Galaxy(dir, user, password, durable, create_if_not_exist) {};
+
+    // ~CGalaxy() : ~Galaxy(){ };
+    ~CGalaxy() { this->Close();};
+
 
     std::string Cypher(const std::string& graph, const std::string& script) {
       // return script;
@@ -352,6 +363,24 @@ void register_python_api(pybind11::module& m) {
             [&](CGalaxy& g, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { g.Close(); },
             "Release memory of this galaxy.");
+    cgalaxy.def(pybind11::init<const std::string&, const std::string&, const std::string&, bool, bool>(),
+               "Initializes a galaxy instance stored in dir.\n"
+               "dir: directory of the database\n"
+               "durable: whether to turn on durable mode. Note that a database can only be opened"
+               "by one process in durable mode.\n"
+               "create_if_not_exist: whether to create the database if dir does not exist",
+               pybind11::arg("dir"), pybind11::arg("user"), pybind11::arg("password"), pybind11::arg("durable") = false,
+               pybind11::arg("create_if_not_exist") = false,
+               pybind11::return_value_policy::move);
+    cgalaxy.def(pybind11::init<const std::string&, bool, bool>(),
+               "Initializes a galaxy instance stored in dir.\n"
+               "dir: directory of the database\n"
+               "durable: whether to turn on durable mode. Note that a database can only be opened"
+               "by one process in durable mode.\n"
+               "create_if_not_exist: whether to create the database if dir does not exist",
+               pybind11::arg("dir"), pybind11::arg("durable") = false,
+               pybind11::arg("create_if_not_exist") = false,
+               pybind11::return_value_policy::move);
     cgalaxy.def("SetCurrentUser", &Galaxy::SetCurrentUser,
                "Validate user password and set current user.\n"
                "user: user name\n"

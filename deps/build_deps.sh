@@ -35,6 +35,7 @@ function BuildPackage {
     mkdir -p ${BUILD_DIR}/${NAME}
     cd ${BUILD_DIR}/${NAME}
     cmake ${DEPS_DIR}/${SOURCE_DIR} \
+        -DCMAKE_CXX_FLAGS="-fpic" \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_SHARED_LIBS=0 \
