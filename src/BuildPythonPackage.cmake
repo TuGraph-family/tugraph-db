@@ -18,6 +18,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
             ${PYTHON_LIBRARIES}
             lgraph
             lgraph_cypher_lib
+            lgraph_server_lib
             boost_system
             cpprest
             )
@@ -25,6 +26,7 @@ else ()
     target_link_libraries(lgraph_python PUBLIC
             lgraph
             lgraph_cypher_lib
+            lgraph_server_lib
             boost_system
             cpprest
             )
