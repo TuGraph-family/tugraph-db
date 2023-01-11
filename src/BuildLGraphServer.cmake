@@ -93,8 +93,6 @@ else ()
             -Wl,-U,_ProfilerStop
             gflags
             cpprest
-            boost_system
-            boost_filesystem
             boost_thread
             boost_chrono
             profiler
@@ -107,8 +105,6 @@ endif ()
 
 add_executable(lgraph_server
         server/server_main.cpp)
-
-set_target_properties(lgraph_server PROPERTIES POSITION_INDEPENDENT_CODE ON LINKER_LANGUAGE CXX)
 
 target_link_libraries(lgraph_server
         lgraph_server_lib)

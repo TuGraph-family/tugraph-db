@@ -54,6 +54,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/procedure/procedure.cpp
         cypher/resultset/record.cpp
         cypher/monitor/monitor_manager.cpp
+        server/state_machine.cpp
         )
 
 #antlr4-runtime
@@ -75,4 +76,5 @@ target_include_directories(lgraph_cypher_lib PUBLIC
 
 target_link_libraries(lgraph_cypher_lib PUBLIC
         ${ANTRL4_LIBRARY}
+        cpprest
         lgraph)
