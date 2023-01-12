@@ -82,7 +82,7 @@ RUN wget https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.
 # install leveldb
 RUN wget https://github.com/google/leveldb/archive/refs/tags/v1.20.zip \
     && unzip v1.20.zip && mv leveldb-1.20 leveldb \
-    && cd leveldb && git checkout v1.20 && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make -j4 \
+    && cd leveldb && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make -j4 \
     && cp -r ./include/leveldb/ /usr/local/include/ \
     && cp ./out-shared/libleveldb.so.1.20 /usr/local/lib/ \
     && cp ./out-static/libleveldb.a /usr/local/lib/ \
