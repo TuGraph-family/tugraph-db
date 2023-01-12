@@ -54,7 +54,6 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/procedure/procedure.cpp
         cypher/resultset/record.cpp
         cypher/monitor/monitor_manager.cpp
-        server/state_machine.cpp
         )
 
 #antlr4-runtime
@@ -64,7 +63,7 @@ add_library(lgraph_cypher_lib STATIC
         ${LGRAPH_CYPHER_SRC}
         ${PROTO_HEADERS}
         ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h)
-set_target_properties(lgraph_cypher_lib PROPERTIES POSITION_INDEPENDENT_CODE ON LINKER_LANGUAGE CXX)
+set_target_properties(lgraph_cypher_lib PROPERTIES LINKER_LANGUAGE CXX)
 add_custom_command(
         OUTPUT ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h
         COMMAND cp -p ${CMAKE_CURRENT_LIST_DIR}/cypher/Any.h.491+ ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h
@@ -76,5 +75,4 @@ target_include_directories(lgraph_cypher_lib PUBLIC
 
 target_link_libraries(lgraph_cypher_lib PUBLIC
         ${ANTRL4_LIBRARY}
-        cpprest
         lgraph)
