@@ -120,15 +120,15 @@ RUN python3 -m pip install pytest
 
 #install maven
 RUN cd opt \
-    && wget --no-check-certificate https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz \
-    && tar xf apache-maven-3.8.6-bin.tar.gz \
+    && wget --no-check-certificate https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz \
+    && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
 ARG CMAKE_OPT="-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DBUILD_TESTS=0 -DBUILD_SAMPLES=0 -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
 
 # brpc
 RUN  wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.2.zip \
-     && unzip release-1.2.zip && mv incubator-brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
+     && unzip release-1.2.zip && mv brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
      && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make -j && make install \
      && rm -rf /brpc*
 
