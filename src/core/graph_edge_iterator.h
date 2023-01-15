@@ -23,16 +23,6 @@ int TestOutEdgeIterator(int, char**);
 int TestInRefIterator(int, char**);
 int TestPerfGraphNoncontinuous(bool track_incoming, bool durable);
 
-namespace pybind11 {
-class module;
-}
-
-namespace python {
-namespace server {
-extern void python_server(pybind11::module& m);
-}
-}  // namespace python
-
 namespace lgraph {
 class Transaction;
 

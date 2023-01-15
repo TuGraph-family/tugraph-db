@@ -26,16 +26,6 @@
 #include "core/value.h"
 #include "core/vertex_index.h"
 
-namespace pybind11 {
-class module;
-}
-
-namespace python {
-namespace server {
-extern void python_server(pybind11::module& m);
-}
-}  // namespace python
-
 int TestEdgeIndexImpl();
 
 namespace lgraph {
