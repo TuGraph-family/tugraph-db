@@ -26,16 +26,6 @@
 #include "core/type_convert.h"
 #include "core/value.h"
 
-namespace pybind11 {
-class module;
-}
-
-namespace python {
-namespace server {
-extern void python_server(pybind11::module& m);
-}
-}  // namespace python
-
 int TestVertexIndexImpl();
 
 namespace lgraph {
