@@ -337,7 +337,6 @@ int test_multi_match(cypher::RTContext *ctx) {
         {"MATCH (x)<-[:ACTED_IN]-(p)-[:MARRIED]->(y), (p)-[:HAS_CHILD]->(z) RETURN p,x,y,z", 2},
         /* multi connected components */
         {"MATCH (n:Film), (m:City) RETURN n, m", 15},
-        /* issue 356 */
         {"MATCH (n1:Person {name: \"John Williams\"})-[]->(m1:Film), "
         "(n2: Person {name: \"Michael Redgrave\"})-[]->(m2:Film) "
         "WHERE m1.title = m2.title RETURN m1, m2", 1},
@@ -1255,7 +1254,8 @@ int test_procedure(cypher::RTContext *ctx) {
         "0.010590751202103139 */",
         "CALL algo.pagerank(10) YIELD node, pr with node MATCH(node)-[r]->(n)"
         "return node, r, n LIMIT 1"
-        "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */"
+        "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */",
+        "CALL dbms.procedures() YIELD name, signature WHERE name='db.subgraph' RETURN signature"
     };
 
     UT_LOG() << "Load Plugin File";

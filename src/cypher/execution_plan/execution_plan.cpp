@@ -19,6 +19,7 @@
 #include <stack>
 #include "db/galaxy.h"
 
+#include "execution_plan/ops/op.h"
 #include "graph/graph.h"
 #include "cypher_exception.h"
 #include "execution_plan.h"
@@ -902,6 +903,13 @@ void ExecutionPlan::_PlaceFilterOps(const parser::QueryPart &part, OpBase *&root
     }
     if (part.with_clause) {
         auto &where_expr = std::get<2>(*part.with_clause);
+        if (where_expr.type == Expression::FILTER) {
+            _PlaceFilter(where_expr.Filter(), root);
+            _MergeFilter(root);
+        }
+    }
+    if (part.iq_call_clause) {
+        auto &where_expr = std::get<3>(*part.iq_call_clause);
         if (where_expr.type == Expression::FILTER) {
             _PlaceFilter(where_expr.Filter(), root);
             _MergeFilter(root);
