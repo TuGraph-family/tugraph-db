@@ -19,6 +19,7 @@
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
 #include "gtest/gtest.h"
+#include "core/data_type.h"
 
 /* Make sure include graph_factory.h BEFORE antlr4-runtime.h. Otherwise causing the following error:
  * ‘EOF’ was not declared in this scope.
@@ -2475,6 +2476,7 @@ TEST_P(TestCypher, Cypher) {
         UT_LOG() << e.what();
         UT_EXPECT_TRUE(false);
     }
+    fma_common::SleepS(1);  // Waiting for memory reclaiming by async task
 }
 
 using namespace ::testing;
@@ -2485,7 +2487,7 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{7, 1}, ParamCypher{8, 1}, ParamCypher{9, 1}, ParamCypher{10, 1},
            ParamCypher{11, 1}, ParamCypher{12, 1}, ParamCypher{13, 1}, ParamCypher{14, 1},
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
-           ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
+           ParamCypher{101, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
            ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
            ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},

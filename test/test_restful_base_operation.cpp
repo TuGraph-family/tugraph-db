@@ -877,6 +877,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
 
     UT_LOG() << "\n" << __func__ << " succeeded";
     UT_LOG() << "\n" << __func__ << " exit";
+    SleepS(3);  // waiting for memory reclaiming by async task
     server.Stop();
 }
 

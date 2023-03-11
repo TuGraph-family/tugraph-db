@@ -251,5 +251,6 @@ int main(int argc, char** argv) {
         FMA_LOG() << "An error occurred during import:\n" << PrintNestedException(e, 1);
         return 1;
     }
+    fma_common::SleepS(3);  // waiting for memory reclaiming by async task
     return 0;
 }

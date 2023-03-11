@@ -1,0 +1,4 @@
+leak:*mdb.c*
+leak:*libjvm.so*
+leak:*execution_plan*
+leak:*LcypherParser*

@@ -37,6 +37,8 @@ TEST_F(TestBackupRestore, BackupRestore) {
     uint16_t port = 17172;
     uint16_t rpc_port = 19192;
 
+    AutoCleanDir d1(db_dir);
+    AutoCleanDir d2(new_db_dir);
     auto StartServer = [&](const std::string& dir) -> std::unique_ptr<SubProcess> {
         std::string server_cmd = FMA_FMT(
             "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
@@ -50,7 +52,6 @@ TEST_F(TestBackupRestore, BackupRestore) {
     };
 
     UT_LOG() << "Setting up env";
-    AutoCleanDir d1(db_dir);
 
     UT_LOG() << "Create db";
     {

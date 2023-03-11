@@ -28,6 +28,7 @@ using namespace lgraph;
 using namespace fma_common;
 
 int TestEdgeIndexImpl() {
+    AutoCleanDir d1("./testkv");
     KvStore store("./testkv", (size_t)1 << 30, true);
     // Start test, see if we already has a db
     KvTransaction txn = store.CreateWriteTxn();

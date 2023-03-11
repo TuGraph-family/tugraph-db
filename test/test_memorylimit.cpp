@@ -132,9 +132,9 @@ TEST_F(TestMemoryLimit, MemoryLimit) {
         UT_LOG() << "Finish Import";
 
         json::value ret;
-        RestClient* clients[CLIENT_NUM];
+        std::vector<std::unique_ptr<RestClient>> clients;
         for (int i = 0; i < CLIENT_NUM; i++) {
-            clients[i] = new RestClient(url, cert_path);
+            clients.emplace_back(new RestClient(url, cert_path));
             clients[i]->Login("memory_test1", "pd111");
         }
         int thread_num = 4;

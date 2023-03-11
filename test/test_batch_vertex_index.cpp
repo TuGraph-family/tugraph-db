@@ -37,9 +37,7 @@ class TestBatchVertexIndex : public TuGraphTest {
         dump_only = false;
         verbose = 1;
     }
-    void TearDown() {
-        TuGraphTest::TearDown();
-    }
+    void TearDown() { TuGraphTest::TearDown(); }
 
     std::string usr;
     std::string pad;

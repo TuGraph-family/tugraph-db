@@ -2403,7 +2403,7 @@ void RestServer::HandlePostUser(const std::string& user, const std::string& toke
     }
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-        if (paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
+        if (paths.size() == 3 && paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
             if (!galaxy_->UnBindTokenUser(token)) return RespondBadRequest(request, "Bad token.");
         }
         return RespondSuccess(request);

@@ -29,8 +29,8 @@ TEST_F(TestJsonConvert, JsonConvert) {
         auto js = ValueToJson(i);
         JsonToType<AccessLevel>(js, src);
     }
-    lgraph::Schema* mysch = new lgraph::Schema;
-    auto ret_schema = ValueToJson(mysch);
+    lgraph::Schema mysch;
+    auto ret_schema = ValueToJson(&mysch);
     UT_EXPECT_TRUE(ret_schema.as_bool());
     fma_common::HardwareInfo::CPURate cpurate;
     cpurate.selfCPURate = 12;
