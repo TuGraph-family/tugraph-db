@@ -53,7 +53,7 @@ cypher::VEC_STR ProcedureTitles(const std::string &procedure_name,
     auto pp = global_ptable.GetProcedure(procedure_name);
 
     if (yield_items.empty()) {
-        for (auto &res : pp->result) titles.emplace_back(res.first);
+        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
     } else {
         for (auto &item : yield_items) {
             if (!pp->ContainsYieldItem(item)) {
@@ -217,7 +217,7 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, cons
         for (auto &item : yield_items) titles.emplace_back(item);
     }
     std::unordered_map<std::string, std::function<void(const Procedure &, Record &)>> lmap = {
-        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.name)); }},
+        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.signature.proc_name)); }},
         {"signature",
          [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }},
         {"read_only",
@@ -2266,7 +2266,7 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
     cypher::VEC_STR titles;
     if (yield_items.empty()) {
-        for (auto &res : pp->result) titles.emplace_back(res.first);
+        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
     } else {
         for (auto &item : yield_items) {
             if (!pp->ContainsYieldItem(item)) {

@@ -231,7 +231,7 @@ class OpSet : public OpBase {
                 .append(" properties.");
             // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
             auto header = ctx->result_->Header();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ResultElementType::FIELD));
+            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ElementType::STRING));
             ctx->result_->ResetHeader(header);
             CYPHER_THROW_ASSERT(record);
             record->values.clear();

@@ -58,7 +58,7 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
             ctx->result_info_ = std::make_unique<ResultInfo>();
             ctx->result_ = std::make_unique<lgraph::Result>();
 
-            ctx->result_->ResetHeader({{"@plan", lgraph::ResultElementType::FIELD}});
+            ctx->result_->ResetHeader({{"@plan", lgraph::ElementType::STRING}});
             auto &r = ctx->result_->NewRecord();
             r.Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
             return;
@@ -90,7 +90,7 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     if (plan->CommandType() == CmdType::PROFILE) {
         ctx->result_info_ = std::make_unique<ResultInfo>();
         ctx->result_ = std::make_unique<lgraph::Result>();
-        ctx->result_->ResetHeader({{"@profile", lgraph::ResultElementType::FIELD}});
+        ctx->result_->ResetHeader({{"@profile", lgraph::ElementType::STRING}});
 
         auto &r = ctx->result_->NewRecord();
         r.Insert("@profile", lgraph::FieldData(plan->DumpGraph()));

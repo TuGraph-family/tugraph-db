@@ -427,10 +427,10 @@ class CypherBaseVisitor : public LcypherVisitor {
             throw lgraph::InputError("unregistered standalone function: " + procedure_name);
         }
         auto concat_str = [](const cypher::Procedure* pp){
-            if (pp->result.empty()) return std::string("[]");
+            if (pp->signature.result_list.empty()) return std::string("[]");
             std::string args = "[";
-            for (auto &arg : pp->result) {
-                args += arg.first;
+            for (auto &arg : pp->signature.result_list) {
+                args += arg.name;
                 args += ", ";
             }
             return args.substr(0, args.size()-2) + "]";
@@ -441,14 +441,14 @@ class CypherBaseVisitor : public LcypherVisitor {
                     FMA_FMT("yield item [{}] is not exsit, should be one of {}", 
                             yield_item, concat_str(pp)));
             }
-            auto type = lgraph::ResultElementType::NUL;
-            for (auto &r : pp->result) {
-                if (r.first == yield_item) {
-                    type = r.second.second;
+            auto type = lgraph::ElementType::NUL;
+            for (auto &r : pp->signature.result_list) {
+                if (r.name == yield_item) {
+                    type = r.type;
                 }
             }
             switch (type) {
-            case lgraph::ResultElementType::NODE:
+            case lgraph::ElementType::NODE:
                 AddSymbol(yield_item, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
                 break;
             default:
@@ -491,10 +491,10 @@ class CypherBaseVisitor : public LcypherVisitor {
         auto pp = cypher::global_ptable.GetProcedure(procedure_name);
 
         auto concat_str = [](const cypher::Procedure *pp){
-            if (pp->result.empty()) return std::string("[]");
+            if (pp->signature.result_list.empty()) return std::string("[]");
             std::string args = "[";
-            for (auto &arg : pp->result) {
-                args += arg.first;
+            for (auto &arg : pp->signature.result_list) {
+                args += arg.name;
                 args += ", ";
             }
             return args.substr(0, args.size()-2) + "]";

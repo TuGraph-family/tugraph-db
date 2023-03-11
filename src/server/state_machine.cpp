@@ -987,24 +987,24 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
             Header* header = cypher_result->add_header();
             header->set_name(h.first);
             switch (h.second) {
-            case lgraph_api::ResultElementType::NUL:
-            case lgraph_api::ResultElementType::INTEGER:
-            case lgraph_api::ResultElementType::FLOAT:
-            case lgraph_api::ResultElementType::DOUBLE:
-            case lgraph_api::ResultElementType::BOOLEAN:
-            case lgraph_api::ResultElementType::STRING:
-            case lgraph_api::ResultElementType::LIST:
-            case lgraph_api::ResultElementType::MAP:
-            case lgraph_api::ResultElementType::FIELD:
+            case lgraph_api::LGraphType::NUL:
+            case lgraph_api::LGraphType::INTEGER:
+            case lgraph_api::LGraphType::FLOAT:
+            case lgraph_api::LGraphType::DOUBLE:
+            case lgraph_api::LGraphType::BOOLEAN:
+            case lgraph_api::LGraphType::STRING:
+            case lgraph_api::LGraphType::LIST:
+            case lgraph_api::LGraphType::MAP:
+            case lgraph_api::LGraphType::ANY:
                 header->set_type(0);
                 break;
-            case lgraph_api::ResultElementType::NODE:
+            case lgraph_api::LGraphType::NODE:
                 header->set_type(1);
                 break;
-            case lgraph_api::ResultElementType::RELATIONSHIP:
+            case lgraph_api::LGraphType::RELATIONSHIP:
                 header->set_type(2);
                 break;
-            case lgraph_api::ResultElementType::PATH:
+            case lgraph_api::LGraphType::PATH:
                 header->set_type(4);
             default:
                 break;

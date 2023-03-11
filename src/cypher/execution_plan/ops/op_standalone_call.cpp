@@ -98,18 +98,18 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 auto title = header[idx].first;
                 auto type = header[idx].second;
                 switch (type) {
-                case lgraph::ResultElementType::NODE:
+                case lgraph::ElementType::NODE:
                     CYPHER_TODO();
                     break;
-                case lgraph::ResultElementType::RELATIONSHIP:
+                case lgraph::ElementType::RELATIONSHIP:
                     CYPHER_TODO();
                     break;
-                case lgraph::ResultElementType::ANY:
-                case lgraph::ResultElementType::PATH:
+                case lgraph::ElementType::ANY:
+                case lgraph::ElementType::PATH:
                     // TODO PATH is undefine
                     record.Insert(title, lgraph::FieldData(v.ToString()));
                     break;
-                case lgraph::ResultElementType::MAP:
+                case lgraph::ElementType::MAP:
                     {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::map<std::string, lgraph::FieldData> map;
@@ -119,7 +119,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         record.Insert(title, map);
                         break;
                     }
-                case lgraph::ResultElementType::LIST:
+                case lgraph::ElementType::LIST:
                     {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::vector<lgraph::FieldData> list;

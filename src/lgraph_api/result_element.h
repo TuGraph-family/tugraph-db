@@ -15,7 +15,8 @@
 #pragma once
 
 #include <map>
-#include "lgraph/lgraph_result.h"
+#include "tools/json.hpp"
+#include "lgraph/lgraph_types.h"
 
 namespace lgraph_api {
 namespace lgraph_result {
@@ -44,17 +45,17 @@ struct Relationship {
 //          So don't add new constructor before [Path] add
 //          a new member.
 struct PathElement {
-    lgraph_api::ResultElementType type_;
+    lgraph_api::LGraphType type_;
     union {
         Node *node;
         Relationship *repl;
     } v;
     explicit PathElement(const Node &node) {
-        type_ = lgraph_api::ResultElementType::NODE;
+        type_ = lgraph_api::LGraphType::NODE;
         v.node = new Node(node);
     }
     explicit PathElement(const Relationship &repl) {
-        type_ = lgraph_api::ResultElementType::RELATIONSHIP;
+        type_ = lgraph_api::LGraphType::RELATIONSHIP;
         v.repl = new Relationship(repl);
     }
     PathElement(const PathElement &);
@@ -72,7 +73,7 @@ using Path = std::vector<PathElement>;
 
 struct ResultElement {
     // using Path = typename traversal::Path;
-    ResultElementType type_;
+    LGraphType type_;
     union {
         lgraph_result::Node *node;
         lgraph_result::Relationship *repl;
@@ -82,35 +83,35 @@ struct ResultElement {
         lgraph_result::Path *path;
     } v;
 
-    ResultElement() : type_(ResultElementType::NUL) {}
+    ResultElement() : type_(LGraphType::NUL) {}
     explicit ResultElement(const FieldData &data) {
-        type_ = ResultElementType::ANY;
+        type_ = LGraphType::ANY;
         v.fieldData = new FieldData(data);
     }
-    explicit ResultElement(const FieldData &data, const ResultElementType &type) {
+    explicit ResultElement(const FieldData &data, const LGraphType &type) {
         type_ = type;
         v.fieldData = new FieldData(data);
     }
 
     explicit ResultElement(const std::map<std::string, nlohmann::json> &data) {
-        type_ = ResultElementType::MAP;
+        type_ = LGraphType::MAP;
         v.map = new std::map<std::string, nlohmann::json>(data);
     }
     explicit ResultElement(const std::vector<nlohmann::json> &data) {
-        type_ = ResultElementType::LIST;
+        type_ = LGraphType::LIST;
         v.list = new std::vector<nlohmann::json>(data);
     }
     explicit ResultElement(const lgraph_result::Node &data) {
-        type_ = ResultElementType::NODE;
+        type_ = LGraphType::NODE;
         v.node = new lgraph_result::Node(data);
     }
     explicit ResultElement(const lgraph_result::Relationship &data) {
-        type_ = ResultElementType::RELATIONSHIP;
+        type_ = LGraphType::RELATIONSHIP;
         v.repl = new lgraph_result::Relationship(data);
     }
 
     explicit ResultElement(const lgraph_result::Path &data) {
-        type_ = ResultElementType::PATH;
+        type_ = LGraphType::PATH;
         v.path = new lgraph_result::Path(data);
     }
 

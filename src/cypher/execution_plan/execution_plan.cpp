@@ -158,19 +158,19 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             case SymbolNode::CONSTANT:
             case SymbolNode::PARAMETER:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::FIELD);
+                                                       lgraph::ElementType::ANY);
                 break;
             case SymbolNode::NODE:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::NODE);
+                                                       lgraph::ElementType::NODE);
                 break;
             case SymbolNode::RELATIONSHIP:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::RELATIONSHIP);
+                                                       lgraph::ElementType::RELATIONSHIP);
                 break;
             case SymbolNode::NAMED_PATH:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::PATH);
+                                                       lgraph::ElementType::PATH);
                 break;
             default:
                 throw lgraph::CypherException("Unknown type: " + SymbolNode::to_string(type));
@@ -214,17 +214,17 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             result_info.header.colums.emplace_back(procedure_name);
         } else {
             auto &yield_items = std::get<2>(*stmt.sa_call_clause);
-            auto &result = p->result;
+            auto &result = p->signature.result_list;
             if (yield_items.empty()) {
                 for (auto &r: result) {
-                    result_info.header.colums.emplace_back(r.first, r.first, false, r.second.second);
+                    result_info.header.colums.emplace_back(r.name, r.name, false, r.type);
                 }
             } else {
                 for (auto &yield_item : yield_items) {
                     for (auto &r : result) {
-                        if (yield_item == r.first) {
+                        if (yield_item == r.name) {
                             result_info.header.colums.emplace_back(
-                                yield_item, yield_item, false, r.second.second);
+                                yield_item, yield_item, false, r.type);
                             break;
                         }
                     }
@@ -1277,10 +1277,10 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     }
 
     ctx->result_info_ = std::make_unique<ResultInfo>(GetResultInfo());
-    std::vector<std::pair<std::string, lgraph_api::ResultElementType>> header;
+    std::vector<std::pair<std::string, lgraph_api::LGraphType>> header;
 
     for (auto &h : ctx->result_info_->header.colums) {
-        std::pair<std::string, lgraph_api::ResultElementType> column;
+        std::pair<std::string, lgraph_api::LGraphType> column;
         column.first = h.alias.empty() ? h.name : h.alias;
         column.second = h.type;
         header.emplace_back(column);

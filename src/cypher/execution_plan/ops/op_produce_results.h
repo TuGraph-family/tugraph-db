@@ -23,7 +23,7 @@
 
 /* Runtime Record to User Record */
 static void RRecordToURecord(
-    lgraph::Transaction* txn, const std::vector<std::pair<std::string, lgraph_api::ResultElementType>> &header,
+    lgraph::Transaction* txn, const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
     const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record) {
     using unordered_json = nlohmann::ordered_json;
     if (header.empty()) {
@@ -32,7 +32,7 @@ static void RRecordToURecord(
     int index = 0;
     for (auto &v : record_ptr->values) {
         switch (header[index].second) {
-        case lgraph_api::ResultElementType::NODE:
+        case lgraph_api::LGraphType::NODE:
             {
                 if (v.type == cypher::Entry::NODE_SNAPSHOT) {
                     std::regex regex_word("(V)\\[([0-9]+)\\]");
@@ -55,7 +55,7 @@ static void RRecordToURecord(
                 }
                 break;
             }
-        case lgraph_api::ResultElementType::RELATIONSHIP:
+        case lgraph_api::LGraphType::RELATIONSHIP:
             {
                 if (v.type == cypher::Entry::RELP_SNAPSHOT) {
                     std::regex regex_word("(E)\\[([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+)\\]");
@@ -87,7 +87,7 @@ static void RRecordToURecord(
                 }
                 break;
             }
-        case lgraph_api::ResultElementType::PATH:
+        case lgraph_api::LGraphType::PATH:
             {
                 using Vertex = lgraph_api::traversal::Vertex;
                 using Path = lgraph_api::traversal::Path;

@@ -95,7 +95,7 @@ class OpDelete : public OpBase {
                 .append(std::to_string(ctx->result_info_->statistics.edges_deleted))
                 .append(" edges.");
             auto header = ctx->result_->Header();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ResultElementType::FIELD));
+            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ElementType::STRING));
             ctx->result_->ResetHeader(header);
             CYPHER_THROW_ASSERT(record);
             record->values.clear();

@@ -176,7 +176,7 @@ class OpCreate : public OpBase {
                 .append(std::to_string(ctx->result_info_->statistics.edges_created))
                 .append(" edges.");
             auto header = ctx->result_->Header();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ResultElementType::FIELD));
+            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ElementType::STRING));
             ctx->result_->ResetHeader(header);
             // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
             CYPHER_THROW_ASSERT(record);

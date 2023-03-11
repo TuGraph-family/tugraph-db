@@ -40,7 +40,7 @@ typedef lgraph_api::FieldSpec FieldSpec;
 typedef lgraph_api::EdgeUid EdgeUid;
 typedef lgraph_api::Date Date;
 typedef lgraph_api::DateTime DateTime;
-typedef lgraph_api::ResultElementType ResultElementType;
+typedef lgraph_api::LGraphType ElementType;
 typedef lgraph_api::Result Result;
 
 typedef int64_t VertexId;
