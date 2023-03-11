@@ -12,11 +12,11 @@ class TestJavaClient:
                 "so_name":["./scan_graph.so", "./sortstr.so"]}
 
     BASHOPT = {
-        "cmd" : "sh rpc_client/java/JavaClientTest/local_build.sh"
+        "cmd" : "echo TestJavaClient"
     }
 
     EXECOPT = {
-        "cmd" : "java -jar -ea rpc_client/java/JavaClientTest/target/tugraph-rpc-client-test-3.1.0-jar-with-dependencies.jar 127.0.0.1:9092 admin 73@TuGraph"
+        "cmd" : "java -jar -ea tugraph-db-rpc-client-test-1.1.0-jar-with-dependencies.jar 127.0.0.1:9092 admin 73@TuGraph"
     }
 
     SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",

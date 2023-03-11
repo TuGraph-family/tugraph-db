@@ -1,6 +1,6 @@
 # LGraphRpcClientJava
 
-TuGraphRpcClientTest using Java
+TuGraphDbRpcClientTest using Java
 
 ```
 ./local_build.sh

@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>TuGpraphOgmTest</artifactId>
-    <version>1.0</version>
+    <artifactId>TuGraphOgmTest</artifactId>
+    <version>1.1.0</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -16,20 +16,20 @@
     <dependencies>
         <dependency>
             <groupId>com.antgroup.tugraph</groupId>
-            <artifactId>tugraph-ogm-api</artifactId>
-            <version>0.1.0</version>
+            <artifactId>tugraph-db-ogm-api</artifactId>
+            <version>1.1.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.antgroup.tugraph</groupId>
-            <artifactId>tugraph-ogm-core</artifactId>
-            <version>0.1.0</version>
+            <artifactId>tugraph-db-ogm-core</artifactId>
+            <version>1.1.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.antgroup.tugraph</groupId>
-            <artifactId>tugraph-rpc-driver</artifactId>
-            <version>0.1.0</version>
+            <artifactId>tugraph-db-rpc-driver</artifactId>
+            <version>1.1.0</version>
         </dependency>
 
         <dependency>

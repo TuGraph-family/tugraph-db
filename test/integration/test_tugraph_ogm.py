@@ -8,11 +8,11 @@ log = logging.getLogger(__name__)
 class TestJavaOgm:
 
     BASHOPT = {
-        "cmd" : "sh rpc_client/java/TuGraphOGMTest/local_build.sh"
+        "cmd" : "echo TestJavaOgm"
     }
 
     EXECOPT = {
-        "cmd" : "java -jar rpc_client/java/TuGraphOGMTest/target/TuGpraphOgmTest-1.0.jar 127.0.0.1:29092 admin 73@TuGraph"
+        "cmd" : "java -jar TuGraphOgmTest-1.1.0.jar 127.0.0.1:29092 admin 73@TuGraph"
     }
 
     SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 27072 --rpc_port 29092",

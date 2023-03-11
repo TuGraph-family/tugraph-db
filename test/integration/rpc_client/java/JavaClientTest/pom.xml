@@ -13,9 +13,8 @@
     </parent>
 
     <groupId>com.antgroup.tugraph</groupId>
-    <artifactId>tugraph-rpc-client-test</artifactId>
-    <version>3.1.0</version>
-<!--    <packaging>pom</packaging>-->
+    <artifactId>tugraph-db-rpc-client-test</artifactId>
+    <version>1.1.0</version>
 
     <licenses>
         <license>
@@ -87,7 +86,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.antgroup.tugraph.test.TuGraphRpcClientTest</mainClass>
+                            <mainClass>com.antgroup.tugraph.test.TuGraphDbRpcClientTest</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -102,7 +101,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.antgroup.tugraph.test.TuGraphRpcClientTest</mainClass>
+                            <mainClass>com.antgroup.tugraph.test.TuGraphDbRpcClientTest</mainClass>
                         </manifest>jav
                     </archive>
                 </configuration>
@@ -123,8 +122,8 @@
     <dependencies>
         <dependency>
             <groupId>com.antgroup.tugraph</groupId>
-            <artifactId>tugraph-java-rpc-client</artifactId>
-            <version>0.0.1</version>
+            <artifactId>tugraph-db-java-rpc-client</artifactId>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
