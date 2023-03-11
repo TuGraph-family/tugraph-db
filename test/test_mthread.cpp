@@ -52,7 +52,7 @@ void task2(StateMachine *sm, const std::string &plugin_name) {
     proto_req.clear_is_write_op();
     UT_LOG() << "Forwarding to state machine";
     for (int i = 0; i < 10; i++) {
-        sm->HandleRequest(nullptr, &proto_req, &proto_resp, nullptr, false);
+        sm->HandleRequest(nullptr, &proto_req, &proto_resp, nullptr);
         if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
             const std::string reply = proto_resp.plugin_response().call_plugin_response().reply();
             UT_LOG() << "Plugin request successfully returned:" << reply;

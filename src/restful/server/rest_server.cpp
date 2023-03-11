@@ -67,7 +67,7 @@ struct DoneClosure : public google::protobuf::Closure {
 LGraphResponse RestServer::ApplyToStateMachine(const LGraphRequest& lgreq) const {
     LGraphResponse resp;
     DoneClosure d;
-    state_machine_->HandleRequest(nullptr, &lgreq, &resp, &d, true);
+    state_machine_->HandleRequest(nullptr, &lgreq, &resp, &d);
     d.Wait();
     return resp;
 }
