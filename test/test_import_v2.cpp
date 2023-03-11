@@ -1143,7 +1143,9 @@ TEST_F(TestImportV2, ImportV2) {
             if (expect_ret_zero) UT_EXPECT_EQ(proc.GetExitCode(), 0);
         };
         // this should be ok
-        ImportWithRecordOfSize(1, lgraph::_detail::MAX_STRING_SIZE, true, "Import finished");
+        ImportWithRecordOfSize(1, std::min<size_t>(lgraph::_detail::MAX_STRING_SIZE, 64<<20),
+                               true,
+                               "Import finished");
         // this should fail due to string too large
         ImportWithRecordOfSize(1, lgraph::_detail::MAX_STRING_SIZE + 1, false, "Data size");
         // this should fail due to record too large

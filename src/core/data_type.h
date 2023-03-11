@@ -45,8 +45,8 @@ typedef lgraph_api::Result Result;
 
 typedef int64_t VertexId;
 typedef int64_t EdgeId;
-typedef int16_t DataOffset;      // offset used in a record
-typedef int16_t PackDataOffset;  // offset used in a packed data (maximum 1024)
+typedef int32_t DataOffset;      // offset used in a record
+typedef int32_t PackDataOffset;  // offset used in a packed data (maximum 1024)
 typedef uint16_t LabelId;
 typedef int64_t TemporalId;
 typedef std::vector<std::pair<std::string, std::string>> EdgeConstraints;
@@ -311,8 +311,8 @@ static const int64_t MAX_EID = (((int64_t)1) << (EID_SIZE * 8)) - 2;
 static const int64_t MAX_TID = std::numeric_limits<TemporalId>::max() - 2;
 static const LabelId MAX_LID = std::numeric_limits<LabelId>::max() - 2;
 static const size_t NODE_SPLIT_THRESHOLD = 1000;
-static const size_t MAX_PROP_SIZE = 32767;
-static const size_t MAX_STRING_SIZE = 4096;
+static const size_t MAX_PROP_SIZE = ((size_t)16 << 20) - 1;
+static const size_t MAX_STRING_SIZE = ((size_t)4 << 20) - 1;
 static const size_t MAX_IN_PLACE_BLOB_SIZE = 512;
 static const size_t MAX_BLOB_SIZE = ((size_t)1 << 32) - 1;
 static const size_t MAX_KEY_SIZE = 480;

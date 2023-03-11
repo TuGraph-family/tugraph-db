@@ -266,15 +266,15 @@ TEST_F(TestGraphDataPack, GraphDataPack) {
             bool exist = false;
             size_t pos = 0;
             UT_EXPECT_EQ(ev.UpsertEdge(0, 0, 0, 0, prop, exist, pos), 1);
-            UT_EXPECT_EQ(ev.UpsertEdge(0, 0, 1, 0, prop, exist, pos), 4);
-            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 1, 0, prop, exist, pos), 5);
-            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 253, 0, prop, exist, pos), 5);
-            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 0x10000, 0, prop, exist, pos), 7);
-            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 0x1000000, 0, prop, exist, pos), 8);
-            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 0x1000000, 255, prop, exist, pos), 9);
-            UT_EXPECT_EQ(ev.UpsertEdge(65535, 0, 0x1000000, 255, prop, exist, pos), 10);
+            UT_EXPECT_EQ(ev.UpsertEdge(0, 0, 1, 0, prop, exist, pos), 6);
+            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 1, 0, prop, exist, pos), 7);
+            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 253, 0, prop, exist, pos), 7);
+            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 0x10000, 0, prop, exist, pos), 9);
+            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 0x1000000, 0, prop, exist, pos), 10);
+            UT_EXPECT_EQ(ev.UpsertEdge(250, 0, 0x1000000, 255, prop, exist, pos), 11);
+            UT_EXPECT_EQ(ev.UpsertEdge(65535, 0, 0x1000000, 255, prop, exist, pos), 12);
             UT_EXPECT_EQ(ev.GetEdgeCount(), 8);
-            UT_EXPECT_EQ(ev.GetBuf().Size(), 50);
+            UT_EXPECT_EQ(ev.GetBuf().Size(), 64);
         }
 
         EdgeValue ev;

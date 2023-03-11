@@ -168,10 +168,12 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
                                              FieldData::DateTime("2020-05-04 20:24:34"),
                                              "not valid date", FieldData(123), true, "10240-09-01");
         CheckParseStringAndBlob(FieldType::STRING, value_tmp, "this is a string",
-                                FieldData("another string"), std::string(4097, 'a'), FieldData(12));
+                                FieldData("another string"),
+                                std::string(_detail::MAX_STRING_SIZE + 1, 'a'),
+                                FieldData(12));
         CheckParseStringAndBlob(FieldType::BLOB, value_tmp,
                                 lgraph_api::base64::Encode(std::string(1024, 'a')),
-                                FieldData::Blob(std::string(4097, 'b')),
+                                FieldData::Blob(std::string(_detail::MAX_STRING_SIZE + 1, 'b')),
                                 "123",  // not base64-encoded
                                 FieldData(12));
     }

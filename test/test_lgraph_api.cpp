@@ -510,8 +510,8 @@ TEST_F(TestLGraphApi, LGraphApi) {
         int64_t vid3 = AddVertexWithString(id++, "charly", std::string(1 << 20, (char)255));
         db.DeleteVertexIndex("v2", "name");
         // now that "name" index has been removed, we can add larger strings
-        int64_t vid4 =
-            AddVertexWithString(id++, std::string(lgraph::_detail::MAX_STRING_SIZE, 'a'), "");
+        int64_t vid4 = AddVertexWithString(
+            id++, std::string(std::min<size_t>(lgraph::_detail::MAX_STRING_SIZE, 64<<20), 'a'), "");
         // check data
         {
             auto txn = db.CreateReadTxn();
@@ -524,7 +524,9 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_EQ(txn.GetVertexIterator(vid3).GetField("img").AsBlob(),
                          std::string(1 << 20, (char)255));
             UT_EXPECT_EQ(txn.GetVertexIterator(vid4).GetField("name").AsString(),
-                         std::string(lgraph::_detail::MAX_STRING_SIZE, 'a'));
+                         std::string(
+                            std::min<size_t>(lgraph::_detail::MAX_STRING_SIZE, 64<<20),
+                            'a'));
         }
         // test update
         {

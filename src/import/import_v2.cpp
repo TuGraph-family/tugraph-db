@@ -261,6 +261,10 @@ void lgraph::import_v2::Importer::DoImportOffline() {
     FMA_LOG() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
 }
 
+inline std::string LimitedLengthStr(const std::string& s, size_t max_size = 1024) {
+    return s.size() > max_size ? s.substr(0, max_size) + "..." : s;
+}
+
 /**
  * Loads vertex file located in path and write into intermediate file.
  *
@@ -394,7 +398,8 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                                     OnErrorOffline(fma_common::StringFormatter::Format(
                                                        "Failed to pack data fields into a record: "
                                                        "{}.\nField data is:\n[{}]",
-                                                       e.what(), v),
+                                                       e.what(),
+                                                       LimitedLengthStr(fma_common::ToString(v))),
                                                    config_.continue_on_error);
                                 }
                             }
@@ -595,7 +600,8 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 OnErrorOffline(fma_common::StringFormatter::Format(
                                                    "Failed to pack data fields into a record: "
                                                    "{}.\nField data is:\n[{}]",
-                                                   e.what(), edge),
+                                                   e.what(),
+                                                   LimitedLengthStr(fma_common::ToString(edge))),
                                                config_.continue_on_error);
                             }
                         }
