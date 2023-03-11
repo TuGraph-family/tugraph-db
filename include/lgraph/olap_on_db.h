@@ -915,38 +915,38 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     {};
                 }
             });
-        } else {
-            auto vit = txn_.GetVertexIterator();
-            for (size_t vid = 0; vid < this->num_vertices_; vid++) {
-                if (!vit.Goto(vid)) continue;
-                for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
-                    size_t dst = eit.GetDst();
-                    AdjUnit<EdgeData> out_edge;
-                    out_edge.neighbour = dst;
-                    this->out_edges_.Append(out_edge, false);
-                }
-                if (flags_ & SNAPSHOT_UNDIRECTED) {
-                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
-                        size_t src = eit.GetSrc();
-                        AdjUnit<EdgeData> in_edge;
-                        in_edge.neighbour = src;
-                        this->out_edges_.Append(in_edge, false);
-                    }
-                } else {
-                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
-                        size_t src = eit.GetSrc();
-                        AdjUnit<EdgeData> in_edge;
-                        in_edge.neighbour = src;
-                        this->in_edges_.Append(in_edge, false);
-                    }
-                    this->in_index_[vid + 1] = this->in_edges_.Size();
-                    this->in_degree_[vid] = this->in_index_[vid + 1] - this->in_index_[vid];
-                }
-                this->out_index_[vid + 1] = this->out_edges_.Size();
-                this->out_degree_[vid] = this->out_index_[vid + 1] - this->out_index_[vid];
-            }
-            this->num_edges_ = this->out_edges_.Size();
-            this->out_edges_.Resize(this->num_edges_);
+//        } else {
+//            auto vit = txn_.GetVertexIterator();
+//            for (size_t vid = 0; vid < this->num_vertices_; vid++) {
+//                if (!vit.Goto(vid)) continue;
+//                for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+//                    size_t dst = eit.GetDst();
+//                    AdjUnit<EdgeData> out_edge;
+//                    out_edge.neighbour = dst;
+//                    this->out_edges_.Append(out_edge, false);
+//                }
+//                if (flags_ & SNAPSHOT_UNDIRECTED) {
+//                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+//                        size_t src = eit.GetSrc();
+//                        AdjUnit<EdgeData> in_edge;
+//                        in_edge.neighbour = src;
+//                        this->out_edges_.Append(in_edge, false);
+//                    }
+//                } else {
+//                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+//                        size_t src = eit.GetSrc();
+//                        AdjUnit<EdgeData> in_edge;
+//                        in_edge.neighbour = src;
+//                        this->in_edges_.Append(in_edge, false);
+//                    }
+//                    this->in_index_[vid + 1] = this->in_edges_.Size();
+//                    this->in_degree_[vid] = this->in_index_[vid + 1] - this->in_index_[vid];
+//                }
+//                this->out_index_[vid + 1] = this->out_edges_.Size();
+//                this->out_degree_[vid] = this->out_index_[vid + 1] - this->out_index_[vid];
+//            }
+//            this->num_edges_ = this->out_edges_.Size();
+//            this->out_edges_.Resize(this->num_edges_);
         }
         this->lock_array_.Resize(this->num_vertices_);
         this->lock_array_.Fill(false);
