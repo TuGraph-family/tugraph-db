@@ -51,6 +51,10 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
          * add customized ErrorListener  */
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(parser.oC_Cypher());
+        FMA_DBG_STREAM(Logger()) << "-----CLAUSE TO STRING-----";
+        for (const auto& sql_query: visitor.GetQuery()) {
+            FMA_DBG_STREAM(Logger()) << sql_query.ToString();
+        }
         plan = std::make_shared<ExecutionPlan>();
         plan->Build(visitor.GetQuery(), visitor.CommandType());
         plan->Validate(ctx);

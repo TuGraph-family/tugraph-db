@@ -21,7 +21,7 @@
 #include <vector>
 #include <map>
 #include "core/lightning_graph.h"
-#include "cypher_types.h"
+#include "cypher/cypher_types.h"
 
 namespace lgraph {
 class StateMachine;
@@ -91,17 +91,30 @@ typedef std::vector<Expression> VEC_DEL;
 // RemoveItem = (Variable, NodeLabels) | PropertyExpression
 typedef std::vector<Expression> VEC_REMOVE;
 
-static std::string Serialize(const TUP_PROPERTIES &properties);
-static std::string Serialize(const TUP_NODE_PATTERN &node_pattern);
-static std::string Serialize(const TUP_RELATIONSHIP_PATTERN &relationship_pattern);
-static std::string Serialize(const TUP_PATTERN_ELEMENT &pattern_element);
-static std::string Serialize(const TUP_PATTERN_PART &pattern_part);
-static std::string Serialize(const VEC_PATTERN &pattern);
-static std::string Serialize_1(const TUP_RETURN_ITEM &return_item);
-static std::string Serialize(const TUP_RETURN &return_body);
-static std::string Serialize(const TUP_CALL &call);
-static std::string Serialize(const TUP_SET_ITEM &set_item);
-static std::string Serialize(const VEC_SET &set);
+static std::string Serialize(const TUP_PROPERTIES &properties,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_NODE_PATTERN &node_pattern,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_RELATIONSHIP_PATTERN &relationship_pattern,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_PATTERN_ELEMENT &pattern_element,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_PATTERN_PART &pattern_part,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const VEC_PATTERN &pattern,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_RETURN &tup_return,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_RETURN_BODY &return_body,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize_1(const TUP_RETURN_ITEM &return_item,
+                               const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_CALL &call,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_SET_ITEM &set_item,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const VEC_SET &set,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
 
 // helper methods
 static VEC_STR FieldData2String(const std::vector<lgraph::FieldData> &data) {

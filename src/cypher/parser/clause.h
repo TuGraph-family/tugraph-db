@@ -15,10 +15,11 @@
 #pragma once
 
 #include <boost/any.hpp>
+
 #include "procedure/procedure.h"
-#include "expression.h"
-#include "data_typedef.h"
-#include "symbol_table.h"
+#include "cypher/parser/expression.h"
+#include "cypher/parser/data_typedef.h"
+#include "cypher/parser/symbol_table.h"
 
 namespace parser {
 
@@ -110,39 +111,107 @@ struct Clause {
 
     bool Empty() const { return (type == NA); }
 
-    std::string ToString() const {
+    std::string ToString(const size_t &cur_indent, const size_t &indent_size = 2) const {
+        size_t next_indent = cur_indent + indent_size;
         switch (type) {
         case MATCH:
             {
-                std::string str("MATCH = {");
                 auto match = GetMatch();
                 auto pattern = std::get<0>(match);
                 auto hints = std::get<1>(match);
                 auto where = std::get<2>(match);
                 auto optional = std::get<3>(match);
-                str.append(Serialize(pattern))
-                    .append(", HINTS = ")
-                    .append(fma_common::ToString(hints))
-                    .append(", WHERE = {")
-                    .append(where.ToString())
-                    .append("}");
-                if (optional) str.append(", OPTIONAL");
-                str.append("}");
-                return str;
+                return fma_common::StringFormatter::Format(
+                    "{}MATCH = \\{\n"                   \
+                    "{},\n"                             \
+                    "{}HINTS = {},\n"                   \
+                    "{}WHERE = {}"                      \
+                    "{}\n"                              \
+                    "{}\\}",
+                    std::string(cur_indent, ' '),
+                    Serialize(pattern, next_indent),
+                    std::string(next_indent, ' '), fma_common::ToString(hints),
+                    std::string(next_indent, ' '), where.ToString(),
+                    optional ? fma_common::StringFormatter::Format(
+                        ",\n{}OPTIONAL = true", std::string(next_indent, ' ')) : "",
+                    std::string(cur_indent, ' '));
             }
         case UNWIND:
             {
-                std::string str("UNWIND = {");
                 auto &e = std::get<0>(GetUnwind());
                 auto &var = std::get<1>(GetUnwind());
-                str.append(e.ToString()).append(",").append(var).append("}");
-                return str;
+                return fma_common::StringFormatter::Format(
+                    "{}UNWIND = \\{{},{}\\}",
+                    std::string(cur_indent, ' '),
+                    e.ToString(), var);
+            }
+        case RETURN:
+            {
+                return Serialize(GetReturn(), cur_indent);
+            }
+        case WITH:
+            {
+                auto distinct = std::get<0>(GetWith());
+                auto &body = std::get<1>(GetWith());
+                auto &where = std::get<2>(GetWith());
+                return fma_common::StringFormatter::Format(
+                    "{}WITH = \\{\n"              \
+                    "{},\n"                       \
+                    "{}WHERE = {}\n"              \
+                    "{}\\}",
+                    std::string(cur_indent, ' '),
+                    Serialize(std::make_tuple(distinct, body), next_indent),
+                    std::string(cur_indent, ' '), where.ToString(),
+                    std::string(cur_indent, ' '));
             }
         case CREATE:
             {
-                std::string str("CREATE = {");
-                str.append(Serialize(GetCreate())).append("}");
-                return str;
+                return fma_common::StringFormatter::Format(
+                    "{}CREATE = \\{\n"           \
+                    "{}\n"                       \
+                    "{}\\}",
+                    std::string(cur_indent, ' '),
+                    Serialize(GetCreate(), next_indent),
+                    std::string(cur_indent, ' '));
+            }
+        case DELETE_:
+            {
+                auto& delete_clause = GetDelete();
+                std::string type_delete;
+                for (size_t i = 0; i < delete_clause.size(); i++) {
+                    type_delete.append(delete_clause[i].ToString());
+                    if (i < delete_clause.size() - 1) {
+                        type_delete.append(",");
+                    }
+                }
+                return fma_common::StringFormatter::Format(
+                    "{}DELETE = \\{{}\\}",
+                    std::string(cur_indent, ' '), type_delete);
+            }
+        case SET:
+            {
+                auto& set_clause = GetSet();
+                return fma_common::StringFormatter::Format(
+                    "{}SET = \\{\n"             \
+                    "{}\n"                      \
+                    "{}\\}",
+                    std::string(cur_indent, ' '),
+                    Serialize(set_clause, next_indent),
+                    std::string(cur_indent, ' '));
+            }
+        case REMOVE:
+            {
+                auto& remove_clause = GetRemove();
+                std::string type_remove;
+                for (size_t i = 0; i < remove_clause.size(); i++) {
+                    type_remove.append(remove_clause[i].ToString());
+                    if (i < remove_clause.size() - 1) {
+                        type_remove.append(",");
+                    }
+                }
+                return fma_common::StringFormatter::Format(
+                    "{}REMOVE = \\{{}\\}",
+                    std::string(cur_indent, ' '), type_remove);
             }
         case MERGE:
             {
@@ -151,52 +220,35 @@ struct Clause {
                 auto merge_on_match_set = std::get<1>(merge);  // VEC_SET
                 auto merge_on_create_set =
                     std::get<2>(merge);  // need to serialise set_items to string
-                std::string str("MERGE = {");
-                str.append(Serialize(merge_pattern_part)).append(",");
-                str.append("ON MATCH SET = {");
-                str.append(Serialize(merge_on_match_set)).append("},");
-                str.append("ON CREATE SET = {");
-                str.append(Serialize(merge_on_create_set)).append("}");
-                str.append("}");
-                return str;
-            }
-        case RETURN:
-            {
-                std::string str("RETURN = {");
-                str.append(Serialize(GetReturn())).append("}");
-                return str;
-            }
-        case WITH:
-            {
-                std::string str("WITH = {");
-                auto distinct = std::get<0>(GetWith());
-                auto &body = std::get<1>(GetWith());
-                auto &where = std::get<2>(GetWith());
-                str.append(Serialize(std::make_tuple(distinct, body)))
-                    .append(", where ")
-                    .append(where.ToString())
-                    .append("}");
-                return str;
-            }
-        case REMOVE:
-            {
-                std::string str("REMOVE = {");
-                for (auto &item : GetRemove()) {
-                    str.append(item.ToString()).append(",");
-                }
-                str.pop_back();
-                str.append("}");
-                return str;
+                return fma_common::StringFormatter::Format(
+                    "{}MERGE = \\{\n"                         \
+                    "{},\n"                                   \
+                    "{}ON_MATCH_SET = \\{\n"                  \
+                    "{}\n"                                    \
+                    "{}\\}\n"                                 \
+                    "{}ON_CREATE_SET = \\{\n"                 \
+                    "{}\n"                                    \
+                    "{}\\}\n"                                 \
+                    "{}\\}",
+                    std::string(cur_indent, ' '),
+                    Serialize(merge_pattern_part, next_indent),
+                    std::string(next_indent, ' '),
+                    Serialize(merge_on_match_set, next_indent + indent_size),
+                    std::string(next_indent, ' '),
+                    std::string(next_indent, ' '),
+                    Serialize(merge_on_create_set, next_indent + indent_size),
+                    std::string(next_indent, ' '),
+                    std::string(cur_indent, ' '));
             }
         case STANDALONECALL:
         case INQUERYCALL:
             {
-                std::string str("CALL = {");
-                str.append(Serialize(GetCall())).append("}");
-                return str;
+                return Serialize(GetCall(), cur_indent);
             }
         default:
-            return "unknown type:" + std::to_string(type);
+            return fma_common::StringFormatter::Format(
+                "{}unknown clause type: {}",
+                std::string(cur_indent, ' '), type);
         }
     }
 };
@@ -239,7 +291,7 @@ struct QueryPart {
             create_clause.emplace_back(&clauses.back().GetCreate());
             break;
         case Clause::SET:
-            set_clause.emplace_back(&clauses.back().GetSet()); 
+            set_clause.emplace_back(&clauses.back().GetSet());
             break;
         case Clause::DELETE_:
             delete_clause = &clauses.back().GetDelete();
@@ -278,7 +330,7 @@ struct QueryPart {
                 if (pp && !pp->read_only) return false;
             }
         }
-        /* create_clause && set_clause && delete_clause must set write txn */;
+        /* create_clause && set_clause && delete_clause must set write txn */
         return create_clause.empty() && set_clause.empty() && !delete_clause && !remove_clause &&
                merge_clause.empty();
     }
@@ -300,12 +352,18 @@ struct QueryPart {
         // TODO: handle annotation in WITH/RETURN, UNWIND, DEL, etc. // NOLINT
     }
 
-    std::string ToString() const {
-        std::string s = "[";
-        for (auto &clause : clauses) {
-            s.append(clause.ToString()).append("\n");
+    std::string ToString(const size_t &cur_indent, const size_t &indent_size = 2) const {
+        size_t next_indent = cur_indent + indent_size;
+        std::string s = std::string(cur_indent, ' ') + "[";
+        for (size_t i = 0; i < clauses.size(); i++) {
+            const auto& clause = clauses[i];
+            s.append("\n").append(clause.ToString(cur_indent+indent_size));
+            if (i < clauses.size() - 1) {
+                s.append(",");
+            } else {
+                s.append("\n").append(std::string(cur_indent, ' '));
+            }
         }
-        if (!clauses.empty()) s.pop_back();
         s.append("]");
         return s;
     }
@@ -321,12 +379,19 @@ struct SglQuery {
         return true;
     }
 
-    std::string ToString() const {
-        std::string s = "[\n";
-        for (auto &part : parts) {
-            s.append(part.ToString()).append("\n");
+    std::string ToString(const size_t &cur_indent = 0, const size_t &indent_size = 2) const {
+        size_t next_indent = cur_indent + indent_size;
+        std::string s = std::string(cur_indent, ' ') + "[";
+        for (size_t i = 0; i < parts.size(); i++) {
+            const auto& part = parts[i];
+            s.append("\n").append(part.ToString(cur_indent+indent_size));
+            if (i < parts.size() - 1) {
+                s.append(",");
+            } else {
+                s.append("\n").append(std::string(cur_indent, ' '));
+            }
         }
-        s.append("]\n");
+        s.append("]");
         return s;
     }
 };
@@ -358,180 +423,277 @@ static lgraph::FieldData MakeFieldData(const Expression &expr) {
 }
 
 // serialize for debug
-static std::string Serialize(const TUP_PROPERTIES &properties) {
-    std::string str("properties = {");
+static std::string Serialize(const TUP_PROPERTIES &properties,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    std::string properties_str;
     auto &map_literal = std::get<0>(properties);
     auto &parameter = std::get<1>(properties);
     if (!parameter.empty()) {
-        str.append(parameter);
+        properties_str.append(parameter);
     } else if (map_literal.type != Expression::NA) {
-        str.append(map_literal.ToString());
-    } else {
-        str.clear();
-        return str;
+        properties_str.append(map_literal.ToString());
     }
-    str.append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}PROPERTIES = \\{{}\\}",
+        std::string(cur_indent, ' '),
+        properties_str);
 }
 
-static std::string Serialize(const TUP_NODE_PATTERN &node_pattern) {
-    std::string str("node_pattern = {");
+static std::string Serialize(const TUP_NODE_PATTERN &node_pattern,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
     auto &variable = std::get<0>(node_pattern);
     auto &labels = std::get<1>(node_pattern);
     auto &properties = std::get<2>(node_pattern);
-    str.append("variable = ").append(variable).append(", ");
-    str.append("label = ").append(fma_common::ToString(labels));
-    str.append(", ").append(Serialize(properties)).append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}NODE_PATTERN = \\{\n"                \
+        "{}VARIABLE = {},\n"                    \
+        "{}LABEL = {},\n"                       \
+        "{}\n"                                  \
+        "{}\\}",
+        std::string(cur_indent, ' '),
+        std::string(next_indent, ' '), variable,
+        std::string(next_indent, ' '), fma_common::ToString(labels),
+        Serialize(properties, next_indent),
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const TUP_RELATIONSHIP_PATTERN &relationship_pattern) {
+static std::string Serialize(const TUP_RELATIONSHIP_PATTERN &relationship_pattern,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
     auto direction = std::get<0>(relationship_pattern);
     auto &detail = std::get<1>(relationship_pattern);
     auto &variable = std::get<0>(detail);
     auto &relationship_types = std::get<1>(detail);
     auto &range_literal = std::get<2>(detail);
     auto &properties = std::get<3>(detail);
-    std::string str("relationship_pattern = { ");
-    if (direction == LinkDirection::RIGHT_TO_LEFT) str.append("<");
-    str.append("- {").append(variable).append(", ");
-    if (!relationship_types.empty()) str.append(relationship_types[0]);
-    str.append(", ");
+    std::string edge_str;
+    if (direction == LinkDirection::RIGHT_TO_LEFT) edge_str.append("<");
+    edge_str.append("- {").append(variable).append(", ");
+    if (!relationship_types.empty()) edge_str.append(relationship_types[0]);
+    edge_str.append(", ");
     if (range_literal[0] >= 0) {
-        str.append("(")
+        edge_str.append("(")
             .append(std::to_string(range_literal[0]))
             .append(", ")
             .append(std::to_string(range_literal[1]))
             .append(")");
     }
-    str.append(", ").append(Serialize(properties)).append("} -");
-    if (direction == LinkDirection::LEFT_TO_RIGHT) str.append(">");
-    str.append(" }");
-    return str;
+    edge_str.append(", ").append(Serialize(properties)).append("} -");
+    if (direction == LinkDirection::LEFT_TO_RIGHT) edge_str.append(">");
+    return fma_common::StringFormatter::Format(
+        "{}EDGE_PATTERN = \\{\n"            \
+        "{}{}\n"                            \
+        "{}\\}",
+        std::string(cur_indent, ' '),
+        std::string(next_indent, ' '), edge_str,
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const TUP_PATTERN_ELEMENT &pattern_element) {
-    std::string str("pattern_element = {");
+static std::string Serialize(const TUP_PATTERN_ELEMENT &pattern_element,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
     auto &node_pattern = std::get<0>(pattern_element);
     auto &chains = std::get<1>(pattern_element);
-    str.append(Serialize(node_pattern)).append(", ");
-    int i = 0;
-    for (auto &chain : chains) {
+    std::string chains_str;
+    if (!chains.empty()) {
+        chains_str.append(",");
+    }
+    for (size_t i = 0; i < chains.size(); i++) {
+        const auto& chain = chains[i];
         auto &relp_patn = std::get<0>(chain);
         auto &node_patn = std::get<1>(chain);
-        str.append("{")
-            .append(Serialize(relp_patn))
-            .append(", ")
-            .append(Serialize(node_patn))
-            .append("}");
-        if (++i < (int)chains.size()) str.append(", ");
+        chains_str.append("\n")
+            .append(Serialize(relp_patn, next_indent))
+            .append(",\n")
+            .append(Serialize(node_patn, next_indent));
+        if (i < chains.size() - 1) {
+            chains_str.append(",");
+        }
     }
-    str.append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}PATTERN_ELEMENT = \\{\n"             \
+        "{}"                                    \
+        "{}\n"                                  \
+        "{}\\}",
+        std::string(cur_indent, ' '),
+        Serialize(node_pattern, next_indent),
+        chains_str,
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const TUP_PATTERN_PART &pattern_part) {
-    std::string str("pattern_part = {");
+static std::string Serialize(const TUP_PATTERN_PART &pattern_part,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
     auto &variable = std::get<0>(pattern_part);
     auto &element = std::get<1>(pattern_part);
-    str.append(variable).append(", ").append(Serialize(element)).append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}PATTERN_PART = \\{\n"             \
+        "{}VARIABLE = {}\n"                  \
+        "{}\n"                               \
+        "{}\\}",
+        std::string(cur_indent, ' '),
+        std::string(next_indent, ' '), variable,
+        Serialize(element, next_indent),
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const VEC_PATTERN &pattern) {
-    std::string str("pattern of size ");
-    str.append(std::to_string(pattern.size())).append(" = {");
-    int i = 0;
-    for (auto &part : pattern) {
-        str.append(Serialize(part));
-        if (++i < (int)pattern.size()) str.append(", ");
+static std::string Serialize(const VEC_PATTERN &pattern,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
+    std::string path_list_str;
+    for (size_t i = 0; i < pattern.size(); i++) {
+        const auto& part = pattern[i];
+        path_list_str.append("\n")
+            .append(Serialize(part, next_indent));
+        if (i < pattern.size() - 1) {
+            path_list_str.append(",");
+        } else {
+            path_list_str.append("\n").append(std::string(cur_indent, ' '));
+        }
     }
-    str.append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}PATH_PATTERN_LIST = [{}]",
+        std::string(cur_indent, ' '),
+        path_list_str);
 }
 
-static std::string Serialize_1(const TUP_RETURN_ITEM &return_item) {
-    std::string str("return_item = {");
-    auto &expr = std::get<0>(return_item);
-    auto &variable = std::get<1>(return_item);
-    str.append(expr.ToString()).append(", ").append(variable).append("}");
-    return str;
+static std::string Serialize(const TUP_RETURN &tup_return,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
+    bool distinct = std::get<0>(tup_return);
+    auto &return_body = std::get<1>(tup_return);
+    return fma_common::StringFormatter::Format(
+        "{}RETURN = \\{\n"          \
+        "{}"                        \
+        "{}\n"                      \
+        "{}\\}",
+        std::string(cur_indent, ' '),
+        distinct ? std::string(next_indent, ' ') + "DISTINCT = true,\n" : "",
+        Serialize(return_body, next_indent),
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const TUP_RETURN &return_c) {
-    std::string str;
-    bool distinct = std::get<0>(return_c);
-    auto &return_body = std::get<1>(return_c);
-    if (distinct) str.append("distinct, ");
-    str.append("return_body = {");
+static std::string Serialize(const TUP_RETURN_BODY &return_body,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
     auto &items = std::get<0>(return_body);
     auto &sort_items = std::get<1>(return_body);
     auto &skip = std::get<2>(return_body);
     auto &limit = std::get<3>(return_body);
-    str.append("items of size ").append(std::to_string(items.size())).append(" = {");
-    int i = 0;
-    for (auto &item : items) {
-        str.append(Serialize_1(item));
-        if (++i < (int)items.size()) str.append(", ");
+    std::string items_str;
+    for (size_t i = 0; i < items.size(); i++) {
+        const auto& item = items[i];
+        items_str.append("\n")
+            .append(Serialize_1(item, next_indent+indent_size));
+        if (i < items.size() - 1) {
+            items_str.append(",");
+        } else {
+            items_str.append("\n")
+                .append(std::string(next_indent, ' '));
+        }
     }
-    str.append("}, order by {");
-    i = 0;
-    for (auto sort_item : sort_items) {
-        str.append(std::to_string(sort_item.first)).append(sort_item.second ? "ASC" : "DESC");
-        if (++i < (int)sort_items.size()) str.append(", ");
+    std::string sort_str;
+    for (size_t i = 0; i < sort_items.size(); i++) {
+        const auto& sort_item = sort_items[i];
+        sort_str.append(std::to_string(sort_item.first)).append(sort_item.second ? "ASC" : "DESC");
+        if (i < sort_items.size() - 1) { sort_str.append(","); }
     }
-    str.append("}");
-    if (skip.type != Expression::NA) str.append(", skip ").append(skip.ToString());
-    if (limit.type != Expression::NA) str.append(", limit ").append(limit.ToString());
-    str.append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}RETURN_BODY = \\{\n"                \
+        "{}ITEMS = [{}],\n"                    \
+        "{}ORDER_BY = \\{{}\\}"                \
+        "{}"                                   \
+        "{}"                                   \
+        "\n{}\\}",
+        std::string(cur_indent, ' '),
+        std::string(next_indent, ' '), items_str,
+        std::string(next_indent, ' '), sort_str,
+        skip.type != Expression::NA ? fma_common::StringFormatter::Format(
+            ",\n{}SKIP = {}",
+            std::string(next_indent, ' '),
+            skip.ToString()) : "",
+        limit.type != Expression::NA ? fma_common::StringFormatter::Format(
+            ",\n{}LIMIT = {}",
+            std::string(next_indent, ' '),
+            limit.ToString()) : "",
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const TUP_CALL &call) {
-    auto str = std::get<0>(call);
+static std::string Serialize_1(const TUP_RETURN_ITEM &return_item,
+                               const size_t &cur_indent, const size_t &indent_size) {
+    auto &expr = std::get<0>(return_item);
+    auto &variable = std::get<1>(return_item);
+    return fma_common::StringFormatter::Format(
+        "{}RETURN_ITEM = \\{{}, {}\\}",
+        std::string(cur_indent, ' '),
+        expr.ToString(), variable);
+}
+
+static std::string Serialize(const TUP_CALL &call,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    std::string input_str;
+    std::string output_str;
     auto &parameters = std::get<1>(call);
     auto &yield_items = std::get<2>(call);
-    str.append("(");
-    int i = 0;
+    size_t i = 0;
     for (auto &p : parameters) {
-        str.append(p.ToString());
-        if (++i < (int)parameters.size()) str.append(", ");
+        input_str.append(p.ToString());
+        if (++i < parameters.size()) input_str.append(", ");
     }
-    str.append(")::(");
     i = 0;
     for (auto &y : yield_items) {
-        str.append(y);
-        if (++i < (int)yield_items.size()) str.append(", ");
+        output_str.append(y);
+        if (++i < yield_items.size()) output_str.append(", ");
     }
-    str.append(")");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}CALL = \\{{}({})::({})\\}",
+        std::string(cur_indent, ' '),
+        std::get<0>(call), input_str, output_str);
 }
 
-static std::string Serialize(const TUP_SET_ITEM &set_item) {
-    std::string str("set_items ={");
+static std::string Serialize(const TUP_SET_ITEM &set_item,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
     auto &variable = std::get<0>(set_item);
     auto &property_expr = std::get<1>(set_item);
     auto &symbol = std::get<2>(set_item);
     auto &properties = std::get<3>(set_item);
     auto &labels = std::get<4>(set_item);
-    str.append("variable = ").append(variable).append(", ");
-    str.append("property_expr = ").append(property_expr.ToString()).append(symbol);
-    str.append("property = {").append(properties.ToString()).append("},");
-    str.append("label = ").append(fma_common::ToString(labels)).append("}");
-
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}SET_ITEM = \\{\n"                    \
+        "{}VARIABLE = {},\n"                    \
+        "{}PROPERTY_EXPR = {},\n"               \
+        "{}SYMBOL = {},\n"                      \
+        "{}PROPERTIES = {},\n"                  \
+        "{}LABEL = {}\n"                        \
+        "{}\\}",
+        std::string(cur_indent, ' '),
+        std::string(next_indent, ' '), variable,
+        std::string(next_indent, ' '), property_expr.ToString(),
+        std::string(next_indent, ' '), symbol,
+        std::string(next_indent, ' '), properties.ToString(),
+        std::string(next_indent, ' '), labels,
+        std::string(cur_indent, ' '));
 }
 
-static std::string Serialize(const VEC_SET &set) {
-    std::string str("set_items of size ");
-    str.append(std::to_string(set.size())).append(" = {");
-    int i = 0;
-    for (auto &item : set) {
-        str.append(Serialize(item));
-        if (++i < (int)set.size()) str.append(", ");
+static std::string Serialize(const VEC_SET &set,
+                             const size_t &cur_indent, const size_t &indent_size) {
+    size_t next_indent = cur_indent + indent_size;
+    std::string set_items;
+    for (size_t i = 0; i < set.size(); i++) {
+        const auto& item = set[i];
+        set_items.append("\n")
+            .append(Serialize(item, next_indent));
+        if (i < set.size() - 1) {
+            set_items.append(",");
+        } else {
+            set_items.append("\n").append(std::string(cur_indent, ' '));
+        }
     }
-    str.append("}");
-    return str;
+    return fma_common::StringFormatter::Format(
+        "{}SET_ITEMS = \\{{}\\}",
+        std::string(cur_indent, ' '), set_items);
 }
 
 }  // namespace parser
