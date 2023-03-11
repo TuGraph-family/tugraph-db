@@ -372,7 +372,14 @@ std::unordered_map<std::string, lgraph::AccessLevel> lgraph::AclManager::ListUse
     if (it == user_cache_.end()) {
         throw InputError("User does not exist.");
     }
-    return it->second.acl;
+    std::unordered_map<std::string, AccessLevel>& acl = it->second.acl;
+    std::unordered_map<std::string, AccessLevel> res;
+    for (auto iter = acl.begin(); iter != acl.end(); ++iter) {
+        if (iter->first != _detail::META_GRAPH) {
+            res.emplace(iter->first, iter->second);
+        }
+    }
+    return res;
 }
 
 bool lgraph::AclManager::CreateRole(KvTransaction& txn, const std::string& curr_user,
