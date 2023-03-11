@@ -36,7 +36,7 @@ class Galaxy;
 class GraphManager {
  public:
     struct Config {
-        bool durable = true;
+        bool durable = false;
         bool load_plugins = true;
         int plugin_subprocess_max_idle_seconds = 600;
         FullTextIndexOptions ft_index_options;

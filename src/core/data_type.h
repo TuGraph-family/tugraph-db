@@ -160,7 +160,7 @@ struct DBConfig {
 #else
     size_t db_size = _detail::DEFAULT_GRAPH_SIZE;
 #endif
-    bool durable = true;
+    bool durable = false;
     size_t subprocess_max_idle_seconds = 600;
 
     // whether to load plugins on startup

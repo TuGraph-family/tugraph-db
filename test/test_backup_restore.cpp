@@ -68,7 +68,7 @@ TEST_F(TestBackupRestore, BackupRestore) {
         bool succeed = rpc_client.CallCypher(res, "match (n) return count(n)");
         UT_EXPECT_EQ(succeed, true);
         web::json::value v = web::json::value::parse(res);
-        UT_EXPECT_EQ(v["count(n)"].as_integer(), 21);
+        UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     }
     std::string snapshot;
     auto& fs = fma_common::FileSystem::GetFileSystem(db_dir);
@@ -97,7 +97,7 @@ TEST_F(TestBackupRestore, BackupRestore) {
         succeed = rpc_client.CallCypher(res, "match (n) return count(n)");
         UT_EXPECT_EQ(succeed, true);
         web::json::value v = web::json::value::parse(res);
-        UT_EXPECT_EQ(v["count(n)"].as_integer(), 21);
+        UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     }
 
     UT_LOG() << "Restore in local mode.";
@@ -115,6 +115,6 @@ TEST_F(TestBackupRestore, BackupRestore) {
         bool succeed = rpc_client.CallCypher(res, "match (n) return count(n)");
         UT_EXPECT_EQ(succeed, true);
         web::json::value v = web::json::value::parse(res);
-        UT_EXPECT_EQ(v["count(n)"].as_integer(), 21);
+        UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     }
 }

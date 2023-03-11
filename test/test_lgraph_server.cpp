@@ -68,7 +68,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
             // create graphs
             RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                             _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
-            auto obj = ListGraphs(client);
+            auto obj = ListGraphs(client)[0];
             UT_EXPECT_EQ(obj.is_object(), true);
             UT_EXPECT_EQ(obj["graph_name"].as_string(), "default");
             UT_EXPECT_EQ(obj["configuration"]["max_size_GB"].as_integer(), 1024);

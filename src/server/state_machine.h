@@ -79,7 +79,7 @@ class StateMachine {
  public:
     struct Config {
         std::string db_dir = "./testdb";
-        bool durable = true;
+        bool durable = false;
         std::string host;
         uint16_t rpc_port = 0;
         bool optimistic_txn = false;

@@ -347,7 +347,7 @@ class MockKvStore {
     DISABLE_MOVE(MockKvStore);
 
     MockKvStore() {}
-    MockKvStore(const std::string& path, size_t s = 1, bool durable = true,
+    MockKvStore(const std::string& path, size_t s = 1, bool durable = false,
                 bool create_if_not_exist = true)
         : data_file_(path + "/data.mem") {
         if (!fma_common::file_system::DirExists(path)) {

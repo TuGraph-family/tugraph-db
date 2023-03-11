@@ -44,7 +44,7 @@ class Galaxy {
  public:
     struct Config {
         std::string dir = "./TuGraph";
-        bool durable = true;
+        bool durable = false;
         bool optimistic_txn = false;
         std::string jwt_secret = "fma.ai";
         bool load_plugins = true;

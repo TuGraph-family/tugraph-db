@@ -41,7 +41,7 @@ class TestBinLog:
         ret = client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         res = json.loads(ret[1])
-        assert res == None
+        assert len(res) == 0
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
@@ -64,7 +64,7 @@ class TestBinLog:
         ret = client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         res = json.loads(ret[1])
-        assert res == None
+        assert len(res) == 0
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)

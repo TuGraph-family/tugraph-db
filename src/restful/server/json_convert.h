@@ -462,7 +462,7 @@ inline bool JsonToType<DBConfig>(const web::json::value& js, DBConfig& conf) {
     ExtractTypedField(js, RestStrings::DESC, desc);
     conf.db_size = (size_t)size_gb << 30;
     conf.desc = desc;
-    conf.durable = true;
+    conf.durable = false;
     return true;
 }
 

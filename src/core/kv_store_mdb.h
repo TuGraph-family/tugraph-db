@@ -89,7 +89,7 @@ class KvStore {
 #else
             size_t db_size = _detail::DEFAULT_GRAPH_SIZE,
 #endif
-            bool durable = true,
+            bool durable = false,
             bool create_if_not_exist = true,
             size_t wal_log_rotate_interval_ms = 60 * 1000,
             size_t wal_batch_commit_interval_ms = 10);

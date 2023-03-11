@@ -27,8 +27,8 @@ make -j6
 # build java
 cd ${ACB_BUILD_DIR}/code-repo/deps/tugraph-db-client-java/
 sh local_build.sh
-cp rpc-client-test/target/tugraph-db-java-rpc-client-test-1.1.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
-cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-1.1.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
+cp rpc-client-test/target/tugraph-db-java-rpc-client-test-1.2.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
+cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-1.2.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
 
 # package
 cd ${ACB_BUILD_DIR}/code-repo

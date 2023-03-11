@@ -2130,7 +2130,7 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
     int edge_prop_size = 0;
     if (!is_vertex) {
         edge_prop_size = properties.size();
-        for (int i = 0; i < properties.size(); i++) {
+        for (size_t i = 0; i < properties.size(); i++) {
             if (properties[i] == "SRC_ID") {
                 src_id_index = i;
             } else if (properties[i] == "DST_ID") {

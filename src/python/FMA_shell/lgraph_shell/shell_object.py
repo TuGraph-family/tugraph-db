@@ -30,11 +30,13 @@ def print_format_response(r, return_format):
         print(p_table)
         print("time spent: {}".format(time))
         print("size of query: {}".format(size))
-    else:
+    elif return_format == "plain":
         for index, i in enumerate(j_data["header"]):
             print(i["name"] + ":")
             result = [item[index] for item in j_data["result"]]
             print("\n".join(map(str, result)))
+    elif return_format == "json":
+        print(json.dumps(j_data, indent=4))
 
 
 class FMA_shell():

@@ -118,7 +118,7 @@ inline void AddOption(std::map<std::string, std::string>& m, const std::string& 
 // config for a TuGraph instance
 struct GlobalConfig : public BasicConfigs {
     GlobalConfig()
-        : durable(true),
+        : durable(false),
           txn_optimistic(false),
           enable_audit_log(false),
           enable_ip_check(false),

@@ -100,3 +100,4 @@ logs/
 *MANIFEST
 *artifacts
 .DS_Store
+.cache

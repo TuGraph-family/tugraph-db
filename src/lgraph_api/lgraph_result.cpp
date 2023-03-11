@@ -359,8 +359,6 @@ LGraphType Result::GetType(std::string title) {
 }
 
 std::string Result::Dump(bool is_standard) {
-    // output["header"] = header;
-    // output["row_num"] = row_count_;
     json arr = json::array();
     for (auto record : result) {
         json j;
@@ -384,18 +382,7 @@ std::string Result::Dump(bool is_standard) {
         output["data"] = arr;
         return output.dump();
     } else {
-        if (row_count_ == -1) {
-            json j;
-            return j.dump();
-        } else if (row_count_ == 0) {
-            json j;
-            for (auto h : header) {
-                j[h.first] = result[0].record[h.first]->ToJson();
-            }
-            return j.dump();
-        } else {
-            return arr.dump();
-        }
+        return arr.dump();
     }
 }
 

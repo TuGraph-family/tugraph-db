@@ -16,7 +16,7 @@ class TestJavaClient:
     }
 
     EXECOPT = {
-        "cmd" : "java -jar -ea tugraph-db-java-rpc-client-test-1.1.0.jar 127.0.0.1:9092 admin 73@TuGraph"
+        "cmd" : "java -jar -ea tugraph-db-java-rpc-client-test-1.2.0.jar 127.0.0.1:9092 admin 73@TuGraph"
     }
 
     SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",

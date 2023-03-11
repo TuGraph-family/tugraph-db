@@ -12,7 +12,7 @@ class TestJavaOgm:
     }
 
     EXECOPT = {
-        "cmd" : "java -jar tugraph-db-ogm-test-1.1.0.jar 127.0.0.1:29092 admin 73@TuGraph"
+        "cmd" : "java -jar tugraph-db-ogm-test-1.2.0.jar 127.0.0.1:29092 admin 73@TuGraph"
     }
 
     SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 27072 --rpc_port 29092",
