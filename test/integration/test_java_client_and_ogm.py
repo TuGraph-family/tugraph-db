@@ -3,7 +3,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-CLIENT_VERSION = "1.2.0" # modify this if you upgrade the java client
+CLIENT_VERSION = "1.2.1" # modify this if you upgrade the java client
 
 BASHOPT = {
     "cmd" : "echo run TestJavaClientAndOGM"
