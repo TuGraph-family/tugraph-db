@@ -42,12 +42,12 @@ std::tuple<size_t, bool> parse_line_unweighted(const char *p,
                         const char *end, EdgeUnit<EdgeData> &e) {
     const char *orig = p;
     int64_t t = 0;
-    p += lgraph_api::ParseInt64(p, end, t);
+    p += fma_common::TextParserUtils::ParseInt64(p, end, t);
     e.src = t;
 
     while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
 
-    p += lgraph_api::ParseInt64(p, end, t);
+    p += fma_common::TextParserUtils::ParseInt64(p, end, t);
     e.dst = t;
 
     while (p != end && *p != '\n') p++;
@@ -68,15 +68,15 @@ std::tuple<size_t, bool> parse_line_weighted(const char* p,
                                              const char* end, EdgeUnit<EdgeData>& e) {
     const char* orig = p;
     int64_t t = 0;
-    p += lgraph_api::ParseInt64(p, end, t);
+    p += fma_common::TextParserUtils::ParseInt64(p, end, t);
     e.src = t;
 
     while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
-    p += lgraph_api::ParseInt64(p, end, t);
+    p += fma_common::TextParserUtils::ParseInt64(p, end, t);
     e.dst = t;
     double w = 1.0;
     while (p != end && (*p == ' ' || *p == '\t' || *p == ','))  p++;
-    p += lgraph_api::ParseDouble(p, end, w);
+    p += fma_common::TextParserUtils::ParseDouble(p, end, w);
     e.edge_data = w;
     while (p != end && *p != '\n') p++;
 
@@ -126,7 +126,7 @@ std::tuple<size_t, bool> parse_string_line_weighted(const char* p,
     p += fma_common::TextParserUtils::ParseCsvString(p, end, t);
     e.dst = t;
     while (p != end && (*p == ' ' || *p == '\t' || *p == ','))  p++;
-    p += lgraph_api::ParseDouble(p, end, k);
+    p += fma_common::TextParserUtils::ParseDouble(p, end, k);
     e.edge_data = k;
     while (p != end && *p != '\n') p++;
 
