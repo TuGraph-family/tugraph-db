@@ -35,6 +35,24 @@ class TestExec():
     def test_exec_bfs_standalone(self, algo):
         pass
 
+    BFSIDMAPPING = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/bfs_standalone --type text --input_dir ./data/algo/fb_str_weighted --id_mapping 1 --root 0a",
+        "result" : ["found_vertices = 3829"]
+    }
+
+    @pytest.mark.parametrize("algo", [BFSIDMAPPING], indirect=True)
+    def test_exec_bfs_idmapping_standalone(self, algo):
+        pass
+
+    BFSNOIDMAPPING = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/bfs_standalone --type text --input_dir ./data/algo/fb_str_weighted --id_mapping 0 --root 0a",
+        "result" : ["found_vertices = 3829"]
+    }
+    @pytest.mark.parametrize("algo", [BFSNOIDMAPPING], indirect=True)
+    @pytest.mark.xfail(reason="need id mapping")
+    def test_exec_bfs_without_idmapping_standalone(self, algo):
+        pass
+
     PGEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/pagerank_embed ./testdb",
         "result" : [" pr[1911] = 0.004525"]
@@ -52,6 +70,23 @@ class TestExec():
     }
     @pytest.mark.parametrize("algo", [PGSTANDOPT], indirect=True)
     def test_exec_pagerank_standalone(self, algo):
+        pass
+
+    PGIDMAPPINGSTANDOPT = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/pagerank_standalone --type text --input_dir ./data/algo/fb_str_weighted --id_mapping 1",
+        "result" : [" pr[1911a] = 0.004525"]
+    }
+    @pytest.mark.parametrize("algo", [PGIDMAPPINGSTANDOPT], indirect=True)
+    def test_exec_idmapping_pagerank_standalone(self, algo):
+        pass
+
+    PGNOIDMAPPINGSTANDOPT = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/pagerank_standalone --type text --input_dir ./data/algo/fb_str_weighted --id_mapping 0",
+        "result" : [" pr[1911a] = 0.004525"]
+    }
+    @pytest.mark.parametrize("algo", [PGNOIDMAPPINGSTANDOPT], indirect=True)
+    @pytest.mark.xfail(reason="need id mapping")
+    def test_exec_without_idmapping_pagerank_standalone(self, algo):
         pass
 
 
@@ -74,6 +109,23 @@ class TestExec():
     def test_exec_sssp_standalone(self, algo):
         pass
 
+    SSSPIDMAPPING = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/sssp_standalone --type text --input_dir ./data/algo/fb_str_weighted --id_mapping 1 --root 0a",
+        "result" : ["]=5"]
+    }
+
+    @pytest.mark.parametrize("algo", [SSSPIDMAPPING], indirect=True)
+    def test_exec_sssp_idmapping_standalone(self, algo):
+        pass
+
+    SSSPNOIDMAPPING = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/sssp_standalone --type text --input_dir ./data/algo/fb_str_weighted --id_mapping 0 --root 0a",
+        "result" : ["]=5"]
+    }
+    @pytest.mark.parametrize("algo", [SSSPNOIDMAPPING], indirect=True)
+    @pytest.mark.xfail(reason="need id mapping")
+    def test_exec_sssp_without_idmapping_standalone(self, algo):
+        pass
 
     WCCEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/wcc_embed ./testdb",

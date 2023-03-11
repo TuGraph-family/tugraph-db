@@ -41,6 +41,8 @@
 #include "lgraph/lgraph_atomic.h"
 #include "lgraph/lgraph_utils.h"
 
+#include "libcuckoo/cuckoohash_map.hh"
+
 namespace lgraph_api {
 namespace olap {
 
@@ -134,6 +136,19 @@ struct EdgeUnit<Empty> {
         Empty edge_data;
     } __attribute__((packed));
 } __attribute__((packed));
+
+/**
+ * @brief   EdgeStringUnit<EdgeData> represents an edge with EdgeData as the weight type, The vertex is of string type.
+ *
+ * @tparam  EdgeData    Type of the edge data.
+ */
+
+template <typename EdgeData>
+struct EdgeStringUnit {
+    std::string src;
+    std::string dst;
+    EdgeData edge_data;
+};
 
 /**
  * @brief   Define the edge direction policy of graph

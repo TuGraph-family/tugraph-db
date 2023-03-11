@@ -42,8 +42,6 @@
 #include "lgraph/lgraph_utils.h"
 #include "lgraph/olap_base.h"
 
-#include "libcuckoo/cuckoohash_map.hh"
-
 namespace lgraph_api {
 namespace olap {
 

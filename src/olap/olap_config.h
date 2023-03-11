@@ -30,7 +30,7 @@ enum SourceType {
 };
 
 /**
- * @brief   EdgeUnit<EdgeData> represents an edge with EdgeData as the weight type.
+ * @brief   Parser for unweighted edges.
  * @param               p           Beginning pointer of input edge.
  * @param               end         Ending pointer of input edge.
  * @param   [in,out]    e           Edge to store the result.
@@ -82,6 +82,56 @@ std::tuple<size_t, bool> parse_line_weight(const char* p, const char* end, EdgeU
     return std::tuple<size_t, bool>(p - orig, p != orig);
 }
 
+/**
+ * @brief   Parser for unweighted edges. The data type of the vertices is string.
+ * @param               p           Beginning pointer of input edge.
+ * @param               end         Ending pointer of input edge.
+ * @param   [in,out]    e           Edge to store the result.
+ * @return
+ */
+template <typename EdgeData>
+std::tuple<size_t, bool> parse_string_line_unweight(const char* p,
+        const char* end, EdgeStringUnit<EdgeData>& e) {
+    const char* orig = p;
+    std::string t = "";
+    p += fma_common::TextParserUtils::ParseCsvString(p, end, t);
+    e.src = t;
+    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
+    p += fma_common::TextParserUtils::ParseCsvString(p, end, t);
+    e.dst = t;
+
+    while (p != end && *p != '\n') p++;
+
+    return std::tuple<size_t, bool>(p - orig, p != orig);
+}
+
+/**
+ * @brief   Parser for weighted edges. The data type of the vertices is string.
+ * @param               EdgeData    Type of the edge data.
+ * @param               p           Beginning pointer of input edge.
+ * @param               end         Ending pointer of input edge.
+ * @param   [in,out]    e           Edge to store the result.
+ * @return
+ */
+template <typename EdgeData>
+std::tuple<size_t, bool> parse_string_line_weight(const char* p,
+        const char* end, EdgeStringUnit<EdgeData>& e) {
+    const char* orig = p;
+    std::string t = "";
+    double k = 1.0;
+    p += fma_common::TextParserUtils::ParseCsvString(p, end, t);
+    e.src = t;
+    while (p != end && (*p == ' ' || *p == '\t' || *p == ',')) p++;
+    p += fma_common::TextParserUtils::ParseCsvString(p, end, t);
+    e.dst = t;
+    while (p != end && (*p == ' ' || *p == '\t' || *p == ','))  p++;
+    p += lgraph_api::ParseDouble(p, end, k);
+    e.edge_data = k;
+    while (p != end && *p != '\n') p++;
+
+    return std::tuple<size_t, bool>(p - orig, p != orig);
+}
+
 template<typename EdgeData>
 class ConfigBase {
  public:
@@ -92,8 +142,11 @@ class ConfigBase {
     // FILE
     std::string input_dir = "";
     std::string output_dir = "";
+    bool id_mapping = false;
     std::function<std::tuple<size_t, bool>(const char *, const char *, EdgeUnit<EdgeData> &)>
             parse_line = parse_line_unweighted<EdgeData>;
+    std::function<std::tuple<size_t, bool>(const char *, const char *, EdgeStringUnit<EdgeData> &)>
+            parse_string_line = parse_string_line_unweight<EdgeData>;
 
     ConfigBase(int &argc, char** &argv) {
         fma_common::Configuration config;
@@ -140,6 +193,8 @@ class ConfigBase {
                 .Comment("total number of vertices");
         config.Add(input_dir, "input_dir", false)
                 .Comment("input dir or input file of graph edgelist in txt");
+        config.Add(id_mapping, "id_mapping", true)
+                .Comment("input file of graph edgelist in txt if need id mapping");
         config.Add(output_dir, "output_dir", true)
                 .Comment("output dir of result");
     }
