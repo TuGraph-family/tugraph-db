@@ -22,7 +22,7 @@ class AsyncTuGraphClientTest(unittest.TestCase):
         try:
             # start server in ci command
             self.log = open('/tmp/out.log', 'w+')
-            pwd = '/root/tugraph-db/build/output'
+            pwd = '/workspace/code-repo/build/output'
             self.process = subprocess.Popen([
                 pwd + '/lgraph_server',
                 '-c', pwd + '/lgraph_standalone.json'
