@@ -2096,6 +2096,10 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     expected_exception_any(ctx, "DELETE []");
     expected_exception_any(ctx, "DELETE [x in [1, 2, 3] | x]");
     expected_exception_any(ctx, "DELETE TRUE");
+    // #issue 340
+    expected_exception_any(ctx, "MERGE (n:null {id: 2909}) RETURN n");
+
+
     // issue #199
     expected_exception_any(ctx,
         "MATCH (n:Person {name:'Liam Neeson'}), "

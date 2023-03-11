@@ -206,6 +206,7 @@ class OpMerge : public OpBase {
             res = vid;
         } else {
             err = "invalid index ";
+            return -1;
         }
         return res;
     }
@@ -320,6 +321,19 @@ class OpMerge : public OpBase {
             MergeVertex(ctx, MatchIterator(ctx->txn_.get(), node_label, field_names, field_values, &node_patt),
                         field_names_on_create, field_values_on_create, field_names_on_match,
                         field_values_on_match, err_msg);
+        // check node_res whether valid
+        //
+        // When given merge node pattern, if none of field names is indexed in given label
+        // MergeVertex return a invalid node_res(-1)
+        //
+        // # Error
+        // invalid cypher example:
+        //      MERGE (n:null {id: 2909}) RETURN n
+        // see issue: https://code.alipay.com/fma/tugraph-db/issues/340
+        if (node_res == -1) {
+            throw lgraph::CypherException("cannot match node with given label and properties");
+        }
+
         // TODO: When multiple nodes are matched, all data should be processed
         ctx->result_info_->statistics.vertices_created++;
         if (!node_variable.empty()) {
