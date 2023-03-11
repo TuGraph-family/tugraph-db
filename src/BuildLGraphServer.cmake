@@ -43,6 +43,7 @@ add_library(lgraph_server_lib STATIC
         server/state_machine.cpp
         import/import_online.cpp
         import/import_v2.cpp
+        import/import_v3.cpp
         restful/server/rest_server.cpp
         restful/server/stdafx.cpp)
 

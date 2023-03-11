@@ -2177,12 +2177,12 @@ int test_edge_id_query(cypher::RTContext *ctx) {
         {"MATCH ()-[e]->(n) where id(n)=4 return euid(e)", 1},
         {"MATCH (n)-[e]-() where id(n)=4 return euid(e)", 3},
         {"MATCH ()-[e]->() where euid(e)=\"0_2_0_0_0\" return e,labels(e),properties(e)", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0_0\" return properties(e)", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0_0\" return e.charactername", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"8_18_2_0_0\" set e.weight=1223 return "
+        {"MATCH ()-[e]->() where euid(e)=\"4_17_5_0_0\" return properties(e)", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"4_17_5_0_0\" return e.charactername", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"8_13_2_0_0\" set e.weight=1223 return "
          "e,labels(e),properties(e)",
          1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0\" delete e", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"4_17_5_0_0\" delete e", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;

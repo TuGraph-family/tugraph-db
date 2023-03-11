@@ -510,7 +510,7 @@ struct CsvDesc {
         return columns[pos] == KeyWordFunc::GetStrFromKeyWord(KeyWord::SKIP);
     }
 
-    void GenFieldSpecs(Transaction& txn, std::vector<FieldSpec>& field_specs) {
+    void GenFieldSpecs(Transaction& txn, std::vector<FieldSpec>& field_specs) const {
         std::string src_str = KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID);
         std::string dst_str = KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID);
         std::string skip_str = KeyWordFunc::GetStrFromKeyWord(KeyWord::SKIP);
@@ -567,7 +567,7 @@ struct CsvDesc {
     }
 
  private:
-    FieldSpec GetFieldSpec(std::vector<FieldSpec> field_specs, std::string name) {
+    FieldSpec GetFieldSpec(std::vector<FieldSpec> field_specs, std::string name) const {
         for (const auto& fs : field_specs) {
             if (fs.name == name) {
                 return fs;

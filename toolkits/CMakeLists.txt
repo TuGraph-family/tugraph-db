@@ -11,7 +11,12 @@ add_executable(lgraph_import
 target_link_libraries(lgraph_import
         lgraph_server_lib
         lgraph_cypher_lib
-        lgraph_server_lib)
+        lgraph_server_lib
+        librocksdb.a)
+
+if (NOT ENABLE_ASAN)
+    target_link_libraries(lgraph_import libjemalloc.a)
+endif()
 
 if (ENABLE_FULLTEXT_INDEX)
     add_executable(lgraph_monitor

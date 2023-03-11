@@ -165,6 +165,16 @@ RUN wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip \
     && mkdir build && cd build && cmake $CMAKE_OPT .. && make -j && make install \
     && rm -rf /braft*
 
+# jemalloc
+RUN wget https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz \
+   && tar zxf 5.3.0.tar.gz && cd jemalloc-5.3.0 && ./autogen.sh && make -j && make install \
+   && rm -rf /jemalloc*
+
+# rocksdb
+RUN wget https://github.com/facebook/rocksdb/archive/refs/tags/v7.8.3.tar.gz \
+  && tar zxf v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DFORCE_SSE42=ON -DWITH_JEMALLOC=ON && make -j && make install \
+  && rm -rf /rocksdb*
+
 # install node.js
 RUN wget https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz \
     && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \

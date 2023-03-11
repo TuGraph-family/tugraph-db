@@ -202,12 +202,12 @@ John Williams,New York,20.55
         lgraph::AutoCleanDir _export_dir(export_dir);
 
         GraphFactory::CreateCsvFiles(data);
-        lgraph::import_v2::Importer::Config config;
+        lgraph::import_v3::Importer::Config config;
         config.config_file = "./yago.conf";
         config.db_dir = db_dir;
         config.delete_if_exists = true;
         config.graph = "default";
-        lgraph::import_v2::Importer offline_importer(config);
+        lgraph::import_v3::Importer offline_importer(config);
         offline_importer.DoImportOffline();
 
         lgraph::SubProcess dumper(

@@ -656,6 +656,10 @@ struct FieldData {
 
     FieldType type;
 
+    FieldType getType() const {
+        return type;
+    }
+
     union {
         bool boolean;
         int8_t int8;
