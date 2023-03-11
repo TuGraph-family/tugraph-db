@@ -466,7 +466,7 @@ class MonkeyTest {
 };
 
 TEST_P(TestLGraphMonkey, LGraphMonkey) {
-    std::string dir = "testdb/";
+    std::string dir = "testdb";
     size_t nv = 100;
     size_t nvlabel = 3;
     size_t nelabel = 3;
@@ -585,7 +585,7 @@ TEST_P(TestLGraphMonkey, LGraphMonkey) {
             {
                 test.BeginWriteTxn();
                 for (int i = 0; i < 10; i++) {
-                    size_t psize = (1 << 16) - 2;
+                    size_t psize = lgraph::_detail::MAX_PROP_SIZE + 1;
                     auto euid = test.AddEdge(0, 0, elabels[myrand() % nelabel], psize);
                 }
                 test.CommitTxn();
