@@ -10,7 +10,7 @@ include(BuildCypherLib.cmake)
 include(BuildClients.cmake)
 include(BuildPyClient.cmake)
 
-install(TARGETS lgraph lgraph_python lgraph_server liblgraph_rpc_client lgraph_rest_client
+install(TARGETS lgraph lgraph_python lgraph_server liblgraph_rpc_client lgraph_rest_client python_client
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib64)
 install(DIRECTORY
