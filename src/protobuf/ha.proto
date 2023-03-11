@@ -1,3 +1,7 @@
+// ===============================================================
+//                     Proto version: 1.1.0
+// Increment the version number if the proto definition is updated
+// ===============================================================
 syntax="proto2";
 package lgraph;
 option cc_generic_services = true;
