@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 
 
 
-class TestJavaOgm():
+class TestJavaOgm:
 
     BASHOPT = {
         "cmd" : "sh rpc_client/java/TuGraphOGMTest/local_build.sh"

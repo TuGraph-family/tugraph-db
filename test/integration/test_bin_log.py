@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import json
@@ -30,7 +29,7 @@ BINLOGOPT_1 = {"cmd" : "./lgraph_binlog -a restore --db_dir ./testdb1 -u admin -
 
 
 
-class TestBinLog():
+class TestBinLog:
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

@@ -294,7 +294,7 @@ Lindsay Lohan,The Parent Trap,Halle/Annie
 Liam Neeson,Batman Begins,Henri Ducard'''
 }
 
-class TestProcedure():
+class TestProcedure:
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

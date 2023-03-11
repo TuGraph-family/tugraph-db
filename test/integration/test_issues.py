@@ -139,7 +139,7 @@ def file_build_1():
     if os.path.exists(edge_file_name):
         os.remove(edge_file_name)
 
-class TestIssues():
+class TestIssues:
 
 
     # @pytest.mark.parametrize("server", [SERVEROPT_55_1], indirect=True)

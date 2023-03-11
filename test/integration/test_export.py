@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import json
@@ -32,7 +31,7 @@ EXPORT_JSON_OPT = {"cmd":"./lgraph_export -d ./testdb -e ./export/json -g defaul
 EXPORT_CSV_OPT = {"cmd":"./lgraph_export -d ./testdb -e ./export/csv -g default -u admin -p 73@TuGraph -f csv",
                    "cleanup_dir":["./export"]}
 
-class TestExport():
+class TestExport:
 
     @pytest.mark.parametrize("importor", [IMPORT_YAGO_OPT], indirect=True)
     @pytest.mark.parametrize("exportor", [EXPORT_DEF_OPT], indirect=True)

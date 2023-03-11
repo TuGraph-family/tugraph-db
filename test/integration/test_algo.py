@@ -1,4 +1,3 @@
-
 import pytest
 import logging
 
@@ -8,7 +7,7 @@ CUCMD = {"cmd":"./unit_test_cu -t RPC"}
 
 ERCMD = {"cmd":"./unit_test_er -t RPC"}
 
-class TestExec():
+class TestExec:
 
     BFSEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/bfs_embed ./testdb",

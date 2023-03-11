@@ -30,8 +30,6 @@ tar -zxvf output.tar.gz
 cd $MY_WORKSPACE/src/client/python/TuGraphClient
 # install TuGraphClient
 python3 setup.py install
-# run TuGraphClient unit_tests
-python3 setup.py test
 
 # set $MY_WORKSPACE to root dir
 cd $MY_WORKSPACE

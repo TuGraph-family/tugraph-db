@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import json
@@ -35,7 +34,7 @@ def load_plugin(server, client):
     assert len(plugins) == 1
 
 
-class TestBackup():
+class TestBackup:
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
