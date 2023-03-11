@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -575,7 +575,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
             this->out_index_.Append(0, false);
             auto vit = txn_.GetVertexIterator();
             for (size_t vid = 0; vid < this->num_vertices_; vid++) {
-                vit.Goto(vid);
+                if (!vit.Goto(vid)) continue;
                 for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                     size_t dst = eit.GetDst();
                     EdgeData edata;
@@ -827,7 +827,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
 
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
-                        vit.Goto(vi);
+                        if (!vit.Goto(vi)) continue;
                         this->out_degree_[vi] = vit.GetNumOutEdges();
                         if (flags_ & SNAPSHOT_UNDIRECTED) {
                             this->out_degree_[vi] += vit.GetNumInEdges();
@@ -884,7 +884,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
 
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
-                        vit.Goto(vi);
+                        if (!vit.Goto(vi)) continue;
                         size_t pos = this->out_index_[vi];
                         for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                             size_t dst = eit.GetDst();
@@ -918,7 +918,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
         } else {
             auto vit = txn_.GetVertexIterator();
             for (size_t vid = 0; vid < this->num_vertices_; vid++) {
-                vit.Goto(vid);
+                if (!vit.Goto(vid)) continue;
                 for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                     size_t dst = eit.GetDst();
                     AdjUnit<EdgeData> out_edge;
