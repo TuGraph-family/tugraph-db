@@ -10,7 +10,7 @@ import torch.nn as nn
 from dgl.nn.pytorch import GraphConv
 
 import json
-from lgraph_python import GraphDB, Galaxy
+from liblgraph_python_api import GraphDB, Galaxy
 
 
 class GCN(nn.Module):

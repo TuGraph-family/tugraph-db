@@ -64,7 +64,8 @@ std::tuple<size_t, bool> parse_line_unweighted(const char *p,
  * @return
  */
 template <typename EdgeData>
-std::tuple<size_t, bool> parse_line_weight(const char* p, const char* end, EdgeUnit<EdgeData>& e) {
+std::tuple<size_t, bool> parse_line_weighted(const char* p,
+                                             const char* end, EdgeUnit<EdgeData>& e) {
     const char* orig = p;
     int64_t t = 0;
     p += lgraph_api::ParseInt64(p, end, t);
@@ -90,7 +91,7 @@ std::tuple<size_t, bool> parse_line_weight(const char* p, const char* end, EdgeU
  * @return
  */
 template <typename EdgeData>
-std::tuple<size_t, bool> parse_string_line_unweight(const char* p,
+std::tuple<size_t, bool> parse_string_line_unweighted(const char* p,
         const char* end, EdgeStringUnit<EdgeData>& e) {
     const char* orig = p;
     std::string t = "";
@@ -114,7 +115,7 @@ std::tuple<size_t, bool> parse_string_line_unweight(const char* p,
  * @return
  */
 template <typename EdgeData>
-std::tuple<size_t, bool> parse_string_line_weight(const char* p,
+std::tuple<size_t, bool> parse_string_line_weighted(const char* p,
         const char* end, EdgeStringUnit<EdgeData>& e) {
     const char* orig = p;
     std::string t = "";
@@ -146,7 +147,7 @@ class ConfigBase {
     std::function<std::tuple<size_t, bool>(const char *, const char *, EdgeUnit<EdgeData> &)>
             parse_line = parse_line_unweighted<EdgeData>;
     std::function<std::tuple<size_t, bool>(const char *, const char *, EdgeStringUnit<EdgeData> &)>
-            parse_string_line = parse_string_line_unweight<EdgeData>;
+            parse_string_line = parse_string_line_unweighted<EdgeData>;
 
     ConfigBase(int &argc, char** &argv) {
         fma_common::Configuration config;
@@ -156,6 +157,8 @@ class ConfigBase {
         config.Finalize();
         this->GetTypeFromString();
     }
+
+    ConfigBase() {this->GetTypeFromString(); }
 
     virtual void AddParameter(fma_common::Configuration& config) {
         AddParameterFile(config);

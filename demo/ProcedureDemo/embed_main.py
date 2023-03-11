@@ -1,4 +1,4 @@
-from lgraph_python import GraphDB, Galaxy
+from liblgraph_python_api import GraphDB, Galaxy
 import json
 
 # --- add python plugin ---

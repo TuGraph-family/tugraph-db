@@ -117,11 +117,11 @@ double LCCCore(OlapBase<Empty>& graph, ParallelVector<double>& score) {
         },
         0, num_vertices);
 
-    double sum_clco = graph.ProcessVertexInRange<double>(
+    double sum_lcc = graph.ProcessVertexInRange<double>(
         [&] (size_t v) {
             return score[v];
         },
         0, num_vertices);
-    // std::cout << "average_clco = " << sum_clco / num_vertices << std::endl;
-    return sum_clco / num_vertices;
+    // std::cout << "average_lcc = " << sum_lcc / num_vertices << std::endl;
+    return sum_lcc / num_vertices;
 }

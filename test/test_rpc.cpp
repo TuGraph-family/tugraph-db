@@ -148,6 +148,7 @@ def Process(db, input):
     stream.Close();
 
     std::string code_read = R"(
+from liblgraph_python_api import *
 def Process(db, input):
     n = 0
     try:

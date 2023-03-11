@@ -90,6 +90,7 @@ bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& user,
         std::string zip_key = GetZipKey(name);
         std::string cpp_key = GetCppKey(name);
         std::string so_key = GetSoKey(name);
+        std::string cython_key = GetCythonKey(name);
         if (table_.HasKey(txn.GetTxn(), Value::ConstRef(zip_key))) {
             auto zip_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(zip_key));
             const std::string& zip = zip_it.GetValue().AsString();
@@ -100,6 +101,11 @@ bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& user,
             const std::string& cpp = cpp_it.GetValue().AsString();
             ret.code = cpp;
             ret.code_type = "cpp";
+        } else if (table_.HasKey(txn.GetTxn(), Value::ConstRef(cython_key))) {
+            auto cython_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(cython_key));
+            const std::string& cython = cython_it.GetValue().AsString();
+            ret.code = cython;
+            ret.code_type = "py";
         } else {
             auto so_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(so_key));
             const std::string& so = so_it.GetValue().AsString();
@@ -145,6 +151,14 @@ void lgraph::SingleLanguagePluginManager::UpdateCppToKvStore(KvTransaction& txn,
     table_.SetValue(txn, Value::ConstRef(cpp_key), Value::ConstRef(cpp));
 }
 
+void lgraph::SingleLanguagePluginManager::UpdateCythonToKvStore(KvTransaction& txn,
+                                                                const std::string& name,
+                                                                const std::string& cython) {
+    // write cython file
+    std::string cython_key = GetCythonKey(name);
+    table_.SetValue(txn, Value::ConstRef(cython_key), Value::ConstRef(cython));
+}
+
 void lgraph::SingleLanguagePluginManager::UpdateInfoToKvStore(KvTransaction& txn,
                                                               const std::string& name,
                                                               fma_common::BinaryBuffer& info) {
@@ -185,6 +199,56 @@ static inline std::string ReadWholeFile(const std::string& path, const std::stri
     size_t ssz = ifs.Read(&code[0], sz);
     if (ssz != sz) throw lgraph::InternalError("Failed to read {} [{}].", file_desc, path);
     return code;
+}
+
+std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
+    const std::string& name, const std::string& cython) {
+#ifdef _WIN32
+    throw InputError("Compiling cython is not supported on Windows.");
+#endif
+    std::string base_dir = impl_->GetPluginDir();
+    auto& fs = fma_common::FileSystem::GetFileSystem(base_dir);
+    std::string tmp_dir = GenUniqueTempDir(base_dir, name);
+    std::string cython_file_path = tmp_dir + fs.PathSeparater() + name + ".py";
+    std::string cpp_file_path = tmp_dir + fs.PathSeparater() + name + ".cpp";
+    std::string plugin_path = tmp_dir + fs.PathSeparater() + name + ".so";
+
+    AutoCleanDir tmp_dir_cleaner(tmp_dir);
+
+    WriteWholeFile(cython_file_path, cython, "plugin source file");
+
+    // cython
+    std::string exec_dir = fma_common::FileSystem::GetExecutablePath().Dir();
+    std::string cmd = FMA_FMT("cython {} -+ -3 -I{}/../../src/cython/ -o {}  --module-name {}",
+                              cython_file_path, exec_dir, cpp_file_path, name);
+    ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while translate cython to c++.",
+                   "Failed to translated cython. cmd: " + cmd);
+
+    // compile
+    std::string CFLAGS = FMA_FMT("-I{}/../../include -I/usr/local/include "
+                                 "-I/usr/include/python3.6m "
+                                 "-I/usr/local/include/python3.6m "
+                                 "-I{}/../../deps/fma-common "
+                                 "-I{}/../../src",
+                                 exec_dir, exec_dir, exec_dir);
+//    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
+//                                  "-L/usr/lib64/ -lpython3.6m", exec_dir);
+    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
+                                  "-L/usr/lib64/ ", exec_dir);
+#ifndef __clang__
+    cmd = FMA_FMT(
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
+        CFLAGS, plugin_path, cpp_file_path, LDFLAGS);
+#elif __APPLE__
+    throw InputError("Compiling cython is not supported on APPLE.");
+#else
+    throw InputError("Compiling cython is not supported on clang.");
+#endif
+    ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while compiling plugin.",
+                   "Failed to compile plugin.");
+
+    // return
+    return ReadWholeFile(plugin_path, "plugin binary file");
 }
 
 std::string lgraph::SingleLanguagePluginManager::CompilePluginFromZip(const std::string& name,
@@ -290,6 +354,14 @@ void lgraph::SingleLanguagePluginManager::LoadPluginFromPyOrSo(
     UpdateSoToKvStore(txn, name, exe);
 }
 
+void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromCython(
+    const std::string& user, KvTransaction& txn, const std::string& name,
+    const std::string& cython, const std::string& desc, bool read_only) {
+    std::string exe = CompilePluginFromCython(name, cython);
+    LoadPluginFromPyOrSo(user, txn, name, exe, desc, read_only);
+    UpdateCythonToKvStore(txn, name, cython);
+}
+
 void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromCpp(
     const std::string& user, KvTransaction& txn, const std::string& name, const std::string& cpp,
     const std::string& desc, bool read_only) {
@@ -343,8 +415,10 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     // load plugin from different type
     auto txn = db_->CreateWriteTxn();
     switch (code_type) {
-    case plugin::CodeType::SO:
     case plugin::CodeType::PY:
+        CompileAndLoadPluginFromCython(user, txn.GetTxn(), name, code, desc, read_only);
+        break;
+    case plugin::CodeType::SO:
         LoadPluginFromPyOrSo(user, txn.GetTxn(), name, code, desc, read_only);
         break;
     case plugin::CodeType::CPP:
@@ -381,8 +455,10 @@ bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& user,
     table_.DeleteKey(txn, Value::ConstRef(exe_key));
     std::string zip_key = GetZipKey(name);
     std::string cpp_key = GetCppKey(name);
+    std::string cython_key = GetCythonKey(name);
     table_.DeleteKey(txn, Value::ConstRef(zip_key));
     table_.DeleteKey(txn, Value::ConstRef(cpp_key));
+    table_.DeleteKey(txn, Value::ConstRef(cython_key));
 
     std::unique_ptr<PluginInfoBase> old_pinfo(std::move(it->second));
     procedures_.erase(it);
@@ -470,6 +546,7 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
                 std::string zip_key = GetZipKey(name);
                 std::string cpp_key = GetCppKey(name);
                 std::string so_key = GetSoKey(name);
+                std::string cython_key = GetCythonKey(name);
                 if (table_.HasKey(txn, Value::ConstRef(zip_key))) {
                     auto zip_it = table_.GetIterator(txn, Value::ConstRef(zip_key));
                     const std::string& zip = zip_it.GetValue().AsString();
@@ -480,6 +557,12 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
                     auto file_it = table_.GetIterator(txn, Value::ConstRef(cpp_key));
                     const std::string& file = file_it.GetValue().AsString();
                     std::string exe = CompilePluginFromCpp(name, file);
+                    WriteWholeFile(impl_->GetPluginPath(name), exe, "");
+                    UpdateSoToKvStore(txn, name, exe);
+                } else if (table_.HasKey(txn, Value::ConstRef(cython_key))) {
+                    auto file_it = table_.GetIterator(txn, Value::ConstRef(cython_key));
+                    const std::string& file = file_it.GetValue().AsString();
+                    std::string exe = CompilePluginFromCython(name, file);
                     WriteWholeFile(impl_->GetPluginPath(name), exe, "");
                     UpdateSoToKvStore(txn, name, exe);
                 } else if (table_.HasKey(txn, Value::ConstRef(so_key))) {

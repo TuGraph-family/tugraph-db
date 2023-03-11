@@ -38,8 +38,8 @@ class MyConfig : public ConfigBase<double> {
     }
 
     MyConfig(int &argc, char** &argv): ConfigBase<double>(argc, argv) {
-        parse_line = parse_line_weight<double>;
-        parse_string_line = parse_string_line_weight<double>;
+        parse_line = parse_line_weighted<double>;
+        parse_string_line = parse_string_line_weighted<double>;
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);

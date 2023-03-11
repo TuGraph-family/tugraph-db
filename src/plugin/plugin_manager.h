@@ -108,6 +108,8 @@ class SingleLanguagePluginManager {
 
     inline std::string GetCppKey(const std::string& name) const { return "@cpp_" + name; }
 
+    inline std::string GetCythonKey(const std::string& name) const { return "@cython_" + name; }
+
     inline std::string GetHashKey(const std::string& name) const { return "@hash_" + name; }
 
     inline bool IsSoKey(const std::string& key) const {
@@ -120,6 +122,10 @@ class SingleLanguagePluginManager {
 
     inline bool IsCppKey(const std::string& key) const {
         return fma_common::StartsWith(key, "@cpp_");
+    }
+
+    inline bool IsCythonKey(const std::string& key) const {
+        return fma_common::StartsWith(key, "@cython_");
     }
 
     inline bool IsHashKey(const std::string& key) const {
@@ -141,6 +147,10 @@ class SingleLanguagePluginManager {
 
     void UnloadAllPlugins();
 
+    void CompileAndLoadPluginFromCython(const std::string& user, KvTransaction& txn,
+                                        const std::string& name, const std::string& cython,
+                                        const std::string& desc, bool read_only);
+
     void LoadPluginFromPyOrSo(const std::string& user, KvTransaction& txn, const std::string& name,
                               const std::string& exe, const std::string& desc, bool read_only);
 
@@ -153,6 +163,9 @@ class SingleLanguagePluginManager {
                                      const std::string& desc, bool read_only);
 
     // compile plugin and return binary code
+    std::string CompilePluginFromCython(const std::string& name, const std::string& cython);
+
+    // compile plugin and return binary code
     std::string CompilePluginFromZip(const std::string& name, const std::string& zip);
 
     // compile plugin and return binary code
@@ -163,6 +176,9 @@ class SingleLanguagePluginManager {
     void UpdateZipToKvStore(KvTransaction& txn, const std::string& name, const std::string& zip);
 
     void UpdateCppToKvStore(KvTransaction& txn, const std::string& name, const std::string& cpp);
+
+    void UpdateCythonToKvStore(KvTransaction& txn, const std::string& name,
+                               const std::string& cython);
 
     void UpdateInfoToKvStore(KvTransaction& txn, const std::string& name,
                              fma_common::BinaryBuffer& info);

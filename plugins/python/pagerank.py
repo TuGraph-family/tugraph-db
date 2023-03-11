@@ -5,7 +5,7 @@ import dgl.function as fn
 
 import json
 import typing
-from lgraph_python import GraphDB, Galaxy
+from liblgraph_python_api import GraphDB, Galaxy
 
 import argparse
 

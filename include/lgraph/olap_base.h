@@ -190,8 +190,10 @@ class AdjList {
     AdjList(AdjUnit<EdgeData> *begin, AdjUnit<EdgeData> *end) : begin_(begin), end_(end) {}
 
  public:
+    AdjList() : begin_(nullptr), end_(nullptr) {}
     AdjUnit<EdgeData> *begin() { return begin_; }
     AdjUnit<EdgeData> *end() { return end_; }
+    AdjUnit<EdgeData>& operator[](size_t i) { return *(begin_ + i); }
 };
 
 /**
@@ -264,7 +266,16 @@ class ParallelVector {
 
     ParallelVector(const ParallelVector<T> &rhs) = delete;
 
-    ParallelVector(ParallelVector<T> &&rhs);
+//    ParallelVector(ParallelVector<T> &&rhs) = default;
+    ParallelVector(ParallelVector<T> &&rhs) {
+        Swap(rhs);
+    }
+
+
+    ParallelVector<T>& operator=(ParallelVector<T>&& rhs) {
+        Swap(rhs);
+        return *this;
+    }
 
     /**
      * @brief   Default constructor of ParallelVector<T>.
@@ -537,8 +548,18 @@ class ParallelBitset {
 
     ParallelBitset(const ParallelBitset &rhs) = delete;
 
-    ParallelBitset(ParallelBitset &&rhs) = default;
+    ParallelBitset& operator=(ParallelBitset &&rhs) {
+        std::swap(size_, rhs.size_);
+        std::swap(data_, rhs.data_);
+        return *this;
+    }
 
+    ParallelBitset(ParallelBitset &&rhs) {
+        std::swap(size_, rhs.size_);
+        std::swap(data_, rhs.data_);
+    }
+
+    ParallelBitset() : data_(nullptr), size_(0) {}
     ~ParallelBitset();
 
     /**
@@ -1090,6 +1111,17 @@ class OlapBase {
         return sum;
     }
 
+    template <typename ReducedSum, typename Algorithm>
+    ReducedSum ProcessVertexInRange(
+        std::function<ReducedSum(Algorithm, size_t)> work, size_t lower, size_t upper,
+        Algorithm algorithm, ReducedSum zero = 0,
+        std::function<ReducedSum(ReducedSum, ReducedSum)> reduce = reduce_plus<ReducedSum>) {
+        return ProcessVertexInRange<ReducedSum>(
+            [&algorithm, &work](size_t vi){
+                return work(algorithm, vi);
+            }, lower, upper, zero, reduce);
+    }
+
     /**
      * @brief   Process a set of active vertices in parallel.
      *
@@ -1211,6 +1243,17 @@ class OlapBase {
         delete [] thread_state;
         if (CheckKillThisTask()) throw std::runtime_error("Task killed");
         return sum;
+    }
+
+    template <typename ReducedSum, typename Algorithm>
+    ReducedSum ProcessVertexActive(
+        std::function<ReducedSum(Algorithm, size_t)> work, ParallelBitset &active_vertices,
+        Algorithm algorithm, ReducedSum zero = 0,
+        std::function<ReducedSum(ReducedSum, ReducedSum)> reduce = reduce_plus<ReducedSum>) {
+        return ProcessVertexActive<ReducedSum>(
+            [&algorithm, &work](size_t vi){
+                return work(algorithm, vi);
+            }, active_vertices, zero, reduce);
     }
 };
 }  // namespace olap

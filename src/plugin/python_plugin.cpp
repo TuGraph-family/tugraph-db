@@ -71,7 +71,9 @@ void PythonPluginManagerImpl::UnloadPlugin(const std::string& user, const std::s
                                            PluginInfoBase* pinfo) {
     // TODO: currently we do not track the modules in each process, so it is possible // NOLINT
     // for a process to not have a already-existing module.
-    // return CallInternal(user, "__lgraph_del_module__", name, 0, true, false, error);
+    // std::string output;
+    // auto ec = CallInternal(user, "__lgraph_del_module__", name, 0, true, false, output);
+    KillAllProcesses();
 }
 
 void PythonPluginManagerImpl::DoCall(const std::string& user,

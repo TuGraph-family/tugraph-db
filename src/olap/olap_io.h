@@ -136,8 +136,8 @@ class StringTextFileReader : public BlockReader<EdgeData> {
             if (fma_common::FileSystem::GetFileSystem(prefix).IsDir(prefix)) {
                 fma_common::InputTextDirStream fin(prefix, 1, 0, CHUNKSIZE, 2);  // i.e. 8 threads
                 fma_common::TextParser<EdgeStringUnit<EdgeData>,
-                                       decltype(parse_string_line_unweight<EdgeData>)>
-                    parser(fin, parse_string_line_unweight<EdgeData>, CHUNKSIZE, 1);
+                                       decltype(parse_string_line_unweighted<EdgeData>)>
+                    parser(fin, parse_string_line_unweighted<EdgeData>, CHUNKSIZE, 1);
                 while (parser.ReadBlock(read_edge_buffer)) {
                     for (auto &ele : read_edge_buffer) {
                         vertex_list[edge_num * 2] = char_buffer + bytes;
@@ -154,8 +154,8 @@ class StringTextFileReader : public BlockReader<EdgeData> {
             } else {
                 fma_common::InputFmaStream fin(prefix);
                 fma_common::TextParser<EdgeStringUnit<EdgeData>,
-                                       decltype(parse_string_line_unweight<EdgeData>)>
-                    parser(fin, parse_string_line_unweight<EdgeData>, CHUNKSIZE, 1);
+                                       decltype(parse_string_line_unweighted<EdgeData>)>
+                    parser(fin, parse_string_line_unweighted<EdgeData>, CHUNKSIZE, 1);
                 while (parser.ReadBlock(read_edge_buffer)) {
                     for (auto &ele : read_edge_buffer) {
                         vertex_list[edge_num * 2] = char_buffer + bytes;

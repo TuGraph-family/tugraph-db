@@ -21,7 +21,7 @@ import pickle
 from dgl.data.utils import download, _get_dgl_url, get_download_dir, extract_archive
 
 import json
-from lgraph_python import GraphDB, Galaxy
+from liblgraph_python_api import GraphDB, Galaxy
 
 
 def shuffle_walks(walks):

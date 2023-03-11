@@ -32,7 +32,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // core
     start_time = get_time();
     auto score = olapondb.AllocVertexArray<double>();
-    double average_clco = LCCCore(olapondb, score);
+    double average_lcc = LCCCore(olapondb, score);
     auto core_cost = get_time() - start_time;
 
     // output
@@ -42,7 +42,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // return
     {
         json output;
-        output["average_clco"] = average_clco;
+        output["average_lcc"] = average_lcc;
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;

@@ -477,7 +477,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
 
-        auto start_time = get_time();
 
         // Read from TuGraph
         if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
@@ -1016,6 +1015,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
     OlapOnDB(const OlapOnDB<EdgeData> &rhs) = delete;
 
     OlapOnDB(OlapOnDB<EdgeData> &&rhs) = default;
+    OlapOnDB<EdgeData>& operator=(OlapOnDB<EdgeData> &&rhs) {
+        printf("OlapOnDB assigment\n");
+        return *this;
+    }
 
     /**
      * @brief    Extract a vertex array from the graph.
