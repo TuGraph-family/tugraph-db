@@ -5,6 +5,7 @@ import subprocess
 import time
 import pytest
 from TuGraphClient import AsyncTuGraphClient, TuGraphClient
+import os
 
 log = logging.getLogger(__name__)
 
@@ -21,11 +22,10 @@ class TestAsyncTuGraphClient:
         self.url = 'localhost:7071'
         try:
             # start server in ci command
-            self.log = open('/tmp/out.log', 'w+')
-            pwd = '/workspace/code-repo/build/output'
+            self.log = open('./test_async_tugraph_client_out.log', 'w+')
             self.process = subprocess.Popen([
-                pwd + '/lgraph_server',
-                '-c', pwd + '/lgraph_standalone.json'
+                './lgraph_server',
+                '-c', './lgraph_standalone.json'
             ], stdout=self.log, stderr=self.log, close_fds=True)
             time.sleep(3)
         except Exception as e:
@@ -41,6 +41,7 @@ class TestAsyncTuGraphClient:
             self.process.kill()
             self.process.wait()
             self.log.close()
+            os.remove("./test_async_tugraph_client_out.log")
         except Exception as e:
             logging.debug(e)
 
