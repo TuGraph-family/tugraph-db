@@ -108,13 +108,14 @@ TEST_F(TestLGraphExport, LGraphExport) {
             ]
         },
         {
+            "constraints":[["Person","City"]],
             "label" : "BORN_IN",
             "type" : "EDGE",
             "properties" : [
                 {"name" : "weight", "type":"FLOAT", "optional":true}
             ]
         },
-        {"label" : "KNOWS", "type" : "EDGE"}
+        {"constraints":[["Person","Person"],["Person","City"]], "label" : "KNOWS", "type" : "EDGE"}
     ],
     "files" : [
         {
