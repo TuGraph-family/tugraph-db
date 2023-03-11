@@ -21,4 +21,4 @@ LINK_DIRECTORIES(${LABRARY_PATH})
 
 ADD_EXECUTABLE(multi_thread_client ${SRC_LIST})
 
-TARGET_LINK_LIBRARIES(multi_thread_client lgraph_rpc_client pthread)
+TARGET_LINK_LIBRARIES(multi_thread_client lgraph_client_cpp_rpc pthread)

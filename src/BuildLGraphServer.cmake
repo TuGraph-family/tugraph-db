@@ -35,7 +35,11 @@ include_directories(${DEPS_INCLUDE_DIR})
 # brpc
 set(BRPC_LIB libbrpc.a)
 
-add_library(lgraph_server_lib STATIC
+############### liblgraph_server_lib ######################
+
+set(TARGET_SERVER_LIB lgraph_server_lib)
+
+add_library(${TARGET_SERVER_LIB} STATIC
         plugin/plugin_context.cpp
         plugin/python_plugin.cpp
         plugin/cpp_plugin.cpp
@@ -47,7 +51,7 @@ add_library(lgraph_server_lib STATIC
         restful/server/rest_server.cpp
         restful/server/stdafx.cpp)
 
-target_compile_options(lgraph_server_lib PUBLIC
+target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}
         -D__const__=
         -pipe
@@ -55,7 +59,7 @@ target_compile_options(lgraph_server_lib PUBLIC
         -fPIC -fno-omit-frame-pointer)
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
-    target_link_libraries(lgraph_server_lib
+    target_link_libraries(${TARGET_SERVER_LIB}
             PUBLIC
             lgraph
             lgraph_cypher_lib
@@ -76,7 +80,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             c
             )
 else ()
-    target_link_libraries(lgraph_server_lib
+    target_link_libraries(${TARGET_SERVER_LIB}
             PUBLIC
             lgraph
             lgraph_cypher_lib
@@ -104,10 +108,14 @@ else ()
             )
 endif ()
 
-add_executable(lgraph_server
+############### lgraph_server ######################
+
+set(TARGET_SERVER lgraph_server)
+
+add_executable(${TARGET_SERVER}
         server/server_main.cpp)
 
-target_link_libraries(lgraph_server
-        lgraph_server_lib)
+target_link_libraries(${TARGET_SERVER}
+        ${TARGET_SERVER_LIB})
 
 

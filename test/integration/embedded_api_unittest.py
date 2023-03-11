@@ -3,7 +3,7 @@
 import math
 import datetime
 
-from lgraph_python import *
+from liblgraph_python_api import *
 
 
 class ExceptionWasNotThrown(Exception):

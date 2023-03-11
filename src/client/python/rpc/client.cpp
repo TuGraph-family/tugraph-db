@@ -18,7 +18,7 @@
 
 namespace py = pybind11;
 
-void register_python_client(pybind11::module& m) {
+void register_liblgraph_client_python(pybind11::module& m) {
     // define lgraph::RpcClient class
     py::class_<LgraphPythonClient> c(m, "client", "this is a python rpc client");
     // define the constructor
@@ -158,6 +158,6 @@ void register_python_client(pybind11::module& m) {
           "close the channel \n");
 }
 
-PYBIND11_MODULE(python_client, m) {
-    register_python_client(m);
+PYBIND11_MODULE(liblgraph_client_python, m) {
+    register_liblgraph_client_python(m);
 }

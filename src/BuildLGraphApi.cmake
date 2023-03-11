@@ -76,7 +76,9 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_result.cpp
         lgraph_api/result_element.cpp)
 
-add_library(lgraph SHARED
+set(TARGET_LGRAPH lgraph)
+
+add_library(${TARGET_LGRAPH} SHARED
         ${LGRAPH_API_SRC}
         ${LGRAPH_CORE_SRC}
         ${LGRAPH_DB_SRC}
@@ -91,7 +93,7 @@ add_library(lgraph SHARED
         ${DEPS_INCLUDE_DIR}/tiny-process-library/process_unix.cpp
         ${PROTO_SRCS})
 
-target_include_directories(lgraph PUBLIC
+target_include_directories(${TARGET_LGRAPH} PUBLIC
         ${DEPS_LOCAL_INCLUDE_DIR}
         ${DEPS_INCLUDE_DIR}
         ${LGRAPH_INCLUDE_DIR}
@@ -100,7 +102,7 @@ target_include_directories(lgraph PUBLIC
         ${JNI_INCLUDE_DIRS})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_libraries(lgraph PUBLIC
+    target_link_libraries(${TARGET_LGRAPH} PUBLIC
             libgomp.a
             -static-libstdc++
             -static-libgcc
@@ -118,7 +120,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             )
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        target_link_libraries(lgraph PUBLIC
+        target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 boost_system
                 boost_filesystem
                 omp
@@ -127,7 +129,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 ${PROTOBUF_LIBRARY}
                 ${JAVA_JVM_LIBRARY})
     else ()
-        target_link_libraries(lgraph PUBLIC
+        target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 rt
                 omp
                 pthread
@@ -150,8 +152,8 @@ if (ENABLE_SQL_IO)
     if (ODBC_LIBRARIES_NOT_FOUND)
         message(FATAL_ERROR "ODBC enabled, but unable to find ODBC library.")
     endif (ODBC_LIBRARIES_NOT_FOUND)
-    target_sources(lgraph PRIVATE ${DEPS_INCLUDE_DIR}/fma-common/sql_stream.cpp)
-    target_link_libraries(lgraph PUBLIC odbc)
+    target_sources(${TARGET_LGRAPH} PRIVATE ${DEPS_INCLUDE_DIR}/fma-common/sql_stream.cpp)
+    target_link_libraries(${TARGET_LGRAPH} PUBLIC odbc)
 endif (ENABLE_SQL_IO)
 
 set_target_properties(lgraph PROPERTIES OUTPUT_NAME "lgraph")

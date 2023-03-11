@@ -55,7 +55,7 @@ void WriteScanGraphPlugin(const std::string& path) {
     const std::string code =
         R"(
 import json
-from lgraph_python import *
+from lgraph_python_api import *
 
 def Process(db, input):
     scan_edges = False

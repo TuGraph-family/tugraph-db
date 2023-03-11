@@ -1,7 +1,7 @@
 import logging
 import pytest
 import json
-import python_client
+import liblgraph_client_python
 
 log = logging.getLogger(__name__)
 
@@ -744,7 +744,7 @@ class TestProcedure:
         assert ret[0]
         ret = client.callCypher("CALL dbms.security.addUserRoles('test_user1', ['admin'])")
         assert ret[0]
-        test_client = python_client.client("127.0.0.1:9092", "test_user1", "pwd1")
+        test_client = liblgraph_client_python.client("127.0.0.1:9092", "test_user1", "pwd1")
         ret = test_client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         values = json.loads(ret[1])
@@ -752,7 +752,7 @@ class TestProcedure:
 
         ret = client.callCypher("CALL dbms.security.changeUserPassword('test_user1','modpwd2')")
         assert ret[0]
-        test_client2 = python_client.client("127.0.0.1:9092", "test_user1", "modpwd2")
+        test_client2 = liblgraph_client_python.client("127.0.0.1:9092", "test_user1", "modpwd2")
         ret = test_client2.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         values = json.loads(ret[1])
@@ -761,10 +761,10 @@ class TestProcedure:
         ret = test_client2.callCypher("CALL dbms.security.changePassword('modpwd2','modagainpwd3')")
         assert ret[0]
         with pytest.raises(RuntimeError) as exception:
-            test_client3 = python_client.client("127.0.0.1:9092", "test_user1", "modpwd2")
+            test_client3 = liblgraph_client_python.client("127.0.0.1:9092", "test_user1", "modpwd2")
         assert exception.typename == "RuntimeError"
 
-        test_client3 = python_client.client("127.0.0.1:9092", "test_user1", "modagainpwd3")
+        test_client3 = liblgraph_client_python.client("127.0.0.1:9092", "test_user1", "modagainpwd3")
         ret = test_client3.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         values = json.loads(ret[1])

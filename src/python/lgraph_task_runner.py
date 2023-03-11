@@ -24,7 +24,7 @@ import traceback
 import logging
 import logging.handlers as handlers
 
-from lgraph_python import *
+from liblgraph_python_api import *
 
 
 def setup_logger(level=logging.INFO):

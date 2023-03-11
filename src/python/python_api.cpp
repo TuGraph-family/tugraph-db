@@ -1555,7 +1555,7 @@ void register_gemini_adapter(pybind11::module& m) {
 }
 
 // Declare the python api with pybind11
-PYBIND11_MODULE(lgraph_python, m) {
+PYBIND11_MODULE(liblgraph_python_api, m) {
     python::register_python_api(m);
     python::register_lgraph_plugin(m);
     python::register_gemini_adapter(m);
