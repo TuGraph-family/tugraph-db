@@ -3,7 +3,6 @@ import asyncio
 import warnings
 import subprocess
 import time
-import pytest
 from TuGraphClient import AsyncTuGraphClient, TuGraphClient
 import os
 
