@@ -10,3 +10,6 @@
 [submodule "deps/antlr4"]
 	path = deps/antlr4
 	url = git@github.com:TuGraph-db/antlr4.git
+[submodule "deps/tugraph-db-client-java"]
+	path = deps/tugraph-db-client-java
+	url = git@github.com:TuGraph-family/tugraph-db-client-java.git
