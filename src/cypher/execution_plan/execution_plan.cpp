@@ -976,39 +976,41 @@ static std::vector<std::string> GetModifiesForNode(OpBase *node) {
 bool ExecutionPlan::_PlaceFilterToNode(std::shared_ptr<lgraph::Filter> &f, OpBase *node) {
     // if f is not successfully placed, return false
     if (node == nullptr && f != nullptr) return false;
+    // check if rit modifies at least one of f's aliases
+    bool containModifies = false;
     for (auto rit = node->children.rbegin(); rit != node->children.rend(); ++rit) {
-        // check if rit modifies at least one of f's aliases
-        bool containModifies = false;
         for (auto alias : f->Alias())
             if (std::find((*rit)->modifies.begin(), (*rit)->modifies.end(), alias) !=
                 (*rit)->modifies.end()) {
                 containModifies = true;
                 break;
             }
-        // check if the subtree of rit modifies all of f's aliases
-        auto mod = GetModifiesForNode(*rit);
-        bool allModified = true;
-        for (auto &a : f->Alias())
-            if (std::find(mod.begin(), mod.end(), a) == mod.end()) {
-                allModified = false;
+    }
+    // check if the subtree of node modifies all of f's aliases
+    auto mod = GetModifiesForNode(node);
+    bool allModified = true;
+    for (auto &a : f->Alias())
+        if (std::find(mod.begin(), mod.end(), a) == mod.end()) {
+            allModified = false;
+            break;
+        }
+    // do the filter at rit if containModifies and allModified are true
+    if (containModifies && allModified) {
+        OpBase *node_filter = new OpFilter(f);
+        OpBase *insert = node, *current = node;
+        while (current) {
+            if (current->children.size() == 1) {
+                insert = current;
                 break;
             }
-        // do the filter at rit if containModifies and allModified are true
-        if (containModifies && allModified) {
-            OpBase *node_filter = new OpFilter(f);
-            OpBase *insert = (*rit)->parent, *current = (*rit)->parent;
-            while (current) {
-                if (current->children.size() == 1) {
-                    insert = current;
-                    break;
-                }
-                current = current->parent;
-            }
-            insert->PushInBetween(node_filter);
-            return true;
-        } else {
-            // if this filter cannot be placed at rit, try to place this filter
-            // to its children
+            current = current->parent;
+        }
+        insert->PushInBetween(node_filter);
+        return true;
+    } else {
+        // if this filter cannot be placed at rit, try to place this filter
+        // to its children
+        for (auto rit = node->children.rbegin(); rit != node->children.rend(); ++rit) {
             if (_PlaceFilterToNode(f, *rit)) {
                 return true;
             }

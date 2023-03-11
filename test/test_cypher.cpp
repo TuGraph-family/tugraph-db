@@ -337,6 +337,10 @@ int test_multi_match(cypher::RTContext *ctx) {
         {"MATCH (x)<-[:ACTED_IN]-(p)-[:MARRIED]->(y), (p)-[:HAS_CHILD]->(z) RETURN p,x,y,z", 2},
         /* multi connected components */
         {"MATCH (n:Film), (m:City) RETURN n, m", 15},
+        /* issue 356 */
+        {"MATCH (n1:Person {name: \"John Williams\"})-[]->(m1:Film), "
+        "(n2: Person {name: \"Michael Redgrave\"})-[]->(m2:Film) "
+        "WHERE m1.title = m2.title RETURN m1, m2", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
