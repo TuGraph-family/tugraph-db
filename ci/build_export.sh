@@ -25,10 +25,10 @@ fi
 make -j6
 
 # build java
-cd ${ACB_BUILD_DIR}/code-repo/test/integration/
-sh rpc_client/java/local_build.sh
-cp rpc_client/java/JavaClientTest/target/tugraph-db-rpc-client-test-1.1.0-jar-with-dependencies.jar ${ACB_BUILD_DIR}/code-repo/build/output/
-cp rpc_client/java/TuGraphOGMTest/target/TuGraphOgmTest-1.1.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
+cd ${ACB_BUILD_DIR}/code-repo/deps/tugraph-db-client-java/
+sh local_build.sh
+cp rpc-client-test/target/tugraph-db-java-rpc-client-test-1.1.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
+cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-1.1.0.jar ${ACB_BUILD_DIR}/code-repo/build/output/
 
 # package
 cd ${ACB_BUILD_DIR}/code-repo
