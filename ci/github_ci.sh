@@ -18,6 +18,14 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
 make -j6
 
+# build java
+JAVA_CLIENT_VERSION=1.2.1
+
+cd $WORKSPACE/deps/tugraph-db-client-java/
+sh local_build.sh
+cp rpc-client-test/target/tugraph-db-java-rpc-client-test-${JAVA_CLIENT_VERSION}.jar $WORKSPACE/build/output/
+cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-${JAVA_CLIENT_VERSION}.jar $WORKSPACE/build/output/
+
 # unittest
 mkdir -p $WORKSPACE/testresult/gtest/
 cd $WORKSPACE/build/output
