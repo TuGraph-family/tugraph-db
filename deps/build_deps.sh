@@ -55,6 +55,7 @@ function BuildPackage {
 }
 
 if [ ! ${ONLY_WEB} ] || [ ! ${ONLY_WEB} = 1 ]; then
+    sed -i 's/CMAKE_CXX_STANDARD 11/CMAKE_CXX_STANDARD 17/g' ${DEPS_DIR}/antlr4/runtime/Cpp/CMakeLists.txt
     BuildPackage antlr4 antlr4/runtime/Cpp/ -DWITH_DEMO=False || exit 1
     # remove Any.h because it is modified
     rm -f ${INSTALL_DIR}/include/antlr4-runtime/support/Any.h

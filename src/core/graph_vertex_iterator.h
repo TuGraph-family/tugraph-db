@@ -21,7 +21,6 @@
 
 int TestPerfGraphNoncontinuous(bool track_incoming, bool durable);
 
-
 namespace lgraph {
 class Transaction;
 class LightningGraph;

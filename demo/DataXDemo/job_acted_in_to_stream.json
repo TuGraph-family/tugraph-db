@@ -1,0 +1,48 @@
+{
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 1
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "tugraphreader",
+          "parameter": {
+            "host":"127.0.0.1",
+            "port": 7071,
+            "username": "admin",
+            "password": "73@TuGraph",
+            "graphName": "default",
+            "label": "acted_in",
+            "isVertex": false,
+            "srcLabel": "person",
+            "dstLabel": "movie",
+            "columns": [
+              {
+                "name": "SRC_ID",
+                "type": "long"
+              },
+              {
+                "name": "DST_ID",
+                "type": "long"
+              },
+              {
+                "name": "role",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "streamwriter",
+          "parameter": {
+            "print": true,
+            "encoding": "UTF-8"
+          }
+        }
+      }
+    ]
+  }
+}

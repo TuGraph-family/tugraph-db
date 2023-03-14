@@ -1,5 +1,37 @@
 # Change Log for TuGraph
 
+# 3.4.0 (2023-3-11)
+
+**Breaking Changes:**
+
+1. OLAP Python API support
+
+2. New lgraph_import implementation
+
+3. DataX export support
+
+**Improvements And Bug Fixes:**
+
+1. String 4MB support
+
+2. lgraph_result json format update
+
+3. Other bug fix
+
+# 3.3.4 (2023-1-28)
+
+**Breaking Changes:**
+
+1. None
+
+**Improvements And Bug Fixes:**
+
+1. Fix WAL sync bug
+
+2. Update python rest client 
+
+3. Other bug fix
+
 # 3.3.3 (2022-12-23)
 
 **Breaking Changes:**

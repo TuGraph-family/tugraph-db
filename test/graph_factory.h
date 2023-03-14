@@ -20,7 +20,7 @@
 #include "./ut_utils.h"
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
-#include "import/import_v2.h"
+#include "import/import_v3.h"
 
 #include "lgraph/lgraph.h"
 
@@ -350,13 +350,17 @@ Liam Neeson,Batman Begins,Henri Ducard
     static void create_yago(const std::string& dir = "./lgraph_db") {
         using namespace lgraph;
         WriteYagoFiles();
-        import_v2::Importer::Config config;
+        import_v3::Importer::Config config;
         config.config_file = "./yago.conf";  // the config file specifying which files to import
         config.db_dir = dir;                 // db data dir to use
         config.delete_if_exists = true;
         config.graph = "default";
 
-        import_v2::Importer importer(config);
+        config.parse_block_threads = 1;
+        config.parse_file_threads = 1;
+        config.generate_sst_threads = 1;
+
+        import_v3::Importer importer(config);
         importer.DoImportOffline();
     }
 };

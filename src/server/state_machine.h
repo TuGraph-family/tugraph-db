@@ -79,7 +79,7 @@ class StateMachine {
  public:
     struct Config {
         std::string db_dir = "./testdb";
-        bool durable = true;
+        bool durable = false;
         std::string host;
         uint16_t rpc_port = 0;
         bool optimistic_txn = false;
@@ -187,9 +187,9 @@ class StateMachine {
      */
     virtual void HandleRequest(::google::protobuf::RpcController* controller,
                                const LGraphRequest* req, LGraphResponse* resp,
-                               google::protobuf::Closure* on_done, bool is_rest_request);
+                               google::protobuf::Closure* on_done);
 
-    bool ApplyRequestDirectly(const LGraphRequest* req, LGraphResponse* resp, bool is_rest_request);
+    bool ApplyRequestDirectly(const LGraphRequest* req, LGraphResponse* resp);
 
     /**
      * Is the state machine running in HA mode?
@@ -217,7 +217,7 @@ class StateMachine {
 
     // Carry out necessary operations for the request
     virtual bool DoRequest(bool is_write, const LGraphRequest* req, LGraphResponse* resp,
-                           google::protobuf::Closure* on_done, bool is_rest_request);
+                           google::protobuf::Closure* on_done);
 
     bool IsWriteRequest(const LGraphRequest* req);
 
@@ -242,33 +242,25 @@ class StateMachine {
 
     std::string GetCurrUser(const LGraphRequest* lgraph_req, bool* is_admin);
 
-    bool ApplyUserAuthRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                              bool is_rest_request);
+//    bool ApplyUserAuthRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
+//                              bool is_rest_request);
 
-    bool ApplyConfigRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                            bool is_rest_request);
+    bool ApplyConfigRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyRestoreRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                             bool is_rest_request);
-    bool ApplyGraphRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                           bool is_rest_request);
+    bool ApplyRestoreRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyAclRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                         bool is_rest_request);
+    bool ApplyGraphRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyGraphApiRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                              bool is_rest_request);
+    bool ApplyAclRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyCypherRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                            bool is_rest_request);
+    bool ApplyGraphApiRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyPluginRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                            bool is_rest_request);
+    bool ApplyCypherRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyImportRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                            bool is_rest_request);
+    bool ApplyPluginRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplySchemaRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                            bool is_rest_request);
+    bool ApplyImportRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
+
+    bool ApplySchemaRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 };
 }  // namespace lgraph

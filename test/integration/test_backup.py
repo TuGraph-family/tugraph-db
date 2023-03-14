@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import json
@@ -35,7 +34,7 @@ def load_plugin(server, client):
     assert len(plugins) == 1
 
 
-class TestBackup():
+class TestBackup:
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
@@ -57,7 +56,8 @@ class TestBackup():
         ret = client_1.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         res = json.loads(ret[1])
-        assert res == None
+        assert len(res) == 0
+
 
     @pytest.mark.parametrize("build_so", [BUILDOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
@@ -69,7 +69,7 @@ class TestBackup():
         ret = client_1.callCypher("CALL db.plugin.listPlugin('CPP')")
         assert ret[0]
         plugins = json.loads(ret[1])
-        assert len(plugins) == 1
+        assert len(plugins[0]) == 1
 
 
     @pytest.mark.parametrize("build_so", [BUILDOPT], indirect=True)
@@ -81,4 +81,4 @@ class TestBackup():
         ret = client_1.callCypher("CALL db.plugin.listPlugin('CPP')")
         assert ret[0]
         plugins = json.loads(ret[1])
-        assert plugins == None
+        assert len(plugins) == 0

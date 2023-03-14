@@ -16,6 +16,7 @@
 #include "db/db.h"
 #include "db/galaxy.h"
 #include "import/import_v2.h"
+#include "import/blob_writer.h"
 
 lgraph::import_v2::Importer::Importer(const Config& config)
     : config_(config),
@@ -260,50 +261,9 @@ void lgraph::import_v2::Importer::DoImportOffline() {
     FMA_LOG() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
 }
 
-class BufferedBlobWriter {
-    typedef std::vector<std::pair<lgraph::BlobManager::BlobKey, lgraph::Value>> Buffer;
-    Buffer buffer_;
-    lgraph::BlobManager::BlobKey next_key_;
-    size_t curr_buf_size_ = 0;
-    size_t max_buf_size_ = 1 << 20;
-    std::mutex mtx_;
-    fma_common::PipelineStage<Buffer, void> writer_;
-
- public:
-    // `1 << 20` in the constructor will trigger cpplint bug and throw an exception
-    explicit BufferedBlobWriter(lgraph::LightningGraph* db, size_t max_buf_size = 1024 * 1024)
-        : max_buf_size_(max_buf_size),
-          writer_(
-              [db](Buffer&& buf) {
-                  auto txn = db->CreateWriteTxn();
-                  txn._BatchAddBlobs(buf);
-                  txn.Commit();
-              },
-              nullptr, 0, 1, 2, false) {
-        next_key_ = db->CreateReadTxn()._GetNextBlobKey();
-    }
-
-    ~BufferedBlobWriter() {
-        std::lock_guard<std::mutex> l(mtx_);
-        if (!buffer_.empty()) FlushWithHeldLock();
-        writer_.WaitTillClear();
-    }
-
-    lgraph::BlobManager::BlobKey AddBlob(lgraph::Value&& v) {
-        std::lock_guard<std::mutex> l(mtx_);
-        curr_buf_size_ += v.Size();
-        lgraph::BlobManager::BlobKey key = next_key_++;
-        buffer_.emplace_back(key, std::move(v));
-        if (curr_buf_size_ > max_buf_size_) FlushWithHeldLock();
-        return key;
-    }
-
- private:
-    void FlushWithHeldLock() {
-        writer_.Push(std::move(buffer_));
-        curr_buf_size_ = 0;
-    }
-};
+inline std::string LimitedLengthStr(const std::string& s, size_t max_size = 1024) {
+    return s.size() > max_size ? s.substr(0, max_size) + "..." : s;
+}
 
 /**
  * Loads vertex file located in path and write into intermediate file.
@@ -438,7 +398,8 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                                     OnErrorOffline(fma_common::StringFormatter::Format(
                                                        "Failed to pack data fields into a record: "
                                                        "{}.\nField data is:\n[{}]",
-                                                       e.what(), v),
+                                                       e.what(),
+                                                       LimitedLengthStr(fma_common::ToString(v))),
                                                    config_.continue_on_error);
                                 }
                             }
@@ -639,7 +600,8 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 OnErrorOffline(fma_common::StringFormatter::Format(
                                                    "Failed to pack data fields into a record: "
                                                    "{}.\nField data is:\n[{}]",
-                                                   e.what(), edge),
+                                                   e.what(),
+                                                   LimitedLengthStr(fma_common::ToString(edge))),
                                                config_.continue_on_error);
                             }
                         }

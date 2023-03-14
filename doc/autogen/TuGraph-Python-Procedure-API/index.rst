@@ -5,7 +5,7 @@
 
 TuGraph Procedure API - Python
 ====================================
-Version: 3.3.3
+Version: 3.4.0
 
 Copyright (C) 2018-2022 Ant Group.
 

@@ -22,7 +22,7 @@
 #include "gtest/gtest.h"
 
 #include <boost/algorithm/string.hpp>
-#include "import/import_v2.h"
+#include "import/import_v3.h"
 #include "lgraph/lgraph.h"
 #include "db/galaxy.h"
 
@@ -30,10 +30,11 @@
 #include "./test_tools.h"
 using namespace fma_common;
 using namespace lgraph;
-using namespace import_v2;
+using namespace import_v3;
 using namespace lgraph_api;
 
 class TestImportV2 : public TuGraphTest {};
+class TestImportV3 : public TuGraphTest {};
 
 void check_import_db(std::string database, size_t num_vertex, size_t num_edge,
                      const IndexSpec* is) {
@@ -1142,7 +1143,9 @@ TEST_F(TestImportV2, ImportV2) {
             if (expect_ret_zero) UT_EXPECT_EQ(proc.GetExitCode(), 0);
         };
         // this should be ok
-        ImportWithRecordOfSize(1, lgraph::_detail::MAX_STRING_SIZE, true, "Import finished");
+        ImportWithRecordOfSize(1, std::min<size_t>(lgraph::_detail::MAX_STRING_SIZE, 64<<20),
+                               true,
+                               "Import finished");
         // this should fail due to string too large
         ImportWithRecordOfSize(1, lgraph::_detail::MAX_STRING_SIZE + 1, false, "Data size");
         // this should fail due to record too large
@@ -1422,11 +1425,11 @@ TEST_F(TestImportV2, ImportV2) {
             auto txn = g.CreateReadTxn();
             auto it1 = txn.GetVertexByUniqueIndex("node", "id", FieldData(1));
             auto eit12 = it1.GetOutEdgeIterator();
-            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 50);
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
             eit12.Next();
             UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 70);
             eit12.Next();
-            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 50);
         });
     }
 }
@@ -1965,4 +1968,290 @@ TEST_F(TestImportV2, ImportJson) {
         fma_common::file_system::RemoveDir(config.intermediate_dir);
     }
 #endif
+
+    {
+        UT_LOG() << "Test indexes with various numeric types";
+        Importer::Config config;
+        config.delete_if_exists = true;
+        TestImportOnData(
+            std::vector<std::pair<std::string, std::string>>{{"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "string",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "int8",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT8"}
+            ]
+        },
+        {
+            "label" : "int16",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT16"}
+            ]
+        },
+        {
+            "label" : "int32",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT32"}
+            ]
+        },
+        {
+            "label" : "int64",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT64"}
+            ]
+        },
+        {
+            "label" : "float",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"FLOAT"}
+            ]
+        },
+        {
+            "label" : "double",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "date",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"DATE"}
+            ]
+        },
+        {
+            "label" : "datetime",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"DATETIME"}
+            ]
+        },
+        {
+            "label" : "bool",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"BOOL"}
+            ]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "string.json",
+            "format" : "JSON",
+            "label" : "string",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "int8.json",
+            "format" : "JSON",
+            "label" : "int8",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "int16.json",
+            "format" : "JSON",
+            "label" : "int16",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "int32.json",
+            "format" : "JSON",
+            "label" : "int32",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "int64.json",
+            "format" : "JSON",
+            "label" : "int64",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "float.json",
+            "format" : "JSON",
+            "label" : "float",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "double.json",
+            "format" : "JSON",
+            "label" : "double",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "date.json",
+            "format" : "JSON",
+            "label" : "date",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "datetime.json",
+            "format" : "JSON",
+            "label" : "datetime",
+            "columns" : ["id"]
+        },
+        {
+            "path" : "bool.json",
+            "format" : "JSON",
+            "label" : "bool",
+            "columns" : ["id"]
+        }
+    ]
+}
+                    )"},
+
+{"string.json",
+R"(["a1"]
+["b2"])"},
+
+{"int8.json",
+R"([11]
+[0]
+[-1]
+[-100]
+[1])"},
+
+{"int16.json",
+R"([-32760]
+[3276]
+[-1]
+[-3276]
+[32760])"},
+
+{"int32.json",
+R"([-2147483640]
+[214748364]
+[-1]
+[-214748364]
+[2147483640])"},
+
+{"int64.json",
+R"([-9223372036854775800]
+[92233720368547758]
+[-1]
+[-92233720368547758]
+[9223372036854775800])"},
+
+{"date.json",
+R"(["2020-01-20"]
+["2021-02-20"]
+["2022-03-20"]
+["2023-01-20"])"},
+
+{"datetime.json",
+R"(["2020-01-20 01:59:59"]
+["2021-02-20 02:59:59"]
+["2022-03-20 03:59:59"]
+["2023-01-20 05:59:59"])"},
+
+{"bool.json",
+R"([false]
+[true])"},
+
+{"float.json",
+R"([-3.40282e+30]
+[3.40282e+20]
+[-1]
+[-3.40282e+20]
+[3.40282e+30])"},
+
+{"double.json",
+R"([-1.79769e+300]
+[1.79769e+200]
+[-1]
+[-1.79769e+200]
+[1.79769e+300])"}},
+            config, 42, 0, nullptr, false);
+    }
+}
+
+template<class T>
+void encode_decode_test(T a, T b) {
+    std::string encoded_a, encoded_b;
+    encodeNumToStr<T>(a, encoded_a);
+    encodeNumToStr<T>(b, encoded_b);
+    if (a > b) {
+        EXPECT_GT(encoded_a, encoded_b);
+    } else if (a == b) {
+        EXPECT_EQ(encoded_a, encoded_b);
+    } else {
+        EXPECT_LT(encoded_a, encoded_b);
+    }
+    EXPECT_EQ(decodeStrToNum<T>(encoded_a.data()), a);
+    EXPECT_EQ(decodeStrToNum<T>(encoded_b.data()), b);
+}
+
+TEST_F(TestImportV3, numEncodeDecode) {
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int8_t> dist(-100, 100);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int8_t>((int8_t)dist(mt), (int8_t)dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int16_t> dist((int16_t)-30000, (int16_t)30000);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int16_t>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int32_t> dist((int32_t)-2147483640, (int32_t)2147483640);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int32_t>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int64_t> dist(
+            (int64_t)-9223372036854775, (int64_t)9223372036854775);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int64_t>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<float> dist((float)-3.40282e+30, (float)3.40282e+30);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<float>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<double> dist((double)-1.79769e+200, (double)1.79769e+200);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<double>(dist(mt), dist(mt));
+        }
+    }
 }

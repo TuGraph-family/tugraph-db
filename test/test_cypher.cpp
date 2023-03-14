@@ -19,6 +19,7 @@
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
 #include "gtest/gtest.h"
+#include "core/data_type.h"
 
 /* Make sure include graph_factory.h BEFORE antlr4-runtime.h. Otherwise causing the following error:
  * ‘EOF’ was not declared in this scope.
@@ -337,6 +338,9 @@ int test_multi_match(cypher::RTContext *ctx) {
         {"MATCH (x)<-[:ACTED_IN]-(p)-[:MARRIED]->(y), (p)-[:HAS_CHILD]->(z) RETURN p,x,y,z", 2},
         /* multi connected components */
         {"MATCH (n:Film), (m:City) RETURN n, m", 15},
+        {"MATCH (n1:Person {name: \"John Williams\"})-[]->(m1:Film), "
+        "(n2: Person {name: \"Michael Redgrave\"})-[]->(m2:Film) "
+        "WHERE m1.title = m2.title RETURN m1, m2", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -1251,7 +1255,8 @@ int test_procedure(cypher::RTContext *ctx) {
         "0.010590751202103139 */",
         "CALL algo.pagerank(10) YIELD node, pr with node MATCH(node)-[r]->(n)"
         "return node, r, n LIMIT 1"
-        "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */"
+        "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */",
+        "CALL dbms.procedures() YIELD name, signature WHERE name='db.subgraph' RETURN signature"
     };
 
     UT_LOG() << "Load Plugin File";
@@ -2096,6 +2101,10 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     expected_exception_any(ctx, "DELETE []");
     expected_exception_any(ctx, "DELETE [x in [1, 2, 3] | x]");
     expected_exception_any(ctx, "DELETE TRUE");
+    // #issue 340
+    expected_exception_any(ctx, "MERGE (n:null {id: 2909}) RETURN n");
+
+
     // issue #199
     expected_exception_any(ctx,
         "MATCH (n:Person {name:'Liam Neeson'}), "
@@ -2173,12 +2182,12 @@ int test_edge_id_query(cypher::RTContext *ctx) {
         {"MATCH ()-[e]->(n) where id(n)=4 return euid(e)", 1},
         {"MATCH (n)-[e]-() where id(n)=4 return euid(e)", 3},
         {"MATCH ()-[e]->() where euid(e)=\"0_2_0_0_0\" return e,labels(e),properties(e)", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0_0\" return properties(e)", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0_0\" return e.charactername", 1},
-        {"MATCH ()-[e]->() where euid(e)=\"8_18_2_0_0\" set e.weight=1223 return "
+        {"MATCH ()-[e]->() where euid(e)=\"4_17_5_0_0\" return properties(e)", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"4_17_5_0_0\" return e.charactername", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"8_13_2_0_0\" set e.weight=1223 return "
          "e,labels(e),properties(e)",
          1},
-        {"MATCH ()-[e]->() where euid(e)=\"4_14_5_0\" delete e", 1},
+        {"MATCH ()-[e]->() where euid(e)=\"4_17_5_0_0\" delete e", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -2467,6 +2476,7 @@ TEST_P(TestCypher, Cypher) {
         UT_LOG() << e.what();
         UT_EXPECT_TRUE(false);
     }
+    fma_common::SleepS(1);  // Waiting for memory reclaiming by async task
 }
 
 using namespace ::testing;
@@ -2477,7 +2487,7 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{7, 1}, ParamCypher{8, 1}, ParamCypher{9, 1}, ParamCypher{10, 1},
            ParamCypher{11, 1}, ParamCypher{12, 1}, ParamCypher{13, 1}, ParamCypher{14, 1},
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
-           ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
+           ParamCypher{101, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
            ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
            ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},

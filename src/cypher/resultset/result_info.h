@@ -30,13 +30,13 @@ struct Column {
     std::string name;
     std::string alias; /* AS ${alias} */
     bool aggregated;   /* 1 if column is aggregated, 0 otherwise. */
-    lgraph::ResultElementType type;
+    lgraph::ElementType type;
 
-    Column(const std::string &n, const std::string &a, bool ag, lgraph::ResultElementType t)
+    Column(const std::string &n, const std::string &a, bool ag, lgraph::ElementType t)
         : name(n), alias(a), aggregated(ag), type(t) {}
 
     explicit Column(const std::string &n)
-        : name(n), alias(""), aggregated(false), type(lgraph::ResultElementType::FIELD) {}
+        : name(n), alias(""), aggregated(false), type(lgraph::ElementType::ANY) {}
 
     std::string ToString() const {
         std::string str;

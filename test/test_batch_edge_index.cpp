@@ -20,6 +20,7 @@
 #include "core/lightning_graph.h"
 #include "db/galaxy.h"
 #include "./graph_factory.h"
+#include "core/data_type.h"
 class TestBatchEdgeIndex : public TuGraphTest {
  protected:
     void SetUp() {

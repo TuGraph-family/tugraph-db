@@ -23,27 +23,23 @@ using json = nlohmann::json;
 
 class MyConfig : public ConfigBase<double> {
  public:
-    size_t root = 0;
+    std::string root = "0";
     std::string name = std::string("sssp");
 
     void AddParameter(fma_common::Configuration & config) {
         ConfigBase<double>::AddParameter(config);
-        config.Add(root, "root", true)
-                .Comment("the root of sssp");
+        config.Add(root, "root", true).Comment("the root of sssp");
     }
 
     void Print() {
         ConfigBase<double>::Print();
         std::cout << "  name: " << name << std::endl;
-        if (root != size_t(-1)) {
-            std::cout << "  root: " << root << std::endl;
-        } else {
-            std::cout << "  root: UNSET" << std::endl;
-        }
+        std::cout << "  root: " << root << std::endl;
     }
 
     MyConfig(int &argc, char** &argv): ConfigBase<double>(argc, argv) {
-        parse_line = parse_line_weight<double>;
+        parse_line = parse_line_weighted<double>;
+        parse_string_line = parse_string_line_weighted<double>;
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);
@@ -59,11 +55,16 @@ int main(int argc, char** argv) {
 
     // prepare
     MyConfig config(argc, argv);
-    size_t root_id = config.root;
     std::string output_file = config.output_dir;
 
     OlapOnDisk<double> graph;
+    size_t root_vid;
     graph.Load(config, DUAL_DIRECTION);
+    if (config.id_mapping) {
+        root_vid = graph.hash_list_.find(config.root);
+    } else {
+        root_vid = std::stoi(config.root);
+    }
     memUsage.print();
     memUsage.reset();
     auto prepare_cost = get_time() - start_time;
@@ -72,7 +73,7 @@ int main(int argc, char** argv) {
     // core
     start_time = get_time();
     ParallelVector<double> distance = graph.AllocVertexArray<double>();
-    SSSPCore(graph, root_id, distance);
+    SSSPCore(graph, root_vid, distance);
     memUsage.print();
     memUsage.reset();
     auto core_cost = get_time() - start_time;
@@ -89,7 +90,12 @@ int main(int argc, char** argv) {
         },
         0, graph.NumVertices(), 0,
         [&](size_t a, size_t b) { return distance[a] > distance[b] ? a : b; });
-    printf("max distance is: distance[%ld]=%lf\n", max_distance_vi, distance[max_distance_vi]);
+    if (config.id_mapping) {
+        printf("max distance is: distance[%s]=%lf\n",
+                graph.mapped_to_origin_[max_distance_vi].c_str(), distance[max_distance_vi]);
+    } else {
+        printf("max distance is: distance[%ld]=%lf\n", max_distance_vi, distance[max_distance_vi]);
+    }
 
     if (output_file != "") {
         std::function<bool(double&)> filter_output = [&] (double & val) -> bool {

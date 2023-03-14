@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 
 
 
-class TestCppClient():
+class TestCppClient:
 
     BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_plugins/scan_graph.cpp ./liblgraph.so -shared",
                        "g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./sortstr.so ../../test/test_plugins/sortstr.cpp ./liblgraph.so -shared"],

@@ -1,12 +1,15 @@
 [submodule "deps/fma-common"]
 	path = deps/fma-common
-	url = git@github.com:TuGraph-db/fma-common.git
+	url = git@github.com:TuGraph-family/fma-common.git
 [submodule "deps/tugraph-web"]
 	path = deps/tugraph-web
-	url = git@github.com:TuGraph-db/tugraph-web.git
+	url = git@github.com:TuGraph-family/tugraph-web.git
 [submodule "deps/tiny-process-library"]
 	path = deps/tiny-process-library
 	url = git@github.com:cpp-pm/tiny-process-library.git
 [submodule "deps/antlr4"]
 	path = deps/antlr4
-	url = git@github.com:TuGraph-db/antlr4.git
+	url = git@github.com:TuGraph-family/antlr4.git
+[submodule "deps/tugraph-db-client-java"]
+	path = deps/tugraph-db-client-java
+	url = git@github.com:TuGraph-family/tugraph-db-client-java.git

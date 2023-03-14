@@ -1,9 +1,8 @@
-
 import os
 import time
 import pytest
 import logging
-import python_client
+import liblgraph_client_python
 from build_so_wrapper import BuildSoWrapper
 from toolkits_wrapper import ToolkitsWrapper
 from executable_wrapper import ExecutableWrapper
@@ -34,7 +33,7 @@ def client(request):
     log.info("client start")
     for i in range(60):
         try:
-            c = python_client.client(request.param.get("host"), request.param.get("user"), request.param.get("password"))
+            c = liblgraph_client_python.client(request.param.get("host"), request.param.get("user"), request.param.get("password"))
             log.info("client succeed")
             break
         except Exception as e:

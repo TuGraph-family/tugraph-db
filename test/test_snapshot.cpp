@@ -103,4 +103,5 @@ TEST_F(TestSnapshot, Snapshot) {
         UT_EXPECT_TRUE(galaxy.LoadSnapshot(path_snap));
     }
     fma_common::file_system::RemoveDir("./snap");
+    fma_common::SleepS(1);  // waiting for memory reclaiming by async task
 }

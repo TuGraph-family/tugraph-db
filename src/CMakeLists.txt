@@ -4,13 +4,13 @@ project(TuGraphSrc C CXX)
 set(LGRAPH_SRC_DIR ${PROJECT_SOURCE_DIR})
 
 include(BuildLGraphApi.cmake)
-include(BuildPythonPackage.cmake)
+include(BuildPythonApi.cmake)
 include(BuildLGraphServer.cmake)
 include(BuildCypherLib.cmake)
 include(BuildClients.cmake)
-include(BuildPyClient.cmake)
+include(BuildCythonExtension.cmake)
 
-install(TARGETS lgraph lgraph_python lgraph_server liblgraph_rpc_client lgraph_rest_client
+install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_cpp_rpc lgraph_client_cpp_rest lgraph_client_python lgraph_db_python
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib64)
 install(DIRECTORY

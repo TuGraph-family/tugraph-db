@@ -17,6 +17,8 @@
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
+#define __ADD_DANGLING__
+
 void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<double>& curr) {
     auto all_vertices = graph.AllocVertexSubset();
     all_vertices.Fill();
@@ -24,15 +26,22 @@ void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<dou
     size_t num_vertices = graph.NumVertices();
 
     double one_over_n = (double)1 / num_vertices;
-    double delta = graph.ProcessVertexActive<double>(
+    double delta = 1;
+    double dangling = graph.ProcessVertexActive<double>(
         [&](size_t vi) {
             curr[vi] = one_over_n;
             if (graph.OutDegree(vi) > 0) {
                 curr[vi] /= graph.OutDegree(vi);
+                return 0.0;
             }
+#ifdef __ADD_DANGLING__
             return one_over_n;
+#else
+            return 0.0;
+#endif
         },
         all_vertices);
+    dangling /= num_vertices;
 
     double d = (double)0.85;
     for (int ii = 0; ii < num_iterations; ii++) {
@@ -46,7 +55,7 @@ void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<dou
                     sum += curr[src];
                 }
                 next[vi] = sum;
-                next[vi] = (1 - d) * one_over_n + d * next[vi];
+                next[vi] = (1 - d) * one_over_n + d * next[vi] + d * dangling;
                 if (ii == num_iterations - 1) {
                     return (double)0;
                 } else {
@@ -60,5 +69,16 @@ void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<dou
             },
             all_vertices);
         curr.Swap(next);
+
+#ifdef __ADD_DANGLING__
+        dangling = graph.ProcessVertexActive<double>(
+            [&](size_t vi) {
+                if (graph.OutDegree(vi) == 0)
+                    return curr[vi];
+                return 0.0;
+            },
+            all_vertices);
+        dangling /= num_vertices;
+#endif
     }
 }

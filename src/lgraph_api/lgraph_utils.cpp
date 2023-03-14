@@ -130,8 +130,8 @@ std::string decode_base64(const std::string input) {
 
     size_t input_length = input.size();
     assert(input_length % 4 == 0);
-
     size_t output_length = input_length / 4 * 3;
+    size_t orig_output_length = output_length;
 
     if (input[input_length-2] == '=') {
         output_length -= 2;
@@ -139,8 +139,7 @@ std::string decode_base64(const std::string input) {
         output_length--;
     }
     std::string output;
-    output.resize(output_length);
-
+    output.resize(orig_output_length);
     for (size_t i = 0; i < input_length; i += 4) {
         uint32_t a = input[i] == '=' ? 0 : decode_table[static_cast<int>(input[i])];
         uint32_t b = input[i+1] == '=' ? 0 : decode_table[static_cast<int>(input[i+1])];
@@ -153,7 +152,7 @@ std::string decode_base64(const std::string input) {
         output[j+1] = (triple >> 8) & 0xFF;
         output[j+2] = triple & 0xFF;
     }
-
+    output.resize(output_length);
     return output;
 }
 

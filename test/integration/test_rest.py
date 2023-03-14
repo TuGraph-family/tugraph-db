@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import os
@@ -15,7 +14,7 @@ def Process(db, input):
     return (True, input)
 '''
 
-class TestRest():
+class TestRest:
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

@@ -23,7 +23,6 @@ int TestOutEdgeIterator(int, char**);
 int TestInRefIterator(int, char**);
 int TestPerfGraphNoncontinuous(bool track_incoming, bool durable);
 
-
 namespace lgraph {
 class Transaction;
 

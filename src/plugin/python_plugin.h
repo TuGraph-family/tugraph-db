@@ -234,7 +234,7 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
      * @return  The plugin path.
      */
     std::string GetPluginPath(const std::string& name) override {
-        return fma_common::file_system::JoinPath(plugin_dir_, name + ".py");
+        return fma_common::file_system::JoinPath(plugin_dir_, name + ".so");
     }
 
     std::string GetPluginDir() override { return plugin_dir_; }

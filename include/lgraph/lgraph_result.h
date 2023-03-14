@@ -20,51 +20,20 @@
 #pragma once
 #include "lgraph/lgraph.h"
 #include "tools/json.hpp"
+#include "lgraph/lgraph_types.h"
 
 #ifndef _WIN32
 #include "lgraph/lgraph_traversal.h"
 #endif
 
+
+namespace lgraph {
+class StateMachine;
+}
+
 namespace lgraph_api {
-/**
- * @brief result type
- * @param INTEGER
- * @param FLOAT
- * @param DOUBLE
- * @param BOOLEAN
- * @param STRING
- * @param MAP <string, FieldData>
- * @param NODE VertexIterator, VertexId
- * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
- * @param PATH lgraph_api::Path
- * @param LIST <string, FieldData>
- * @param FIELD INTEGER, FLOAT, DOUBLE, BOOLEAN, STRING
- * @param GRAPH_ELEMENT TODO. NODE, RELATIONSHIP, PATH
- * @param COLLECTION TODO. MAP, LIST
- * @param ANY TODO. any type
- */
-enum class ResultElementType {
-    NUL = 0x0,
-    INTEGER = 0x11,
-    FLOAT = 0x12,
-    DOUBLE = 0x13,
-    BOOLEAN = 0x14,
-    STRING = 0x15,
-    NODE = 0x21,
-    RELATIONSHIP = 0x22,
-    PATH = 0x23,
-    LIST = 0x41,
-    MAP = 0x42,
-    FIELD = 0x10,
-    GRAPH_ELEMENT = 0x20,
-    COLLECTION = 0x40,
-    ANY = 0x80
-};
 
 struct ResultElement;
-
-
-ResultElementType ResultElementTypeUpcast(ResultElementType);
 
 /**
  * @brief   You only initialize the class by Result instance. Record provide some insert method
@@ -72,10 +41,10 @@ ResultElementType ResultElementTypeUpcast(ResultElementType);
  */
 class Record {
     std::unordered_map<std::string, std::shared_ptr<ResultElement>> record;
-    std::unordered_map<std::string, ResultElementType> header;
+    std::unordered_map<std::string, LGraphType> header;
     int64_t length_;
 
-    explicit Record(const std::vector<std::pair<std::string, ResultElementType>> &);
+    explicit Record(const std::vector<std::pair<std::string, LGraphType>> &);
 
  public:
     friend class Result;
@@ -239,7 +208,6 @@ class Record {
      */
     bool HasKey(const std::string &key) { return header.find(key) != header.end(); }
 };
-
 /**
  * @brief   Result table, result instance provide [NewRecord], [ResetHeader], [Dump] and [Load]
  *          method. Table also provide some method to view content of table. For example,
@@ -247,46 +215,47 @@ class Record {
  *          
  *          It's worth noting that you are best to define your header before using result table.
  *          eg.
- *                       auto result = Result({title, ResultElementType}...)
+ *                       auto result = Result({title, LGraphType}...)
  *          If you do not define header and initialize by Result(), you will get a empty table
  *          without header, you just use the table after using [ResetHeader] method to set your
  *          header.
  */
 class Result {
+    friend class lgraph::StateMachine;
     std::vector<Record> result;
-    std::vector<std::pair<std::string, ResultElementType>> header;
+    std::vector<std::pair<std::string, LGraphType>> header;
     int64_t row_count_;
 
  public:
     Result();
-    Result(const std::initializer_list<std::pair<std::string, ResultElementType>> &);
-    explicit Result(const std::vector<std::pair<std::string, ResultElementType>> &);
+    Result(const std::initializer_list<std::pair<std::string, LGraphType>> &);
+    explicit Result(const std::vector<std::pair<std::string, LGraphType>> &);
 
     /**
      * @brief   Get type of title.
      *
      * @param   title   One of titles in table.
      *
-     * @returns ResultElementType.
+     * @returns LGraphType.
      */
-    ResultElementType GetType(std::string title);
+    LGraphType GetType(std::string title);
 
     /**
      * @brief   Reset your header, the operation will clear the original data and header, please
      *          use the function carefully.
      *
-     * @param   header  List of &lt;title, ResultElementType&gt;
+     * @param   header  List of &lt;title, LGraphType&gt;
      */
-    void ResetHeader(const std::vector<std::pair<std::string, ResultElementType>> &header);
+    void ResetHeader(const std::vector<std::pair<std::string, LGraphType>> &header);
 
     /**
      * @brief   Reset your header, the operation will clear the original data and header, please
      *          use the function carefully.
      *
-     * @param   header  List of &lt;title, ResultElementType&gt;
+     * @param   header  List of &lt;title, LGraphType&gt;
      */
     void ResetHeader(
-        const std::initializer_list<std::pair<std::string, ResultElementType>> &header);
+        const std::initializer_list<std::pair<std::string, LGraphType>> &header);
 
     /**
      * @brief   Create a new record in the table and return the record. The record is the
@@ -302,18 +271,7 @@ class Result {
      *
      * @returns header.
      */
-    const std::vector<std::pair<std::string, ResultElementType>> &Header();
-
-    /**
-     * @brief   Get record of the table, if row number is more bigger than max length of table,
-     *          throw a exception.
-     *
-     * @param   row_num row number of the table.
-     *
-     * @returns One Record.
-     */
-    const std::unordered_map<std::string, std::shared_ptr<ResultElement>>&
-    RecordView(int64_t row_num);
+    const std::vector<std::pair<std::string, LGraphType>> &Header();
 
     /**
      * @brief   return size of the table.
@@ -340,6 +298,18 @@ class Result {
      * @param   json    Json string to be deserialized.
      */
     void Load(const std::string &json);
+
+ private:
+    /**
+     * @brief   Get record of the table, if row number is more bigger than max length of table,
+     *          throw a exception.
+     *
+     * @param   row_num row number of the table.
+     *
+     * @returns One Record.
+     */
+    const std::unordered_map<std::string, std::shared_ptr<ResultElement>>&
+    RecordView(int64_t row_num);
 };
 
 }  // namespace lgraph_api

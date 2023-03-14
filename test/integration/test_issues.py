@@ -139,7 +139,7 @@ def file_build_1():
     if os.path.exists(edge_file_name):
         os.remove(edge_file_name)
 
-class TestIssues():
+class TestIssues:
 
 
     # @pytest.mark.parametrize("server", [SERVEROPT_55_1], indirect=True)
@@ -177,11 +177,11 @@ class TestIssues():
     def test_issues_59_1(self, file_builder, importor, server, client):
         ret = client.callCypher("MATCH (n) RETURN COUNT(n)", "default")
         assert ret[0]
-        has_vertex = json.loads(ret[1])
+        has_vertex = json.loads(ret[1])[0]
         assert(has_vertex["COUNT(n)"] == 2)
         ret = client.callCypher("match (n)-[r]->(m) return COUNT(r)", "default")
         assert ret[0]
-        has_edge = json.loads(ret[1])
+        has_edge = json.loads(ret[1])[0]
         assert(has_edge["COUNT(r)"] == 3)
 
 
@@ -196,11 +196,11 @@ class TestIssues():
     def test_issues_59_2(self, file_builder, importor, server, client):
         ret = client.callCypher("MATCH (n) RETURN COUNT(n)", "default")
         assert ret[0]
-        has_vertex = json.loads(ret[1])
+        has_vertex = json.loads(ret[1])[0]
         assert(has_vertex["COUNT(n)"] == 2)
         ret = client.callCypher("match (n)-[r]->(m) return COUNT(r)", "default")
         assert ret[0]
-        has_edge = json.loads(ret[1])
+        has_edge = json.loads(ret[1])[0]
         assert(has_edge["COUNT(r)"] == 3)
 
 
@@ -215,11 +215,11 @@ class TestIssues():
     def test_issues_59_3(self, file_builder, importor, server, client):
         ret = client.callCypher("MATCH (n) RETURN COUNT(n)", "default")
         assert ret[0]
-        has_vertex = json.loads(ret[1])
+        has_vertex = json.loads(ret[1])[0]
         assert(has_vertex["COUNT(n)"] == 2)
         ret = client.callCypher("match (n)-[r]->(m) return COUNT(r)", "default")
         assert ret[0]
-        has_edge = json.loads(ret[1])
+        has_edge = json.loads(ret[1])[0]
         assert(has_edge["COUNT(r)"] == 3)
 
 
@@ -234,11 +234,11 @@ class TestIssues():
     def test_issues_59_4(self, file_builder, importor, server, client):
         ret = client.callCypher("MATCH (n) RETURN COUNT(n)", "default")
         assert ret[0]
-        has_vertex = json.loads(ret[1])
+        has_vertex = json.loads(ret[1])[0]
         assert(has_vertex["COUNT(n)"] == 2)
         ret = client.callCypher("match (n)-[r]->(m) return COUNT(r)", "default")
         assert ret[0]
-        has_edge = json.loads(ret[1])
+        has_edge = json.loads(ret[1])[0]
         assert(has_edge["COUNT(r)"] == 3)
 
 
@@ -253,11 +253,11 @@ class TestIssues():
     def test_issues_59_5(self, file_builder, importor, server, client):
         ret = client.callCypher("MATCH (n) RETURN COUNT(n)", "default")
         assert ret[0]
-        has_vertex = json.loads(ret[1])
+        has_vertex = json.loads(ret[1])[0]
         assert(has_vertex["COUNT(n)"] == 2)
         ret = client.callCypher("match (n)-[r]->(m) return COUNT(r)", "default")
         assert ret[0]
-        has_edge = json.loads(ret[1])
+        has_edge = json.loads(ret[1])[0]
         assert(has_edge["COUNT(r)"] == 3)
 
 
@@ -270,11 +270,11 @@ class TestIssues():
     def test_issues_59_6(self, file_build_1, importor, server, client):
         ret = client.callCypher("MATCH (n) RETURN COUNT(n)", "default")
         assert ret[0]
-        has_vertex = json.loads(ret[1])
+        has_vertex = json.loads(ret[1])[0]
         assert(has_vertex["COUNT(n)"] == 2)
         ret = client.callCypher("match (n)-[r]->(m) return COUNT(r)", "default")
         assert ret[0]
-        has_edge = json.loads(ret[1])
+        has_edge = json.loads(ret[1])[0]
         assert(has_edge["COUNT(r)"] == 1)
 
     IMPORT_OPT = {"cmd":"./lgraph_import --config_file ./import.config --dir ./testdb --user admin --password 73@TuGraph --graph default --overwrite 1 --continue_on_error true",

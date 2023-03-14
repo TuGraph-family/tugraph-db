@@ -37,9 +37,10 @@
 #include <vector>
 #include <iostream>
 
-#include "lgraph/lgraph.h"
 #include "lgraph/lgraph_atomic.h"
 #include "lgraph/lgraph_utils.h"
+
+#include "libcuckoo/cuckoohash_map.hh"
 
 namespace lgraph_api {
 namespace olap {
@@ -136,6 +137,19 @@ struct EdgeUnit<Empty> {
 } __attribute__((packed));
 
 /**
+ * @brief   EdgeStringUnit<EdgeData> represents an edge with EdgeData as the weight type, The vertex is of string type.
+ *
+ * @tparam  EdgeData    Type of the edge data.
+ */
+
+template <typename EdgeData>
+struct EdgeStringUnit {
+    std::string src;
+    std::string dst;
+    EdgeData edge_data;
+};
+
+/**
  * @brief   Define the edge direction policy of graph
  *          The policy determines the graph symmetric and undirected feature.
  */
@@ -176,8 +190,10 @@ class AdjList {
     AdjList(AdjUnit<EdgeData> *begin, AdjUnit<EdgeData> *end) : begin_(begin), end_(end) {}
 
  public:
+    AdjList() : begin_(nullptr), end_(nullptr) {}
     AdjUnit<EdgeData> *begin() { return begin_; }
     AdjUnit<EdgeData> *end() { return end_; }
+    AdjUnit<EdgeData>& operator[](size_t i) { return *(begin_ + i); }
 };
 
 /**
@@ -250,7 +266,16 @@ class ParallelVector {
 
     ParallelVector(const ParallelVector<T> &rhs) = delete;
 
-    ParallelVector(ParallelVector<T> &&rhs);
+//    ParallelVector(ParallelVector<T> &&rhs) = default;
+    ParallelVector(ParallelVector<T> &&rhs) {
+        Swap(rhs);
+    }
+
+
+    ParallelVector<T>& operator=(ParallelVector<T>&& rhs) {
+        Swap(rhs);
+        return *this;
+    }
 
     /**
      * @brief   Default constructor of ParallelVector<T>.
@@ -523,8 +548,18 @@ class ParallelBitset {
 
     ParallelBitset(const ParallelBitset &rhs) = delete;
 
-    ParallelBitset(ParallelBitset &&rhs) = default;
+    ParallelBitset& operator=(ParallelBitset &&rhs) {
+        std::swap(size_, rhs.size_);
+        std::swap(data_, rhs.data_);
+        return *this;
+    }
 
+    ParallelBitset(ParallelBitset &&rhs) {
+        std::swap(size_, rhs.size_);
+        std::swap(data_, rhs.data_);
+    }
+
+    ParallelBitset() : data_(nullptr), size_(0) {}
     ~ParallelBitset();
 
     /**
@@ -1076,6 +1111,17 @@ class OlapBase {
         return sum;
     }
 
+    template <typename ReducedSum, typename Algorithm>
+    ReducedSum ProcessVertexInRange(
+        std::function<ReducedSum(Algorithm, size_t)> work, size_t lower, size_t upper,
+        Algorithm algorithm, ReducedSum zero = 0,
+        std::function<ReducedSum(ReducedSum, ReducedSum)> reduce = reduce_plus<ReducedSum>) {
+        return ProcessVertexInRange<ReducedSum>(
+            [&algorithm, &work](size_t vi){
+                return work(algorithm, vi);
+            }, lower, upper, zero, reduce);
+    }
+
     /**
      * @brief   Process a set of active vertices in parallel.
      *
@@ -1198,67 +1244,17 @@ class OlapBase {
         if (CheckKillThisTask()) throw std::runtime_error("Task killed");
         return sum;
     }
+
+    template <typename ReducedSum, typename Algorithm>
+    ReducedSum ProcessVertexActive(
+        std::function<ReducedSum(Algorithm, size_t)> work, ParallelBitset &active_vertices,
+        Algorithm algorithm, ReducedSum zero = 0,
+        std::function<ReducedSum(ReducedSum, ReducedSum)> reduce = reduce_plus<ReducedSum>) {
+        return ProcessVertexActive<ReducedSum>(
+            [&algorithm, &work](size_t vi){
+                return work(algorithm, vi);
+            }, active_vertices, zero, reduce);
+    }
 };
-
-#include <sys/syscall.h>
-#include <unistd.h>
-template <typename T>
-T ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
-                const std::vector<int64_t> vertices,
-                std::function<void(Transaction &, VertexIterator &, T &)> work,
-                std::function<void(const T &, T &)> reduce, size_t parallel_factor = 8) {
-    T results;
-    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
-    auto& worker = workers[wid];
-    worker.Delegate([&]() {
-#pragma omp parallel num_threads(parallel_factor)
-        {
-            T local_results;
-            auto txn_ = db.ForkTxn(txn);
-            int tid = omp_get_thread_num();
-            int num_th = omp_get_num_threads();
-            size_t start = vertices.size() / num_th * tid;
-            size_t end = vertices.size() / num_th * (tid + 1);
-            if (tid == num_th - 1) end = vertices.size();
-            auto vit = txn_.GetVertexIterator();
-            for (size_t i = start; i < end; i++) {
-                vit.Goto(vertices[i]);
-                work(txn_, vit, local_results);
-            }
-#pragma omp critical
-            {
-                reduce(local_results, results);
-            }
-        }
-    });
-    return results;
-}
-template <typename T>
-std::vector<T> ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
-                             const std::vector<int64_t> vertices,
-                             std::function<T(Transaction &, VertexIterator &, size_t)> work,
-                             size_t parallel_factor = 8) {
-    std::vector<T> results(vertices.size());
-    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
-    auto& worker = workers[wid];
-    worker.Delegate([&]() {
-#pragma omp parallel num_threads(parallel_factor)
-        {
-            auto txn_ = db.ForkTxn(txn);
-            int tid = omp_get_thread_num();
-            int num_th = omp_get_num_threads();
-            size_t start = vertices.size() / num_th * tid;
-            size_t end = vertices.size() / num_th * (tid + 1);
-            if (tid == num_th - 1) end = vertices.size();
-            auto vit = txn_.GetVertexIterator();
-            for (size_t i = start; i < end; i++) {
-                vit.Goto(vertices[i]);
-                results[i] = work(txn_, vit, i);
-            }
-        }
-    });
-    return results;
-}
-
 }  // namespace olap
 }  // namespace lgraph_api

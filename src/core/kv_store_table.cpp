@@ -33,7 +33,7 @@ size_t KvTable::GetVersion(KvTransaction& txn, const Value& key) {
 static int DefaultCompareKey(const MDB_val* a, const MDB_val* b) {
     bool b_longer = false;
     size_t s = a->mv_size;
-    if (s < b->mv_size) {
+    if (s > b->mv_size) {
         b_longer = true;
         s = b->mv_size;
     }

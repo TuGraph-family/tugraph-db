@@ -22,24 +22,7 @@ using json = nlohmann::json;
 
 namespace lgraph_api {
 
-ResultElementType ResultElementTypeUpcast(ResultElementType type) {
-    if ((static_cast<int>(type) & 0xF0) == static_cast<int>(ResultElementType::FIELD)) {
-        return ResultElementType::FIELD;
-    }
-    if ((static_cast<int>(type) & 0xF0) == static_cast<int>(ResultElementType::GRAPH_ELEMENT)) {
-        return ResultElementType::GRAPH_ELEMENT;
-    }
-    if ((static_cast<int>(type) & 0xF0) == static_cast<int>(ResultElementType::COLLECTION)) {
-        return ResultElementType::COLLECTION;
-    }
-    if ((static_cast<int>(type) & 0xF0) == static_cast<int>(ResultElementType::ANY)) {
-        return ResultElementType::ANY;
-    } else {
-        return type;
-    }
-}
-
-Record::Record(const std::vector<std::pair<std::string, ResultElementType>> &args) {
+Record::Record(const std::vector<std::pair<std::string, LGraphType>> &args) {
     for (auto arg : args) {
         auto key = arg.first;
         auto value = arg.second;
@@ -86,31 +69,29 @@ void Record::Insert(const std::string &key, const FieldData &value) {
     if (!HasKey(key)) {
         throw std::runtime_error(FMA_FMT("[Result ERROR] the variable {} is not exist", key));
     }
-    if (header[key] == ResultElementType::INTEGER &&
+    if (header[key] == LGraphType::INTEGER &&
         (value.type == FieldType::INT8 || value.type == FieldType::INT16 ||
          value.type == FieldType::INT32 || value.type == FieldType::INT64)) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::INTEGER));
-    } else if (header[key] == ResultElementType::FLOAT && value.type == FieldType::FLOAT) {
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::INTEGER));
+    } else if (header[key] == LGraphType::FLOAT && value.type == FieldType::FLOAT) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::FLOAT));
-    } else if (header[key] == ResultElementType::DOUBLE && value.type == FieldType::DOUBLE) {
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::FLOAT));
+    } else if (header[key] == LGraphType::DOUBLE && value.type == FieldType::DOUBLE) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::DOUBLE));
-    } else if (header[key] == ResultElementType::BOOLEAN && value.type == FieldType::BOOL) {
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::DOUBLE));
+    } else if (header[key] == LGraphType::BOOLEAN && value.type == FieldType::BOOL) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::BOOLEAN));
-    } else if (header[key] == ResultElementType::STRING && value.type == FieldType::STRING) {
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::BOOLEAN));
+    } else if (header[key] == LGraphType::STRING && value.type == FieldType::STRING) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::STRING));
-    } else if (header[key] == ResultElementType::PATH && value.type == FieldType::STRING) {
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::STRING));
+    } else if (header[key] == LGraphType::PATH && value.type == FieldType::STRING) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::PATH));
-    } else if (header[key] == ResultElementType::ANY && value.type == FieldType::STRING) {
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::PATH));
+    } else if (header[key] == LGraphType::ANY) {
         record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, ResultElementType::ANY));
-    } else if (header[key] == ResultElementType::FIELD) {
-        record[key] = std::shared_ptr<ResultElement>(new ResultElement(value));
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::ANY));
     } else {
         throw std::runtime_error("[Result ERROR] type is valid");
     }
@@ -119,7 +100,7 @@ void Record::Insert(const std::string &key, const FieldData &value) {
 }
 
 void Record::Insert(const std::string &key, const std::map<std::string, FieldData> &value) {
-    if (!HasKey(key) || header[key] != ResultElementType::MAP) {
+    if (!HasKey(key) || header[key] != LGraphType::MAP) {
         throw std::runtime_error(FMA_FMT("[Result ERROR] the variable {} is not exist", key));
     }
     std::map<std::string, json> j_value;
@@ -131,7 +112,7 @@ void Record::Insert(const std::string &key, const std::map<std::string, FieldDat
 }
 
 void Record::Insert(const std::string &key, const std::vector<FieldData> &value) {
-    if (!HasKey(key) || header[key] != ResultElementType::LIST) {
+    if (!HasKey(key) || header[key] != LGraphType::LIST) {
         throw std::runtime_error(FMA_FMT("[Result ERROR] the variable {} is not exist", key));
     }
     std::vector<json> j_value;
@@ -143,7 +124,7 @@ void Record::Insert(const std::string &key, const std::vector<FieldData> &value)
 }
 
 void Record::Insert(const std::string &key, const lgraph_api::VertexIterator &vertex_it) {
-    if (!HasKey(key) || header[key] != ResultElementType::NODE) {
+    if (!HasKey(key) || header[key] != LGraphType::NODE) {
         throw std::runtime_error(
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
@@ -159,7 +140,7 @@ void Record::Insert(const std::string &key, const lgraph_api::VertexIterator &ve
 }
 
 void Record::Insert(const std::string &key, const lgraph_api::InEdgeIterator &in_edge_it) {
-    if (!HasKey(key) || header[key] != ResultElementType::RELATIONSHIP) {
+    if (!HasKey(key) || header[key] != LGraphType::RELATIONSHIP) {
         throw std::runtime_error(
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
@@ -181,7 +162,7 @@ void Record::Insert(const std::string &key, const lgraph_api::InEdgeIterator &in
 }
 
 void Record::Insert(const std::string &key, const lgraph_api::OutEdgeIterator &out_edge_it) {
-    if (!HasKey(key) || header[key] != ResultElementType::RELATIONSHIP) {
+    if (!HasKey(key) || header[key] != LGraphType::RELATIONSHIP) {
         throw std::runtime_error(
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
@@ -269,7 +250,7 @@ void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
 Result::Result() : row_count_(-1) {}
 
 void Record::Insert(const std::string &key, const traversal::Path &path, lgraph::Transaction *txn) {
-    if (!HasKey(key) || header[key] != ResultElementType::PATH) {
+    if (!HasKey(key) || header[key] != LGraphType::PATH) {
         throw std::runtime_error(
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
@@ -325,7 +306,7 @@ void Record::Insert(const std::string &key, const traversal::Path &path,
     Insert(key, path, txn->GetTxn().get());
 }
 
-Result::Result(const std::initializer_list<std::pair<std::string, ResultElementType>> &args) {
+Result::Result(const std::initializer_list<std::pair<std::string, LGraphType>> &args) {
     for (auto h : args) header.push_back(h);
     row_count_ = -1;
 }
@@ -336,23 +317,23 @@ Record &Result::NewRecord() {
     return result[row_count_];
 }
 
-void Result::ResetHeader(const std::vector<std::pair<std::string, ResultElementType>> &new_header) {
+void Result::ResetHeader(const std::vector<std::pair<std::string, LGraphType>> &new_header) {
     result.clear();
     header = new_header;
     row_count_ = -1;
 }
 
 void Result::ResetHeader(
-    const std::initializer_list<std::pair<std::string, ResultElementType>> &new_header) {
+    const std::initializer_list<std::pair<std::string, LGraphType>> &new_header) {
     result.clear();
     header.clear();
     row_count_ = -1;
     for (auto h : new_header) header.push_back(h);
 }
 
-const std::vector<std::pair<std::string, ResultElementType>> &Result::Header() { return header; }
+const std::vector<std::pair<std::string, LGraphType>> &Result::Header() { return header; }
 
-Result::Result(const std::vector<std::pair<std::string, ResultElementType>> &args) {
+Result::Result(const std::vector<std::pair<std::string, LGraphType>> &args) {
     header = args;
     row_count_ = -1;
 }
@@ -368,7 +349,7 @@ const std::unordered_map<std::string, std::shared_ptr<ResultElement>> &Result::R
     return result[row_num].record;
 }
 
-ResultElementType Result::GetType(std::string title) {
+LGraphType Result::GetType(std::string title) {
     for (auto &h : header) {
         if (h.first == title) {
             return h.second;
@@ -378,8 +359,6 @@ ResultElementType Result::GetType(std::string title) {
 }
 
 std::string Result::Dump(bool is_standard) {
-    // output["header"] = header;
-    // output["row_num"] = row_count_;
     json arr = json::array();
     for (auto record : result) {
         json j;
@@ -403,18 +382,7 @@ std::string Result::Dump(bool is_standard) {
         output["data"] = arr;
         return output.dump();
     } else {
-        if (row_count_ == -1) {
-            json j;
-            return j.dump();
-        } else if (row_count_ == 0) {
-            json j;
-            for (auto h : header) {
-                j[h.first] = result[0].record[h.first]->ToJson();
-            }
-            return j.dump();
-        } else {
-            return arr.dump();
-        }
+        return arr.dump();
     }
 }
 
@@ -432,7 +400,7 @@ void Result::Load(const std::string &output) {
         auto data = j["data"];
         for (auto h : j_header) {
             std::string title_name = h[0].get<std::string>();
-            ResultElementType title_type = h[1].get<ResultElementType>();
+            LGraphType title_type = h[1].get<LGraphType>();
             header.push_back({title_name, title_type});
         }
         for (auto &row : data) {
@@ -440,36 +408,33 @@ void Result::Load(const std::string &output) {
             for (auto &col : row.items()) {
                 auto title = col.key();
                 switch (GetType(title)) {
-                case ResultElementType::INTEGER:
+                case LGraphType::INTEGER:
                     record.Insert(title, FieldData(std::forward<int>(col.value().get<int>())));
                     break;
-                case ResultElementType::FLOAT:
+                case LGraphType::FLOAT:
                     record.Insert(title, FieldData(std::forward<float>(col.value().get<float>())));
                     break;
-                case ResultElementType::DOUBLE:
+                case LGraphType::DOUBLE:
                     record.Insert(title,
                                   FieldData(std::forward<double>(col.value().get<double>())));
                     break;
-                case ResultElementType::BOOLEAN:
+                case LGraphType::BOOLEAN:
                     record.Insert(title, FieldData(std::forward<bool>(col.value().get<bool>())));
                     break;
-                case ResultElementType::STRING:
-                case ResultElementType::ANY:
+                case LGraphType::STRING:
+                case LGraphType::ANY:
                     record.Insert(
                         title,
                         FieldData(std::forward<std::string>(col.value().get<std::string>())));
                     break;
-                case ResultElementType::FIELD:
-                    record.Insert(title, FieldData(std::forward<FieldData>(
-                                             lgraph_rfc::JsonToFieldData(col.value()))));
-                case ResultElementType::LIST:
+                case LGraphType::LIST:
                     {
                         std::vector<FieldData> list;
                         for (auto &obj : col.value()) list.push_back(FieldData(obj.dump()));
                         record.Insert(title, list);
                     }
                     break;
-                case ResultElementType::MAP:
+                case LGraphType::MAP:
                     {
                         std::map<std::string, FieldData> map;
                         for (auto &obj : col.value().items())
@@ -477,7 +442,7 @@ void Result::Load(const std::string &output) {
                         record.Insert(title, map);
                     }
                     break;
-                case ResultElementType::NODE:
+                case LGraphType::NODE:
                     {
                         lgraph_result::Node node;
                         node.id = col.value()["identity"].get<int64_t>();
@@ -491,7 +456,7 @@ void Result::Load(const std::string &output) {
                         record.length_++;
                     }
                     break;
-                case ResultElementType::RELATIONSHIP:
+                case LGraphType::RELATIONSHIP:
                     {
                         lgraph_result::Relationship repl;
                         repl.id = col.value()["identity"].get<int64_t>();
@@ -508,7 +473,7 @@ void Result::Load(const std::string &output) {
                         record.length_++;
                     }
                     break;
-                case ResultElementType::PATH:
+                case LGraphType::PATH:
                     {
                         bool is_node = true;
                         lgraph_result::Path path;

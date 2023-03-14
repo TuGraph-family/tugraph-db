@@ -611,7 +611,7 @@ class EdgeValue {
     EdgeValue(const IT& beg,  // is a sequential iterator of std::tuple<LabelId, TemporalId
                               // VertexId, DenseString>
               const IT& end, LabelId& last_lid, TemporalId& last_tid, VertexId& last_vid,
-              EdgeId& last_eid, typename std::decay<IT>::type& next_begin) {
+              EdgeId& last_eid, typename std::decay<IT>::type& next_begin, bool no_split = false) {
         size_t edge_size = 0;
         LabelId clid = last_lid;
         TemporalId ctid = last_tid;
@@ -627,7 +627,7 @@ class EdgeValue {
             size_t hsize;
             EdgeId eid = (lid != clid || vid != cvid || tid != ctid) ? 0 : ceid + 1;
             hsize = GetHeaderSizeRequired(lid, tid, vid, eid);
-            if (next_begin != beg &&           // at least include one edge
+            if (!no_split && next_begin != beg &&           // at least include one edge
                 edge_size                      // size so far
                         + hsize + prop.size()  // new edge size
                         + NOffsets(n_edges + 1) * sizeof(PackDataOffset) +

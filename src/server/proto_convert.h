@@ -181,7 +181,7 @@ struct FieldDataConvert {
 
 #ifndef _WIN32
     static inline void FromLGraphT(
-        const std::vector<std::pair<std::string, lgraph_api::ResultElementType>>& header,
+        const std::vector<std::pair<std::string, lgraph_api::LGraphType>>& header,
         const std::unordered_map<std::string, std::shared_ptr<lgraph_api::ResultElement>>& fds,
         ::google::protobuf::RepeatedPtrField<ProtoFieldData>* ret) {
         ret->Clear();
@@ -189,8 +189,7 @@ struct FieldDataConvert {
         ret->Reserve(static_cast<int>(fds.size()));
 
         for (auto& h : header) {
-            if (lgraph_api::ResultElementTypeUpcast(h.second) ==
-                    lgraph_api::ResultElementType::FIELD) {
+            if (lgraph_api::LGraphTypeIsField(h.second)) {
                 FromLGraphT(*fds.at(h.first)->v.fieldData, ret->Add());
             } else {
                 FromLGraphT(FieldData(std::move(fds.at(h.first)->ToString())), ret->Add());

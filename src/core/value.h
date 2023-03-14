@@ -218,6 +218,7 @@ class Value {
             memcpy(data_, rhs.data_, rhs.size_);
         } else {
             if (rhs.size_ > 0 && rhs.data_ == rhs.stack_) {
+                if (need_delete_) LBFree(data_);
                 // copy over
                 memcpy(stack_, rhs.stack_, rhs.size_);
                 data_ = stack_;

@@ -19,22 +19,18 @@
 #include <cstdint>
 #include <string>
 
+#include "fma-common/string_formatter.h"
 #include "core/defs.h"
 
 namespace lgraph {
 namespace import_v2 {
 
 class DenseString {
+    static const size_t SMALL_BUF_SIZE = 8;
+
+    uint32_t size_ = 0;
     union {
-        struct {
-#if BYTE_ORDER == LITTLE_ENDIAN
-            char buf_[6];
-            uint16_t size_;
-#else
-            uint16_t size_;
-            char buf_[6];
-#endif
-        };
+        char buf_[SMALL_BUF_SIZE];
         char* ptr_;
     };
 
@@ -58,14 +54,16 @@ class DenseString {
 
     DenseString(DenseString&& rhs) {
         ptr_ = rhs.ptr_;
+        size_ = rhs.size_;
         rhs.size_ = 0;
     }
 
     DenseString(const DenseString& rhs) {
-        if (rhs.size_ > 6) {
-            SetContent(rhs.GetPtr(), rhs.size_);
+        if (rhs.size_ > SMALL_BUF_SIZE) {
+            SetContent(rhs.data(), rhs.size_);
         } else {
             ptr_ = rhs.ptr_;
+            size_ = rhs.size_;
         }
     }
 
@@ -73,6 +71,7 @@ class DenseString {
         if (this == &rhs) return *this;
         Destroy();
         ptr_ = rhs.ptr_;
+        size_ = rhs.size_;
         rhs.size_ = 0;
         return *this;
     }
@@ -80,18 +79,14 @@ class DenseString {
     DenseString& operator=(const DenseString& rhs) {
         if (this == &rhs) return *this;
         Destroy();
-        if (rhs.size_ > 6) {
-            SetContent(rhs.GetPtr(), rhs.size_);
-        } else {
-            ptr_ = rhs.ptr_;
-        }
+        SetContent(rhs.data(), rhs.size_);
         return *this;
     }
 
     bool operator==(const DenseString& rhs) const {
         if (this == &rhs) return true;
         if (size_ != rhs.size_) return false;
-        if (size_ > 6) {
+        if (size_ > SMALL_BUF_SIZE) {
             const char* p1 = data();
             const char* p2 = rhs.data();
             for (size_t i = 0; i < size_; i++)
@@ -115,7 +110,7 @@ class DenseString {
         return size_ < rhs.size_;
     }
 
-    const char* data() const { return size_ > 6 ? GetPtr() : buf_; }
+    const char* data() const { return size_ > SMALL_BUF_SIZE ? ptr_ : buf_; }
 
     size_t size() const { return size_; }
 
@@ -156,7 +151,7 @@ class DenseString {
         size_t r = stream.Read(&s, sizeof(s));
         if (r == 0) return 0;
         FMA_DBG_CHECK_EQ(r, sizeof(s));
-        if (s > 6) {
+        if (s > SMALL_BUF_SIZE) {
             ptr_ = new char[s];
             r = stream.Read(ptr_, s);
             FMA_DBG_CHECK_EQ(r, s);
@@ -174,9 +169,10 @@ class DenseString {
 
     void SetContent(const char* ptr, size_t s) {
         if (s > std::numeric_limits<decltype(size_)>::max()) {
-            throw std::runtime_error("DenseString cannot hold data larger than 64KB.");
+            throw std::runtime_error(FMA_FMT("DenseString cannot hold data larger than {}.",
+                                             std::numeric_limits<decltype(size_)>::max()));
         }
-        if (s > 6) {
+        if (s > SMALL_BUF_SIZE) {
             ptr_ = new char[s];
             memcpy(ptr_, ptr, s);
         } else {
@@ -187,9 +183,9 @@ class DenseString {
     }
 
     void Destroy() {
-        if (size_ > 6) delete[] GetPtr();
+        if (size_ > SMALL_BUF_SIZE) delete[] ptr_;
     }
 };
-static_assert(sizeof(DenseString) == 8, "DenseString is expected to be of size 8.");
+
 }  // namespace import_v2
 }  // namespace lgraph

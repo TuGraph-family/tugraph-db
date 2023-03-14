@@ -49,8 +49,8 @@ TEST_F(TestLGraphServer, LGraphServer) {
     using namespace lgraph;
     lgraph::GlobalConfig conf;
     conf.db_dir = "./testdb";
-    conf.http_port = 17174;
-    conf.rpc_port = 19194;
+    conf.http_port = 7774;
+    conf.rpc_port = 9394;
     conf.bind_host = "127.0.0.1";
     auto ListGraphs = [](RpcClient& client) {
         std::string graphs;
@@ -68,7 +68,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
             // create graphs
             RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                             _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
-            auto obj = ListGraphs(client);
+            auto obj = ListGraphs(client)[0];
             UT_EXPECT_EQ(obj.is_object(), true);
             UT_EXPECT_EQ(obj["graph_name"].as_string(), "default");
             UT_EXPECT_EQ(obj["configuration"]["max_size_GB"].as_integer(), 1024);
@@ -107,6 +107,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
         }
         std::string str;
         auto server = StartLGraphServer(conf);
+        fma_common::SleepS(4);  // waiting for memory reclaiming by async task
         RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         auto obj = ListGraphs(client);

@@ -127,6 +127,78 @@ inline const std::string to_string(FieldType v) {
     }
 }
 
+/**
+   * @brief a type of value used in result entry and parameter in procedure or plugin signature
+   * @param INTEGER
+   * @param FLOAT
+   * @param DOUBLE
+   * @param BOOLEAN
+   * @param STRING
+   * @param MAP <string, FieldData>
+   * @param NODE VertexIterator, VertexId
+   * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
+   * @param PATH lgraph_api::Path
+   * @param LIST <string, FieldData>
+   * @param ANY like Object in Java,
+   * its procedure author's responsibility to check the underlying concrete type
+   * whether valid in runtime.
+ */
+enum class LGraphType : uint16_t {
+    NUL = 0x0,
+    INTEGER = 0x11,
+    FLOAT = 0x12,
+    DOUBLE = 0x13,
+    BOOLEAN = 0x14,
+    STRING = 0x15,
+    NODE = 0x21,
+    RELATIONSHIP = 0x22,
+    PATH = 0x23,
+    LIST = 0x41,
+    MAP = 0x42,
+    ANY = 0x80
+};
+
+inline auto LGraphTypeIsField(LGraphType type) -> bool {
+    return (uint16_t(type) & 0x10) != 0;
+}
+
+inline auto LGraphTypeIsGraphElement(LGraphType type) -> bool {
+    return (uint16_t(type) & 0x20) != 0;
+}
+
+inline auto LGraphTypeIsCollection(LGraphType type) -> bool {
+    return (uint16_t(type) & 0x40) != 0;
+}
+
+inline auto LGraphTypeIsAny(LGraphType type) -> bool {
+    return type == LGraphType::ANY;
+}
+
+
+/**
+ * @brief The parameter of procedure/plugin
+ */
+struct Parameter {
+    std::string name;  ///> name of the parameter
+    int index;  ///> index of the parameter list in which the parameter stay
+    LGraphType type;  ///> type of the parameter
+};
+
+/**
+ * @brief The Specification of procedure/plugin signature
+ *
+ * @example
+ *  plugin.cpp.customShortestPath(a, b) -> length, nodeIds
+ *  proc_name: customShortestPath
+ *  input_list: a, b
+ *  results: length, nodeIds
+ */
+struct SigSpec {
+    std::string proc_name;  ///> name of the procedure/plugin exclude "plugin.cpp" path prefix
+    std::vector<Parameter> input_list;  ///> input parameter list
+    std::vector<Parameter> result_list;  ///> return parameter list
+};
+
 /** @brief   Type of code given when loading a new plugin. */
 enum PluginCodeType {
     PY = 1,   // .py for python source code
@@ -655,6 +727,10 @@ struct FieldData {
     inline bool operator<=(const FieldData& rhs) const { return !(*this > rhs); }
 
     FieldType type;
+
+    FieldType getType() const {
+        return type;
+    }
 
     union {
         bool boolean;

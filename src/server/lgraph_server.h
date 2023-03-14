@@ -61,7 +61,7 @@ class RPCService : public lgraph::LGraphRPCService {
     void HandleRequest(::google::protobuf::RpcController *controller,
                        const ::lgraph::LGraphRequest *request, ::lgraph::LGraphResponse *response,
                        ::google::protobuf::Closure *done) {
-        sm_->HandleRequest(controller, request, response, done, false);
+        sm_->HandleRequest(controller, request, response, done);
     }
 
  private:

@@ -19,6 +19,7 @@
 #include "fma-common/timed_task.h"
 #include "fma-common/hardware_info.h"
 #include "import/import_v2.h"
+#include "import/import_v3.h"
 #include "import/import_client.h"
 #include "import/parse_delimiter.h"
 
@@ -28,6 +29,7 @@ using namespace import_v2;
 
 int main(int argc, char** argv) {
     Importer::Config import_config;
+    import_v3::Importer::Config import_config_v3;
     OnlineImportClient::Config online_import_config;
 
     std::string log_file;
@@ -35,9 +37,11 @@ int main(int argc, char** argv) {
     bool memory_profile = false;
 
     bool online = false;
+    bool v3 = true;
     {
         fma_common::Configuration config;
         config.Add(online, "online", true).Comment("Whether to import online");
+        config.Add(v3, "v3", true).Comment("Whether to use lgraph import V3");
         config.ParseAndRemove(&argc, &argv);
         config.ExitAfterHelp(false);
         config.Finalize();
@@ -65,7 +69,7 @@ int main(int argc, char** argv) {
             .Comment("Delimiter used in the CSV files");
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
-    } else {
+    } else if (!v3) {
         fma_common::Configuration config;
         config.Add(log_file, "log", true).Comment("Log file to use, empty means stderr");
         config.Add(verbose_level, "v,verbose", true)
@@ -132,6 +136,49 @@ int main(int argc, char** argv) {
                 .Comment("fulltext index analyzer");
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
+    } else {
+        fma_common::Configuration config;
+        config.Add(log_file, "log", true).Comment("Log file to use, empty means stderr");
+        config.Add(verbose_level, "v,verbose", true)
+            .Comment("Verbose level to use, higher means more verbose");
+        config.Add(import_config_v3.config_file, "c,config_file", false)
+            .Comment("Config file path");
+        config.Add(import_config_v3.continue_on_error, "i,continue_on_error", true);
+        config.Add(import_config_v3.db_dir, "d,dir", true).Comment("The DB data directory");
+        config.Add(import_config_v3.user, "u,user", true).Comment("DB username.");
+        config.Add(import_config_v3.password, "p,password", true).Comment("DB password.");
+        config.Add(import_config_v3.graph, "g,graph", true);
+        config.Add(import_config_v3.delete_if_exists, "overwrite", true)
+            .Comment("Whether to overwrite the existing DB if it already exists");
+        config.Add(import_config_v3.quiet, "quiet", true)
+            .Comment("Do not print error message when continue_on_error==true");
+        config.Add(import_config_v3.delimiter, "delimiter", true)
+            .Comment("Delimiter used in the CSV files");
+        config.Add(import_config_v3.parse_block_size, "parse_block_size", true)
+            .Comment("Block size per parse");
+        config.Add(import_config_v3.parse_block_threads, "parse_block_threads", true)
+            .Comment("How many threads to parse the data block");
+        config.Add(import_config_v3.parse_file_threads, "parse_file_threads", true)
+            .Comment("How many threads to parse the files");
+        config.Add(import_config_v3.generate_sst_threads, "generate_sst_threads", true)
+            .Comment("How many threads to generate sst files");
+        config.Add(import_config_v3.read_rocksdb_threads, "read_rocksdb_threads", true)
+            .Comment("How many threads to read rocksdb in the final stage");
+        config.Add(import_config_v3.vid_num_per_reading, "vid_num_per_reading", true)
+            .Comment("How many vertex data to read each time");
+        config.Add(import_config_v3.max_size_per_reading, "max_size_per_reading", true)
+            .Comment("Maximum size of kvs per reading");
+        config.Add(import_config_v3.compact, "compact", true)
+            .Comment("Whether to compact");
+        config.Add(import_config_v3.keep_vid_in_memory, "keep_vid_in_memory", true)
+            .Comment("Whether to keep vids in memory");
+        config.Add(import_config_v3.enable_fulltext_index, "enable_fulltext_index", true)
+            .Comment("Whether to enable fulltext index");
+        config.Add(import_config_v3.fulltext_index_analyzer, "fulltext_index_analyzer", true)
+            .SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
+            .Comment("fulltext index analyzer");
+        config.ExitAfterHelp(true);
+        config.ParseAndFinalize(argc, argv);
     }
 
     // setup logging
@@ -165,7 +212,7 @@ int main(int argc, char** argv) {
             online_import_config.delimiter = lgraph::ParseDelimiter(online_import_config.delimiter);
             OnlineImportClient client(online_import_config);
             client.DoImport();
-        } else {
+        } else if (!v3) {
             FMA_LOG() << "Importing FROM SCRATCH: "
                       << "\n\tfrom:                " << import_config.config_file
                       << "\n\tto:                  " << import_config.db_dir
@@ -182,10 +229,28 @@ int main(int argc, char** argv) {
             }
             Importer importer(import_config);
             importer.DoImportOffline();
+        } else {
+            FMA_LOG() << "Importing FROM SCRATCH:   "
+                      << "\n\tfrom:                 " << import_config_v3.config_file
+                      << "\n\tto:                   " << import_config_v3.db_dir
+                      << "\n\tverbose:              " << verbose_level
+                      << "\n\tlog:                  " << log_file
+                      << "\n\tkeep_vid_in_memory:   " << import_config_v3.keep_vid_in_memory
+                      << "\n\tparse_file_threads:   " << import_config_v3.parse_file_threads
+                      << "\n\tparse_block_threads:  " << import_config_v3.parse_block_threads
+                      << "\n\tparse_block_size:     " << import_config_v3.parse_block_size
+                      << "\n\tgenerate_sst_threads: " << import_config_v3.generate_sst_threads
+                      << "\n\tread_rocksdb_threads: " << import_config_v3.read_rocksdb_threads
+                      << "\n\tvid_num_per_reading:  " << import_config_v3.vid_num_per_reading
+                      << "\n\tmax_size_per_reading: " << import_config_v3.max_size_per_reading;
+            import_config_v3.delimiter = lgraph::ParseDelimiter(import_config_v3.delimiter);
+            import_v3::Importer importer(import_config_v3);
+            importer.DoImportOffline();
         }
     } catch (std::exception& e) {
         FMA_LOG() << "An error occurred during import:\n" << PrintNestedException(e, 1);
         return 1;
     }
+    fma_common::SleepS(3);  // waiting for memory reclaiming by async task
     return 0;
 }

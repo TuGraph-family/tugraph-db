@@ -24,7 +24,8 @@ import traceback
 import logging
 import logging.handlers as handlers
 
-from lgraph_python import *
+from liblgraph_python_api import *
+import lgraph_db_python
 
 
 def setup_logger(level=logging.INFO):
@@ -60,7 +61,7 @@ class PluginManager:
         error_code = PluginErrorCode.SUCCESS
         output = ""
         try:
-            path = self.plugin_dir + "/" + module_name + ".py"
+            path = self.plugin_dir + "/" + module_name + ".so"
             if python2:
                 module = imp.load_source(module_name, path)
             else:
@@ -79,7 +80,7 @@ class PluginManager:
         return (error_code, output)
 
     '''
-    Unolad a plugin from Python process.
+    Unload a plugin from Python process.
     '''
 
     def DelModule(self, module_name):
@@ -120,7 +121,7 @@ class PluginManager:
                     error_code = PluginErrorCode.INTERNAL_ERR
                 if (not success):
                     error_code = PluginErrorCode.INPUT_ERR
-                db.Close()
+                # db.Close()
             except (KeyboardInterrupt, SystemExit):
                 logging.warn('process being killed')
                 raise
@@ -154,12 +155,27 @@ class PluginManager:
             else:
                 # TODO: do not reload module if it already exists and was not modified
                 (error_code, output) = self.LoadModule(function)
+                if not function in self.functions:
+                    error_code = PluginErrorCode.INTERNAL_ERR
+                    output = "module {} not found".format(function)
                 if (error_code != PluginErrorCode.SUCCESS):
                     return (error_code, output)
-                with Galaxy(self.db_dir, False, False) as galaxy:
+                import inspect
+                sig = inspect.signature(self.functions[function])
+                params = sig.parameters
+                using_cython_api = str(params[list(params)[0]]).count("lgraph_db_python.PyGraphDB") > 0
+                if using_cython_api:
+                    galaxy = lgraph_db_python.PyGalaxy(self.db_dir)
                     galaxy.SetUser(user)
-                    with galaxy.OpenGraph(graph, read_only) as db:
-                        (error_code, output) = self.InvokeFunction(db, function, input, read_only)
+                    db = galaxy.OpenGraph(graph, read_only)
+                    (error_code, output) = self.InvokeFunction(db, function, input, read_only)
+                    del db
+                    del galaxy
+                else:
+                    with Galaxy(self.db_dir, False, False) as galaxy:
+                        galaxy.SetUser(user)
+                        with galaxy.OpenGraph(graph, read_only) as db:
+                            (error_code, output) = self.InvokeFunction(db, function, input, read_only)
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:

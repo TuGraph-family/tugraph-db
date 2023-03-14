@@ -1,7 +1,11 @@
 # build for lgraph
 FROM ubuntu:18.04
 
-COPY sources.list /etc/apt
+RUN rm -rf /et/apt/sources.list \
+    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-security main restricted universe multiverse" >> /etc/apt/sources.list
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -14,7 +18,6 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     uuid-dev \
     libssl-dev \
-    lcov \
     curl \
     unzip \
     bzip2 \
@@ -28,11 +31,12 @@ RUN apt-get update && apt-get install -y \
     libjson-perl \
     libperlio-gzip-perl \
     libdigest-perl-md5-perl \
-    openjdk-8-jdk \
-    maven
+    openjdk-8-jdk
 
 # install g++ 8.4.0
-RUN wget http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz \
+# if it is not accessible, replace it with the link below
+# http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.tar.gz \
     && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
     && ./contrib/download_prerequisites && mkdir build && cd build \
     && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
@@ -42,46 +46,65 @@ RUN wget http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz \
     && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
 
 # install python3
-RUN wget https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz \
-    && tar zxf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
-    && make -j4 && make install && python3 -m pip install pexpect && rm -rf /Python*
+# if it is not accessible, replace it with the link below
+# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
+    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+    && make -j4 && make install \
+    && python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && rm -rf /Python*
 
-# install cmake-3.13.4
-RUN wget https://cmake.org/files/v3.14/cmake-3.14.1.tar.gz \
-    && tar xf cmake-3.14.1.tar.gz && cd cmake-3.14.1 \
+# install cmake
+# if it is not accessible, replace it with the link below
+# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
+    && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
     && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
 
 # install boost-1.68
-RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz \
-    && tar zxf boost_1_68_0.tar.gz && cd boost_1_68_0 \
+# if it is not accessible, replace it with the link below
+# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
     && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace \
     && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
 
 # install protobuf
-RUN wget https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz \
-    && tar xzf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
+# if it is not accessible, replace it with the link below
+# https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/protobuf-3.6.0.tar.gz \
+    && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
     && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
     && make -j4 && make install && ldconfig && rm -rf /protobuf-*
 
 # install snappy
-RUN wget https://github.com/google/snappy/archive/refs/tags/1.1.9.zip \ 
-    && unzip 1.1.9.zip && mv snappy-1.1.9 snapppy && cd snapppy/third_party/ \
-    && wget https://github.com/google/googletest/archive/refs/heads/v1.10.x.zip \
-    && unzip v1.10.x.zip && rm -rf googletest && mv googletest-1.10.x googletest \
-    && wget https://github.com/google/benchmark/archive/bf585a2789e30585b4e3ce6baf11ef2750b54677.zip \
-    && unzip bf585a2789e30585b4e3ce6baf11ef2750b54677.zip && rm -rf benchmark && mv benchmark-bf585a2789e30585b4e3ce6baf11ef2750b54677 benchmark \
+# if it is not accessible, replace it with the link below
+# https://github.com/google/snappy/archive/refs/tags/1.1.9.zip
+# https://github.com/google/googletest/archive/refs/heads/v1.10.x.zip
+# https://github.com/google/benchmark/archive/bf585a2789e30585b4e3ce6baf11ef2750b54677.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/snappy-1.1.9.zip \
+    && unzip snappy-1.1.9.zip && mv snappy-1.1.9 snapppy && cd snapppy/third_party/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-v1.10.x.zip \
+    && unzip googletest-v1.10.x.zip && rm -rf googletest && mv googletest-1.10.x googletest \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/benchmark.zip \
+    && unzip benchmark.zip && rm -rf benchmark && mv benchmark-bf585a2789e30585b4e3ce6baf11ef2750b54677 benchmark \
     && cd .. && mkdir build && cd build \
     && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make -j4 && make install && rm -rf /snappy*
 
 # install gflags
-RUN wget https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.tar.gz \
-    && tar xzf gflags-2.2.1.tar.gz && cd gflags-2.2.1 \
+# if it is not accessible, replace it with the link below
+# https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gflags-2.2.1.tar.gz \
+    && tar xf gflags-2.2.1.tar.gz && cd gflags-2.2.1 \
     && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS=-fPIC .. \
     && make -j4 && make install && rm -rf /gflags-*
 
 # install leveldb
-RUN wget https://github.com/google/leveldb/archive/refs/tags/v1.20.zip \
-    && unzip v1.20.zip && mv leveldb-1.20 leveldb \
+# if it is not accessible, replace it with the link below
+# https://github.com/google/leveldb/archive/refs/tags/v1.20.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1.20.zip \
+    && unzip leveldb-v1.20.zip && mv leveldb-1.20 leveldb \
     && cd leveldb && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make -j4 \
     && cp -r ./include/leveldb/ /usr/local/include/ \
     && cp ./out-shared/libleveldb.so.1.20 /usr/local/lib/ \
@@ -91,95 +114,118 @@ RUN wget https://github.com/google/leveldb/archive/refs/tags/v1.20.zip \
     && rm -rf /leveldb*
 
 # install node.js
-RUN wget https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz \
+# if it is not accessible, replace it with the link below
+# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6.0-linux-x64.tar.gz \
     && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \
     && ln -s /node-v16.6.0-linux-x64/bin/npm /usr/local/bin/ \
     && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
     && npm config set registry https://registry.npmmirror.com \
     && rm -rf /node-v16.6.0-linux-x64.tar.gz
 
+
 # install lcov
-RUN wget https://mirrors.edge.kernel.org/ubuntu/pool/universe/l/lcov/lcov_1.14-2_all.deb \
+# if it is not accessible, replace it with the link below
+# https://mirrors.edge.kernel.org/ubuntu/pool/universe/l/lcov/lcov_1.14-2_all.deb \
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov_1.14-2_all.deb \
     && dpkg -i lcov_1.14-2_all.deb \
     && rm lcov_1.14-2_all.deb 
 
-# install prometheus
-RUN cd opt \
-    && wget https://github.com/prometheus/prometheus/releases/download/v2.36.1/prometheus-2.36.1.linux-amd64.tar.gz \
-    && tar xf prometheus-*.tar.gz \
-    && rm -r prometheus-2.36.1.linux-amd64.tar.gz
-
-# install grafana
-RUN cd opt \
-    && wget https://dl.grafana.com/enterprise/release/grafana-enterprise-8.5.5.linux-amd64.tar.gz \
-    && tar xf grafana-enterprise-8.5.5.linux-amd64.tar.gz \
-    && rm -r grafana-enterprise-8.5.5.linux-amd64.tar.gz
-
-# install pytest
-RUN python3 -m pip install pytest
-
 #install maven
+# if it is not accessible, replace it with the link below
+# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
 RUN cd opt \
-    && wget --no-check-certificate https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz \
+    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
 ARG CMAKE_OPT="-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DBUILD_TESTS=0 -DBUILD_SAMPLES=0 -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
 
 # brpc
-RUN  wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.2.zip \
-     && unzip release-1.2.zip && mv brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
-     && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make -j && make install \
-     && rm -rf /brpc*
+# if it is not accessible, replace it with the link below
+# wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.2.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/brpc-release-1.2.zip \
+    && unzip brpc-release-1.2.zip && mv brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
+    && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make -j && make install \
+    && rm -rf /brpc*
 
 # cpprestsdk
-RUN wget https://github.com/microsoft/cpprestsdk/archive/refs/tags/v2.10.18.zip \
-    && unzip v2.10.18.zip && mv cpprestsdk-2.10.18 cpprestsdk && cd /cpprestsdk/Release/libs/ \
-    && wget https://github.com/zaphoyd/websocketpp/archive/56123c87598f8b1dd471be83ca841ceae07f95ba.zip \
-    && unzip 56123c87598f8b1dd471be83ca841ceae07f95ba.zip && rm -rf websocketpp && mv websocketpp-56123c87598f8b1dd471be83ca841ceae07f95ba websocketpp \
+# if it is not accessible, replace it with the link below
+# https://github.com/microsoft/cpprestsdk/archive/refs/tags/v2.10.18.zip
+# https://github.com/zaphoyd/websocketpp/archive/56123c87598f8b1dd471be83ca841ceae07f95ba.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cpprestsdk-v2.10.18.zip \
+    && unzip cpprestsdk-v2.10.18.zip && mv cpprestsdk-2.10.18 cpprestsdk && cd /cpprestsdk/Release/libs/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/websocketpp.zip \
+    && unzip websocketpp.zip && rm -rf websocketpp && mv websocketpp-56123c87598f8b1dd471be83ca841ceae07f95ba websocketpp \
     && cd .. && mkdir build && cd build \
     && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-fPIC -Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make -j && make install \
     && rm -rf /cpprestsdk*  
 
 # googletest
-RUN wget https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip \
-    && unzip release-1.12.1.zip && mv googletest-release-1.12.1 googletest && cd /googletest && mkdir build && cd build \
+# if it is not accessible, replace it with the link below
+# https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-release-1.12.1.zip \
+    && unzip googletest-release-1.12.1.zip && mv googletest-release-1.12.1 googletest && cd /googletest && mkdir build && cd build \
     && cmake $CMAKE_OPT .. && make -j && make install \
     && rm -rf /googletest*
 
 # jwt-cpp
-RUN wget https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.6.0.zip \
-    && unzip v0.6.0.zip && mv jwt-cpp-0.6.0 jwt-cpp && cd /jwt-cpp && cp -r include/jwt-cpp/ /usr/local/include \
+# if it is not accessible, replace it with the link below
+# https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.6.0.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jwt-v0.6.0.zip \
+    && unzip jwt-v0.6.0.zip && mv jwt-cpp-0.6.0 jwt-cpp && cd /jwt-cpp && cp -r include/jwt-cpp/ /usr/local/include \
     && cp -r include/picojson/ /usr/local/include \
     && rm -rf /jwt-cpp*
   
 # prometheus-cpp-client
-RUN wget https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip \
-    && unzip v1.0.1.zip && mv prometheus-cpp-1.0.1 prometheus-cpp-client && cd /prometheus-cpp-client/3rdparty/ \
-    && wget https://github.com/civetweb/civetweb/archive/eefb26f82b233268fc98577d265352720d477ba4.zip \
-    && unzip eefb26f82b233268fc98577d265352720d477ba4.zip && rm -rf civetweb \
+# if it is not accessible, replace it with the link below
+# https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip
+# https://github.com/civetweb/civetweb/archive/eefb26f82b233268fc98577d265352720d477ba4.zip
+# https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/prometheus-cpp-client-v1.0.1.zip \
+    && unzip prometheus-cpp-client-v1.0.1.zip && mv prometheus-cpp-1.0.1 prometheus-cpp-client && cd /prometheus-cpp-client/3rdparty/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/civetweb.zip \
+    && unzip civetweb.zip && rm -rf civetweb \
     && mv civetweb-eefb26f82b233268fc98577d265352720d477ba4 civetweb \
-    && wget https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip \
-    && unzip e2239ee6043f73722e7aa812a459f54a28552929.zip && rm -rf googletest \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest.zip \
+    && unzip googletest.zip && rm -rf googletest \
     && mv googletest-e2239ee6043f73722e7aa812a459f54a28552929 googletest \
     && cd .. && mkdir build && cd build \
     && cmake $CMAKE_OPT .. && make -j && make install \
     && rm -rf /prometheus-cpp-client*
 
 # pybind11
-RUN wget https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip \
-    && unzip v2.10.0.zip && mv pybind11-2.10.0 pybind11 && cd /pybind11 && cp -r include/pybind11 /usr/local/include \
+# if it is not accessible, replace it with the link below
+# https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/pybind11-v2.10.0.zip \
+    && unzip pybind11-v2.10.0.zip && mv pybind11-2.10.0 pybind11 && cd /pybind11 && cp -r include/pybind11 /usr/local/include \
     && rm -rf /pybind11*
 
 # braft
-RUN wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip \
-    && unzip v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
+# if it is not accessible, replace it with the link below
+# wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/braft-v1.1.2.zip \
+    && unzip braft-v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
     && mkdir build && cd build && cmake $CMAKE_OPT .. && make -j && make install \
     && rm -rf /braft*
+
+# jemalloc
+# if it is not accessible, replace it with the link below
+# https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5.3.0.tar.gz \
+   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 && ./autogen.sh && make -j && make install \
+   && rm -rf /jemalloc*
+
+# rocksdb
+# if it is not accessible, replace it with the link below
+# https://github.com/facebook/rocksdb/archive/refs/tags/v7.8.3.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7.8.3.tar.gz \
+  && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DFORCE_SSE42=ON -DWITH_JEMALLOC=ON \
+  && make -j6 && make install && rm -rf /rocksdb*
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec 
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/lib/amd64/:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
-    PATH=/opt/apache-maven-3.8.6/bin:/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:$PATH
+    PATH=/opt/apache-maven-3.8.7/bin:/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:$PATH

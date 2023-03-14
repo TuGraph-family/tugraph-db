@@ -3,7 +3,7 @@
 import math
 import datetime
 
-from lgraph_python import *
+from liblgraph_python_api import *
 
 
 class ExceptionWasNotThrown(Exception):
@@ -21,7 +21,7 @@ except Exception as e:
     '''.format(code), glbs, lcls)
 
 
-class LGraphUnitTests():
+class LGraphUnitTests:
 
     def test_field_data(self):
         assert (FieldData(11) == 11)

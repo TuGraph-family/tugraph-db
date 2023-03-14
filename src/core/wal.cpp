@@ -450,7 +450,8 @@ Wal::~Wal() {
     waiting_txns_.clear();
     to_delete.insert(log_file_.load()->Path());
     to_delete.insert(dbi_file_.Path());
-    log_file_.load()->Close();
+    delete log_file_.load();
+    log_file_.store(nullptr);
     dbi_file_.Close();
     for (auto& f : to_delete) TryDeleteLog(f);
 }

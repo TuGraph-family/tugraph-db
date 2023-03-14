@@ -189,8 +189,8 @@ void KvTransaction::Commit() {
 void KvTransaction::Abort() {
     deltas_.clear();
     if (txn_) {
-        MdbTxnAbort(txn_);
         if (!read_only_ && !optimistic_ && wal_) wal_->WriteTxnAbort(version_);
+        MdbTxnAbort(txn_);
         txn_ = nullptr;
     }
 }

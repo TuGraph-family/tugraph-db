@@ -27,8 +27,6 @@
 
 using namespace fma_common;
 
-#define BEG_AUDIT_LOG_IF_NOT_REST_REQ \
-    if (!is_rest_request) BEG_AUDIT_LOG
 
 lgraph::StateMachine::StateMachine(const Config& config,
                                    std::shared_ptr<GlobalConfig> global_config)
@@ -133,7 +131,7 @@ bool lgraph::StateMachine::IsFromLegalHost(::google::protobuf::RpcController* co
 
 void lgraph::StateMachine::HandleRequest(::google::protobuf::RpcController* controller,
                                          const LGraphRequest* req, LGraphResponse* resp,
-                                         google::protobuf::Closure* on_done, bool is_rest_request) {
+                                         google::protobuf::Closure* on_done) {
     MyDoneGuard done_guard(on_done);
     try {
         if (!IsFromLegalHost(controller)) {
@@ -144,7 +142,7 @@ void lgraph::StateMachine::HandleRequest(::google::protobuf::RpcController* cont
         if (_F_UNLIKELY(is_write && backup_log_)) {
             backup_log_->Write(req);
         }
-        DoRequest(is_write, req, resp, done_guard.Release(), is_rest_request);
+        DoRequest(is_write, req, resp, done_guard.Release());
     }
     // typically only TaskKilledException can occur here
     // other types of exceptions are already handled in ApplyRequestDirectly
@@ -203,14 +201,13 @@ void lgraph::StateMachine::TakeSnapshot(const std::string& path, bool truncate_l
 }
 
 bool lgraph::StateMachine::DoRequest(bool is_write, const LGraphRequest* req, LGraphResponse* resp,
-                                     google::protobuf::Closure* on_done, bool is_rest_request) {
+                                     google::protobuf::Closure* on_done) {
     MyDoneGuard done_guard(on_done);
-    return ApplyRequestDirectly(req, resp, is_rest_request);
+    return ApplyRequestDirectly(req, resp);
 }
 
 bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req,
-                                                lgraph::LGraphResponse* resp,
-                                                bool is_rest_request) {
+                                                lgraph::LGraphResponse* resp) {
     resp->set_error_code(LGraphResponse::SUCCESS);
     double start_time = fma_common::GetTime();
     int retry_time = 0;
@@ -224,55 +221,55 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
             case LGraphRequest::kGraphApiRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Apply a native request.";
-                    ApplyGraphApiRequest(req, resp, is_rest_request);
+                    ApplyGraphApiRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kCypherRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Apply a cypher request.";
-                    ApplyCypherRequest(req, resp, is_rest_request);
+                    ApplyCypherRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kPluginRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Apply a plugin request.";
-                    ApplyPluginRequest(req, resp, is_rest_request);
+                    ApplyPluginRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kAclRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Apply a acl request.";
-                    ApplyAclRequest(req, resp, is_rest_request);
+                    ApplyAclRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kGraphRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Apply a graph request.";
-                    ApplyGraphRequest(req, resp, is_rest_request);
+                    ApplyGraphRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kImportRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Received an import request.";
-                    ApplyImportRequest(req, resp, is_rest_request);
+                    ApplyImportRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kConfigRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Received config request: " << req->DebugString();
-                    ApplyConfigRequest(req, resp, is_rest_request);
+                    ApplyConfigRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kRestoreRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Received restore request.";
-                    ApplyRestoreRequest(req, resp, is_rest_request);
+                    ApplyRestoreRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kSchemaRequest:
                 {
                     FMA_DBG_STREAM(logger_) << "Received a schema request.";
-                    ApplySchemaRequest(req, resp, is_rest_request);
+                    ApplySchemaRequest(req, resp);
                     break;
                 }
             default:
@@ -396,23 +393,19 @@ std::string lgraph::StateMachine::GetCurrUser(const LGraphRequest* lgraph_req, b
     return galaxy_->ParseTokenAndCheckIfIsAdmin(lgraph_req->token(), is_admin);
 }
 
-bool lgraph::StateMachine::ApplySchemaRequest(const LGraphRequest* req, LGraphResponse* resp,
-                                              bool is_rest_request) {
+bool lgraph::StateMachine::ApplySchemaRequest(const LGraphRequest* req, LGraphResponse* resp) {
     if (req->Req_case() != LGraphRequest::kSchemaRequest) {
-        const std::string curr_user = GetCurrUser(req);
-        BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::SingleApi, true,
+        std::string curr_user = req->has_user() ?
+                req->user() : galaxy_->ParseAndValidateToken(req->token());
+        BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::SingleApi, true,
                                       req->DebugString());
         return RespondBadInput(resp, FMA_FMT("Unhandled request type [{}].", req->Req_case()));
     }
     auto& schema = req->schema_request();
-    std::string user;
-    if (req->has_user()) {
-        user = req->user();
-    } else {
-        user = galaxy_->ParseAndValidateToken(req->token());
-    }
+    std::string user = req->has_user() ?
+            req->user() : galaxy_->ParseAndValidateToken(req->token());
     AutoTaskTracker task_tracker("schema", true, true);
-    BEG_AUDIT_LOG_IF_NOT_REST_REQ(user, schema.graph(), lgraph::LogApiType::SingleApi, true,
+    BEG_AUDIT_LOG(user, schema.graph(), lgraph::LogApiType::SingleApi, true,
                                   FMA_FMT("Schema [{}].", schema.description()));
     AccessControlledDB db = galaxy_->OpenGraph(user, schema.graph());
     if (db.GetAccessLevel() < AccessLevel::WRITE)
@@ -426,23 +419,18 @@ bool lgraph::StateMachine::ApplySchemaRequest(const LGraphRequest* req, LGraphRe
     resp->mutable_schema_response()->set_log(std::move(log));
     return RespondSuccess(resp);
 }
-bool lgraph::StateMachine::ApplyImportRequest(const LGraphRequest* req, LGraphResponse* resp,
-                                              bool is_rest_request) {
+bool lgraph::StateMachine::ApplyImportRequest(const LGraphRequest* req, LGraphResponse* resp) {
     if (req->Req_case() != LGraphRequest::kImportRequest) {
-        const std::string curr_user = GetCurrUser(req);
-        BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::SingleApi, true,
+        std::string curr_user = req->has_user() ?
+                req->user() : galaxy_->ParseAndValidateToken(req->token());
+        BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::SingleApi, true,
                                       req->DebugString());
         return RespondBadInput(resp, FMA_FMT("Unhandled request type [{}].", req->Req_case()));
     }
     auto& import = req->import_request();
-    std::string user;
-    if (req->has_user()) {
-        user = req->user();
-    } else {
-        user = galaxy_->ParseAndValidateToken(req->token());
-    }
+    std::string user = req->has_user() ? req->user() : galaxy_->ParseAndValidateToken(req->token());
     AutoTaskTracker task_tracker("import", true, true);
-    BEG_AUDIT_LOG_IF_NOT_REST_REQ(user, import.graph(), lgraph::LogApiType::SingleApi, true,
+    BEG_AUDIT_LOG(user, import.graph(), lgraph::LogApiType::SingleApi, true,
                                   FMA_FMT("Import [{}].", import.description()));
     AccessControlledDB db = galaxy_->OpenGraph(user, import.graph());
     if (db.GetAccessLevel() < AccessLevel::WRITE)
@@ -459,8 +447,8 @@ bool lgraph::StateMachine::ApplyImportRequest(const LGraphRequest* req, LGraphRe
     return RespondSuccess(resp);
 }
 
-bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                                              bool is_rest_request) {
+bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req,
+                                              LGraphResponse* resp) {
     static fma_common::Logger& logger =
         fma_common::Logger::Get("lgraph.StateMachine.ApplyConfigRequest");
     const ConfigRequest& req = lgraph_req->config_request();
@@ -468,10 +456,11 @@ bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req, L
     switch (req.Req_case()) {
     case ConfigRequest::kModConfigRequest:
         {
-            bool is_admin;
-            std::string curr_user = GetCurrUser(lgraph_req, &is_admin);
+            std::string curr_user = lgraph_req->has_user() ?
+                    lgraph_req->user() : GetCurrUser(lgraph_req);
+            bool is_admin = galaxy_->IsAdmin(curr_user);
             AutoTaskTracker task_tracker(false, false);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             if (!is_admin) {
                 return RespondDenied(resp, "Non-admin user is not allowed to update configs.");
@@ -500,20 +489,20 @@ bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req, L
 }
 
 bool lgraph::StateMachine::ApplyRestoreRequest(const lgraph::LGraphRequest* lgraph_req,
-                                               lgraph::LGraphResponse* resp, bool is_rest_request) {
-    bool is_admin;
-    std::string curr_user = GetCurrUser(lgraph_req, &is_admin);
+                                               lgraph::LGraphResponse* resp) {
+    std::string curr_user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
+    bool is_admin = galaxy_->IsAdmin(curr_user);
     if (!is_admin) return RespondDenied(resp, "Non-admin cannot perform restore.");
     AutoTaskTracker task_tracker("restore", true, true);
     RestoreResponse* rresp = resp->mutable_restore_response();
-    BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true, "Restore");
+    BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true, "Restore");
     for (auto& log : lgraph_req->restore_request().logs()) {
         LGraphResponse lresp;
         lgraph::LGraphRequest m_req;
         m_req.CopyFrom(log.req());
         m_req.release_user();
         m_req.set_user(curr_user);
-        ApplyRequestDirectly(&m_req, &lresp, false);
+        ApplyRequestDirectly(&m_req, &lresp);
         if (lresp.error_code() != LGraphResponse::SUCCESS)
             return RespondBadInput(
                 resp, FMA_FMT("Failed to apply log [{}]: {}", log.DebugString(), lresp.error()));
@@ -528,18 +517,18 @@ bool lgraph::StateMachine::ApplyRestoreRequest(const lgraph::LGraphRequest* lgra
     else                                                      \
         return RespondBadInput(resp, (error_msg));
 
-bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                                             bool is_rest_request) {
+bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req,
+                                             LGraphResponse* resp) {
     static fma_common::Logger& logger =
         fma_common::Logger::Get("lgraph.StateMachine.ApplyGraphRequest");
     const GraphRequest& req = lgraph_req->graph_request();
     GraphResponse* gresp = resp->mutable_graph_response();
-    const std::string curr_user = GetCurrUser(lgraph_req);
+    std::string curr_user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
     switch (req.Req_case()) {
     case GraphRequest::kAddGraphRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             const AddGraphRequest& ar = req.add_graph_request();
             bool r = galaxy_->CreateGraph(curr_user, ar.name(), convert::ToLGraphT(ar.config()));
@@ -548,7 +537,7 @@ bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req, LG
     case GraphRequest::kDeleteGraphRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             const DeleteGraphRequest& dr = req.delete_graph_request();
             bool r = galaxy_->DeleteGraph(curr_user, dr.name());
@@ -556,15 +545,14 @@ bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req, LG
         }
     default:
         {
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             return RespondBadInput(resp, FMA_FMT("Unhandled request type [{}].", req.Req_case()));
         }
     }
 }
 
-bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                                           bool is_rest_request) {
+bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp) {
     static fma_common::Logger& logger =
         fma_common::Logger::Get("lgraph.StateMachine.ApplyAclRequest");
     const AclRequest& req = lgraph_req->acl_request();
@@ -573,14 +561,16 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
     // get current user if this is not auth request
     // for auth request, curr_user is not specified
     std::string curr_user;
-    if (req.Req_case() != AclRequest::kAuthRequest) curr_user = GetCurrUser(lgraph_req);
+    if (req.Req_case() != AclRequest::kAuthRequest) {
+        curr_user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
+    }
     const AuthRequest& re = req.auth_request();
     switch (req.Req_case()) {
     case AclRequest::kAddRoleRequest:
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& areq = req.add_role_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             bool success = galaxy_->CreateRole(curr_user, areq.role(), areq.desc());
             RETURN_SUCCESS_OR_BAD_INPUT(success, resp,
@@ -590,7 +580,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& areq = req.add_user_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             bool success =
                 galaxy_->CreateUser(curr_user, areq.user(), areq.password(), areq.desc());
@@ -603,7 +593,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
                 {
                     AutoTaskTracker task_tracker(false, true);
                     const auto& auth_info = req.auth_request().login();
-                    BEG_AUDIT_LOG_IF_NOT_REST_REQ(auth_info.user(), "",
+                    BEG_AUDIT_LOG(auth_info.user(), "",
                             lgraph::LogApiType::Security, false, "login");
                     std::string token = galaxy_->GetUserToken(auth_info.user(),
                                                             auth_info.password());
@@ -620,7 +610,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
                 }
             default:
             {
-                BEG_AUDIT_LOG_IF_NOT_REST_REQ("", "", lgraph::LogApiType::Security, true,
+                BEG_AUDIT_LOG("", "", lgraph::LogApiType::Security, true,
                                             req.DebugString());
                 return RespondBadInput(resp, FMA_FMT("Unhandled request type [{}].",
                                                                     req.Req_case()));
@@ -630,7 +620,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& areq = req.del_role_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             bool success = galaxy_->DeleteRole(curr_user, areq.role());
             RETURN_SUCCESS_OR_BAD_INPUT(success, resp,
@@ -640,7 +630,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& areq = req.del_user_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             bool success = galaxy_->DeleteUser(curr_user, areq.user());
             RETURN_SUCCESS_OR_BAD_INPUT(success, resp,
@@ -650,7 +640,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& areq = req.mod_role_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             bool success = galaxy_->ModRole(curr_user, areq);
             RETURN_SUCCESS_OR_BAD_INPUT(success, resp,
@@ -660,7 +650,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& areq = req.mod_user_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG(curr_user, "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             bool success = galaxy_->ModUser(curr_user, areq);
             RETURN_SUCCESS_OR_BAD_INPUT(success, resp,
@@ -668,7 +658,7 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
         }
     default:
         {
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ("", "", lgraph::LogApiType::Security, true,
+            BEG_AUDIT_LOG("", "", lgraph::LogApiType::Security, true,
                                           req.DebugString());
             return RespondBadInput(resp, FMA_FMT("Unhandled request type [{}].", req.Req_case()));
         }
@@ -676,20 +666,29 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
 }
 
 bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
-                                                LGraphResponse* resp, bool is_rest_request) {
+                                                LGraphResponse* resp) {
     static fma_common::Logger& logger =
         fma_common::Logger::Get("lgraph.StateMachine.ApplyGraphApiRequest");
+
     const GraphApiRequest& req = lgraph_req->graph_api_request();
     GraphApiResponse* gresp = resp->mutable_graph_api_response();
-    const std::string curr_user = GetCurrUser(lgraph_req);
-    lgraph::AccessControlledDB db = GetDB(lgraph_req->token(), req.graph());
+    std::string curr_user;
+    std::unique_ptr<lgraph::AccessControlledDB> db;
+    if (lgraph_req->has_user()) {
+        curr_user = lgraph_req->user();
+        db = std::make_unique<lgraph::AccessControlledDB>(
+                galaxy_->OpenGraph(curr_user, req.graph()));
+    } else {
+        curr_user = GetCurrUser(lgraph_req);
+        db = std::make_unique<lgraph::AccessControlledDB>(GetDB(lgraph_req->token(), req.graph()));
+    }
     switch (req.Req_case()) {
     // label
     case GraphApiRequest::kAddLabelRequest:
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& lreq = req.add_label_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
             if (lreq.is_vertex() && !lreq.has_primary()) {
                 return RespondBadInput(resp, FMA_FMT("Missing primary field"));
@@ -701,7 +700,7 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                 }
             }
             bool success =
-                db.AddLabel(lreq.is_vertex(), lreq.label(),
+                db->AddLabel(lreq.is_vertex(), lreq.label(),
                             FieldSpecConvert::ToLGraphT(lreq.fields()), lreq.primary(), ec);
             AddLabelResponse* lresp = gresp->mutable_add_label_response();
             if (success) {
@@ -715,9 +714,9 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& ireq = req.add_index_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
-            bool success = db.AddVertexIndex(ireq.label(), ireq.field(), ireq.is_unique());
+            bool success = db->AddVertexIndex(ireq.label(), ireq.field(), ireq.is_unique());
             if (success) {
                 return RespondSuccess(resp);
             } else {
@@ -729,9 +728,9 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& ireq = req.del_index_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
-            bool success = db.DeleteVertexIndex(ireq.label(), ireq.field());
+            bool success = db->DeleteVertexIndex(ireq.label(), ireq.field());
             if (success) {
                 return RespondSuccess(resp);
             } else {
@@ -743,12 +742,12 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
     case GraphApiRequest::kAddVertexesRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, "Add vertexes");
             const auto& vreq = req.add_vertexes_request();
             std::vector<std::string> fields(vreq.fields().begin(), vreq.fields().end());
             AddVertexesResponse* vresp = gresp->mutable_add_vertexes_response();
-            lgraph::Transaction txn = db.CreateWriteTxn();
+            lgraph::Transaction txn = db->CreateWriteTxn();
             size_t label_id = txn.GetLabelId(true, vreq.label());
             auto field_ids = txn.GetFieldIds(true, label_id, fields);
             for (auto& vertex : vreq.vertexes()) {
@@ -763,10 +762,10 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& vreq = req.del_vertex_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
             size_t ni, no;
-            lgraph::Transaction txn = db.CreateWriteTxn();
+            lgraph::Transaction txn = db->CreateWriteTxn();
             bool success = txn.DeleteVertex(vreq.vid(), &ni, &no);
             txn.Commit();
             if (success) {
@@ -782,9 +781,9 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& vreq = req.mod_vertex_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
-            lgraph::Transaction txn = db.CreateWriteTxn();
+            lgraph::Transaction txn = db->CreateWriteTxn();
             auto values = FieldDataConvert::ToLGraphT(vreq.values().values());
             std::vector<std::string> fields(vreq.fields().begin(), vreq.fields().end());
             bool success = false;
@@ -805,12 +804,12 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
     case GraphApiRequest::kAddEdgesRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, "Add edges");
             const auto& ereq = req.add_edges_request();
             std::vector<std::string> fields(ereq.fields().begin(), ereq.fields().end());
             AddEdgesResponse* eresp = gresp->mutable_add_edges_response();
-            lgraph::Transaction txn = db.CreateWriteTxn();
+            lgraph::Transaction txn = db->CreateWriteTxn();
             size_t label_id = txn.GetLabelId(false, ereq.label());
             auto field_ids = txn.GetFieldIds(false, label_id, fields);
             eresp->set_lid(label_id);
@@ -826,10 +825,10 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
     case GraphApiRequest::kDelEdgeRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
             const auto& ereq = req.del_edge_request();
-            lgraph::Transaction txn = db.CreateWriteTxn();
+            lgraph::Transaction txn = db->CreateWriteTxn();
             EdgeUid euid(ereq.src(), ereq.dst(), ereq.lid(), 0, ereq.eid());  // TODO(heng)
             bool success = txn.DeleteEdge(euid);
             txn.Commit();
@@ -842,7 +841,7 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
     case GraphApiRequest::kModEdgeRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, req.DebugString());
             const auto& ereq = req.mod_edge_request();
             auto values = FieldDataConvert::ToLGraphT(ereq.values().values());
@@ -852,7 +851,7 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                     resp, FMA_FMT("Number of fields and values does not match: [{}] vs [{}].",
                                   fields.size(), values.size()));
             EdgeUid euid(ereq.src(), ereq.dst(), ereq.lid(), 0, ereq.eid());  // TODO(heng)
-            lgraph::Transaction txn = db.CreateWriteTxn();
+            lgraph::Transaction txn = db->CreateWriteTxn();
             bool success = txn.SetEdgeProperty(euid, fields, values);
             txn.Commit();
             if (success) {
@@ -867,19 +866,19 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
             if (!galaxy_->IsAdmin(curr_user))
                 return RespondDenied(resp, "Non-admin users cannot flush graph.");
             AutoTaskTracker task_tracker("Flush", true, false);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           true, "Flush graph");
-            db.Flush();
+            db->Flush();
             return RespondSuccess(resp);
         }
     case GraphApiRequest::kSubGraphRequest:
         {
             AutoTaskTracker task_tracker("SubGraph", true, false);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
+            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi,
                                           false, "Subgraph");
             const auto& sreq = req.sub_graph_request();
             auto* sresp = resp->mutable_graph_api_response()->mutable_sub_graph_response();
-            auto txn = db.CreateReadTxn();
+            auto txn = db->CreateReadTxn();
             auto it = txn.GetVertexIterator();
             std::set<lgraph::VertexId> set_vids(sreq.vids().begin(), sreq.vids().end());
             for (auto vid : set_vids) {
@@ -917,8 +916,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
     }
 }
 
-bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                                              bool is_rest_request) {
+bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
+                                              LGraphResponse* resp) {
 #ifdef _WIN32
     return RespondException(resp, "Cypher is not supported on windows servers.");
 #else
@@ -935,7 +934,8 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
             is_write = !ret;
         } else {
             const CypherRequest& creq = lgraph_req->cypher_request();
-            const std::string& user = GetCurrUser(lgraph_req);
+            std::string user = lgraph_req->has_user() ?
+                    lgraph_req->user() : GetCurrUser(lgraph_req);
             AccessControlledDB db = galaxy_->OpenGraph(user, creq.graph());
             type.erase(remove(type.begin(), type.end(), '\"'), type.end());
             name.erase(remove(name.begin(), name.end(), '\"'), name.end());
@@ -951,12 +951,12 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
     const CypherRequest& req = lgraph_req->cypher_request();
     CypherResponse* cresp = resp->mutable_cypher_response();
     // const std::string& user = GetCurrUser(lgraph_req);
-    const std::string& user = galaxy_->ParseAndValidateToken(lgraph_req->token());
+    std::string user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
     auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
     cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
                           field_access);
 
-    BEG_AUDIT_LOG_IF_NOT_REST_REQ(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
+    BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
                                   "[CYPHER] " + req.query());
     TimeoutTaskKiller timeout_killer;
     if (req.has_timeout() && req.timeout() != 0) {
@@ -973,43 +973,43 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req, L
                                    cypher::FieldData(FieldDataConvert::ToLGraphT(pvalues.Get(i))));
         }
     }
+
     ctx.optimistic_ = config_.optimistic_txn;
     cypher_scheduler_.Eval(&ctx, req.query(), elapsed);
     elapsed.t_total = elapsed.t_compile + elapsed.t_exec;
     if (req.result_in_json_format()) {
         auto result = ctx.result_->Dump(false);
-        resp->mutable_cypher_response()->set_json_result(std::move(result));
+        cresp->set_json_result(std::move(result));
         return RespondSuccess(resp);
     } else {
-        CypherResult* cypher_result = resp->mutable_cypher_response()->mutable_binary_result();
+        CypherResult* cypher_result = cresp->mutable_binary_result();
         for (auto& h : ctx.result_->Header()) {
             Header* header = cypher_result->add_header();
             header->set_name(h.first);
             switch (h.second) {
-            case lgraph_api::ResultElementType::NUL:
-            case lgraph_api::ResultElementType::INTEGER:
-            case lgraph_api::ResultElementType::FLOAT:
-            case lgraph_api::ResultElementType::DOUBLE:
-            case lgraph_api::ResultElementType::BOOLEAN:
-            case lgraph_api::ResultElementType::STRING:
-            case lgraph_api::ResultElementType::LIST:
-            case lgraph_api::ResultElementType::MAP:
-            case lgraph_api::ResultElementType::FIELD:
+            case lgraph_api::LGraphType::NUL:
+            case lgraph_api::LGraphType::INTEGER:
+            case lgraph_api::LGraphType::FLOAT:
+            case lgraph_api::LGraphType::DOUBLE:
+            case lgraph_api::LGraphType::BOOLEAN:
+            case lgraph_api::LGraphType::STRING:
+            case lgraph_api::LGraphType::LIST:
+            case lgraph_api::LGraphType::MAP:
+            case lgraph_api::LGraphType::ANY:
                 header->set_type(0);
                 break;
-            case lgraph_api::ResultElementType::NODE:
+            case lgraph_api::LGraphType::NODE:
                 header->set_type(1);
                 break;
-            case lgraph_api::ResultElementType::RELATIONSHIP:
+            case lgraph_api::LGraphType::RELATIONSHIP:
                 header->set_type(2);
                 break;
-            case lgraph_api::ResultElementType::PATH:
+            case lgraph_api::LGraphType::PATH:
                 header->set_type(4);
             default:
                 break;
             }
         }
-
         for (int row_n = 0; row_n < ctx.result_->Size(); row_n++) {
             ListOfProtoFieldData* res = cypher_result->add_result();
             FieldDataConvert::FromLGraphT(ctx.result_->Header(), ctx.result_->RecordView(row_n),
@@ -1038,25 +1038,32 @@ inline lgraph::plugin::CodeType GetPluginCodeType(const lgraph::LoadPluginReques
     return (lgraph::plugin::CodeType)type;
 }
 
-bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-                                              bool is_rest_request) {
-    const std::string curr_user = GetCurrUser(lgraph_req);
+bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
+                                              LGraphResponse* resp) {
     using namespace web;
     FMA_DBG_STREAM(logger_) << "Applying plugin request to state machine";
     const PluginRequest& req = lgraph_req->plugin_request();
     PluginResponse* presp = resp->mutable_plugin_response();
-    const std::string& user = galaxy_->ParseAndValidateToken(lgraph_req->token());
+    std::string user;
+    std::unique_ptr<lgraph::AccessControlledDB> db;
+    if (lgraph_req->has_user()) {
+        user = lgraph_req->user();
+        db = std::make_unique<lgraph::AccessControlledDB>(
+                galaxy_->OpenGraph(user, req.graph()));
+    } else {
+        user = GetCurrUser(lgraph_req);
+        db = std::make_unique<lgraph::AccessControlledDB>(GetDB(lgraph_req->token(), req.graph()));
+    }
     PluginManager::PluginType type = GetPluginType(req.type());
-    lgraph::AccessControlledDB db = GetDB(lgraph_req->token(), req.graph());
     switch (req.Req_case()) {
     case PluginRequest::kLoadPluginRequest:
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& preq = req.load_plugin_request();
             plugin::CodeType code_type = GetPluginCodeType(preq.code_type());
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::Plugin, true,
+            BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true,
                                           FMA_FMT("Load plugin [{}]", preq.name()));
-            bool r = db.LoadPlugin(type, user, preq.name(), preq.code(), code_type,
+            bool r = db->LoadPlugin(type, user, preq.name(), preq.code(), code_type,
                                    preq.desc(), preq.read_only());
             if (r)
                 return RespondSuccess(resp);
@@ -1067,9 +1074,9 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, L
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& preq = req.del_plugin_request();
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::Plugin, true,
+            BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true,
                                           FMA_FMT("Delete plugin [{}]", preq.name()));
-            bool r = db.DelPlugin(type, user, preq.name());
+            bool r = db->DelPlugin(type, user, preq.name());
             if (r)
                 return RespondSuccess(resp);
             else
@@ -1079,10 +1086,10 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, L
         {
             AutoTaskTracker task_tracker(false, true);
             const auto& preq = req.list_plugin_request();
-            BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::Plugin, true,
+            BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true,
                           FMA_FMT("List plugin"));
 
-            std::vector<lgraph::PluginDesc> r = db.ListPlugins(type, user);
+            std::vector<lgraph::PluginDesc> r = db->ListPlugins(type, user);
 
             return RespondSuccess(resp);
         }
@@ -1093,14 +1100,14 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, L
             if (lgraph_req->has_is_write_op()) {
                 is_write = lgraph_req->is_write_op();
             } else {
-                bool r = db.IsReadOnlyPlugin(type, user, preq.name());
+                bool r = db->IsReadOnlyPlugin(type, user, preq.name());
                 is_write = !r;
             }
             AutoTaskTracker task_tracker(
                 (type == PluginManager::PluginType::CPP ? "[CPP_PLUGIN] " : "[PYTHON_PLUGIN] ") +
                     preq.name(),
                 true, is_write);
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::Plugin,
+            BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin,
                                           is_write, req.DebugString());
             FMA_DBG_STREAM(logger_) << "Calling plugin " << preq.name() << " with param "
                                     << preq.param() << " timeout " << preq.timeout();
@@ -1108,7 +1115,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, L
             if (preq.has_timeout() && preq.timeout() != 0) {
                 timeout_killer.SetTimeout(preq.timeout());
             }
-            bool r = db.CallPlugin(type, user, preq.name(), preq.param(),
+            bool r = db->CallPlugin(type, user, preq.name(), preq.param(),
                                    preq.timeout(), preq.in_process(),
                                    *presp->mutable_call_plugin_response()->mutable_reply());
             FMA_DBG_ASSERT(r);
@@ -1116,7 +1123,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req, L
         }
     default:
         {
-            BEG_AUDIT_LOG_IF_NOT_REST_REQ(curr_user, req.graph(), lgraph::LogApiType::Plugin, true,
+            BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true,
                                           req.DebugString());
             FMA_WARN_STREAM(logger_) << "Unhandled request type: " << req.Req_case();
             return RespondBadInput(resp,

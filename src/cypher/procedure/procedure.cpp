@@ -53,7 +53,7 @@ cypher::VEC_STR ProcedureTitles(const std::string &procedure_name,
     auto pp = global_ptable.GetProcedure(procedure_name);
 
     if (yield_items.empty()) {
-        for (auto &res : pp->result) titles.emplace_back(res.first);
+        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
     } else {
         for (auto &item : yield_items) {
             if (!pp->ContainsYieldItem(item)) {
@@ -217,7 +217,7 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, cons
         for (auto &item : yield_items) titles.emplace_back(item);
     }
     std::unordered_map<std::string, std::function<void(const Procedure &, Record &)>> lmap = {
-        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.name)); }},
+        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.signature.proc_name)); }},
         {"signature",
          [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }},
         {"read_only",
@@ -1158,8 +1158,7 @@ void BuiltinProcedure::DbmsSecurityGetUserMemoryUsage(RTContext *ctx, const Reco
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getUserInfo(user)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
-    auto user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
-    int64_t usage = AllocatorManager.GetMemoryUsage(user);
+    int64_t usage = AllocatorManager.GetMemoryUsage(ctx->user_);
     Record r;
     r.AddConstant(lgraph::FieldData(usage));
     records->emplace_back(r.Snapshot());
@@ -1438,8 +1437,7 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
                      "unknown plugin_type, one of ('PY', 'SO', 'CPP', 'ZIP')");
     fma_common::encrypt::Base64 base64;
     std::string content = base64.Decode(args[2].String());
-    std::string user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
-    bool success = db.LoadPlugin(plugin_type_it->second, user, args[1].String(), content,
+    bool success = db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), content,
                                  code_type_it->second, args[4].String(), args[5].Bool());
     if (!success) {
         throw lgraph::PluginExistException(args[1].String());
@@ -1461,8 +1459,7 @@ void BuiltinProcedure::DbPluginDeletePlugin(RTContext *ctx, const Record *record
     auto plugin_type_it = ValidPluginType.find(args[0].String());
     CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
                      "unknown plugin_type, one of ('CPP', 'PY')")
-    std::string user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
-    bool success = db.DelPlugin(plugin_type_it->second, user, args[1].String());
+    bool success = db.DelPlugin(plugin_type_it->second, ctx->user_, args[1].String());
     if (!success) {
         throw lgraph::PluginNotExistException(args[1].String());
     }
@@ -1490,9 +1487,8 @@ void BuiltinProcedure::DbPluginGetPluginInfo(RTContext *ctx, const Record *recor
     auto plugin_type_it = ValidPluginType.find(args[0].String());
     CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
                      "unknown plugin_type, one of ('CPP', 'PY')")
-    std::string user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
     lgraph::PluginCode co;
-    bool success = db.GetPluginCode(plugin_type_it->second, user, args[1].String(), co);
+    bool success = db.GetPluginCode(plugin_type_it->second, ctx->user_, args[1].String(), co);
     if (!success) {
         throw lgraph::PluginNotExistException(args[1].String());
     }
@@ -1519,8 +1515,7 @@ void BuiltinProcedure::DbPluginListPlugin(RTContext *ctx, const Record *record,
     auto plugin_type_it = ValidPluginType.find(args[0].String());
     CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
                      "unknown plugin_type, one of ('CPP', 'PY')")
-    std::string user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
-    std::vector<lgraph::PluginDesc> descs = db.ListPlugins(plugin_type_it->second, user);
+    std::vector<lgraph::PluginDesc> descs = db.ListPlugins(plugin_type_it->second, ctx->user_);
     for (auto &d : descs) {
         Record r;
         r.AddConstant(lgraph::FieldData(ValueToJson(d).serialize()));
@@ -1538,10 +1533,9 @@ void BuiltinProcedure::DbPluginListUserPlugins(RTContext *ctx, const Record *rec
                                            args.size()))
     std::unordered_map<std::string, lgraph::AccessControlledDB> dbs =
         ctx->galaxy_->OpenUserGraphs(ctx->user_, ctx->user_);
-    std::string user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
     for (auto &kv : ValidPluginType) {
         for (auto &db : dbs) {
-            std::vector<lgraph::PluginDesc> descs = db.second.ListPlugins(kv.second, user);
+            std::vector<lgraph::PluginDesc> descs = db.second.ListPlugins(kv.second, ctx->user_);
             for (auto &d : descs) {
                 Record r;
                 r.AddConstant(lgraph::FieldData(db.first));
@@ -1576,8 +1570,7 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
     lgraph::TimeoutTaskKiller timeout_killer;
     timeout_killer.SetTimeout(args[3].Double());
     std::string res;
-    std::string user = ctx->galaxy_->ParseAndValidateToken(ctx->token_);
-    bool success = db.CallPlugin(type, user, name, args[2].String(), args[3].Double(),
+    bool success = db.CallPlugin(type, ctx->user_, name, args[2].String(), args[3].Double(),
                                  args[4].Bool(), res);
     Record r;
     r.AddConstant(lgraph::FieldData(res));
@@ -2273,7 +2266,7 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
     cypher::VEC_STR titles;
     if (yield_items.empty()) {
-        for (auto &res : pp->result) titles.emplace_back(res.first);
+        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
     } else {
         for (auto &item : yield_items) {
             if (!pp->ContainsYieldItem(item)) {

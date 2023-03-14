@@ -7,7 +7,6 @@ setup(
     install_requires=[
         'httpx',
     ],
-    test_suite="unit_tests",
     packages=[''],
     entry_points={}
 )

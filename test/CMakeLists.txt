@@ -106,7 +106,8 @@ add_executable(unit_test
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
 
 target_link_libraries(unit_test
-        lgraph_server_lib)
+        lgraph_server_lib
+        librocksdb.a)
 
 target_link_libraries(unit_test
         ${GTEST_MAIN_LIB}

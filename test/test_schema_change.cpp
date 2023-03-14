@@ -573,4 +573,5 @@ TEST_F(TestSchemaChange, DelLabel) {
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("DST_ID", FieldType::STRING, false)})),
             lgraph::InputError);
     }
+    fma_common::SleepS(1);  // waiting for memory reclaiming by async task
 }

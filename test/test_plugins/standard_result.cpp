@@ -22,16 +22,16 @@ using namespace lgraph_api;
 
 extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::string &response) {
     // defination
-    Result result({{"float_var", ResultElementType::FLOAT},
-                   {"double_var", ResultElementType::DOUBLE},
-                   {"bool_var", ResultElementType::BOOLEAN},
-                   {"list_var", ResultElementType::LIST},
-                   {"in_edge", ResultElementType::RELATIONSHIP},
-                   {"out_edge", ResultElementType::RELATIONSHIP},
-                   {"path", ResultElementType::PATH},
-                   {"node", ResultElementType::NODE},
-                   {"edge_num_sum", ResultElementType::INTEGER},
-                   {"edge_num", ResultElementType::MAP}});
+    Result result({{"float_var", LGraphType::FLOAT},
+                   {"double_var", LGraphType::DOUBLE},
+                   {"bool_var", LGraphType::BOOLEAN},
+                   {"list_var", LGraphType::LIST},
+                   {"in_edge", LGraphType::RELATIONSHIP},
+                   {"out_edge", LGraphType::RELATIONSHIP},
+                   {"path", LGraphType::PATH},
+                   {"node", LGraphType::NODE},
+                   {"edge_num_sum", LGraphType::INTEGER},
+                   {"edge_num", LGraphType::MAP}});
 
     auto txn = db.CreateReadTxn();
     auto vit = txn.GetVertexIterator();

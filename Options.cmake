@@ -1,6 +1,6 @@
 set(LGRAPH_VERSION_MAJOR 3)
-set(LGRAPH_VERSION_MINOR 3)
-set(LGRAPH_VERSION_PATCH 3)
+set(LGRAPH_VERSION_MINOR 4)
+set(LGRAPH_VERSION_PATCH 0)
 
 # options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)
@@ -140,15 +140,16 @@ endif ()
 # check OpenMP
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
-# check c++14
+# compiling rocksdb needs c++17
+# check c++17
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-if (COMPILER_SUPPORTS_CXX14)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
+if (COMPILER_SUPPORTS_CXX17)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 else ()
-    message(SEND_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
+    message(SEND_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support. Please use a different C++ compiler.")
 endif ()
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # GNU: static link libstdc++ and libgcc

@@ -134,7 +134,7 @@ TEST_P(TestRestClient, RestClient) {
         graph_level.insert(std::make_pair(db_name, lgraph_api::AccessLevel::FULL));
         client->SetRoleGraphAccess("test_role", graph_level);
         std::map<std::string, FieldData> configs;
-        configs.insert(std::make_pair("durable", FieldData(true)));
+        configs.insert(std::make_pair("durable", FieldData(false)));
         client->SetConfig(configs);
         UT_EXPECT_THROW_MSG(client->SetMisc(),
                             "is_write_op must be set for non-Cypher and non-plugin request.");

@@ -15,8 +15,6 @@
 #pragma once
 
 #include "olap/olap_io.h"
-#include "fma-common/text_dir_stream.h"
-#include "fma-common/text_parser.h"
 
 namespace lgraph_api {
 namespace olap {
@@ -29,6 +27,8 @@ class OlapOnDisk : public OlapBase<EdgeData> {
     }
 
  public:
+    std::vector<std::string> mapped_to_origin_;
+    cuckoohash_map<std::string, size_t> hash_list_;
     bool CheckKillThisTask() {return false;}
 
     size_t GetMaxVertexId() {
@@ -77,12 +77,23 @@ class OlapOnDisk : public OlapBase<EdgeData> {
         double cost = -get_time();
         if (config.GetType() == TEXT_FILE) {
             auto & path = config.input_dir;
-            auto & parse_line = config.parse_line;
-            TextFileReader<EdgeData> reader(path, parse_line);
-            this->edge_list_ = reader.edge_list;
-            this->num_edges_ = reader.num_edges;
-            this->num_vertices_ = GetMaxVertexId() + 1;
-            Construct();
+            if (config.id_mapping) {
+                auto & parse_line = config.parse_string_line;
+                StringTextFileReader<EdgeData> reader(path, parse_line);
+                this->edge_list_ = reader.edge_list;
+                this->num_edges_ = reader.num_edges;
+                this->num_vertices_ = reader.num_vertices;
+                this->hash_list_.swap(reader.hash_list);
+                this->mapped_to_origin_.swap(reader.mapped_to_origin);
+                Construct();
+            } else {
+                auto & parse_line = config.parse_line;
+                TextFileReader<EdgeData> reader(path, parse_line);
+                this->edge_list_ = reader.edge_list;
+                this->num_edges_ = reader.num_edges;
+                this->num_vertices_ = GetMaxVertexId() + 1;
+                Construct();
+            }
         } else if (config.GetType() == BINARY_FILE) {
             auto & path = config.input_dir;
             BinaryFileReader<EdgeData> reader(path);
@@ -142,11 +153,12 @@ class OlapOnDisk : public OlapBase<EdgeData> {
      */
     template <typename VertexData>
     void Write(ConfigBase<EdgeData> & config, ParallelVector<VertexData>& array,
-                                        size_t array_size, std::string name,
-             std::function<bool(VertexData &)> filter_output = filter_output_default<VertexData&>) {
+        size_t array_size, std::string name,
+        std::function<bool(VertexData &)> filter_output = filter_output_default<VertexData&>) {
         if (config.GetType() == TEXT_FILE) {
             if (config.output_dir == "") return;
-            FileWriter<VertexData> fw(config.output_dir, array, array_size, name, filter_output);
+            FileWriter<VertexData> fw(config.output_dir, array, array_size,
+                      mapped_to_origin_, name, config.id_mapping, filter_output);
         }
     }
 };

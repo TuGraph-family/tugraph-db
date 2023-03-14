@@ -14,4 +14,4 @@ LINK_DIRECTORIES(${LABRARY_PATH})
 
 ADD_EXECUTABLE(clientdemo ${SRC_LIST})
 
-TARGET_LINK_LIBRARIES(clientdemo lgraph_rpc_client)
+TARGET_LINK_LIBRARIES(clientdemo lgraph_client_cpp_rpc)

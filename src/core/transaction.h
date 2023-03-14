@@ -41,6 +41,10 @@ class Importer;
 class ImportOnline;
 }  // namespace import_v2
 
+namespace import_v3 {
+class Importer;
+}  // namespace import_v3
+
 struct SchemaInfo {
     SchemaManager v_schema_manager;
     SchemaManager e_schema_manager;
@@ -62,6 +66,7 @@ class Transaction {
     friend class lgraph_api::Transaction;
     friend class ::lgraph::import_v2::Importer;
     friend class ::lgraph::import_v2::ImportOnline;
+    friend class ::lgraph::import_v3::Importer;
 
     KvTransaction txn_;
     bool read_only_ = false;

@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     // core
     start_time = get_time();
     auto score = graph.AllocVertexArray<double>();
-    double average_clco = LCCCore(graph, score);
+    double average_lcc = LCCCore(graph, score);
     memUsage.print();
     memUsage.reset();
     auto core_cost = get_time() - start_time;
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     if (output_file != "") {
         graph.Write(config, score, graph.NumVertices(), config.name);
     }
-    printf("average_clco is: %lf\n", average_clco);
+    printf("average_lcc is: %lf\n", average_lcc);
     auto output_cost = get_time() - start_time;
 
     printf("output_cost = %.2lf(s)\n", output_cost);

@@ -78,7 +78,13 @@ int main(int argc, char** argv) {
     // output
     start_time = get_time();
     // TODO(any):
-    printf("max rank value is pr[%ld] = %lf\n", max_pr_vi, pr[max_pr_vi]);
+    if (config.id_mapping) {
+        printf("max rank value is pr[%s] = %lf\n",
+               graph.mapped_to_origin_[max_pr_vi].c_str(), pr[max_pr_vi]);
+    } else {
+        printf("max rank value is pr[%ld] = %lf\n", max_pr_vi, pr[max_pr_vi]);
+    }
+
     auto output_cost = get_time() - start_time;
     printf("output_cost = %.2lf(s)\n", output_cost);
 

@@ -26,7 +26,6 @@
 #include "core/value.h"
 #include "core/vertex_index.h"
 
-
 int TestEdgeIndexImpl();
 
 namespace lgraph {

@@ -27,6 +27,9 @@ cd $MY_WORKSPACE
 wget -q -t 3 ${BUILD_OUTPUT_TAR_URL} -O output.tar.gz
 tar -zxvf output.tar.gz
 
+# set $MY_WORKSPACE to root dir
+cd $MY_WORKSPACE
+
 # integrate tests 
 cd build/output
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .

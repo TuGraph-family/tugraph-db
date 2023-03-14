@@ -37,6 +37,8 @@ TEST_F(TestBackupRestore, BackupRestore) {
     uint16_t port = 17172;
     uint16_t rpc_port = 19192;
 
+    AutoCleanDir d1(db_dir);
+    AutoCleanDir d2(new_db_dir);
     auto StartServer = [&](const std::string& dir) -> std::unique_ptr<SubProcess> {
         std::string server_cmd = FMA_FMT(
             "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
@@ -50,7 +52,6 @@ TEST_F(TestBackupRestore, BackupRestore) {
     };
 
     UT_LOG() << "Setting up env";
-    AutoCleanDir d1(db_dir);
 
     UT_LOG() << "Create db";
     {
@@ -68,7 +69,7 @@ TEST_F(TestBackupRestore, BackupRestore) {
         bool succeed = rpc_client.CallCypher(res, "match (n) return count(n)");
         UT_EXPECT_EQ(succeed, true);
         web::json::value v = web::json::value::parse(res);
-        UT_EXPECT_EQ(v["count(n)"].as_integer(), 21);
+        UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     }
     std::string snapshot;
     auto& fs = fma_common::FileSystem::GetFileSystem(db_dir);
@@ -97,7 +98,7 @@ TEST_F(TestBackupRestore, BackupRestore) {
         succeed = rpc_client.CallCypher(res, "match (n) return count(n)");
         UT_EXPECT_EQ(succeed, true);
         web::json::value v = web::json::value::parse(res);
-        UT_EXPECT_EQ(v["count(n)"].as_integer(), 21);
+        UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     }
 
     UT_LOG() << "Restore in local mode.";
@@ -115,6 +116,6 @@ TEST_F(TestBackupRestore, BackupRestore) {
         bool succeed = rpc_client.CallCypher(res, "match (n) return count(n)");
         UT_EXPECT_EQ(succeed, true);
         web::json::value v = web::json::value::parse(res);
-        UT_EXPECT_EQ(v["count(n)"].as_integer(), 21);
+        UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     }
 }

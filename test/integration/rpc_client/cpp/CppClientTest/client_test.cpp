@@ -385,7 +385,7 @@ void test_import_file(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     assert(ret);
     nlohmann::json json_val = nlohmann::json::parse(str);
-    assert(json_val.is_null() == true);
+    assert(json_val.size() == 0);
     ret = client.ImportSchemaFromFile(str, conf_file);
     assert(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
@@ -409,45 +409,45 @@ void test_import_file(lgraph::RpcClient& client) {
     assert(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(m)"].get<int>() == 13);
+    assert(json_val[0]["count(m)"].get<int>() == 13);
 
     ret = client.CallCypher(str, "match (m:City) return count(m)");
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(m)"].get<int>() == 3);
+    assert(json_val[0]["count(m)"].get<int>() == 3);
 
     ret = client.CallCypher(str, "match (m:Film) return count(m)");
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(m)"].get<int>() == 5);
+    assert(json_val[0]["count(m)"].get<int>() == 5);
 
     ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 7);
+    assert(json_val[0]["count(r)"].get<int>() == 7);
 
     ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 4);
+    assert(json_val[0]["count(r)"].get<int>() == 4);
 
     ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 6);
+    assert(json_val[0]["count(r)"].get<int>() == 6);
 
     ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 1);
+    assert(json_val[0]["count(r)"].get<int>() == 1);
 
     ret = client.CallCypher(str, "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 2);
+    assert(json_val[0]["count(r)"].get<int>() == 2);
 
     ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 8);
+    assert(json_val[0]["count(r)"].get<int>() == 8);
 }
 
 
@@ -458,7 +458,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     assert(ret);
     nlohmann::json json_val = nlohmann::json::parse(str);
-    assert(json_val.is_null() == true);
+    assert(json_val.size() == 0);
     ret = client.ImportSchemaFromContent(str, sImportContent["schema"]);
     assert(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
@@ -484,21 +484,21 @@ void test_import_content(lgraph::RpcClient& client) {
     assert(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(m)"].get<int>() == 13);
+    assert(json_val[0]["count(m)"].get<int>() == 13);
 
     ret =
         client.ImportDataFromContent(str, sImportContent["city_desc"], sImportContent["city"], ",");
     assert(ret);
     ret = client.CallCypher(str, "match (m:City) return count(m)");
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(m)"].get<int>() == 3);
+    assert(json_val[0]["count(m)"].get<int>() == 3);
 
     ret =
         client.ImportDataFromContent(str, sImportContent["film_desc"], sImportContent["film"], ",");
     assert(ret);
     ret = client.CallCypher(str, "match (m:Film) return count(m)");
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(m)"].get<int>() == 5);
+    assert(json_val[0]["count(m)"].get<int>() == 5);
 
     ret = client.ImportDataFromContent(str, sImportContent["has_child_desc"],
                                        sImportContent["has_child"], ",");
@@ -506,7 +506,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 7);
+    assert(json_val[0]["count(r)"].get<int>() == 7);
 
     ret = client.ImportDataFromContent(str, sImportContent["married_desc"],
                                        sImportContent["married"], ",");
@@ -514,7 +514,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 4);
+    assert(json_val[0]["count(r)"].get<int>() == 4);
 
     ret = client.ImportDataFromContent(str, sImportContent["born_in_desc"],
                                        sImportContent["born_in"], ",");
@@ -522,7 +522,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 6);
+    assert(json_val[0]["count(r)"].get<int>() == 6);
 
     ret = client.ImportDataFromContent(str, sImportContent["directed_desc"],
                                        sImportContent["directed"], ",");
@@ -530,7 +530,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 1);
+    assert(json_val[0]["count(r)"].get<int>() == 1);
 
     ret = client.ImportDataFromContent(str, sImportContent["wrote_desc"], sImportContent["wrote"],
                                        ",");
@@ -538,7 +538,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 2);
+    assert(json_val[0]["count(r)"].get<int>() == 2);
 
     ret = client.ImportDataFromContent(str, sImportContent["acted_in_desc"],
                                        sImportContent["acted_in"], ",");
@@ -546,12 +546,12 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["count(r)"].get<int>() == 8);
+    assert(json_val[0]["count(r)"].get<int>() == 8);
 
     ret = client.CallCypher(str, "CALL db.getVertexSchema('Person')");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["schema"]["properties"].size() == 3);
+    assert(json_val[0]["schema"]["properties"].size() == 3);
     assert(CheckObjectElementEqual(json_val, "schema", "label", "Person", "STRING") == true);
     assert(CheckObjectElementEqual(json_val, "schema", "primary", "name", "STRING") == true);
     assert(CheckObjectElementEqual(json_val, "schema", "type", "VERTEX", "STRING") == true);
@@ -559,8 +559,8 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.getEdgeSchema('PLAY_IN')");
     assert(ret);
     json_val = nlohmann::json::parse(str);
-    assert(json_val["schema"]["constraints"].size() == 1);
-    assert(json_val["schema"]["constraints"][0].size() == 2);
+    assert(json_val[0]["schema"]["constraints"].size() == 1);
+    assert(json_val[0]["schema"]["constraints"][0].size() == 2);
     assert(CheckObjectElementEqual(json_val, "schema", "label", "PLAY_IN", "STRING") == true);
     assert(CheckObjectElementEqual(json_val, "schema", "type", "EDGE", "STRING") == true);
 }

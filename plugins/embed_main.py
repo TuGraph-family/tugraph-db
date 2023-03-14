@@ -1,16 +1,16 @@
-from lgraph_python import GraphDB, Galaxy
+from lgraph_db_python import *
 import json
 
 # --- add python plugin ---
-import python.scan_graph as python_plugin
+import wcc as python_plugin
 
 # --- add python plugin ---
 
 if __name__ == "__main__":
-    galaxy = Galaxy("lgraph_db")
+    galaxy = PyGalaxy("lgraph_db")
     galaxy.SetCurrentUser("admin", "73@TuGraph")
     db = galaxy.OpenGraph("default", False)
-    res = python_plugin.Process(db, "{\"scan_edges\": true}")
+    res = python_plugin.Process(db, "{}".encode('utf-8'))
     print(res)
-    db.Close()
-    galaxy.Close()
+    del db
+    del galaxy

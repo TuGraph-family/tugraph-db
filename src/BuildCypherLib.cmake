@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.1)
 
 find_package(PythonLibs REQUIRED)
 
+#antlr4-runtime
+set(ANTRL4_LIBRARY antlr4-runtime.a)
+
+set(TARGET_LGRAPH_CYPHER_LIB lgraph_cypher_lib)
+
 set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/arithmetic/agg_funcs.cpp
         cypher/arithmetic/arithmetic_expression.cpp
@@ -56,23 +61,23 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/monitor/monitor_manager.cpp
         )
 
-#antlr4-runtime
-set(ANTRL4_LIBRARY antlr4-runtime.a)
-
-add_library(lgraph_cypher_lib STATIC
+add_library(${TARGET_LGRAPH_CYPHER_LIB} STATIC
         ${LGRAPH_CYPHER_SRC}
         ${PROTO_HEADERS}
         ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h)
-set_target_properties(lgraph_cypher_lib PROPERTIES LINKER_LANGUAGE CXX)
+
+set_target_properties(${TARGET_LGRAPH_CYPHER_LIB} PROPERTIES LINKER_LANGUAGE CXX)
+
 add_custom_command(
         OUTPUT ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h
         COMMAND cp -p ${CMAKE_CURRENT_LIST_DIR}/cypher/Any.h.491+ ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h
         DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cypher/Any.h.491+
 )
-target_include_directories(lgraph_cypher_lib PUBLIC
+
+target_include_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${DEPS_INCLUDE_DIR}/antlr4-runtime
         ${CMAKE_CURRENT_LIST_DIR}/cypher)
 
-target_link_libraries(lgraph_cypher_lib PUBLIC
+target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${ANTRL4_LIBRARY}
         lgraph)

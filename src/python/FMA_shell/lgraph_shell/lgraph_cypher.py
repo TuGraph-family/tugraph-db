@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import click
 import sys
 import time
@@ -30,7 +30,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 @click.option("-s", "--cypher_query", default="", help='do one line cypher query, example -s "MATCH (n) RETURN n"')
 @click.option("-t", "--timeout", default=150, help="timeout value for cypher queries, default value is 150 seconds")
 @click.option("-format", "--return_format", default="table",
-              help="query result format, support table and plain style format")
+              help="query result format, support table, plain, json style format")
 def start(example_info, username, host, port, timeout, password, config, cypher, cypher_query, return_format, graph):
     if example_info:
         click.secho("------------------")
@@ -65,8 +65,8 @@ def start(example_info, username, host, port, timeout, password, config, cypher,
         username = six.moves.input("User: ")
         password = getpass.getpass("Password: ")
 
-    if return_format not in set(["plain", "table"]):
-        print(term_color.ERRORC + "unsupported value for format. Expecting \"table\" or \"plain\" " + term_color.ENDC)
+    if return_format not in set(["plain", "table", "json"]):
+        print(term_color.ERRORC + "unsupported value for format. Expecting \"table\" or \"plain\" or \"json\" " + term_color.ENDC)
         sys.exit(1)
 
     try:

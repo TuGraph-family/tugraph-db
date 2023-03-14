@@ -25,18 +25,25 @@ endif ()
 
 find_library(SNAPPY NAMES snappy)
 
-set(TARGET_OBJ liblgraph_rpc_client)
+find_package(PythonLibs 3 REQUIRED)
 
-add_library(${TARGET_OBJ} SHARED
+############### liblgraph_client_cpp_rpc ######################
+
+set(TARGET_CPP_CLIENT_RPC lgraph_client_cpp_rpc)
+
+add_library(${TARGET_CPP_CLIENT_RPC} SHARED
         client/cpp/rpc/lgraph_rpc_client.cpp
         ${PROTO_SRCS})
 
-add_library(lgraph_rest_client SHARED
-        client/cpp/restful/rest_client.cpp
-        ${PROTO_SRCS})
+target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
+        ${DEPS_INCLUDE_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/cypher    # for FieldDataConvert
+        ${LGRAPH_INCLUDE_DIR}
+        ${JNI_INCLUDE_DIRS})
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
-    target_link_libraries(${TARGET_OBJ}
+    target_link_libraries(${TARGET_CPP_CLIENT_RPC}
             PUBLIC
             # begin static linking
             -Wl,-Bstatic
@@ -61,7 +68,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             z
             )
 else ()
-    target_link_libraries(${TARGET_OBJ}
+    target_link_libraries(${TARGET_CPP_CLIENT_RPC}
             PUBLIC
             lgraph
             lgraph_cypher_lib
@@ -89,8 +96,16 @@ else ()
             )
 endif ()
 
+############### liblgraph_client_cpp_rest ######################
+
+set(TARGET_CPP_CLIENT_REST lgraph_client_cpp_rest)
+
+add_library(${TARGET_CPP_CLIENT_REST} SHARED
+        client/cpp/restful/rest_client.cpp
+        ${PROTO_SRCS})
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-target_link_libraries(lgraph_rest_client PUBLIC
+target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
         lgraph_server_lib
         ${BRPC_LIB}
         boost_system
@@ -98,17 +113,31 @@ target_link_libraries(lgraph_rest_client PUBLIC
         ${JAVA_JVM_LIBRARY})
 endif()
 
-target_include_directories(${TARGET_OBJ} PRIVATE
-        ${DEPS_INCLUDE_DIR}
-        ${CMAKE_CURRENT_LIST_DIR}
-        ${CMAKE_CURRENT_LIST_DIR}/cypher    # for FieldDataConvert
-        ${LGRAPH_INCLUDE_DIR}
-        ${JNI_INCLUDE_DIRS})
-set_target_properties(${TARGET_OBJ} PROPERTIES PREFIX "")
-
-target_include_directories(lgraph_rest_client PRIVATE
+target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE
         ${DEPS_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher
         ${LGRAPH_INCLUDE_DIR}
         ${JNI_INCLUDE_DIRS})
+
+############### liblgraph_client_python ######################
+
+set(TARGET_PYTHON_CLIENT lgraph_client_python)
+
+add_library(${TARGET_PYTHON_CLIENT} SHARED
+        client/python/rpc/client.cpp)
+
+target_include_directories(${TARGET_PYTHON_CLIENT} PRIVATE
+        ${PYTHON_INCLUDE_DIRS}
+        ${LGRAPH_INCLUDE_DIR})
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(${TARGET_PYTHON_CLIENT} PUBLIC
+            ${PYTHON_LIBRARIES}
+            lgraph_client_cpp_rpc)
+else ()
+    target_link_libraries(${TARGET_PYTHON_CLIENT} PUBLIC
+            lgraph_client_cpp_rpc
+            rt
+            lgraph)
+endif ()

@@ -55,7 +55,7 @@ class RPCService : public lgraph::LGraphRPCService {
     void HandleRequest(::google::protobuf::RpcController* controller,
                        const ::lgraph::LGraphRequest* request, ::lgraph::LGraphResponse* response,
                        ::google::protobuf::Closure* done) {
-        sm_->HandleRequest(controller, (::lgraph::LGraphRequest*)request, response, done, false);
+        sm_->HandleRequest(controller, request, response, done);
     }
 
  private:
@@ -148,6 +148,7 @@ def Process(db, input):
     stream.Close();
 
     std::string code_read = R"(
+from liblgraph_python_api import *
 def Process(db, input):
     n = 0
     try:
@@ -1211,7 +1212,7 @@ void test_configration(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str,
-                            "CALL dbms.config.update({durable:true,"
+                            "CALL dbms.config.update({durable:false,"
                             " enable_audit_log:true, enable_ip_check:true})");
     UT_EXPECT_TRUE(ret);
 }
@@ -1222,7 +1223,7 @@ void test_configration_valid(lgraph::RpcClient& client) {
     bool ret = client.CallCypher(str, "CALL dbms.config.list()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ((CheckElementEqual(json_val, "durable", "1", "name", "value", "STRING", "BOOL")),
+    UT_EXPECT_EQ((CheckElementEqual(json_val, "durable", "0", "name", "value", "STRING", "BOOL")),
                  true);
     UT_EXPECT_EQ(
         (CheckElementEqual(json_val, "enable_audit_log", "1", "name", "value", "STRING", "BOOL")),
@@ -1578,7 +1579,7 @@ void test_cpp_plugin(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val.is_null(), true);
+    UT_EXPECT_EQ(json_val.size() == 0, true);
 
     std::string code_so_path = "./sortstr.so";
     ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO", "this is a test plugin",
@@ -1674,7 +1675,7 @@ void test_python_plugin(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val.is_null(), true);
+    UT_EXPECT_EQ(json_val.size() == 0, true);
 
     ret = client.LoadPlugin(str, code_sleep, "PY", "python_plugin1", "PY", "this is a test plugin",
                             true);
@@ -1699,7 +1700,7 @@ void test_python_plugin(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.plugin.listPlugin('PY')");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val.is_null(), true);
+    UT_EXPECT_EQ(json_val.size() == 0, true);
 }
 
 void test_cypher(lgraph::RpcClient& client) {
@@ -1708,7 +1709,7 @@ void test_cypher(lgraph::RpcClient& client) {
     bool ret = client.CallCypher(str, "match (n) return count(n)");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(n)"].as_integer(), 6);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 6);
 }
 
 void test_import_file(lgraph::RpcClient& client) {
@@ -1721,7 +1722,7 @@ void test_import_file(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val.is_null(), true);
+    UT_EXPECT_EQ(json_val.size() == 0, true);
     ret = client.ImportSchemaFromFile(str, conf_file);
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
@@ -1745,45 +1746,45 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 13);
+    UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 13);
 
     ret = client.CallCypher(str, "match (m:City) return count(m)");
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 3);
+    UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 3);
 
     ret = client.CallCypher(str, "match (m:Film) return count(m)");
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 5);
+    UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 5);
 
     ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 7);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 7);
 
     ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 4);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 4);
 
     ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 6);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 6);
 
     ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 1);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 1);
 
     ret = client.CallCypher(str, "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 2);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 2);
 
     ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 8);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 8);
 }
 
 void test_import_content(lgraph::RpcClient& client) {
@@ -1794,7 +1795,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val.is_null(), true);
+    UT_EXPECT_EQ(json_val.size() == 0, true);
     ret = client.ImportSchemaFromContent(str, sImportContent["schema"]);
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
@@ -1820,21 +1821,21 @@ void test_import_content(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 13);
+    UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 13);
 
     ret =
         client.ImportDataFromContent(str, sImportContent["city_desc"], sImportContent["city"], ",");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:City) return count(m)");
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 3);
+    UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 3);
 
     ret =
         client.ImportDataFromContent(str, sImportContent["film_desc"], sImportContent["film"], ",");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Film) return count(m)");
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(m)"].as_integer(), 5);
+    UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 5);
 
     ret = client.ImportDataFromContent(str, sImportContent["has_child_desc"],
                                        sImportContent["has_child"], ",");
@@ -1842,7 +1843,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 7);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 7);
 
     ret = client.ImportDataFromContent(str, sImportContent["married_desc"],
                                        sImportContent["married"], ",");
@@ -1850,7 +1851,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 4);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 4);
 
     ret = client.ImportDataFromContent(str, sImportContent["born_in_desc"],
                                        sImportContent["born_in"], ",");
@@ -1858,7 +1859,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 6);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 6);
 
     ret = client.ImportDataFromContent(str, sImportContent["directed_desc"],
                                        sImportContent["directed"], ",");
@@ -1866,7 +1867,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 1);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 1);
 
     ret = client.ImportDataFromContent(str, sImportContent["wrote_desc"], sImportContent["wrote"],
                                        ",");
@@ -1874,7 +1875,7 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 2);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 2);
 
     ret = client.ImportDataFromContent(str, sImportContent["acted_in_desc"],
                                        sImportContent["acted_in"], ",");
@@ -1882,12 +1883,12 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["count(r)"].as_integer(), 8);
+    UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 8);
 
     ret = client.CallCypher(str, "CALL db.getVertexSchema('Person')");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["schema"]["properties"].size(), 3);
+    UT_EXPECT_EQ(json_val[0]["schema"]["properties"].size(), 3);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "label", "Person", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "primary", "name", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "type", "VERTEX", "STRING"), true);
@@ -1895,8 +1896,8 @@ void test_import_content(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.getEdgeSchema('PLAY_IN')");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val["schema"]["constraints"].size(), 1);
-    UT_EXPECT_EQ(json_val["schema"]["constraints"][0].size(), 2);
+    UT_EXPECT_EQ(json_val[0]["schema"]["constraints"].size(), 1);
+    UT_EXPECT_EQ(json_val[0]["schema"]["constraints"][0].size(), 2);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "label", "PLAY_IN", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "type", "EDGE", "STRING"), true);
 }

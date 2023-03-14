@@ -22,24 +22,19 @@ using json = nlohmann::json;
 
 class MyConfig : public ConfigBase<Empty> {
  public:
-    size_t root = 0;
+    std::string root = "0";
     std::string name = std::string("bfs");
-    void AddParameter(fma_common::Configuration & config) {
+    void AddParameter(fma_common::Configuration& config) {
         ConfigBase<Empty>::AddParameter(config);
-        config.Add(root, "root", true)
-                .Comment("the root of bfs");
+        config.Add(root, "root", true).Comment("the root of bfs");
     }
     void Print() {
         ConfigBase<Empty>::Print();
         std::cout << "  name: " << name << std::endl;
-        if (root != size_t(-1)) {
-            std::cout << "  root: " << root << std::endl;
-        } else {
-            std::cout << "  root: UNSET" << std::endl;
-        }
+        std::cout << "  root: " << root << std::endl;
     }
 
-    MyConfig(int &argc, char** &argv): ConfigBase<Empty>(argc, argv) {
+    MyConfig(int& argc, char**& argv) : ConfigBase<Empty>(argc, argv) {
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);
@@ -56,10 +51,14 @@ int main(int argc, char** argv) {
     // prepare
     start_time = get_time();
     MyConfig config(argc, argv);
-    size_t root_vid = config.root;
-
     OlapOnDisk<Empty> graph;
+    size_t root_vid;
     graph.Load(config, DUAL_DIRECTION);
+    if (config.id_mapping) {
+        root_vid = graph.hash_list_.find(config.root);
+    } else {
+        root_vid = std::stoi(config.root);
+    }
     memUsage.print();
     memUsage.reset();
     auto prepare_cost = get_time() - start_time;

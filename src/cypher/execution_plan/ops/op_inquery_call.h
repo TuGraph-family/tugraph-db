@@ -17,6 +17,7 @@
 //
 #pragma once
 
+#include <vector>
 #include "parser/clause.h"
 #include "procedure/procedure.h"
 #include "op.h"
@@ -55,6 +56,7 @@ class InQueryCall : public OpBase {
           pattern_(pattern_graph),
           call_clause_(*stmt->iq_call_clause) {
         state = StreamUnInitialized;
+        modifies = std::get<2>(*stmt->iq_call_clause);
     }
 
     OpResult Initialize(RTContext *ctx) override {

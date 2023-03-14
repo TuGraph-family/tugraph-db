@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import json
@@ -30,7 +29,7 @@ BINLOGOPT_1 = {"cmd" : "./lgraph_binlog -a restore --db_dir ./testdb1 -u admin -
 
 
 
-class TestBinLog():
+class TestBinLog:
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
@@ -42,7 +41,7 @@ class TestBinLog():
         ret = client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         res = json.loads(ret[1])
-        assert res == None
+        assert len(res) == 0
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
@@ -65,7 +64,7 @@ class TestBinLog():
         ret = client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         res = json.loads(ret[1])
-        assert res == None
+        assert len(res) == 0
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)

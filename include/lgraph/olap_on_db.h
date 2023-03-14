@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,29 +20,10 @@
 
 #pragma once
 
-#include <assert.h>
-#include <omp.h>
-#include <string.h>
-#include <sys/mman.h>
-
-#include <algorithm>
-#include <condition_variable>
-#include <functional>
-#include <future>
-#include <memory>
-#include <mutex>
-#include <thread>
-#include <type_traits>
-#include <utility>
-#include <vector>
-#include <iostream>
-
+#include <sys/syscall.h>
+#include <unistd.h>
 #include "lgraph/lgraph.h"
-#include "lgraph/lgraph_atomic.h"
-#include "lgraph/lgraph_utils.h"
 #include "lgraph/olap_base.h"
-
-#include "libcuckoo/cuckoohash_map.hh"
 
 namespace lgraph_api {
 namespace olap {
@@ -496,7 +477,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
 
-        auto start_time = get_time();
 
         // Read from TuGraph
         if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
@@ -594,7 +574,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
             this->out_index_.Append(0, false);
             auto vit = txn_.GetVertexIterator();
             for (size_t vid = 0; vid < this->num_vertices_; vid++) {
-                vit.Goto(vid);
+                if (!vit.Goto(vid)) continue;
                 for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                     size_t dst = eit.GetDst();
                     EdgeData edata;
@@ -846,7 +826,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
 
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
-                        vit.Goto(vi);
+                        if (!vit.Goto(vi)) continue;
                         this->out_degree_[vi] = vit.GetNumOutEdges();
                         if (flags_ & SNAPSHOT_UNDIRECTED) {
                             this->out_degree_[vi] += vit.GetNumInEdges();
@@ -903,7 +883,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
 
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
-                        vit.Goto(vi);
+                        if (!vit.Goto(vi)) continue;
                         size_t pos = this->out_index_[vi];
                         for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                             size_t dst = eit.GetDst();
@@ -934,38 +914,38 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     {};
                 }
             });
-        } else {
-            auto vit = txn_.GetVertexIterator();
-            for (size_t vid = 0; vid < this->num_vertices_; vid++) {
-                vit.Goto(vid);
-                for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
-                    size_t dst = eit.GetDst();
-                    AdjUnit<EdgeData> out_edge;
-                    out_edge.neighbour = dst;
-                    this->out_edges_.Append(out_edge, false);
-                }
-                if (flags_ & SNAPSHOT_UNDIRECTED) {
-                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
-                        size_t src = eit.GetSrc();
-                        AdjUnit<EdgeData> in_edge;
-                        in_edge.neighbour = src;
-                        this->out_edges_.Append(in_edge, false);
-                    }
-                } else {
-                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
-                        size_t src = eit.GetSrc();
-                        AdjUnit<EdgeData> in_edge;
-                        in_edge.neighbour = src;
-                        this->in_edges_.Append(in_edge, false);
-                    }
-                    this->in_index_[vid + 1] = this->in_edges_.Size();
-                    this->in_degree_[vid] = this->in_index_[vid + 1] - this->in_index_[vid];
-                }
-                this->out_index_[vid + 1] = this->out_edges_.Size();
-                this->out_degree_[vid] = this->out_index_[vid + 1] - this->out_index_[vid];
-            }
-            this->num_edges_ = this->out_edges_.Size();
-            this->out_edges_.Resize(this->num_edges_);
+//        } else {
+//            auto vit = txn_.GetVertexIterator();
+//            for (size_t vid = 0; vid < this->num_vertices_; vid++) {
+//                if (!vit.Goto(vid)) continue;
+//                for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+//                    size_t dst = eit.GetDst();
+//                    AdjUnit<EdgeData> out_edge;
+//                    out_edge.neighbour = dst;
+//                    this->out_edges_.Append(out_edge, false);
+//                }
+//                if (flags_ & SNAPSHOT_UNDIRECTED) {
+//                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+//                        size_t src = eit.GetSrc();
+//                        AdjUnit<EdgeData> in_edge;
+//                        in_edge.neighbour = src;
+//                        this->out_edges_.Append(in_edge, false);
+//                    }
+//                } else {
+//                    for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+//                        size_t src = eit.GetSrc();
+//                        AdjUnit<EdgeData> in_edge;
+//                        in_edge.neighbour = src;
+//                        this->in_edges_.Append(in_edge, false);
+//                    }
+//                    this->in_index_[vid + 1] = this->in_edges_.Size();
+//                    this->in_degree_[vid] = this->in_index_[vid + 1] - this->in_index_[vid];
+//                }
+//                this->out_index_[vid + 1] = this->out_edges_.Size();
+//                this->out_degree_[vid] = this->out_index_[vid + 1] - this->out_index_[vid];
+//            }
+//            this->num_edges_ = this->out_edges_.Size();
+//            this->out_edges_.Resize(this->num_edges_);
         }
         this->lock_array_.Resize(this->num_vertices_);
         this->lock_array_.Fill(false);
@@ -1035,6 +1015,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
     OlapOnDB(const OlapOnDB<EdgeData> &rhs) = delete;
 
     OlapOnDB(OlapOnDB<EdgeData> &&rhs) = default;
+    OlapOnDB<EdgeData>& operator=(OlapOnDB<EdgeData> &&rhs) {
+        printf("OlapOnDB assigment\n");
+        return *this;
+    }
 
     /**
      * @brief    Extract a vertex array from the graph.
@@ -1154,6 +1138,64 @@ std::function<bool(OutEdgeIterator &, EdgeData &)> edge_convert_weight =
     edge_data = eit.GetField("weight").real();
     return true;
 };
+
+template <typename T>
+T ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
+                const std::vector<int64_t> vertices,
+                std::function<void(Transaction &, VertexIterator &, T &)> work,
+                std::function<void(const T &, T &)> reduce, size_t parallel_factor = 8) {
+    T results;
+    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
+    auto& worker = workers[wid];
+    worker.Delegate([&]() {
+#pragma omp parallel num_threads(parallel_factor)
+        {
+            T local_results;
+            auto txn_ = db.ForkTxn(txn);
+            int tid = omp_get_thread_num();
+            int num_th = omp_get_num_threads();
+            size_t start = vertices.size() / num_th * tid;
+            size_t end = vertices.size() / num_th * (tid + 1);
+            if (tid == num_th - 1) end = vertices.size();
+            auto vit = txn_.GetVertexIterator();
+            for (size_t i = start; i < end; i++) {
+                vit.Goto(vertices[i]);
+                work(txn_, vit, local_results);
+            }
+#pragma omp critical
+            {
+                reduce(local_results, results);
+            }
+        }
+    });
+    return results;
+}
+template <typename T>
+std::vector<T> ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
+                             const std::vector<int64_t> vertices,
+                             std::function<T(Transaction &, VertexIterator &, size_t)> work,
+                             size_t parallel_factor = 8) {
+    std::vector<T> results(vertices.size());
+    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
+    auto& worker = workers[wid];
+    worker.Delegate([&]() {
+#pragma omp parallel num_threads(parallel_factor)
+        {
+            auto txn_ = db.ForkTxn(txn);
+            int tid = omp_get_thread_num();
+            int num_th = omp_get_num_threads();
+            size_t start = vertices.size() / num_th * tid;
+            size_t end = vertices.size() / num_th * (tid + 1);
+            if (tid == num_th - 1) end = vertices.size();
+            auto vit = txn_.GetVertexIterator();
+            for (size_t i = start; i < end; i++) {
+                vit.Goto(vertices[i]);
+                results[i] = work(txn_, vit, i);
+            }
+        }
+    });
+    return results;
+}
 
 }  // namespace olap
 }  // namespace lgraph_api

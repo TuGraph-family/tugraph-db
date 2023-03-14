@@ -19,6 +19,7 @@
 #include <stack>
 #include "db/galaxy.h"
 
+#include "execution_plan/ops/op.h"
 #include "graph/graph.h"
 #include "cypher_exception.h"
 #include "execution_plan.h"
@@ -158,19 +159,19 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             case SymbolNode::CONSTANT:
             case SymbolNode::PARAMETER:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::FIELD);
+                                                       lgraph::ElementType::ANY);
                 break;
             case SymbolNode::NODE:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::NODE);
+                                                       lgraph::ElementType::NODE);
                 break;
             case SymbolNode::RELATIONSHIP:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::RELATIONSHIP);
+                                                       lgraph::ElementType::RELATIONSHIP);
                 break;
             case SymbolNode::NAMED_PATH:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ResultElementType::PATH);
+                                                       lgraph::ElementType::PATH);
                 break;
             default:
                 throw lgraph::CypherException("Unknown type: " + SymbolNode::to_string(type));
@@ -214,17 +215,17 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             result_info.header.colums.emplace_back(procedure_name);
         } else {
             auto &yield_items = std::get<2>(*stmt.sa_call_clause);
-            auto &result = p->result;
+            auto &result = p->signature.result_list;
             if (yield_items.empty()) {
                 for (auto &r: result) {
-                    result_info.header.colums.emplace_back(r.first, r.first, false, r.second.second);
+                    result_info.header.colums.emplace_back(r.name, r.name, false, r.type);
                 }
             } else {
                 for (auto &yield_item : yield_items) {
                     for (auto &r : result) {
-                        if (yield_item == r.first) {
+                        if (yield_item == r.name) {
                             result_info.header.colums.emplace_back(
-                                yield_item, yield_item, false, r.second.second);
+                                yield_item, yield_item, false, r.type);
                             break;
                         }
                     }
@@ -907,6 +908,13 @@ void ExecutionPlan::_PlaceFilterOps(const parser::QueryPart &part, OpBase *&root
             _MergeFilter(root);
         }
     }
+    if (part.iq_call_clause) {
+        auto &where_expr = std::get<3>(*part.iq_call_clause);
+        if (where_expr.type == Expression::FILTER) {
+            _PlaceFilter(where_expr.Filter(), root);
+            _MergeFilter(root);
+        }
+    }
 }
 
 // if there are two adjacent filters in the op tree, merge them together
@@ -976,39 +984,41 @@ static std::vector<std::string> GetModifiesForNode(OpBase *node) {
 bool ExecutionPlan::_PlaceFilterToNode(std::shared_ptr<lgraph::Filter> &f, OpBase *node) {
     // if f is not successfully placed, return false
     if (node == nullptr && f != nullptr) return false;
+    // check if rit modifies at least one of f's aliases
+    bool containModifies = false;
     for (auto rit = node->children.rbegin(); rit != node->children.rend(); ++rit) {
-        // check if rit modifies at least one of f's aliases
-        bool containModifies = false;
         for (auto alias : f->Alias())
             if (std::find((*rit)->modifies.begin(), (*rit)->modifies.end(), alias) !=
                 (*rit)->modifies.end()) {
                 containModifies = true;
                 break;
             }
-        // check if the subtree of rit modifies all of f's aliases
-        auto mod = GetModifiesForNode(*rit);
-        bool allModified = true;
-        for (auto &a : f->Alias())
-            if (std::find(mod.begin(), mod.end(), a) == mod.end()) {
-                allModified = false;
+    }
+    // check if the subtree of node modifies all of f's aliases
+    auto mod = GetModifiesForNode(node);
+    bool allModified = true;
+    for (auto &a : f->Alias())
+        if (std::find(mod.begin(), mod.end(), a) == mod.end()) {
+            allModified = false;
+            break;
+        }
+    // do the filter at rit if containModifies and allModified are true
+    if (containModifies && allModified) {
+        OpBase *node_filter = new OpFilter(f);
+        OpBase *insert = node, *current = node;
+        while (current) {
+            if (current->children.size() == 1) {
+                insert = current;
                 break;
             }
-        // do the filter at rit if containModifies and allModified are true
-        if (containModifies && allModified) {
-            OpBase *node_filter = new OpFilter(f);
-            OpBase *insert = (*rit)->parent, *current = (*rit)->parent;
-            while (current) {
-                if (current->children.size() == 1) {
-                    insert = current;
-                    break;
-                }
-                current = current->parent;
-            }
-            insert->PushInBetween(node_filter);
-            return true;
-        } else {
-            // if this filter cannot be placed at rit, try to place this filter
-            // to its children
+            current = current->parent;
+        }
+        insert->PushInBetween(node_filter);
+        return true;
+    } else {
+        // if this filter cannot be placed at rit, try to place this filter
+        // to its children
+        for (auto rit = node->children.rbegin(); rit != node->children.rend(); ++rit) {
             if (_PlaceFilterToNode(f, *rit)) {
                 return true;
             }
@@ -1277,10 +1287,10 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     }
 
     ctx->result_info_ = std::make_unique<ResultInfo>(GetResultInfo());
-    std::vector<std::pair<std::string, lgraph_api::ResultElementType>> header;
+    std::vector<std::pair<std::string, lgraph_api::LGraphType>> header;
 
     for (auto &h : ctx->result_info_->header.colums) {
-        std::pair<std::string, lgraph_api::ResultElementType> column;
+        std::pair<std::string, lgraph_api::LGraphType> column;
         column.first = h.alias.empty() ? h.name : h.alias;
         column.second = h.type;
         header.emplace_back(column);

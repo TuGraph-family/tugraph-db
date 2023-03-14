@@ -94,6 +94,7 @@ def Process(db, input):
     return (True, str(nv))
 )";
         code_write = R"(
+from liblgraph_python_api import *
 def Process(db, input):
     db.AddVertexLabel("v", [FieldSpec("id",FieldType.INT32,False),FieldSpec("name",FieldType.STRING,True)])
     txn = db.CreateWriteTxn()
@@ -132,16 +133,16 @@ def Process(db, input):
         PluginCode pc;
         UT_LOG() << "Test retrieving plugin (code_type: py)";
         UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sleep", pc));
-        UT_EXPECT_TRUE(code_sleep.compare(pc.code) == 0 && pc.code_type == "so_or_py");
+        UT_EXPECT_TRUE(code_sleep.compare(pc.code) == 0 && pc.code_type == "py");
         UT_EXPECT_TRUE(pc.read_only);
         UT_EXPECT_EQ(pc.desc, "sleep for n seconds");
         UT_EXPECT_EQ(pc.name, "sleep");
 
         UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
                                                                     "scan_graph", pc));
-        UT_EXPECT_TRUE(code_read.compare(pc.code) == 0 && pc.code_type == "so_or_py");
+        UT_EXPECT_TRUE(code_read.compare(pc.code) == 0 && pc.code_type == "py");
         UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "add", pc));
-        UT_EXPECT_TRUE(code_write.compare(pc.code) == 0 && pc.code_type == "so_or_py");
+        UT_EXPECT_TRUE(code_write.compare(pc.code) == 0 && pc.code_type == "py");
 
         UT_LOG() << "Updating plugin";
         // already exists
@@ -176,6 +177,25 @@ def Process(db, input):
         UT_EXPECT_TRUE(manager.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
                                             "scan_graph", "0", 0, true, output));
         UT_LOG() << "Scan graph returned: " << output;
+
+        // reload plugin
+        UT_EXPECT_TRUE(manager.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                    "sleep", "1", 0, true, output));
+        // code sleep return ""
+        UT_EXPECT_TRUE(output == "");
+        UT_EXPECT_TRUE(manager.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sleep"));
+        UT_EXPECT_TRUE(manager.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                                  "sleep", code_read, plugin::CodeType::PY,
+                                                  "code read but name sleep", true));
+        UT_EXPECT_TRUE(manager.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sleep", pc));
+        UT_EXPECT_TRUE(code_read.compare(pc.code) == 0 && pc.code_type == "py");
+        UT_EXPECT_TRUE(pc.read_only);
+        UT_EXPECT_EQ(pc.desc, "code read but name sleep");
+        UT_EXPECT_EQ(pc.name, "sleep");
+        UT_EXPECT_TRUE(manager.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
+                                    "sleep", "0", 0, true, output));
+        // code read return "0"
+        UT_EXPECT_TRUE(output == "0");
     } catch (std::exception& e) {
         UT_EXPECT_TRUE(false);
         UT_ERR() << e.what();

@@ -67,7 +67,7 @@ struct DoneClosure : public google::protobuf::Closure {
 LGraphResponse RestServer::ApplyToStateMachine(const LGraphRequest& lgreq) const {
     LGraphResponse resp;
     DoneClosure d;
-    state_machine_->HandleRequest(nullptr, &lgreq, &resp, &d, true);
+    state_machine_->HandleRequest(nullptr, &lgreq, &resp, &d);
     d.Wait();
     return resp;
 }
@@ -2095,6 +2095,156 @@ void RestServer::HandlePostSchema(const std::string& user, const std::string& to
     }
 }
 
+void RestServer::HandlePostExport(const std::string& user, const std::string& token,
+                                  const web::http::http_request& request,
+                                  const utility::string_t& relative_path,
+                                  const std::vector<utility::string_t>& paths,
+                                  const web::json::value& body) const {
+    std::string label;
+    std::vector<std::string> properties;
+    bool is_vertex;
+    std::string src_label, dst_label;
+    GET_REQUIRED_JSON_FIELD(body, "label", label);
+    GET_REQUIRED_JSON_FIELD(body, "properties", properties);
+    GET_REQUIRED_JSON_FIELD(body, "is_vertex", is_vertex);
+    if (!is_vertex) {
+        GET_REQUIRED_JSON_FIELD(body, "src_label", src_label);
+        GET_REQUIRED_JSON_FIELD(body, "dst_label", dst_label);
+    }
+    if (properties.empty()) {
+        return RespondBadRequest(request, FMA_FMT("properties is empty"));
+    }
+    if (label.empty()) {
+        return RespondBadRequest(request, FMA_FMT("label is empty"));
+    }
+
+    AccessControlledDB db = galaxy_->OpenGraph(user, paths[1]);
+    auto txn = db.CreateReadTxn();
+    auto schema = txn.GetSchema(label, is_vertex);
+    if (!schema) {
+        return RespondBadRequest(
+            request, FMA_FMT("No such {} label: {}", is_vertex ? "vertex" : "edge", label));
+    }
+    auto label_id = schema->GetLabelId();
+    int src_id_index = -1, dst_id_index = -1;
+    int edge_prop_size = 0;
+    if (!is_vertex) {
+        edge_prop_size = properties.size();
+        for (size_t i = 0; i < properties.size(); i++) {
+            if (properties[i] == "SRC_ID") {
+                src_id_index = i;
+            } else if (properties[i] == "DST_ID") {
+                dst_id_index = i;
+            }
+        }
+        if (src_id_index != -1) {
+            auto iter = std::find_if(properties.begin(), properties.end(),
+                                     [](auto& item){return item == "SRC_ID";});
+            properties.erase(iter);
+        }
+        if (dst_id_index != -1) {
+            auto iter = std::find_if(properties.begin(), properties.end(),
+                                     [](auto& item){return item == "DST_ID";});
+            properties.erase(iter);
+        }
+    }
+    auto field_ids = schema->GetFieldIds(properties);
+
+    Concurrency::streams::producer_consumer_buffer<uint8_t> buffer;
+    http_response response = GetCorsResponse(status_codes::OK);
+    // enable chunked transfer
+    response.headers().add(header_names::transfer_encoding, U("chunked"));
+    response.set_body(buffer.create_istream(), U("text/plain"));
+    auto response_done = request.reply(response);
+    std::string chunk;
+    auto write_fields = [&](const std::vector<FieldData>& fds){
+        nlohmann::json line;
+        for (auto& fd : fds) {
+            line.push_back(fd.ToString());
+        }
+        chunk.append(line.dump()).append(1, '\n');
+        if (chunk.size() > 1024*1024) {
+            // TODO(botu) : Is there a better way to confirm the other peer is disconnected?
+            if (response_done.is_done()) {
+                FMA_ERR() << "response is done, the client may have been disconnected";
+                return false;
+            }
+            auto size = buffer.putn_nocopy((const uint8_t*)chunk.data(), chunk.size()).get();
+            if (size != chunk.size()) {
+                FMA_ERR() << FMA_FMT("unexpected size {}", size);
+                return false;
+            }
+            chunk.clear();
+        }
+        return true;
+    };
+
+    if (is_vertex) {
+        for (auto iter = txn.GetVertexIndexIterator(label, schema->GetPrimaryField());
+             iter.IsValid(); iter.Next()) {
+            auto vit = txn.GetVertexIterator(iter.GetVid());
+            auto fds = txn.GetVertexFields(vit, field_ids);
+            if (!write_fields(fds)) {
+                // if the client is disconnected, abort data scanning
+                break;
+            }
+        }
+    } else {
+        auto src_schema = txn.GetSchema(src_label, true);
+        if (!src_schema) {
+            return RespondBadRequest(
+                request, FMA_FMT("No such vertex label: {}", src_label));
+        }
+        auto dst_schema = txn.GetSchema(dst_label, true);
+        if (!dst_schema) {
+            return RespondBadRequest(
+                request, FMA_FMT("No such vertex label: {}", dst_label));
+        }
+        auto dst_vit = txn.GetVertexIterator();
+        auto src_fid = src_schema->GetFieldId(src_schema->GetPrimaryField());
+        auto dst_fid = src_schema->GetFieldId(dst_schema->GetPrimaryField());
+        for (auto iter = txn.GetVertexIndexIterator(src_label, src_schema->GetPrimaryField());
+             iter.IsValid(); iter.Next()) {
+            auto src_vit = txn.GetVertexIterator(iter.GetVid());
+            for (auto eit = src_vit.GetOutEdgeIterator(EdgeUid(0, 0, label_id, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != label_id) {
+                    break;
+                }
+                dst_vit.Goto(eit.GetDst());
+                if (txn.GetVertexLabelId(dst_vit) != dst_schema->GetLabelId()) {
+                    continue;
+                }
+                auto fds = txn.GetEdgeFields(eit, field_ids);
+                int index = 0;
+                std::vector<FieldData> new_fds;
+                for (int i = 0; i < edge_prop_size; i++) {
+                    if (i == src_id_index) {
+                        new_fds.emplace_back(txn.GetVertexField(src_vit, src_fid));
+                    } else if (i == dst_id_index) {
+                        new_fds.emplace_back(txn.GetVertexField(dst_vit, dst_fid));
+                    } else {
+                        new_fds.emplace_back(std::move(fds.at(index)));
+                        index++;
+                    }
+                }
+                if (!write_fields(new_fds)) {
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!chunk.empty()) {
+        auto size = buffer.putn_nocopy((const uint8_t*)chunk.data(), chunk.size()).get();
+        if (size != chunk.size()) {
+            FMA_ERR() << FMA_FMT("unexpected size {}", size);
+        }
+    }
+    buffer.sync().get();
+    buffer.close(std::ios_base::out).get();
+}
+
 void RestServer::HandlePostImport(const std::string& user, const std::string& token,
                                   const web::http::http_request& request,
                                   const utility::string_t& relative_path,
@@ -2253,7 +2403,7 @@ void RestServer::HandlePostUser(const std::string& user, const std::string& toke
     }
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-        if (paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
+        if (paths.size() == 3 && paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
             if (!galaxy_->UnBindTokenUser(token)) return RespondBadRequest(request, "Bad token.");
         }
         return RespondSuccess(request);
@@ -2878,6 +3028,8 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
                 case RestPathCases::IMPORT:
                     CHECK_IS_MASTER();
                     return HandlePostImport(user, token, request, relative_path, paths, body);
+                case RestPathCases::EXPORT:
+                    return HandlePostExport(user, token, request, relative_path, paths, body);
                 case RestPathCases::SCHEMA:
                     CHECK_IS_MASTER();
                     return HandlePostSchema(user, token, request, relative_path, paths, body);

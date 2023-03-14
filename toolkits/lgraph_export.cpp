@@ -314,6 +314,11 @@ class EdgeDumper {
         if (properties.size() > 0) {
             s_item["properties"] = properties;
         }
+        nlohmann::json constraints, constraints_item;
+        constraints_item.push_back(src_label_);
+        constraints_item.push_back(dst_label_);
+        constraints.push_back(constraints_item);
+        s_item["constraints"] = constraints;
         auto iter = std::find_if(conf["schema"].begin(),
                                  conf["schema"].end(),
                                  [this](const auto& item) {
@@ -321,6 +326,8 @@ class EdgeDumper {
                                  });
         if (iter == conf["schema"].end()) {
             conf["schema"].push_back(s_item);
+        } else {
+            (*iter)["constraints"].push_back(constraints_item);
         }
 
         nlohmann::json file;

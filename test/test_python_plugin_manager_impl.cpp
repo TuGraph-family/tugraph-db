@@ -17,6 +17,7 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
 #include "fma-common/utils.h"
+#include "fma-common/string_formatter.h"
 
 #include "gtest/gtest.h"
 
@@ -26,6 +27,8 @@
 #include "tiny-process-library/process.hpp"
 #include "plugin/python_plugin.h"
 #include "./ut_utils.h"
+
+#include "./test_tools.h"
 
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
 class TestPythonPluginManagerImpl : public TuGraphTest {};
@@ -50,12 +53,51 @@ class Tester : public lgraph::PythonPluginManagerImpl {
     }
 };
 
+extern void read_code(const std::string& code_path, std::string& code);
+
+void buil_python_extension(const std::string& so_path, const std::string& name) {
+    int rt;
+    std::string python_path = "../../test/test_plugins/" + name + ".py";
+    std::string cpp_path = "./" + name + ".cpp";
+    std::string cy_cmd;
+    cy_cmd = UT_FMT("cython {} -+ -3 -o {}  --module-name {}",
+                    python_path, cpp_path, name);
+    FMA_LOG() << "cm:" << cy_cmd;
+    rt = system(cy_cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+
+    const std::string INCLUDE_DIR = "-I../../include -I/usr/local/include"
+        " -I/usr/local/include/python3.6m -I/usr/include/python3.6m";
+    const std::string DEPS_INCLUDE_DIR = "-I../../deps/fma-common -I{}/../../src";
+    const std::string LIBLGRAPH = "./liblgraph.so";
+
+#ifndef __clang__
+    std::string cmd_f =
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} {} -rdynamic -O3 -fopenmp -DNDEBUG "
+        "-o {} {} {} -shared";
+
+#elif __APPLE__
+    throw std::runtime_error("Compiling cython is not supported on APPLE");
+// TODO(niyan.zy): support appale
+#else
+    throw std::runtime_error("Compiling cython is not supported on Clang");
+// TODO(niyan.zy): support appale
+#endif
+    std::string cmd;
+    cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, so_path,
+                 cpp_path, LIBLGRAPH);
+    FMA_LOG() << "cm:" << cmd;
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+}
+
+// don't be called
 void WriteScanGraphPlugin(const std::string& path) {
     fma_common::OutputFmaStream out(path, 0);
     const std::string code =
         R"(
 import json
-from lgraph_python import *
+from lgraph_python_api import *
 
 def Process(db, input):
     scan_edges = False
@@ -87,32 +129,20 @@ def Process(db, input):
 
 void WriteEchoPlugin(const std::string& path) {
     fma_common::OutputFmaStream out(path, 0);
-    const std::string code = R"(
-import traceback
-import time
+    buil_python_extension("./echo.so", "echo");
+    std::string code = "";
+    read_code("./echo.so", code);
 
-def Process(db, input):
-    print('echo ({})'.format(input))
-    return (True, input)
-    )";
     out.Write(code.data(), code.size());
     out.Close();
 }
 
 void WriteSleepPlugin(const std::string& path) {
     fma_common::OutputFmaStream out(path, 0);
-    const std::string code = R"(
-import time
-def Process(db, input):
-    t = 1
-    try:
-        t = float(input)
-    except:
-        return (False, 'input must be a time duration')
-    print('sleeping for {} seconds'.format(t))
-    time.sleep(t)
-    return (True, 'slept for {} seconds'.format(t))
-    )";
+    buil_python_extension("./sleep.so", "sleep");
+    std::string code = "";
+    read_code("./sleep.so", code);
+
     out.Write(code.data(), code.size());
     out.Close();
 }
@@ -142,7 +172,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         UT_WARN() << "Testing load plugin";
         Tester manager(db_dir, (size_t)1 << 30, plugin_dir, max_idle_seconds);
         fma_common::FileSystem::GetFileSystem("./").Mkdir(plugin_dir);
-        WriteEchoPlugin(plugin_dir + "/echo.py");
+        WriteEchoPlugin(plugin_dir + "/echo.so");
         auto* pinfo = manager.CreatePluginInfo();
         pinfo->read_only = true;
         manager.LoadPlugin(user, "echo", pinfo);
@@ -169,7 +199,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         UT_LOG() << "Testing timeout with sleep";
         delete pinfo;
         pinfo = manager.CreatePluginInfo();
-        WriteSleepPlugin(plugin_dir + "/sleep.py");
+        WriteSleepPlugin(plugin_dir + "/sleep.so");
         manager.LoadPlugin(user, "sleep", pinfo);
         UT_LOG() << "Calling sleep for 0.1";
         manager.DoCall(user, &db, "sleep", pinfo, "0.1", 0, true, output);

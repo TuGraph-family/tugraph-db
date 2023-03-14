@@ -226,8 +226,8 @@ void FrontierTraversal::ExpandOutEdges(std::function<bool(OutEdgeIterator &)> ou
                     local_frontier.Clear();
                 }
             }
-            delete start;
-            delete end;
+            delete[] start;
+            delete[] end;
         });
     } else {
         auto vit = txn_.GetVertexIterator();
@@ -332,8 +332,8 @@ void FrontierTraversal::ExpandInEdges(std::function<bool(InEdgeIterator &)> in_e
                     local_frontier.Clear();
                 }
             }
-            delete start;
-            delete end;
+            delete[] start;
+            delete[] end;
         });
     } else {
         auto vit = txn_.GetVertexIterator();
@@ -463,8 +463,8 @@ void FrontierTraversal::ExpandEdges(std::function<bool(OutEdgeIterator &)> out_e
                     local_frontier.Clear();
                 }
             }
-            delete start;
-            delete end;
+            delete[] start;
+            delete[] end;
         });
     } else {
         auto vit = txn_.GetVertexIterator();
@@ -790,8 +790,8 @@ void PathTraversal::ExpandOutEdges(
                     local_frontier.Clear();
                 }
             }
-            delete start;
-            delete end;
+            delete[] start;
+            delete[] end;
         });
     } else {
         IteratorHelper helper(txn_);
@@ -895,8 +895,8 @@ void PathTraversal::ExpandInEdges(
                     local_frontier.Clear();
                 }
             }
-            delete start;
-            delete end;
+            delete[] start;
+            delete[] end;
         });
     } else {
         IteratorHelper helper(txn_);
@@ -1022,8 +1022,8 @@ void PathTraversal::ExpandEdges(
                     local_frontier.Clear();
                 }
             }
-            delete start;
-            delete end;
+            delete[] start;
+            delete[] end;
         });
     } else {
         IteratorHelper helper(txn_);

@@ -96,6 +96,7 @@ static const utility::string_t FIELDS = _TU("fields");
 static const utility::string_t GRAPH = _TU("graph");
 static const utility::string_t HEADER = _TU("header");
 static const utility::string_t IMPORT = _TU("import");
+static const utility::string_t EXPORT = _TU("export");
 static const utility::string_t IMPORT_TEXT = _TU("text");
 static const utility::string_t INDEX = _TU("index");
 static const utility::string_t INDEXES = _TU("indexes");
@@ -251,6 +252,16 @@ inline bool JsonToType(const web::json::value& js, std::unordered_set<T>& d) {
         T v;
         if (!JsonToType(jv, v)) return false;
         d.emplace_hint(d.end(), v);
+    }
+    return true;
+}
+
+template <typename T>
+inline bool JsonToType(const web::json::value& js, std::vector<T>& d) {
+    for (auto& jv : js.as_array()) {
+        T v;
+        if (!JsonToType(jv, v)) return false;
+        d.template emplace_back(v);
     }
     return true;
 }
@@ -451,7 +462,7 @@ inline bool JsonToType<DBConfig>(const web::json::value& js, DBConfig& conf) {
     ExtractTypedField(js, RestStrings::DESC, desc);
     conf.db_size = (size_t)size_gb << 30;
     conf.desc = desc;
-    conf.durable = true;
+    conf.durable = false;
     return true;
 }
 

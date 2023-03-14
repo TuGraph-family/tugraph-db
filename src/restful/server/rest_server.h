@@ -54,7 +54,8 @@ class RestServer {
         CONFIG = 18,
         SCHEMA = 19,
         REFRESH = 20,
-        LOGOUT = 21
+        LOGOUT = 21,
+        EXPORT = 22,
     };
 
     static std::unordered_map<utility::string_t, RestPathCases> GetPathToCaseDict() {
@@ -74,6 +75,7 @@ class RestServer {
              {RestStrings::CYPHER, RestPathCases::CYPHER},
              {RestStrings::MISC, RestPathCases::MISC},
              {RestStrings::IMPORT, RestPathCases::IMPORT},
+             {RestStrings::EXPORT, RestPathCases::EXPORT},
              {RestStrings::SCHEMA, RestPathCases::SCHEMA},
              {RestStrings::DB, RestPathCases::DB},
              {RestStrings::GRAPH, RestPathCases::GRAPH},
@@ -243,6 +245,11 @@ class RestServer {
                             const std::vector<utility::string_t>& paths,
                             const web::json::value& body) const;
     void HandlePostImport(const std::string& user, const std::string& token,
+                          const web::http::http_request& request,
+                          const utility::string_t& relative_path,
+                          const std::vector<utility::string_t>& paths,
+                          const web::json::value& body) const;
+    void HandlePostExport(const std::string& user, const std::string& token,
                           const web::http::http_request& request,
                           const utility::string_t& relative_path,
                           const std::vector<utility::string_t>& paths,

@@ -1,4 +1,3 @@
-
 import logging
 import pytest
 import json
@@ -13,7 +12,7 @@ SERVEROPT_1 = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./te
 
 CLIENTOPT = {"host":"127.0.0.1:9093", "user":"admin", "password":"73@TuGraph"}
 
-class TestCypher():
+class TestCypher:
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
