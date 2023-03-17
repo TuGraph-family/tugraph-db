@@ -69,6 +69,8 @@ add_executable(unit_test
         test_merge.cpp
         test_move_constructors.cpp
         test_mthread.cpp
+        test_olap_on_disk.cpp
+        test_olap_on_db.cpp
         test_parallelvector.cpp
         test_perf_db.cpp
         test_perf_graph.cpp

@@ -973,7 +973,7 @@ class OlapBase {
             this->num_vertices_ = vertices;
             printf("set |V| to %lu\n", vertices);
         } else {
-            printf("|V| can only be set before loading!\n");
+            throw std::runtime_error("|V| can only be set before loading!\n");
         }
     }
 

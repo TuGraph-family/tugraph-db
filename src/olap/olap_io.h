@@ -35,8 +35,8 @@ bool filter_output_default(VertexData &val) {
 template <typename EdgeData>
 class BlockReader {
  public:
-    virtual void Reset() = 0;
-    virtual bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) = 0;
+    // virtual void Reset() = 0;
+    // virtual bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) = 0;
 };
 
 template <typename EdgeData>
@@ -52,7 +52,7 @@ class StringTextFileReader : public BlockReader<EdgeData> {
         edge_list = (EdgeUnit<EdgeData> *)alloc_buffer(edge_unit_size * MAX_NUM_EDGES);
         num_edges = 0;
         Init(path, parse_line);
-        this->Reset();
+        // this->Reset();
     }
 
     /**
@@ -213,25 +213,25 @@ class StringTextFileReader : public BlockReader<EdgeData> {
         printf("all edge data used %.2lf seconds\n", mapping_time);
     }
 
-    void Reset() { idx = 0; }
+    // void Reset() { idx = 0; }
 
-    bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) {
-        size_t begin = __sync_fetch_and_add(&idx, block_size);
-        size_t end = begin + block_size < num_edges ? begin + block_size : num_edges;
+    // bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) {
+    //     size_t begin = __sync_fetch_and_add(&idx, block_size);
+    //     size_t end = begin + block_size < num_edges ? begin + block_size : num_edges;
 
-        if (begin >= num_edges) {
-            data.clear();
-            return false;
-        }
+    //     if (begin >= num_edges) {
+    //         data.clear();
+    //         return false;
+    //     }
 
-        if (data.size() != end - begin) {
-            data.resize(end - begin);
-        }
+    //     if (data.size() != end - begin) {
+    //         data.resize(end - begin);
+    //     }
 
-        for (size_t i = begin; i < end; ++i)
-            memcpy(&data[i - begin], &edge_list[i], edge_unit_size);
-        return true;
-    }
+    //     for (size_t i = begin; i < end; ++i)
+    //         memcpy(&data[i - begin], &edge_list[i], edge_unit_size);
+    //     return true;
+    // }
 
     ~StringTextFileReader() {
         dealloc_buffer(edge_list, this->num_edges * edge_unit_size);
@@ -245,9 +245,9 @@ class StringTextFileReader : public BlockReader<EdgeData> {
     std::vector<std::string> mapped_to_origin;
 
  private:
-    size_t block_size = (1L << 20);
+    // size_t block_size = (1L << 20);
     size_t edge_unit_size;
-    size_t idx;
+    // size_t idx;
 };
 
 template <typename EdgeData>
@@ -270,7 +270,7 @@ class TextFileReader : public BlockReader<EdgeData> {
             InitFromFile(path, parse_line);
         cost += get_time();
         printf("  text read cost: %.2lf(s)\n", cost);
-        this->Reset();
+        // this->Reset();
     }
 
     void InitFromDir(
@@ -317,27 +317,27 @@ class TextFileReader : public BlockReader<EdgeData> {
         }
     }
 
-    void Reset() { idx = 0; }
+    // void Reset() { idx = 0; }
 
-    bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) {
-        size_t begin = __sync_fetch_and_add(&idx, block_size);
-        size_t end = begin + block_size < num_edges ? begin + block_size : num_edges;
+    // bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) {
+    //     size_t begin = __sync_fetch_and_add(&idx, block_size);
+    //     size_t end = begin + block_size < num_edges ? begin + block_size : num_edges;
 
-        if (begin >= num_edges) {
-            data.clear();
-            return false;
-        }
+    //     if (begin >= num_edges) {
+    //         data.clear();
+    //         return false;
+    //     }
 
-        if (data.size() != end - begin) {
-            data.resize(end - begin);
-        }
+    //     if (data.size() != end - begin) {
+    //         data.resize(end - begin);
+    //     }
 
-        for (size_t i = begin; i < end; ++i)
-            memcpy(&data[i - begin], &edge_list[i], edge_unit_size);
-        // printf("read [%lu, %lu  %d %d\n", begin, end,
-        //        edge_list[begin].src, edge_list[begin].dst);
-        return true;
-    }
+    //     for (size_t i = begin; i < end; ++i)
+    //         memcpy(&data[i - begin], &edge_list[i], edge_unit_size);
+    //     // printf("read [%lu, %lu  %d %d\n", begin, end,
+    //     //        edge_list[begin].src, edge_list[begin].dst);
+    //     return true;
+    // }
 
     ~TextFileReader() {
         dealloc_buffer(edge_list, edge_unit_size * MAX_NUM_EDGES);
@@ -348,9 +348,9 @@ class TextFileReader : public BlockReader<EdgeData> {
     size_t num_edges;
 
  private:
-    size_t block_size = (1L << 20);
+    // size_t block_size = (1L << 20);
     size_t edge_unit_size;
-    size_t idx;
+    // size_t idx;
 };
 
 template <typename EdgeData>
@@ -369,7 +369,7 @@ class BinaryFileReader : public BlockReader<EdgeData> {
             InitFromFile(path);
         cost += get_time();
         printf("  binary read cost: %.2lf(s)\n", cost);
-        this->Reset();
+        // this->Reset();
     }
 
     void InitFromDir(std::string path) {
@@ -425,27 +425,27 @@ class BinaryFileReader : public BlockReader<EdgeData> {
         num_edges = read_bytes / edge_unit_size;
     }
 
-    void Reset() { idx = 0; }
+    // void Reset() { idx = 0; }
 
-    bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) {
-        size_t begin = __sync_fetch_and_add(&idx, block_size);
-        size_t end = begin + block_size < num_edges ? begin + block_size : num_edges;
+    // bool ReadBlock(std::vector<EdgeUnit<EdgeData>> &data) {
+    //     size_t begin = __sync_fetch_and_add(&idx, block_size);
+    //     size_t end = begin + block_size < num_edges ? begin + block_size : num_edges;
 
-        if (begin >= num_edges) {
-            data.clear();
-            return false;
-        }
+    //     if (begin >= num_edges) {
+    //         data.clear();
+    //         return false;
+    //     }
 
-        if (data.size() != end - begin) {
-            data.resize(end - begin);
-        }
+    //     if (data.size() != end - begin) {
+    //         data.resize(end - begin);
+    //     }
 
-        for (size_t i = begin; i < end; ++i)
-            memcpy(&data[i - begin], &edge_list[i], edge_unit_size);
-        // printf("read [%lu, %lu  %d %d\n", begin, end,
-        //        edge_list[begin].src, edge_list[begin].dst);
-        return true;
-    }
+    //     for (size_t i = begin; i < end; ++i)
+    //         memcpy(&data[i - begin], &edge_list[i], edge_unit_size);
+    //     // printf("read [%lu, %lu  %d %d\n", begin, end,
+    //     //        edge_list[begin].src, edge_list[begin].dst);
+    //     return true;
+    // }
 
     ~BinaryFileReader() {
         dealloc_buffer(edge_list, edge_unit_size * num_edges);
@@ -456,9 +456,9 @@ class BinaryFileReader : public BlockReader<EdgeData> {
     size_t num_edges;
 
  private:
-    size_t block_size = (1L << 20);
+    // size_t block_size = (1L << 20);
     size_t edge_unit_size;
-    size_t idx;
+    // size_t idx;
 };
 
 template <typename ArrayData>

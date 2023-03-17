@@ -127,7 +127,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
 #pragma omp parallel
                 {
                     ParallelVector<size_t> local_original_vids(this->num_vertices_);
-                    ParallelVector<size_t> local_out_index(this->num_vertices_);
+                    ParallelVector<size_t> local_out_index(this->num_vertices_ + 1);
                     ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
 
                     auto txn = db_.ForkTxn(txn_);

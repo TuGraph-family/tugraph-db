@@ -25,9 +25,14 @@ TEST_F(TestParallelVector, ParallelVector) {
     ParallelVector<int> v(100, 10);
     UT_EXPECT_EQ(v.Size(), 10);
     v.Fill(1);
+    for (auto iter = v.begin(); iter != v.end(); iter++) {
+        UT_EXPECT_EQ(*iter, 1);
+    }
+    UT_EXPECT_EQ(v.Back(), 1);
     for (int i = 0; i < 10; i++) {
         UT_EXPECT_EQ(1, v[i]);
     }
+    UT_EXPECT_EQ(*v.Data(), 1);
     v.Resize(20, 2);
     UT_EXPECT_EQ(v.Size(), 20);
     for (int i = 10; i < 20; i++) {
@@ -39,12 +44,16 @@ TEST_F(TestParallelVector, ParallelVector) {
         v[i] = 3;
         UT_EXPECT_EQ(v[i], 3);
     }
+    UT_EXPECT_THROW_MSG(v.Resize(300, 2), "out of capacity.");
+    UT_EXPECT_THROW_MSG(v.Resize(1, 2), "The new size is smaller than the current one.");
     UT_EXPECT_THROW_MSG(v.Resize(10), "The new size is smaller than the current one.");
     UT_EXPECT_THROW_MSG(v.Resize(200), "out of capacity.");
+    v.ReAlloc(200);
     v.Clear();
     UT_EXPECT_EQ(0, v.Size());
 
     v.ReAlloc(200);
+    UT_EXPECT_THROW_MSG(v.ReAlloc(0), "The new capacity is smaller than the current one.");
     v.Resize(10, 1);
     UT_EXPECT_EQ(v.Size(), 10);
 
@@ -88,6 +97,19 @@ TEST_F(TestParallelVector, ParallelVector) {
         flag[t] = true;
     }
 
+    ParallelVector<int> l;
+    UT_EXPECT_THROW_MSG(l.ReAlloc(0), "Capacity cannot be 0");
+
+    ParallelVector<int> s(11, 10);
+    {
+        int buff[2] = {26 << 1, (26 << 1) + 1};
+        UT_EXPECT_THROW_MSG(s.Append(buff, 2, false), "out of capacity");
+    }
+    {
+        int buff[1] = {2};
+        s.Append(buff, 1, false);
+        UT_EXPECT_EQ(s.Size(), 11);
+    }
     auto v_copy = v.Copy();
     UT_EXPECT_EQ(v_copy.Size(), v.Size());
     for (int i = 0; i < v.Size(); i++) {
@@ -102,4 +124,21 @@ TEST_F(TestParallelVector, ParallelVector) {
     for (int i = 0; i < v_swap.Size(); i++) {
         UT_EXPECT_EQ(v_swap[i], v_copy[i]);
     }
+
+    class Example {
+     public:
+        int x_;
+        int y_;
+        int num = 0;
+        Example(int x, int y) : x_(x), y_(y) {num += 1;}
+
+        ~Example(){
+            num -= 1;
+        }
+    };
+    ParallelVector<Example> t(2);
+    t.Append(Example(1, 1));
+    UT_EXPECT_EQ(t.Size(), 1);
+    t.Clear();
+    UT_EXPECT_EQ(t.Size(), 0);
 }

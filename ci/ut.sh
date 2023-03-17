@@ -36,7 +36,6 @@ tar -zxvf output.tar.gz
 # unittest
 cd build/output
 OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$MY_WORKSPACE/testresult/gtest/
-
 rm -rf testdb* .import_tmp
 
 # codecov
