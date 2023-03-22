@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="None">
+        
+        
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title>My Docs</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
+
+        <script src="js/jquery-1.10.2.min.js" defer></script>
+        <script src="js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body class="homepage">
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href=".">My Docs</a>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<ul>
+<li>Home: index.md</li>
+<li>en-US:<ul>
+<li>Guide:<ul>
+<li>What is Graph: en-US/1.guide/1.what-is-graph.md</li>
+<li>What is GDBMS: en-US/1.guide/2.what-is-GDBMS.md</li>
+<li>Quick Start: en-US/1.guide/3.quick-start.md</li>
+</ul>
+</li>
+<li>Operating:<ul>
+<li>Introduction: en-US/2.operating/1.introduce.md</li>
+<li>Install: en-US/2.operating/2.Install.md</li>
+<li>Data Import: en-US/2.operating/3.data-import.md</li>
+<li>Server Config: en-US/2.operating/4.server-config.md</li>
+<li>Operation: en-US/2.operating/5.operation.md</li>
+<li>HA Mode: en-US/2.operating/7.ha-mode.md</li>
+<li>Manage Database: en-US/2.operating/8.manage-database.md</li>
+<li>Privilege: en-US/2.operating/9.privilege.md</li>
+<li>Tools:<ul>
+<li>TuGraph Cypher: en-US/2.operating/6.tools/1.tugraph-cypher.md</li>
+<li>TuGraph Browser: en-US/2.operating/6.tools/2.tugraph-browser.md</li>
+<li>TuGraph DataX: en-US/2.operating/6.tools/3.tugraph-datax.md</li>
+<li>TuGraph Explore: en-US/2.operating/6.tools/4.tugraph-explore.md</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Developer Document:<ul>
+<li>RESTful API: en-US/3.developer-document/1.restful-api.md</li>
+<li>Cypher: en-US/3.developer-document/2.cypher.md</li>
+<li>Procedure: en-US/3.developer-document/3.procedure.md</li>
+<li>Graph Analytics Engine:<ul>
+<li>Tutorial: en-US/3.developer-document/4.graph_analytics_engine/1.tutorial.md</li>
+<li>OLAP Base API: en-US/3.developer-document/4.graph_analytics_engine/2.olap-base-api.md</li>
+<li>OLAP on DB API: en-US/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api.md</li>
+<li>OLAP on Disk API: en-US/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api.md</li>
+<li>Algorithms: en-US/3.developer-document/4.graph_analytics_engine/5.algorithms.md</li>
+<li>Python API: en-US/3.developer-document/4.graph_analytics_engine/6.python-api.md</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Client:<ul>
+<li>Java Client: en-US/4.client/1.java-client.md</li>
+<li>Python Client: en-US/4.client/2.python-client.md</li>
+<li>CPP Client: en-US/4.client/3.cpp-client.md</li>
+</ul>
+</li>
+<li>Supplement:<ul>
+<li>Changelog: en-US/5.supplement/changelog.md</li>
+</ul>
+</li>
+<li>Community:<ul>
+<li>Contributing: en-US/6.community/1.contributing.md</li>
+<li>Membership: en-US/6.community/2.membership.md</li>
+<li>Roadmap: en-US/6.community/3.roadmap.md</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>zh-CN:<ul>
+<li>指南:<ul>
+<li>什么是图: zh-CN/1.guide/1.what-is-graph.md</li>
+<li>什么是 GDBMS: zh-CN/1.guide/2.what-is-GDBMS.md</li>
+<li>快速入门: zh-CN/1.guide/3.quick-start.md</li>
+</ul>
+</li>
+<li>操作:<ul>
+<li>介绍: zh-CN/2.operating/1.introduce.md</li>
+<li>安装: zh-CN/2.operating/2.Install.md</li>
+<li>数据导入: zh-CN/2.operating/3.data-import.md</li>
+<li>服务器配置: zh-CN/2.operating/4.server-config.md</li>
+<li>运维: zh-CN/2.operating/5.operation.md</li>
+<li>高可用模式: zh-CN/2.operating/7.ha-mode.md</li>
+<li>管理数据库: zh-CN/2.operating/8.manage-database.md</li>
+<li>权限: zh-CN/2.operating/9.privilege.md</li>
+<li>工具:<ul>
+<li>TuGraph Cypher: zh-CN/2.operating/6.tools/1.tugraph-cypher.md</li>
+<li>TuGraph Browser: zh-CN/2.operating/6.tools/2.tugraph-browser.md</li>
+<li>TuGraph DataX: zh-CN/2.operating/6.tools/3.tugraph-datax.md</li>
+<li>TuGraph Explore: zh-CN/2.operating/6.tools/4.tugraph-explore.md</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>开发者文档:<ul>
+<li>RESTful API: zh-CN/3.developer-document/1.restful-api.md</li>
+<li>Cypher: zh-CN/3.developer-document/2.cypher.md</li>
+<li>Procedure: zh-CN/3.developer-document/3.procedure.md</li>
+<li>图分析引擎:<ul>
+<li>教程: zh-CN/3.developer-document/4.graph_analytics_engine/1.tutorial.md</li>
+<li>OLAP 基本 API: zh-CN/3.developer-document/4.graph_analytics_engine/2.olap-base-api.md</li>
+<li>OLAP 在数据库上的 API: zh-CN/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api.md</li>
+<li>OLAP 在磁盘上的 API: zh-CN/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api.md</li>
+<li>算法: zh-CN/3.developer-document/4.graph_analytics_engine/5.algorithms.md</li>
+<li>Python API: zh-CN/3.developer-document/4.graph_analytics_engine/6.python-api.md</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>客户端:<ul>
+<li>Java 客户端: zh-CN/4.client/1.java-client.md</li>
+<li>Python 客户端: zh-CN/4.client/2.python-client.md</li>
+<li>CPP 客户端: zh-CN/4.client/3.cpp-client.md</li>
+<li>Java OGM: zh-CN/4.client/4.java-ogm.md</li>
+</ul>
+</li>
+<li>补充:<ul>
+<li>更新日志: zh-CN/5.supplement/changelog.md</li>
+</ul>
+</li>
+<li>社区:<ul>
+<li>参与贡献: zh-CN/6.community/1.contributing.md</li>
+<li>成员资格: zh-CN/6.community/2.membership.md</li>
+<li>路线图: zh-CN/6.community/3.roadmap.md</li>
+<li>个人 CLA: zh-CN/6.community/4.individual_cla.md</li>
+<li>企业 CLA: zh-CN/6.community/5.corporate_cla.md</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js" defer></script>
+        <script src="search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
+
+<!--
+MkDocs version : 1.4.2
+Build Date UTC : 2023-03-22 09:19:25.469712+00:00
+-->
