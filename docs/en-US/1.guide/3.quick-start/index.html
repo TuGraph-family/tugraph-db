@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>Quick Start - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Quick Start";
+        var mkdocs_page_input_path = "en-US\\1.guide\\3.quick-start.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Guide</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">Quick Start</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#1-introduction">1. Introduction</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-the-installation">2. The installation</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#fast-experience-through-docker">Fast experience through Docker</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#web-operations">Web operations</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#create-schema-and-import-data">Create schema and import data</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#query-demo">Query demo</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>en-US &raquo;</li>
+          <li>Guide &raquo;</li>
+      <li>Quick Start</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tugraph-quick-start">TuGraph Quick Start</h1>
+<blockquote>
+<p>This document is intended for new users to get started quickly and contains an introduction, features, installation, and use of TuGraph.</p>
+</blockquote>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>TuGraph is a large-scale graph computing system independently developed by Ant Group, providing graph database engine and graph analysis engine. Its main features are large data storage and computation, high throughput, and flexible API, while supporting efficient online transaction processing (OLTP) and online analytical processing (OLAP). LightGraph and GeaGraph are former names of TuGraph.</p>
+<p>The main functional features include:</p>
+<ul>
+<li>Labeled property Graph Model</li>
+<li>Support multiple Graphs</li>
+<li>Full ACID transaction processing</li>
+<li>Built-in 25+ graph analysis algorithm</li>
+<li>Graph visualization tool based on Web client</li>
+<li>RESTful API and RPC are supported</li>
+<li>OpenCypher graph query language</li>
+<li>Stored procedure based on C++/Python/Java</li>
+<li>The Traversal API for efficient graph algorithm development</li>
+</ul>
+<p>Performance and scalability features include:</p>
+<ul>
+<li>TB large capacity</li>
+<li>High throughput of ten million vertices per second</li>
+<li>High Availability Support (Enterprise Edition)</li>
+<li>High-performance Batch Import</li>
+<li>Online/offline backup</li>
+</ul>
+<h2 id="2-the-installation">2. The installation</h2>
+<p>TuGraph can be installed quickly via Docker Image or locally via RPM /deb packages.</p>
+<p>rpm/deb/docker images download address: https://www.tugraph.org/download</p>
+<h3 id="fast-experience-through-docker">Fast experience through Docker</h3>
+<ol>
+<li>The Docker environment installed locally</li>
+</ol>
+<p>The docker official documentation：https://docs.docker.com/get-started/</p>
+<ol>
+<li>Pull the docker images</li>
+</ol>
+<p><code>shell
+   docker pull tugraph/tugraph-runtime-centos7</code></p>
+<ol>
+<li>Start docker</li>
+</ol>
+<p><code>shell
+   docker run -d -p 7070:7070 -p 9090:9090 --name tugraph_demo tugraph/tugraph-runtime-centos7 lgraph_server
+   # 7070 is default http port，for web visiting。
+   # 9090 is default RPC port，for RPC client visiting。</code></p>
+<ol>
+<li>Open by browser</li>
+</ol>
+<p><code>http://x.x.x.x:7070</code></p>
+<blockquote>
+<p>Default account <code>admin</code>,Default password <code>73@TuGraph</code></p>
+</blockquote>
+<ol>
+<li>Start
+   <code>shell
+   docker run -dt -p 7070:7070 --name tugraph_demo tugraph/tugraph-runtime-centos7
+   docker exec -it tugraph_demo bash
+   # start the service
+   lgraph_server -d start</code></li>
+</ol>
+<h2 id="web-operations">Web operations</h2>
+<h3 id="create-schema-and-import-data">Create schema and import data</h3>
+<p>After login, click "Help", click "Quick Start", click "new schema", and click "import data" to complete the creation of Movie Graph.</p>
+<p>Movie Graph：</p>
+<p><img src="https://tugraph-web-static.oss-cn-beijing.aliyuncs.com/%E6%96%87%E6%A1%A3/1.Guide/2.quick-start.png" alt="movie_schema" style="zoom: 25%;" /></p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>movie</td>
+<td>node</td>
+<td>Represents a specific movie</td>
+</tr>
+<tr>
+<td>person</td>
+<td>node</td>
+<td>An individual, in the case of a film, may be an actor, director, or screenwriter.</td>
+</tr>
+<tr>
+<td>genre</td>
+<td>node</td>
+<td>The genre of the film, e.g. drama, horror。</td>
+</tr>
+<tr>
+<td>keyword</td>
+<td>node</td>
+<td>It means some keywords related to the movie, such as "Save the world", "virtual reality", "subway".</td>
+</tr>
+<tr>
+<td>user</td>
+<td>node</td>
+<td>Represents the audience of the movie.</td>
+</tr>
+<tr>
+<td>produce</td>
+<td>node</td>
+<td>Represents the producer of the film.</td>
+</tr>
+<tr>
+<td>acted_in</td>
+<td>relationship</td>
+<td>Which films the actor appeared in.</td>
+</tr>
+<tr>
+<td>direct</td>
+<td>relationship</td>
+<td>Who is the director of the film.</td>
+</tr>
+<tr>
+<td>write</td>
+<td>relationship</td>
+<td>Represents the screenwriter relationship of the film.</td>
+</tr>
+<tr>
+<td>has_genre</td>
+<td>relationship</td>
+<td>Represents the type of a movie。</td>
+</tr>
+<tr>
+<td>has_keyword</td>
+<td>relationship</td>
+<td>Tags that represent some keywords of the movie, that is, more granular categories.</td>
+</tr>
+<tr>
+<td>rate</td>
+<td>relationship</td>
+<td>Represents the user's rating of the movie.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="query-demo">Query demo</h3>
+<h4 id="demo-1">demo 1</h4>
+<p>Query all the actors in the movie 'Forrest Gump' and return a subgraph of the movie and the actors.</p>
+<pre><code class="language-sql">MATCH (m:movie {title: 'Forrest Gump'})&lt;-[:acted_in]-(a:person) RETURN a, m
+</code></pre>
+<h4 id="demo-2">demo 2</h4>
+<p>Query all actors in the movie 'Forrest Gump' and list the roles the actors played in the movie.</p>
+<pre><code class="language-sql">MATCH (m:movie {title: 'Forrest Gump'})&lt;-[r:acted_in]-(a:person) RETURN a.name,r.role
+</code></pre>
+<h4 id="demo-3">demo 3</h4>
+<p>Query all Michael's movies rated below 3.</p>
+<pre><code class="language-sql">MATCH (u:user {login: 'Michael'})-[r:rate]-&gt;(m:movie) WHERE r.stars &lt; 3 RETURN m.title, r.stars
+</code></pre>
+<h4 id="demo-4">demo 4</h4>
+<p>Search for users who have the same hated movies as Michael, with the dislike criteria being less than three points.</p>
+<pre><code class="language-sql">MATCH (u:user {login: 'Michael'})-[r:rate]-&gt;(m:movie)&lt;-[s:rate]-(v) WHERE r.stars &lt; 3 AND s.stars &lt; 3 RETURN u, m, v
+</code></pre>
+<h4 id="demo5">demo5</h4>
+<p>To recommend movies to Michael, the method is to find out the users who hate the same movies as Michael, and then screen out the movies that these users like.</p>
+<pre><code class="language-sql">MATCH (u:user {login: 'Michael'})-[r:rate]-&gt;(m:movie)&lt;-[s:rate]-(v)-[r2:rate]-&gt;(m2:movie) WHERE r.stars &lt; 3 AND s.stars &lt; 3 AND r2.stars &gt; 3 RETURN u, m, v, m2
+</code></pre>
+<h4 id="demo-6">demo 6</h4>
+<p>Find out what Michael's friends like.</p>
+<pre><code class="language-sql">MATCH (u:user {login: 'Michael'})-[:is_friend]-&gt;(v:user)-[r:rate]-&gt;(m:movie) WHERE r.stars &gt; 3 RETURN u, v, m
+</code></pre>
+<h4 id="demo-7">demo 7</h4>
+<p>Recommend similar movies to users who like 'Forrest Gump' by finding out which movies people who rate 'Forrest Gump' high also like.</p>
+<pre><code class="language-sql">MATCH (m:movie {title:'Forrest Gump'})&lt;-[r:rate]-(u:user)-[r2:rate]-&gt;(m2:movie) WHERE r.stars&gt;3 AND r2.stars&gt;3 RETURN m, u,m2
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../2.what-is-GDBMS/" class="btn btn-neutral float-left" title="What is GDBMS"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../2.operating/1.introduce/" class="btn btn-neutral float-right" title="Introduction">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../2.what-is-GDBMS/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../2.operating/1.introduce/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../..';</script>
+    <script src="../../../js/theme_extra.js" defer></script>
+    <script src="../../../js/theme.js" defer></script>
+      <script src="../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

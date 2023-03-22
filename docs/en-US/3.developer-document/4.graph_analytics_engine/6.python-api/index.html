@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../../img/favicon.ico" />
+    <title>Python API - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Python API";
+        var mkdocs_page_input_path = "en-US\\3.developer-document\\4.graph_analytics_engine\\6.python-api.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Developer Document</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../../1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">Graph Analytics Engine</a>
+    <ul class="current">
+                <li class="toctree-l3"><a class="reference internal" href="../1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3 current"><a class="reference internal current" href="./">Python API</a>
+    <ul class="current">
+    <li class="toctree-l4"><a class="reference internal" href="#table-of-contents">Table of contents</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#1-overview">1 Overview</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#2-configuration-requirements">2. Configuration requirements</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#3-cython">3. Cython</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#4-olap-api">4. Olap API</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#5-lgraph_db-api">5. lgraph_db API</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#6-algorithm-plug-in-example">6. Algorithm plug-in example</a>
+    </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>en-US &raquo;</li>
+          <li>Developer Document &raquo;</li>
+          <li>Graph Analytics Engine &raquo;</li>
+      <li>Python API</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="python-olap-api">Python Olap API</h1>
+<blockquote>
+<p>This document mainly introduces the API usage of OlapBase OlapOnDB and OlapOnDisk in Python</p>
+</blockquote>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><a href="#1-overview">1.Overview</a></li>
+<li><a href="#2-configuration-requirements">2.Configuration Requirements</a></li>
+<li><a href="#3-cython">3.Cython</a></li>
+<li><a href="#4-olap-api">4.Olap API</a><ul>
+<li><a href="#atomic-operations">4.1. Atomic operations</a></li>
+<li><a href="#vertex-collection-class-parallelbitset">4.2. Vertex collection class ParallelBitset</a></li>
+<li><a href="#vertex-array-class-parallelvector">4.3. Vertex array class ParallelVector</a></li>
+<li><a href="#custom-data-structure">4.4. Custom data structure</a></li>
+<li><a href="#graph-class-olapbase">4.5.Graph class OlapBase</a></li>
+<li><a href="#graph-class-olapondb">4.6. Graph Class OlapOnDB</a></li>
+<li><a href="#graph-class-olapondisk">4.7.Graph class OlapOnDisk</a></li>
+</ul>
+</li>
+<li><a href="#5-lgraph_db-api">5.lgraph DB API</a></li>
+<li><a href="#6-algorithm-plug-in-example">6.Algorithm plugin example</a></li>
+</ul>
+<h2 id="1-overview">1 Overview</h2>
+<p>This manual will introduce the simple configuration required to use the Python interface of the TuGraph graph computing system, and explain the TuGraph Python API in conjunction with the code. For details about the functions of class ParallelBitset, OlapBase, etc., see olap-base-api.md, olap-on-db-api.md and olap-on-disk-api.md.</p>
+<h2 id="2-configuration-requirements">2. Configuration requirements</h2>
+<p>If you want to use TuGraph to write and compile your own applications, the required configuration requirements are:</p>
+<ul>
+<li>Linux operating system, currently running successfully on Ubuntu16.04.2 and Centos7 systems.</li>
+<li>A compiler that supports C++17 requires GCC version 5.4.1 or later.</li>
+<li>Cython, version 3.0a1 or above is required, and the tested version is 3.0.0a11</li>
+</ul>
+<h2 id="3-cython">3. Cython</h2>
+<p>Cython is an efficient programming language that is a superset of Python. Cython can translate .py files into C/C++ codes and compile them into Python extension modules, which can be called through import in Python. In TuGraph, all Python plugins are compiled into Python extension modules by Cython and then used.</p>
+<p>The main advantage of using Cython is that it combines the simplicity and ease of use of Python with the performance of C/C++. The TuGraph Python interface is implemented using Cython.</p>
+<p><a href="https://cython.readthedocs.io/en/latest/index.html">Cython Documentation</a></p>
+<h2 id="4-olap-api">4. Olap API</h2>
+<p>The Olap API is used for graph computing and is implemented in C++. The usage and functions are basically the same as the C++ interface. To use the API in a Python file, the interfaces declared in plugins/cython/olap_base.pxd must be imported using <code>cython.cimports.olap_base import *</code>. The Python file can only be run after being compiled by Cython.</p>
+<h3 id="atomic-operations">Atomic operations</h3>
+<ul>
+<li><code>cas[T](ptr: cython.pointer(T), oldv: T, newv: T)-&gt; cython.bint</code>: If the value pointed to by ptr is equal to oldv, assign the value pointed to by ptr to newv and return True, otherwise return False.</li>
+<li><code>write_min[T](a: cython.pointer(T), b: T)-&gt;cython.bint</code>: If b is smaller than the value pointed to by a, then assign the value pointed to by a to b and return true, otherwise return false.</li>
+<li><code>write_max[T](a: cython.pointer(T), b: T)-&gt;cython.bint</code>: If b is greater than the value pointed to by a, then assign the value pointed to by a to b and return true, otherwise return false.</li>
+<li><code>write_add[T](a: cython.pointer(T), b: T)-&gt;cython.bint</code>: Add the value of b to the value pointed to by a.</li>
+<li><code>write_sub[T](a: cython.pointer(T), b: T)-&gt;cython.bint</code>: Subtract the value pointed to by a from the value of b.</li>
+</ul>
+<h3 id="vertex-collection-class-parallelbitset">Vertex collection class ParallelBitset</h3>
+<ul>
+<li><code>Size() -&gt; size_t</code>: Indicates the number of vertices in the Bitmap.</li>
+<li><code>ParallelBitset(size: size_t)</code>: Initializes size and data, where the length of data is (size &gt;&gt; 6) + 1.</li>
+<li><code>Clear() -&gt; cython.void</code>: Empties the collection.</li>
+<li><code>Fill() -&gt; cython.void</code>: Adds all vertices to the set.</li>
+<li><code>Has(i: size_t) -&gt; cython.bint</code>: Checks if vertex i is in the set.</li>
+<li><code>Add(i: size_t) -&gt; cython.bint</code>: Adds vertex i to the set.</li>
+<li><code>Swap(other: ParallelBitset) -&gt; cython.void</code>: Exchanges elements with another ParallelBitset set.</li>
+</ul>
+<h3 id="vertex-array-class-parallelvector">Vertex array class ParallelVector</h3>
+<ul>
+<li><code>ParallelVector[T](size_t capacity)</code>: Constructs a ParallelVector, where capacity is the initial capacity of the vertex array.</li>
+<li><code>operator[](i: size_t) -&gt; T</code>: Returns the data at index i.</li>
+<li><code>begin() -&gt; cython.pointer(T)</code>: Returns the start pointer of ParallelVector.</li>
+<li><code>end() -&gt; cython.pointer(T)</code>: Returns the end pointer of ParallelVector. The usage of begin() and end() is similar to the begin and end pointers of the vector container, and these two pointers can be used to sequentially access the array.</li>
+<li><code>Back() -&gt; T</code>: Returns the last data of ParallelVector.</li>
+<li><code>Data() -&gt; cython.pointer(T)</code>: Indicates the data of the array itself.</li>
+<li><code>Destroy() -&gt; cython.void</code>: Clears the data in the ParallelVector array and deletes the array.</li>
+<li><code>Size() -&gt; size_t</code>: Indicates the number of data in ParallelVector.</li>
+<li><code>Resize(size: size_t) -&gt; cython.void</code>: Changes ParallelVector to size, which should be greater than or equal to the size before the change and less than capacity.</li>
+<li><code>Clear() -&gt; cython.void</code>: Clears the data in ParallelVector.</li>
+<li><code>ReAlloc(capacity: size_t) -&gt; cython.void</code>: Allocates a new capacity size to ParallelVector. If the array has data, it migrates the data to the new memory.</li>
+<li><code>Fill(elem: T) -&gt; cython.void</code>: Assigns elem to all data of ParallelVector.</li>
+<li><code>Append(elem: T, atomic: cython.bint = true) -&gt; cython.void</code>: Adds a data to the end of ParallelVector.</li>
+<li><code>Swap(other: ParallelVector[T]) -&gt; cython.void</code>: Exchanges data with another ParallelVector.</li>
+<li><code>Copy() -&gt; ParallelVector[T]</code>: Copies the current ParallelVector data and stores it in the copy array.</li>
+</ul>
+<h3 id="custom-data-structure">Custom Data Structure</h3>
+<ul>
+<li><code>Empty</code>: A special data type whose content is empty.</li>
+<li><code>EdgeUnit[EdgeData]</code>: Indicates the edge whose weight type is EdgeData, used to parse the input file, including three member variables:<ul>
+<li><code>src: size_t</code>: starting vertex of the edge</li>
+<li><code>dst: size_t</code>: end of the edge</li>
+<li><code>edge_data: EdgeData</code>: edge weight</li>
+</ul>
+</li>
+<li><code>AdjUnit[EdgeData]</code>: indicates the edge whose weight type is EdgeData, which is used in the batch calculation process and contains two member variables:<ul>
+<li><code>neighbor: size_t</code>: neighbor vertex of the edge</li>
+<li><code>edge_data: EdgeData</code>: edge weight</li>
+</ul>
+</li>
+<li><code>AdjList[EdgeData]</code>: The adjacency list of vertices whose weight type is EdgeData, often used to represent the set of incoming and outgoing edges of vertices, including three member functions:<ul>
+<li><code>begin()-&gt;cython.pointer(AdjUnit[T])</code>: the starting pointer of the list</li>
+<li><code>end()-&gt;cython.pointer(AdjUnit[T])</code>: the end pointer of the list</li>
+<li><code>operator[](i: size_t)-&gt; AdjUnit[EdgeData]</code>: the data whose subscript is i</li>
+</ul>
+</li>
+</ul>
+<h3 id="graph-class-olapbase">Graph class OlapBase</h3>
+<ul>
+<li><code>NumVertices()-&gt;size_t</code>: get the number of vertices</li>
+<li><code>NumEdges()-&gt; size_t</code>: get the number of edges</li>
+<li><code>OutDegree(vid: size_t)-&gt; size_t</code>: out-degree of vertex vid</li>
+<li>
+<p><code>InDegree(vid: size_t)-&gt;size_t</code>: in-degree of the vertex vid</p>
+</li>
+<li>
+<p><code>AllocVertexArray[VertexData]() -&gt;ParallelVector[VertexData]</code>: Allocates an array of type VertexData with size as the number of vertices</p>
+</li>
+<li><code>AllocVertexSubset()-&gt; ParallelBitset</code>: Assigns a subset of ParallelBitsets to denote whether the state of all vertices is activated</li>
+<li><code>OutEdges(vid: size_t)-&gt; AdjList[EdgeData]</code>: Get the list of all outgoing edges of vertex v</li>
+<li><code>InEdges(vid: size_t)-&gt; AdjList[EdgeData]</code>: Get the list of all incoming edges of vertex v</li>
+<li><code>Transpose()-&gt;cython.void</code>: transpose of a directed graph</li>
+<li>
+<p><code>LoadFromArray(edge_array: cython.p_char, input_vertices: size_t, input_edges: size_t, edge_direction_policy: EdgeDirectionPolicy)</code>: Loads the graph data from the array, contains four parameters, the meaning of which are respectively:</p>
+<ul>
+<li>
+<p><code>edge_array</code> : reads the data from the array into the graph. Normally, the array contains multiple edges.</p>
+</li>
+<li>
+<p><code>input_vertices</code>: specifies the number of vertices read into the graph by the array.</p>
+</li>
+<li>
+<p><code>input_edges</code> : specifies the number of edges that the array reads into the image.</p>
+</li>
+<li>
+<p><code>edge_direction_policy</code> : indicates that the graph is directed or undirected. The graph can be divided into three modes: DUAL_DIRECTION, MAKE_SYMMETRIC, and INPUT_SYMMETRIC. For details, see 'enum EdgeDirectionPolicy' in the config.h file in the core folder.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>AcquireVertexLock(vid: size_t)-&gt; cython.void</code>: locks a vertex vid and prohibits other threads from accessing the vertex data corresponding to this lock</p>
+</li>
+<li><code>void ReleaseVertexLock(vid: size_t)-&gt; cython.void</code>: unlocks the vertex vid and all threads can access the vertex data corresponding to the lock</li>
+</ul>
+<p>TuGraph provides two batch operations to perform point-centric batch processing in parallel, which is slightly different from C++ in Python.</p>
+<pre><code class="language-python"># Function name: ProcessVertexInRange[ReducedSum, Algorithm](
+# work: (algo: Algorithm, vi: size_t)-&gt; ReducedSum,
+# lower: size_t, upper: size_t,
+# algo: Algorithm,
+# zero: ReducedSum = 0,
+# reduce: (a: ReducedSum, b: ReducedSum)-&gt; ReducedSum = reduce_plus[ReducedSum])
+#
+# Function purpose: Executes the work function on nodes whose node numbers are between lower and upper in the Graph. The fourth parameter indicates the base of accumulation, which is 0 by default.
+# The fifth parameter indicates that the iterative reduce function operation is performed on the node return value after each work process, and the default is the accumulation operation.
+# For specific implementation, please refer to the specific code in include/lgraph/olap_base.h
+#
+# Example usage: Count the number of vertices with edges in the parent array.
+
+import cython
+from cython.cimports.olap_base import *
+
+
+@cython.cclass
+class CountCore:
+    graph: cython.pointer(OlapBase[Empty])
+    parent: ParallelVector[size_t]
+
+    @cython.cfunc
+    @cython.nogil
+    def Work(self, vi: size_t) -&gt; size_t:
+        if self.graph.OutDegree(self.parent[vi]) &gt; 0:
+            return 1
+        return 0
+
+    def run(self, pointer_g: cython.pointer(OlapBase[Empty])):
+        self.graph = pointer_g
+        self.parent = self.graph.AllocVertexArray[size_t]()
+        vertex_num: size_t
+        vertex_num = self.graph.ProcessVertexInRange[size_t, CountCore](self.Work, 0, self.parent.Size(), self)
+        print(&quot;the number is&quot;, vertex_num)
+
+if __name__ == &quot;__main__&quot;:
+    count_core = CountCore()
+    count_core.run(cython.address(g))
+</code></pre>
+<p>g is the instantiated object of graph class OlapBase</p>
+<pre><code class="language-python"># Function name: ProcessVertexActive[ReducedSum, Algorithm](
+# work: (algo: Algorithm, vi: size_t)-&gt; ReducedSum,
+# active: ParallelBitset,
+# algo: Algorithm,
+# zero: ReducedSum = 0,
+# reduce: (a: ReducedSum, b: ReducedSum)-&gt; ReducedSum = reduce_plus[ReducedSum])
+#
+# Function purpose: Execute the work function on the nodes corresponding to 1 in the active_vertices bitset. The third parameter indicates the base of accumulation, which is 0 by default;
+# The fourth parameter indicates that the iterative reduce function operation is performed on the node return value after each work process, and the default is the accumulation operation.
+# For specific implementation, please refer to the specific code in /include/lgraph/olap_base.h
+#
+# Usage example: Output all out-degree neighbors of nodes 1, 2, and 3 in the Graph, and count the total out-degree of these three nodes.
+
+import cython
+from cython.cimports.olap_base import *
+from cython.cimports.libc.stdio import printf
+
+
+@cython.cclass
+class NeighborCore:
+    graph: cython.pointer(OlapBase[Empty])
+    active_in: ParallelBitset
+
+    @cython.cfunc
+    @cython.nogil
+    def Work(self, vi: size_t) -&gt; size_t:
+        degree = self. graph. OutDegree(vi)
+        dst: size_t
+        edges = self. graph. OutEdges(vi)
+        local_out_degree: size_t
+        for i in range(degree):
+            dst = edges[i].neighbor
+            printf(&quot;node %lu has neighbor %lu\n&quot;, vi, dst)
+            local_out_degree += 1
+        return local_out_degree
+
+    def run(self, pointer_g: cython.pointer(OlapBase[Empty])):
+        self.graph = pointer_g
+        self.active_in = self.graph.AllocVertexSubset()
+        self. active_in. Add(1)
+        self. active_in. Add(2)
+        self. active_in. Add(3)
+        total_outdegree = cython.declare(
+            size_t,
+            self.graph.ProcessVertexActive[size_t, CountCore](self.Work, self.active_in, self))
+        printf(&quot;total outdegree of node1,2,3 is %lu\n&quot;,total_outdegree)
+
+if __name__ == &quot;__main__&quot;:
+    neighbor_core = NeighborCore()
+    neighbor_core.run(cython.address(g))
+</code></pre>
+<p>As shown in the above two examples, ProcessVertexActive and ProcessVertexInRange in Python require an additional algorithm class pointer parameter compared to their C++ counterparts. The Work function is generally used as a member function of the algorithm class to access member variables, such as in the graph and ParallelVector parent examples shown above. When calling the batch function, the Work function and the self pointer of the algorithm class are passed to the batch function.</p>
+<p>The Work function will be called in multiple threads, so the @cython.nogil decorator is added to release the Python global interpretation lock. In code executed by multiple threads, such as the Work function in the batch function, variables are better declared as C/C++ types using <code>dst: type</code> or <code>dst = cython.declare(type)</code>. This is because Python objects cannot be used in multi-threaded code.</p>
+<h3 id="graph-class-olapondb">Graph class OlapOnDB:</h3>
+<p>Parallelize to create a directed graph:</p>
+<pre><code class="language-python">olapondb = OlapOnDB[Empty](db, txn, SNAPSHOT_PARALLEL)
+</code></pre>
+<p>Parallelize to create an undirected graph</p>
+<pre><code class="language-python">olapondb = OlapOnDB[Empty](db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED)
+</code></pre>
+<p>ID_MAPPING creates a directed graph</p>
+<pre><code class="language-python">olapondb = OlapOnDB[Empty](db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING)
+</code></pre>
+<h3 id="graph-class-olapondisk">Graph class OlapOnDisk</h3>
+<h4 id="configbase">ConfigBase:</h4>
+<ul>
+<li><code>ConfigBase()</code>: Constructor</li>
+<li><code>std::string input_dir</code>: graph edge table data path</li>
+<li>
+<p><code>std::string output_dir</code>: output path</p>
+</li>
+<li>
+<p><code>Load(config: ConfigBase[EdgeData], edge_direction_policy: EdgeDirectionPolicy)-&gt; void</code>: read in graph data</p>
+</li>
+</ul>
+<h2 id="5-lgraph_db-api">5. lgraph_db API</h2>
+<p>Please refer to the files plugins/cython/lgraph_db.pxd and lgraph_db_python.py for the lgraph_db API.</p>
+<p>The usage and functions of the interface in lgraph_db.pxd are basically the same as the C++ interface. The interface declared in lgraph_db.pxd is implemented in C++. In the py file, it must be imported by <code>cython.cimports.olap_db import *</code> and compiled by the Cython file to run.</p>
+<h3 id="vertexindexiterator">VertexIndexIterator</h3>
+<ul>
+<li><code>GetVid()-&gt; int64_t</code>: Get the vid of the vertex</li>
+</ul>
+<h3 id="galaxy">Galaxy</h3>
+<ul>
+<li><code>Galaxy(dir_path: std::string)</code>: constructor, dir_path is the db path</li>
+<li><code>SetCurrentUser(user: std::string, password: std::string)-&gt; cython.void</code>: set user</li>
+<li><code>SetUser(user: std::string)-&gt; cython.void</code>: set user</li>
+<li><code>OpenGraph(graph: std::string, read_only: bint)-&gt; GraphDB</code>: create GraphDB</li>
+</ul>
+<h3 id="graphdb">GraphDB:</h3>
+<ul>
+<li><code>CreateReadTxn()-&gt; Transaction</code>: create a read-only transaction</li>
+<li><code>CreateWriteTxn()-&gt; Transaction</code>: create a write transaction</li>
+<li><code>ForkTxn(txn: Transaction)-&gt; Transaction</code>: Copy transactions, only read transactions can be copied</li>
+</ul>
+<h3 id="transaction">Transaction:</h3>
+<pre><code>GetVertexIndexIterator(
+                 label: std::string,
+                 field: std::string,
+                 key_start: std::string,
+                 key_end: std::string) -&gt; VertexIndexIterator
+</code></pre>
+<p>Gets index iterator. The iterator has field value [key_start, key_end]. So key_start=key_end=v returns an iterator pointing to all vertexes that has field value v</p>
+<p>lgraph_db_python.py packages the C++ classes Galaxy and GraphDB from lgraph_db.pxd as Python classes. After compiling lgraph_db_python.py into a Python extension, you can directly access it in a Python file or from the Python command line by importing it with <code>import lgraph_db_python</code>.</p>
+<h3 id="pygalaxy">PyGalaxy:</h3>
+<ul>
+<li><code>PyGalaxy(self, dir_path: str)</code>: constructor, dir_path is the db path</li>
+<li><code>SetCurrentUser(self, user: str password: str)-&gt; void</code>: set user</li>
+<li><code>SetUser(self, user: std::string)-&gt; void</code>: set user</li>
+<li><code>OpenGraph(self, graph: str, read_only: bool)-&gt; PyGraphDB</code>: create PyGraphDB</li>
+</ul>
+<h3 id="pygraphdb">PyGraphDB:</h3>
+<ul>
+<li><code>get_pointer(self)-&gt;cython.Py_ssize_t</code>: address of C++ class GraphDB</li>
+</ul>
+<h2 id="6-algorithm-plug-in-example">6. Algorithm plug-in example</h2>
+<p>The following is a code example of the BFS algorithm implemented in Python:</p>
+<pre><code class="language-python"># cython: language_level=3, cpp_locals=True, boundscheck=False, wraparound=False, initializedcheck=False
+# distutils: language = c++
+
+# Comments work as follows:
+# language_level=3: use Python3
+# cpp_locals=True: C++17 is required, and std::optional is used to manage C++ objects in Python code, which can avoid copy construction of C++ objects
+# boundscheck=False: Turn off bounds checking for indexes
+# wraparound=False: Turn off the processing of negative subscripts (similar to Python List)
+# initializedcheck=False: Turn off checking whether the memory is initialized, and the running performance will be faster after turning off the check
+# language = c++: translate this .py file to C++ instead of C file. TuGraph uses a lot of template functions, so C++ should be used
+
+import json
+
+import cython
+from cython.cimports.olap_base import *
+from cython.cimports.lgraph_db import *
+# From plugins/cython/ cimportolap_base.pxd and lgraph_db.pxd, similar to #include &quot;xxx.h&quot; in C++
+
+from cython.cimports.libc.stdio import printf
+# Similar to #include &lt;stdio.h&gt; in C++
+# Other common ones include cython.cimports.libcpp.unordered_map, etc.
+
+import time
+import lgraph_db_python
+
+@cython.cclass
+# cython.cclass indicates that BFSCore is a C-type Class
+class BFSCore:
+    graph: cython.pointer(OlapBase[Empty])
+    # cython.pointer(OlapBase[Empty]) indicates the pointer of OlapBase[Empty], similar to OlapBase[Empty]* in C++
+    # Cython provides common types of pointers, such as cython.p_int, cython.p_char, etc.
+    parent: ParallelVector[size_t]
+    active_in: ParallelBitset
+    active_out: ParallelBitset
+    root: size_t
+    # root: size_t declares root as a C++ size_t type variable, equivalent to root = cython.declare(size_t)
+    # Variables that do not declare a type are Python object types
+    # Declaring variable types will greatly improve performance, and in the multi-threaded part, only C/C++ type variables can be accessed
+
+    @cython.cfunc
+    # cython.cfunc indicates that Work is a C-type function, and the parameters and return values should be declared
+    # cfunc has good performance and can accept C/C++ objects as parameters and return values, but it cannot be called in other python files
+    # Similar to cython.ccall, such as Standalone function, which can be called in other python files
+    @cython.nogil
+    # cython.nogil means to release the Python global interpretation lock. In the part modified by nogil, Python objects cannot be accessed
+    # In the multi-threaded part, there should be nogil decorator
+    @cython.exceptval(check=False)
+    # cython.exceptval(check=False) means that exception propagation is disabled, and Python exceptions raised inside the function will be ignored
+    def Work(self, vi: size_t) -&gt; size_t:
+        degree = cython.declare(size_t, self.graph.OutDegree(vi))
+        out_edges = cython.declare(AdjList[Empty], self.graph.OutEdges(vi))
+        i = cython.declare(size_t, 0)
+        local_num_activations = cython.declare(size_t, 0)
+        dst: size_t
+        for i in range(degree):
+            dst = out_edges[i].neighbor
+            if self.parent[dst] == cython.cast(size_t, -1):
+                # parent[dst] == -1 means that dst has not been visited by bfs
+                if self.active_out.Add(dst):
+                    # Set dst as an active node; ParallelBitmap.Add is an atomic operation to prevent double calculation
+                    self.parent[dst] = vi
+                    local_num_activations += 1
+        return local_num_activations
+
+    @cython.cfunc
+    @cython.nogil
+    @cython.exceptval(check=False)
+    def run(self, g: cython.pointer(OlapBase[Empty]), r: size_t) -&gt; cython. size_t:
+        self. graph = g
+        self.root = r
+        self.active_in = g.AllocVertexSubset()
+        self.active_out = g.AllocVertexSubset()
+        self.parent = g.AllocVertexArray[size_t]()
+        self. parent. Fill(-1)
+        num_vertices = cython.declare(size_t, self.graph.NumVertices())
+        printf(&quot;num_vertices = %lu\n&quot;, num_vertices)
+        self.parent[self.root] = self.root
+        num_activations = cython.declare(size_t, 1)
+        discovered_vertices = cython.declare(size_t, num_activations)
+        self. active_in. Add(self. root)
+        while num_activations &gt; 0:
+            self. active_out. Clear()
+            num_activations = g.ProcessVertexActive[size_t, BFSCore](self.Work, self.active_in, self)
+            discovered_vertices += num_activations
+            self. active_out. Swap(self. active_in)
+            printf(&quot;num_activations = %lu\n&quot;, num_activations)
+        return discovered_vertices
+
+
+@cython.cfunc
+def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict) -&gt; cython.bint:
+    cost = time. time()
+    root_id = &quot;0&quot;
+    label = &quot;node&quot;
+    field = &quot;id&quot;
+    if &quot;root&quot; in request:
+        root_id = request[&quot;root&quot;]
+    if &quot;label&quot; in request:
+        label = request[&quot;label&quot;]
+    if &quot;field&quot; in request:
+        field = request[&quot;field&quot;]
+
+    txn = db.CreateReadTxn()
+    olapondb = OlapOnDB[Empty](db[0], txn, SNAPSHOT_PARALLEL)
+    # Create OlapOnDB in parallel
+    # Cython does not support dereference operations such as *db, use db[0] to dereference
+    root_vid = txn.GetVertexIndexIterator(
+        label.encode('utf-8'), field.encode('utf-8'),
+        root_id.encode('utf-8'), root_id.encode('utf-8')
+    ).GetVid()
+    # Get the iterator of the root node through GetVertexIndexIterator based on the root node label name, field name and field value (root_id),
+    # and get the vid through the iterator. When there is no ID_MAPPING, the vid is the same as the id in OlapOnDB
+    cost = time. time() - cost
+    printf(&quot;prepare_cost = %lf s\n&quot;, cython.cast(cython.double, cost))
+    a = BFSCore()
+    cost = time. time()
+    count = a. run(cython. address(olapondb), root_vid)
+    cost = time. time() - cost
+    printf(&quot;core_cost = %lf s\n&quot;, cython.cast(cython.double, cost))
+    response[&quot;found_vertices&quot;] = count
+    response[&quot;num_vertices&quot;] = olapondb. NumVertices()
+    response[&quot;num_edges&quot;] = olapondb. NumEdges()
+    return True
+
+
+@cython.ccall
+def Standalone(input_dir: str, root: size_t):
+    # Standalone is the plug-in entry in Standalone mode, modified with cython.ccall
+    # You can set parameters arbitrarily, and modify plugins/cython/standalone_main.py accordingly
+    cost = time. time()
+    graph = OlapOnDisk[Empty]()
+    config = ConfigBase[Empty]()
+    config.input_dir = input_dir.encode(&quot;utf-8&quot;)
+    # config is a C++ class, config.input_dir is std::string, Python str needs to be encoded to be passed to std::string
+    graph.Load(config, DUAL_DIRECTION)
+    # read in graph
+    cost = time. time() - cost
+    printf(&quot;load_cost = %lf s\n&quot;, cython.cast(cython.double, cost))
+
+    cost = time. time()
+    a = BFSCore()
+    count = a. run(cython. address(graph), root)
+    # cython.address(graph), address, similar to &amp;graph in C++
+    cost = time. time() - cost
+    printf(&quot;core_cost = %lf s\n&quot;, cython.cast(cython.double, cost))
+    print(&quot;find {} vertices&quot;. format(count))
+
+
+@cython.ccall
+def Process(db: lgraph_db_python.PyGraphDB, inp: bytes):
+    # Process is the plug-in entry in embed mode and procedure mode, modified with cython.ccall
+    # The Process function must be named Process, and the parameters are lgraph_db_python.PyGraphDB and bytes
+    # The return value must be (bool, str)
+    _inp = inp.decode(&quot;utf-8&quot;)
+    request = json.loads(_inp)
+    response = {}
+    addr = cython.declare(cython.Py_ssize_t, db.get_pointer())
+    # Get the address of the GraphDB object in the PyGraphDB, convert it to a pointer and pass it
+    procedure_process(cython.cast(cython.pointer(GraphDB), addr),
+                      request, response)
+    return (True, json.dumps(response))
+
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../5.algorithms/" class="btn btn-neutral float-left" title="Algorithms"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../../4.client/1.java-client/" class="btn btn-neutral float-right" title="Java Client">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../5.algorithms/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../../4.client/1.java-client/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../../..';</script>
+    <script src="../../../../js/theme_extra.js" defer></script>
+    <script src="../../../../js/theme.js" defer></script>
+      <script src="../../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

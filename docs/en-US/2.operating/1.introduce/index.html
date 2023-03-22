@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>Introduction - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Introduction";
+        var mkdocs_page_input_path = "en-US\\2.operating\\1.introduce.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Operating</a>
+    <ul class="current">
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">Introduction</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#what-is-graph-database">What is Graph Database</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tugraph-community-edition">TuGraph Community Edition</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tugraph-enterprise-edition">TuGraph Enterprise Edition</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#difference-between-community-and-enterprise">Difference between community and enterprise</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tugraph-features">TuGraph features</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#the-data-model">The data model</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#graph-model">Graph model</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#the-data-type">The data type</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#index">Index</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#software-license">Software license</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#version-number-control-for-tugraph">Version number control for TuGraph</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>en-US &raquo;</li>
+          <li>Operating &raquo;</li>
+      <li>Introduction</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="introduction">Introduction</h1>
+<blockquote>
+<p>This document describes the differences between TuGraph Enterprise and TuGraph Community , TuGraph features, and TuGraph version number control.</p>
+</blockquote>
+<h2 id="what-is-graph-database">What is Graph Database</h2>
+<pre><code>Graph database is a non-relational database that stores data by vertices and edges. It can be used to store complex data network models, such as social networks and transaction networks. TuGraph is a graph database developed by Ant Group. This manual introduces the functions and usage of TuGraph.
+</code></pre>
+<h2 id="tugraph-community-edition">TuGraph Community Edition</h2>
+<pre><code>The Community Edition is a fully functional version of TuGraph, suitable for single-instance deployment. It provides complete basic fuctions of graph database, such as ACID-compatible transactions, programming APIs, and associated tools. It is ideal for learning TuGraph and implementing small projects.
+</code></pre>
+<h2 id="tugraph-enterprise-edition">TuGraph Enterprise Edition</h2>
+<pre><code>The enterprise version extends TuGraph's basic functions. For example, the deployment mode includes high-availability and distributed, the underlying storage engine with faster performance improvement, and the role permission control with finer function improvement. It is ideal for commercial solutions.
+</code></pre>
+<h2 id="difference-between-community-and-enterprise">Difference between community and enterprise</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Community version</th>
+<th>Enterprise version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Labeled property Graph Model</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Dynamic model changes</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Support multiple graph</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Full ACID transaction processing</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Graph analysis algorithm</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Graph visualization tool based on Web client</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>OpenCypher graph query language</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Stored procedure based on C++/Python/Java</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>The Traversal API for efficient graph algorithm development</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>TB large capacity</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>High throughput of ten million vertices per second</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>High-performance Batch Import</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Online/offline backup</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Rights management</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>High availability support</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Graph database expert support services</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Advanced cypher optimizer</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Property level permission management</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tugraph-features">TuGraph features</h2>
+<p>TuGraph is a large-scale graph computing system independently developed by Ant Group, providing graph database engine and graph analysis engine. Its main features are large data storage and computation, high throughput, and flexible API, while supporting efficient online transaction processing (OLTP) and online analytical processing (OLAP). LightGraph and GeaGraph are former names of TuGraph.</p>
+<p>The main functional features include:</p>
+<ul>
+<li>Labeled property graph model</li>
+<li>Support multiple Graphs</li>
+<li>Full ACID transaction processing</li>
+<li>Built-in 25+ graph analysis algorithm</li>
+<li>Graph visualization tool based on Web client</li>
+<li>RESTful API and RPC are supported</li>
+<li>OpenCypher graph query language</li>
+<li>Stored procedure based on C++/Python/Java</li>
+<li>The Traversal API for efficient graph algorithm development</li>
+</ul>
+<p>Performance and scalability features include:</p>
+<ul>
+<li>TB large capacity</li>
+<li>High throughput of ten million vertices per second</li>
+<li>High Availability Support (Enterprise Edition)</li>
+<li>High-performance Batch Import</li>
+<li>Online/offline backup</li>
+</ul>
+<h2 id="the-data-model">The data model</h2>
+<h3 id="graph-model">Graph model</h3>
+<p>TuGraph is a strong schema property graph database with multi-graph capability. It supports the construction of directed graphs with up to one trillion vertices.</p>
+<ul>
+<li>
+<p>Multiple graphs: In TuGraph, each database server can host multiple graph models, each graph model can have its own access control configuration, and the database administrator can create or delete specified graph models.</p>
+</li>
+<li>
+<p>Property graph: vertices and edges in TuGraph can have properties associated with them, and each attribute can have a different type.</p>
+</li>
+<li>
+<p>Strong schema: Each vertex and edge must have a label, and the number and type of properties are difficult to change after the label created.</p>
+</li>
+<li>
+<p>Directed edges: The edges in TuGraph are directed edges. To simulate an undirected edge, the user can create two opposite edges.</p>
+</li>
+</ul>
+<h3 id="the-data-type">The data type</h3>
+<p>TuGraph Supports a variety of data types that can be used as attributes, the specific supported data types are as follows：</p>
+<p><caption>Table 1. TuGraph supported data types</caption></p>
+<table>
+<thead>
+<tr>
+<th><strong>Type</strong></th>
+<th><strong>Min</strong></th>
+<th><strong>Max</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BOOL</td>
+<td>false</td>
+<td>true</td>
+<td>Boolean</td>
+</tr>
+<tr>
+<td>INT8</td>
+<td>-128</td>
+<td>127</td>
+<td>8-bit int</td>
+</tr>
+<tr>
+<td>INT16</td>
+<td>-32768</td>
+<td>32767</td>
+<td>16-bit int</td>
+</tr>
+<tr>
+<td>INT32</td>
+<td>- 2^31</td>
+<td>2^31 - 1</td>
+<td>32-bit int</td>
+</tr>
+<tr>
+<td>INT64</td>
+<td>- 2^63</td>
+<td>2^63 - 1</td>
+<td>64-bit int</td>
+</tr>
+<tr>
+<td>DATE</td>
+<td>0000-00-00</td>
+<td>9999-12-31</td>
+<td>"YYYY-MM-DD" Date of format</td>
+</tr>
+<tr>
+<td>DATETIME</td>
+<td>0000-00-00 00:00:00</td>
+<td>9999-12-31 23:59:59</td>
+<td>"YYYY-MM-DD hh:mm:ss"Format of the date and time</td>
+</tr>
+<tr>
+<td>FLOAT</td>
+<td></td>
+<td></td>
+<td>32-bit float</td>
+</tr>
+<tr>
+<td>DOUBLE</td>
+<td></td>
+<td></td>
+<td>64-bit float</td>
+</tr>
+<tr>
+<td>STRING</td>
+<td></td>
+<td></td>
+<td>A string of variable length</td>
+</tr>
+<tr>
+<td>BLOB</td>
+<td></td>
+<td></td>
+<td>Binary data</td>
+</tr>
+</tbody>
+</table>
+<p><em>BLOB data is BASE64 encoded in input and output</em></p>
+<h3 id="index">Index</h3>
+<p>TuGraph supports indexing vertex fields.</p>
+<p>Indexes can be unique or non-unique. If a unique index is created for a vertex label, TuGraph will perform a data integrity check to ensure the uniqueness of the index before modifying the vertex of the label.</p>
+<p>Each index built on a single field of a label, and multiple fields can be indexed using the same label.</p>
+<p>BLOB fields cannot be indexed.</p>
+<h2 id="software-license">Software license</h2>
+<p>Email ： tugraph@service.alipay.com
+Phone： 0571-85022088，ext. 83789993#</p>
+<h2 id="version-number-control-for-tugraph">Version number control for TuGraph</h2>
+<p>TuGraph use [semantic 2.0.0 version control standard] (https://semver.org/lang/zh-CN/)，version format: the major version number. Revision number. The increment rule is as follows:</p>
+<blockquote>
+<ol>
+<li>Major version number: Incompatible API changes have been made</li>
+<li>Version number: Downward compatible functionality added</li>
+<li>Revision number: Downward compatibility issue has been fixed</li>
+</ol>
+</blockquote>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../1.guide/3.quick-start/" class="btn btn-neutral float-left" title="Quick Start"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../2.Install/" class="btn btn-neutral float-right" title="Install">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../1.guide/3.quick-start/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../2.Install/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../..';</script>
+    <script src="../../../js/theme_extra.js" defer></script>
+    <script src="../../../js/theme.js" defer></script>
+      <script src="../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

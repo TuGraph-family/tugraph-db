@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>Java Client - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Java Client";
+        var mkdocs_page_input_path = "en-US\\4.client\\1.java-client.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Client</a>
+    <ul class="current">
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">Java Client</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#compile-java-client-code">Compile java client code</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#demo">Demo</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#instantiate-the-client-object">Instantiate the client object</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#call-cypher">Call cypher</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#call-stored-procedure">Call stored procedure</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#load-stored-procedure">Load stored procedure</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#import-from-a-byte-stream-schema">Import from a byte stream schema</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#import-point-edge-data-from-byte-stream">Import point edge data from byte stream</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#import-from-a-file-schema">Import from a file schema</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#import-edge-data-from-a-file">Import edge data from a file</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../zh-CN/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../zh-CN/6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>en-US &raquo;</li>
+          <li>Client &raquo;</li>
+      <li>Java Client</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tugraph-java-sdk">TuGraph Java SDK</h1>
+<h2 id="compile-java-client-code">Compile java client code</h2>
+<pre><code class="language-shell">cd src/client/java/TuGraphRpcClient
+sh local_build.sh
+</code></pre>
+<h2 id="demo">Demo</h2>
+<h3 id="instantiate-the-client-object"><strong>Instantiate the client object</strong></h3>
+<p>Introduce dependencies and instantiate</p>
+<pre><code class="language-java">import com.alipay.tugraph.TuGraphRpcClient;
+TuGraphRpcClient client = new TuGraphRpcClient(url, user, password);
+</code></pre>
+<pre><code class="language-shell"># If tugraph is launched from docker
+url      : list://ip:9090
+user     : admin
+password : 73@TuGraph
+</code></pre>
+<pre><code class="language-comment">public TuGraphRpcClient(String url, String user, String pass)
+@param url: tugraph host looks like list://ip:port
+@param user: login user name
+@param password: login password
+</code></pre>
+<h3 id="call-cypher"><strong>Call cypher</strong></h3>
+<pre><code class="language-java">    String res = client.callCypher(&quot;CALL db.edgeLabels()&quot;, &quot;default&quot;, 10);
+    log.info(&quot;db.edgeLabels() : &quot; + res);
+</code></pre>
+<pre><code class="language-comment">    @param cypher: inquire statement.
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of cypher query execution
+    public String callCypher(String cypher, String graph, double timeout)
+</code></pre>
+<h3 id="call-stored-procedure"><strong>Call stored procedure</strong></h3>
+<pre><code class="language-java">    String result = client.callPlugin(&quot;CPP&quot;, &quot;khop&quot;, kHopParamGen(), 1000, false, &quot;default&quot;, 1000);
+    log.info(&quot;testCallPlugin : &quot; + result);
+</code></pre>
+<pre><code class="language-comment">    @param pluginType: the plugin type, currently supported CPP and PY
+    @param pluginName: plugin name
+    @param param: the execution parameters
+    @param pluginTimeOut: Maximum execution time, overruns will be interrupted
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of plugin execution
+    public String callPlugin(String pluginType, String pluginName, String param, double pluginTimeOut,
+            boolean inProcess, String graph, double timeout)
+</code></pre>
+<h3 id="load-stored-procedure"><strong>Load stored procedure</strong></h3>
+<pre><code class="language-java">    String result = client.loadPlugin(&quot;./test/plugin/khop.so&quot;, &quot;CPP&quot;, &quot;khop&quot;, &quot;SO&quot;, &quot;test loadplugin&quot;, true, &quot;default&quot;, 1000);
+    log.info(&quot;loadPlugin : &quot; + result);
+</code></pre>
+<pre><code class="language-comment">    @param sourceFile: the source_file contain plugin code
+    @param pluginType: the plugin type, currently supported CPP and PY
+    @param pluginName: plugin name
+    @param codeType: code type, currently supported PY, SO, CPP, ZIP
+    @param pluginDescription: plugin description
+    @param readOnly: plugin is read only or not
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of plugin execution
+    public boolean loadPlugin(String sourceFile, String pluginType, String pluginName, String codeType,
+            String pluginDescription, boolean readOnly, String graph, double timeout) throws IOException
+</code></pre>
+<h3 id="import-from-a-byte-stream-schema"><strong>Import from a byte stream schema</strong></h3>
+<pre><code class="language-java">    boolean ret = client.importSchemaFromContent(schema, &quot;default&quot;, 1000);
+    log.info(&quot;importSchemaFromContent : &quot; + ret);
+</code></pre>
+<pre><code class="language-comment">    @param schema: the schema to be imported
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of import schema
+    public boolean importSchemaFromContent(String schema, String graph, double timeout) throws UnsupportedEncodingException
+</code></pre>
+<h3 id="import-point-edge-data-from-byte-stream"><strong>Import point edge data from byte stream</strong></h3>
+<pre><code class="language-java">    boolean ret = client.importDataFromContent(personDesc, person, &quot;,&quot;, true, 16, &quot;default&quot;, 1000);
+    log.info(&quot;importDataFromContent : &quot; + ret);
+</code></pre>
+<pre><code class="language-comment">    @param desc: data format description
+    @param data: the data to be imported
+    @param delimiter: data separator
+    @param continueOnError: whether to continue when importing data fails
+    @param threadNums: maximum number of threads
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of import data
+    public boolean importDataFromContent(String desc, String data, String delimiter, boolean continueOnError,
+            int threadNums, String graph, double timeout) throws UnsupportedEncodingException
+</code></pre>
+<h3 id="import-from-a-file-schema"><strong>Import from a file schema</strong></h3>
+<pre><code class="language-java">    boolean ret = client.importSchemaFromFile(&quot;./test/data/yago.conf&quot;, &quot;default&quot;, 1000);
+    log.info(&quot;importSchemaFromFile : &quot; + ret);
+</code></pre>
+<pre><code class="language-comment">    @param schemaFile: the schema_file contain schema
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of import schema
+    public boolean importSchemaFromFile(String schemaFile, String graph, double timeout)
+            throws UnsupportedEncodingException, IOException
+</code></pre>
+<h3 id="import-edge-data-from-a-file"><strong>Import edge data from a file</strong></h3>
+<pre><code class="language-java">    boolean ret = client.importDataFromFile(&quot;./test/data/yago.conf&quot;, &quot;,&quot;, true, 16, 0, &quot;default&quot;, 1000000000);
+    log.info(&quot;importDataFromFile : &quot; + ret);
+</code></pre>
+<pre><code class="language-comment">    @param confFile: data file contain format description and data
+    @param delimiter: data separator
+    @param continueOnError: whether to continue when importing data fails
+    @param threadNums: maximum number of threads
+    @param skipPackages: skip packages number
+    @param graph: the graph to query.
+    @param timeout: Maximum execution time, overruns will be interrupted
+    @return: the result of import data
+    public boolean importDataFromFile(String confFile, String delimiter, boolean continueOnError, int threadNums,
+            int skipPackages, String graph, double timeout) throws IOException, UnsupportedEncodingException
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../3.developer-document/4.graph_analytics_engine/6.python-api/" class="btn btn-neutral float-left" title="Python API"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../2.python-client/" class="btn btn-neutral float-right" title="Python Client">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../3.developer-document/4.graph_analytics_engine/6.python-api/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../2.python-client/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../..';</script>
+    <script src="../../../js/theme_extra.js" defer></script>
+    <script src="../../../js/theme.js" defer></script>
+      <script src="../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

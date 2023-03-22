@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>数据导入 - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "\u6570\u636e\u5bfc\u5165";
+        var mkdocs_page_input_path = "zh-CN\\2.operating\\3.data-import.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">操作</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">数据导入</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#csv">CSV 文件格式分隔符</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#_2">配置文件</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#_3">配置文件格式</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#_5">配置文件示例</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#_6">离线全量导入</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#_7">离线导入示例</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#_8">在线增量导入</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>zh-CN &raquo;</li>
+          <li>操作 &raquo;</li>
+      <li>数据导入</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="_1">数据导入</h1>
+<blockquote>
+<p>此文档主要介绍 TuGraph 的数据导入功能。其中包括 CSV 格式的分隔符，jsonline 的格式示例，以及导入在线和离线的两种模式。</p>
+</blockquote>
+<p>在图数据库服务安装成功后，您可以使用<code>lgraph_import</code>批量导入工具将现有数据导入 TuGraph。<code>lgraph_import</code>支持从 CSV 文件和 JSON 数据源导入数据。</p>
+<blockquote>
+<p><code>jsonline格式，一行一个json数组字符串</code></p>
+<p>CSV 格式</p>
+</blockquote>
+<pre><code>[movies.csv]
+id, name, year, rating
+tt0188766,King of Comedy,1999,7.3
+tt0286112,Shaolin Soccer,2001,7.3
+tt4701660,The Mermaid,2016,6.3
+</code></pre>
+<blockquote>
+<p>jsonline 格式</p>
+</blockquote>
+<pre><code class="language-json">[&quot;tt0188766&quot;,&quot;King of Comedy&quot;,1999,7.3]
+[&quot;tt0286112&quot;,&quot;Shaolin Soccer&quot;,2001,7.3]
+[&quot;tt4701660&quot;,&quot;The Mermaid&quot;,2016,6.3]
+</code></pre>
+<p>TuGraph 支持两种导入模式：</p>
+<ul>
+<li><em>离线模式</em>：读取数据并将其导入指定服务器的数据文件，应仅在服务器离线时完成。</li>
+<li><em>在线模式</em>：读取数据并将其发送到工作中的服务器，然后将数据导入其数据库。</li>
+</ul>
+<h2 id="csv">CSV 文件格式分隔符</h2>
+<pre><code>CSV格式的分隔符可以是单字符或多字符组成的字符串，其中不能包含`\r`或`\n`。注意不同的shell会对输入字符串做不同的处理，因此针对不同的shell输入参数可能需要不同的转义处理。
+</code></pre>
+<p>此外，<code>lgraph_import</code>还支持以下转义字符，以便输入特殊符号：</p>
+<table>
+<thead>
+<tr>
+<th>转义符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\</td>
+<td>反斜杠<code>\\</code></td>
+</tr>
+<tr>
+<td>\a</td>
+<td>响铃，即 ASCII 码 0x07</td>
+</tr>
+<tr>
+<td>\f</td>
+<td>form-feed，即 ASCII 码 0x0c</td>
+</tr>
+<tr>
+<td>\t</td>
+<td>水平制表符，即 ASCII 码 0x09</td>
+</tr>
+<tr>
+<td>\v</td>
+<td>垂直制表符，即 ASCII 码 0x0b</td>
+</tr>
+<tr>
+<td>\xnn</td>
+<td>两位十六进制数，表示一个字节，如\x9A</td>
+</tr>
+<tr>
+<td>\nnn</td>
+<td>三位八进制数，表示一个字节，如\001, \443，数值范围不能超过 255</td>
+</tr>
+</tbody>
+</table>
+<p>例：</p>
+<pre><code class="language-bash">$ ./lgraph_import -c ./import.config --delimiter &quot;\001\002&quot;
+</code></pre>
+<h2 id="_2">配置文件</h2>
+<pre><code>`lgraph_import`工具通过指定的配置文件进行环境配置。配置文件描述输入文件的路径、它们所代表的顶点/边以及顶点/边的格式。
+</code></pre>
+<h3 id="_3">配置文件格式</h3>
+<p>配置文件包含两部分：schema 和 files。<code>schema</code>部分定义 label，<code>files</code>部分描述要导入的数据文件。</p>
+<h4 id="_4">关键字</h4>
+<ul>
+<li>schema (数组形式）</li>
+<li>label（必选，字符串形式）</li>
+<li>type（必选，值只能是 VERTEX 或者 EDGE）</li>
+<li>properties（数组形式，对于点必选，对于边如果没有属性可以不配置）<ul>
+<li>name（必选，字符串形式）</li>
+<li>type （必选，BOOL，INT8，INT16，INT32，INT64，DATE，DATETIME，FLOAT，DOUBLE，STRING，BLOB）</li>
+<li>optional（可选，代表该字段可以配置，也可以不配置）</li>
+<li>index（可选，该字段是否需要建索引）</li>
+<li>unique（可选，该字段是否建索引，并且是 unique 类型的）</li>
+</ul>
+</li>
+<li>primary (仅点配置，必选，主键字段，需指定一个 property，用来唯一确定一个点)</li>
+<li>constraints (仅边配置，可选，数组形式，起点和终点的 label，不配置或者为空代表不限制)</li>
+<li>files （数组形式）</li>
+<li>path（必选，字符串，可以是文件路径或者目录的路径，如果是目录会导入此目录下的所有文件，需要保证有相同的 schema）</li>
+<li>header（可选，数字，头信息占文件起始的几行，没有就是 0）</li>
+<li>format（必须选，只能是 JSON 或者 CSV）</li>
+<li>label（必选，字符串）</li>
+<li>columns（数组形式）<ul>
+<li>SRC_ID (特殊字符串，仅边有，代表这列是起始点数据)</li>
+<li>DST_ID (特殊字符串，仅边有，代表这列是目的点数据)</li>
+<li>SKIP   (特殊字符串，代表跳过这列数据)</li>
+<li>[property]</li>
+</ul>
+</li>
+<li>SRC_ID (仅边配置，值是起始点标签)</li>
+<li>DST_ID (仅边配置，值是目的点标签)</li>
+</ul>
+<h3 id="_5">配置文件示例</h3>
+<pre><code class="language-json">{
+  &quot;schema&quot;: [
+    {
+      &quot;label&quot;: &quot;actor&quot;,
+      &quot;type&quot;: &quot;VERTEX&quot;,
+      &quot;properties&quot;: [
+        { &quot;name&quot;: &quot;aid&quot;, &quot;type&quot;: &quot;STRING&quot; },
+        { &quot;name&quot;: &quot;name&quot;, &quot;type&quot;: &quot;STRING&quot; }
+      ],
+      &quot;primary&quot;: &quot;aid&quot;
+    },
+    {
+      &quot;label&quot;: &quot;movie&quot;,
+      &quot;type&quot;: &quot;VERTEX&quot;,
+      &quot;properties&quot;: [
+        { &quot;name&quot;: &quot;mid&quot;, &quot;type&quot;: &quot;STRING&quot; },
+        { &quot;name&quot;: &quot;name&quot;, &quot;type&quot;: &quot;STRING&quot; },
+        { &quot;name&quot;: &quot;year&quot;, &quot;type&quot;: &quot;INT16&quot; },
+        { &quot;name&quot;: &quot;rate&quot;, &quot;type&quot;: &quot;FLOAT&quot;, &quot;optional&quot;: true }
+      ],
+      &quot;primary&quot;: &quot;mid&quot;
+    },
+    {
+      &quot;label&quot;: &quot;play_in&quot;,
+      &quot;type&quot;: &quot;EDGE&quot;,
+      &quot;properties&quot;: [{ &quot;name&quot;: &quot;role&quot;, &quot;type&quot;: &quot;STRING&quot;, &quot;optional&quot;: true }],
+      &quot;constraints&quot;: [[&quot;actor&quot;, &quot;movie&quot;]]
+    }
+  ],
+  &quot;files&quot;: [
+    {
+      &quot;path&quot;: &quot;actors.csv&quot;,
+      &quot;header&quot;: 2,
+      &quot;format&quot;: &quot;CSV&quot;,
+      &quot;label&quot;: &quot;actor&quot;,
+      &quot;columns&quot;: [&quot;aid&quot;, &quot;name&quot;]
+    },
+    {
+      &quot;path&quot;: &quot;movies.csv&quot;,
+      &quot;header&quot;: 2,
+      &quot;format&quot;: &quot;CSV&quot;,
+      &quot;label&quot;: &quot;movie&quot;,
+      &quot;columns&quot;: [&quot;mid&quot;, &quot;name&quot;, &quot;year&quot;, &quot;rate&quot;]
+    },
+    {
+      &quot;path&quot;: &quot;roles.csv&quot;,
+      &quot;header&quot;: 2,
+      &quot;format&quot;: &quot;CSV&quot;,
+      &quot;label&quot;: &quot;play_in&quot;,
+      &quot;SRC_ID&quot;: &quot;actor&quot;,
+      &quot;DST_ID&quot;: &quot;movie&quot;,
+      &quot;columns&quot;: [&quot;SRC_ID&quot;, &quot;role&quot;, &quot;DST_ID&quot;]
+    }
+  ]
+}
+</code></pre>
+<p>对于上述配置文件，定义了三个 label：两个点类型<code>actor</code>和<code>movie</code>，一个边类型<code>role</code>。每个 label 都描述了：label 的名字、类型（点还是边）、属性字段有哪些以及每个字段的类型。对于点，另外定义了 primary 字段是哪个；对于边，另外定义了 constraints 字段，用来限制边的起点和终点只能是哪些组合。</p>
+<p>还描述了三个数据文件，两个点的数据文件<code>actors.csv</code>和<code>movies.csv</code>，一个边的数据文件<code>roles.csv</code>。每个部分都描述了：文件的路径（path）、数据类型（format）、信息头占开头几行（header）、是哪个 label 的数据（label）、文件中每行数据中的每个列对应的字段是哪个。</p>
+<p>对于上述配置文件，import 工具在执行的过程中会先在 TuGraph 中创建<code>actor</code>、<code>movie</code>、<code>role</code>这三个 label，然后再执行三个文件的数据导入。</p>
+<h2 id="_6">离线全量导入</h2>
+<p>离线模式只能在离线状态的服务器使用。离线导入会创建一张新图，因此更适合新安装的 TuGraph 服务器上的第一次数据导入。
+要在离线模式下使用<code>lgraph_import</code>工具，可以指定<code>lgraph_import --online false</code>选项。要了解可用的命令行选项，请使用<code>lgraph_import --online false --help</code>：</p>
+<pre><code class="language-shell">$ ./lgraph_import --online false -help
+Available command line options:
+    --log               Log file to use, empty means stderr. Default=&quot;&quot;.
+    -v, --verbose       Verbose level to use, higher means more verbose.
+                        Default=1.
+    ...
+    -h, --help          Print this help message. Default=0.
+</code></pre>
+<p>命令行参数：</p>
+<ul>
+<li><strong>-c, --config_file</strong> <code>config_file</code>: 导入配置文件名，其格式要求见下述。</li>
+<li><strong>--log</strong> <code>log_dir</code>: 日志目录。默认为空字符串，此时将日志信息输出到控制台。</li>
+<li><strong>--verbose</strong> <code>0/1/2</code>: 日志等级，等级越高输出信息越详细。默认为 1。</li>
+<li><strong>-i, --continue_on_error</strong> <code>true/false</code>: 在碰到错误时跳过错误并继续，默认为 false，碰到错误立即退出。</li>
+<li><strong>-d, --dir</strong> <code>{diretory}</code>: 数据库目录，导入工具会将数据写到这个目录。默认为<code>./db</code>。</li>
+<li><strong>--delimiter</strong> <code>{delimiter}</code>: 数据文件分隔符。只在数据源是 CSV 格式时使用，默认为<code>","</code>。</li>
+<li><strong>-u, --username</strong> <code>{user}</code>: 数据库用户名。需要是管理员用户才能执行离线导入。</li>
+<li><strong>-p, --password</strong> <code>{password}</code>: 指定的数据库用户的密码</li>
+<li><strong>--overwrite</strong> <code>true/false</code>: 是否覆盖数据。设为 true 时，如果数据目录已经存在，则覆盖数据。默认为<code>false</code>。</li>
+<li><strong>-g, --graph</strong> <code>{graph_name}</code>: 指定需要导入的图种类。</li>
+<li><strong>-h, --help</strong>: 输出帮助信息。</li>
+</ul>
+<h3 id="_7">离线导入示例</h3>
+<pre><code>在这个例子中，我们使用上面描述的电影-演员数据来演示导入工具的使用方法。待导入数据分为三个文件：`movies.csv`，`actors.csv`，`roles.csv`。
+</code></pre>
+<p><code>movies.csv</code>包含的是电影的信息，其中每部电影有一个 id（作为检索的 primary key），此外每部电影还拥有 title、year 和 rating 等属性。（数据来自<a href="http://www.imdb.com">IMDb</a>）。</p>
+<pre><code>  [movies.csv]
+  id, name, year, rating
+  tt0188766,King of Comedy,1999,7.3
+  tt0286112,Shaolin Soccer,2001,7.3
+  tt4701660,The Mermaid,2016,6.3
+</code></pre>
+<p>对应的 jsonline 格式如下:
+也可以所有字段都是字符串形式，导入的时候会转换成对应的类型</p>
+<pre><code class="language-json">[&quot;tt0188766&quot;,&quot;King of Comedy&quot;,1999,7.3]
+[&quot;tt0286112&quot;,&quot;Shaolin Soccer&quot;,2001,7.3]
+[&quot;tt4701660&quot;,&quot;The Mermaid&quot;,2016,6.3]
+</code></pre>
+<pre><code class="language-json">[&quot;tt0188766&quot;,&quot;King of Comedy&quot;,&quot;1999&quot;,&quot;7.3&quot;]
+[&quot;tt0286112&quot;,&quot;Shaolin Soccer&quot;,&quot;2001&quot;,&quot;7.3&quot;]
+[&quot;tt4701660&quot;,&quot;The Mermaid&quot;,&quot;2016&quot;,&quot;6.3&quot;]
+</code></pre>
+<p><code>actors.csv</code>包含的是演员的信息。每个演员也拥有一个 id，以及 name 等属性。</p>
+<pre><code>  [actors.csv]
+  id, name
+  nm015950,Stephen Chow
+  nm0628806,Man-Tat Ng
+  nm0156444,Cecilia Cheung
+  nm2514879,Yuqi Zhang
+</code></pre>
+<blockquote>
+<p>对应的 jsonline 格式如下:</p>
+</blockquote>
+<pre><code class="language-json">[&quot;nm015950&quot;,&quot;Stephen Chow&quot;]
+[&quot;nm0628806&quot;,&quot;Man-Tat Ng&quot;]
+[&quot;nm0156444&quot;,&quot;Cecilia Cheung&quot;]
+[&quot;nm2514879&quot;,&quot;Yuqi Zhang&quot;]
+</code></pre>
+<p><code>roles.csv</code>则包含了演员在哪个电影中扮演了哪个角色的信息。其中每一行记录的是指定演员在指定电影里饰演的角色，对应数据库中的一条边。<code>SRC_ID</code> 和 <code>DST_ID</code> 分别是边的源顶点和目标顶点，他们分别是<code>actors.csv</code>和<code>movies.csv</code>中定义的<code>primary</code>属性。</p>
+<pre><code>  [roles.csv]
+  actor, role, movie
+  nm015950,Tianchou Yin,tt0188766
+  nm015950,Steel Leg,tt0286112
+  nm0628806,,tt0188766
+  nm0628806,coach,tt0286112
+  nm0156444,PiaoPiao Liu,tt0188766
+  nm2514879,Ruolan Li,tt4701660
+</code></pre>
+<p>对应的 jsonline 格式如下:</p>
+<pre><code class="language-json">[&quot;nm015950&quot;,&quot;Tianchou Yin&quot;,&quot;tt0188766&quot;]
+[&quot;nm015950&quot;,&quot;Steel Leg&quot;,&quot;tt0286112&quot;]
+[&quot;nm0628806&quot;,null,&quot;tt0188766&quot;]
+[&quot;nm0628806&quot;,&quot;coach&quot;,&quot;tt0286112&quot;]
+[&quot;nm0156444&quot;,&quot;PiaoPiao Liu&quot;,&quot;tt0188766&quot;]
+[&quot;nm2514879&quot;,&quot;Ruolan Li&quot;,&quot;tt4701660&quot;]
+</code></pre>
+<p><code>配置文件import.conf</code>，注意每个文件中有两个标题行，因此我们需要指定<code>HEADER=2</code>选项。</p>
+<pre><code class="language-json">{
+  &quot;schema&quot;: [
+    {
+      &quot;label&quot;: &quot;actor&quot;,
+      &quot;type&quot;: &quot;VERTEX&quot;,
+      &quot;properties&quot;: [
+        { &quot;name&quot;: &quot;aid&quot;, &quot;type&quot;: &quot;STRING&quot; },
+        { &quot;name&quot;: &quot;name&quot;, &quot;type&quot;: &quot;STRING&quot; }
+      ],
+      &quot;primary&quot;: &quot;aid&quot;
+    },
+    {
+      &quot;label&quot;: &quot;movie&quot;,
+      &quot;type&quot;: &quot;VERTEX&quot;,
+      &quot;properties&quot;: [
+        { &quot;name&quot;: &quot;mid&quot;, &quot;type&quot;: &quot;STRING&quot; },
+        { &quot;name&quot;: &quot;name&quot;, &quot;type&quot;: &quot;STRING&quot; },
+        { &quot;name&quot;: &quot;year&quot;, &quot;type&quot;: &quot;INT16&quot; },
+        { &quot;name&quot;: &quot;rate&quot;, &quot;type&quot;: &quot;FLOAT&quot;, &quot;optional&quot;: true }
+      ],
+      &quot;primary&quot;: &quot;mid&quot;
+    },
+    {
+      &quot;label&quot;: &quot;play_in&quot;,
+      &quot;type&quot;: &quot;EDGE&quot;,
+      &quot;properties&quot;: [{ &quot;name&quot;: &quot;role&quot;, &quot;type&quot;: &quot;STRING&quot;, &quot;optional&quot;: true }],
+      &quot;constraints&quot;: [[&quot;actor&quot;, &quot;movie&quot;]]
+    }
+  ],
+  &quot;files&quot;: [
+    {
+      &quot;path&quot;: &quot;actors.csv&quot;,
+      &quot;header&quot;: 2,
+      &quot;format&quot;: &quot;CSV&quot;,
+      &quot;label&quot;: &quot;actor&quot;,
+      &quot;columns&quot;: [&quot;aid&quot;, &quot;name&quot;]
+    },
+    {
+      &quot;path&quot;: &quot;movies.csv&quot;,
+      &quot;header&quot;: 2,
+      &quot;format&quot;: &quot;CSV&quot;,
+      &quot;label&quot;: &quot;movie&quot;,
+      &quot;columns&quot;: [&quot;mid&quot;, &quot;name&quot;, &quot;year&quot;, &quot;rate&quot;]
+    },
+    {
+      &quot;path&quot;: &quot;roles.csv&quot;,
+      &quot;header&quot;: 2,
+      &quot;format&quot;: &quot;CSV&quot;,
+      &quot;label&quot;: &quot;play_in&quot;,
+      &quot;SRC_ID&quot;: &quot;actor&quot;,
+      &quot;DST_ID&quot;: &quot;movie&quot;,
+      &quot;columns&quot;: [&quot;SRC_ID&quot;, &quot;role&quot;, &quot;DST_ID&quot;]
+    }
+  ]
+}
+</code></pre>
+<p>使用导入配置文件，我们现在可以使用以下命令导入数据：</p>
+<pre><code class="language-shell">$ ./lgraph_import
+        -c import.conf             # 从import.conf读取配置信息
+        --dir /data/lgraph_db      # 将数据存放在/data/lgraph_db
+        --graph mygraph            # 导入名为 mygraph 的图
+</code></pre>
+<p><strong>注意</strong>：</p>
+<ul>
+<li>如果名为<code>mygraph</code>的图已存在，导入工具将打印错误消息并退出。要强制覆盖图形，可以使用<code>--overwrite true</code> 选项。</li>
+<li>配置文件和数据文件必须使用 UTF-8 编码（或普通 ASCII 编码，即 UTF-8 的子集）存储。如果任何文件使用 UTF-8 以外的编码（例如，带有 BOM 或 GBK 的 UTF-8）编码，则导入将失败，并输出分析器错误。</li>
+</ul>
+<h2 id="_8">在线增量导入</h2>
+<pre><code>在线导入模式可用于将一批文件导入已在运行中的 TuGraph 实例中。这对于处理通常以固定的时间间隔进行的增量批处理更新非常便利。`lgraph_import --online true`选项使导入工具能够在线模式工作。与`离线模式`一样，在线模式有自己的命令行选项集，可以使用`-h，--help`选项进行打印输出：
+</code></pre>
+<pre><code class="language-shell">$ lgraph_import --online true -h
+Available command line options:
+    --online            Whether to import online.
+    -h, --help          Print this help message. Default=0.
+
+Available command line options:
+    --log               Log file to use, empty means stderr. Default=&quot;&quot;.
+    -v, --verbose       Verbose level to use, higher means more verbose.
+                        Default=1.
+    -c, --config_file   Config file path.
+    -r, --url           DB REST API address.
+    -u, --username      DB username.
+    -p, --password      DB password.
+    -i, --continue_on_error
+                        When we hit a duplicate uid or missing uid, should we
+                        continue or abort. Default=0.
+    -g, --graph         The name of the graph to import into. Default=default.
+    --skip_packages     How many packages should we skip. Default=0.
+    --delimiter         Delimiter used in the CSV files
+    --breakpoint_continue
+                        When the transmission process is interrupted,whether
+                        to re-transmit from zero package next time. Default=false
+    -h, --help          Print this help message. Default=0.
+</code></pre>
+<pre><code>文件的相关配置在配置文件中指定，其格式与`离线模式`完全相同。但是，我们现在不是将数据导入本地数据库，而是将数据发送到正在运行的 TuGraph 实例中，该实例通常运行在与运行导入工具的客户端计算机不同的计算机上。因此，我们需要指定远程计算机的 HTTP 地址的URL、DB用户和密码。
+如果用户和密码有效，并且指定的图存在，导入工具将将数据发送到服务器，服务器随后解析数据并将其写入指定的图。数据将以大约 16MB 大小的包发送，在最近的换行符处中断。每个包都是以原子方式导入的，这意味着如果成功导入包，则成功导入所有数据，否则，任何数据都不会进入数据库。如果指定了`--continue_on_error true`，则忽略数据完整性错误，并忽略违规行。否则，导入将在第一个错误包处停止，并打印出已导入的包数。在这种情况下，用户可以修改数据以消除错误，然后使用`--skip_packages N`重做导入以跳过已导入的包。
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../2.Install/" class="btn btn-neutral float-left" title="安装"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../4.server-config/" class="btn btn-neutral float-right" title="服务器配置">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../2.Install/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../4.server-config/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../..';</script>
+    <script src="../../../js/theme_extra.js" defer></script>
+    <script src="../../../js/theme.js" defer></script>
+      <script src="../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

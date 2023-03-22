@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../../img/favicon.ico" />
+    <title>Tutorial - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Tutorial";
+        var mkdocs_page_input_path = "en-US\\3.developer-document\\4.graph_analytics_engine\\1.tutorial.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Developer Document</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../../1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">Graph Analytics Engine</a>
+    <ul class="current">
+                <li class="toctree-l3 current"><a class="reference internal current" href="./">Tutorial</a>
+    <ul class="current">
+    <li class="toctree-l4"><a class="reference internal" href="#1-introduction-to-tugraph-graph-analysis-engine">1. Introduction to TuGraph-Graph Analysis Engine</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#2-procedure-compile-and-run">2. Procedure compile and run</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#3-embed-compile-and-run">3. Embed compile and run</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#4-standalone-compile-and-run">4. Standalone compile and run</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../zh-CN/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../zh-CN/6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>en-US &raquo;</li>
+          <li>Developer Document &raquo;</li>
+          <li>Graph Analytics Engine &raquo;</li>
+      <li>Tutorial</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="bootstrap-program">Bootstrap program</h1>
+<blockquote>
+<p>This document is a bootstrap program designed for TuGraph users. Before reading the detailed documents, users should read this document first to have a general understanding of TuGraph's graph computing operation process, and it will be more convenient to read the detailed documents later. The bootstrap program is a simple instance of a bfs (breadth-first search) program based on Tugraph, and we will focus on how it is used.</p>
+</blockquote>
+<h2 id="1-introduction-to-tugraph-graph-analysis-engine">1. Introduction to TuGraph-Graph Analysis Engine</h2>
+<p>TuGraph's graph analysis engine is mainly used for full graph/full data analysis tasks. With the help of TuGraph's C++ / Python graph analysis engine API, users can quickly derive a complex subgraph from different data sources, and then run iterative graph algorithms such as PageRank, LPA, WCC on the subgraph, and finally make corresponding countermeasures according to the running results.</p>
+<p>In TuGraph, the process of both exporting and computing can be accelerated by in-memory parallel processing, resulting in near-real-time processing and analysis. Compared to traditional methods, this approach can avoid the overhead of data export and disk drop, and can achieve ideal performance by using a compact graph data structure.</p>
+<p>TuGraph has 6 built-in algorithms in the community version and 25 built-in algorithms in the commercial version. Users hardly need to implement the specific graph calculation process themselves. For details, please refer to algorithms.md.</p>
+<p>According to different data sources and implementations, it can be divided into Procedure, Embed and Standalone, which all inherit from OlapBase API. OlapBase API interface documentation can be found in OlAPBase-APi.md.</p>
+<p>The data source of Procedure and Embed is the db data preloaded in the graph database, which can be compiled to generate the.so file used by TuGraph-Web loading and the embed file used by the background terminal respectively. The input graph data are loaded in the form of db. The interface document can refer to olapondb-api.md.</p>
+<p>Standalone is used to compile and generate a standalone file. Different from the former, the input graph data of the file is loaded in the form of txt, binary, and ODPS files, and the interface document can refer to olapondisk-api.md.</p>
+<h2 id="2-procedure-compile-and-run">2. Procedure compile and run</h2>
+<p>This mode is mainly used for visual loading and running on the TuGraph-web interface. The usage method is as follows:</p>
+<h3 id="c">C++</h3>
+<p>Run bash make_so.sh bfs in the TuGraph/plugins directory to the BFs.so file in the TuGraph/plugins directory, upload the file as a plug-in to Tugraph-web, input parameters and then execute.</p>
+<h3 id="python">Python</h3>
+<p>Upload the python file as a plugin to TuGraph-web, and execute it after inputting parameters.</p>
+<p>Example:
+Compile the.so algorithm file at TuGraph/plugins
+<code>bash make_so.sh bfs</code></p>
+<p>After loading the bfs.so (or TuGraph/plugins/cython/bfs.py) file as a plug-in to TuGraph-web, enter the following json parameters:</p>
+<pre><code class="language-json">{
+  &quot;root_id&quot;: &quot;0&quot;,
+  &quot;label&quot;: &quot;node&quot;,
+  &quot;field&quot;: &quot;id&quot;
+}
+</code></pre>
+<p>The following result</p>
+<p>result:"{"core_cost":0.013641119003295898,
+"found_vertices":3829,
+"num_edges":88234,
+"num_vertices":4039,
+"output_cost":8.821487426757813e-06,
+"prepare_cost":0.03479194641113281,
+"total_cost":0.04844188690185547}"</p>
+<p>The output ：</p>
+<ul>
+<li>num_edges: the number of edges in the graph</li>
+<li>num_vertices: the number of nodes in the graph</li>
+<li>prepare_cost: Represents the time required for the preprocessing phase. The preprocessing phase works: loading parameters, graph data loading, index initialization.</li>
+<li>core_cost: Represents the time required for the algorithm to run.</li>
+<li>found_vertices: Number of vertices found.</li>
+<li>output_cost: the time it takes for the algorithm result to be written back to db.。</li>
+<li>total_cost: The overall running time of the algorithm is executed.</li>
+</ul>
+<p>make_so.sh This file is used to compile the graph algorithm files involved in TuGraph-OLAP into a.so file available for TuGraph-web.</p>
+<h2 id="3-embed-compile-and-run">3. Embed compile and run</h2>
+<p>This way is mainly used for TuGraph in the background program on the preloaded db graph data algorithm analysis. Its use method is as follows:</p>
+<p>To complete the embed_main.cpp file in TuGraph/plugins directory, add the data name, input parameters, data path and other information, as shown in the following example:</p>
+<h3 id="c_1">C++</h3>
+<pre><code class="language-C++">#include &lt;iostream&gt;
+#include &quot;lgraph/lgraph.h&quot;
+#include &quot;lgraph/olap_base.h&quot;
+using namespace std;
+
+extern &quot;C&quot; bool Process(lgraph_api::GraphDB &amp;db, const std::string &amp;request, std::string &amp;response);
+
+int main(int argc, char **argv) {
+    // db_path Specifies the path for saving the preloaded graph data
+    std::string db_path = &quot;../fb_db/&quot;;
+    if (argc &gt; 1)
+        db_path = argv[1];
+    lgraph_api::Galaxy g(db_path);
+    g.SetCurrentUser(&quot;admin&quot;, &quot;73@TuGraph&quot;);
+    // Specifies the name of the graph
+    lgraph_api::GraphDB db = g.OpenGraph(&quot;fb_db&quot;);
+    std::string resp;
+    // Enter the algorithm parameters in json format
+    bool r = Process(db, &quot;{\&quot;root_id\&quot;:\&quot;0\&quot;, \&quot;label\&quot;:\&quot;node\&quot;,\&quot;field\&quot;:\&quot;id\&quot;}&quot;, resp);
+    cout &lt;&lt; r &lt;&lt; endl;
+    cout &lt;&lt; resp &lt;&lt; endl;
+    return 0;
+}
+</code></pre>
+<p>Run bash make_so.sh bfs in TuGraph/plugins to bfs_procedure in TuGraph/plugins/cpp.
+<code>bash make_embed.sh bfs</code></p>
+<p>Do this in the TuGraph/plugins folder
+<code>./cpp/bfs_procedure</code>
+The result is returned.</p>
+<p>Input: {"root_id":"0", "label":"node","field":"id"}
+found_vertices = 3829
+{"core_cost":0.025603055953979492,
+"found_vertices":3829,
+"num_edges":88234,
+"num_vertices":4039,
+"output_cost":9.059906005859375e-06,
+"prepare_cost":0.056738853454589844,
+"total_cost":0.0823509693145752}</p>
+<p><code>Input</code> indicates the input parameters.The other parameters are described as above.</p>
+<h3 id="python_1">Python</h3>
+<p>To compile bfs.so, run <code>bash make_cython_so.sh bfs</code> in TuGraph/plugins or <code>python3 setup.py build_ext -i</code> in TuGraph/plugins/cython.</p>
+<p>After obtaining bfs.so, it can be imported and used in Python, as shown in TuGraph/plugins/embed_main.py:</p>
+<pre><code class="language-python"># TuGraph/plugins/embed_main.py
+from lgraph_db_python import *
+
+import bfs as python_plugin
+
+if __name__ == &quot;__main__&quot;:
+    galaxy = PyGalaxy(&quot;../build/output/lgraph_db&quot;)
+    galaxy.SetCurrentUser(&quot;admin&quot;, &quot;73@TuGraph&quot;)
+    db = galaxy.OpenGraph(&quot;default&quot;, False)
+    res = python_plugin.Process(db, &quot;{\&quot;root_id\&quot;:\&quot;0\&quot;, \&quot;label\&quot;:\&quot;node\&quot;,\&quot;field\&quot;:\&quot;id\&quot;}&quot;.encode('utf-8'))
+    print(res)
+    del db
+    del galaxy
+
+# shell
+python3 embed_main.py
+</code></pre>
+<p>The output is the same as C++</p>
+<h2 id="4-standalone-compile-and-run">4. Standalone compile and run</h2>
+<p>This file is mainly used to load the graph data directly at the terminal and run the printout results. Here's how to use it:</p>
+<p>In TuGraph/build directory <code>make bfs_standalone</code> (need to include boost/sort/sort.hpp in the g++ default include path) can get bfs_standalone file, the file is generated with TuGraph/build/output/algo folder.</p>
+<p>Run: Go to the TuGraph/build directory and do<code>./output/algo/bfs_standalone -- type [type] -- input_dir [input_dir] --id_mapping [id_mapping] -- vertices [vertices] --root (root) - output_dir [output_dir]</code></p>
+<p>Ready to run.</p>
+<ul>
+<li>
+<p><code>[type]</code> : indicates the type source of the input graph file, including text file, BINARY_FILE binary file, and ODPS source.</p>
+</li>
+<li>
+<p><code>[input_dir]</code> : indicates the path of the input graph file folder, which may contain one or more input files. TuGraph will read all the files under [input_dir] when reading the input file. It is required that [input_dir] can only contain the input file and cannot contain other files. Parameters cannot be omitted.</p>
+</li>
+<li>
+<p><code>[id_mapping]</code>：When reading the side table, whether to do id mapping for the input data to make it conform to the form of algorithm operation. 1 is required for id mapping, 0 is not required. This process will take some time. The parameter can be omitted, and the default value is 0.</p>
+</li>
+<li>
+<p><code>[vertices]</code> : represents the number of vertices in the graph. 0 indicates the number of vertices that the user wants the system to automatically recognize. When is non-zero, it indicates the number of vertices that the user wants to customize. The number of user-defined vertices must be greater than the maximum vertex ID. This parameter can be omitted. The default value is 0.</p>
+</li>
+<li>
+<p><code>[root]</code> : indicates the starting vertex id for bfs. The argument cannot be omitted.</p>
+</li>
+<li>
+<p><code>[output_dir]</code> : indicates the path of the folder where the output data is saved. The output content is saved to this file, and the parameter cannot be omitted.</p>
+</li>
+</ul>
+<p>Example</p>
+<h3 id="c_2">C++</h3>
+<p>Compile the standalone algorithm program at TuGraph/build</p>
+<pre><code class="language-leaf">make bfs_standalone
+</code></pre>
+<p>Run the text source file in TuGraph/build/output</p>
+<pre><code>    ./output/algo/bfs_standalone --type text --input_dir ../test/integration/data/algo/fb_unweighted --root 0
+</code></pre>
+<p>Result：</p>
+<pre><code>prepare_cost = 0.10(s)
+core_cost = 0.02(s)
+found_vertices = 3829
+output_cost = 0.00(s)
+total_cost = 0.11(s)
+DONE.
+</code></pre>
+<p>Result Parameter description is the same as above.</p>
+<p>If you do not know the required parameters of a new algorithm, run the<code>./output/algo/bfs_standalone -h</code> to view the parameters.</p>
+<h3 id="python_2">Python</h3>
+<p>The bfs extension compilation process of the Python language is the same as that of the embed mode. It is called through the <code>Standalone</code> interface at runtime. The example is as follows:</p>
+<pre><code class="language-python"># TuGraph/plugins/standalone_main.py
+import bfs as python_plugin
+
+if __name__ == &quot;__main__&quot;:
+    python_plugin.Standalone(
+        input_dir=&quot;../test/integration/data/algo/fb_unweighted&quot;,
+        root=0)
+
+# shell
+python3 standalone_main.py
+</code></pre>
+<p>At this point, the process of bfs operation on the figure above by TuGraph is complete.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../3.procedure/" class="btn btn-neutral float-left" title="Procedure"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../2.olap-base-api/" class="btn btn-neutral float-right" title="OLAP Base API">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../3.procedure/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../2.olap-base-api/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../../..';</script>
+    <script src="../../../../js/theme_extra.js" defer></script>
+    <script src="../../../../js/theme.js" defer></script>
+      <script src="../../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

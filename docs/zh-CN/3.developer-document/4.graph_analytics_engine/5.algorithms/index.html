@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../../img/favicon.ico" />
+    <title>算法 - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "\u7b97\u6cd5";
+        var mkdocs_page_input_path = "zh-CN\\3.developer-document\\4.graph_analytics_engine\\5.algorithms.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../../en-US/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../../en-US/6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">开发者文档</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../../1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">图分析引擎</a>
+    <ul class="current">
+                <li class="toctree-l3"><a class="reference internal" href="../1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3 current"><a class="reference internal current" href="./">算法</a>
+    <ul class="current">
+    <li class="toctree-l4"><a class="reference internal" href="#_1">目录</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#_2">简介</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#_5">基础算法包</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#_12">扩展算法包</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>zh-CN &raquo;</li>
+          <li>开发者文档 &raquo;</li>
+          <li>图分析引擎 &raquo;</li>
+      <li>算法</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tugraph">TuGraph 内置算法说明</h1>
+<blockquote>
+<p>此文档主要详细介绍了TuGraph内置的算法程序，社区版6种算法可参考基础算法报</p>
+</blockquote>
+<h2 id="_1">目录</h2>
+<ul>
+<li><a href="#TuGraph-内置算法说明">TuGraph 内置算法说明</a></li>
+<li><a href="#基础算法包">基础算法包</a></li>
+<li><a href="#广度优先搜索">广度优先搜索(bfs)</a></li>
+<li><a href="#网页排序">网页排序(pagerank)</a></li>
+<li><a href="#单源最短路径">单源最短路径(sssp)</a></li>
+<li><a href="#弱连通分量">弱连通分量(wcc)</a></li>
+<li><a href="#平均集聚系数">平均集聚系数(lcc)</a></li>
+<li><a href="#标签传播算法">标签传播(lpa)</a></li>
+<li><a href="#扩展算法包">扩展算法包</a></li>
+<li><a href="#全对最短路径">全对最短路径(apsp)</a></li>
+<li><a href="#介数中心度">介数中心度(bc)</a></li>
+<li><a href="#置信度传播">置信度传播(bp)</a></li>
+<li><a href="#距离中心度">距离中心度(cc)</a></li>
+<li><a href="#共同邻居">共同邻居(cn)</a></li>
+<li><a href="#度数关联度">度数关联度(dc)</a></li>
+<li><a href="#直径估计">直径估计(de)</a></li>
+<li><a href="#EgoNet算法">EgoNet算法(en)</a></li>
+<li><a href="#超链接主题搜索">超链接主题搜索(hits)</a></li>
+<li><a href="#杰卡德系数">杰卡德系数(ji)</a></li>
+<li><a href="#k核算法">k核算法(kcore)</a></li>
+<li><a href="#鲁汶社区发现">鲁汶社区发现(louvain)</a></li>
+<li><a href="#多源最短路径">多源最短路径(mssp)</a></li>
+<li><a href="#个性化网页排序算法">个性化网页排序算法(ppr)</a></li>
+<li><a href="#强连通分量">强连通分量(scc)</a></li>
+<li><a href="#监听标签传播">监听标签传播(slpa)</a></li>
+<li><a href="#两点间最短路径">两点间最短路径(spsp)</a></li>
+<li><a href="#三角计数">三角计数(triangle)</a></li>
+<li><a href="#信任指数排名">信任指数排名(trustrank)</a></li>
+<li><a href="#带权重的标签传播">带权重的标签传播(wlpa)</a></li>
+<li><a href="#带权重的网页排序">带权重的网页排序(wpagerank)</a></li>
+<li><a href="#最大独立集算法">最大独立集算法(mis)</a></li>
+<li><a href="#Sybil检测算法">Sybil检测算法(sybilrank)</a></li>
+<li><a href="#子图匹配算法">子图匹配算法(subgraph_isomorphism)</a></li>
+<li><a href="#模式匹配算法">模式匹配算法(motif)</a></li>
+<li><a href="#莱顿算法">莱顿算法(Leiden)</a></li>
+<li><a href="#k阶团计数算法">k阶团计数算法</a></li>
+<li><a href="#k阶桁架计数算法">k阶桁架计数算法</a></li>
+</ul>
+<h2 id="_2">简介</h2>
+<p>TuGraph目前包含以下6个基础算法28种扩展算法，共34个图算法：</p>
+<h3 id="_3">基础算法包：</h3>
+<table>
+<thead>
+<tr>
+<th align="center">中文算法名</th>
+<th align="center">英文算法名</th>
+<th align="center">程序名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">广度优先搜索</td>
+<td align="center">Breadth-First Search</td>
+<td align="center">bfs</td>
+</tr>
+<tr>
+<td align="center">网页排序</td>
+<td align="center">Pagerank</td>
+<td align="center">pagerank</td>
+</tr>
+<tr>
+<td align="center">单源最短路径</td>
+<td align="center">Single-Source Shortest Path</td>
+<td align="center">sssp</td>
+</tr>
+<tr>
+<td align="center">弱连通分量</td>
+<td align="center">Weakly Connected Components</td>
+<td align="center">wcc</td>
+</tr>
+<tr>
+<td align="center">平均集聚系数</td>
+<td align="center">Local Clustering Coefficient</td>
+<td align="center">lcc</td>
+</tr>
+<tr>
+<td align="center">标签传播</td>
+<td align="center">Label Propagation Algorithm</td>
+<td align="center">lpa</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">扩展算法包：</h3>
+<table>
+<thead>
+<tr>
+<th align="center">中文算法名</th>
+<th align="center">英文算法名</th>
+<th align="center">程序名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">全对最短路径</td>
+<td align="center">All-Pair Shortest Path</td>
+<td align="center">apsp</td>
+</tr>
+<tr>
+<td align="center">介数中心度</td>
+<td align="center">Betweenness Centrality</td>
+<td align="center">bc</td>
+</tr>
+<tr>
+<td align="center">置信度传播</td>
+<td align="center">Belief Propagation</td>
+<td align="center">bp</td>
+</tr>
+<tr>
+<td align="center">距离中心度</td>
+<td align="center">Closeness Centrality</td>
+<td align="center">cc</td>
+</tr>
+<tr>
+<td align="center">共同邻居</td>
+<td align="center">Common Neighborhood</td>
+<td align="center">cn</td>
+</tr>
+<tr>
+<td align="center">度数关联度</td>
+<td align="center">Degree Correlation</td>
+<td align="center">dc</td>
+</tr>
+<tr>
+<td align="center">直径估计</td>
+<td align="center">Dimension Estimation</td>
+<td align="center">de</td>
+</tr>
+<tr>
+<td align="center">EgoNet算法</td>
+<td align="center">EgoNet</td>
+<td align="center">en</td>
+</tr>
+<tr>
+<td align="center">超链接主题搜索</td>
+<td align="center">Hyperlink-Induced Topic Search</td>
+<td align="center">hits</td>
+</tr>
+<tr>
+<td align="center">杰卡德系数</td>
+<td align="center">Jaccard Index</td>
+<td align="center">ji</td>
+</tr>
+<tr>
+<td align="center">K核算法</td>
+<td align="center">K-core</td>
+<td align="center">kcore</td>
+</tr>
+<tr>
+<td align="center">鲁汶社区发现</td>
+<td align="center">Louvain</td>
+<td align="center">louvain</td>
+</tr>
+<tr>
+<td align="center">多源最短路径</td>
+<td align="center">Multiple-source Shortest Paths</td>
+<td align="center">mssp</td>
+</tr>
+<tr>
+<td align="center">个性化网页排序</td>
+<td align="center">Personalized PageRank</td>
+<td align="center">ppr</td>
+</tr>
+<tr>
+<td align="center">强连通分量</td>
+<td align="center">Strongly Connected Components</td>
+<td align="center">scc</td>
+</tr>
+<tr>
+<td align="center">监听标签传播</td>
+<td align="center">Speaker-listener Label Propagation Algorithm</td>
+<td align="center">slpa</td>
+</tr>
+<tr>
+<td align="center">两点间最短路径</td>
+<td align="center">Single-Pair Shortest Path</td>
+<td align="center">spsp</td>
+</tr>
+<tr>
+<td align="center">三角计数</td>
+<td align="center">Triangle Counting</td>
+<td align="center">triangle</td>
+</tr>
+<tr>
+<td align="center">信任指数排名</td>
+<td align="center">Trustrank</td>
+<td align="center">trustrank</td>
+</tr>
+<tr>
+<td align="center">带权重的标签传播</td>
+<td align="center">Weighted Label Propagation Algorithm</td>
+<td align="center">wlpa</td>
+</tr>
+<tr>
+<td align="center">带权重的网页排序</td>
+<td align="center">Weighted Pagerank Algorithm</td>
+<td align="center">wpagerank</td>
+</tr>
+<tr>
+<td align="center">最大独立集算法</td>
+<td align="center">Maximal independent set</td>
+<td align="center">mis</td>
+</tr>
+<tr>
+<td align="center">sybil检测算法</td>
+<td align="center">Sybil Rank</td>
+<td align="center">sybilrank</td>
+</tr>
+<tr>
+<td align="center">子图匹配算法</td>
+<td align="center">Subgraph Isomorphism</td>
+<td align="center">subgraph_isomorphism</td>
+</tr>
+<tr>
+<td align="center">模式匹配算法</td>
+<td align="center">Motif</td>
+<td align="center">motif</td>
+</tr>
+<tr>
+<td align="center">k阶团计数算法</td>
+<td align="center">Kcliques</td>
+<td align="center">kcliques</td>
+</tr>
+<tr>
+<td align="center">k阶桁架计数算法</td>
+<td align="center">Ktruss</td>
+<td align="center">ktruss</td>
+</tr>
+<tr>
+<td align="center">莱顿算法</td>
+<td align="center">Leiden</td>
+<td align="center">leiden</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_5">基础算法包</h2>
+<h3 id="_6">广度优先搜索</h3>
+<p>广度优先搜索实现了Breadth-first Search算法，从根顶点开始，沿着图的宽度遍历所有可访问顶点。返回结果为遍历顶点个数。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Breadth-first_search" title="bfs wiki">https://en.wikipedia.org/wiki/Breadth-first_search</a>。</p>
+<h3 id="_7">网页排序</h3>
+<p>网页排序程序实现了常用的Pagerank算法。该算法根据图中边和边权值计算所有顶点的重要性排名，PageRank值越高，表示该顶点在图中的重要性越高。计算时以顶点数量的倒数为各顶点初始Rank值，然后将顶点的Rank值按照出边平均传递到相邻顶点，重复该传递过程直到满足给定的收敛阈值或达到给定迭代轮数。每轮传递结束后，所有顶点的Rank值会有一定的的比例随机传递到任意顶点上。算法内容请参考 <a href="https://en.wikipedia.org/wiki/PageRank" title="pagerank wiki">https://en.wikipedia.org/wiki/PageRank</a>。</p>
+<h3 id="_8">单源最短路径</h3>
+<p>单源最短路径实现了Single Source Shortest Path算法，根据给定的源顶点，计算从该源顶点出发到其他任意顶点的最短路径长度。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Shortest_path_problem" title="shortest path wiki">https://en.wikipedia.org/wiki/Shortest_path_problem</a>。</p>
+<h3 id="_9">弱连通分量</h3>
+<p>弱连通分量程序实现了Weakly Connected Components算法，该算法会计算图中所有的弱连通分量。弱连通分量是图的一个子图，子图中任意两点之间均存在可达路径。算法内容请参考<a href="https://en.wikipedia.org/wiki/Connected_component_(graph_theory)" title="scc wiki">https://en.wikipedia.org/wiki/Connected_component_(graph_theory)</a>。</p>
+<h3 id="_10">平均集聚系数</h3>
+<p>平均集聚系数程序实现了Local Clustering Coefficient算法，计算图中顶点之间聚集程度的系数。返回结果包括整体集聚系数和顶点集聚系数。整体集聚系数反映了图中整体的集聚程度的评估，顶点集聚系数包括任意顶点的集聚系数，反映了该顶点附近的集聚程度。集聚系数越高，表示集聚程度越高。算法内容请参考<a href="https://en.wikipedia.org/wiki/Clustering_coefficient" title="lcc wiki">https://en.wikipedia.org/wiki/Clustering_coefficient</a>。</p>
+<h3 id="_11">标签传播</h3>
+<p>标签传播算法程序实现了Label Propagation Algorithm算法。该算法是基于标签传播的社区发现算法，计算对象为无权图。在标签传递时，每个顶点对收到的所有标签进行次数累加，在累加和最高的标签中随机选择一个。迭代收敛或执行到给定轮数后算法终止。最终输出结果为每个顶点的标签，标签值相同的顶点视为在同一社区。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Label_Propagation_Algorithm" title="lpa wiki">https://en.wikipedia.org/wiki/Label_Propagation_Algorithm</a>。</p>
+<h2 id="_12">扩展算法包</h2>
+<h3 id="_13">全对最短路径</h3>
+<p>全对最短路径程序实现了All-Pair Shortest Path算法，计算图中任意两点间的最短路径。返回结果为任意存在路径的顶点对之间的最短路径长度。算法内容请参考<a href="https://en.wikipedia.org/wiki/Floyd-Warshall_algorithm" title="Floyd-Warshall algorighm wiki">https://en.wikipedia.org/wiki/Floyd-Warshall_algorithm</a></p>
+<h3 id="_14">介数中心度</h3>
+<p>介数中心度程序实现了Betweenness Centrality算法，估算图中所有顶点的介数中心度值。介数中心度值反映了图中任一最短路径经过该顶点的可能性，值越高表示有越多的最短路径经过了该顶点。计算时需给定抽样点个数，分别以这些抽样点为中心进行计算。算法内容请参考<a href="https://en.wikipedia.org/wiki/Betweenness_centrality" title="bc wiki">https://en.wikipedia.org/wiki/Betweenness_centrality</a>。</p>
+<h3 id="_15">置信度传播</h3>
+<p>置信度传播程序实现了Belief Propagation算法。该算法给定已观测顶点的边缘分布，利用顶点之间相互传递消息的机制来估算未观测顶点的边缘分布。算法内容请参考<a href="https://en.wikipedia.org/wiki/Belief_propagation">https://en.wikipedia.org/wiki/Belief_propagation</a>。</p>
+<h3 id="_16">距离中心度</h3>
+<p>距离中心度程序实现了Closeness Centrality算法，估算任意顶点到图中其他顶点的最短路径的平均长度。距离中心度越小，表示该顶点到其他顶点的平均最短距离最小，意味着该顶点从几何角度看更位于图的中心位置。计算时需要给定抽样点个数，分别以这些抽样点为中心进行计算。算法内容请参考<a href="https://en.wikipedia.org/wiki/Closeness_centrality" title="cc wiki">https://en.wikipedia.org/wiki/Closeness_centrality</a>。</p>
+<h3 id="_17">共同邻居</h3>
+<p>共同邻居程序实现了Common Neighborhood算法，计算任意给定相邻顶点对之间的共同邻居数量。计算时给定待查询的若干个顶点对，返回结果为待查询的任意顶点对的共同邻居数量。</p>
+<h3 id="_18">度数关联度</h3>
+<p>度数关联度程序实现了Degree Correlation算法，通过计算任意相邻顶点对之间的Pearson关联系数来计算图的度数关联度，可用来表征图中高度数顶点之间关联程度。度数关联度越高，表示图中高度数顶点之间的关联程度越高。算法内容请参考<a href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient" title="dc wiki">https://en.wikipedia.org/wiki/Pearson_correlation_coefficient</a></p>
+<h3 id="_19">直径估计</h3>
+<p>直径估计程序实现了Dimension Estimation算法。该算法会计算图中最长的最短路径长度，用来表征图的直径大小。算法内容请参考<a href="http://mathworld.wolfram.com/GraphDiameter.html" title="graph diameter">http://mathworld.wolfram.com/GraphDiameter.html</a>。</p>
+<h3 id="egonet">EgoNet算法</h3>
+<p>EgoNet算法需要给定根顶点和K值，以根顶点为源顶点进行宽度优先搜索，找出所有K度以内的邻居组成的子图。找到的子图称为根顶点的EgoNet。</p>
+<h3 id="_20">超链接主题搜索</h3>
+<p>超链接主题搜索算法实现了Hyperlink-Induced Topic Search算法，该算法假定每个顶点具有权威性Authority和枢纽性Hub两个属性，一个好的枢纽顶点应该指向许多高权威性的顶点，而一个良好的权威顶点应该被许多高枢纽型的顶点指向。算法将返回每个顶点的权威性值和枢纽性值。算法内容请参考<a href="https://en.wikipedia.org/wiki/HITS_algorithm" title="HITS algorithm">https://en.wikipedia.org/wiki/HITS_algorithm</a>。</p>
+<h3 id="_21">杰卡德系数</h3>
+<p>杰卡德系数程序实现了Jaccard Index算法。该算法计算了给定顶点对之间的Jaccard系数，可用来表示这两个顶点的相似度。Jaccard系数越高，表示顶点对之间的相似程度越高。计算时给定带查询的若干顶点对，返回结果为这些顶点对的Jaccard系数。算法内容请参考<a href="https://en.wikipedia.org/wiki/Jaccard_index" title="ji wiki">https://en.wikipedia.org/wiki/Jaccard_index</a>。</p>
+<h3 id="k">k核算法</h3>
+<p>k核算法实现了k-core算法。该算法计算所有顶点的核数，或找出图中所有的K核子图。K核子图是一种特殊子图，子图中任意顶点度数都不小于给定K值。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Degeneracy_(graph_theory)" title="kcore wiki">https://en.wikipedia.org/wiki/Degeneracy_(graph_theory)</a>。</p>
+<h3 id="_22">鲁汶社区发现</h3>
+<p>鲁汶社区发现程序实现了Fast-unfolding算法。该算法是基于模块度的社区发现算法，通过不断合并顶点社区来最大化图的模块度，能够发现层次性的社区结构。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Louvain_Modularity" title="louvain modularity wiki">https://en.wikipedia.org/wiki/Louvain_Modularity</a>。</p>
+<h3 id="_23">多源最短路径</h3>
+<p>多源最短路径程序实现了Multiple-source Shortest Paths算法，根据给定的多个源顶点，从这些源顶点出发，计算到达任意顶点的最短路径值。其中，多个源顶点到某一顶点的最短路径值为分别从每个源顶点出发到达该顶点的最短路径的最小值。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Shortest_path_problem" title="shortest path wiki">https://en.wikipedia.org/wiki/Shortest_path_problem</a>。</p>
+<h3 id="_24">个性化网页排序</h3>
+<p>个性化网页排序程序实现了Personalized PageRank算法。该算法根据给定的源顶点，基于该源顶点个性化计算所有顶点对于源顶点的重要性排名。Rank值越高，表示该顶点对于源顶点越重要。与PageRank不同的是，初始化时源顶点Rank值为1，其余顶点Rank值为0；并且每轮传递结束后，Rank值会有一定的比例随即传递回源顶点。算法内容请参考 <a href="https://cs.stanford.edu/people/plofgren/Fast-PPR_KDD_Talk.pdf">https://cs.stanford.edu/people/plofgren/Fast-PPR_KDD_Talk.pdf</a>。</p>
+<h3 id="_25">强连通分量</h3>
+<p>强连通分量程序实现了Strongly Connected Components算法。该算法计算了图中所有的强连通分量，强连通分量是图的一个子图，子图中可从任意顶点出发到达其他任意顶点。算法内容请参考<a href="https://en.wikipedia.org/wiki/Strongly_connected_component" title="scc wiki">https://en.wikipedia.org/wiki/Strongly_connected_component</a>。</p>
+<h3 id="_26">监听标签传播</h3>
+<p>监听标签传播算法程序实现了Speaker-listener Label Propagation Algorithm算法。该算法是基于标签传播和历史标签记录的社区发现算法，是对标签传播算法的扩展。与标签传播算法不同的是，本算法会对所有顶点记录其历史标签，在迭代中对标签进行累加时，会将历史标签也计算在内。最终输出结果为每个顶点的所有历史标签记录。算法内容请参考论文：“SLPA: Uncovering Overlapping Communities in Social Networks via a Speaker-Listener Interaction Dynamic Process”。</p>
+<h3 id="_27">两点间最短路径</h3>
+<p>两点间最短路径程序实现了Bidirectional Breadth-First Search算法，在有向无权图上从起点沿着出边做正向宽度优先搜搜，从终点沿着入边做反向宽度优先搜索，通过起点和终点共同遍历到的顶点来确定从起点到终点的最短路径长度。算法内容请参考<a href="https://en.wikipedia.org/wiki/Bidirectional_search" title="Bidirectional search">https://en.wikipedia.org/wiki/Bidirectional_search</a>。</p>
+<h3 id="_28">三角计数</h3>
+<p>三角计数实现了Triangle-counting算法，计算无向图中的三角形个数，可用来表征图中顶点的关联程度。三角形数越多，表示图中顶点的关联程度越高。算法内容请参考论文：“Finding, Counting and Listing All Triangles in Large Graphs, an Experimental Study” 。</p>
+<h3 id="_29">信任指数排名</h3>
+<p>信任指数排名算法实现了Trustrank算法，可以根据给定的白名单，计算任意顶点的信任指数。信任指数越高，表示该顶点为非法顶点的可能性越小。算法内容请参考 <a href="https://en.wikipedia.org/wiki/TrustRank" title="trustrank wiki">https://en.wikipedia.org/wiki/TrustRank</a>。</p>
+<h3 id="_30">带权重的标签传播</h3>
+<p>带权重的标签传播算法程序实现了Weighted Label Propagation Algorithm算法。=与标签传播算法不同的是，标签的传递跟边的权重相关，在标签传递时，每个顶点会根据标签的入边进行权重累加，在累加和最高的标签中随机选择一个。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Label_Propagation_Algorithm" title="lpa wiki">https://en.wikipedia.org/wiki/Label_Propagation_Algorithm</a>。</p>
+<h3 id="_31">带权重的网页排序</h3>
+<p>带权重的网页排序算法程序实现了Weighted Pagerank算法。与PageRank算法不同的是，Rank值的传递跟边的权重有关，顶点的Rank值将按照边权重加权传递到相邻顶点。算法内容请参考<a href="https://en.wikipedia.org/wiki/PageRank">https://en.wikipedia.org/wiki/PageRank</a>。</p>
+<h3 id="_32">最大独立集算法</h3>
+<p>最大独立集算法实现了Maximal independent set算法。最大独立集是指在这个独立集之外没有可以加入它的顶点。一个图可能有许多大小差异很大的 MIS，算法找出其中一个。算法内容请参考 <a href="https://en.wikipedia.org/wiki/Maximal_independent_set#Sequential_algorithm" title="Maximal independent set wiki">https://en.wikipedia.org/wiki/Maximal_independent_set#Sequential_algorithm</a>。</p>
+<h3 id="sybil">Sybil检测算法</h3>
+<p>Sybil检测算法实现了Sybil Rank算法。SybilRank算法从非Sybil节点开始进行提前终止的随机游走。算法内容请参考论文：“Aiding the Detection of Fake Accounts in Large Scale Social Online Services”。</p>
+<h3 id="_33">子图匹配算法</h3>
+<p>子图匹配算法实现了subgraph_isomorphism算法。subgraph_isomorphism算法对全图所有节点匹配子图，最后输出每个节点被匹配的次数。算法内容参考 <a href="https://www.jsjkx.com/CN/article/openArticlePDF.jsp?id=18105">https://www.jsjkx.com/CN/article/openArticlePDF.jsp?id=18105</a></p>
+<h3 id="_34">模式匹配算法</h3>
+<p>模式匹配算法实现了motif算法。motif算法对指定的节点匹配k阶子图，最后输出每个指定节点每种k阶子图个数，每个k阶子图用一个64位整数表示，整数的第$i \times k + j$位为1表示子图中有边i-&gt;j。算法内容参考 <a href="https://en.wikipedia.org/wiki/Network_motif#mfinder">https://en.wikipedia.org/wiki/Network_motif#mfinder</a></p>
+<h3 id="k_1">k阶团计数算法</h3>
+<p>k阶团计数算法实现了k-cliques算法。k-cliques算法对计算图中所有的k阶完全子图的个数，最后输出每个节点所在的k阶完全子图个数。算法内容参考 <a href="https://en.wikipedia.org/wiki/Clique_problem#Cliques_of_fixed_size">https://en.wikipedia.org/wiki/Clique_problem#Cliques_of_fixed_size</a></p>
+<h3 id="k_2">k阶桁架计数算法</h3>
+<p>k阶桁架计数算法实现了k-truss算法。k-truss指每条边都至少是k-2个三角形的边的子图。k-truss算法找出图的k-truss子图，最后输出每个节点在子图中的邻居节点列表。算法内容参考 <a href="https://louridas.github.io/rwa/assignments/finding-trusses/">https://louridas.github.io/rwa/assignments/finding-trusses/</a></p>
+<h3 id="_35">莱顿算法</h3>
+<p>莱顿算法实现了了leiden算法。leiden算法是基于模块度的社区发现算法，与louvain算法优势在于leiden算法检测出社区中的断链，保证每个社区具有良好的连通性。算法内容参考 <a href="https://www.nature.com/articles/s41598-019-41695-z#Sec4">https://www.nature.com/articles/s41598-019-41695-z#Sec4</a></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../4.olap-on-disk-api/" class="btn btn-neutral float-left" title="OLAP 在磁盘上的 API"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../6.python-api/" class="btn btn-neutral float-right" title="Python API">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../4.olap-on-disk-api/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../6.python-api/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../../..';</script>
+    <script src="../../../../js/theme_extra.js" defer></script>
+    <script src="../../../../js/theme.js" defer></script>
+      <script src="../../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

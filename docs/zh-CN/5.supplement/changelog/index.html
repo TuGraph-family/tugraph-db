@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>更新日志 - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "\u66f4\u65b0\u65e5\u5fd7";
+        var mkdocs_page_input_path = "zh-CN\\5.supplement\\changelog.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">开发者文档</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">补充</a>
+    <ul class="current">
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">更新日志</a>
+    <ul class="current">
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>zh-CN &raquo;</li>
+          <li>补充 &raquo;</li>
+      <li>更新日志</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="_1">更新内容说明</h1>
+<h1 id="340-2023-3-11">3.4.0 (2023-3-11)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>OLAP Python API support</p>
+</li>
+<li>
+<p>New lgraph_import implementation</p>
+</li>
+<li>
+<p>DataX export support</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>String 4MB support</p>
+</li>
+<li>
+<p>lgraph_result json format update</p>
+</li>
+<li>
+<p>Other bug fix</p>
+</li>
+</ol>
+<h1 id="334-2023-1-28">3.3.4 (2023-1-28)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>None</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>Fix WAL sync bug</p>
+</li>
+<li>
+<p>Update python rest client</p>
+</li>
+<li>
+<p>Other bug fix</p>
+</li>
+</ol>
+<h1 id="333-2022-12-23">3.3.3 (2022-12-23)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>Improve WAL performance</p>
+</li>
+<li>
+<p>Add English Doc</p>
+</li>
+<li>
+<p>Update JWT security issues</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>Fix edge constraints issues</p>
+</li>
+<li>
+<p>Add ubuntu docker</p>
+</li>
+<li>
+<p>Use pthread in fulltext</p>
+</li>
+<li>
+<p>Other bug fix</p>
+</li>
+</ol>
+<h1 id="332-2022-11-21">3.3.2 (2022-11-21)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>Add OGM support</p>
+</li>
+<li>
+<p>Improve UT coverage to 87%</p>
+</li>
+<li>
+<p>Use static library for link</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>Fix python procedure api doc</p>
+</li>
+<li>
+<p>Update docs</p>
+</li>
+<li>
+<p>Add khop procedure</p>
+</li>
+<li>
+<p>Other bug fix</p>
+</li>
+</ol>
+<h1 id="331-2022-10-14">3.3.1 (2022-10-14)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>Refine Graph Analytics Engine</p>
+</li>
+<li>
+<p>Path support in cypher</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>Fix RWLock Bug</p>
+</li>
+<li>
+<p>Rewrite docs</p>
+</li>
+<li>
+<p>Cleanup Dockerfile</p>
+</li>
+</ol>
+<h1 id="330-2022-08-05">3.3.0 (2022-08-05)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>添加属性级别的访问权限</p>
+</li>
+<li>
+<p>db_async选项改名为durable</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>使用gtest框架</p>
+</li>
+<li>
+<p>修复graph为空导致崩溃的问题</p>
+</li>
+<li>
+<p>使用WAL，大幅提高写效率</p>
+</li>
+</ol>
+<h1 id="320-2022-07-19">3.2.0 (2022-07-19)</h1>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>Edge增加timestamp作为排序键</p>
+</li>
+<li>
+<p>调整少量parallel plugin API</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>增加WAL功能，可以提高写操作性能，并降低磁盘性能对系统性能的影响</p>
+</li>
+<li>
+<p>Transaction maxreaders由默认值126增大到240，可同时支持更多readers</p>
+</li>
+<li>
+<p>LDBC SNB Audit 2022 版本</p>
+</li>
+</ol>
+<h2 id="311-2022-07-08">3.1.1 (2022-07-08)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>
+<p>添加Cypher查询内存限制。</p>
+</li>
+<li>
+<p>添加边索引。</p>
+</li>
+<li>
+<p>添加全文索引。</p>
+</li>
+<li>
+<p>优化高可用的启动方式。</p>
+</li>
+<li>
+<p>图计算系统GeminiLite合并到TuGraph图计算模块。</p>
+</li>
+<li>
+<p>图计算模块核心代码保护。</p>
+</li>
+<li>
+<p>图计算模块IDMapping自适应优化。</p>
+</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>
+<p>修复cypher查询filter丢失的问题。</p>
+</li>
+<li>
+<p>修复cypher中关键字冲突的问题。</p>
+</li>
+<li>
+<p>修复点边LABEL冲突的问题。</p>
+</li>
+<li>
+<p>优化cypher查询：通过vid查找点。</p>
+</li>
+<li>
+<p>添加cpp/java/python rpc client demo。</p>
+</li>
+<li>
+<p>添加prometheus支持。</p>
+</li>
+<li>
+<p>添加DGL支持。</p>
+</li>
+<li>
+<p>统一procedure和plugin的结果。</p>
+</li>
+</ol>
+<h2 id="310-2022-01-20">3.1.0 (2022-01-20)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>数据模型（schema）调整：增加主键；增加Edge Label的连接Node Labels的限制；</li>
+<li>调整导入工具lgraph_import的配置文件格式</li>
+<li>导入工具lgraph_import及导出工具lgraph_export支持JSON数据格式</li>
+<li>调整Cypher中Schema相关procedures的签名</li>
+<li>调整RPC Client接口</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>增加DataX工具，支持MySQL、JSON等数据源的数据导入</li>
+<li>增加Cypher中用户权限管理相关procedures</li>
+<li>更新开发环境Dockerfiles</li>
+<li>修复Call plugins时产生的bug</li>
+<li>Cypher查询语言优化，综合查询效率平均提升10倍</li>
+</ol>
+<h2 id="300-2021-12-14">3.0.0 (2021-12-14)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>更换版本升级规则：从2017年的version 1.0.0开始，每年更新一个major version</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>Cypher性能提升：引入Lazy Materialization机制，优化count DISTINCT性能</li>
+<li>源代码组织优化</li>
+</ol>
+<h2 id="1200-2021-09-17">1.20.0 (2021-09-17)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>修改用户权限管理，增加用户角色管理（注：需要重新导入数据）</li>
+<li>服务器配置选项变更：log_file变更为log_dir</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>支持Cypher functions对非法参数的处理，支持REGEX、variance</li>
+<li>支持数据导入自定义分隔符，允许数据导入发生parser错误时继续</li>
+<li>增加python和cpp rest client sdk</li>
+<li>优化Cypher不定长扩展的性能，并减少扩展过程内存消耗</li>
+<li>修复备份和重新加载plugin功能</li>
+<li>更新Web端版本</li>
+<li>修复数据导入、Server、Cypher等相关bug若干</li>
+</ol>
+<h2 id="1120-2020-09-07">1.12.0 (2020-09-07)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>修改批量导入数据的输入格式，分离schema建立和数据导入</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>修复HA模式下偶发的内存错误</li>
+<li>支持上传zip和cpp格式的plugin</li>
+<li>支持clang编译</li>
+<li>Cypher支持EXPLAIN和PROFILE</li>
+</ol>
+<h2 id="1110-2020-07-14">1.11.0 (2020-07-14)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>修改内部存储格式，优化读写性能。旧版本数据需要重新导入</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>Cypher功能完善：支持LDBC SNB interactive查询</li>
+<li>支持DeleteLabel和AlterLabel</li>
+<li>支持Cypher List Comprehension</li>
+<li>增加子图描述字段</li>
+</ol>
+<h2 id="1100-2020-06-17">1.10.0 (2020-06-17)</h2>
+<p><strong>Breaking Changes:</strong></p>
+<ol>
+<li>将BIN类型更改为BLOB类型，并支持超过32KB的BLOB</li>
+</ol>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>Cypher支持IN {list}，size(string)</li>
+<li>对Python plugin使用进程池以改进性能</li>
+<li>支持在线修改数据库配置</li>
+<li>支持在线备份和增量备份</li>
+<li>支持IP白名单</li>
+</ol>
+<h2 id="190-2020-03-10">1.9.0 (2020-03-10)</h2>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>Cypher功能完善：支持LDBC SNB interactive-short部分查询</li>
+<li>lgraph_server增加optimistic_txn选项，该选项为true时cypher将优先使用multi-writer transaction</li>
+<li>允许多个LGraph实例共用同一个数据目录(ENABLE_SHARE_DIR)</li>
+<li>增加<code>lgraph_export</code>工具</li>
+<li>重新设计Web界面</li>
+</ol>
+<h2 id="145-2019-10-15">1.4.5 (2019-10-15)</h2>
+<p><strong>Breaking Changes:</strong>
+1. lgraph_server的directory, license, web参数默认改为lgraph_server所在目录下的lgraph_db, fma.lic和resouce
+2. lgraph_server在-d run（守护进程）模式下的默认工作目录由根目录变为lgraph_server所在目录</p>
+<p><strong>Improvements And Bug Fixes:</strong>
+1. 允许lgraph_api中的iterator进行边读边写操作，写操作不会影响其它iterator的正确性
+2. Cypher功能完善：OPTIONAL MATCH子句，SET语句, DELETE语句，CASE表达式，算术表达式，WHERE子句支持字符串匹配等
+3. 前端页面改进：增加plugin管理页面</p>
+<h2 id="144-2019-08-06">1.4.4 (2019-08-06)</h2>
+<p><strong>Breaking Changes:</strong>
+1. 将plugin信息存储在数据库中，因此所有已注册plugin需要删除重新加载
+2. 开启python plugin功能
+3. python模块更名为lgraph_python，LightningGraph类更名为GraphDB
+4. 增加cypher WITH语句的支持</p>
+<p><strong>Improvements And Bug Fixes:</strong></p>
+<ol>
+<li>将CMAKE_BUILD_TYPE默认改回Release以解决性能问题</li>
+<li>修复HA模式下snapshot无法顾及plugin的问题</li>
+<li>优化TaskTracker带来的性能损失(约2%)</li>
+<li>去除C++程序（embedded程序/plugin）编译过程对python库的依赖</li>
+</ol>
+<h2 id="143">1.4.3</h2>
+<p><strong>Breaking Changes:</strong>
+1. 检查用户名，只能为0-9, a-z, A-Z和下划线。
+2. 升级license机制，需要用户更新license</p>
+<p><strong>Improvements And Bug Fixes:</strong>
+1. 支持任务查询和任务中止
+2. 修复windows下lgraph_server无法启动的bug
+3. 允许用户在embedded mode中打开多个GraphDB
+4. 可视化界面改进</p>
+<h2 id="142">1.4.2</h2>
+<p><strong>Breaking Changes:</strong>
+1. 支持HA模式Cypher查询语言
+2. 修改配置选项disable_auth的作用范围，当此选项为true时，服务器不再做权限检查。</p>
+<p><strong>Improvements And Bug Fixes:</strong>
+1. 修复前端显示</p>
+<h2 id="141">1.4.1</h2>
+<p><strong>Breaking Changes:</strong>
+1. 暂时关闭python plugin功能，因python plugin在snapshot load时报错</p>
+<p><strong>Improvements And Bug Fixes:</strong>
+1. 修复bootstrap问题，同步更新文档</p>
+<h2 id="140">1.4.0</h2>
+<p><strong>Breaking Changes:</strong>
+1. 导入工具<code>lgraph_import</code>命令行参数变化，相应的config文件中对边数据的描述格式变化。
+2. 数据格式变化，1.4.0之前版本生成的数据需要重新导入。
+3. 加载Plugin的方式变化，需要手动导入Plugin文件，相应的REST API变化。
+4. Plugin提供只读和读写两种模式，在加载时指定，读写Plugin的调用在HA模式下会被复制。
+5. 改进HA模式下的服务器列表及leader状态获取方式，REST报头包含正确的redirect信息。</p>
+<p><strong>Improvements And Bug Fixes:</strong>
+1. 修复了REST server在超多client和长请求下死锁的问题。
+2. 修复了一些REST API不符合文档的情况。
+3. 修复了电网场景下REST API跨域访问的问题。
+4. 减少import工具使用的内存量。</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../4.client/4.java-ogm/" class="btn btn-neutral float-left" title="Java OGM"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../6.community/1.contributing/" class="btn btn-neutral float-right" title="参与贡献">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../4.client/4.java-ogm/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../6.community/1.contributing/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../..';</script>
+    <script src="../../../js/theme_extra.js" defer></script>
+    <script src="../../../js/theme.js" defer></script>
+      <script src="../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

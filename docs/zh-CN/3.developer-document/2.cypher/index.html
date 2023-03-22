@@ -1,0 +1,3703 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>Cypher - TuGraph Documentation</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Cypher";
+        var mkdocs_page_input_path = "zh-CN\\3.developer-document\\2.cypher.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> TuGraph Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">en-US</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Guide</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/1.what-is-graph/">What is Graph</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/2.what-is-GDBMS/">What is GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/1.guide/3.quick-start/">Quick Start</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Operating</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/1.introduce/">Introduction</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/2.Install/">Install</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/3.data-import/">Data Import</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/4.server-config/">Server Config</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/5.operation/">Operation</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/7.ha-mode/">HA Mode</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/8.manage-database/">Manage Database</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/2.operating/9.privilege/">Privilege</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Tools</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Developer Document</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/2.cypher/">Cypher</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/3.developer-document/3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Graph Analytics Engine</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/1.tutorial/">Tutorial</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/2.olap-base-api/">OLAP Base API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/3.olap-on-db-api/">OLAP on DB API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/4.olap-on-disk-api/">OLAP on Disk API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/5.algorithms/">Algorithms</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../../en-US/3.developer-document/4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Client</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/1.java-client/">Java Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/2.python-client/">Python Client</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/4.client/3.cpp-client/">CPP Client</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Supplement</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/5.supplement/changelog/">Changelog</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Community</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/1.contributing/">Contributing</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/2.membership/">Membership</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/3.roadmap/">Roadmap</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/4.individual_cla/">Individual CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../../en-US/6.community/5.corporate_cla/">Corporate CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">zh-CN</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="#">指南</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/1.what-is-graph/">什么是图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/2.what-is-GDBMS/">什么是 GDBMS</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../1.guide/3.quick-start/">快速入门</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">操作</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/1.introduce/">介绍</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/2.Install/">安装</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/3.data-import/">数据导入</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/4.server-config/">服务器配置</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/5.operation/">运维</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/7.ha-mode/">高可用模式</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/8.manage-database/">管理数据库</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/9.privilege/">权限</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/10.resource-monitoring/">资源监控</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../2.operating/11.integration-test/">集成测试</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">工具</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/1.tugraph-cypher/">TuGraph Cypher</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/2.tugraph-browser/">TuGraph Browser</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/3.tugraph-datax/">TuGraph DataX</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../2.operating/6.tools/4.tugraph-explore/">TuGraph Explore</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">开发者文档</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../1.restful-api/">RESTful API</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="./">Cypher</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#operators">Operators</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#general-operators">General operators</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#mathematical-operators">Mathematical operators</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#comparison-operators">Comparison operators</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#string-specific-comparison-operators">String-specific comparison operators</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#boolean-operators">Boolean operators</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#string-operators">String operators</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#list-operators">List operators</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#clauses">Clauses</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#summary_1">Summary</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#match">MATCH</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#return">RETURN</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#where">WHERE</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#skip">SKIP</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#limit">LIMIT</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#create">CREATE</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#callyield">CALL[…YIELD]</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#union">UNION</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#whole-list-of-functions">Whole List Of Functions</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#predicate-functions">Predicate functions</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#scalar-functions">Scalar functions</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#aggregating-functions">Aggregating functions</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#list-funtions">List Funtions:</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#mathematical-functions">Mathematical functions</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#1">附录1. 语法扩充及不同</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../3.procedure/">Procedure</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">图分析引擎</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../4.graph_analytics_engine/1.tutorial/">教程</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.graph_analytics_engine/2.olap-base-api/">OLAP 基本 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.graph_analytics_engine/3.olap-on-db-api/">OLAP 在数据库上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.graph_analytics_engine/4.olap-on-disk-api/">OLAP 在磁盘上的 API</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.graph_analytics_engine/5.algorithms/">算法</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../4.graph_analytics_engine/6.python-api/">Python API</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">客户端</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/1.java-client/">Java 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/2.python-client/">Python 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/3.cpp-client/">CPP 客户端</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../4.client/4.java-ogm/">Java OGM</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">补充</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../5.supplement/changelog/">更新日志</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">社区</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/1.contributing/">参与贡献</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/2.membership/">成员资格</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/3.roadmap/">路线图</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/4.individual_cla/">个人 CLA</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../6.community/5.corporate_cla/">企业 CLA</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">TuGraph Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>zh-CN &raquo;</li>
+          <li>开发者文档 &raquo;</li>
+      <li>Cypher</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tugraph-cypher">TuGraph-Cypher</h1>
+<blockquote>
+<p>此文档主要介绍了TuGraph-Cypher的详细使用说明</p>
+</blockquote>
+<h2 id="operators">Operators</h2>
+<h3 id="summary">Summary</h3>
+<p>Operators支持进度一览：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>支持</th>
+<th>待支持</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>General operators</td>
+<td><code>DISTINCT</code>, <code>.</code> for property access</td>
+<td><code>[]</code> for dynamic property access</td>
+</tr>
+<tr>
+<td>Mathematical operators</td>
+<td><code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Comparison operators</td>
+<td><code>=</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>IS NULL</code>, <code>IS NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td>String-specific comparison operators</td>
+<td><code>STARTS WITH</code>, <code>ENDS WITH</code>, <code>CONTAINS</code>, <code>REGEXP</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Boolean operators</td>
+<td><code>AND</code>, <code>OR</code>, <code>XOR</code>, <code>NOT</code></td>
+<td></td>
+</tr>
+<tr>
+<td>String operators</td>
+<td><code>+</code> for concatenation</td>
+<td></td>
+</tr>
+<tr>
+<td>List operators</td>
+<td><code>+</code> for concatenation, <code>IN</code> to check existence of an element in a list, <code>[]</code> for accessing element(s)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="general-operators">General operators</h3>
+<ul>
+<li>✓ Using the DISTINCT operator</li>
+</ul>
+<pre><code>MATCH (p:person) RETURN DISTINCT p.born
+</code></pre>
+<ul>
+<li>❏ Accessing properties of a nested literal map using the <code>.</code> operator</li>
+</ul>
+<pre><code>WITH {person: {name: 'Anne', age: 25}} AS p
+RETURN p.person.name
+</code></pre>
+<ul>
+<li>❏ Filtering on a dynamically-computed property key using the <code>[]</code> operator</li>
+</ul>
+<pre><code>CREATE (a:Restaurant {name: 'Hungry Jo', rating_hygiene: 10, rating_food: 7}),
+       (b:Restaurant {name: 'Buttercup Tea Rooms', rating_hygiene: 5, rating_food:6}),
+       (c1:Category {name: 'hygiene'}), (c2:Category {name: 'food'})
+</code></pre>
+<pre><code>MATCH (restaurant:Restaurant), (category:Category)
+WHERE restaurant[&quot;rating_&quot; + category.name] &gt; 6
+RETURN DISTINCT restaurant.name
+</code></pre>
+<h3 id="mathematical-operators">Mathematical operators</h3>
+<ul>
+<li>✓ Using the exponentiation operator  <code>^</code></li>
+</ul>
+<pre><code>WITH 2 AS number, 3 AS exponent
+RETURN number ^ exponent AS result
+</code></pre>
+<ul>
+<li>✓ Using the unary minus operator <code>-</code></li>
+</ul>
+<pre><code>WITH -3 AS a, 4 AS b
+RETURN b - a AS result
+</code></pre>
+<h3 id="comparison-operators">Comparison operators</h3>
+<ul>
+<li>✓ Comparing two numbers</li>
+</ul>
+<pre><code>WITH 4 AS one, 3 AS two
+RETURN one &gt; two AS result
+</code></pre>
+<h3 id="string-specific-comparison-operators">String-specific comparison operators</h3>
+<ul>
+<li>✓ Using STARTS WITH to filter names</li>
+</ul>
+<pre><code>WITH ['John', 'Mark', 'Jonathan', 'Bill'] AS somenames
+UNWIND somenames AS names
+WITH names AS candidate
+WHERE candidate STARTS WITH 'Jo'
+RETURN candidate
+</code></pre>
+<ul>
+<li>✓ Using REGEXP to filter names</li>
+</ul>
+<pre><code>WITH ['John', 'Mark', 'Jonathan', 'Bill'] AS somenames
+UNWIND somenames AS names
+WITH names AS candidate
+WHERE candidate REGEXP 'Jo.*n'
+RETURN candidate
+</code></pre>
+<h3 id="boolean-operators">Boolean operators</h3>
+<ul>
+<li>✓ Using boolean operators to filter numbers</li>
+</ul>
+<pre><code>WITH [2, 4, 7, 9, 12] AS numberlist
+UNWIND numberlist AS number
+WITH number
+WHERE number = 4 OR (number &gt; 6 AND number &lt; 10)
+RETURN number
+</code></pre>
+<h3 id="string-operators">String operators</h3>
+<p>String operators comprise:</p>
+<ul>
+<li>✓ concatenating strings: <code>+</code></li>
+</ul>
+<h3 id="list-operators">List operators</h3>
+<ul>
+<li>✓ Concatenating two lists using +</li>
+</ul>
+<pre><code>RETURN [1,2,3,4,5]+[6,7] AS myList
+</code></pre>
+<ul>
+<li>✓ Using IN to check if a number is in a list</li>
+</ul>
+<pre><code>WITH [2, 3, 4, 5] AS numberlist
+UNWIND numberlist AS number
+WITH number
+WHERE number IN [2, 3, 8]
+RETURN number
+</code></pre>
+<ul>
+<li>✓ Accessing elements in a list using the [] operator</li>
+</ul>
+<pre><code>WITH ['Anne', 'John', 'Bill', 'Diane', 'Eve'] AS names
+RETURN names[1..3] AS result
+</code></pre>
+<h2 id="clauses">Clauses</h2>
+<h3 id="summary_1">Summary</h3>
+<p>Clauses支持进度一览：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>语法</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reading clauses</td>
+<td>MATCH</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>OPTIONAL MATCH</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>MANDATORY MATCH</td>
+<td>待支持</td>
+</tr>
+<tr>
+<td>Projecting clauses</td>
+<td>RETURN … [AS]</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>WITH … [AS]</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>UNWIND … [AS]</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>Reading sub-clauses</td>
+<td>WHERE</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>ORDER BY [ASC[ENDING] / DESC[ENDING]]</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>SKIP</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>LIMIT</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>Writing clauses</td>
+<td>CREATE</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>DELETE</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>DETACH DELETE</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>SET</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>REMOVE</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>Reading/Writing clauses</td>
+<td>MERGE</td>
+<td>支持</td>
+</tr>
+<tr>
+<td></td>
+<td>CALL […YIELD]</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>Set operations</td>
+<td>UNION</td>
+<td>待支持</td>
+</tr>
+<tr>
+<td></td>
+<td>UNION ALL</td>
+<td>支持</td>
+</tr>
+</tbody>
+</table>
+<h3 id="match">MATCH</h3>
+<ul>
+<li>
+<p>Basic node finding</p>
+</li>
+<li>
+<p>✓ Get all nodes</p>
+</li>
+</ul>
+<p><code>MATCH (n)
+  RETURN n</code></p>
+<ul>
+<li>✓ Get all nodes with a label</li>
+</ul>
+<p><code>MATCH (movie:movie)
+  RETURN movie.title</code></p>
+<ul>
+<li>✓ Related nodes</li>
+</ul>
+<p><code>MATCH (person {name: 'Laurence Fishburne'})-[]-(movie)
+  RETURN movie.title</code></p>
+<ul>
+<li>✓ Match with labels</li>
+</ul>
+<p><code>MATCH (:person {name: 'Laurence Fishburne'})-[]-(movie:movie)
+  RETURN movie.title</code></p>
+<ul>
+<li>
+<p>Relationship basics</p>
+</li>
+<li>
+<p>✓ Outgoing relationships</p>
+</li>
+</ul>
+<p><code>MATCH (:person {name: 'Laurence Fishburne'})-[]-&gt;(movie)
+  RETURN movie.title</code></p>
+<ul>
+<li>✓ Directed relationships and variable</li>
+</ul>
+<p><code>MATCH (:person {name: 'Laurence Fishburne'})-[r]-&gt;(movie)
+  RETURN type(r)</code></p>
+<ul>
+<li>✓ Match on relationship type</li>
+</ul>
+<p><code>MATCH (matrix:movie {title: 'The Matrix'})&lt;-[:acted_in]-(actor)
+  RETURN actor.name</code></p>
+<ul>
+<li>✓ Match on multiple relationship types</li>
+</ul>
+<p><code>MATCH (matrix {title: 'The Matrix'})&lt;-[:acted_in|:directed]-(person)
+  RETURN person.name</code></p>
+<ul>
+<li>✓ Match on relationship type and use a variable</li>
+</ul>
+<p><code>MATCH (matrix {title: 'The Matrix'})&lt;-[r:acted_in]-(actor)
+  RETURN r.role</code>
+- Relationships in depth</p>
+<ul>
+<li>❏ Relationship types with uncommon characters</li>
+</ul>
+<p><code>MATCH (n {name: 'Rob Reiner'})-[r:`TYPE WITH SPACE`]-&gt;()
+  RETURN type(r)</code></p>
+<ul>
+<li>✓ Multiple relationships</li>
+</ul>
+<p><code>MATCH (laurence {name: 'Laurence Fishburne'})-[:acted_in]-&gt;(movie)&lt;-[:directed]-(director)
+  RETURN movie.title, director.name</code></p>
+<ul>
+<li>✓ Variable-length relationships</li>
+</ul>
+<p><code>MATCH (laurence {name: 'Laurence Fishburne'})-[:acted_in*1..3]-(movie:movie)
+  RETURN movie.title</code></p>
+<ul>
+<li>✓ Relationship variable in variable-length relationships</li>
+</ul>
+<p><code>MATCH p = (laurence {name: 'Laurence Fishburne'})-[:acted_in*2]-(co_actor)
+  RETURN p</code></p>
+<ul>
+<li>❏ Match with properties on a variable-length path</li>
+</ul>
+<p><code>MATCH p = (charlie:person)-[* {blocked:false}]-(martin:person)
+  WHERE charlie.name = 'Charlie Sheen' AND martin.name = 'Martin Sheen'
+  RETURN p</code></p>
+<ul>
+<li>✓ Zero-length paths</li>
+</ul>
+<p><code>MATCH (matrix:movie {title: 'The Matrix'})-[*0..1]-(x)
+  RETURN x</code></p>
+<ul>
+<li>✓ Named paths</li>
+</ul>
+<p><code>MATCH p = (michael {name: 'Michael Douglas'})-[]-&gt;() RETURN p</code></p>
+<ul>
+<li>✓ Matching on a bound relationship</li>
+</ul>
+<p><code>MATCH (a)-[r]-&gt;(b)
+  WHERE euid(r)="0_3937_0_0_0"
+  RETURN a,b</code></p>
+<ul>
+<li>
+<p>Shortest path</p>
+</li>
+<li>
+<p>✓ Single shortest path</p>
+</li>
+</ul>
+<p><code>MATCH (martin:person {name: 'Carrie-Anne Moss'}), (laurence:person {name: 'Laurence Fishburne'})
+  CALL algo.shortestPath(martin, laurence) YIELD nodeCount,totalCost,path RETURN nodeCount,totalCost,path</code></p>
+<ul>
+<li>✓ All shortest paths</li>
+</ul>
+<p><code>MATCH (martin:person {name: 'Carrie-Anne Moss'}), (laurence:person {name: 'Laurence Fishburne'}) WITH martin, laurence
+  CALL algo.allShortestPaths(martin, laurence) YIELD nodeIds,relationshipIds,cost RETURN
+  nodeIds,relationshipIds,cost</code>
+- Get node or relationship by id</p>
+<ul>
+<li>✓ Node by id</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE id(n)= 0
+  RETURN n</code></p>
+<ul>
+<li>✓ Relationship by id</li>
+</ul>
+<p><code>MATCH ()-[r]-&gt;()
+  WHERE euid(r) = "0_3937_0_0_0"
+  RETURN r</code></p>
+<ul>
+<li>✓ Multiple nodes by id</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE id(n) IN [0, 3, 5]
+  RETURN n</code></p>
+<h3 id="return">RETURN</h3>
+<ul>
+<li>✓ Return nodes</li>
+</ul>
+<pre><code>MATCH (n {name: 'Carrie-Anne Moss'}) RETURN n
+</code></pre>
+<ul>
+<li>✓ Return relationships</li>
+</ul>
+<pre><code>MATCH (n {name: 'Carrie-Anne Moss'})-[r:acted_in]-&gt;(c)
+RETURN r
+</code></pre>
+<ul>
+<li>✓ Return property</li>
+</ul>
+<pre><code>MATCH (n {name: 'Carrie-Anne Moss'}) RETURN n.born
+</code></pre>
+<ul>
+<li>❏ Return all elements</li>
+</ul>
+<pre><code>MATCH p = (a {name: 'A'})-[r]-&gt;(b)
+RETURN *
+</code></pre>
+<ul>
+<li>❏ Variable with uncommon characters</li>
+</ul>
+<pre><code>MATCH (`This isn\'t a common variable`)
+WHERE `This isn\'t a common variable`.name = 'A'
+RETURN `This isn\'t a common variable`.happy
+</code></pre>
+<ul>
+<li>✓ Aliasing a field</li>
+</ul>
+<pre><code>MATCH (a {name: 'Carrie-Anne Moss'})
+RETURN a.born AS SomethingTotallyDifferent
+</code></pre>
+<ul>
+<li>✓ Optional properties</li>
+</ul>
+<pre><code>MATCH (n)
+RETURN n.age
+</code></pre>
+<ul>
+<li>❏ Other expressions</li>
+</ul>
+<pre><code>MATCH (a {name: 'Carrie-Anne Moss'})
+RETURN a.born &gt; 1900, &quot;I'm a literal&quot;, (a)-[]-&gt;()
+</code></pre>
+<p><code>(a)-[]-&gt;()</code>  not supported.</p>
+<ul>
+<li>✓ Unique results</li>
+</ul>
+<pre><code>MATCH (a {name: 'Carrie-Anne Moss'})-[]-&gt;(b)
+RETURN DISTINCT b
+</code></pre>
+<h3 id="where">WHERE</h3>
+<ul>
+<li>Basic usage</li>
+<li>✓ Boolean operations</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.name = 'Laurence Fishburne' XOR (n.born &gt; 1965 AND n.name = 'Carrie-Anne Moss')
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>✓ Filter on node label</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n:person
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>✓ Filter on node property</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.born &gt; 2000
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>✓ Filter on relationship property</li>
+</ul>
+<p><code>MATCH (n)-[k:acted_in]-&gt;(f)
+  WHERE k.role = "Trinity"
+  RETURN f.title</code></p>
+<ul>
+<li>❏ Filter on dynamically-computed property</li>
+</ul>
+<p><code>WITH 'AGE' AS propname
+  MATCH (n)
+  WHERE n[toLower(propname)]&lt; 30
+  RETURN n.name, n.age</code></p>
+<ul>
+<li>✓ Property existence checking</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE exists(n.born)
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>String matching</li>
+<li>✓ Match the beginning of a string</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.name STARTS WITH 'Pet'
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>✓ Match the ending of a string</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.name ENDS WITH 'ter'
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>✓ Match anywhere within a string</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.name CONTAINS 'ete'
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>✓ String matching negation</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE NOT n.name ENDS WITH 's'
+  RETURN n.name, n.born</code></p>
+<ul>
+<li>Using path patterns in <code>WHERE</code></li>
+<li>❏ Filter on patterns</li>
+</ul>
+<p><code>MATCH (tobias {name: 'Tobias'}), (others)
+  WHERE others.name IN ['Andres', 'Peter'] AND (tobias)&lt;-[]-(others)
+  RETURN others.name, others.age</code></p>
+<ul>
+<li>❏ Filter on patterns using NOT</li>
+</ul>
+<p><code>MATCH (persons), (peter {name: 'Peter'})
+  WHERE NOT (persons)-[]-&gt;(peter)
+  RETURN persons.name, persons.age</code></p>
+<ul>
+<li>❏ Filter on patterns with properties</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE (n)-[:KNOWS]-({name: 'Tobias'})
+  RETURN n.name, n.age</code></p>
+<ul>
+<li>✓ Filter on relationship type</li>
+</ul>
+<p><code>MATCH (n)-[r]-&gt;()
+  WHERE n.name='Laurence Fishburne' AND type(r) STARTS WITH 'ac'
+  RETURN type(r), r.role</code></p>
+<ul>
+<li>Lists</li>
+<li>✓ IN operator</li>
+</ul>
+<p><code>MATCH (a)
+  WHERE a.name IN ['Laurence Fishburne', 'Tobias']
+  RETURN a.name, a.born</code></p>
+<ul>
+<li>Missing properties and values</li>
+<li>✓ Default to false if property is missing</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.belt = 'white'
+  RETURN n.name, n.age, n.belt</code></p>
+<ul>
+<li>✓ Default to true if property is missing</li>
+</ul>
+<p><code>MATCH (n)
+  WHERE n.belt = 'white' OR n.belt IS NULL RETURN n.name, n.age, n.belt
+  ORDER BY n.name</code></p>
+<ul>
+<li>✓ Filter on null</li>
+</ul>
+<p><code>MATCH (person)
+  WHERE person.name = 'Peter' AND person.belt IS NULL RETURN person.name, person.age,
+  person.belt</code></p>
+<ul>
+<li>Using ranges</li>
+<li>✓ Simple range</li>
+</ul>
+<p><code>MATCH (a)
+  WHERE a.name &gt;= 'Peter'
+  RETURN a.name, a.born</code></p>
+<ul>
+<li>✓ Composite range</li>
+</ul>
+<p><code>MATCH (a)
+  WHERE a.name &gt; 'Andres' AND a.name &lt; 'Tobias'
+  RETURN a.name, a.born</code></p>
+<h3 id="skip">SKIP</h3>
+<ul>
+<li>✓ Skip first three records</li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN n.name
+ORDER BY n.name
+SKIP 3
+</code></pre>
+<ul>
+<li>✓ Return middle two records</li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN n.name
+ORDER BY n.name
+SKIP 1
+LIMIT 2
+</code></pre>
+<ul>
+<li>❏ Using an expression with SKIP to return a subset of the records</li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN n.name
+ORDER BY n.name
+SKIP toInteger(3*rand())+ 1
+</code></pre>
+<h3 id="limit">LIMIT</h3>
+<ul>
+<li>✓ Return a subset of the records</li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN n.name
+LIMIT 3
+</code></pre>
+<ul>
+<li>❏ Using an expression with LIMIT to return a subset of the records</li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN n.name
+LIMIT toInteger(3 * rand())+ 1
+</code></pre>
+<h3 id="create">CREATE</h3>
+<ul>
+<li>Create nodes</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>
+TuGraph不支持创建空的nodes，不支持多labels。</p>
+</blockquote>
+<ul>
+<li>☒ Create single node</li>
+</ul>
+<p><code>CREATE (n)</code></p>
+<ul>
+<li>☒ Create multiple nodes</li>
+</ul>
+<p><code>CREATE (n), (m)</code></p>
+<ul>
+<li>☒ Create a node with a label</li>
+</ul>
+<p><code>CREATE (n:person)</code></p>
+<ul>
+<li>☒ Create a node with multiple labels</li>
+</ul>
+<p><code>CREATE (n:Person:Swedish)</code></p>
+<ul>
+<li>✓ Create node and add labels and properties</li>
+</ul>
+<p><code>CREATE (n:person {id:2001, name: 'Andres'})</code></p>
+<ul>
+<li>✓ Return created node</li>
+</ul>
+<p><code>CREATE (n:person {id:2002, name: 'Andres'})
+  RETURN n</code></p>
+<ul>
+<li>Create relationships</li>
+<li>✓ Create a relationship between two nodes</li>
+</ul>
+<p><code>MATCH (n:person), (m:movie)
+  WHERE n.name = 'Jada Pinkett Smith' AND m.title = 'The Matrix'
+  CREATE (n)-[r:write]-&gt;(m)</code></p>
+<ul>
+<li>✓ Create a relationship and set properties</li>
+</ul>
+<p><code>MATCH (n:person), (m:movie)
+  WHERE n.name = 'Jada Pinkett Smith' AND m.title = 'The Matrix'
+  CREATE (n)-[r:acted_in{role: 'Trinity'}]-&gt;(m)</code></p>
+<ul>
+<li>❏ Create a full path</li>
+</ul>
+<p><code>CREATE p = (andres:person {id: 2005, name:'Andres'})-[:acted_in {role: 'Trinity'}]-&gt;
+  (m:movie {id: 2006})&lt;-[:acted_in {role: 'Trinity'}]-(michael {id: 2006, name:'Michael'})
+  RETURN p</code></p>
+<ul>
+<li>Use parameters with CREATE</li>
+<li>❏ Create node with a parameter for the properties</li>
+</ul>
+<p><code>CREATE (n:Person $props)
+  RETURN n</code></p>
+<ul>
+<li>☒ Create multiple nodes with a parameter for their properties</li>
+</ul>
+<p><code>UNWIND $props AS map
+  CREATE (n)
+  SET n = map</code>
+  cannot create vertex without label.</p>
+<h3 id="callyield">CALL[…YIELD]</h3>
+<ul>
+<li>✓ Call a procedure using CALL</li>
+</ul>
+<pre><code>CALL db.vertexLabels
+</code></pre>
+<ul>
+<li>✓ View the signature for a procedure</li>
+</ul>
+<pre><code>CALL dbms.procedures() YIELD name, signature
+RETURN signature
+</code></pre>
+<ul>
+<li>❏ Call a procedure using a quoted namespace and name</li>
+</ul>
+<pre><code>CALL `db`.`vertexLabels`
+</code></pre>
+<ul>
+<li>✓ Call a procedure with literal arguments</li>
+</ul>
+<pre><code>CALL org.opencypher.procedure.example.addNodeToIndex('users', 0, 'name')
+</code></pre>
+<ul>
+<li>❏ Call a procedure with parameter arguments</li>
+</ul>
+<pre><code>CALL org.opencypher.procedure.example.addNodeToIndex($indexName,$node,$propKey)
+</code></pre>
+<ul>
+<li>❏ Call a procedure with mixed literal and parameter arguments</li>
+</ul>
+<pre><code>CALL org.opencypher.procedure.example.addNodeToIndex('users', $node, 'name')
+</code></pre>
+<ul>
+<li>✓ Call a procedure with literal and default arguments</li>
+</ul>
+<pre><code>CALL org.opencypher.procedure.example.addNodeToIndex('users', 0)
+</code></pre>
+<ul>
+<li>✓ Call a procedure within a complex query using CALL…YIELD</li>
+</ul>
+<pre><code>CALL db.vertexLabels() YIELD label
+RETURN count(label) AS numLabels
+</code></pre>
+<ul>
+<li>❏ Call a procedure and filter its results</li>
+</ul>
+<pre><code>CALL db.vertexLabels() YIELD label
+WHERE label CONTAINS 'User'
+RETURN count(label) AS numLabels
+</code></pre>
+<ul>
+<li>❏ Call a procedure within a complex query and rename its outputs</li>
+</ul>
+<pre><code>CALL db.propertyKeys() YIELD propertyKey AS prop
+MATCH (n)
+WHERE n[prop] IS NOT NULL RETURN prop, count(n) AS numNodes
+</code></pre>
+<h3 id="union">UNION</h3>
+<ul>
+<li>✓ Combine two queries and retain duplicates</li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN n.name AS name
+UNION ALL MATCH (n:movie)
+RETURN n.title AS name
+</code></pre>
+<ul>
+<li>❏ Combine two queries and remove duplicates</li>
+</ul>
+<pre><code>MATCH (n:Actor)
+RETURN n.name AS name
+UNION
+MATCH (n:Movie)
+RETURN n.title AS name
+</code></pre>
+<h2 id="functions">Functions</h2>
+<h3 id="whole-list-of-functions">Whole List Of Functions</h3>
+<table>
+<thead>
+<tr>
+<th>种类</th>
+<th>功能</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Predicate functions</td>
+<td>exists()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>all()</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td></td>
+<td>any()</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td></td>
+<td>single()</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td></td>
+<td>none()</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td>Scalar functions</td>
+<td>id()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>euid()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>properties()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>head()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>last()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>toBoolean()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>toFloat()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>toInteger()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>toString()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>type()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>startnode()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>endnode()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>size()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>length()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>label()</td>
+<td>OpenCypher扩展方法</td>
+</tr>
+<tr>
+<td>Aggregating functions</td>
+<td>avg()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>collect()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>count()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>max()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>min()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>percentileCont()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>percentileDisc()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>stDev()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>stDevP()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>variance()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>varianceP()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>sum()</td>
+<td></td>
+</tr>
+<tr>
+<td>List functions</td>
+<td>keys()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>labels()</td>
+<td>返回结果有且只有一个label</td>
+</tr>
+<tr>
+<td></td>
+<td>range()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>subscript()</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td>Mathematical functions</td>
+<td>abs()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>ceil()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>floor()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>rand()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>round()</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>sign()</td>
+<td></td>
+</tr>
+<tr>
+<td>String functions</td>
+<td>/</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="predicate-functions">Predicate functions</h3>
+<ul>
+<li>exists()
+  judge it whether a vertex or edge has the field  .
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n)
+WHERE exists(n.born)
+RETURN n.name, n.born
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>exists(name)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<h3 id="scalar-functions">Scalar functions</h3>
+<ul>
+<li>id()
+  get the id of vertex.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (a)
+RETURN id(a)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>vid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+</tr>
+<tr>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>properties()
+  get  a map containing all the properties of a node or relationship.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person {name: 'Laurence Fishburne'})
+RETURN n
+</code></pre>
+<ul>
+<li>head()
+  get the first element of a list.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>WITH ['one','two','three'] AS coll RETURN coll, head(coll)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>coll</th>
+<th>head(coll)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>["one","two","three"]</td>
+<td>"one"</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>last()
+  get the last element of a list.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>WITH ['one','two','three'] AS coll RETURN coll, last(coll)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>coll</th>
+<th>last(coll)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>["one","two","three"]</td>
+<td>"three"</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>toFloat()
+  Converts an integer or string value to a floating point number.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN toFloat('11.5')
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>float</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11.5</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>toInteger()
+  Converts a floating point or string value to an integer value.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN toInteger('2.3') AS integer
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>integer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>toString()
+  Converts an integer, float, boolean value to a string.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN toString(2.3)
+</code></pre>
+<ul>
+<li>type()
+  get the string representation of the relationship type.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n)-[r]-&gt;()
+WHERE n.name = 'Laurence Fishburne'
+RETURN type(r)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>acted_in</td>
+</tr>
+<tr>
+<td>acted_in</td>
+</tr>
+</tbody>
+</table>
+<h3 id="aggregating-functions">Aggregating functions</h3>
+<ul>
+<li>avg()
+  Returns the average of a set of numeric values.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN avg(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>avg(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1869.2661654135338</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>collect()
+  Returns a list containing the values returned by an expression.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN collect(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>collect(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[1967,...]</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>count()
+  Returns the number of values or records.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n {name: 'Laurence Fishburne'})-[]-&gt;(x)
+RETURN labels(n), n.born, count(*)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>labels(n)</th>
+<th>n.born</th>
+<th>count(*)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>["person"]</td>
+<td>1961</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>max()
+  Returns the maximum value in a set of values.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN max(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>max(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2003</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>min()
+  Returns the minimum value in a set of values.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN min(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>min(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1000</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>percentileCont()
+  Returns the percentile of a value over a group using linear interpolation.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN percentileCont(n.born, 0.4)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>percentileCont(n.born, 0.4)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1953</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>percentileDisc()
+  Returns the nearest value to the given percentile over a group using a rounding method.
+  <strong>Scope:</strong> whole instance.
+  <strong>Output:</strong> the percentile of the given value over a group.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN percentileDisc(n.born, 0.5)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>percentileDisc(n.age, 0.5)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1959</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>stDev()
+  Returns the standard deviation for the given value over a group for a sample of a population.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n)
+RETURN stDev(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>stDev(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>279.53117993401725</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>stDevP()
+  Returns the standard deviation for the given value over a group for an entire population.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n)
+RETURN stDevP(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>stDevP(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>279.3209270423399</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>variance()
+  Returns the variance for the given value over a group for a sample of a population.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n)
+RETURN variance(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>variance(n.age)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>78137.68055530392</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>varianceP()
+  Returns the variance for the given value over a group for an entire population.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n)
+RETURN varianceP(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>varianceP(n.age)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>78020.18028379219</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>sum()
+  Returns the sum of a set of numeric values.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (n:person)
+RETURN sum(n.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>sum(n.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1243062</td>
+</tr>
+</tbody>
+</table>
+<h3 id="list-funtions">List Funtions:</h3>
+<ul>
+<li>keys()
+  get the field names of some vertex.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (a)
+RETURN keys(a) LIMIT 1
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>keys(a)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>["name","age","eyes"]</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>labels()/label()
+  Returns a list containing the string representations for all the property names of a node, relationship, or map.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (a)
+RETURN labels(a) LIMIT 1
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>labels</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>["Person"]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mathematical-functions">Mathematical functions</h3>
+<ul>
+<li>abs()
+  get the absolute value of some data.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>MATCH (a:person {name: 'Laurence Fishburne'}),
+(e:person {name: 'Carrie-Anne Moss'})
+RETURN a.born, e.born, abs(a.born-e.born)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>a.born</th>
+<th>e.born</th>
+<th>abs(a.born - e.born)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>38</td>
+<td>41</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>ceil()
+  Returns the smallest floating point number that is greater than or equal to a number and equal to a mathematical integer.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN ceil(0.1)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>ceil(0.1)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>floor()
+  get the largest floating point number that is less than or equal to the given number and equal to a mathematical integer.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN floor(0.9)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>floor(0.9)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.0</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>round()
+  Returns the value of a number rounded to the nearest integer.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN round(3.141592)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>round</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>rand()
+  Returns returns a random floating point number in the range from 0 (inclusive) to 1 exclusive).
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN rand()
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>rand()</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.9797131960534085</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>sign()
+  Get the signum of the given number: 0 if the number is 0, -1 for any negative number, and 1 for any positive number.
+  <strong>Scope:</strong> whole instance.
+  <strong>Example input:</strong></li>
+</ul>
+<pre><code>RETURN sign(-17), sign(0.1)
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>sign(-17)</th>
+<th>sign(0.1)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>TuGraph 查询语言与 OpenCypher 的不同点如下：</p>
+<ul>
+<li>Label 数量</li>
+<li>TuGraph: Each node/relationship must have one and only one label. So error occurs when there is no label, and the 1st label will be picked as the label if there are more than one label.</li>
+<li>OpenCypher: One node/relationship may have 0 to many labels.</li>
+<li>Schema.</li>
+<li>TuGraph: TuGraph has strong schema</li>
+<li>OpenCypher: schema-less</li>
+</ul>
+<h2 id="1">附录1. 语法扩充及不同</h2>
+<p>TuGraph查询语言与OpenCypher的不同点如下：</p>
+<ul>
+<li>Label数量</li>
+<li>TuGraph: Each node/relationship must have one and only one label. So error occurs when there is no label, and the 1st label will be picked as the label if there are more than one label.</li>
+<li>OpenCypher: One node/relationship may have 0 to many labels.</li>
+<li>Schema.</li>
+<li>TuGraph: TuGraph has strong schema</li>
+<li>OpenCypher: schema-less</li>
+</ul>
+<h1 id="2-procedures">附录2. 内置procedures列表</h1>
+<h2 id="procedures">procedures样例</h2>
+<ul>
+<li>dbms.procedures()</li>
+</ul>
+<p>Lists all available procedures.</p>
+<p><strong>Scope:</strong> whole instance.</p>
+<p><strong>Output:</strong> a list of {<code>signature</code>, <code>name</code>}.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.procedures()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>signature</th>
+<th>name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>db.vertexLabels() :: (label::STRING)</td>
+<td>db.vertexLabels</td>
+</tr>
+<tr>
+<td>db.edgeLabels() :: (edgeLabels::STRING)</td>
+<td>db.edgeLabels</td>
+</tr>
+<tr>
+<td>db.indexes() :: (index::LIST)</td>
+<td>db.indexes</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.subgraph()</li>
+</ul>
+<p><strong>Scope:</strong> whole instance.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vids</td>
+<td>list</td>
+<td>list of vertex id</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<p>Get a json containing all the properties of nodes and relationships.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.subgraph([3937,4126,4066,4010])</code></p>
+<p><strong>Example output</strong></p>
+<table>
+<thead>
+<tr>
+<th>subgraph</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{"nodes":[{"identity":3937,"label":"movie","properties":{"duration":136,"id":1,"poster_image":"http://image.tmdb.org/t/p/w185/gynBNzwyaHKtXqlEKKLioNkjKgN.jpg","rated":"R","summary":"Thomas A. Anderson is a man living two lives. By day he is an average computer programmer and by night a malevolent hacker known as Neo who finds himself targeted by the police when he is contacted by Morpheus a legendary computer hacker who reveals the shocking truth about our reality.","tagline":"Welcome to the Real World.","title":"The Matrix"}},{"identity":4010,"label":"user","properties":{"id":44,"login":"Howard"}},{"identity":4066,"label":"user","properties":{"id":202,"login":"Enoch"}},{"identity":4126,"label":"user","properties":{"id":464,"login":"Wilburn"}}],"relationships":[{"dst":4126,"forward":true,"identity":0,"label":"is_friend","label_id":3,"src":4010,"temporal_id":0},{"dst":4010,"forward":true,"identity":0,"label":"is_friend","label_id":3,"src":4066,"temporal_id":0},{"dst":4066,"forward":true,"identity":0,"label":"is_friend","label_id":3,"src":4126,"temporal_id":0}]}</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.vertexLabels()</li>
+</ul>
+<p>Lists all available vertex labels of vertex.</p>
+<p><strong>Scope:</strong> whole instance.</p>
+<p><strong>Output:</strong> a list of {<code>name</code>}.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.vertexLabels()</code>
+  <strong>Example output:</strong></p>
+<pre><code>| label   |
+| ------- |
+| genre   |
+| keyword |
+| movie   |
+| ...     |
+</code></pre>
+<ul>
+<li>db.edgeLabels()</li>
+</ul>
+<p>Lists all available labels of edges.</p>
+<p><strong>Scope:</strong> whole instance.</p>
+<p><strong>Output:</strong> a list of {edge labels}.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.edgeLabels()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>relationshipType</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>acted_in</td>
+</tr>
+<tr>
+<td>directed</td>
+</tr>
+<tr>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.createVertexLabel(label_name, primary_field, field_spec...)</li>
+</ul>
+<p>Create a vertex label.</p>
+<p><strong>Scope:</strong> whole instance.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of  vertex label</td>
+</tr>
+<tr>
+<td>primary_field</td>
+<td>string</td>
+<td>primary field of vertex label</td>
+</tr>
+<tr>
+<td>field_spec</td>
+<td>list</td>
+<td>specification of a field</td>
+</tr>
+</tbody>
+</table>
+<p>in which each <code>field_spec</code> is a list of string in the form of <code>[field_name, field_type, true]</code>, where true is specified only for optional fields.</p>
+<pre><code>**Output:** If successful, it returns a success message.
+
+**Example input:**
+
+```
+CALL db.createVertexLabel('Person', 'id', 'id', int64, false, 'name', string, true)
+```
+
+**Example output:**
+
+```
+Added label [Person]
+```
+</code></pre>
+<ul>
+<li>db.getLabelSchema(label_type, label_name)</li>
+</ul>
+<p>Get the schema definition of the label in a subgraph.</p>
+<p><strong>Scope:</strong> subgraph, as specified in the <code>graph</code> parameter in REST or RPC request.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_type</td>
+<td>string</td>
+<td>either 'vertex' or 'edge'</td>
+</tr>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong> a list of label specifications, in which each element is a list of the following fields:</p>
+<table>
+<thead>
+<tr>
+<th>field_name</th>
+<th>field_type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>string</td>
+<td>name of the field</td>
+</tr>
+<tr>
+<td>type</td>
+<td>string</td>
+<td>type of the field</td>
+</tr>
+<tr>
+<td>optional</td>
+<td>boolean</td>
+<td>whether the field is optional</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.getLabelSchema('vertex', 'Person')</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>type</th>
+<th>optional</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>INT32</td>
+<td>false</td>
+</tr>
+<tr>
+<td>born</td>
+<td>INT32</td>
+<td>true</td>
+</tr>
+<tr>
+<td>name</td>
+<td>STRING</td>
+<td>true</td>
+</tr>
+<tr>
+<td>poster_image</td>
+<td>STRING</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.createLabel(label_type, label_name, extra, field_spec...)</li>
+</ul>
+<p>Create a vertex or edge label.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_type</td>
+<td>string</td>
+<td>either 'vertex' or 'edge'</td>
+</tr>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+<tr>
+<td>extra</td>
+<td>string</td>
+<td>for edge, it means constraints; for vertex, it means primary property</td>
+</tr>
+<tr>
+<td>field_spec</td>
+<td>list</td>
+<td>specification of a field</td>
+</tr>
+</tbody>
+</table>
+<pre><code>in which each `field_spec` is a list of string in the form of `[field_name, field_type, optional]`.
+for edge, `extra` should be a json array string, like this `[["label1","label2"], ["label3","label4"]]`, if edge has no constraints, give an empty json array, like this `[]`
+</code></pre>
+<p><strong>Output:</strong></p>
+<p>If successful, it returns a success message.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.createLabel('vertex', 'new_label', 'id', ['id',int32,false], ['name',string, true]);
+  CALL db.createLabel('edge', 'new_edge', '[["id1","id2"]]', ['id',int32,false], ['name', string, true]);</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>Vertex label [new_label] successfully added.</code></p>
+<ul>
+<li>db.deleteLabel(label_type, label_name)</li>
+</ul>
+<p>Delete a vertex or edge label.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_type</td>
+<td>string</td>
+<td>either 'vertex' or 'edge'</td>
+</tr>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>field_name</th>
+<th>field_type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>affected</td>
+<td>integer</td>
+<td>number of vertexes/edges deleted</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.deleteLabel('vertex', 'Person')</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>affected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1024</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.alterLabelDelFields(label_type, label_name, field_names)</li>
+</ul>
+<p>Delete specified fields from the label.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_type</td>
+<td>string</td>
+<td>either 'vertex' or 'edge'</td>
+</tr>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+<tr>
+<td>field_names</td>
+<td>list of strings</td>
+<td>names of the fields to delete</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>field_name</th>
+<th>field_type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>affected</td>
+<td>integer</td>
+<td>number of vertexes/edges modified</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.alterLabelDelFields('vertex', 'Person', ['name', 'image'])</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>affected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1024</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.alterLabelAddFields(label_type, label_name, field_value_spec...)</li>
+</ul>
+<p>Adds specified fields to the label.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_type</td>
+<td>string</td>
+<td>either 'vertex' or 'edge'</td>
+</tr>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+<tr>
+<td>field_value_spec</td>
+<td>list</td>
+<td>specification of a field</td>
+</tr>
+</tbody>
+</table>
+<pre><code>in which each `field_value_spec` is a list of string in the form of `[field_name, field_type, field_value, optional]`, where: `field_value` is the default value of the field.
+</code></pre>
+<p><strong>Output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>field_name</th>
+<th>field_type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>affected</td>
+<td>integer</td>
+<td>number of vertexes/edges modified</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.alterLabelAddFields(
+  'vertex',
+  'new_label',
+  ['birth_date', DATE, '', true],
+  ['img', BLOB, '', true])</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>affected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1024</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.alterLabelModFields(label_type, label_name, field_spec...)</li>
+</ul>
+<p>Modifies the specified fields in the label.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_type</td>
+<td>string</td>
+<td>either 'vertex' or 'edge'</td>
+</tr>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+<tr>
+<td>field_spec</td>
+<td>list</td>
+<td>specification of a field</td>
+</tr>
+</tbody>
+</table>
+<pre><code>in which each `field_spec` is a list of string in the form of `[field_name, field_type, optional]`.The target field should exist.
+</code></pre>
+<p><strong>Output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>field_name</th>
+<th>field_type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>affected</td>
+<td>integer</td>
+<td>number of vertexes/edges modified</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<pre><code>```
+CALL db.alterLabelModFields(
+'vertex',
+'new_label',
+['birth_date', DATETIME, true],
+['gender', BOOL, true])
+```
+</code></pre>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>affected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1024</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>db.createEdgeLabel( label_name, field_spec...)</li>
+</ul>
+<p>Create an edge label.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+<tr>
+<td>edge_constraints</td>
+<td>string</td>
+<td>edge constraints</td>
+</tr>
+<tr>
+<td>field_spec</td>
+<td>list</td>
+<td>specification of a field</td>
+</tr>
+</tbody>
+</table>
+<p>in which each <code>field_spec</code> is a list of string in the form of <code>[field_name, field_type, optional]</code>, where optional is specified as true, only for  optional fields.</p>
+<p><code>edge_constraints</code> is a json array string, This parameter limits the combination of starting and ending vertex of the edge, for example: <code>'[["vertex_label1","vertex_label2"],["vertex_label3","vertex_label4"]]'</code>, which limits the edge direction can only be from <code>vertex_label1</code> to <code>vertex_label2</code> or from <code>vertex_label3</code> to <code>vertex_label4</code>. If you don't want to have any constraints, give an empty array string, like this <code>'[]'</code></p>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.createEdgeLabel('KNOWS', '[]', 'name', int32, true)</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>Added type [KNOWS]</code></p>
+<ul>
+<li>db.addIndex(label_name, field_name, is_unique)</li>
+</ul>
+<p>create an index on some field of one vertex label .</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>label_name</td>
+<td>string</td>
+<td>name of the label</td>
+</tr>
+<tr>
+<td>field_name</td>
+<td>string</td>
+<td>specification of a field</td>
+</tr>
+<tr>
+<td>is_unique</td>
+<td>boolean</td>
+<td>Specifies whether the index is unique</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL db.addIndex('Person', 'id', true)</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>Added index [Perosn:id]</code></p>
+<ul>
+<li>dbms.security.changePassword(current_password ,new_password)</li>
+</ul>
+<p>Change the current user's password.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>current_password</td>
+<td>string</td>
+<td>the current password</td>
+</tr>
+<tr>
+<td>new_password</td>
+<td>string</td>
+<td>new password</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.changePassword('73@TuGraph','admin')</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>true</code></p>
+<ul>
+<li>dbms.security.changeUserPassword(user_name, new_password)</li>
+</ul>
+<p>Change the current user's password.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>user_name</td>
+<td>string</td>
+<td>the user's name</td>
+</tr>
+<tr>
+<td>new_password</td>
+<td>string</td>
+<td>new password</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.changeUserPassword('quest','73@TuGraph')</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>true</code></p>
+<ul>
+<li>dbms.security.createUser(user_name, password)</li>
+</ul>
+<p>create  new user on this graph database.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>user_name</td>
+<td>string</td>
+<td>the new user name</td>
+</tr>
+<tr>
+<td>password</td>
+<td>string</td>
+<td>the password of new user</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.createUser('quest',"admin")</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>true</code></p>
+<ul>
+<li>dbms.security.deleteUser(user_name)</li>
+</ul>
+<p>delete user on this graph database.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>user_name</td>
+<td>string</td>
+<td>the user name to be deleted</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.deleteUser('quest')</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>true</code></p>
+<ul>
+<li>dbms.security.listUsers()</li>
+</ul>
+<p>get all user's name of the graph database.</p>
+<p><strong>Output:</strong></p>
+<p>a list of user names, in which each element is a list of the following fields:</p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>user.name</td>
+<td>string</td>
+<td>the user name</td>
+</tr>
+<tr>
+<td>is.admin</td>
+<td>boolean</td>
+<td>the permission of this user</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.listUsers()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>user.name</th>
+<th>is.admin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>admin</td>
+<td>true</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.security.showCurrentUser()</li>
+</ul>
+<p>get current user's name.</p>
+<p><strong>Output:</strong></p>
+<pre><code>a list of user names, in which each element is a list of the following fields:
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>user.user</td>
+<td>string</td>
+<td>the current user name</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.showCurrentUser()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>user.name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>admin</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.security.listAllowedHosts()</li>
+</ul>
+<p>get the list of ips to be allowed .</p>
+<p><strong>Output:</strong></p>
+<p>a list of  ips which are allowed.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.listAllowedHosts()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>host</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>192.168.1.22</td>
+</tr>
+<tr>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.security.deleteAllowedHosts(hosts)</li>
+</ul>
+<p>delete some ips from the list of ips to be allowed .</p>
+<p><strong>Output:</strong></p>
+<p>the number of ip which been deleted.</p>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.deleteAllowedHosts('192.168.1.22','192.168.1.23')</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.security.addAllowedHosts(hosts)</li>
+</ul>
+<p>add some ips from the list of ips to be allowed .</p>
+<p><strong>Output:</strong></p>
+<pre><code>the number of ip which been added.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.security.addAllowedHosts('192.168.1.22','192.168.1.23')</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.graph.createGraph(graph_name, description, max_size_GB)</li>
+</ul>
+<p>create a new subgraph in this graph database .</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>graph_name</td>
+<td>string</td>
+<td>the name of new subgraph</td>
+</tr>
+<tr>
+<td>description</td>
+<td>string</td>
+<td>description of new subgraph</td>
+</tr>
+<tr>
+<td>max_size_GB</td>
+<td>integer</td>
+<td>Upper limit of subgraph capacity</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>if successful , it will return true.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.graph.createGraph('graph1', 'description', 2045)</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.graph.deleteGraph(graph_name)</li>
+</ul>
+<p>delete a subgraph in this graph database .</p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>graph_name</td>
+<td>string</td>
+<td>the name of subgraph to been deleted</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>if successful , it will return true.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.graph.deleteGraph('graph1')</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.graph.modGraph(graph_name, config)</li>
+</ul>
+<p>delete a subgraph in this graph database .</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>graph_name</td>
+<td>string</td>
+<td>the name of subgraph to been deleted</td>
+</tr>
+<tr>
+<td>config</td>
+<td>map</td>
+<td>the configuration to be modified</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>if successful , it will return true.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.graph.modGraph('graph1',{description:'this graph', max_size_GB:20})</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.graph.listGraphs()</li>
+</ul>
+<p>get all subgraphs in this graph database.</p>
+<p><strong>Output:</strong></p>
+<pre><code>a list of {subgraph and configuration}.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.graph.listGraphs()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>graph.name</th>
+<th>configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default</td>
+<td>{"description":"","max_size_GB":1024}</td>
+</tr>
+<tr>
+<td>graph1</td>
+<td>{"description":"this graph","max_size_GB":20}</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.config.list()</li>
+</ul>
+<p>get config of this graph database.</p>
+<p><strong>Output:</strong></p>
+<pre><code>a list of {configuration}.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.config.list()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bind_host</td>
+<td>0.0.0.0</td>
+</tr>
+<tr>
+<td>durable</td>
+<td>true</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.config.update(updates)</li>
+</ul>
+<p>get some config of this graph database.</p>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a success message
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.config.update({
+    enable_ip_check:false,
+    durable:true,
+    optimistic_txn:true,
+    enable_audit_log:true})</code></p>
+<p><strong>Example output:</strong></p>
+<p><code>Update succeeded.</code></p>
+<ul>
+<li>dbms.takeSnapshot()</li>
+</ul>
+<p>take the  snapshot  on this current graph database.</p>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns the path of snapshot.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.takeSnapshot()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>log/db/snapshot/2020-07-20_17.20.03</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>dbms.listBackupFiles()</li>
+</ul>
+<p>get the path of backuped files.</p>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns the path of snapshot.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>CALL dbms.listBackupFiles()</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tugraph/db/binlog/binlog_0</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>algo.shortestPath(startNode, endNode, config)</li>
+</ul>
+<p>get one of the shortest paths between two vertexes.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>startNode</td>
+<td>Node</td>
+<td>the source node of paths</td>
+</tr>
+<tr>
+<td>endNode</td>
+<td>Node</td>
+<td>the destination node paths</td>
+</tr>
+<tr>
+<td>config</td>
+<td>MAP</td>
+<td>the filter of shortest paths, the formate as {maxHops:3, relationshipQuery:'HAS_CHILD'}</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it will returns one group result of the shortest path.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>MATCH (n1 {name:'Hugo Weaving'}),(n2 {title:'The Matrix'})
+  CALL algo.shortestPath(n1,n2) YIELD nodeCount,totalCost RETURN nodeCount,totalCost</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>nodeCount</th>
+<th>totalCost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>algo.allShortestPaths(startNode, endNode, config))</li>
+</ul>
+<p>get the path of backuped files.</p>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns the path of snapshot.
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>MATCH (n1 {name:'Hugo Weaving'}),(n2 {title:'The Matrix'})
+  CALL algo.allShortestPaths(n1,n2) YIELD nodeIds,cost RETURN nodeIds,cost</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>nodeIds</th>
+<th>cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[2,665]</td>
+<td>1</td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>algo.algo.native.extract(id, config))</li>
+</ul>
+<p>get the field values of a list of vertexes or edges.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>parameter type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>ANY</td>
+<td>the id of vertexes or edges , the id must be variable</td>
+</tr>
+<tr>
+<td>config</td>
+<td>MAP</td>
+<td>the configuration of  this extraction of vertexes or edges</td>
+</tr>
+</tbody>
+</table>
+<p>in which each <code>config</code> is a map in the form of <code>{isNode:true, filed:'HAS_CHILD'}</code>, if <code>isNode</code> is specified true, the <code>id</code> is a vertex id, or  it is an edge id.</p>
+<p><strong>Output:</strong></p>
+<pre><code>If successful, it returns a list of the value of vertexes or edges specified field .
+</code></pre>
+<p><strong>Example input:</strong></p>
+<p><code>with [2,3] as vids CALL algo.native.extract(vids,{isNode:true, field:'id'})
+  YIELD value  RETURN value</code></p>
+<p><strong>Example output:</strong></p>
+<table>
+<thead>
+<tr>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[4,5]</td>
+</tr>
+</tbody>
+</table>
+<h2 id="procedures_1">内置procedures完整列表</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+<th>Signature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>db.subgraph</td>
+<td>列出点的子图</td>
+<td>db.subgraph(vids::LIST) :: (subgraph::STRING)</td>
+</tr>
+<tr>
+<td>db.vertexLabels</td>
+<td>列出所有Vertex Label</td>
+<td>db.vertexLabels() :: (label::STRING)</td>
+</tr>
+<tr>
+<td>db.edgeLabels</td>
+<td>列出所有Edge Label</td>
+<td>db.edgeLabels() :: (edgeLabels::STRING)</td>
+</tr>
+<tr>
+<td>db.indexes</td>
+<td>列出所有索引</td>
+<td>db.indexes() :: (label::STRING,field::STRING,unique::BOOLEAN)</td>
+</tr>
+<tr>
+<td>db.listLabelIndexes(label_name)</td>
+<td>列出所有与某个Label相关的索引</td>
+<td>db.listLabelIndexes(label_name:STRING) :: (label::STRING,field::STRING,unique::BOOLEAN)</td>
+</tr>
+<tr>
+<td>db.warmup</td>
+<td>预热数据</td>
+<td>db.warmup() :: (time_used::STRING)</td>
+</tr>
+<tr>
+<td>db.createVertexLabel</td>
+<td>创建Vertex Label</td>
+<td>db.createVertexLabel(label_name::STRING,field_specs::LIST) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.createLabel</td>
+<td>创建Vertex/Edge Label</td>
+<td>db.createLabel(label_type::STRING,label_name::STRING,extra::STRING,field_specs::LIST) :: ()</td>
+</tr>
+<tr>
+<td>db.getLabelSchema</td>
+<td>列出label schema</td>
+<td>db.getLabelSchema(label_type::STRING,label_name::STRING) :: (name::STRING,type::STRING,optional::BOOLEAN)</td>
+</tr>
+<tr>
+<td>db.getVertexSchema</td>
+<td>列出点的 schema</td>
+<td>db.getVertexSchema(label::STRING) :: (schema::MAP)</td>
+</tr>
+<tr>
+<td>db.getEdgeSchema</td>
+<td>列出边的 schema</td>
+<td>db.getEdgeSchema(label::STRING) :: (schema::MAP)</td>
+</tr>
+<tr>
+<td>db.deleteLabel</td>
+<td>删除Vertex/Edge Label</td>
+<td>db.deleteLabel(label_type::STRING,label_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.alterLabelDelFields</td>
+<td>修改label删除属性</td>
+<td>db.alterLabelDelFields(label_type::STRING,label_name::STRING,del_fields::LIST) :: (record_affected::INTEGER)</td>
+</tr>
+<tr>
+<td>db.alterLabelAddFields</td>
+<td>修改label添加field</td>
+<td>db.alterLabelAddFields(label_type::STRING,label_name::STRING,add_field_spec_values::LIST) :: (record_affected::INTEGER)</td>
+</tr>
+<tr>
+<td>db.alterLabelModFields</td>
+<td>修改label field</td>
+<td>db.alterLabelModFields(label_type::STRING,label_name::STRING,mod_field_specs::LIST) :: (record_affected::INTEGER)</td>
+</tr>
+<tr>
+<td>db.createEdgeLabel</td>
+<td>创建Edge Label</td>
+<td>db.createEdgeLabel(type_name::STRING,field_specs::LIST) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.addIndex</td>
+<td>创建索引</td>
+<td>db.addIndex(label_name::STRING,field_name::STRING,is_unique::BOOLEAN) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.deleteIndex</td>
+<td>删除索引</td>
+<td>db.deleteIndex(label_name::STRING,field_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.backup</td>
+<td>备份数据</td>
+<td>db.backup(destination::STRING) :: ()</td>
+</tr>
+<tr>
+<td>dbms.procedures</td>
+<td>列出所有procedures</td>
+<td>dbms.procedures() :: (name::STRING,signature::STRING)</td>
+</tr>
+<tr>
+<td>dbms.security.changePassword</td>
+<td>更改当前用户的密码</td>
+<td>dbms.security.changePassword(current_password::STRING,new_password::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.changeUserPassword</td>
+<td>更改指定用户的密码</td>
+<td>dbms.security.changeUserPassword(user_name::STRING,new_password::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.createUser</td>
+<td>创建用户</td>
+<td>dbms.security.createUser(user_name::STRING,password::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.deleteUser</td>
+<td>删除用户</td>
+<td>dbms.security.deleteUser(user_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.listUsers</td>
+<td>列出所有用户</td>
+<td>dbms.security.listUsers() :: (user_name::STRING,user_info::MAP)</td>
+</tr>
+<tr>
+<td>dbms.security.showCurrentUser</td>
+<td>列出当前用户信息</td>
+<td>dbms.security.showCurrentUser() :: (current_user::STRING)</td>
+</tr>
+<tr>
+<td>dbms.security.getUserPermissions</td>
+<td>列出指定用户的权限</td>
+<td>dbms.security.getUserPermissions(user_name::STRING) :: (user_info::MAP)</td>
+</tr>
+<tr>
+<td>dbms.graph.createGraph</td>
+<td>创建子图</td>
+<td>dbms.graph.createGraph(graph_name::STRING, description::STRING, max_size_GB::INTEGER) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.graph.modGraph</td>
+<td>修改子图属性</td>
+<td>dbms.graph.modGraph(graph_name::STRING,config::MAP) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.graph.deleteGraph</td>
+<td>删除子图</td>
+<td>dbms.graph.deleteGraph(graph_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.graph.listGraphs</td>
+<td>列出所有子图</td>
+<td>dbms.graph.listGraphs() :: (graph_name::STRING,configuration::MAP)</td>
+</tr>
+<tr>
+<td>dbms.graph.getGraphInfo</td>
+<td>列出指定子图的信息</td>
+<td>dbms.graph.getGraphInfo(graph_name::STRING)::(graph_name::STRING,configuration::MAP)</td>
+</tr>
+<tr>
+<td>dbms.security.addAllowedHosts</td>
+<td>添加ip到信任列表</td>
+<td>dbms.security.addAllowedHosts(hosts::LIST) :: (num_new::INTEGER)</td>
+</tr>
+<tr>
+<td>dbms.security.deleteAllowedHosts</td>
+<td>从信任列表删除ip</td>
+<td>dbms.security.deleteAllowedHosts(hosts::LIST) :: (record_affected::INTEGER)</td>
+</tr>
+<tr>
+<td>dbms.security.listAllowedHosts</td>
+<td>列出信任列表中的主机ip</td>
+<td>dbms.security.listAllowedHosts() :: (host::STRING)</td>
+</tr>
+<tr>
+<td>dbms.config.update</td>
+<td>更新TuGraph配置</td>
+<td>dbms.config.update(updates::MAP) :: (message::STRING)</td>
+</tr>
+<tr>
+<td>dbms.config.list</td>
+<td>列出TuGraph配置</td>
+<td>dbms.config.list() :: (name::STRING,value::ANY)</td>
+</tr>
+<tr>
+<td>algo.shortestPath</td>
+<td>查询两个顶点间的最短路径</td>
+<td>algo.shortestPath(startNode::NODE,endNode::NODE,config::MAP) :: (nodeCount::INTEGER,totalCost::FLOAT)</td>
+</tr>
+<tr>
+<td>algo.allShortestPaths</td>
+<td>查询两个顶点间的所有最短路径</td>
+<td>algo.allShortestPaths(startNode::NODE,endNode::NODE,config::MAP) :: (nodeIds::LIST,relationshipIds::LIST,cost::LIST)</td>
+</tr>
+<tr>
+<td>algo.native.extract</td>
+<td>查询指定VertexId/EdgeUid（列表）指定field的值（列表）</td>
+<td>algo.native.extract(id::ANY,config::MAP) :: (value::ANY)</td>
+</tr>
+<tr>
+<td>db.flushDB</td>
+<td>刷新db</td>
+<td>db.flushDB() :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.listRoles</td>
+<td>列出所有角色</td>
+<td>dbms.security.listRoles() :: (role_name::STRING,role_info::MAP)</td>
+</tr>
+<tr>
+<td>dbms.security.createRole</td>
+<td>创建角色</td>
+<td>dbms.security.createRole(role_name::STRING,desc::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.deleteRole</td>
+<td>删除角色</td>
+<td>dbms.security.deleteRole(role_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.getRoleInfo</td>
+<td>获取角色详细信息</td>
+<td>dbms.security.getRoleInfo(role::STRING) :: (role_info::MAP)</td>
+</tr>
+<tr>
+<td>dbms.security.disableRole</td>
+<td>禁用/启用角色</td>
+<td>dbms.security.disableRole(role::STRING,disable::BOOLEAN) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.modRoleDesc</td>
+<td>修改角色描述信息</td>
+<td>dbms.security.modRoleDesc(role::STRING,description::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.rebuildRoleAccessLevel</td>
+<td>删除角色权限并重建</td>
+<td>dbms.security.rebuildRoleAccessLevel(role::STRING,access_level::MAP) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.modRoleAccessLevel</td>
+<td>修改角色对指定图的访问权限</td>
+<td>dbms.security.modRoleAccessLevel(role::STRING,access_level::MAP) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.modRoleFieldAccessLevel</td>
+<td>修改角色对指定属性的访问权限</td>
+<td>dbms.security.modRoleFieldAccessLevel(role::STRING,graph::STRING,label::STRING,field::STRING,label_type::STRING,field_access_level::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.getUserInfo</td>
+<td>获取用户详细信息</td>
+<td>dbms.security.getUserInfo(user::STRING) :: (user_info::MAP)</td>
+</tr>
+<tr>
+<td>dbms.security.disableUser</td>
+<td>禁用/启用用户</td>
+<td>dbms.security.disableUser(user::STRING,disable::BOOLEAN) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.setCurrentDesc</td>
+<td>设置当前用户描述信息</td>
+<td>dbms.security.setCurrentDesc(description::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.setUserDesc</td>
+<td>设置用户描述信息</td>
+<td>dbms.security.setUserDesc(user::STRING,description::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.getUserMemoryUsage</td>
+<td>获取用户内存用量</td>
+<td>dbms.security.getUserMemoryUsage(user::STRING) :: (memory_usage::INTEGER)</td>
+</tr>
+<tr>
+<td>dbms.security.setUserMemoryLimit</td>
+<td>设置用户内存限制</td>
+<td>dbms.security.setUserMemoryLimit(user::STRING,memorylimit::INTEGER) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.deleteUserRoles</td>
+<td>删除用户与角色的联系</td>
+<td>dbms.security.deleteUserRoles(user::STRING,roles::LIST) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.rebuildUserRoles</td>
+<td>清空用户角色的关系并重建</td>
+<td>dbms.security.rebuildUserRoles(user::STRING,roles::LIST) :: (::VOID)</td>
+</tr>
+<tr>
+<td>dbms.security.addUserRoles</td>
+<td>新增用户与角色的联系</td>
+<td>dbms.security.addUserRoles(user::STRING,roles::LIST) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.plugin.loadPlugin</td>
+<td>装载plugin</td>
+<td>db.plugin.loadPlugin(plugin_type::STRING,plugin_name::STRING,plugin_content::STRING,code_type::STRING,plugin_description::STRING,read_only::BOOLEAN) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.plugin.deletePlugin</td>
+<td>删除plugin</td>
+<td>db.plugin.deletePlugin(plugin_type::STRING,plugin_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.plugin.listPlugin</td>
+<td>列出已装载的plugin</td>
+<td>db.plugin.listPlugin(plugin_type::STRING) :: (plugin_description::LIST)</td>
+</tr>
+<tr>
+<td>db.plugin.getPluginInfo</td>
+<td>获取plugin的详细信息</td>
+<td>db.plugin.getPluginInfo(plugin_type::STRING,plugin_name::STRING,show_code::BOOLEAN)::(plugin_description::MAP)</td>
+</tr>
+<tr>
+<td>db.plugin.callPlugin</td>
+<td>执行plugin</td>
+<td>db.plugin.callPlugin(plugin_type::STRING,plugin_name::STRING,param::STRING,timeout::DOUBLE,in_process::BOOLEAN) :: (success::BOOLEAN,result::STRING)</td>
+</tr>
+<tr>
+<td>db.importor.dataImportor</td>
+<td>导入点或边数据</td>
+<td>db.importor.dataImportor(description::STRING,content::STRING,continue_on_error::BOOLEAN,thread_nums::INTEGER,delimiter::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.importor.schemaImportor</td>
+<td>导入点或边schema</td>
+<td>db.importor.schemaImportor(description::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.addFullTextIndex</td>
+<td>添加全文索引</td>
+<td>db.addFullTextIndex(is_vertex::BOOLEAN, label_name::STRING, field_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.deleteFullTextIndex</td>
+<td>删除全文索引</td>
+<td>db.deleteFullTextIndex(is_vertex::BOOLEAN, label_name::STRING, field_name::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.rebuildFullTextIndex</td>
+<td>重建全文索引</td>
+<td>db.rebuildFullTextIndex(vertex_labels::STRING, edge_labels::STRING) :: (::VOID)</td>
+</tr>
+<tr>
+<td>db.fullTextIndexes</td>
+<td>查看全文索引</td>
+<td>db.fullTextIndexes() :: (is_vertex::BOOLEAN, label::STRING, field::STRING)</td>
+</tr>
+<tr>
+<td>dbms.task.listTasks</td>
+<td>查询正在执行的任务</td>
+<td>dbms.task.listTasks()::(tasks::LIST)</td>
+</tr>
+<tr>
+<td>dbms.task.terminateTask</td>
+<td>中止任务</td>
+<td>dbms.task.terminateTask(task_id::STRING)::(::VOID)</td>
+</tr>
+<tr>
+<td>db.dropDB</td>
+<td>清空数据库</td>
+<td>db.dropDB() :: (::VOID)</td>
+</tr>
+</tbody>
+</table>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../1.restful-api/" class="btn btn-neutral float-left" title="RESTful API"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../3.procedure/" class="btn btn-neutral float-right" title="Procedure">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../1.restful-api/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../3.procedure/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../../..';</script>
+    <script src="../../../js/theme_extra.js" defer></script>
+    <script src="../../../js/theme.js" defer></script>
+      <script src="../../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
