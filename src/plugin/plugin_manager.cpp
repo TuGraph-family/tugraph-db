@@ -219,22 +219,23 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
 
     // cython
     std::string exec_dir = fma_common::FileSystem::GetExecutablePath().Dir();
-    std::string cmd = FMA_FMT("cython {} -+ -3 -I{}/../../src/cython/ -o {}  --module-name {}",
+    std::string cmd = FMA_FMT("cython {} -+ -3 -I{}/../../include/cython/ "
+                              " -I/usr/local/include/cython/ "
+                              " -o {} --module-name {} ",
                               cython_file_path, exec_dir, cpp_file_path, name);
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while translate cython to c++.",
                    "Failed to translated cython. cmd: " + cmd);
 
     // compile
-    std::string CFLAGS = FMA_FMT("-I{}/../../include -I/usr/local/include "
-                                 "-I/usr/include/python3.6m "
-                                 "-I/usr/local/include/python3.6m "
-                                 "-I{}/../../deps/fma-common "
-                                 "-I{}/../../src",
-                                 exec_dir, exec_dir, exec_dir);
+    std::string CFLAGS = FMA_FMT(" -I/usr/local/include "
+                                 " -I{}/../../include "
+                                 " -I/usr/include/python3.6m "
+                                 " -I/usr/local/include/python3.6m ",
+                                 exec_dir);
 //    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
 //                                  "-L/usr/lib64/ -lpython3.6m", exec_dir);
-    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
-                                  "-L/usr/lib64/ ", exec_dir);
+    std::string LDFLAGS = FMA_FMT(" -llgraph -L{} -L/usr/local/lib64/ "
+                                  " -L/usr/lib64/ ", exec_dir);
 #ifndef __clang__
     cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",

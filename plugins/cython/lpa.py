@@ -3,7 +3,7 @@
 
 import cython
 from cython.cimports.olap_base import *
-from cython.cimports.lgraph_db import *
+from cython.cimports.olap_on_disk import *
 from cython.cimports.libc.stdio import printf
 from cython.cimports.libcpp.unordered_map import unordered_map
 from cython.operator import dereference as deref

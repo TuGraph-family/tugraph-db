@@ -18,7 +18,9 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#if LGRAPH_ENABLE_BOOST_STACKTRACE
 #include <boost/stacktrace.hpp>
+#endif
 
 namespace lgraph_api {
 /** @brief   User input error. Base class for a variety of input errors. */

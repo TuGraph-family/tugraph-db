@@ -13,7 +13,7 @@ ctypedef signed int int32_t
 ctypedef short int int16_t
 ctypedef unsigned short int	uint16_t
 
-cdef extern from "../../include/lgraph/lgraph_types.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_types.h" namespace "lgraph_api":
     cdef struct EdgeUid:
         int64_t src
         int64_t dst
@@ -27,22 +27,22 @@ cdef extern from "../../include/lgraph/lgraph_types.h" namespace "lgraph_api":
         string ToString()
 
 
-cdef extern from "../../include/lgraph/lgraph_vertex_index_iterator.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_vertex_index_iterator.h" namespace "lgraph_api":
     cdef cppclass VertexIndexIterator nogil:
         int64_t GetVid() const
 
-cdef extern from "../../include/lgraph/lgraph_vertex_iterator.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_vertex_iterator.h" namespace "lgraph_api":
     cdef cppclass VertexIterator nogil:
         pass
 
-cdef extern from "../../include/lgraph/lgraph_edge_iterator.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_edge_iterator.h" namespace "lgraph_api":
     cdef cppclass OutEdgeIterator nogil:
         pass
 
     cdef cppclass InEdgeIterator nogil:
             pass
 
-cdef extern from "../../include/lgraph/lgraph_galaxy.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_galaxy.h" namespace "lgraph_api":
     cdef cppclass Galaxy nogil:
         Galaxy(const string & dir_path, bint durable, bint create_if_not_exist)
         Galaxy(const string & dir_path, bint durable)
@@ -89,7 +89,7 @@ cdef extern from "../../include/lgraph/lgraph_galaxy.h" namespace "lgraph_api":
         void Close()
 
 
-cdef extern from "../../include/lgraph/lgraph_txn.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_txn.h" namespace "lgraph_api":
     cdef cppclass Transaction nogil:
         VertexIndexIterator GetVertexIndexIterator(const string& label, const string& field, const string& key_start, const string& key_end)
         size_t GetNumVertices()
@@ -123,7 +123,7 @@ cdef extern from "../../include/lgraph/lgraph_txn.h" namespace "lgraph_api":
                               const vector[string]& field_value_strings)
 
 
-cdef extern from "../../include/lgraph/lgraph_db.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_db.h" namespace "lgraph_api":
     cdef cppclass GraphDB nogil:
         void Close()
         Transaction CreateReadTxn()
