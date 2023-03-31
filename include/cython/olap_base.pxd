@@ -14,7 +14,7 @@ cdef extern from "<functional>" namespace "std":
     cdef cppclass function[T]:
         pass
 
-cdef extern from "../../include/lgraph/olap_base.h" namespace "lgraph_api::olap" :
+cdef extern from "lgraph/olap_base.h" namespace "lgraph_api::olap" :
     cdef enum EdgeDirectionPolicy:
         DUAL_DIRECTION
         MAKE_SYMMETRIC
@@ -105,23 +105,7 @@ cdef extern from "../../include/lgraph/olap_base.h" namespace "lgraph_api::olap"
         ReducedSum ProcessVertexInRange[ReducedSum, Algorithm](ReducedSum(& work)(Algorithm, size_t) nogil, size_t lower, size_t upper, Algorithm algorithm, ReducedSum zero, ReducedSum(*reduce)(ReducedSum, ReducedSum)) nogil
 
 
-cdef extern from "../../src/olap/olap_on_disk.h" namespace "lgraph_api::olap" :
-    cdef cppclass OlapOnDisk[EdgeData](OlapBase[EdgeData]) nogil:
-        OlapOnDisk() nogil
-        void Load(ConfigBase[EdgeData] config, int edge_direction_policy) nogil
-
-cdef extern from "../../src/olap/olap_config.h" namespace "lgraph_api::olap" :
-    tuple[size_t, bint] parse_line_weighted[EdgeData](const char* p, const char* end, EdgeUnit[EdgeData]& e) nogil
-    tuple[size_t, bint] parse_line_unweighted[EdgeData](const char* p, const char* end, EdgeUnit[EdgeData]& e) nogil
-    cdef cppclass ConfigBase[EdgeData] nogil:
-        ConfigBase() nogil
-        ConfigBase(int &argc, char** &argv) nogil
-        void Print() nogil
-        string input_dir
-        string output_dir
-        tuple[size_t, bint] parse_line(const char* p, const char* end, EdgeUnit[EdgeData]& e)
-
-cdef extern from "../../include/lgraph/lgraph_atomic.h" namespace "lgraph_api" :
+cdef extern from "lgraph/lgraph_atomic.h" namespace "lgraph_api" :
     bint cas[T](T* ptr, T oldv, T newv) nogil
     bint write_min[T](T* a, T b) nogil
     bint write_max[T](T* a, T b) nogil
@@ -137,7 +121,7 @@ cdef extern from "../../include/lgraph/lgraph_atomic.h" namespace "lgraph_api" :
     void write_sub(int32_t *a, int32_t b) nogil
 
 
-cdef extern from "../../include/lgraph/olap_on_db.h" namespace "lgraph_api::olap" :
+cdef extern from "lgraph/olap_on_db.h" namespace "lgraph_api::olap" :
     size_t SNAPSHOT_PARALLEL
     size_t SNAPSHOT_UNDIRECTED
     size_t SNAPSHOT_IDMAPPING

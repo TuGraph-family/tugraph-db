@@ -57,5 +57,5 @@ ext_modules = [
 setup(ext_modules=cythonize(
     ext_modules,
     compiler_directives={'language_level': "3str"},
-    include_path=["../../src/cython/"]
+    include_path=["../../src/cython/", "../../include/cython/"]
 ))

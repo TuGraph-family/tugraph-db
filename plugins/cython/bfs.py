@@ -13,7 +13,7 @@ import json
 
 import cython
 from cython.cimports.olap_base import *
-from cython.cimports.lgraph_db import *
+from cython.cimports.olap_on_disk import *
 from cython.cimports.libc.stdio import printf
 import time
 import lgraph_db_python
