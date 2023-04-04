@@ -1,4 +1,8 @@
-FROM centos:7.3.1611
+FROM centos:8.4.2105
+
+RUN rm -rf /etc/yum.repos.d \
+    && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
+    && tar -xf yum.repos.d.tar.gz && mv yum.repos.d /etc/yum.repos.d && rm yum.repos.d.tar.gz
 
 RUN yum update -y && yum install -y \
     git \
@@ -7,22 +11,21 @@ RUN yum update -y && yum install -y \
     make \
     wget \
     bzip2 \
-    openssl-static \
+    zlib-devel.x86_64 \
     libtool \
     libtool-ltdl \
     libtool-ltdl-devel \
+    openssl-devel.x86_64 \
     unzip \
     byacc \
     libuuid-devel \
     rpm-build \
     rpmdevtools \
-    rpmdev-setuptree \
     autoconf \
     automake \
-    libtoolize \
-    texinfo \
-    java-1.8.0-openjdk* \
     perl-Digest-MD5 \
+    perl.x86_64 \
+    java-1.8.0-openjdk* \
     libcurl-devel.x86_64
 
 # install g++ 8.4.0
@@ -118,10 +121,10 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6
 # install lcov
 # if it is not accessible, replace it with the link below
 # https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14-1.noarch.rpm
+# install lcov
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov-1.14-1.noarch.rpm \
     && rpm -ivh lcov-1.14-1.noarch.rpm \
     && rm lcov-1.14-1.noarch.rpm
-
 
 #install maven
 # if it is not accessible, replace it with the link below
@@ -217,8 +220,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
-    LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0/jre/ \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
-
