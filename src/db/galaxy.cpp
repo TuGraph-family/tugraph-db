@@ -105,8 +105,14 @@ bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {
     return token_manager_.JudgeRefreshTime(token);
 }
 
-void lgraph::Galaxy::ModifyValidTime(const int& valid_time) {
-    token_manager_.ModifyValidTime(valid_time);
+void lgraph::Galaxy::ModifyTokenTime(const std::string& token,
+             const int64_t& refresh_time, const int64_t& expire_time) {
+    token_manager_.ModifyRefreshTime(token, refresh_time);
+    token_manager_.ModifyExpireTime(token, expire_time);
+}
+
+std::pair<int64_t, int64_t> lgraph::Galaxy::GetTokenTime(const std::string& token) {
+    return token_manager_.GetTokenTime(token);
 }
 
 std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token,
