@@ -70,9 +70,13 @@ Github Discussions (For general technical discussion)
 Slack (For developer quick communication):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
-DingTalk Group (For business and market communication):
+DingTalk Group (For general technical discussion)
 
 ![alert](./doc/images/dingtalk.png)
+
+WeChat Group (For general technical discussion)
+
+![alert](./doc/images/wechat_tech.png)
 
 WeChat Official Account (For announcement)
 
