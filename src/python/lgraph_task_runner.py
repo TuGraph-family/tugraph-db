@@ -58,7 +58,7 @@ class PluginManager:
 
     def LoadModule(self, module_name):
         logging.info('trying to load module %s' % module_name)
-        error_code = PluginErrorCode.SUCCESS
+        error_code = PluginErrorCode.SUCCESS_WITH_SIGNATURE
         output = ""
         try:
             path = self.plugin_dir + "/" + module_name + ".so"
@@ -70,9 +70,18 @@ class PluginManager:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
             self.functions[module_name] = getattr(module, 'Process')
+            # module may not have `GetSignature`
+            # AttributeError is captured below
+            get_signature = getattr(module, 'GetSignature')
+            # call `GetSignature` of python plugin
+            signature = get_signature()
+            # serialize signature into output
+            output = signature.serialize()
         except (KeyboardInterrupt, SystemExit):
             logging.warn('process being killed')
             raise
+        except AttributeError:
+            error_code = PluginErrorCode.SUCCESS
         except Exception as e:
             error_code = PluginErrorCode.INPUT_ERR
             output = str(e)

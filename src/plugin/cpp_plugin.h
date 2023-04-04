@@ -20,6 +20,7 @@
 #include "core/defs.h"
 #include "core/kv_store.h"
 #include "lgraph/lgraph.h"
+#include "lgraph/lgraph_types.h"
 
 #include "plugin/load_library.h"
 #include "plugin/plugin_manager_impl.h"
@@ -30,10 +31,12 @@ class LightningGraph;
 class CppPluginManagerImpl : public PluginManagerImplBase {
  protected:
     typedef lgraph_api::Process PluginFunc;
+    typedef lgraph_api::GetSignature SignatureGetter;
 
     struct PluginInfo : public PluginInfoBase {
         lgraph::dll::LibHandle lib_handle;
         PluginFunc* func;
+        SignatureGetter* get_sig_spec;
     };
 
     LightningGraph* db_;

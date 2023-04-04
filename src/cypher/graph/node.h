@@ -42,6 +42,7 @@ class Node {
         ARGUMENT,  // unmatched node that is argument
         CREATED,   // unmatched node in create clause
         MERGED,    // unmatched node in merge clause
+        YIELD,     // node yield from inquery call
         UNKNOWN,
     } derivation_;
 

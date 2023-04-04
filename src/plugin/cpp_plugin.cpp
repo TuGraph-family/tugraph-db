@@ -62,6 +62,17 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string
         UnloadDynamicLibrary(info->lib_handle);
         throw InputError("Failed to get Process() function in the DLL: " + GetLastErrorMsg());
     }
+    info->get_sig_spec = GetDllFunction<SignatureGetter*>(info->lib_handle, "GetSignature");
+    // it's ok for plugin which DOES NOT have `GetSignature` function.
+    // Plugins without `GetSignature` are not guaranteed to call safely in InQueryCall context.
+    if (!info->get_sig_spec) {
+        info->sig_spec = nullptr;
+        return;
+    }
+    auto sig_spec = std::make_unique<lgraph_api::SigSpec>();
+    bool r = info->get_sig_spec(*sig_spec);
+    if (!r) throw InputError(FMA_FMT("Failed to get Signature"));
+    info->sig_spec = std::move(sig_spec);
 }
 
 void CppPluginManagerImpl::UnloadPlugin(const std::string& user, const std::string& name,

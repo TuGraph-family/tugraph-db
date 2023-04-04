@@ -81,7 +81,13 @@ typedef std::tuple<bool, TUP_RETURN_BODY> TUP_RETURN;
 // expression, as_variable
 typedef TUP_RETURN_ITEM TUP_UNWIND;
 // procedure_name, parameters, yield items
-typedef std::tuple<std::string, std::vector<Expression>, std::vector<std::string>, Expression> TUP_CALL;
+typedef std::tuple<
+    std::string,
+    std::vector<Expression>,
+        // name, type(only used in signatured plugins)
+    std::vector<std::pair<std::string, lgraph_api::LGraphType>>,
+    Expression
+    > TUP_CALL;
 // variable, property_expression, sign(=/+=), expression, node_labels
 typedef std::tuple<std::string, Expression, std::string, Expression, VEC_STR> TUP_SET_ITEM;
 // vector of set items

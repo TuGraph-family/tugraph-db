@@ -39,6 +39,7 @@
 #endif
 
 namespace lgraph_api {
+typedef bool GetSignature(SigSpec &sig_spec);
 typedef bool Process(lgraph_api::GraphDB &db, const std::string &input, std::string &output);
 }
 

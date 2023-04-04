@@ -22,24 +22,84 @@
 
 #include "core/defs.h"
 
+
+
+namespace fma_common {
+
+template<>
+inline size_t BinaryWrite(fma_common::BinaryBuffer& stream, const lgraph_api::Parameter& param) {
+    return fma_common::BinaryWrite(stream, param.name) +
+           fma_common::BinaryWrite(stream, param.index) +
+           fma_common::BinaryWrite(stream, param.type);
+}
+
+template<>
+inline size_t BinaryRead(fma_common::BinaryBuffer& stream, lgraph_api::Parameter& param) {
+    size_t s, t, u;
+    if ((s = fma_common::BinaryRead(stream, param.name)) != 0) {
+        if ((t = fma_common::BinaryRead(stream, param.index)) != 0) {
+            if ((u = fma_common::BinaryRead(stream, param.type)) != 0) {
+                return s + t + u;
+            }
+        }
+    }
+    throw std::runtime_error("Failed to read parameter from stream, bad content");
+}
+
+template<>
+inline size_t BinaryWrite(fma_common::BinaryBuffer& stream, const lgraph_api::SigSpec& sig_spec) {
+    return fma_common::BinaryWrite(stream, sig_spec.input_list) +
+           fma_common::BinaryWrite(stream, sig_spec.result_list);
+}
+
+
+template<>
+inline size_t BinaryRead(fma_common::BinaryBuffer& stream, lgraph_api::SigSpec& sig_spec) {
+    size_t s, t;
+    if ((s = fma_common::BinaryRead(stream, sig_spec.input_list)) != 0) {
+        if ((t = fma_common::BinaryRead(stream, sig_spec.result_list)) != 0) {
+            return s + t;
+        }
+    }
+    throw std::runtime_error("Failed to read SigSpec from stream, bad content");
+}
+}  // namespace fma_common
+
 namespace lgraph {
 class AccessControlledDB;
 
 struct PluginInfoBase {
     std::string desc;
     bool read_only;
+    /// SigSpec is an optional field.
+    /// It is nullptr if the plugin doesn't have `GetSignature` function
+    /// Plugins whose SigSpec is nullptr are not guaranteed to call safely
+    /// in InQueryCall.
+    std::unique_ptr<lgraph_api::SigSpec> sig_spec;
 
     virtual ~PluginInfoBase() {}
 
     virtual size_t Serialize(fma_common::BinaryBuffer& stream) const {
-        return fma_common::BinaryWrite(stream, desc) + fma_common::BinaryWrite(stream, read_only);
+        size_t s = fma_common::BinaryWrite(stream, desc)
+                   + fma_common::BinaryWrite(stream, read_only);
+        if (sig_spec) {
+            s += fma_common::BinaryWrite(stream, *sig_spec);
+        }
+        return s;
     }
 
     virtual size_t Deserialize(fma_common::BinaryBuffer& stream) {
-        size_t s, t;
+        size_t s, t, u;
         if ((s = fma_common::BinaryRead(stream, desc)) != 0) {
             if ((t = fma_common::BinaryRead(stream, read_only)) != 0) {
-                return s + t;
+                if (stream.GetSize() <= 0) {
+                    return s + t;
+                }
+                auto _sig_spec = std::make_unique<lgraph_api::SigSpec>();
+                if ((u = fma_common::BinaryRead(stream, *_sig_spec)) != 0) {
+                    sig_spec = std::move(_sig_spec);
+                    return s + t + u;
+                }
             }
         }
         throw std::runtime_error("Failed to read plugin info from stream, bad content");

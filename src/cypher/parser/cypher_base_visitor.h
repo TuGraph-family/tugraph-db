@@ -25,6 +25,8 @@
 #include "parser/clause.h"
 #include "cypher_exception.h"
 #include "procedure/procedure.h"
+#include "core/defs.h"
+#include "db/galaxy.h"
 
 #if __APPLE__
 #ifdef TRUE
@@ -42,6 +44,7 @@ namespace parser {
  * extended to create a visitor which only needs to handle a subset of the available methods.
  */
 class CypherBaseVisitor : public LcypherVisitor {
+    cypher::RTContext *ctx_;
     CmdType _cmd_type;
     std::vector<SglQuery> _query;
     size_t _curr_query = 0;
@@ -111,8 +114,8 @@ class CypherBaseVisitor : public LcypherVisitor {
 
  public:
     CypherBaseVisitor() = default;
-
-    explicit CypherBaseVisitor(antlr4::tree::ParseTree *tree) {
+    //TODO：考虑在parser visit阶段之后，再处理yield items
+    CypherBaseVisitor(cypher::RTContext *ctx, antlr4::tree::ParseTree *tree): ctx_(ctx) {
         // The default implementation of visit()
         tree->accept(this);
         // build annotations
@@ -420,18 +423,18 @@ class CypherBaseVisitor : public LcypherVisitor {
         std::tuple<std::string, std::vector<Expression>> invocation =
             visit(ctx->oC_ExplicitProcedureInvocation());
         _curr_procedure_name = std::get<0>(invocation);
-
-        std::vector<std::string> yield_items;
+        std::vector<std::pair<std::string, lgraph_api::LGraphType>> yield_items;
         Expression where;
 
         if (ctx->oC_YieldItems()) {
-            auto yield_items_and_where = visit(ctx->oC_YieldItems()).as<std::tuple<std::vector<std::string>, Expression>>();
+            auto yield_items_and_where = visit(ctx->oC_YieldItems()).as<std::tuple<
+                std::vector<std::pair<std::string, lgraph_api::LGraphType>>, Expression>>();
             yield_items = std::get<0>(yield_items_and_where);
             where = std::get<1>(yield_items_and_where);
         }
-        TUP_CALL call =
-            std::make_tuple(std::get<0>(invocation), std::get<1>(invocation), yield_items, where);
         std::string procedure_name = std::get<0>(invocation);
+        TUP_CALL call = std::make_tuple(std::get<0>(invocation), std::get<1>(invocation),
+            std::move(yield_items), where);
         Clause clause;
         clause.type = Clause::INQUERYCALL;
         clause.data = std::make_shared<Clause::TYPE_CALL>(std::move(call));
@@ -458,44 +461,18 @@ class CypherBaseVisitor : public LcypherVisitor {
         } else {
             invocation = visit(ctx->oC_ExplicitProcedureInvocation());
         }
-        std::string procedure_name = std::get<0>(invocation);
-        _curr_procedure_name = procedure_name;
-
-        std::vector<std::string> yield_items;
+        _curr_procedure_name = std::get<0>(invocation);
+        std::vector<std::pair<std::string, lgraph_api::LGraphType>> yield_items;
         Expression where;
+
         if (ctx->oC_YieldItems()) {
-            auto yield_items_and_where = visit(ctx->oC_YieldItems()).as<std::tuple<std::vector<std::string>, Expression>>();
+            auto yield_items_and_where = visit(ctx->oC_YieldItems()).as<std::tuple<
+                std::vector<std::pair<std::string, lgraph_api::LGraphType>>, Expression>>();
             yield_items = std::get<0>(yield_items_and_where);
             where = std::get<1>(yield_items_and_where);
         }
-
-        TUP_CALL call =
-            std::make_tuple(std::get<0>(invocation), std::get<1>(invocation), yield_items, where);
-        
-        auto pp = cypher::global_ptable.GetProcedure(procedure_name);
-
-        auto concat_str = [](const cypher::Procedure *pp){
-            if (pp->signature.result_list.empty()) return std::string("[]");
-            std::string args = "[";
-            for (auto &arg : pp->signature.result_list) {
-                args += arg.name;
-                args += ", ";
-            }
-            return args.substr(0, args.size()-2) + "]";
-        };
-        // WARNING: if not found, maybe it's a plugin.
-        if (pp != nullptr) {
-            if (!yield_items.empty()){
-                for (auto &yield_item : yield_items) {
-                    if (!pp->ContainsYieldItem(yield_item)) {
-                        throw lgraph::InputError(
-                            FMA_FMT("yield item [{}] is not exsit, should be one of {}", 
-                                yield_item, concat_str(pp)));
-                    }
-                }
-            }
-        }
-        
+        TUP_CALL call = std::make_tuple(std::get<0>(invocation), std::get<1>(invocation),
+            std::move(yield_items), where);
         Clause clause;
         clause.type = Clause::STANDALONECALL;
         clause.data = std::make_shared<Clause::TYPE_CALL>(std::move(call));
@@ -511,46 +488,91 @@ class CypherBaseVisitor : public LcypherVisitor {
             yield_items.emplace_back(item->oC_Variable()->getText());
         }
 
+        std::vector<std::pair<std::string, lgraph_api::LGraphType>> _yield_items;
         CYPHER_THROW_ASSERT(!_curr_procedure_name.empty());
         auto pp = cypher::global_ptable.GetProcedure(_curr_procedure_name);
-        if (!pp) {
-            throw lgraph::InputError("unregistered standalone function: " + _curr_procedure_name);
-        }
-        auto concat_str = [](const cypher::Procedure* pp){
-            if (pp->signature.result_list.empty()) return std::string("[]");
-            std::string args = "[";
-            for (auto &arg : pp->signature.result_list) {
-                args += arg.name;
-                args += ", ";
-            }
-            return args.substr(0, args.size()-2) + "]";
-        };
-        for (auto &yield_item : yield_items) {
-            if (!pp->ContainsYieldItem(yield_item)) {
-                throw lgraph::InputError(
-                    FMA_FMT("yield item [{}] is not exsit, should be one of {}",
-                            yield_item, concat_str(pp)));
-            }
-            auto type = lgraph_api::LGraphType::NUL;
-            for (auto &r : pp->signature.result_list) {
-                if (r.name == yield_item) {
-                    type = r.type;
+        if (pp) {
+            auto concat_str = [](const cypher::Procedure* pp){
+                if (pp->signature.result_list.empty()) return std::string("[]");
+                std::string args = "[";
+                for (auto &arg : pp->signature.result_list) {
+                    args += arg.name;
+                    args += ", ";
+                }
+                return args.substr(0, args.size()-2) + "]";
+            };
+            for (auto &yield_item : yield_items) {
+                if (!pp->ContainsYieldItem(yield_item)) {
+                    throw lgraph::InputError(
+                        FMA_FMT("yield item [{}] is not exsit, should be one of {}",
+                                yield_item, concat_str(pp)));
+                }
+                auto type = lgraph_api::LGraphType::NUL;
+                for (auto &r : pp->signature.result_list) {
+                    if (r.name == yield_item) {
+                        type = r.type;
+                        _yield_items.emplace_back(yield_item, r.type);
+                    }
+                }
+                switch (type) {
+                case lgraph_api::LGraphType::NODE:
+                    AddSymbol(yield_item, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
+                    break;
+                default:
+                    AddSymbol(yield_item, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
+                    break;
                 }
             }
-            switch (type) {
-            case lgraph_api::LGraphType::NODE:
-                AddSymbol(yield_item, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
-                break;
-            default:
-                AddSymbol(yield_item, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
-                break;
+        } else {
+            // plugin
+            auto names = fma_common::Split(_curr_procedure_name, ".");
+            if (names.size() > 2 && names[0] == "plugin") {
+                std::string input, output;
+                auto type = names[1] == "cpp" ? lgraph::PluginManager::PluginType::CPP
+                                              : lgraph::PluginManager::PluginType::PYTHON;
+                if (type == lgraph::PluginManager::PluginType::PYTHON) {
+                    throw lgraph::EvaluationException(
+                        "Calling python plugin in CYPHER is disabled in this release.");
+                }
+                auto db = ctx_->galaxy_->OpenGraph(ctx_->user_, ctx_->graph_);
+                auto pm = db.GetLightningGraph()->GetPluginManager();
+                lgraph_api::SigSpec* sig_spec = nullptr;
+                if(!pm->GetPluginSignature(type, ctx_->user_, names[2], &sig_spec) || sig_spec == nullptr) {
+                    throw lgraph::InputError(FMA_FMT("cannot find procedure name {}", names[2]));
+                }
+                for (auto &yield_item : yield_items) {
+                    const auto iter = std::find_if(sig_spec->result_list.cbegin(), sig_spec->result_list.cend(), [&yield_item](const auto& param) {
+                        return yield_item == param.name;
+                    });
+                    if (iter == sig_spec->result_list.cend()) {
+                        throw lgraph::InputError(
+                            FMA_FMT("yield item [{}] is not exist", yield_item));
+                    }
+                    auto type = lgraph_api::LGraphType::NUL;
+                    for (auto &r : sig_spec->result_list) {
+                        if (r.name == yield_item) {
+                            type = r.type;
+                            _yield_items.emplace_back(yield_item, r.type);
+                        }
+                    }
+                    switch (type) {
+                    case lgraph_api::LGraphType::NODE:
+                        AddSymbol(yield_item, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
+                        break;
+                    default:
+                        AddSymbol(yield_item, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
+                        break;
+                    }
+                }
+            } else {
+                CYPHER_TODO();
             }
         }
         Expression where;
         if (ctx->oC_Where()) {
             where = visit(ctx->oC_Where());
         }
-        return std::make_tuple(yield_items, where);
+        return std::make_tuple(_yield_items, where);
     }
 
     virtual antlrcpp::Any visitOC_YieldItem(LcypherParser::OC_YieldItemContext *ctx) override {

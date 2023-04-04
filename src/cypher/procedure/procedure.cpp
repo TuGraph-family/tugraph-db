@@ -217,7 +217,7 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, cons
         for (auto &item : yield_items) titles.emplace_back(item);
     }
     std::unordered_map<std::string, std::function<void(const Procedure &, Record &)>> lmap = {
-        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.signature.proc_name)); }},
+        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.proc_name)); }},
         {"signature",
          [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }},
         {"read_only",

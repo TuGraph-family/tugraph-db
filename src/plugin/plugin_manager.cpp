@@ -75,6 +75,17 @@ std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins
     return plugins;
 }
 
+bool lgraph::SingleLanguagePluginManager::GetPluginSigSpec(const std::string& user,
+                                                           const std::string& name_,
+                                                           lgraph_api::SigSpec** sig_spec) {
+    std::string name = ToInternalName(name_);
+    AutoReadLock lock(lock_, GetMyThreadId());
+    auto it = procedures_.find(name);
+    if (it == procedures_.end()) return false;
+    *sig_spec = it->second->sig_spec.get();
+    return true;
+}
+
 bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& user,
                                                         const std::string& name_,
                                                         lgraph::PluginCode& ret) {
@@ -616,6 +627,12 @@ lgraph::PluginManager::~PluginManager() {}
 std::vector<lgraph::PluginDesc> lgraph::PluginManager::ListPlugins(PluginType type,
                                                                    const std::string& user) {
     return SelectManager(type)->ListPlugins(user);
+}
+
+bool lgraph::PluginManager::GetPluginSignature(lgraph::PluginManager::PluginType type,
+                                              const std::string& user, const std::string& name,
+                                               lgraph_api::SigSpec** sig_spec) {
+    return SelectManager(type)->GetPluginSigSpec(user, name, sig_spec);
 }
 
 bool lgraph::PluginManager::GetPluginCode(PluginType type, const std::string& user,

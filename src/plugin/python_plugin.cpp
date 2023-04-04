@@ -58,6 +58,20 @@ void PythonPluginManagerImpl::LoadPlugin(const std::string& user, const std::str
     switch (ec) {
     case python_plugin::TaskOutput::ErrorCode::SUCCESS:
         break;
+    case python_plugin::TaskOutput::ErrorCode::SUCCESS_WITH_SIGNATURE:
+        {
+            if (!pinfo->sig_spec) {
+                pinfo->sig_spec = std::make_unique<lgraph_api::SigSpec>();
+            }
+            // output stores the serialized lgraph_api::SigSpec
+            // deserialize from output
+            fma_common::BinaryBuffer buffer(output.data(), output.size());
+            fma_common::BinaryRead(buffer, *pinfo->sig_spec);
+            // detach buffer, since ownership of underlying data belongs to output
+            void* _buffer = nullptr;
+            size_t _size = 0;
+            buffer.DetachBuf(&_buffer, &_size);
+        }
     case python_plugin::TaskOutput::ErrorCode::INTERNAL_ERR:
         throw InternalError("Unexpected error occured when loading plugin: [{}]", output);
     case python_plugin::TaskOutput::ErrorCode::INPUT_ERR:

@@ -68,6 +68,11 @@ class SingleLanguagePluginManager {
      */
     virtual std::vector<PluginDesc> ListPlugins(const std::string& user);
 
+    // get plugin signature specification
+    // return true if success, false if plugin does not exist
+    virtual bool GetPluginSigSpec(const std::string& user, const std::string& name,
+                                  lgraph_api::SigSpec** sig_spec);
+
     // get plugin code
     // return true if success, false if plugin does not exist
     virtual bool GetPluginCode(const std::string& user, const std::string& name, PluginCode& ret);
@@ -201,6 +206,19 @@ class PluginManager {
     ~PluginManager();
 
     std::vector<PluginDesc> ListPlugins(PluginType type, const std::string& user);
+
+    /**
+     * Loads plugin from code
+     *
+     * @param          type                 The language type, CPP or PYTHON.
+     * @param          user                 The user.
+     * @param          name                 The plugin name.
+     * @param          ret                  The code structure, include desc.
+     *
+     * @return  true if success, false if not found the plugin.
+     */
+    bool GetPluginSignature(PluginType type, const std::string& user, const std::string& name,
+                       lgraph_api::SigSpec** sig_spec);
 
     /**
      * Loads plugin from code

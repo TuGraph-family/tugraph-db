@@ -160,6 +160,8 @@ struct FieldData {
 
     bool IsString() const { return type == SCALAR && scalar.type == lgraph::FieldType::STRING; }
 
+    bool IsArray() const { return type == ARRAY; }
+
     static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }
 
     std::string ToString(const std::string& null_value = "NUL") const {
