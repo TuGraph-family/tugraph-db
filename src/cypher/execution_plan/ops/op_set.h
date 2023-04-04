@@ -38,8 +38,8 @@ class OpSet : public OpBase {
 
     void GetVertexFields(RTContext *ctx, lgraph::VertexId vid, VEC_STR &k,
                          std::vector<lgraph_api::FieldData> &v) {
-        auto vit = ctx->txn_->GetVertexIterator(vid);
-        auto fields = ctx->txn_->GetVertexFields(vit);
+        auto vit = ctx->txn_->GetTxn()->GetVertexIterator(vid);
+        auto fields = ctx->txn_->GetTxn()->GetVertexFields(vit);
         for (auto &f : fields) {
             k.emplace_back(f.first);
             v.emplace_back(f.second);
@@ -48,8 +48,8 @@ class OpSet : public OpBase {
 
     void GetEdgeFields(RTContext *ctx, lgraph::EdgeUid uid, VEC_STR &k,
                        std::vector<lgraph_api::FieldData> &v) {
-        auto eit = ctx->txn_->GetOutEdgeIterator(uid, false);
-        auto fields = ctx->txn_->GetEdgeFields(eit);
+        auto eit = ctx->txn_->GetTxn()->GetOutEdgeIterator(uid, false);
+        auto fields = ctx->txn_->GetTxn()->GetEdgeFields(eit);
         for (auto &f : fields) {
             k.emplace_back(f.first);
             v.emplace_back(f.second);
@@ -75,8 +75,8 @@ class OpSet : public OpBase {
         ExtractProperties(ctx, value, values);
         auto idx = GetRecordIdx(node_variable);
         auto vid = record->values[idx].node->PullVid();
-        ctx->txn_->SetVertexProperty(vid, fields, values);
-        ctx->txn_->RefreshIterators();
+        ctx->txn_->GetTxn()->SetVertexProperty(vid, fields, values);
+        ctx->txn_->GetTxn()->RefreshIterators();
         ctx->result_info_->statistics.properties_set += fields.size();
     }
 
@@ -95,9 +95,9 @@ class OpSet : public OpBase {
                 }
                 auto idx = GetRecordIdx(lhs);
                 auto vid = record->values[idx].node->PullVid();
-                ctx->txn_->SetVertexProperty(vid, fields,
+                ctx->txn_->GetTxn()->SetVertexProperty(vid, fields,
                                              values);
-                ctx->txn_->RefreshIterators();
+                ctx->txn_->GetTxn()->RefreshIterators();
                 ctx->result_info_->statistics.properties_set += fields.size();
             } else {
                 CYPHER_TODO();
@@ -108,8 +108,8 @@ class OpSet : public OpBase {
             auto dst = record->values[GetRecordIdx(lhs)];
             GetVertexFields(ctx, src.node->ItRef()->GetId(), fields, values);
             auto vid = dst.node->PullVid();
-            ctx->txn_->SetVertexProperty(vid, fields, values);
-            ctx->txn_->RefreshIterators();
+            ctx->txn_->GetTxn()->SetVertexProperty(vid, fields, values);
+            ctx->txn_->GetTxn()->RefreshIterators();
             ctx->result_info_->statistics.properties_set += fields.size();
         } else if (rhs.type == parser::Expression::DataType::NULL_) {
             if (sign != "=") CYPHER_TODO();
@@ -135,9 +135,9 @@ class OpSet : public OpBase {
         fields.emplace_back(lhs.second);
         ExtractProperties(ctx, rhs, values);
         auto idx = GetRecordIdx(edge_variable);
-        ctx->txn_->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(), fields,
+        ctx->txn_->GetTxn()->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(), fields,
                                    values);
-        ctx->txn_->RefreshIterators();
+        ctx->txn_->GetTxn()->RefreshIterators();
         ctx->result_info_->statistics.properties_set++;
     }
 
@@ -155,9 +155,9 @@ class OpSet : public OpBase {
             }
             if (sign == "+=") {
                 auto idx = GetRecordIdx(edge_variable);
-                ctx->txn_->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(),
+                ctx->txn_->GetTxn()->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(),
                                            fields, values);
-                ctx->txn_->RefreshIterators();
+                ctx->txn_->GetTxn()->RefreshIterators();
                 ctx->result_info_->statistics.properties_set++;
             } else {
                 CYPHER_TODO();
@@ -168,8 +168,8 @@ class OpSet : public OpBase {
             auto dst = record->values[GetRecordIdx(lhs)];
             if (sign != "=") CYPHER_TODO();
             GetEdgeFields(ctx, src.relationship->ItRef()->GetUid(), fields, values);
-            ctx->txn_->SetEdgeProperty(dst.relationship->ItRef()->GetUid(), fields, values);
-            ctx->txn_->RefreshIterators();
+            ctx->txn_->GetTxn()->SetEdgeProperty(dst.relationship->ItRef()->GetUid(), fields, values);
+            ctx->txn_->GetTxn()->RefreshIterators();
             ctx->result_info_->statistics.properties_set++;
         } else if (rhs.type == parser::Expression::DataType::NULL_) {
             auto idx = GetRecordIdx(edge_variable);
@@ -248,13 +248,13 @@ class OpSet : public OpBase {
         for (auto &e : edges_to_delete_) FMA_DBG() << "E[" << _detail::EdgeUid2String(e) << "]";
 
         for (auto &e : edges_to_delete_) {
-            if (ctx->txn_->DeleteEdge(e)) {
+            if (ctx->txn_->GetTxn()->DeleteEdge(e)) {
                 ctx->result_info_->statistics.edges_deleted++;
             }
         }
         for (auto &v : vertices_to_delete_) {
             size_t n_in, n_out;
-            if (ctx->txn_->DeleteVertex(v, &n_in, &n_out)) {
+            if (ctx->txn_->GetTxn()->DeleteVertex(v, &n_in, &n_out)) {
                 ctx->result_info_->statistics.vertices_deleted++;
                 ctx->result_info_->statistics.edges_deleted += n_in + n_out;
             }
@@ -265,7 +265,7 @@ class OpSet : public OpBase {
          * While lgraph::Transaction::DeleteEdge() will not refresh
          * the iterator, after calling this method, the edge iterator
          * just becomes invalid.  */
-        ctx->txn_->RefreshIterators();
+        ctx->txn_->GetTxn()->RefreshIterators();
     }
 
  public:

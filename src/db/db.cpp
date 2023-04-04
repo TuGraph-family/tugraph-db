@@ -13,6 +13,7 @@
  */
 
 #include "db/db.h"
+#include "lgraph/lgraph_txn.h"
 
 lgraph::AccessControlledDB::AccessControlledDB(ScopedRef<LightningGraph>&& ref,
                                                AccessLevel access_level,
@@ -71,7 +72,8 @@ bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::
     return graph_->GetPluginManager()->DelPlugin(plugin_type, user, name);
 }
 
-bool lgraph::AccessControlledDB::CallPlugin(plugin::Type plugin_type, const std::string& user,
+bool lgraph::AccessControlledDB::CallPlugin(lgraph_api::Transaction* txn,
+                                            plugin::Type plugin_type, const std::string& user,
                                             const std::string& name, const std::string& request,
                                             double timeout_seconds, bool in_process,
                                             std::string& output) {
@@ -79,7 +81,15 @@ bool lgraph::AccessControlledDB::CallPlugin(plugin::Type plugin_type, const std:
     bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
     if (access_level_ < AccessLevel::WRITE && !is_readonly)
         throw AuthError("Write permission needed to call this plugin.");
-    return pm->Call(plugin_type, user, this, name, request, timeout_seconds, in_process, output);
+    return pm->Call(txn,
+                    plugin_type,
+                    user,
+                    this,
+                    name,
+                    request,
+                    timeout_seconds,
+                    in_process,
+                    output);
 }
 
 std::vector<lgraph::PluginDesc> lgraph::AccessControlledDB::ListPlugins(plugin::Type plugin_type,

@@ -93,7 +93,10 @@ class SingleLanguagePluginManager {
 
     // calls plugin
     // returns true if success, false if no such plugin
-    virtual bool Call(const std::string& user, AccessControlledDB* db_with_access_control,
+    // TODO(jinyejun.jyj): Split into two overloaded function, one takes txn and the other one
+    // takes db_with_access_control
+    virtual bool Call(lgraph_api::Transaction* txn,
+                      const std::string& user, AccessControlledDB* db_with_access_control,
                       const std::string& name_, const std::string& request, double timeout,
                       bool in_process, std::string& output);
 
@@ -285,8 +288,14 @@ class PluginManager {
      *
      * @return  true if success, false if no such plugin
      */
-    bool Call(PluginType type, const std::string& user, AccessControlledDB* db_with_access_control,
-              const std::string& name_, const std::string& request, double timeout, bool in_process,
+    bool Call(lgraph_api::Transaction* txn,
+              PluginType type,
+              const std::string& user,
+              AccessControlledDB* db_with_access_control,
+              const std::string& name_,
+              const std::string& request,
+              double timeout,
+              bool in_process,
               std::string& output);
 
  protected:

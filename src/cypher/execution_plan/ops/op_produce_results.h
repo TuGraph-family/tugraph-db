@@ -169,7 +169,7 @@ class ProduceResults : public OpBase {
         auto res = child->Consume(ctx);
         if (res != OP_OK) return res;
         auto &record = ctx->result_->NewRecord();
-        RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, record);
+        RRecordToURecord(ctx->txn_->GetTxn().get(), ctx->result_->Header(), child->record, record);
         return OP_OK;
     }
 

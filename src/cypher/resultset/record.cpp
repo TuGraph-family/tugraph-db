@@ -39,7 +39,7 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
                                 constant.scalar.type == lgraph::FieldType::STRING);
             auto vid =
                 std::stoi(constant.scalar.string().substr(2, constant.scalar.string().size() - 3));
-            return ctx->txn_->GetVertexField(vid, fd);
+            return ctx->txn_->GetTxn()->GetVertexField(vid, fd);
         }
     case RELP_SNAPSHOT:
     default:

@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
+#include "lgraph/lgraph_result.h"
 
 #include "tools/json.hpp"
 
@@ -35,9 +36,10 @@ extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
     return true;
 }
 
-extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::string &response) {
+extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
+                                   const std::string &request,
+                                   std::string &response) {
     int64_t num_iteration;
-    std::cout << "request = " << request << std::endl;
     try {
         json input = json::parse(request);
         num_iteration = input["num_iteration"].get<int64_t>();
@@ -47,16 +49,19 @@ extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::stri
     }
     // handle the page rank algo in dummy mode
     // ...
-    std::cout << "number iteration = " << num_iteration << std::endl;
 
-    std::vector<json> result;
+    Result result({{"node", LGraphType::NODE},
+                   {"weight", LGraphType::FLOAT},
+                   });
+
+
     for (size_t i = 0; i < 2; i++) {
-        json element;
-        element["node"] = "V[" + std::to_string(i) + "]";
-        element["weight"] = float(i) + 0.1*float(i);
-        result.emplace_back(std::move(element));
+        auto& r = result.NewRecord();
+        auto vit = txn.GetVertexIterator(i);
+        r.Insert("node", vit);
+        r.Insert("weight", FieldData::Float(float(i) + 0.1*float(i)));
     }
-    json output = result;
-    response = output.dump();
+    response = result.Dump();
     return true;
 }
+

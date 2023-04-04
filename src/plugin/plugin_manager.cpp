@@ -500,16 +500,19 @@ bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& us
     return  it->second->read_only;
 }
 
-bool lgraph::SingleLanguagePluginManager::Call(const std::string& user,
+bool lgraph::SingleLanguagePluginManager::Call(lgraph_api::Transaction* txn,
+                                               const std::string& user,
                                                AccessControlledDB* db_with_access_control,
-                                               const std::string& name_, const std::string& request,
-                                               double timeout, bool in_process,
+                                               const std::string& name_,
+                                               const std::string& request,
+                                               double timeout,
+                                               bool in_process,
                                                std::string& output) {
     std::string name = ToInternalName(name_);
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
     if (it == procedures_.end()) return false;
-    impl_->DoCall(user, db_with_access_control, name, it->second, request, timeout, in_process,
+    impl_->DoCall(txn, user, db_with_access_control, name, it->second, request, timeout, in_process,
                   output);
     return true;
 }
@@ -661,10 +664,15 @@ bool lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string&
     return SelectManager(type)->IsReadOnlyPlugin(user, name_);
 }
 
-bool lgraph::PluginManager::Call(PluginType type, const std::string& user,
+bool lgraph::PluginManager::Call(lgraph_api::Transaction* txn,
+                                 PluginType type,
+                                 const std::string& user,
                                  AccessControlledDB* db_with_access_control,
-                                 const std::string& name_, const std::string& request,
-                                 double timeout, bool in_process, std::string& output) {
-    return SelectManager(type)->Call(user, db_with_access_control, name_, request, timeout,
+                                 const std::string& name_,
+                                 const std::string& request,
+                                 double timeout,
+                                 bool in_process,
+                                 std::string& output) {
+    return SelectManager(type)->Call(txn, user, db_with_access_control, name_, request, timeout,
                                      in_process, output);
 }

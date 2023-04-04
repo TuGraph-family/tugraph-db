@@ -55,7 +55,7 @@ class InQueryCall : public OpBase {
                 cypher::Node& node =
                     const_cast<Node &>(pattern_->GetNode(rec.values[i].node->Alias()));
                 node.SetVid(rec.values[i].node->ID());
-                node.ItRef()->Initialize(ctx->txn_.get(), lgraph::VIter::VERTEX_ITER, rec.values[i].node->ID());
+                node.ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER, rec.values[i].node->ID());
                 r->values[yield_idx_[i]].type = Entry::NODE;
                 r->values[yield_idx_[i]].node = &node;
             } else {

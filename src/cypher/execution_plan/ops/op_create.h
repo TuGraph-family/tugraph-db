@@ -125,7 +125,7 @@ class OpCreate : public OpBase {
              * e.g. MATCH (a:Film),(b:City) CREATE (a)-[r:BORN_IN]->(b)  */
             auto relp = &pattern_graph_->GetRelationship(edge_variable);
             if (relp->Empty()) CYPHER_TODO();
-            relp->ItRef()->Initialize(ctx->txn_.get(), euid);
+            relp->ItRef()->Initialize(ctx->txn_->GetTxn().get(), euid);
             // fill the record
             if (!summary_) {
                 auto it = sym_tab_.symbols.find(edge_variable);
@@ -164,7 +164,7 @@ class OpCreate : public OpBase {
                 }
             }  // for pattern_part
         }
-        ctx->txn_->RefreshIterators();
+        ctx->txn_->GetTxn()->RefreshIterators();
     }
 
     void ResultSummary(RTContext *ctx) {

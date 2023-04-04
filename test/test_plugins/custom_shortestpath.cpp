@@ -17,6 +17,8 @@
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
+#include "lgraph/lgraph_result.h"
+#include "lgraph/lgraph_txn.h"
 
 #include "tools/json.hpp"
 
@@ -35,15 +37,14 @@ extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
     };
     return true;
 }
-
-extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::string &response) {
+extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
+                                   const std::string &request,
+                                   std::string &response) {
     std::string start_node, end_node;
-    std::cout << "request = " << request << std::endl;
     try {
         json input = json::parse(request);
         start_node = input["start"].get<std::string>();
         end_node = input["end"].get<std::string>();
-        std::cout << "start = " << start_node << "end = " << end_node << std::endl;
     } catch (std::exception &e) {
         response = std::string("error parsing json: ") + e.what();
         return false;
@@ -55,16 +56,18 @@ extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::stri
         return strtoll(s.c_str() + id_begin + 1, NULL, 10);
     };
 
-    std::vector<json> records;
-    json element1;
-    element1["length"] = 5;
-    element1["nodeIds"] = std::vector<int64_t>{
-        parse_vertex_node(start_node),
-        100, 200, 300,
-        parse_vertex_node(end_node)
-    };
-    records.emplace_back(std::move(element1));
-    json output = records;
-    response = output.dump();
+    Result result({{"length", LGraphType::INTEGER},
+        {"nodeIds", LGraphType::LIST},
+    });
+
+    auto& r = result.NewRecord();
+    r.Insert("length", FieldData::Int32(5));
+    r.Insert("nodeIds",  std::vector<FieldData>{
+                            FieldData::Int64(parse_vertex_node(start_node)),
+                            FieldData::Int64(100), FieldData::Int64(200), FieldData::Int64(300),
+                            FieldData::Int64(parse_vertex_node(end_node))
+                        });
+    response = result.Dump();
     return true;
 }
+

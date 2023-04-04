@@ -55,7 +55,8 @@ class AccessControlledDB {
 
     bool DelPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name);
 
-    bool CallPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name,
+    bool CallPlugin(lgraph_api::Transaction* txn,
+                    plugin::Type plugin_type, const std::string& token, const std::string& name,
                     const std::string& request, double timeout_seconds, bool in_process,
                     std::string& output);
 

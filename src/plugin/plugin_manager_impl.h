@@ -162,9 +162,14 @@ class PluginManagerImplBase {
      * @param [in,out] output       The output.
      *
      */
-    virtual void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
-                        const std::string name, const PluginInfoBase* pinfo,
-                        const std::string& request, double timeout, bool in_process,
+    virtual void DoCall(lgraph_api::Transaction* txn,
+                        const std::string& user,
+                        AccessControlledDB* db_with_access_control,
+                        const std::string name,
+                        const PluginInfoBase* pinfo,
+                        const std::string& request,
+                        double timeout,
+                        bool in_process,
                         std::string& output) = 0;
 };
 }  // namespace lgraph

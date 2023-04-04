@@ -253,9 +253,15 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  A plugin::ErrorCode.
      */
-    void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
-                const std::string name, const PluginInfoBase* pinfo, const std::string& request,
-                double timeout, bool in_process, std::string& output) override;
+    void DoCall(lgraph_api::Transaction* txn,
+                const std::string& user,
+                AccessControlledDB* db_with_access_control,
+                const std::string name,
+                const PluginInfoBase* pinfo,
+                const std::string& request,
+                double timeout,
+                bool in_process,
+                std::string& output) override;
 
  protected:
     python_plugin::TaskOutput::ErrorCode CallInternal(const std::string& user,

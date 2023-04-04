@@ -60,7 +60,7 @@ class NodeByLabelScan : public OpBase {
         // transaction allocated before in plan:execute
         // todo: remove patternGraph's state (ctx)
         auto primary_filed = ctx->txn_->GetVertexPrimaryField(node_->Label());
-        node_->ItRef()->Initialize(ctx->txn_.get(), lgraph::VIter::INDEX_ITER,
+        node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
                                    node_->Label(), primary_filed,
                                    lgraph::FieldData(), lgraph::FieldData());
         return OP_OK;

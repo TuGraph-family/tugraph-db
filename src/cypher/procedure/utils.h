@@ -21,6 +21,8 @@
 #include "db/galaxy.h"
 #include "parser/clause.h"
 #include "lgraph/lgraph_types.h"
+#include "lgraph/lgraph_result.h"
+#include "lgraph_api/result_element.h"
 
 namespace lgraph {
 
@@ -190,74 +192,53 @@ class PluginAdapter {
         }
 
         std::string request("{");
-        size_t input_list_size = sig_spec_->input_list.size();
-        for (size_t i = 0; i < input_list_size - 1; i++) {
+        int input_list_size = sig_spec_->input_list.size();
+        for (int i = 0; i < input_list_size - 1; i++) {
             request.append(
                 FMA_FMT("\"{}\":{},", sig_spec_->input_list[i].name, arguments[i])
             );
         }
-        request.append(
-            FMA_FMT("\"{}\":{}", sig_spec_->input_list[input_list_size-1].name, arguments[input_list_size-1])
-        );
+        if (input_list_size > 0) {
+            request.append(FMA_FMT("\"{}\":{}", sig_spec_->input_list[input_list_size - 1].name,
+                                   arguments[input_list_size - 1]));
+        }
         request.append("}");
 
         std::string response;
-        ctx->ac_db_->CallPlugin(type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_, request, 0, false,
+        ctx->ac_db_->CallPlugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_, request, 0, false,
                                response);
 
         try {
-            auto j = nlohmann::json::parse(response);
-            for (const auto& item : j.items()) {
-                    Record r;
-                    for (const auto &result : sig_spec_->result_list) {
-                        switch (result.type) {
+            lgraph_api::Result api_result;
+            api_result.Load(response);
+            for (int64_t i = 0; i < api_result.Size(); i++) {
+                const auto& rview = api_result.RecordView(i);
+                Record r;
+                for (const auto& result : sig_spec_->result_list) {
+                     const auto it = rview.find(result.name);
+                     CYPHER_THROW_ASSERT(it != rview.end());
+                     switch (result.type) {
                         case lgraph_api::LGraphType::INTEGER:
-                            {
-                                auto result_val = item.value()[result.name].get<int64_t>();
-                                r.AddConstant(lgraph::FieldData(result_val));
-                            }
-                            break;
                         case lgraph_api::LGraphType::FLOAT:
-                            {
-                                auto result_val = item.value()[result.name].get<float>();
-                                r.AddConstant(lgraph::FieldData(result_val));
-                            }
-                            break;
                         case lgraph_api::LGraphType::DOUBLE:
-                            {
-                                auto result_val = item.value()[result.name].get<double>();
-                                r.AddConstant(lgraph::FieldData(result_val));
-                            }
-                            break;
                         case lgraph_api::LGraphType::BOOLEAN:
-                            {
-                                auto result_val = item.value()[result.name].get<bool>();
-                                r.AddConstant(lgraph::FieldData(result_val));
-                            }
-                            break;
                         case lgraph_api::LGraphType::STRING:
-                            {
-                                auto result_val = item.value()[result.name].get<std::string>();
-                                r.AddConstant(lgraph::FieldData(result_val));
-                            }
+                            r.AddConstant(*(it->second->v.fieldData));
                             break;
                         case lgraph_api::LGraphType::LIST:
                             {
-                                std::cout << "item = " << item.value().dump() << std::endl;
-                                auto list = item.value()[result.name];
-                                CYPHER_THROW_ASSERT(list.is_array());
+                                auto list = it->second->v.list;
                                 std::vector<lgraph::FieldData> entry;
-                                for (auto it = list.begin(); it != list.end(); it++) {
-                                    CYPHER_THROW_ASSERT(it->is_primitive());
-                                    if (it->is_number_float()) {
-                                        entry.emplace_back(lgraph::FieldData(it->get<float>()));
-                                    } else if (it->is_number_integer()) {
-                                        entry.emplace_back(lgraph::FieldData(it->get<int64_t>()));
-                                    } else if (it->is_boolean()) {
-                                        entry.emplace_back(lgraph::FieldData(it->get<bool>()));
-                                    } else if (it->is_string()) {
-                                        entry.emplace_back(
-                                            lgraph::FieldData(it->get<std::string>()));
+                                for (const auto& json_obj : *list) {
+                                    CYPHER_THROW_ASSERT(json_obj.is_primitive());
+                                    if (json_obj.is_number_float()) {
+                                        entry.emplace_back(json_obj.get<float>());
+                                    } else if (json_obj.is_number_integer()) {
+                                        entry.emplace_back(json_obj.get<int64_t>());
+                                    } else if (json_obj.is_boolean()) {
+                                        entry.emplace_back(json_obj.get<bool>());
+                                    } else if (json_obj.is_string()) {
+                                        entry.emplace_back(json_obj.get<std::string>());
                                     } else {
                                         CYPHER_TODO();
                                     }
@@ -267,22 +248,19 @@ class PluginAdapter {
                             break;
                         case lgraph_api::LGraphType::NODE:
                             {
-                                auto node_str = item.value()[result.name].get<std::string>();
-                                auto parse_vertex_node = [](const std::string &s) -> int64_t {
-                                    auto id_begin = s.find('[');
-                                    return strtoll(s.c_str() + id_begin + 1, nullptr, 10);
-                                };
-                                lgraph::VertexId vid = parse_vertex_node(node_str);
+                                auto node_ptr = it->second->v.node;
+                                lgraph::VertexId vid = node_ptr->id;
                                 Node& node = node_buffer_.AllocNode(vid, result.name);
                                 r.AddNode(&node);
                             }
                             break;
                         default:
                             CYPHER_TODO();
-                        }
-                    }
-                    results->emplace_back(std::move(r));
+                     }
+                }
+                results->emplace_back(std::move(r));
             }
+
         } catch (std::exception &e) {
             response = std::string("error parsing json: ") + e.what();
             return false;
@@ -316,7 +294,7 @@ class Utils {
                 throw lgraph::EvaluationException("Invalid argument");
             }
         }
-        return ctx.ac_db_->CallPlugin(type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false,
+        return ctx.ac_db_->CallPlugin(ctx.txn_.get(), type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false,
                                 output);
     }
 };

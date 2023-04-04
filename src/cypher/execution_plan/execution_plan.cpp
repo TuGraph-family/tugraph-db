@@ -16,6 +16,7 @@
 // Created by wt on 6/12/18.
 //
 
+#include <memory>
 #include <stack>
 #include "db/galaxy.h"
 
@@ -1292,10 +1293,11 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     } else {
         ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
             ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        lgraph_api::GraphDB db(ctx->ac_db_.get(), ReadOnly());
         if (ReadOnly()) {
-            ctx->txn_.reset(new lgraph::Transaction(ctx->ac_db_->CreateReadTxn()));
+            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
         } else {
-            ctx->txn_.reset(new lgraph::Transaction(ctx->ac_db_->CreateWriteTxn(ctx->optimistic_)));
+            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateWriteTxn(ctx->optimistic_));
         }
     }
 

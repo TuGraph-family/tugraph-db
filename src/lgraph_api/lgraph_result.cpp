@@ -360,9 +360,9 @@ LGraphType Result::GetType(std::string title) {
 
 std::string Result::Dump(bool is_standard) {
     json arr = json::array();
-    for (auto record : result) {
+    for (auto& record : result) {
         json j;
-        for (auto h : header) {
+        for (auto& h : header) {
             if (record.record.find(h.first) == record.record.end() &&
                 record.record[h.first] == nullptr) {
                 continue;

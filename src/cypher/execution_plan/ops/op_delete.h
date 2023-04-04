@@ -66,13 +66,13 @@ class OpDelete : public OpBase {
         for (auto &e : edges_to_delete_) FMA_DBG() << "E[" << _detail::EdgeUid2String(e) << "]";
 
         for (auto &e : edges_to_delete_) {
-            if (ctx->txn_->DeleteEdge(e)) {
+            if (ctx->txn_->GetTxn()->DeleteEdge(e)) {
                 ctx->result_info_->statistics.edges_deleted++;
             }
         }
         for (auto &v : vertices_to_delete_) {
             size_t n_in, n_out;
-            if (ctx->txn_->DeleteVertex(v, &n_in, &n_out)) {
+            if (ctx->txn_->GetTxn()->DeleteVertex(v, &n_in, &n_out)) {
                 ctx->result_info_->statistics.vertices_deleted++;
                 ctx->result_info_->statistics.edges_deleted += n_in + n_out;
             }
@@ -83,7 +83,7 @@ class OpDelete : public OpBase {
          * While lgraph::Transaction::DeleteEdge() will not refresh
          * the iterator, after calling this method, the edge iterator
          * just becomes invalid.  */
-        ctx->txn_->RefreshIterators();
+        ctx->txn_->GetTxn()->RefreshIterators();
     }
 
     void ResultSummary(RTContext *ctx) {

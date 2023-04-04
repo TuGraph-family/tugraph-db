@@ -90,7 +90,7 @@ void PythonPluginManagerImpl::UnloadPlugin(const std::string& user, const std::s
     KillAllProcesses();
 }
 
-void PythonPluginManagerImpl::DoCall(const std::string& user,
+void PythonPluginManagerImpl::DoCall(lgraph_api::Transaction* txn, const std::string& user,
                                      AccessControlledDB* db_with_access_control,
                                      const std::string name, const PluginInfoBase* pinfo,
                                      const std::string& request, double timeout, bool in_process,

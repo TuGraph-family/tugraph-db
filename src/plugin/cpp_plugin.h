@@ -31,12 +31,14 @@ class LightningGraph;
 class CppPluginManagerImpl : public PluginManagerImplBase {
  protected:
     typedef lgraph_api::Process PluginFunc;
+    typedef lgraph_api::ProcessInTxn PluginFuncInTxn;
     typedef lgraph_api::GetSignature SignatureGetter;
 
     struct PluginInfo : public PluginInfoBase {
         lgraph::dll::LibHandle lib_handle;
-        PluginFunc* func;
-        SignatureGetter* get_sig_spec;
+        PluginFunc* func = nullptr;
+        PluginFuncInTxn* func_txn = nullptr;
+        SignatureGetter* get_sig_spec = nullptr;
     };
 
     LightningGraph* db_;
@@ -112,7 +114,9 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
      *
      * @return  A plugin::ErrorCode.
      */
-    void DoCall(const std::string& user, AccessControlledDB* db_with_access_control,
+    void DoCall(lgraph_api::Transaction* txn,
+                const std::string& user,
+                AccessControlledDB* db_with_access_control,
                 const std::string name, const PluginInfoBase* pinfo, const std::string& request,
                 double timeout, bool in_process, std::string& output) override;
 };
