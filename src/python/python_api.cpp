@@ -625,6 +625,14 @@ void register_python_api(pybind11::module& m) {
             "Gets an OutEdgeIterator pointing to the edge identified by euid.",
             pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
         .def(
+            "GetOutEdgeIterator",
+            [](Transaction& txn, int64_t src, int64_t dst, int16_t label_id) {
+                return txn.GetOutEdgeIterator(src, dst, label_id);
+            },
+            "Gets an OutEdgeIterator from src to dst with label specified by label_id.",
+            pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
+            pybind11::return_value_policy::move)
+        .def(
             "GetInEdgeIterator",
             [](Transaction& txn, EdgeUid euid, bool nearest) {
                 return txn.GetInEdgeIterator(euid, nearest);
@@ -632,6 +640,14 @@ void register_python_api(pybind11::module& m) {
             "Gets an InEdgeIterator pointing to the in-edge of vertex dst with "
             "EdgeUid==euid.",
             pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
+        .def(
+            "GetInEdgeIterator",
+            [](Transaction& txn, int64_t src, int64_t dst, int16_t label_id) {
+                return txn.GetInEdgeIterator(src, dst, label_id);
+            },
+            "Gets an InEdgeIterator from src to dst with label specified by label_id.",
+            pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
+            pybind11::return_value_policy::move)
         .def("GetNumVertexLabels", &Transaction::GetNumVertexLabels)
         .def("GetNumEdgeLabels", &Transaction::GetNumEdgeLabels)
         .def("ListVertexLabels", &Transaction::ListVertexLabels)
