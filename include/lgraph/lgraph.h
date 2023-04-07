@@ -39,7 +39,11 @@
 #endif
 
 namespace lgraph_api {
+typedef bool GetSignature(SigSpec &sig_spec);
 typedef bool Process(lgraph_api::GraphDB &db, const std::string &input, std::string &output);
+typedef bool ProcessInTxn(lgraph_api::Transaction& txn,
+                          const std::string &input,
+                          std::string &output);
 }
 
 /*

@@ -10,13 +10,13 @@ bash ./cpplint/check_all.sh
 
 # build deps
 cd deps
-SKIP_WEB=1 bash ./build_deps.sh -j6
+SKIP_WEB=1 bash ./build_deps.sh -j2
 
 # build tugraph
 cd $WORKSPACE
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
-make -j6
+make -j2
 
 # build java
 JAVA_CLIENT_VERSION=1.2.1

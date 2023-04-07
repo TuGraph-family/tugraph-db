@@ -68,6 +68,11 @@ class SingleLanguagePluginManager {
      */
     virtual std::vector<PluginDesc> ListPlugins(const std::string& user);
 
+    // get plugin signature specification
+    // return true if success, false if plugin does not exist
+    virtual bool GetPluginSigSpec(const std::string& user, const std::string& name,
+                                  lgraph_api::SigSpec** sig_spec);
+
     // get plugin code
     // return true if success, false if plugin does not exist
     virtual bool GetPluginCode(const std::string& user, const std::string& name, PluginCode& ret);
@@ -88,7 +93,10 @@ class SingleLanguagePluginManager {
 
     // calls plugin
     // returns true if success, false if no such plugin
-    virtual bool Call(const std::string& user, AccessControlledDB* db_with_access_control,
+    // TODO(jinyejun.jyj): Split into two overloaded function, one takes txn and the other one
+    // takes db_with_access_control
+    virtual bool Call(lgraph_api::Transaction* txn,
+                      const std::string& user, AccessControlledDB* db_with_access_control,
                       const std::string& name_, const std::string& request, double timeout,
                       bool in_process, std::string& output);
 
@@ -212,6 +220,19 @@ class PluginManager {
      *
      * @return  true if success, false if not found the plugin.
      */
+    bool GetPluginSignature(PluginType type, const std::string& user, const std::string& name,
+                       lgraph_api::SigSpec** sig_spec);
+
+    /**
+     * Loads plugin from code
+     *
+     * @param          type                 The language type, CPP or PYTHON.
+     * @param          user                 The user.
+     * @param          name                 The plugin name.
+     * @param          ret                  The code structure, include desc.
+     *
+     * @return  true if success, false if not found the plugin.
+     */
     bool GetPluginCode(PluginType type, const std::string& user, const std::string& name,
                        PluginCode& ret);
 
@@ -267,8 +288,14 @@ class PluginManager {
      *
      * @return  true if success, false if no such plugin
      */
-    bool Call(PluginType type, const std::string& user, AccessControlledDB* db_with_access_control,
-              const std::string& name_, const std::string& request, double timeout, bool in_process,
+    bool Call(lgraph_api::Transaction* txn,
+              PluginType type,
+              const std::string& user,
+              AccessControlledDB* db_with_access_control,
+              const std::string& name_,
+              const std::string& request,
+              double timeout,
+              bool in_process,
               std::string& output);
 
  protected:

@@ -189,12 +189,10 @@ struct Parameter {
  *
  * @example
  *  plugin.cpp.customShortestPath(a, b) -> length, nodeIds
- *  proc_name: customShortestPath
  *  input_list: a, b
  *  results: length, nodeIds
  */
 struct SigSpec {
-    std::string proc_name;  ///> name of the procedure/plugin exclude "plugin.cpp" path prefix
     std::vector<Parameter> input_list;  ///> input parameter list
     std::vector<Parameter> result_list;  ///> return parameter list
 };

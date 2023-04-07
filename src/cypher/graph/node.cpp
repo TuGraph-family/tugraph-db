@@ -76,7 +76,7 @@ void Node::Set(const std::string &label, const cypher::Property &property) {
 
 bool Node::IsValidAfterMaterialize(RTContext *ctx) {
     if (!it_.IsValid() && vid_ >= 0) {
-        it_.Initialize(ctx->txn_.get(), lgraph::VIter::VERTEX_ITER, vid_);
+        it_.Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER, vid_);
     }
     return it_.IsValid();
 }

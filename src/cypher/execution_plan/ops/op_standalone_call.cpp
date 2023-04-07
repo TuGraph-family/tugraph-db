@@ -89,7 +89,15 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
     } else {
         SetFunc(procedure_name);
         std::vector<Record> records;
-        procedure_->function(ctx, nullptr, parameters, yield_items, &records);
+        std::vector<std::string> _yield_items;
+        std::transform(
+            yield_items.cbegin(),
+            yield_items.cend(),
+            std::back_inserter(_yield_items),
+            [](const auto& item) {
+            return item.first;
+        });
+        procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
             auto &record = ctx->result_->NewRecord();
@@ -98,18 +106,18 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 auto title = header[idx].first;
                 auto type = header[idx].second;
                 switch (type) {
-                case lgraph::ElementType::NODE:
+                case lgraph_api::LGraphType::NODE:
                     CYPHER_TODO();
                     break;
-                case lgraph::ElementType::RELATIONSHIP:
+                case lgraph_api::LGraphType::RELATIONSHIP:
                     CYPHER_TODO();
                     break;
-                case lgraph::ElementType::ANY:
-                case lgraph::ElementType::PATH:
+                case lgraph_api::LGraphType::ANY:
+                case lgraph_api::LGraphType::PATH:
                     // TODO PATH is undefine
                     record.Insert(title, lgraph::FieldData(v.ToString()));
                     break;
-                case lgraph::ElementType::MAP:
+                case lgraph_api::LGraphType::MAP:
                     {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::map<std::string, lgraph::FieldData> map;
@@ -119,7 +127,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         record.Insert(title, map);
                         break;
                     }
-                case lgraph::ElementType::LIST:
+                case lgraph_api::LGraphType::LIST:
                     {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::vector<lgraph::FieldData> list;

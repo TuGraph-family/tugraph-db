@@ -56,6 +56,8 @@ class RestServer {
         REFRESH = 20,
         LOGOUT = 21,
         EXPORT = 22,
+        UpdateTokenTime = 23,
+        GetTokenTime = 24,
     };
 
     static std::unordered_map<utility::string_t, RestPathCases> GetPathToCaseDict() {
@@ -82,7 +84,9 @@ class RestServer {
              {RestStrings::ROLE, RestPathCases::ROLE},
              {RestStrings::CONFIG, RestPathCases::CONFIG},
              {RestStrings::REFRESH, RestPathCases::REFRESH},
-             {RestStrings::LOGOUT, RestPathCases::LOGOUT}});
+             {RestStrings::LOGOUT, RestPathCases::LOGOUT},
+             {RestStrings::UpdateTokenTime, RestPathCases::UpdateTokenTime},
+             {RestStrings::GetTokenTime, RestPathCases::GetTokenTime}});
     }
 
  public:
@@ -180,6 +184,16 @@ class RestServer {
                          const std::vector<utility::string_t>& paths,
                          const web::json::value& body) const;
     void HandlePostRefresh(const std::string& user, const std::string& token,
+                        const web::http::http_request& request,
+                        const utility::string_t& relative_path,
+                        const std::vector<utility::string_t>& paths,
+                        const web::json::value& body) const;
+    void HandlePostUpdateTokenTime(const std::string& user, const std::string& token,
+                        const web::http::http_request& request,
+                        const utility::string_t& relative_path,
+                        const std::vector<utility::string_t>& paths,
+                        const web::json::value& body) const;
+    void HandlePostGetTokenTime(const std::string& user, const std::string& token,
                         const web::http::http_request& request,
                         const utility::string_t& relative_path,
                         const std::vector<utility::string_t>& paths,

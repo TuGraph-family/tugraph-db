@@ -58,7 +58,7 @@ int test_file_script(const std::string &file, cypher::RTContext *ctx) {
      * setErrorHandler(std::make_shared<BailErrorStrategy>());
      * add customized ErrorListener  */
     parser.addErrorListener(&CypherErrorListener::INSTANCE);
-    CypherBaseVisitor visitor(parser.oC_Cypher());
+    CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
     auto stmt = visitor.GetQuery();
     for (auto &s : stmt) {
         UT_LOG() << s.ToString();
@@ -112,7 +112,7 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
         CommonTokenStream tokens(&lexer);
         LcypherParser parser(&tokens);
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
-        CypherBaseVisitor visitor(parser.oC_Cypher());
+        CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
         execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
         execution_plan.Validate(ctx);
@@ -1287,6 +1287,53 @@ int test_procedure(cypher::RTContext *ctx) {
         pos += 2;
     }
     eval_scripts(ctx, scripts);
+
+    std::vector<std::string> call_signatured_plugins_scripts;
+    auto add_signatured_plugins = [&call_signatured_plugins_scripts](
+                                      const std::string& name,
+                                      const std::string& plugin_source_path) {
+        std::ifstream f;
+        f.open(plugin_source_path, std::ios::in);
+
+        std::string buf;
+        std::string text = "";
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        std::string encoded = lgraph_api::encode_base64(text);
+        call_signatured_plugins_scripts.emplace_back(
+            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true)",
+                    name, encoded, name));
+    };
+
+    add_signatured_plugins("custom_shortestpath",
+                           "../../test/test_plugins/custom_shortestpath.cpp");
+    call_signatured_plugins_scripts.emplace_back(
+        "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
+        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "RETURN length, nodeIds AS path");
+
+    add_signatured_plugins("custom_pagerank", "../../test/test_plugins/custom_pagerank.cpp");
+    call_signatured_plugins_scripts.emplace_back(
+        "CALL plugin.cpp.custom_pagerank(10) "
+        "YIELD node, weight WITH node, weight "
+        "MATCH(node)-[r]->(n) RETURN node, r, n, weight");
+
+    call_signatured_plugins_scripts.emplace_back(
+        "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
+        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "WITH length, nodeIds "
+        "UNWIND nodeIds AS id "
+        "RETURN id, length");
+
+    add_signatured_plugins("custom_algo", "../../test/test_plugins/custom_algo.cpp");
+    call_signatured_plugins_scripts.emplace_back(
+        "CALL plugin.cpp.custom_algo() YIELD res RETURN res");
+    call_signatured_plugins_scripts.emplace_back(
+        "CALL plugin.cpp.custom_algo()");
+    eval_scripts(ctx, call_signatured_plugins_scripts);
     return 0;
 }
 
@@ -2487,7 +2534,7 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{7, 1}, ParamCypher{8, 1}, ParamCypher{9, 1}, ParamCypher{10, 1},
            ParamCypher{11, 1}, ParamCypher{12, 1}, ParamCypher{13, 1}, ParamCypher{14, 1},
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
-           ParamCypher{101, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
+           ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
            ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
            ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},

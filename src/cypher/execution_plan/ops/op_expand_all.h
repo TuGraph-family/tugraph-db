@@ -42,7 +42,7 @@ class ExpandAll : public OpBase {
             iter_type = types.empty() ? lgraph::EIter::BI_EDGE : lgraph::EIter::BI_TYPE_EDGE;
             break;
         }
-        eit_->Initialize(ctx->txn_.get(), iter_type, start_->PullVid(), types);
+        eit_->Initialize(ctx->txn_->GetTxn().get(), iter_type, start_->PullVid(), types);
     }
 
     bool _CheckToSkipEdgeFilter(RTContext *ctx) const {
@@ -58,8 +58,8 @@ class ExpandAll : public OpBase {
 
     bool _FilterNeighborLabel(RTContext *ctx) {
         if (neighbor_->Label().empty()) return true;
-        auto nbr_it = ctx->txn_->GetVertexIterator(eit_->GetNbr(expand_direction_));
-        while (ctx->txn_->GetVertexLabel(nbr_it) != neighbor_->Label()) {
+        auto nbr_it = ctx->txn_->GetTxn()->GetVertexIterator(eit_->GetNbr(expand_direction_));
+        while (ctx->txn_->GetTxn()->GetVertexLabel(nbr_it) != neighbor_->Label()) {
             eit_->Next();
             if (!eit_->IsValid()) return false;
             nbr_it.Goto(eit_->GetNbr(expand_direction_));

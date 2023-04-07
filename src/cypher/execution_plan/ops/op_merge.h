@@ -188,10 +188,10 @@ class OpMerge : public OpBase {
                 match_vids.emplace_back(vertex.GetVid());
                 vertex.Next();
             } while (vertex.IsValid());
-            auto vit = ctx->txn_->GetVertexIterator();
+            auto vit = ctx->txn_->GetTxn()->GetVertexIterator();
             for (auto vid : match_vids) {
                 vit.Goto(vid);
-                ctx->txn_->SetVertexProperty(vit, field_names_on_match, field_values_on_match);
+                ctx->txn_->GetTxn()->SetVertexProperty(vit, field_names_on_match, field_values_on_match);
             }
             res = match_vids.back();
         } else if (vertex.IsIndexValid()) {
@@ -254,16 +254,16 @@ class OpMerge : public OpBase {
         }
         for (auto src_id : src_ids) {
             for (auto dst_id : dst_ids) {
-                auto eit = ctx->txn_->GetVertexIterator(src_id).GetOutEdgeIterator();
+                auto eit = ctx->txn_->GetTxn()->GetVertexIterator(src_id).GetOutEdgeIterator();
                 std::vector<lgraph::EdgeUid> match_eids;
                 while (eit.IsValid()) {
                     if (eit.GetDst() == dst_id) {
                         size_t j = 0;
                         for (auto &fn : field_names) {
-                            if (ctx->txn_->GetEdgeField(eit, fn) != field_values[j]) break;
+                            if (ctx->txn_->GetTxn()->GetEdgeField(eit, fn) != field_values[j]) break;
                             j++;
                         }
-                        if (ctx->txn_->GetEdgeLabel(eit) == label && j == field_names.size()) {
+                        if (ctx->txn_->GetTxn()->GetEdgeLabel(eit) == label && j == field_names.size()) {
                             match_eids.emplace_back(src_id, dst_id, eit.GetLabelId(),
                                                     eit.GetTemporalId(), eit.GetEdgeId());
                         }
@@ -274,7 +274,7 @@ class OpMerge : public OpBase {
                     /* ON MATCH */
                     for (auto uid : match_eids) {
                         eit.Goto(uid, true);
-                        ctx->txn_->SetEdgeProperty(eit, field_names_on_match,
+                        ctx->txn_->GetTxn()->SetEdgeProperty(eit, field_names_on_match,
                                                    field_values_on_match);
                     }
                     eid_res = match_eids.back();
@@ -318,7 +318,7 @@ class OpMerge : public OpBase {
         ExtractProperties(node_variable, on_create_set_items, field_names_on_create,
                           field_values_on_create);
         auto node_res =
-            MergeVertex(ctx, MatchIterator(ctx->txn_.get(), node_label, field_names, field_values, &node_patt),
+            MergeVertex(ctx, MatchIterator(ctx->txn_->GetTxn().get(), node_label, field_names, field_values, &node_patt),
                         field_names_on_create, field_values_on_create, field_names_on_match,
                         field_values_on_match, err_msg);
         // check node_res whether valid
@@ -340,7 +340,7 @@ class OpMerge : public OpBase {
             auto node = &pattern_graph_->GetNode(node_variable);
             if (node->Empty()) CYPHER_TODO();
             node->Visited() = true;
-            node->ItRef()->Initialize(ctx->txn_.get(), lgraph::VIter::VERTEX_ITER, node_res);
+            node->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER, node_res);
             if (!summary_) {
                 auto it = sym_tab_.symbols.find(node_variable);
                 CYPHER_THROW_ASSERT(it != sym_tab_.symbols.end());
@@ -400,15 +400,15 @@ class OpMerge : public OpBase {
         ExtractProperties(edge_variable, on_create_set_items, field_names_on_create,
                           field_values_on_create);
         auto res = MergeEdge(
-            ctx, MatchIterator(ctx->txn_.get(), src_label, src_field_name, src_field_value, &src_node),
-            MatchIterator(ctx->txn_.get(), dst_label, dst_field_name, dst_field_value, &dst_node),
+            ctx, MatchIterator(ctx->txn_->GetTxn().get(), src_label, src_field_name, src_field_value, &src_node),
+            MatchIterator(ctx->txn_->GetTxn().get(), dst_label, dst_field_name, dst_field_value, &dst_node),
             label, fields, values, field_names_on_create, field_values_on_create, field_names_on_match,
             field_values_on_match, err_msg);
         ctx->result_info_->statistics.edges_created++;
         if (!edge_variable.empty()) {
             auto relp = &pattern_graph_->GetRelationship(edge_variable);
             if (relp->Empty()) CYPHER_TODO();
-            relp->ItRef()->Initialize(ctx->txn_.get(), res);
+            relp->ItRef()->Initialize(ctx->txn_->GetTxn().get(), res);
             if (!summary_) {
                 auto it = sym_tab_.symbols.find(edge_variable);
                 CYPHER_THROW_ASSERT(it != sym_tab_.symbols.end());
@@ -465,7 +465,7 @@ class OpMerge : public OpBase {
                 .append(" edges.");
             // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
             auto header = ctx->result_->Header();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ElementType::STRING));
+            header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
             ctx->result_->ResetHeader(header);
             CYPHER_THROW_ASSERT(record);
             record->values.clear();

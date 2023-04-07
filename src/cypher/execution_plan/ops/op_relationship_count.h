@@ -266,7 +266,7 @@ class RelationshipCount : public OpBase {
         record = std::make_shared<Record>(1);
         record->values[0].type = Entry::CONSTANT;
         // todo: remove txn totally
-        txn_ = ctx->txn_.get();
+        txn_ = ctx->txn_->GetTxn().get();
         state = StreamUnInitialized;
         return OP_OK;
     }

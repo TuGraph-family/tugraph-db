@@ -149,7 +149,7 @@ struct TaskInput {
 };
 
 struct TaskOutput {
-    enum ErrorCode { SUCCESS = 1, INPUT_ERR = 2, INTERNAL_ERR = 3 };
+    enum ErrorCode { SUCCESS = 1, INPUT_ERR = 2, INTERNAL_ERR = 3, SUCCESS_WITH_SIGNATURE = 4 };
 
     ErrorCode error_code;
     std::string output;

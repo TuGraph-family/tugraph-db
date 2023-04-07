@@ -35,6 +35,8 @@
 
 #include "core/data_type.h"
 #include "lgraph/lgraph.h"
+#include "lgraph/lgraph_types.h"
+#include "plugin/plugin_manager_impl.h"
 #include "plugin/plugin_context.h"
 
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
@@ -307,7 +309,9 @@ void register_python_api(pybind11::module& m) {
         m, "PluginErrorCode", pybind11::arithmetic(), "ErrorCode of plugin.")
         .value("SUCCESS", ::lgraph::python_plugin::TaskOutput::ErrorCode::SUCCESS)
         .value("INPUT_ERR", ::lgraph::python_plugin::TaskOutput::ErrorCode::INPUT_ERR)
-        .value("INTERNAL_ERR", ::lgraph::python_plugin::TaskOutput::ErrorCode::INTERNAL_ERR);
+        .value("INTERNAL_ERR", ::lgraph::python_plugin::TaskOutput::ErrorCode::INTERNAL_ERR)
+        .value("SUCCESS_WITH_SIGNATURE",
+               ::lgraph::python_plugin::TaskOutput::ErrorCode::SUCCESS_WITH_SIGNATURE);
 
     //======================================
     // Register APIs
@@ -621,6 +625,14 @@ void register_python_api(pybind11::module& m) {
             "Gets an OutEdgeIterator pointing to the edge identified by euid.",
             pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
         .def(
+            "GetOutEdgeIterator",
+            [](Transaction& txn, int64_t src, int64_t dst, int16_t label_id) {
+                return txn.GetOutEdgeIterator(src, dst, label_id);
+            },
+            "Gets an OutEdgeIterator from src to dst with label specified by label_id.",
+            pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
+            pybind11::return_value_policy::move)
+        .def(
             "GetInEdgeIterator",
             [](Transaction& txn, EdgeUid euid, bool nearest) {
                 return txn.GetInEdgeIterator(euid, nearest);
@@ -628,6 +640,14 @@ void register_python_api(pybind11::module& m) {
             "Gets an InEdgeIterator pointing to the in-edge of vertex dst with "
             "EdgeUid==euid.",
             pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
+        .def(
+            "GetInEdgeIterator",
+            [](Transaction& txn, int64_t src, int64_t dst, int16_t label_id) {
+                return txn.GetInEdgeIterator(src, dst, label_id);
+            },
+            "Gets an InEdgeIterator from src to dst with label specified by label_id.",
+            pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
+            pybind11::return_value_policy::move)
         .def("GetNumVertexLabels", &Transaction::GetNumVertexLabels)
         .def("GetNumEdgeLabels", &Transaction::GetNumEdgeLabels)
         .def("ListVertexLabels", &Transaction::ListVertexLabels)
@@ -1448,6 +1468,49 @@ void register_python_api(pybind11::module& m) {
              "calling Next() may change the current indexed value.")
         .def("GetVid", &VertexIndexIterator::GetVid,
              "Gets the id of the vertex currently pointed to.");
+    //====================================
+    // Register SigSpec
+    //====================================
+    pybind11::enum_<lgraph_api::LGraphType>(m, "LGraphType")
+        .value("NUL", LGraphType::NUL, "NUL")
+        .value("INTEGER", LGraphType::INTEGER, "INTEGER")
+        .value("FLOAT", LGraphType::FLOAT, "FLOAT")
+        .value("DOUBLE", LGraphType::DOUBLE, "DOUBLE")
+        .value("BOOLEAN", LGraphType::BOOLEAN, "BOOLEAN")
+        .value("STRING", LGraphType::STRING, "STRING")
+        .value("NODE", LGraphType::NODE, "NODE")
+        .value("RELATIONSHIP", LGraphType::RELATIONSHIP, "RELATIONSHIP")
+        .value("PATH", LGraphType::PATH, "PATH")
+        .value("LIST", LGraphType::LIST, "LIST")
+        .value("MAP", LGraphType::MAP, "MAP")
+        .value("ANY", LGraphType::ANY, "ANY")
+        .export_values();
+
+    pybind11::class_<lgraph_api::Parameter>(m, "Parameter")
+        .def(pybind11::init<const std::string&, int, LGraphType>())
+        .def_readwrite("name", &lgraph_api::Parameter::name, "name of the parameter")
+        .def_readwrite("index", &lgraph_api::Parameter::index,
+                       "index of the parameter list in which the parameter stay")
+        .def_readwrite("type", &lgraph_api::Parameter::type, "type of the parameter");
+
+    pybind11::class_<lgraph_api::SigSpec>(m, "SigSpec")
+        .def(pybind11::init<const std::vector<Parameter>&, const std::vector<Parameter>&>())
+        .def(
+            "serialize",
+            [](lgraph_api::SigSpec& sig_spec) -> std::string {
+                fma_common::BinaryBuffer buffer;
+                fma_common::BinaryWrite(buffer, sig_spec);
+                char *owned_buffer = nullptr;
+                size_t size = 0;
+                // give ownership to serialized
+                buffer.DetachBuf((void **)&owned_buffer, &size);
+                return {owned_buffer, size };
+            },
+            "Serialize SigSpec into string")
+        .def_readwrite("input_list", &lgraph_api::SigSpec::input_list,
+                       "input parameter list of the signature")
+        .def_readwrite("result_list", &lgraph_api::SigSpec::result_list,
+                       "return items of the signature");
 }  // NOLINT
 
 void register_lgraph_plugin(pybind11::module& m) {

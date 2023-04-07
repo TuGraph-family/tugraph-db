@@ -59,7 +59,7 @@ class AllNodeScanDynamic : public OpBase {
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
         record->SetParameter(ctx->param_tab_);
-        node_->ItRef()->Initialize(ctx->txn_.get(), lgraph::VIter::VERTEX_ITER);
+        node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER);
         return OP_OK;
     }
 

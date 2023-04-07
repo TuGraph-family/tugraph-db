@@ -55,7 +55,7 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
     LcypherLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
     LcypherParser parser(&tokens);
-    CypherBaseVisitor visitor(parser.oC_Cypher());
+    CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
     cypher::ExecutionPlan execution_plan;
 
     double t0, t1, t2;

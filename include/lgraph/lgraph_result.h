@@ -31,6 +31,10 @@ namespace lgraph {
 class StateMachine;
 }
 
+namespace cypher {
+class PluginAdapter;
+}
+
 namespace lgraph_api {
 
 struct ResultElement;
@@ -222,6 +226,8 @@ class Record {
  */
 class Result {
     friend class lgraph::StateMachine;
+    friend class cypher::PluginAdapter;
+
     std::vector<Record> result;
     std::vector<std::pair<std::string, LGraphType>> header;
     int64_t row_count_;

@@ -75,15 +75,15 @@ void BuiltinProcedure::DbSubgraph(RTContext *ctx, const Record *record, const VE
         CYPHER_ARG_CHECK(vid.type == parser::Expression::INT, "db.DbSubGraph(vids): `vid` must be int");
         set_vids.emplace(vid.Int());
     }
-    auto vit = ctx->txn_->GetVertexIterator();
+    auto vit = ctx->txn_->GetTxn()->GetVertexIterator();
     std::vector<nlohmann::json> vertices;
     std::vector<nlohmann::json> relationships;
     for (auto vid : set_vids) {
         if (!vit.Goto(vid, false)) continue;
         lgraph_api::lgraph_result::Node node;
         node.id = vid;
-        node.label = ctx->txn_->GetVertexLabel(vit);
-        for (auto &property : ctx->txn_->GetVertexFields(vit)) {
+        node.label = ctx->txn_->GetTxn()->GetVertexLabel(vit);
+        for (auto &property : ctx->txn_->GetTxn()->GetVertexFields(vit)) {
             node.properties.insert(property);
         }
         vertices.push_back(node.ToJson());
@@ -95,10 +95,10 @@ void BuiltinProcedure::DbSubgraph(RTContext *ctx, const Record *record, const VE
             repl.src = uid.src;
             repl.dst = uid.dst;
             repl.label_id = uid.lid;
-            repl.label = ctx->txn_->GetEdgeLabel(eit);
+            repl.label = ctx->txn_->GetTxn()->GetEdgeLabel(eit);
             repl.forward = true;
             repl.tid = uid.tid;
-            auto rel_fields = ctx->txn_->GetEdgeFields(eit);
+            auto rel_fields = ctx->txn_->GetTxn()->GetEdgeFields(eit);
             for (auto &property : rel_fields) {
                 repl.properties.insert(property);
             }
@@ -119,7 +119,7 @@ void BuiltinProcedure::DbVertexLabels(RTContext *ctx, const Record *record, cons
                                            "given. Usage: db.vertexLabels()",
                                            args.size()))
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    auto labels = ctx->txn_->GetAllLabels(true);
+    auto labels = ctx->txn_->GetTxn()->GetAllLabels(true);
     for (auto &l : labels) {
         Record r;
         r.AddConstant(lgraph::FieldData(l));
@@ -133,7 +133,7 @@ void BuiltinProcedure::DbEdgeLabels(RTContext *ctx, const Record *record, const 
                                            "given. Usage: db.edgeLabels()",
                                            args.size()))
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    auto labels = ctx->txn_->GetAllLabels(false);
+    auto labels = ctx->txn_->GetTxn()->GetAllLabels(false);
     for (auto &l : labels) {
         Record r;
         r.AddConstant(lgraph::FieldData(l));
@@ -147,7 +147,7 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
                                            "given. Usage: db.indexes()",
                                            args.size()))
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    auto indexes = ctx->txn_->ListVertexIndexes();
+    auto indexes = ctx->txn_->GetTxn()->ListVertexIndexes();
     for (auto &i : indexes) {
         Record r;
         r.AddConstant(lgraph::FieldData(i.label));
@@ -169,7 +169,7 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
 
     auto label = args[0].String();
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    auto indexes = ctx->txn_->ListVertexIndexByLabel(label);
+    auto indexes = ctx->txn_->GetTxn()->ListVertexIndexByLabel(label);
     for (auto &i : indexes) {
         if (i.label != label) continue;
         Record r;
@@ -217,7 +217,7 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, cons
         for (auto &item : yield_items) titles.emplace_back(item);
     }
     std::unordered_map<std::string, std::function<void(const Procedure &, Record &)>> lmap = {
-        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.signature.proc_name)); }},
+        {"name", [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.proc_name)); }},
         {"signature",
          [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }},
         {"read_only",
@@ -407,7 +407,7 @@ void BuiltinProcedure::DbGetLabelSchema(RTContext *ctx, const Record *record, co
             "Wrong number of arguments. This function takes exactly 2 arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
-    auto fs = ctx->txn_->GetSchema(is_vertex, label);
+    auto fs = ctx->txn_->GetTxn()->GetSchema(is_vertex, label);
     for (auto &f : fs) {
         Record r;
         r.AddConstant(lgraph::FieldData(f.name));
@@ -422,7 +422,7 @@ void BuiltinProcedure::DbGetVertexSchema(RTContext *ctx, const Record *record, c
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. db.getVertexSchema(label)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    const lgraph::Schema *schema = ctx->txn_->GetSchema(args[0].String(), true);
+    const lgraph::Schema *schema = ctx->txn_->GetTxn()->GetSchema(args[0].String(), true);
     Record r;
     r.AddConstant(lgraph::FieldData(ValueToJson(schema).serialize()));
     records->emplace_back(r.Snapshot());
@@ -433,7 +433,7 @@ void BuiltinProcedure::DbGetEdgeSchema(RTContext *ctx, const Record *record, con
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. db.getEdgeSchema(label)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    const lgraph::Schema *schema = ctx->txn_->GetSchema(args[0].String(), false);
+    const lgraph::Schema *schema = ctx->txn_->GetTxn()->GetSchema(args[0].String(), false);
     Record r;
     r.AddConstant(lgraph::FieldData(ValueToJson(schema).serialize()));
     records->emplace_back(r.Snapshot());
@@ -693,7 +693,7 @@ void BuiltinProcedure::DbFullTextIndexes(RTContext *ctx, const Record *record, c
                                            "given. Usage: db.FullTextIndexes()",
                                            args.size()))
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    const auto &ft_indexs = ctx->txn_->ListFullTextIndexes();
+    const auto &ft_indexs = ctx->txn_->GetTxn()->ListFullTextIndexes();
     for (const auto &ft_index : ft_indexs) {
         Record r;
         r.AddConstant(lgraph::FieldData(std::get<0>(ft_index)));
@@ -1570,7 +1570,7 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
     lgraph::TimeoutTaskKiller timeout_killer;
     timeout_killer.SetTimeout(args[3].Double());
     std::string res;
-    bool success = db.CallPlugin(type, ctx->user_, name, args[2].String(), args[3].Double(),
+    bool success = db.CallPlugin(ctx->txn_.get(), type, ctx->user_, name, args[2].String(), args[3].Double(),
                                  args[4].Bool(), res);
     Record r;
     r.AddConstant(lgraph::FieldData(res));
@@ -2132,7 +2132,7 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     auto end_vid = record->values[it2->second.id].node->PullVid();
     cypher::Path path;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedShortestPath(*ctx->txn_, start_vid, end_vid, edge_label, max_hops, path);
+    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, max_hops, path);
 
     auto pp = global_ptable.GetProcedure("algo.shortestPath");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
@@ -2182,7 +2182,7 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
     auto end_vid = record->values[it2->second.id].node->PullVid();
     std::vector<cypher::Path> paths;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedAllShortestPaths(*ctx->txn_, start_vid, end_vid, edge_label, paths);
+    _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, paths);
 
     auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
@@ -2246,7 +2246,7 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
             value = cypher::FieldData::Array(0);
             for (auto &id : *vid.constant.array) {
                 value.array->emplace_back(
-                    ctx->txn_->GetVertexField(id.AsInt64(), it2->second.String()));
+                    ctx->txn_->GetTxn()->GetVertexField(id.AsInt64(), it2->second.String()));
             }
         } else {
             CYPHER_TODO();
@@ -2258,7 +2258,7 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
         auto &eid = record->values[i->second.id];
         if (!eid.IsString()) CYPHER_TODO();
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-        value = ctx->txn_->GetEdgeField(_detail::ExtractEdgeUid(eid.constant.scalar.AsString()),
+        value = ctx->txn_->GetTxn()->GetEdgeField(_detail::ExtractEdgeUid(eid.constant.scalar.AsString()),
                                         it2->second.String());
     }
 

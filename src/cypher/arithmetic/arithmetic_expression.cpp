@@ -143,7 +143,7 @@ cypher::FieldData BuiltinFunction::Properties(RTContext *ctx, const Record &reco
             std::string s = r.constant.array->at(i).AsString();
             if (s.rfind("V[", 0) == 0) {
                 auto vid = static_cast<int64_t>(std::stoll(s.substr(2, s.size() - 3)));
-                vit.Initialize(ctx->txn_.get(), lgraph::VIter::VERTEX_ITER, vid);
+                vit.Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER, vid);
                 ret.array->emplace_back(lgraph::FieldData(vit.Properties()));
             } else if (s.rfind("E[", 0) == 0) {
                 auto euidVec = fma_common::Split(s.substr(2, s.size() - 3), "_");
@@ -151,7 +151,7 @@ cypher::FieldData BuiltinFunction::Properties(RTContext *ctx, const Record &reco
                 euid.dst = static_cast<int64_t>(std::stoll(euidVec[1]));
                 euid.lid = static_cast<uint16_t>(std::stoll(euidVec[2]));
                 euid.eid = static_cast<int64_t>(std::stoll(euidVec[3]));
-                eit.Initialize(ctx->txn_.get(), euid);
+                eit.Initialize(ctx->txn_->GetTxn().get(), euid);
                 ret.array->emplace_back(lgraph::FieldData(eit.Properties()));
             } else {
                 throw lgraph::CypherException("Invalid argument of " + std::string(__func__));
@@ -1088,7 +1088,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
             }
             auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
             bool exists =
-                ac_db.CallPlugin(lgraph::plugin::Type::CPP, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
+                ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
                                  input, 0, false, output);
             if (!exists) {
                 throw lgraph::InputError(FMA_FMT("Plugin [{}] does not exist.", name));

@@ -75,6 +75,17 @@ std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins
     return plugins;
 }
 
+bool lgraph::SingleLanguagePluginManager::GetPluginSigSpec(const std::string& user,
+                                                           const std::string& name_,
+                                                           lgraph_api::SigSpec** sig_spec) {
+    std::string name = ToInternalName(name_);
+    AutoReadLock lock(lock_, GetMyThreadId());
+    auto it = procedures_.find(name);
+    if (it == procedures_.end()) return false;
+    *sig_spec = it->second->sig_spec.get();
+    return true;
+}
+
 bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& user,
                                                         const std::string& name_,
                                                         lgraph::PluginCode& ret) {
@@ -219,22 +230,23 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
 
     // cython
     std::string exec_dir = fma_common::FileSystem::GetExecutablePath().Dir();
-    std::string cmd = FMA_FMT("cython {} -+ -3 -I{}/../../src/cython/ -o {}  --module-name {}",
+    std::string cmd = FMA_FMT("cython {} -+ -3 -I{}/../../include/cython/ "
+                              " -I/usr/local/include/cython/ "
+                              " -o {} --module-name {} ",
                               cython_file_path, exec_dir, cpp_file_path, name);
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while translate cython to c++.",
                    "Failed to translated cython. cmd: " + cmd);
 
     // compile
-    std::string CFLAGS = FMA_FMT("-I{}/../../include -I/usr/local/include "
-                                 "-I/usr/include/python3.6m "
-                                 "-I/usr/local/include/python3.6m "
-                                 "-I{}/../../deps/fma-common "
-                                 "-I{}/../../src",
-                                 exec_dir, exec_dir, exec_dir);
+    std::string CFLAGS = FMA_FMT(" -I/usr/local/include "
+                                 " -I{}/../../include "
+                                 " -I/usr/include/python3.6m "
+                                 " -I/usr/local/include/python3.6m ",
+                                 exec_dir);
 //    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
 //                                  "-L/usr/lib64/ -lpython3.6m", exec_dir);
-    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
-                                  "-L/usr/lib64/ ", exec_dir);
+    std::string LDFLAGS = FMA_FMT(" -llgraph -L{} -L/usr/local/lib64/ "
+                                  " -L/usr/lib64/ ", exec_dir);
 #ifndef __clang__
     cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
@@ -488,16 +500,19 @@ bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& us
     return  it->second->read_only;
 }
 
-bool lgraph::SingleLanguagePluginManager::Call(const std::string& user,
+bool lgraph::SingleLanguagePluginManager::Call(lgraph_api::Transaction* txn,
+                                               const std::string& user,
                                                AccessControlledDB* db_with_access_control,
-                                               const std::string& name_, const std::string& request,
-                                               double timeout, bool in_process,
+                                               const std::string& name_,
+                                               const std::string& request,
+                                               double timeout,
+                                               bool in_process,
                                                std::string& output) {
     std::string name = ToInternalName(name_);
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
     if (it == procedures_.end()) return false;
-    impl_->DoCall(user, db_with_access_control, name, it->second, request, timeout, in_process,
+    impl_->DoCall(txn, user, db_with_access_control, name, it->second, request, timeout, in_process,
                   output);
     return true;
 }
@@ -617,6 +632,12 @@ std::vector<lgraph::PluginDesc> lgraph::PluginManager::ListPlugins(PluginType ty
     return SelectManager(type)->ListPlugins(user);
 }
 
+bool lgraph::PluginManager::GetPluginSignature(lgraph::PluginManager::PluginType type,
+                                              const std::string& user, const std::string& name,
+                                               lgraph_api::SigSpec** sig_spec) {
+    return SelectManager(type)->GetPluginSigSpec(user, name, sig_spec);
+}
+
 bool lgraph::PluginManager::GetPluginCode(PluginType type, const std::string& user,
                                           const std::string& name, lgraph::PluginCode& ret) {
     bool rt = SelectManager(type)->GetPluginCode(user, name, ret);
@@ -643,10 +664,15 @@ bool lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string&
     return SelectManager(type)->IsReadOnlyPlugin(user, name_);
 }
 
-bool lgraph::PluginManager::Call(PluginType type, const std::string& user,
+bool lgraph::PluginManager::Call(lgraph_api::Transaction* txn,
+                                 PluginType type,
+                                 const std::string& user,
                                  AccessControlledDB* db_with_access_control,
-                                 const std::string& name_, const std::string& request,
-                                 double timeout, bool in_process, std::string& output) {
-    return SelectManager(type)->Call(user, db_with_access_control, name_, request, timeout,
+                                 const std::string& name_,
+                                 const std::string& request,
+                                 double timeout,
+                                 bool in_process,
+                                 std::string& output) {
+    return SelectManager(type)->Call(txn, user, db_with_access_control, name_, request, timeout,
                                      in_process, output);
 }

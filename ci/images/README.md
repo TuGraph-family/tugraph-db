@@ -1,109 +1,77 @@
 # TuGraph Docker手册
 
-# 1. 简介
+# 1 简介
 
 内容仅针对开发人员，本文档介绍TuGraph Compile及TuGraph Runtime的Docker镜像的创建、下载。
 
 - TuGraph Compile Image：提供编译环境，可以用于TuGraph的编译，测试；
-- TuGraph Runtime Image：提供二进制可运行环境，附带TuGraph库和可执行文件。
+- TuGraph Runtime Image：提供二进制可运行环境，附带TuGraph库和可执行文件；
+- TuGraph Mini Runtime Image: 提供二进制可运行环境，不包含TuGraph种Java、Python相关的功能，无C++ plugin编译运行，仅so上传。
 
-# 2. 现有Docker Image
+# 2 现有Docker Image
 
-### 镜像下载方式
+## 2.1 镜像下载方式
 
-镜像托管在DockerHub，可直接下载使用。
+镜像托管在[DockerHub]( https://hub.docker.com/u/tugraph )，可直接下载使用。
 
-### TuGraph Compile Image
+## 2.2 命名规范
+
+### 2.2.1 TuGraph Compile Image
 
 提供编译环境，可以用于TuGraph的编译。
 
-#### 命名规范
+`tugraph/tugraph-compile-[os name & version]:[tugraph compile version]`
 
-tugraph/tugraph-compile-[os name & version]:[tugraph compile version]
+例如： `tugraph/tugraph-compile-centos7:1.2.0`
 
-#### 镜像列表
-
-- tugraph/tugraph-compile-centos7:1.1.0
-
-### TuGraph Runtime Image
+### 2.2.2 TuGraph Runtime Image
 
 提供二进制可运行环境，附带TuGraph库和可执行文件。
 
-#### 命名规范
+`tugraph/tugraph-runtime-[os name & version]:[tugraph-runtime version]`
 
-tugraph/tugraph-runtime-[os name & version]:[tugraph-runtime version]
+例如：`tugraph/tugraph-runtime-centos7:3.4.0`
 
-#### 镜像列表
+### 2.2.3 TuGraph Mini Runtime Image
 
-- tugraph/tugraph-runtime-centos7:3.3.0
+提供二进制可运行环境，不包含TuGraph种Java、Python相关的功能，无C++ plugin编译运行，仅so上传。
 
-# 3. 创建Docker镜像
+`tugraph/tugraph-mini-runtime-[os name & version]:[tugraph-runtime version]`
 
-注意创建镜像需要下载依赖，所以因为网络问题会导致创建较慢或者创建失败。
+例如： `tugraph/tugraph-mini-runtime-centos7:3.4.0`
 
-后续补充通过本地导入依赖的方式。
+# 3 常见Docker操作
 
-### 创建"TuGraph Compile Image"
+Docker由Dockerfile生成，注意创建镜像需要下载依赖，因此网络问题可能会导致创建较慢或者创建失败。注意不要覆盖镜像，除非tag为 `latest`。
 
-不同操作系统版本的Dockerfile在 `ci/images/`目录下，根据需要选择compile版本，目前提供centos7版本
-
+创建镜像
 ```bash
-cd ci/images/${version}
-docker build -f compile/centos-7-Dockerfile -t tugraph/${image_name}:${image_tag} .
+docker build -f tugraph-compile-centos7-Dockerfile -t tugraph/tugraph-compile-centos7:1.2.0 .
 ```
 
-示例如下
-
-```bash
-cd ci/images/compile
-docker build -f centos-7-Dockerfile -t tugraph/tugraph-compile-centos7:1.1.0 .
-```
-
-### 创建"TuGraph Runtime Image"
-
-创建TuGraph Docker镜像需要指定：
-
-- TuGraphPath: tugraph-db文件夹路径。
-- CompileDockerImage: “TuGraph Compile Image”以及标签。
-- RuntimeDockerImage: 输出的Runtime Docker镜像及标签。
-- DataX_Path: DataX路径。
-
-```bash
-cd ci/images
-bash build.sh ${TuGraphPath} ${CompileDockerImage} ${RuntimeDockerImage} ${DataX_Path}
-```
-
-示例如下
-
-```bash
-cd ci/images/runtime
-bash build.sh /data/TuGraph \
-    tugraph/tugraph-compile-centos7:1.1.0 \
-    tugraph/tugraph-runtime-centos7:3.3.0
-```
-
-### 上传镜像
-
-注意不要覆盖非tag为 `latest`的镜像。
-
-### 修改镜像名称
-
+修改镜像名称
 ```bash
 docker tag ${image_name}:${image_tag} tugraph/tugraph-runtime-centos7:3.3.0
 ```
 
-### 导出镜像
+上传镜像
+```bash
+docker push tugraph/tugraph-compile-centos7:1.2.0 .
+```
 
+获取镜像
+```bash
+docker pull tugraph/tugraph-compile-centos7:1.2.0
+```
+
+导出镜像
 ```bash
 docker save ${image_name}:${image_tag} | gzip > lgraph_latest.tar.gz
 ```
 
-# 4. 修改日志
+导入镜像
+```bash
+docker load --input lgraph_latest.tar.gz
+```
 
-### TuGraph Compile Image
-
-- first update
-
-### TuGraph Release Image
-
-- first update
+其他Docker操作请参考[官方文档](https://docs.docker.com/engine/reference/commandline/cli )

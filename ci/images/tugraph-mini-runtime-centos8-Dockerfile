@@ -1,0 +1,14 @@
+FROM centos:8.4.2105
+
+RUN rm -rf /etc/yum.repos.d \
+    && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
+    && tar -xf yum.repos.d.tar.gz && mv yum.repos.d /etc/yum.repos.d && rm yum.repos.d.tar.gz
+
+RUN yum update -y && yum install -y \
+    gcc \
+    openssl-devel.x86_64
+
+COPY tugraph-mini-3.4.0-1.el8.x86_64.rpm /tugraph-mini-3.4.0-1.el8.x86_64.rpm
+RUN rpm -ivh tugraph-mini-3.4.0-1.el8.x86_64.rpm && rm /tugraph-mini-3.4.0-1.el8.x86_64.rpm
+
+ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH

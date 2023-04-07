@@ -1562,6 +1562,54 @@ void RestServer::HandlePostRefresh(const std::string& user, const std::string& t
     return RespondSuccess(request, response);
 }
 
+// /update_token_time
+void RestServer::HandlePostUpdateTokenTime(const std::string& user, const std::string& token,
+                                const web::http::http_request& request,
+                                 const utility::string_t& relative_path,
+                                 const std::vector<utility::string_t>& paths,
+                                 const web::json::value& body) const {
+    if (paths.size() != 1) {
+        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
+        return RespondBadURI(request);
+    }
+    if (token.empty()) return RespondUnauthorized(request, "Bad token.");
+    int64_t refresh_time;
+    int64_t expire_time;
+    if (!ExtractIntField(body, RestStrings::REFRESH_TIME, refresh_time)
+        || !ExtractIntField(body, RestStrings::EXPIRE_TIME, expire_time)) {
+        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false,
+                      "POST " + _TS(relative_path));
+        return RespondBadRequest(request, "`refresh_time` or `expire_time` not specified.");
+    }
+    _HoldReadLock(galaxy_->GetReloadLock());
+    galaxy_->ModifyTokenTime(token, refresh_time, expire_time);
+    web::json::value response;
+    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(user));
+    return RespondSuccess(request, response);
+}
+
+// /get_token_time
+void RestServer::HandlePostGetTokenTime(const std::string& user, const std::string& token,
+                                const web::http::http_request& request,
+                                 const utility::string_t& relative_path,
+                                 const std::vector<utility::string_t>& paths,
+                                 const web::json::value& body) const {
+    if (paths.size() != 1) {
+        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
+        return RespondBadURI(request);
+    }
+    if (token.empty()) return RespondUnauthorized(request, "Bad token.");
+    _HoldReadLock(galaxy_->GetReloadLock());
+    std::pair<int64_t, int64_t> time;
+    time = galaxy_->GetTokenTime(token);
+    int64_t refresh_time = time.first;
+    int64_t expire_time = time.second;
+    web::json::value response;
+    response[RestStrings::REFRESH_TIME] = web::json::value::number(_TU(refresh_time));
+    response[RestStrings::EXPIRE_TIME] = web::json::value::number(_TU(expire_time));
+    return RespondSuccess(request, response);
+}
+
 // /logout
 void RestServer::HandlePostLogout(const std::string& user, const std::string& token,
                                 const web::http::http_request& request,
@@ -2974,7 +3022,8 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         std::string user;
         if (fpc != RestPathCases::LOGIN) user = GetUser(request, &token);
         if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
-                                    && !galaxy_->JudgeRefreshTime(token)) {
+            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime
+            && !galaxy_->JudgeRefreshTime(token)) {
             throw AuthError("The token is unvalid.");
             exit(-1);
         }
@@ -3039,6 +3088,10 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
             }
         case RestPathCases::REFRESH:
             return HandlePostRefresh(user, token, request, relative_path, paths, body);
+        case RestPathCases::UpdateTokenTime:
+            return HandlePostUpdateTokenTime(user, token, request, relative_path, paths, body);
+        case RestPathCases::GetTokenTime:
+            return HandlePostGetTokenTime(user, token, request, relative_path, paths, body);
         case RestPathCases::LOGOUT:
             return HandlePostLogout(user, token, request, relative_path, paths, body);
         default:

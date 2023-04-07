@@ -114,6 +114,8 @@ static const utility::string_t LOCATION = _TU("location");
 static const utility::string_t LOG = _TU("log");
 static const utility::string_t LOGIN = _TU("login");
 static const utility::string_t LOGOUT = _TU("logout");
+static const utility::string_t UpdateTokenTime = _TU("update_token_time");
+static const utility::string_t GetTokenTime = _TU("get_token_time");
 static const utility::string_t MAX_SIZE_GB = _TU("max_size_GB");
 static const utility::string_t MEM = _TU("memory");
 static const utility::string_t MEM_LIMIT = _TU("memory_limit");
@@ -179,6 +181,8 @@ static const utility::string_t VID = _TU("vid");
 static const utility::string_t VIDS = _TU("vertex_ids");
 static const utility::string_t WEB = _TU("resource");
 static const utility::string_t WEB_COMMIT = _TU("web_commit");
+static const utility::string_t REFRESH_TIME = _TU("refresh_time");
+static const utility::string_t EXPIRE_TIME = _TU("expire_time");
 };  // namespace RestStrings
 
 inline bool ExtractIntField(const web::json::value& js, const utility::string_t& field,

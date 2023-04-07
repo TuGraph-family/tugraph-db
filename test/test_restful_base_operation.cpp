@@ -312,14 +312,16 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         Galaxy galaxy("./testdb");
         auto re = client1->request(methods::POST, _TU("/login"), body).get();
         auto token = re.extract_json().get().at(_TU("jwt")).as_string();
-        galaxy.ModifyValidTime(1);
+        galaxy.ModifyTokenTime(token, 1, 3600 * 24);
         sleep(1);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);
-        galaxy.ModifyValidTime(600);
+        galaxy.ModifyTokenTime(token, 600, 3600);
+        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, 600);
+        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, 3600);
         auto new_token = client.Refresh(token);
         UT_EXPECT_EQ(new_token != token, true);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), true);
-        galaxy.ModifyValidTime(1);
+        galaxy.ModifyTokenTime(new_token, 1, 3600 * 24);
         sleep(1);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), false);
     }

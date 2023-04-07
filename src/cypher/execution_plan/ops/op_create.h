@@ -125,7 +125,7 @@ class OpCreate : public OpBase {
              * e.g. MATCH (a:Film),(b:City) CREATE (a)-[r:BORN_IN]->(b)  */
             auto relp = &pattern_graph_->GetRelationship(edge_variable);
             if (relp->Empty()) CYPHER_TODO();
-            relp->ItRef()->Initialize(ctx->txn_.get(), euid);
+            relp->ItRef()->Initialize(ctx->txn_->GetTxn().get(), euid);
             // fill the record
             if (!summary_) {
                 auto it = sym_tab_.symbols.find(edge_variable);
@@ -164,7 +164,7 @@ class OpCreate : public OpBase {
                 }
             }  // for pattern_part
         }
-        ctx->txn_->RefreshIterators();
+        ctx->txn_->GetTxn()->RefreshIterators();
     }
 
     void ResultSummary(RTContext *ctx) {
@@ -176,7 +176,7 @@ class OpCreate : public OpBase {
                 .append(std::to_string(ctx->result_info_->statistics.edges_created))
                 .append(" edges.");
             auto header = ctx->result_->Header();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph::ElementType::STRING));
+            header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
             ctx->result_->ResetHeader(header);
             // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
             CYPHER_THROW_ASSERT(record);

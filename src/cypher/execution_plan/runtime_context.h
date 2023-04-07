@@ -59,7 +59,7 @@ class RTContext : public SubmitQueryContext {
  public:
     // generated context while plan execution
     std::unique_ptr<lgraph::AccessControlledDB> ac_db_ = nullptr;
-    std::unique_ptr<lgraph::Transaction> txn_ = nullptr;
+    std::unique_ptr<lgraph_api::Transaction> txn_ = nullptr;
     std::unique_ptr<ResultInfo> result_info_ = nullptr;
     std::unique_ptr<lgraph_api::Result> result_ = nullptr;
 

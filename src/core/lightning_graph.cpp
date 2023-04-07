@@ -2107,14 +2107,7 @@ void LightningGraph::LoadSnapshot(const std::string& path) {
 /** Warmups this DB */
 
 void LightningGraph::WarmUp() const {
-#if __APPLE__
-    int r = fma_common::ExecCmd(
-        fma_common::StringFormatter::Format("dd if={}/data.mdb of=/dev/null", config_.dir));
-#else
-    int r = fma_common::ExecCmd(
-        fma_common::StringFormatter::Format("dd if={}/data.mdb of=/dev/null bs=20M", config_.dir));
-#endif
-    if (r) store_->WarmUp(nullptr);
+    store_->WarmUp(nullptr);
 }
 
 PluginManager* LightningGraph::GetPluginManager() const { return plugin_manager_.get(); }

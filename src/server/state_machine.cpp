@@ -1115,7 +1115,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             if (preq.has_timeout() && preq.timeout() != 0) {
                 timeout_killer.SetTimeout(preq.timeout());
             }
-            bool r = db->CallPlugin(type, user, preq.name(), preq.param(),
+            bool r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
                                    preq.timeout(), preq.in_process(),
                                    *presp->mutable_call_plugin_response()->mutable_reply());
             FMA_DBG_ASSERT(r);

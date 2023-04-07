@@ -111,7 +111,7 @@ class Argument : public OpBase {
             case Entry::RELATIONSHIP:
                 if (!input.relationship->ItRef()->IsValid()) CYPHER_TODO();
                 record->values[a.rec_idx].relationship->ItRef()->Initialize(
-                    ctx->txn_.get(), input.relationship->ItRef()->GetUid());
+                    ctx->txn_->GetTxn().get(), input.relationship->ItRef()->GetUid());
                 break;
             default:
                 CYPHER_TODO();

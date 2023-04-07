@@ -16,6 +16,7 @@
 // Created by wt on 6/12/18.
 //
 
+#include <memory>
 #include <stack>
 #include "db/galaxy.h"
 
@@ -124,6 +125,19 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 graph.BuildRelationship(relp_patn, prev, curr, Relationship::MERGED);
                 prev = curr;
             }
+        } else if (c.type == Clause::INQUERYCALL) {
+            const auto& call = c.GetCall();
+            const auto& yield_items = std::get<2>(call);
+            for (const auto& item : yield_items) {
+                const auto& name = item.first;
+                const auto& type = item.second;
+                if (type == lgraph_api::LGraphType::NODE) {
+                    TUP_PROPERTIES props = {Expression(), ""};
+                    VEC_STR labels = {};
+                    TUP_NODE_PATTERN node_pattern = {name, labels, props};
+                    NodeID node = graph.BuildNode(node_pattern, Node::YIELD);
+                }
+            }
         }
     }  // for clauses
 }
@@ -159,19 +173,19 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             case SymbolNode::CONSTANT:
             case SymbolNode::PARAMETER:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ElementType::ANY);
+                                                       lgraph_api::LGraphType::ANY);
                 break;
             case SymbolNode::NODE:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ElementType::NODE);
+                                                       lgraph_api::LGraphType::NODE);
                 break;
             case SymbolNode::RELATIONSHIP:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ElementType::RELATIONSHIP);
+                                                       lgraph_api::LGraphType::RELATIONSHIP);
                 break;
             case SymbolNode::NAMED_PATH:
                 result_info.header.colums.emplace_back(name, alias, aggregate,
-                                                       lgraph::ElementType::PATH);
+                                                       lgraph_api::LGraphType::PATH);
                 break;
             default:
                 throw lgraph::CypherException("Unknown type: " + SymbolNode::to_string(type));
@@ -223,9 +237,9 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             } else {
                 for (auto &yield_item : yield_items) {
                     for (auto &r : result) {
-                        if (yield_item == r.name) {
+                        if (yield_item.first == r.name) {
                             result_info.header.colums.emplace_back(
-                                yield_item, yield_item, false, r.type);
+                                yield_item.first, yield_item.first, false, r.type);
                             break;
                         }
                     }
@@ -1279,10 +1293,11 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     } else {
         ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
             ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        lgraph_api::GraphDB db(ctx->ac_db_.get(), ReadOnly());
         if (ReadOnly()) {
-            ctx->txn_.reset(new lgraph::Transaction(ctx->ac_db_->CreateReadTxn()));
+            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
         } else {
-            ctx->txn_.reset(new lgraph::Transaction(ctx->ac_db_->CreateWriteTxn(ctx->optimistic_)));
+            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateWriteTxn(ctx->optimistic_));
         }
     }
 

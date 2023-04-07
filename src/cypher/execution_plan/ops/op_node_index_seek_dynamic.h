@@ -115,12 +115,12 @@ class NodeIndexSeekDynamic : public OpBase {
             // generate a new vertex iterator
             auto value =
                 value_rec_idx_ < 0 ? value_ : record->values[value_rec_idx_].constant.scalar;
-            if (!node_->Label().empty() && ctx->txn_->IsIndexed(node_->Label(), field_)) {
-                it_->Initialize(ctx->txn_.get(), lgraph::VIter::INDEX_ITER, node_->Label(), field_,
+            if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
+                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(), field_,
                                 value, value);
             } else {
                 // Weak index iterator
-                it_->Initialize(ctx->txn_.get(), node_->Label(), field_, value);
+                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
             }
             if (it_->IsValid()) return OP_OK;
         }

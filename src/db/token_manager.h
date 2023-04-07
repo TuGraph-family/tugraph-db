@@ -17,6 +17,7 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
+#include <limits>
 
 #include "jwt-cpp/jwt.h"
 #include "jwt-cpp/traits/kazuho-picojson/traits.h"
@@ -31,25 +32,40 @@ namespace lgraph {
 
 #define TOKEN_REFRESH_TIME 3600
 #define TOKEN_EXPIRE_TIME 3600 * 24
+#define TOKEN_MAX_TIME std::numeric_limits<int>::max()
 
 class TokenManager {
     std::string secret_key_;
-    int valid_time_;
+    int refresh_time_;
+    int expire_time_;
     // verifier
     jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson> verifier_;
 
  public:
     /*!
     @param[in] secret_key    key for encryption
-    @param[in] valid_time    Time to judge whether it is expired
+    @param[in] refresh_time    Time to judge whether it is expired
     */
     explicit TokenManager(const std::string& secret_key,
-                    const int& valid_time = TOKEN_REFRESH_TIME);
+                    const int& refresh_time = TOKEN_REFRESH_TIME);
 
     /*!
-    @param[in] valid_time    Time to judge whether it is expired
+    @param[in] token         jwt token
+    @param[in] refresh_time    Time to judge whether it is expired
     */
-    void ModifyValidTime(const int& valid_time);
+    void ModifyRefreshTime(const std::string& token, const int& refresh_time);
+
+    /*!
+    @param[in] token         jwt token
+    @return  refresh_time, expire_time
+    */
+    std::pair<int64_t, int64_t> GetTokenTime(const std::string& token);
+
+    /*!
+    @param[in] token          jwt token
+    @param[in] expire_time    Time to judge whether it is expired
+    */
+    void ModifyExpireTime(const std::string& token, const int& expire_time);
 
     /*!
     @brief  Generate token when logging in for the first time

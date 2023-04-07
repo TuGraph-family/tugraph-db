@@ -1,37 +1,29 @@
-# build for lgraph
-FROM ubuntu:18.04
+FROM centos:7.3.1611
 
-RUN rm -rf /et/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-security main restricted universe multiverse" >> /etc/apt/sources.list
-
-RUN apt-get update && apt-get install -y \
+RUN yum update -y && yum install -y \
     git \
-    ssh \
-    tar \
-    gzip \
-    ca-certificates \
     gcc \
-    g++ \
-    pkg-config \
-    uuid-dev \
-    libssl-dev \
-    curl \
-    unzip \
+    gcc-c++ \
+    make \
+    wget \
     bzip2 \
-    python \
+    openssl-static \
+    libtool \
+    libtool-ltdl \
+    libtool-ltdl-devel \
+    unzip \
+    byacc \
+    libuuid-devel \
+    rpm-build \
+    rpmdevtools \
+    rpmdev-setuptree \
     autoconf \
     automake \
-    libtool \
-    zlib1g-dev \
-    libcurl4-openssl-dev \
-    dpkg \
-    libjson-perl \
-    libperlio-gzip-perl \
-    libdigest-perl-md5-perl \
-    openjdk-8-jdk
+    libtoolize \
+    texinfo \
+    java-1.8.0-openjdk* \
+    perl-Digest-MD5 \
+    libcurl-devel.x86_64
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
@@ -41,8 +33,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.
     && ./contrib/download_prerequisites && mkdir build && cd build \
     && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
     && make -j4 && make install \
-    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib/ \
-    && cd /usr/lib && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
+    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
+    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
     && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
 
 # install python3
@@ -123,13 +115,13 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6
     && npm config set registry https://registry.npmmirror.com \
     && rm -rf /node-v16.6.0-linux-x64.tar.gz
 
-
 # install lcov
 # if it is not accessible, replace it with the link below
-# https://mirrors.edge.kernel.org/ubuntu/pool/universe/l/lcov/lcov_1.14-2_all.deb \
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov_1.14-2_all.deb \
-    && dpkg -i lcov_1.14-2_all.deb \
-    && rm lcov_1.14-2_all.deb 
+# https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14-1.noarch.rpm
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov-1.14-1.noarch.rpm \
+    && rpm -ivh lcov-1.14-1.noarch.rpm \
+    && rm lcov-1.14-1.noarch.rpm
+
 
 #install maven
 # if it is not accessible, replace it with the link below
@@ -220,12 +212,13 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5
 # if it is not accessible, replace it with the link below
 # https://github.com/facebook/rocksdb/archive/refs/tags/v7.8.3.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7.8.3.tar.gz \
-  && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DFORCE_SSE42=ON -DWITH_JEMALLOC=ON \
+  && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=ON -DWITH_JEMALLOC=ON \
   && make -j6 && make install && rm -rf /rocksdb*
 
-RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec 
+RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
-ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
-    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/lib/amd64/:$LD_LIBRARY_PATH \
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
-    PATH=/opt/apache-maven-3.8.7/bin:/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:$PATH
+    PATH=/opt/apache-maven-3.8.7/bin:$PATH
+

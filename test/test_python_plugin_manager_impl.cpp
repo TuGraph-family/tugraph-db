@@ -183,7 +183,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         std::string output;
         UT_LOG() << "Testing call plugin1111";
 
-        manager.DoCall(user, &db, "echo", pinfo, "hello", 0, true, output);
+        manager.DoCall(nullptr, user, &db, "echo", pinfo, "hello", 0, true, output);
         UT_EXPECT_EQ(output, "hello");
 
         // currently delete has no effect, just return success
@@ -192,7 +192,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
 
         // since delete has no effect, this should work
         UT_LOG() << "Testing call plugin";
-        manager.DoCall(user, &db, "echo", pinfo, "hello", 0, true, output);
+        manager.DoCall(nullptr, user, &db, "echo", pinfo, "hello", 0, true, output);
         UT_EXPECT_EQ(output, "hello");
 
         // test timeout
@@ -202,15 +202,23 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         WriteSleepPlugin(plugin_dir + "/sleep.so");
         manager.LoadPlugin(user, "sleep", pinfo);
         UT_LOG() << "Calling sleep for 0.1";
-        manager.DoCall(user, &db, "sleep", pinfo, "0.1", 0, true, output);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 0, true, output);
         UT_LOG() << "output: " << output;
         UT_LOG() << "Calling sleep for 1.5 with timeout 1";
-        UT_EXPECT_THROW(manager.DoCall(user, &db, "sleep", pinfo, "1.5", 0.5, true, output),
+        UT_EXPECT_THROW(manager.DoCall(nullptr,
+                                       user,
+                                       &db,
+                                       "sleep",
+                                       pinfo,
+                                       "1.5",
+                                       0.5,
+                                       true,
+                                       output),
                         InputError);
         UT_LOG() << "output: " << output;
-        manager.DoCall(user, &db, "sleep", pinfo, "0.1", 0, true, output);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 0, true, output);
         UT_LOG() << "Calling sleep for 0.2 with timeout 2";
-        manager.DoCall(user, &db, "sleep", pinfo, "0.2", 2, true, output);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.2", 2, true, output);
         UT_LOG() << "output: " << output;
 
         // test idle process kill
@@ -221,24 +229,24 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         for (size_t i = 0; i < n_processes; i++) {
             thrs.emplace_back([i, &manager, &db, pinfo, &user]() {
                 std::string out;
-                manager.DoCall(user, &db, "sleep", pinfo, "0.1", 2, true, out);
+                manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 2, true, out);
             });
         }
         for (auto& thr : thrs) thr.join();
         UT_EXPECT_EQ(manager.GetNFree(), n_processes);
         fma_common::SleepS(max_idle_seconds + 0.4);
         // this call will clean all the processes
-        manager.DoCall(user, &db, "sleep", pinfo, "0.1", 2, true, output);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 2, true, output);
         UT_EXPECT_EQ(manager.GetNFree(), 0);
         thrs.clear();
         for (size_t i = 0; i < 3; i++) {
             thrs.emplace_back([i, &manager, &db, pinfo, &user]() {
                 std::string out;
-                manager.DoCall(user, &db, "sleep", pinfo, std::to_string(i), 0, true, out);
+                manager.DoCall(nullptr, user, &db, "sleep", pinfo, std::to_string(i), 0, true, out);
             });
         }
         for (auto& thr : thrs) thr.join();
-        manager.DoCall(user, &db, "sleep", pinfo, "1.4", 2, true, output);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "1.4", 2, true, output);
         UT_EXPECT_EQ(manager.GetNFree(), std::min(max_idle_seconds - 1, 3));
         std::string path("sleep");
         auto res = manager.GetPluginPath(path);

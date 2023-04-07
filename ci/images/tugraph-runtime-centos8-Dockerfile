@@ -1,0 +1,69 @@
+FROM centos:8.4.2105
+
+RUN rm -rf /etc/yum.repos.d \
+    && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
+    && tar -xf yum.repos.d.tar.gz && mv yum.repos.d /etc/yum.repos.d && rm yum.repos.d.tar.gz
+
+RUN yum update -y && yum install -y \
+    git \
+    gcc \
+    gcc-c++ \
+    make \
+    wget \
+    bzip2 \
+    openssl-devel.x86_64 \
+    java-1.8.0-openjdk* \
+    libcurl-devel.x86_64
+
+# install g++ 8.4.0
+# if it is not accessible, replace it with the link below
+# http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.tar.gz \
+    && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
+    && ./contrib/download_prerequisites && mkdir build && cd build \
+    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
+    && make -j4 && make install \
+    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
+    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
+    && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
+
+# install python3
+# if it is not accessible, replace it with the link below
+# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
+    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+    && make -j4 && make install \
+    && python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && rm -rf /Python*
+
+# install cmake
+# if it is not accessible, replace it with the link below
+# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
+    && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
+    && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
+
+# install boost-1.68
+# if it is not accessible, replace it with the link below
+# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
+    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace \
+    && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
+
+#install maven
+# if it is not accessible, replace it with the link below
+# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
+RUN cd opt \
+    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
+    && tar xf apache-maven-3.8.7-bin.tar.gz \
+    && rm apache-maven-*.tar.gz
+
+COPY tugraph-3.4.0-1.el8.x86_64.rpm /tugraph-3.4.0-1.el8.x86_64.rpm
+RUN rpm -ivh tugraph-3.4.0-1.el8.x86_64.rpm && rm /tugraph-3.4.0-1.el8.x86_64.rpm
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0/jre/ \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
+    PATH=/opt/apache-maven-3.8.7/bin:$PATH

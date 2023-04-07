@@ -60,7 +60,7 @@ class AllNodeScan : public OpBase {
         record->SetParameter(ctx->param_tab_);
         // transaction allocated before in plan:execute
         // todo: remove patternGraph's state (ctx)
-        node_->ItRef()->Initialize(ctx->txn_.get(), lgraph::VIter::VERTEX_ITER);
+        node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER);
         return OP_OK;
     }
 

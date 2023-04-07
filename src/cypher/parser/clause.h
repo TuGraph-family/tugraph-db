@@ -643,7 +643,7 @@ static std::string Serialize(const TUP_CALL &call,
     }
     i = 0;
     for (auto &y : yield_items) {
-        output_str.append(y);
+        output_str.append(y.first);
         if (++i < yield_items.size()) output_str.append(", ");
     }
     return fma_common::StringFormatter::Format(
