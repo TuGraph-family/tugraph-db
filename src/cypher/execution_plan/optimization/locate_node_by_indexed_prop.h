@@ -116,6 +116,10 @@ class LocateNodeByIndexedProp : public OptPass {
             target_value_datas.emplace_back(value);
             while (!filter->Left()->IsLeaf()) {
                 filter = filter->Left();
+                if (filter->Type() != lgraph::Filter::BINARY ||
+                    filter->LogicalOp() != lgraph::LBR_OR) {
+                    return false;
+                }
                 if (!getValueFromRangeFilter(filter->Right(), field, value)) return false;
                 target_value_datas.emplace_back(value);
             }

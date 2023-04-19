@@ -117,6 +117,10 @@ class LocateNodeByVid : public OptPass {
             target_vids.emplace_back(vid);
             while (!filter->Left()->IsLeaf()) {
                 filter = filter->Left();
+                if (filter->Type() != lgraph::Filter::BINARY ||
+                    filter->LogicalOp() != lgraph::LBR_OR) {
+                    return false;
+                }
                 vid = getVidFromRangeFilter(filter->Right());
                 if (vid == -1) return false;
                 target_vids.emplace_back(vid);
