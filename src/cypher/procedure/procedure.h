@@ -203,6 +203,9 @@ class BuiltinProcedure {
     static void DbmsGraphGetGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbmsSystemInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                               const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbmsConfigList(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
     static void DbmsConfigUpdate(RTContext *ctx, const Record *record, const VEC_EXPR &args,
@@ -663,6 +666,11 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"configuration", {1, lgraph_api::LGraphType::MAP}}},
+              true, true),
+
+    Procedure("dbms.system.info", BuiltinProcedure::DbmsSystemInfo, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"value", {1, lgraph_api::LGraphType::ANY}}},
               true, true),
 
     Procedure("dbms.config.list", BuiltinProcedure::DbmsConfigList, Procedure::SIG_SPEC{},

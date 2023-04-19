@@ -1008,6 +1008,35 @@ void BuiltinProcedure::DbmsGraphGetGraphInfo(RTContext *ctx, const Record *recor
     records->emplace_back(r.Snapshot());
 }
 
+void BuiltinProcedure::DbmsSystemInfo(RTContext *ctx, const cypher::Record *record,
+                                      const cypher::VEC_EXPR &args,
+                                      const cypher::VEC_STR &yield_items,
+                                      std::vector<cypher::Record> *records) {
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::string version;
+    version.append(std::to_string(lgraph::_detail::VER_MAJOR))
+        .append(".")
+        .append(std::to_string(lgraph::_detail::VER_MINOR))
+        .append(".")
+        .append(std::to_string(lgraph::_detail::VER_PATCH));
+    std::vector<std::pair<std::string, lgraph::FieldData>> info = {
+        {lgraph::RestStrings::VER, lgraph::FieldData(version)},
+        {lgraph::RestStrings::UP_TIME, lgraph::FieldData(ctx->sm_ ? ctx->sm_->GetUpTimeInSeconds() : 0.0)},
+        {lgraph::RestStrings::BRANCH, lgraph::FieldData(GIT_BRANCH)},
+        {lgraph::RestStrings::COMMIT, lgraph::FieldData(GIT_COMMIT_HASH)},
+        {lgraph::RestStrings::WEB_COMMIT, lgraph::FieldData(WEB_GIT_COMMIT_HASH)},
+        {lgraph::RestStrings::CPP_ID, lgraph::FieldData(CXX_COMPILER_ID)},
+        {lgraph::RestStrings::CPP_VERSION, lgraph::FieldData(CXX_COMPILER_VERSION)},
+        {lgraph::RestStrings::PYTHON_VERSION, lgraph::FieldData(PYTHON_LIB_VERSION)},
+    };
+    for (auto &i : info) {
+        Record r;
+        r.AddConstant(lgraph::FieldData(i.first));
+        r.AddConstant(i.second);
+        records->emplace_back(r.Snapshot());
+    }
+}
+
 void BuiltinProcedure::DbmsConfigList(RTContext *ctx, const cypher::Record *record,
                                       const cypher::VEC_EXPR &args,
                                       const cypher::VEC_STR &yield_items,
