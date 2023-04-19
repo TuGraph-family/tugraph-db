@@ -63,16 +63,9 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
 
 add_library(${TARGET_LGRAPH_CYPHER_LIB} STATIC
         ${LGRAPH_CYPHER_SRC}
-        ${PROTO_HEADERS}
-        ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h)
+        ${PROTO_HEADERS})
 
 set_target_properties(${TARGET_LGRAPH_CYPHER_LIB} PROPERTIES LINKER_LANGUAGE CXX)
-
-add_custom_command(
-        OUTPUT ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h
-        COMMAND cp -p ${CMAKE_CURRENT_LIST_DIR}/cypher/Any.h.491+ ${DEPS_INCLUDE_DIR}/antlr4-runtime/support/Any.h
-        DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cypher/Any.h.491+
-)
 
 target_include_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${DEPS_INCLUDE_DIR}/antlr4-runtime

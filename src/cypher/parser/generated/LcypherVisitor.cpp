@@ -1,5 +1,5 @@
 
-// Generated from Lcypher.g4 by ANTLR 4.9.2
+// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.12.0
 
 
 #include "LcypherVisitor.h"

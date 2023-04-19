@@ -48,7 +48,8 @@ static const cypher::PARAM_TAB g_param_tab = {
 };
 
 int test_file_script(const std::string &file, cypher::RTContext *ctx) {
-    ANTLRFileStream input(file);
+    ANTLRFileStream input;
+    input.loadFromFile(file);
     // ANTLRFileStream input;
     // input.loadFromFile(file);
     LcypherLexer lexer(&input);

@@ -8,16 +8,21 @@ set -o errexit
 
 # 1) Running from jar. Use the given jar (or replace it by another one you built or downloaded) for generation.
 # Build jar:
-# cd ${PROJECT_SOURCE_DIR}/deps/antlr4
-# export MAVEN_OPTS="-Xmx1G" && mvn clean && mvn -DskipTests install
-# LOCATION=/data/wt/usr/antlr-4.9.2-complete.jar
-LOCATION={your/path/to/antlr-4.y.z-complete.jar}
-GENERATED_DIR=../parser/generated
+export SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+export PROJECT_SOURCE_DIR=${SCRIPT_DIR}/../../../
+cd ${PROJECT_SOURCE_DIR}/deps/antlr4
+mvn clean
+MAVEN_OPTS="-Xmx1G" mvn -DskipTests package
+LOCATION=${PROJECT_SOURCE_DIR}/deps/antlr4/tool/target/antlr4-4.12.0-complete.jar
+GENERATED_DIR=${PROJECT_SOURCE_DIR}/src/cypher/parser/generated
 if [ -d "$GENERATED_DIR" ]; then
     echo "directory '$GENERATED_DIR' already exists!" && exit 1
 fi
-java -jar $LOCATION -Dlanguage=Cpp -no-listener -visitor -o $GENERATED_DIR -package parser Lcypher.g4
+# Generate
+java -jar $LOCATION -Dlanguage=Cpp -no-listener -visitor -o $GENERATED_DIR -package parser \
+    ${PROJECT_SOURCE_DIR}/src/cypher/grammar/Lcypher.g4
 rm $GENERATED_DIR/LcypherBaseVisitor.*
+
 #java -jar $LOCATION -Dlanguage=Cpp -listener -visitor -o $GENERATED_DIR -package antlrcpptest Lcypher.g4
 #java -jar $LOCATION -Dlanguage=Cpp -listener -visitor -o generated/ -package antlrcpptest -XdbgST TLexer.g4 TParser.g4
 #java -jar $LOCATION -Dlanguage=Java -listener -visitor -o generated/ -package antlrcpptest TLexer.g4 TParser.g4
