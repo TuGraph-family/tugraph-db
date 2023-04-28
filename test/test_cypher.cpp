@@ -48,7 +48,8 @@ static const cypher::PARAM_TAB g_param_tab = {
 };
 
 int test_file_script(const std::string &file, cypher::RTContext *ctx) {
-    ANTLRFileStream input(file);
+    ANTLRFileStream input;
+    input.loadFromFile(file);
     // ANTLRFileStream input;
     // input.loadFromFile(file);
     LcypherLexer lexer(&input);
@@ -1104,6 +1105,31 @@ int test_unwind(cypher::RTContext *ctx) {
 }
 
 int test_procedure(cypher::RTContext *ctx) {
+    UT_LOG() << "Load Plugin File";
+    std::ifstream f;
+    std::string text;
+    std::vector<std::pair<std::string, std::string>> plugin_info = {
+        {"scan_graph", "../../test/test_plugins/scan_graph.cpp"},
+        {"standard", "../../test/test_plugins/standard_result.cpp"},
+    };
+    std::vector<std::string> plugin_scripts;
+    std::string encode;
+    for (auto &i : plugin_info) {
+        text.clear();
+        f.open(i.second, std::ios::in);
+        std::string buf;
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        encode = lgraph_api::encode_base64(text);
+        plugin_scripts.push_back(
+            "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
+            "','CPP','" + i.first + "', true)");
+    }
+    eval_scripts(ctx, plugin_scripts);
+
     static std::vector<std::string> scripts = {
         "CALL db.createVertexLabel('Director', 'name', 'name', STRING, false, 'age', INT16, true)",
         "CALL db.createVertexLabel('P2', 'flag1', 'flag1', BOOL, false, 'flag2', Bool, true)",
@@ -1147,6 +1173,7 @@ int test_procedure(cypher::RTContext *ctx) {
         //            "CALL dbms.security.deleteAccessPermission('guest2','default')",
         //            "CALL dbms.security.accessPermission('guest2','')",
         // config
+        "CALL dbms.system.info()",
         "CALL dbms.config.list()",
         // "CALL dbms.config.update({OPT_DB_ASYNC:true, OPT_TXN_OPTIMISTIC:true,
         // OPT_AUDIT_LOG_ENABLE:true, OPT_IP_CHECK_ENABLE:false})", // cannot run this here since it
@@ -1205,9 +1232,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL db.plugin.getPluginInfo('PY','countPerson')",
         "CALL db.plugin.getPluginInfo('PY','countPerson',true)",
         "CALL dbms.task.listTasks()",
-        "CALL db.plugin.loadPlugin('CPP','scan_graph','','CPP','scan graph', true)",
         "CALL plugin.cpp.scan_graph({scan_edges:true,times:2})",
-        "CALL db.plugin.loadPlugin('CPP','standard','',CPP','standard', true)",
         "CALL plugin.cpp.standard({})",
     // "CALL dbms.task.terminateTask()",
 #if 0
@@ -1256,36 +1281,8 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL algo.pagerank(10) YIELD node, pr with node MATCH(node)-[r]->(n)"
         "return node, r, n LIMIT 1"
         "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */",
-        "CALL dbms.procedures() YIELD name, signature WHERE name='db.subgraph' RETURN signature"
+        "CALL dbms.procedures() YIELD name, signature WHERE name='db.subgraph' RETURN signature",
     };
-
-    UT_LOG() << "Load Plugin File";
-    std::ifstream f;
-    std::string text = "";
-    std::string path[2] = {"../../test/test_plugins/scan_graph.cpp",
-                           "../../test/test_plugins/standard_result.cpp"};
-    std::string encode;
-    size_t pos = 73;
-    for (auto &i : path) {
-        f.open(i, std::ios::in);
-
-        std::string buf;
-        while (getline(f, buf)) {
-            text += buf;
-            text += "\n";
-        }
-        f.close();
-        encode = lgraph_api::encode_base64(text);
-        if (pos == 73) {
-            scripts[pos] = "CALL db.plugin.loadPlugin('CPP','scan_graph','" + encode +
-                           "','CPP','scan graph', true)";
-        } else {
-            scripts[pos] = "CALL db.plugin.loadPlugin('CPP','standard','" + encode +
-                           "','CPP','standard', true)";
-        }
-        text.clear();
-        pos += 2;
-    }
     eval_scripts(ctx, scripts);
 
     std::vector<std::string> call_signatured_plugins_scripts;

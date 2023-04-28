@@ -467,7 +467,7 @@ class TestProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 84
+        assert len(procedures) == 85
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
@@ -557,6 +557,16 @@ class TestProcedure:
             if conf.get("name") == "enable_audit_log":
                 assert conf.get("value") == True
 
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_system_info(self, server, client):
+        ret = client.callCypher("CALL dbms.system.info()", "default")
+        assert ret[0]
+        confs = json.loads(ret[1])
+        for conf in confs:
+            key = conf.get("name")
+            if key not in ["lgraph_version", "up_time", "git_branch", "git_commit", "web_commit", "cpp_id", "cpp_version", "python_version"]:
+                assert False
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)

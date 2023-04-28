@@ -20,6 +20,11 @@
             "query": "MATCH (n) WHERE id(n)=1 OR id(n)=3 OR id(n)=4 OR id(n)=18 OR id(n)=1111 RETURN n",
             "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node By Id Seek[1,3,4,18,1111,]\n",
             "res": 4
+          },
+          {
+            "query": "MATCH (n) WHERE id(n)=1 OR id(n)=3 AND id(n)=4 OR id(n)=18 OR id(n)=1111 RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Filter [((({id(false,n) = 1}||({id(false,n) = 3}&&{id(false,n) = 4}))||{id(false,n) = 18})||{id(false,n) = 1111})]\n            All Node Scan [n]\n",
+            "res": 2
           }
         ],
         "uid": [
@@ -37,6 +42,16 @@
             "query": "MATCH (n) where n.name =\"Rachel Kempson\" or n.name= \"Dennis Quaid\" or n.name=\"none\" RETURN n",
             "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,none,]\n",
             "res": 2
+          },
+          {
+            "query": "MATCH (n) where n.name = \"Rachel Kempson\" and n.name = \"Dennis Quaid\" or n.name = \"Vanessa Redgrave\" RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Filter [(({n.name = Rachel Kempson}&&{n.name = Dennis Quaid})||{n.name = Vanessa Redgrave})]\n            All Node Scan [n]\n",
+            "res": 1
+          },
+          {
+            "query": "MATCH (n) where n.name = \"Rachel Kempson\" or n.name = \"Dennis Quaid\" or n.name = \"Vanessa Redgrave\" RETURN n",
+            "plan": "Execution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,Vanessa Redgrave,]\n",
+            "res": 3
           }
         ],
         "list": [

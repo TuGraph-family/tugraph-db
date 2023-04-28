@@ -129,15 +129,15 @@ class CypherBaseVisitor : public LcypherVisitor {
      * !is_nothrow_copy_constructible (such as std::string), the default implementation
      * treats it as constant reference and wont'd clone its content.
      */
-    antlrcpp::Any visitChildren(antlr4::tree::ParseTree *node) override {
-        antlrcpp::Any result = defaultResult();
+    std::any visitChildren(antlr4::tree::ParseTree *node) override {
+        std::any result = defaultResult();
         size_t n = node->children.size();
         for (size_t i = 0; i < n; i++) {
             if (!shouldVisitNextChild(node, result)) {
                 break;
             }
 
-            antlrcpp::Any childResult = node->children[i]->accept(this);
+            std::any childResult = node->children[i]->accept(this);
             result = std::move(childResult);
         }
 
@@ -148,23 +148,23 @@ class CypherBaseVisitor : public LcypherVisitor {
 
     CmdType CommandType() const { return _cmd_type; }
 
-    virtual antlrcpp::Any visitOC_Cypher(LcypherParser::OC_CypherContext *ctx) override {
+    virtual std::any visitOC_Cypher(LcypherParser::OC_CypherContext *ctx) override {
         _query.clear();
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Statement(LcypherParser::OC_StatementContext *ctx) override {
+    virtual std::any visitOC_Statement(LcypherParser::OC_StatementContext *ctx) override {
         _cmd_type = ctx->EXPLAIN()   ? CmdType::EXPLAIN
                     : ctx->PROFILE() ? CmdType::PROFILE
                                      : CmdType::QUERY;
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Query(LcypherParser::OC_QueryContext *ctx) override {
+    virtual std::any visitOC_Query(LcypherParser::OC_QueryContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_RegularQuery(
+    virtual std::any visitOC_RegularQuery(
         LcypherParser::OC_RegularQueryContext *ctx) override {
         // reserve for single_queries
         _query.resize(ctx->oC_Union().size() + 1);
@@ -184,11 +184,11 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_Union(LcypherParser::OC_UnionContext *ctx) override {
+    virtual std::any visitOC_Union(LcypherParser::OC_UnionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_SingleQuery(LcypherParser::OC_SingleQueryContext *ctx) override {
+    virtual std::any visitOC_SingleQuery(LcypherParser::OC_SingleQueryContext *ctx) override {
         // reserve for query parts
         if (ctx->oC_SinglePartQuery()) {
             _query[_curr_query].parts.resize(1);
@@ -199,38 +199,38 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_SinglePartQuery(
+    virtual std::any visitOC_SinglePartQuery(
         LcypherParser::OC_SinglePartQueryContext *ctx) override {
         if (ctx->oC_ReadingClause().size() > 2) CYPHER_TODO();
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_MultiPartQuery(
+    virtual std::any visitOC_MultiPartQuery(
         LcypherParser::OC_MultiPartQueryContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_UpdatingClause(
+    virtual std::any visitOC_UpdatingClause(
         LcypherParser::OC_UpdatingClauseContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_ReadingClause(
+    virtual std::any visitOC_ReadingClause(
         LcypherParser::OC_ReadingClauseContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Match(LcypherParser::OC_MatchContext *ctx) override {
+    virtual std::any visitOC_Match(LcypherParser::OC_MatchContext *ctx) override {
         _EnterClauseMATCH();
         bool optional = ctx->OPTIONAL_() != nullptr;
-        std::vector<TUP_PATTERN_PART> pattern = visit(ctx->oC_Pattern());
+        std::vector<TUP_PATTERN_PART> pattern = std::any_cast<std::vector<TUP_PATTERN_PART>>(visit(ctx->oC_Pattern()));
         VEC_STR hints;
         for (auto &hint : ctx->oC_Hint()) {
-            std::string h = visit(hint);
+            std::string h = std::any_cast<std::string>(visit(hint));
             hints.emplace_back(h);
         }
         Expression where;
-        if (ctx->oC_Where()) where = visit(ctx->oC_Where());
+        if (ctx->oC_Where()) where = std::any_cast<Expression>(visit(ctx->oC_Where()));
         Clause clause;
         clause.type = Clause::MATCH;
         clause.data = std::make_shared<Clause::TYPE_MATCH>(std::move(pattern), std::move(hints),
@@ -240,10 +240,10 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_Unwind(LcypherParser::OC_UnwindContext *ctx) override {
+    virtual std::any visitOC_Unwind(LcypherParser::OC_UnwindContext *ctx) override {
         _EnterClauseUNWIND();
-        Expression e = visit(ctx->oC_Expression());
-        std::string variable = visit(ctx->oC_Variable());
+        Expression e = std::any_cast<Expression>(visit(ctx->oC_Expression()));
+        std::string variable = std::any_cast<std::string>(visit(ctx->oC_Variable()));
         CYPHER_THROW_ASSERT(!variable.empty());
         /* Set scope flag according to the list expression. e.g.:
          * WITH ['Shanghai','Beijing'] AS cids
@@ -266,16 +266,16 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_Merge(LcypherParser::OC_MergeContext *ctx) override {
+    virtual std::any visitOC_Merge(LcypherParser::OC_MergeContext *ctx) override {
         _EnterClauseMERGE();
         TUP_PATTERN_PART pattern_part;
         VEC_SET on_match_items;
         VEC_SET on_create_items;
-        pattern_part = visit(ctx->oC_PatternPart());
+        pattern_part = std::any_cast<TUP_PATTERN_PART>(visit(ctx->oC_PatternPart()));
         for (auto act : ctx->oC_MergeAction()) {
             TUP_SET_ITEM item;
             for (auto &set_item : (act->oC_Set())->oC_SetItem()) {
-                item = visit(set_item);
+                item = std::any_cast<TUP_SET_ITEM>(visit(set_item));
                 if (act->MATCH()) {
                     on_match_items.emplace_back(item);
                 }
@@ -294,13 +294,13 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_MergeAction(LcypherParser::OC_MergeActionContext *ctx) override {
+    virtual std::any visitOC_MergeAction(LcypherParser::OC_MergeActionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Create(LcypherParser::OC_CreateContext *ctx) override {
+    virtual std::any visitOC_Create(LcypherParser::OC_CreateContext *ctx) override {
         _EnterClauseCREATE();
-        std::vector<TUP_PATTERN_PART> pattern = visit(ctx->oC_Pattern());
+        std::vector<TUP_PATTERN_PART> pattern = std::any_cast<std::vector<TUP_PATTERN_PART>>(visit(ctx->oC_Pattern()));
         Clause clause;
         clause.type = Clause::CREATE;
         clause.data = std::make_shared<Clause::TYPE_CREATE>(std::move(pattern));
@@ -309,11 +309,11 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_Set(LcypherParser::OC_SetContext *ctx) override {
+    virtual std::any visitOC_Set(LcypherParser::OC_SetContext *ctx) override {
         _EnterClauseSET();
         VEC_SET pattern;
         for (auto &item : ctx->oC_SetItem()) {
-            TUP_SET_ITEM set_item = visit(item);
+            TUP_SET_ITEM set_item = std::any_cast<TUP_SET_ITEM>(visit(item));
             pattern.emplace_back(set_item);
         }
         Clause clause;
@@ -324,16 +324,16 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_SetItem(LcypherParser::OC_SetItemContext *ctx) override {
+    virtual std::any visitOC_SetItem(LcypherParser::OC_SetItemContext *ctx) override {
         std::string variable;
         Expression property_expr;
         std::string sign;
         Expression expr;
         VEC_STR node_labels;
         if (ctx->oC_PropertyExpression()) {
-            property_expr = visit(ctx->oC_PropertyExpression());
+            property_expr = std::any_cast<Expression>(visit(ctx->oC_PropertyExpression()));
             sign = "=";
-            expr = visit(ctx->oC_Expression());
+            expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
         } else {
             variable = ctx->oC_Variable()->getText();
             if (!_IsVariableDefined(variable)) {
@@ -346,9 +346,9 @@ class CypherBaseVisitor : public LcypherVisitor {
                 }
             }
             if (ctx->oC_Expression()) {
-                expr = visit(ctx->oC_Expression());
+                expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
             } else {
-                VEC_STR tmp = visit(ctx->oC_NodeLabels());
+                VEC_STR tmp = std::any_cast<VEC_STR>(visit(ctx->oC_NodeLabels()));
                 node_labels = std::move(tmp);
             }
         }
@@ -356,11 +356,11 @@ class CypherBaseVisitor : public LcypherVisitor {
         return set_item;
     }
 
-    virtual antlrcpp::Any visitOC_Delete(LcypherParser::OC_DeleteContext *ctx) override {
+    virtual std::any visitOC_Delete(LcypherParser::OC_DeleteContext *ctx) override {
         _EnterClauseDELETE();
         std::vector<Expression> expr;
         for (auto &ex : ctx->oC_Expression()) {
-            expr.emplace_back(visit(ex));
+            expr.emplace_back(std::any_cast<Expression>(visit(ex)));
             if (expr.back().type != Expression::VARIABLE) {
                 throw lgraph::InputError(
                     FMA_FMT("Type mismatch: expected Node, Path or Relationship"));
@@ -387,11 +387,11 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_Remove(LcypherParser::OC_RemoveContext *ctx) override {
+    virtual std::any visitOC_Remove(LcypherParser::OC_RemoveContext *ctx) override {
         _EnterClauseREMOVE();
         std::vector<Expression> items;
         for (auto &ri : ctx->oC_RemoveItem()) {
-            items.emplace_back(visit(ri));
+            items.emplace_back(std::any_cast<Expression>(visit(ri)));
         }
         Clause clause;
         clause.type = Clause::REMOVE;
@@ -401,13 +401,13 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_RemoveItem(LcypherParser::OC_RemoveItemContext *ctx) override {
+    virtual std::any visitOC_RemoveItem(LcypherParser::OC_RemoveItemContext *ctx) override {
         if (ctx->oC_PropertyExpression()) {
             auto pe_ctx = ctx->oC_PropertyExpression();
-            Expression atom = visit(pe_ctx->oC_Atom());
+            Expression atom = std::any_cast<Expression>(visit(pe_ctx->oC_Atom()));
             if (atom.type != Expression::VARIABLE || pe_ctx->oC_PropertyLookup().empty())
                 CYPHER_TODO();
-            std::string property = visit(pe_ctx->oC_PropertyLookup(0));
+            std::string property = std::any_cast<std::string>(visit(pe_ctx->oC_PropertyLookup(0)));
             Expression expr;
             expr.type = Expression::PROPERTY;
             expr.data = std::make_shared<Expression::EXPR_TYPE_PROPERTY>(std::move(atom),
@@ -418,17 +418,19 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
     }
 
-    virtual antlrcpp::Any visitOC_InQueryCall(LcypherParser::OC_InQueryCallContext *ctx) override {
+    virtual std::any visitOC_InQueryCall(LcypherParser::OC_InQueryCallContext *ctx) override {
         _EnterClauseINQUERYCALL();
         std::tuple<std::string, std::vector<Expression>> invocation =
-            visit(ctx->oC_ExplicitProcedureInvocation());
+            std::any_cast<std::tuple<std::string, std::vector<Expression>>>(
+                visit(ctx->oC_ExplicitProcedureInvocation()));
         _curr_procedure_name = std::get<0>(invocation);
         std::vector<std::pair<std::string, lgraph_api::LGraphType>> yield_items;
         Expression where;
 
         if (ctx->oC_YieldItems()) {
-            auto yield_items_and_where = visit(ctx->oC_YieldItems()).as<std::tuple<
-                std::vector<std::pair<std::string, lgraph_api::LGraphType>>, Expression>>();
+            auto yield_items_and_where = std::any_cast<std::tuple<
+                std::vector<std::pair<std::string, lgraph_api::LGraphType>>, Expression>>(
+                    visit(ctx->oC_YieldItems()));
             yield_items = std::get<0>(yield_items_and_where);
             where = std::get<1>(yield_items_and_where);
         }
@@ -444,7 +446,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_StandaloneCall(
+    virtual std::any visitOC_StandaloneCall(
         LcypherParser::OC_StandaloneCallContext *ctx) override {
         // reserve for the 1st query
         _query.resize(1);
@@ -457,17 +459,20 @@ class CypherBaseVisitor : public LcypherVisitor {
 
         std::tuple<std::string, std::vector<Expression>> invocation;
         if (ctx->oC_ImplicitProcedureInvocation()) {
-            invocation = visit(ctx->oC_ImplicitProcedureInvocation());
+            invocation = std::any_cast<std::tuple<std::string, std::vector<Expression>>>(
+                visit(ctx->oC_ImplicitProcedureInvocation()));
         } else {
-            invocation = visit(ctx->oC_ExplicitProcedureInvocation());
+            invocation = std::any_cast<std::tuple<std::string, std::vector<Expression>>>(
+                visit(ctx->oC_ExplicitProcedureInvocation()));
         }
         _curr_procedure_name = std::get<0>(invocation);
         std::vector<std::pair<std::string, lgraph_api::LGraphType>> yield_items;
         Expression where;
 
         if (ctx->oC_YieldItems()) {
-            auto yield_items_and_where = visit(ctx->oC_YieldItems()).as<std::tuple<
-                std::vector<std::pair<std::string, lgraph_api::LGraphType>>, Expression>>();
+            auto yield_items_and_where = std::any_cast<std::tuple<
+                std::vector<std::pair<std::string, lgraph_api::LGraphType>>, Expression>>(
+                    visit(ctx->oC_YieldItems()));
             yield_items = std::get<0>(yield_items_and_where);
             where = std::get<1>(yield_items_and_where);
         }
@@ -481,7 +486,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_YieldItems(LcypherParser::OC_YieldItemsContext *ctx) override {
+    virtual std::any visitOC_YieldItems(LcypherParser::OC_YieldItemsContext *ctx) override {
         std::vector<std::string> yield_items;
         for (auto item : ctx->oC_YieldItem()) {
             if (item->AS()) CYPHER_TODO();
@@ -570,22 +575,22 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         Expression where;
         if (ctx->oC_Where()) {
-            where = visit(ctx->oC_Where());
+            where = std::any_cast<Expression>(visit(ctx->oC_Where()));
         }
         return std::make_tuple(_yield_items, where);
     }
 
-    virtual antlrcpp::Any visitOC_YieldItem(LcypherParser::OC_YieldItemContext *ctx) override {
+    virtual std::any visitOC_YieldItem(LcypherParser::OC_YieldItemContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_With(LcypherParser::OC_WithContext *ctx) override {
+    virtual std::any visitOC_With(LcypherParser::OC_WithContext *ctx) override {
         // set add_carry flag
         _EnterClauseWITH();
-        TUP_RETURN_BODY return_body = visit(ctx->oC_ReturnBody());
+        TUP_RETURN_BODY return_body = std::any_cast<TUP_RETURN_BODY>(visit(ctx->oC_ReturnBody()));
         bool distinct = ctx->DISTINCT() != nullptr;
         Expression where;
-        if (ctx->oC_Where()) where = visit(ctx->oC_Where());
+        if (ctx->oC_Where()) where = std::any_cast<Expression>(visit(ctx->oC_Where()));
         Clause clause;
         clause.type = Clause::WITH;
         clause.data = std::make_shared<Clause::TYPE_WITH>(
@@ -605,9 +610,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_Return(LcypherParser::OC_ReturnContext *ctx) override {
+    virtual std::any visitOC_Return(LcypherParser::OC_ReturnContext *ctx) override {
         _EnterClauseRETURN();
-        TUP_RETURN_BODY return_body = visit(ctx->oC_ReturnBody());
+        TUP_RETURN_BODY return_body = std::any_cast<TUP_RETURN_BODY>(visit(ctx->oC_ReturnBody()));
         bool distinct = (ctx->DISTINCT() != nullptr);
         Clause clause;
         clause.type = Clause::RETURN;
@@ -618,11 +623,12 @@ class CypherBaseVisitor : public LcypherVisitor {
         return 0;
     }
 
-    virtual antlrcpp::Any visitOC_ReturnBody(LcypherParser::OC_ReturnBodyContext *ctx) override {
-        std::vector<TUP_RETURN_ITEM> return_items = visit(ctx->oC_ReturnItems());
+    virtual std::any visitOC_ReturnBody(LcypherParser::OC_ReturnBodyContext *ctx) override {
+        std::vector<TUP_RETURN_ITEM> return_items = std::any_cast<std::vector<TUP_RETURN_ITEM>>(visit(ctx->oC_ReturnItems()));
         std::vector<std::pair<int, bool>> sort_items_idx;
         if (ctx->oC_Order()) {
-            std::vector<std::pair<Expression, bool>> sort_items = visit(ctx->oC_Order());
+            std::vector<std::pair<Expression, bool>> sort_items =
+                std::any_cast<std::vector<std::pair<Expression, bool>>>(visit(ctx->oC_Order()));
             for (auto &sort_item : sort_items) {
                 bool sort_idx_found = false;
                 for (int i = 0; i < (int)return_items.size(); i++) {
@@ -646,17 +652,17 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         Expression skip, limit;
         if (ctx->oC_Skip()) {
-            auto tmp = visit(ctx->oC_Skip());
+            auto tmp = std::any_cast<Expression>(visit(ctx->oC_Skip()));
             skip = tmp;
         }
         if (ctx->oC_Limit()) {
-            auto tmp = visit(ctx->oC_Limit());
+            auto tmp = std::any_cast<Expression>(visit(ctx->oC_Limit()));
             limit = tmp;
         }
         return std::make_tuple(return_items, sort_items_idx, skip, limit);
     }
 
-    virtual antlrcpp::Any visitOC_ReturnItems(LcypherParser::OC_ReturnItemsContext *ctx) override {
+    virtual std::any visitOC_ReturnItems(LcypherParser::OC_ReturnItemsContext *ctx) override {
         // `WITH *` is prevented, since it will make ambiguity and some bugs
         //
         // ambiguity example: WITH * RETURN *
@@ -674,14 +680,14 @@ class CypherBaseVisitor : public LcypherVisitor {
 
         std::vector<TUP_RETURN_ITEM> return_items;
         for (auto &item : ctx->oC_ReturnItem()) {
-            TUP_RETURN_ITEM return_item = visit(item);
+            TUP_RETURN_ITEM return_item = std::any_cast<TUP_RETURN_ITEM>(visit(item));
             return_items.emplace_back(return_item);
         }
         return return_items;
     }
 
-    virtual antlrcpp::Any visitOC_ReturnItem(LcypherParser::OC_ReturnItemContext *ctx) override {
-        Expression expr = visit(ctx->oC_Expression());
+    virtual std::any visitOC_ReturnItem(LcypherParser::OC_ReturnItemContext *ctx) override {
+        Expression expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
         std::string as_variable, variable;
         if (expr.type == Expression::VARIABLE) variable = expr.String();
         if (ctx->oC_Variable()) as_variable = ctx->oC_Variable()->getText();
@@ -699,33 +705,33 @@ class CypherBaseVisitor : public LcypherVisitor {
         return std::make_tuple(expr, as_variable);
     }
 
-    virtual antlrcpp::Any visitOC_Order(LcypherParser::OC_OrderContext *ctx) override {
+    virtual std::any visitOC_Order(LcypherParser::OC_OrderContext *ctx) override {
         _EnterClauseORDERBY();
         std::vector<std::pair<Expression, bool>> sort_items;
         for (auto item : ctx->oC_SortItem()) {
-            std::pair<Expression, bool> sort_item = visit(item);
+            std::pair<Expression, bool> sort_item = std::any_cast<std::pair<Expression, bool>>(visit(item));
             sort_items.emplace_back(sort_item);
         }
         _LeaveClauseORDERBY();
         return sort_items;
     }
 
-    virtual antlrcpp::Any visitOC_Skip(LcypherParser::OC_SkipContext *ctx) override {
+    virtual std::any visitOC_Skip(LcypherParser::OC_SkipContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Limit(LcypherParser::OC_LimitContext *ctx) override {
+    virtual std::any visitOC_Limit(LcypherParser::OC_LimitContext *ctx) override {
         return visit(ctx->oC_Expression());
     }
 
-    virtual antlrcpp::Any visitOC_SortItem(LcypherParser::OC_SortItemContext *ctx) override {
-        Expression expr = visit(ctx->oC_Expression());
+    virtual std::any visitOC_SortItem(LcypherParser::OC_SortItemContext *ctx) override {
+        Expression expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
         bool ascending = ctx->ASCENDING() != nullptr || ctx->ASC() != nullptr ||
                          (ctx->DESCENDING() == nullptr && ctx->DESC() == nullptr);
         return std::make_pair(expr, ascending);
     }
 
-    virtual antlrcpp::Any visitOC_Hint(LcypherParser::OC_HintContext *ctx) override {
+    virtual std::any visitOC_Hint(LcypherParser::OC_HintContext *ctx) override {
         const auto &var = ctx->oC_Variable()->getText();
         if (!_IsVariableDefined(var)) {
             throw lgraph::InputError(FMA_FMT("Variable `{}` not defined", var));
@@ -740,91 +746,91 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
     }
 
-    virtual antlrcpp::Any visitOC_Where(LcypherParser::OC_WhereContext *ctx) override {
+    virtual std::any visitOC_Where(LcypherParser::OC_WhereContext *ctx) override {
         _EnterClauseWHERE();
-        Expression expr = visit(ctx->oC_Expression());
+        Expression expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
         if (expr.type == Expression::LABEL) expr.Label2Filter();
         CYPHER_THROW_ASSERT(expr.type == Expression::FILTER);
         _LeaveClauseWHERE();
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_Pattern(LcypherParser::OC_PatternContext *ctx) override {
+    virtual std::any visitOC_Pattern(LcypherParser::OC_PatternContext *ctx) override {
         std::vector<TUP_PATTERN_PART> pattern;
         for (auto &ctx_part : ctx->oC_PatternPart()) {
-            TUP_PATTERN_PART pattern_part = visit(ctx_part);
+            TUP_PATTERN_PART pattern_part = std::any_cast<TUP_PATTERN_PART>(visit(ctx_part));
             pattern.emplace_back(pattern_part);
         }
         return pattern;
     }
 
-    virtual antlrcpp::Any visitOC_PatternPart(LcypherParser::OC_PatternPartContext *ctx) override {
+    virtual std::any visitOC_PatternPart(LcypherParser::OC_PatternPartContext *ctx) override {
         std::string variable;
         if (ctx->oC_Variable() != nullptr) {
             // named path
             variable = ctx->oC_Variable()->getText();
             AddSymbol(variable, cypher::SymbolNode::NAMED_PATH, cypher::SymbolNode::LOCAL);
         }
-        TUP_PATTERN_ELEMENT anonymous_pattern_part = visit(ctx->oC_AnonymousPatternPart());
+        TUP_PATTERN_ELEMENT anonymous_pattern_part = std::any_cast<TUP_PATTERN_ELEMENT>(visit(ctx->oC_AnonymousPatternPart()));
         return std::make_tuple(variable, anonymous_pattern_part);
     }
 
-    virtual antlrcpp::Any visitOC_AnonymousPatternPart(
+    virtual std::any visitOC_AnonymousPatternPart(
         LcypherParser::OC_AnonymousPatternPartContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_PatternElement(
+    virtual std::any visitOC_PatternElement(
         LcypherParser::OC_PatternElementContext *ctx) override {
         if (ctx->oC_NodePattern() == nullptr) {
             return visitChildren(ctx);
         }
-        TUP_NODE_PATTERN node_pattern = visit(ctx->oC_NodePattern());
+        TUP_NODE_PATTERN node_pattern = std::any_cast<TUP_NODE_PATTERN>(visit(ctx->oC_NodePattern()));
         std::vector<TUP_PATTERN_ELEMENT_CHAIN> pattern_element_chains;
         auto pecs = ctx->oC_PatternElementChain();
         if (pecs.empty()) {
         } else {
             for (auto &p : pecs) {
-                TUP_PATTERN_ELEMENT_CHAIN pattern_element_chain = visit(p);
+                TUP_PATTERN_ELEMENT_CHAIN pattern_element_chain = std::any_cast<TUP_PATTERN_ELEMENT_CHAIN>(visit(p));
                 pattern_element_chains.push_back(pattern_element_chain);
             }
         }
         return std::make_tuple(node_pattern, pattern_element_chains);
     }
 
-    virtual antlrcpp::Any visitOC_NodePattern(LcypherParser::OC_NodePatternContext *ctx) override {
+    virtual std::any visitOC_NodePattern(LcypherParser::OC_NodePatternContext *ctx) override {
         std::string variable;
         VEC_STR node_labels;
         TUP_PROPERTIES properties;
-        /* NOTE: 'variable = visit(ctx->oC_Variable());' goes wrong!
+        /* NOTE: 'variable = std::any_cast<>(visit(ctx->oC_Variable()));' goes wrong!
          * For it uses 'operator =' instead of copy constructor.  */
         if (ctx->oC_Variable() != nullptr) {
-            std::string tmp = visit(ctx->oC_Variable());
+            std::string tmp = std::any_cast<std::string>(visit(ctx->oC_Variable()));
             variable = tmp;
         } else {
             // if alias is absent, generate an alias for the node
             variable = GenAnonymousAlias(true);
         }
         if (ctx->oC_NodeLabels() != nullptr) {
-            VEC_STR tmp = visit(ctx->oC_NodeLabels());
+            VEC_STR tmp = std::any_cast<VEC_STR>(visit(ctx->oC_NodeLabels()));
             node_labels = std::move(tmp);
         }
         if (ctx->oC_Properties() != nullptr) {
-            TUP_PROPERTIES tmp = visit(ctx->oC_Properties());
+            TUP_PROPERTIES tmp = std::any_cast<TUP_PROPERTIES>(visit(ctx->oC_Properties()));
             properties = std::move(tmp);
         }
         AddSymbol(variable, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
         return std::make_tuple(variable, node_labels, properties);
     }
 
-    virtual antlrcpp::Any visitOC_PatternElementChain(
+    virtual std::any visitOC_PatternElementChain(
         LcypherParser::OC_PatternElementChainContext *ctx) override {
-        TUP_RELATIONSHIP_PATTERN relationship_pattern = visit(ctx->oC_RelationshipPattern());
-        TUP_NODE_PATTERN node_pattern = visit(ctx->oC_NodePattern());
+        TUP_RELATIONSHIP_PATTERN relationship_pattern = std::any_cast<TUP_RELATIONSHIP_PATTERN>(visit(ctx->oC_RelationshipPattern()));
+        TUP_NODE_PATTERN node_pattern = std::any_cast<TUP_NODE_PATTERN>(visit(ctx->oC_NodePattern()));
         return std::make_tuple(relationship_pattern, node_pattern);
     }
 
-    virtual antlrcpp::Any visitOC_RelationshipPattern(
+    virtual std::any visitOC_RelationshipPattern(
         LcypherParser::OC_RelationshipPatternContext *ctx) override {
         LinkDirection direction;
         if (ctx->oC_LeftArrowHead() != nullptr && ctx->oC_RightArrowHead() == nullptr) {
@@ -836,7 +842,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         TUP_RELATIONSHIP_DETAIL relationship_detail;
         if (ctx->oC_RelationshipDetail() != nullptr) {
-            relationship_detail = visit(ctx->oC_RelationshipDetail());
+            relationship_detail = std::any_cast<TUP_RELATIONSHIP_DETAIL>(visit(ctx->oC_RelationshipDetail()));
         } else {
             // set anonymous relationship's alias, range_literal
             auto alias = GenAnonymousAlias(false);
@@ -847,56 +853,56 @@ class CypherBaseVisitor : public LcypherVisitor {
         return std::make_tuple(direction, relationship_detail);
     }
 
-    virtual antlrcpp::Any visitOC_RelationshipDetail(
+    virtual std::any visitOC_RelationshipDetail(
         LcypherParser::OC_RelationshipDetailContext *ctx) override {
         std::string variable;
         VEC_STR relationship_types;
         std::array<int, 2> range_literal{-1, -1};
         TUP_PROPERTIES properties;
         if (ctx->oC_Variable() != nullptr) {
-            std::string tmp = visit(ctx->oC_Variable());
+            std::string tmp = std::any_cast<std::string>(visit(ctx->oC_Variable()));
             variable = tmp;
         } else {
             // if alias is absent, generate an alias for the relationship
             variable = GenAnonymousAlias(false);
         }
         if (ctx->oC_RelationshipTypes() != nullptr) {
-            VEC_STR tmp = visit(ctx->oC_RelationshipTypes());
+            VEC_STR tmp = std::any_cast<VEC_STR>(visit(ctx->oC_RelationshipTypes()));
             relationship_types = tmp;
         }
         if (ctx->oC_RangeLiteral() != nullptr) {
-            std::array<int, 2> tmp = visit(ctx->oC_RangeLiteral());
+            std::array<int, 2> tmp = std::any_cast<std::array<int, 2>>(visit(ctx->oC_RangeLiteral()));
             range_literal = tmp;
         }
         if (ctx->oC_Properties() != nullptr) {
-            TUP_PROPERTIES tmp = visit(ctx->oC_Properties());
+            TUP_PROPERTIES tmp = std::any_cast<TUP_PROPERTIES>(visit(ctx->oC_Properties()));
             properties = tmp;
         }
         AddSymbol(variable, cypher::SymbolNode::RELATIONSHIP, cypher::SymbolNode::LOCAL);
         return std::make_tuple(variable, relationship_types, range_literal, properties);
     }
 
-    virtual antlrcpp::Any visitOC_Properties(LcypherParser::OC_PropertiesContext *ctx) override {
+    virtual std::any visitOC_Properties(LcypherParser::OC_PropertiesContext *ctx) override {
         if (ctx->oC_MapLiteral() == nullptr) {
             CYPHER_TODO();
             return visitChildren(ctx);
         }
-        Expression map_literal = visit(ctx->oC_MapLiteral());
+        Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
         std::string parameter;
         return std::make_tuple(map_literal, parameter);
     }
 
-    virtual antlrcpp::Any visitOC_RelationshipTypes(
+    virtual std::any visitOC_RelationshipTypes(
         LcypherParser::OC_RelationshipTypesContext *ctx) override {
         VEC_STR relationship_types;
         for (auto &ctx_name : ctx->oC_RelTypeName()) {
-            std::string name = visit(ctx_name);
+            std::string name = std::any_cast<std::string>(visit(ctx_name));
             relationship_types.emplace_back(name);
         }
         return relationship_types;
     }
 
-    virtual antlrcpp::Any visitOC_NodeLabels(LcypherParser::OC_NodeLabelsContext *ctx) override {
+    virtual std::any visitOC_NodeLabels(LcypherParser::OC_NodeLabelsContext *ctx) override {
         if (ctx->oC_NodeLabel().size() > 1) {
             FMA_WARN_STREAM(ParserLogger())
                 << "More than one labels are provided, the first is picked [" << ctx->getText()
@@ -904,18 +910,18 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         VEC_STR labels;
         for (auto &ctx_label : ctx->oC_NodeLabel()) {
-            std::string label = visit(ctx_label);
+            std::string label = std::any_cast<std::string>(visit(ctx_label));
             labels.emplace_back(label);
         }
         return labels;
     }
 
-    virtual antlrcpp::Any visitOC_NodeLabel(LcypherParser::OC_NodeLabelContext *ctx) override {
-        std::string label = visit(ctx->oC_LabelName());
+    virtual std::any visitOC_NodeLabel(LcypherParser::OC_NodeLabelContext *ctx) override {
+        std::string label = std::any_cast<std::string>(visit(ctx->oC_LabelName()));
         return label;
     }
 
-    virtual antlrcpp::Any visitOC_RangeLiteral(
+    virtual std::any visitOC_RangeLiteral(
         LcypherParser::OC_RangeLiteralContext *ctx) override {
         /* cases:
          * *2         [2, 2]
@@ -971,27 +977,27 @@ class CypherBaseVisitor : public LcypherVisitor {
         return range_literal;
     }
 
-    virtual antlrcpp::Any visitOC_LabelName(LcypherParser::OC_LabelNameContext *ctx) override {
+    virtual std::any visitOC_LabelName(LcypherParser::OC_LabelNameContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_RelTypeName(LcypherParser::OC_RelTypeNameContext *ctx) override {
+    virtual std::any visitOC_RelTypeName(LcypherParser::OC_RelTypeNameContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Expression(LcypherParser::OC_ExpressionContext *ctx) override {
+    virtual std::any visitOC_Expression(LcypherParser::OC_ExpressionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_OrExpression(
+    virtual std::any visitOC_OrExpression(
         LcypherParser::OC_OrExpressionContext *ctx) override {
         if (ctx->OR().empty()) return visitChildren(ctx);
-        Expression expr0 = visit(ctx->oC_XorExpression(0));
+        Expression expr0 = std::any_cast<Expression>(visit(ctx->oC_XorExpression(0)));
         if (expr0.type == Expression::LABEL) expr0.Label2Filter();
         if (expr0.type != Expression::FILTER) CYPHER_TODO();
         auto filter = expr0.Filter();
         for (size_t i = 0; i < ctx->OR().size(); i++) {
-            Expression e = visit(ctx->oC_XorExpression(i + 1));
+            Expression e = std::any_cast<Expression>(visit(ctx->oC_XorExpression(i + 1)));
             if (e.type == Expression::LABEL) e.Label2Filter();
             CYPHER_THROW_ASSERT(e.type == Expression::FILTER);
             filter =
@@ -1003,15 +1009,15 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_XorExpression(
+    virtual std::any visitOC_XorExpression(
         LcypherParser::OC_XorExpressionContext *ctx) override {
         if (ctx->XOR().empty()) return visitChildren(ctx);
-        Expression expr0 = visit(ctx->oC_AndExpression(0));
+        Expression expr0 = std::any_cast<Expression>(visit(ctx->oC_AndExpression(0)));
         if (expr0.type == Expression::LABEL) expr0.Label2Filter();
         if (expr0.type != Expression::FILTER) CYPHER_TODO();
         auto filter = expr0.Filter();
         for (size_t i = 0; i < ctx->XOR().size(); i++) {
-            Expression e = visit(ctx->oC_AndExpression(i + 1));
+            Expression e = std::any_cast<Expression>(visit(ctx->oC_AndExpression(i + 1)));
             if (e.type == Expression::LABEL) e.Label2Filter();
             CYPHER_THROW_ASSERT(e.type == Expression::FILTER);
             filter =
@@ -1023,15 +1029,15 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_AndExpression(
+    virtual std::any visitOC_AndExpression(
         LcypherParser::OC_AndExpressionContext *ctx) override {
         if (!ctx->AND().empty()) {
-            Expression expr0 = visit(ctx->oC_NotExpression(0));
+            Expression expr0 = std::any_cast<Expression>(visit(ctx->oC_NotExpression(0)));
             if (expr0.type == Expression::LABEL) expr0.Label2Filter();
             if (expr0.type != Expression::FILTER) CYPHER_TODO();
             auto filter = expr0.Filter();
             for (int i = 0; i < (int)ctx->AND().size(); i++) {
-                Expression e = visit(ctx->oC_NotExpression(i + 1));
+                Expression e = std::any_cast<Expression>(visit(ctx->oC_NotExpression(i + 1)));
                 if (e.type == Expression::LABEL) e.Label2Filter();
                 CYPHER_THROW_ASSERT(e.type == Expression::FILTER);
                 filter = std::make_shared<lgraph::Filter>(lgraph::LogicalOp::LBR_AND, filter,
@@ -1045,12 +1051,12 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_NotExpression(
+    virtual std::any visitOC_NotExpression(
         LcypherParser::OC_NotExpressionContext *ctx) override {
         if ((ctx->NOT().size() & 0x1) == 0) {
             return visitChildren(ctx);
         } else {
-            Expression e = visit(ctx->oC_ComparisonExpression());
+            Expression e = std::any_cast<Expression>(visit(ctx->oC_ComparisonExpression()));
             if (e.type != Expression::FILTER) throw lgraph::ParserException("Type error");
             auto filter = std::make_shared<lgraph::Filter>(lgraph::LogicalOp::LBR_NOT, e.Filter());
             Expression expr;
@@ -1060,12 +1066,12 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
     }
 
-    virtual antlrcpp::Any visitOC_ComparisonExpression(
+    virtual std::any visitOC_ComparisonExpression(
         LcypherParser::OC_ComparisonExpressionContext *ctx) override {
         if (ctx->oC_PartialComparisonExpression().size() > 1) CYPHER_TODO();
 
         if (ctx->oC_PartialComparisonExpression().size() == 1) {
-            Expression expr_a = visit(ctx->oC_AddOrSubtractExpression());
+            Expression expr_a = std::any_cast<Expression>(visit(ctx->oC_AddOrSubtractExpression()));
             std::shared_ptr<lgraph::Filter> f;
             /* e.g.
              * n.age > 20,
@@ -1075,7 +1081,8 @@ class CypherBaseVisitor : public LcypherVisitor {
             if (expr_a.type == Expression::PROPERTY || expr_a.type == Expression::FUNCTION ||
                 expr_a.type == Expression::VARIABLE || expr_a.type == Expression::MATH) {
                 std::pair<lgraph::CompareOp, Expression> partial =
-                    visit(ctx->oC_PartialComparisonExpression(0));
+                    std::any_cast<std::pair<lgraph::CompareOp, Expression>>(
+                        visit(ctx->oC_PartialComparisonExpression(0)));
                 /* Assert: the left & right alias are contained in alias_id_map */
                 cypher::ArithExprNode ae_left(expr_a,
                                               _query[_curr_query].parts[_curr_part].symbol_table);
@@ -1093,7 +1100,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_AddOrSubtractExpression(
+    virtual std::any visitOC_AddOrSubtractExpression(
         LcypherParser::OC_AddOrSubtractExpressionContext *ctx) override {
         if (ctx->oC_MultiplyDivideModuloExpression().size() == 1) {
             return visit(ctx->oC_MultiplyDivideModuloExpression(0));
@@ -1111,7 +1118,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         auto rpn = std::make_shared<Expression::EXPR_TYPE_LIST>();
         int i = 0;
         for (auto e : ctx->oC_MultiplyDivideModuloExpression()) {
-            Expression expr = visit(e);
+            Expression expr = std::any_cast<Expression>(visit(e));
             if (expr.type == Expression::MATH) {
                 auto &l = expr.List();
                 rpn->insert(rpn->end(), std::make_move_iterator(l.begin()),
@@ -1127,7 +1134,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    virtual antlrcpp::Any visitOC_MultiplyDivideModuloExpression(
+    virtual std::any visitOC_MultiplyDivideModuloExpression(
         LcypherParser::OC_MultiplyDivideModuloExpressionContext *ctx) override {
         if (ctx->oC_PowerOfExpression().size() == 1) {
             return visit(ctx->oC_PowerOfExpression(0));
@@ -1146,7 +1153,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         auto rpn = std::make_shared<Expression::EXPR_TYPE_LIST>();
         int i = 0;
         for (auto e : ctx->oC_PowerOfExpression()) {
-            Expression expr = visit(e);
+            Expression expr = std::any_cast<Expression>(visit(e));
             if (expr.type == Expression::MATH) {
                 auto &l = expr.List();
                 rpn->insert(rpn->end(), std::make_move_iterator(l.begin()),
@@ -1162,7 +1169,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    virtual antlrcpp::Any visitOC_PowerOfExpression(
+    virtual std::any visitOC_PowerOfExpression(
         LcypherParser::OC_PowerOfExpressionContext *ctx) override {
         if (ctx->oC_UnaryAddOrSubtractExpression().size() == 1) {
             return visit(ctx->oC_UnaryAddOrSubtractExpression(0));
@@ -1178,7 +1185,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         auto rpn = std::make_shared<Expression::EXPR_TYPE_LIST>();
         int i = 0;
         for (auto e : ctx->oC_UnaryAddOrSubtractExpression()) {
-            Expression expr = visit(e);
+            Expression expr = std::any_cast<Expression>(visit(e));
             if (expr.type == Expression::MATH) {
                 auto &l = expr.List();
                 rpn->insert(rpn->end(), std::make_move_iterator(l.begin()),
@@ -1194,7 +1201,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    virtual antlrcpp::Any visitOC_UnaryAddOrSubtractExpression(
+    virtual std::any visitOC_UnaryAddOrSubtractExpression(
         LcypherParser::OC_UnaryAddOrSubtractExpressionContext *ctx) override {
         int sign = 0;
         if (ctx->children.size() > 1) {
@@ -1203,7 +1210,7 @@ class CypherBaseVisitor : public LcypherVisitor {
                 if (child->getText() == "-") sign ^= 0x1;
             }
         }
-        Expression e = visit(ctx->oC_StringListNullOperatorExpression());
+        Expression e = std::any_cast<Expression>(visit(ctx->oC_StringListNullOperatorExpression()));
         if (sign) {
             switch (e.type) {
             case Expression::INT:
@@ -1235,14 +1242,15 @@ class CypherBaseVisitor : public LcypherVisitor {
         return e;
     }
 
-    virtual antlrcpp::Any visitOC_StringListNullOperatorExpression(
+    virtual std::any visitOC_StringListNullOperatorExpression(
         LcypherParser::OC_StringListNullOperatorExpressionContext *ctx) override {
-        Expression left = visit(ctx->oC_PropertyOrLabelsExpression());
+        Expression left = std::any_cast<Expression>(visit(ctx->oC_PropertyOrLabelsExpression()));
         Expression ret;
         if (!ctx->oC_StringOperatorExpression().empty()) {
             if (ctx->oC_StringOperatorExpression().size() > 1) CYPHER_TODO();
             std::pair<lgraph::StringFilter::Comparison, Expression> right =
-                visit(ctx->oC_StringOperatorExpression(0));
+                std::any_cast<std::pair<lgraph::StringFilter::Comparison, Expression>>(
+                    visit(ctx->oC_StringOperatorExpression(0)));
             cypher::ArithExprNode ae_left(left, _query[_curr_query].parts[_curr_part].symbol_table);
             cypher::ArithExprNode ae_right(right.second,
                                            _query[_curr_query].parts[_curr_part].symbol_table);
@@ -1269,7 +1277,7 @@ class CypherBaseVisitor : public LcypherVisitor {
                 CYPHER_THROW_ASSERT(list_op_expr->oC_PropertyOrLabelsExpression());
                 cypher::ArithExprNode ae_left(left,
                                               _query[_curr_query].parts[_curr_part].symbol_table);
-                Expression right = visit(list_op_expr->oC_PropertyOrLabelsExpression());
+                Expression right = std::any_cast<Expression>(visit(list_op_expr->oC_PropertyOrLabelsExpression()));
                 cypher::ArithExprNode ae_right(right,
                                                _query[_curr_query].parts[_curr_part].symbol_table);
                 std::shared_ptr<lgraph::Filter> f =
@@ -1288,10 +1296,10 @@ class CypherBaseVisitor : public LcypherVisitor {
                 list->emplace_back(std::move(func_name));
                 list->emplace_back(std::move(distinct));
                 list->emplace_back(left);
-                Expression start_idx = visit(list_op_expr->oC_Expression(0));
+                Expression start_idx = std::any_cast<Expression>(visit(list_op_expr->oC_Expression(0)));
                 list->emplace_back(std::move(start_idx));
                 if (list_op_expr->oC_Expression().size() == 2) {
-                    Expression end_idx = visit(list_op_expr->oC_Expression(1));
+                    Expression end_idx = std::any_cast<Expression>(visit(list_op_expr->oC_Expression(1)));
                     list->emplace_back(std::move(end_idx));
                 }
                 ret.type = Expression::FUNCTION;
@@ -1302,27 +1310,27 @@ class CypherBaseVisitor : public LcypherVisitor {
         return left;
     }
 
-    virtual antlrcpp::Any visitOC_ListOperatorExpression(
+    virtual std::any visitOC_ListOperatorExpression(
         LcypherParser::OC_ListOperatorExpressionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_StringOperatorExpression(
+    virtual std::any visitOC_StringOperatorExpression(
         LcypherParser::OC_StringOperatorExpressionContext *ctx) override {
         auto comp_op = ctx->STARTS()     ? lgraph::StringFilter::STARTS_WITH
                        : ctx->ENDS()     ? lgraph::StringFilter::ENDS_WITH
                        : ctx->CONTAINS() ? lgraph::StringFilter::CONTAINS
                                          : lgraph::StringFilter::REGEXP;
-        Expression rhs = visit(ctx->oC_PropertyOrLabelsExpression());
+        Expression rhs = std::any_cast<Expression>(visit(ctx->oC_PropertyOrLabelsExpression()));
         return std::make_pair(comp_op, rhs);
     }
 
-    virtual antlrcpp::Any visitOC_NullOperatorExpression(
+    virtual std::any visitOC_NullOperatorExpression(
         LcypherParser::OC_NullOperatorExpressionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_PropertyOrLabelsExpression(
+    virtual std::any visitOC_PropertyOrLabelsExpression(
         LcypherParser::OC_PropertyOrLabelsExpressionContext *ctx) override {
         if (ctx->children.size() == 1) return visitChildren(ctx);
         Expression expr;
@@ -1330,16 +1338,16 @@ class CypherBaseVisitor : public LcypherVisitor {
             // e.g. tom.name
             if (ctx->oC_PropertyLookup().size() > 1 || ctx->oC_NodeLabels() != nullptr)
                 CYPHER_TODO();
-            Expression atom = visit(ctx->oC_Atom());
-            std::string key_name = visit(ctx->oC_PropertyLookup(0));
+            Expression atom = std::any_cast<Expression>(visit(ctx->oC_Atom()));
+            std::string key_name = std::any_cast<std::string>(visit(ctx->oC_PropertyLookup(0)));
             CYPHER_PARSER_CHECK(atom.type == Expression::VARIABLE, ctx->getText());
             expr.type = Expression::PROPERTY;
             expr.data = std::make_shared<Expression::EXPR_TYPE_PROPERTY>(
                 Expression::EXPR_TYPE_PROPERTY{atom, key_name});
         } else if (ctx->oC_NodeLabels() != nullptr) {
             // e.g. tom:Person
-            Expression atom = visit(ctx->oC_Atom());
-            VEC_STR labels = visit(ctx->oC_NodeLabels());
+            Expression atom = std::any_cast<Expression>(visit(ctx->oC_Atom()));
+            VEC_STR labels = std::any_cast<VEC_STR>(visit(ctx->oC_NodeLabels()));
             CYPHER_PARSER_CHECK(atom.type == Expression::VARIABLE && !labels.empty(),
                                 ctx->getText());
             expr.type = Expression::LABEL;
@@ -1349,7 +1357,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_Atom(LcypherParser::OC_AtomContext *ctx) override {
+    virtual std::any visitOC_Atom(LcypherParser::OC_AtomContext *ctx) override {
         if (ctx->oC_Literal()) {
             return visit(ctx->oC_Literal());
         } else if (ctx->oC_Variable()) {
@@ -1412,7 +1420,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             Expression expr;
             expr.type = Expression::RELATIONSHIPS_PATTERN;
             Expression::EXPR_RELATIONSHIPS_PATTERN expr_relationships_pattern =
-                visit(ctx->oC_RelationshipsPattern());
+                std::any_cast<Expression::EXPR_RELATIONSHIPS_PATTERN>(visit(ctx->oC_RelationshipsPattern()));
             expr.data = std::make_shared<Expression::EXPR_RELATIONSHIPS_PATTERN>(
                 expr_relationships_pattern);
             return expr;
@@ -1424,7 +1432,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
     }
 
-    virtual antlrcpp::Any visitOC_Literal(LcypherParser::OC_LiteralContext *ctx) override {
+    virtual std::any visitOC_Literal(LcypherParser::OC_LiteralContext *ctx) override {
         Expression expr;
         if (ctx->oC_NumberLiteral() != nullptr) {
             return visitChildren(ctx);
@@ -1446,7 +1454,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
     }
 
-    virtual antlrcpp::Any visitOC_BooleanLiteral(
+    virtual std::any visitOC_BooleanLiteral(
         LcypherParser::OC_BooleanLiteralContext *ctx) override {
         Expression expr;
         expr.type = Expression::BOOL;
@@ -1454,11 +1462,11 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_ListLiteral(LcypherParser::OC_ListLiteralContext *ctx) override {
+    virtual std::any visitOC_ListLiteral(LcypherParser::OC_ListLiteralContext *ctx) override {
         Expression::EXPR_TYPE_LIST list_literal;
         Expression expr;
         for (auto &ctx_expr : ctx->oC_Expression()) {
-            Expression e = visit(ctx_expr);
+            Expression e = std::any_cast<Expression>(visit(ctx_expr));
             list_literal.emplace_back(e);
         }
         expr.type = Expression::LIST;
@@ -1466,9 +1474,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_PartialComparisonExpression(
+    virtual std::any visitOC_PartialComparisonExpression(
         LcypherParser::OC_PartialComparisonExpressionContext *ctx) override {
-        Expression e = visit(ctx->oC_AddOrSubtractExpression());
+        Expression e = std::any_cast<Expression>(visit(ctx->oC_AddOrSubtractExpression()));
         auto predicate = ctx->getStart()->getText();
         if (predicate == "=") {
             return std::make_pair(lgraph::CompareOp::LBR_EQ, e);
@@ -1488,10 +1496,10 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
     }
 
-    virtual antlrcpp::Any visitOC_ParenthesizedExpression(
+    virtual std::any visitOC_ParenthesizedExpression(
         LcypherParser::OC_ParenthesizedExpressionContext *ctx) override {
         /* note that visitChildren will return only the last child's result */
-        Expression expr = visit(ctx->oC_Expression());
+        Expression expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
         if (expr.type != Expression::FILTER && expr.type != Expression::MATH) {
             /* e.g.
              * cond1 OR (cond2 AND cond3)
@@ -1501,33 +1509,33 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_RelationshipsPattern(
+    virtual std::any visitOC_RelationshipsPattern(
         LcypherParser::OC_RelationshipsPatternContext *ctx) override {
-        TUP_NODE_PATTERN node_pattern = visit(ctx->oC_NodePattern());
+        TUP_NODE_PATTERN node_pattern = std::any_cast<TUP_NODE_PATTERN>(visit(ctx->oC_NodePattern()));
         std::vector<TUP_PATTERN_ELEMENT_CHAIN> pattern_element_chains;
         for (auto p : ctx->oC_PatternElementChain()) {
-            TUP_PATTERN_ELEMENT_CHAIN pattern_element_chain = visit(p);
+            TUP_PATTERN_ELEMENT_CHAIN pattern_element_chain = std::any_cast<TUP_PATTERN_ELEMENT_CHAIN>(visit(p));
             pattern_element_chains.push_back(pattern_element_chain);
         }
         return std::make_tuple(node_pattern, pattern_element_chains);
     }
 
-    virtual antlrcpp::Any visitOC_FilterExpression(
+    virtual std::any visitOC_FilterExpression(
         LcypherParser::OC_FilterExpressionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_IdInColl(LcypherParser::OC_IdInCollContext *ctx) override {
+    virtual std::any visitOC_IdInColl(LcypherParser::OC_IdInCollContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_FunctionInvocation(
+    virtual std::any visitOC_FunctionInvocation(
         LcypherParser::OC_FunctionInvocationContext *ctx) override {
         Expression ret;
-        std::string name = visit(ctx->oC_FunctionName());
+        std::string name = std::any_cast<std::string>(visit(ctx->oC_FunctionName()));
         if (name == "EXISTS") {
             if (ctx->oC_Expression().size() != 1) CYPHER_TODO();
-            Expression expr = visit(ctx->oC_Expression(0));
+            Expression expr = std::any_cast<Expression>(visit(ctx->oC_Expression(0)));
             if (expr.type == Expression::PROPERTY) {
                 cypher::ArithOperandNode property(
                     expr, _query[_curr_query].parts[_curr_part].symbol_table);
@@ -1578,7 +1586,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         distinct.data = (ctx->DISTINCT() != nullptr);
         list->emplace_back(distinct);
         for (auto &e : ctx->oC_Expression()) {
-            Expression expr = visit(e);
+            Expression expr = std::any_cast<Expression>(visit(e));
             list->emplace_back(expr);
         }
         ret.type = Expression::FUNCTION;
@@ -1586,72 +1594,73 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    virtual antlrcpp::Any visitOC_FunctionName(
+    virtual std::any visitOC_FunctionName(
         LcypherParser::OC_FunctionNameContext *ctx) override {
         if (ctx->EXISTS()) {
             return std::string("EXISTS");
         }
         std::string name;
         if (ctx->oC_Namespace()) {
-            std::string tmp = visit(ctx->oC_Namespace());
+            std::string tmp = std::any_cast<std::string>(visit(ctx->oC_Namespace()));
             name = std::move(tmp);
         }
         name.append(ctx->oC_SymbolicName()->getText());
         return name;
     }
 
-    virtual antlrcpp::Any visitOC_ExplicitProcedureInvocation(
+    virtual std::any visitOC_ExplicitProcedureInvocation(
         LcypherParser::OC_ExplicitProcedureInvocationContext *ctx) override {
-        std::string procedure_name = visit(ctx->oC_ProcedureName());
+        std::string procedure_name = std::any_cast<std::string>(visit(ctx->oC_ProcedureName()));
         std::vector<Expression> parameters;
-        for (auto &e : ctx->oC_Expression()) parameters.emplace_back(visit(e));
+        for (auto &e : ctx->oC_Expression())
+            parameters.emplace_back(std::any_cast<Expression>(visit(e)));
         return std::make_tuple(procedure_name, parameters);
     }
 
-    virtual antlrcpp::Any visitOC_ImplicitProcedureInvocation(
+    virtual std::any visitOC_ImplicitProcedureInvocation(
         LcypherParser::OC_ImplicitProcedureInvocationContext *ctx) override {
-        std::string procedure_name = visit(ctx->oC_ProcedureName());
+        std::string procedure_name = std::any_cast<std::string>(visit(ctx->oC_ProcedureName()));
         std::vector<Expression> parameters;
         return std::make_tuple(procedure_name, parameters);
     }
 
-    virtual antlrcpp::Any visitOC_ProcedureResultField(
+    virtual std::any visitOC_ProcedureResultField(
         LcypherParser::OC_ProcedureResultFieldContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_ProcedureName(
+    virtual std::any visitOC_ProcedureName(
         LcypherParser::OC_ProcedureNameContext *ctx) override {
         std::string name;
         if (ctx->oC_Namespace()) {
-            std::string tmp = visit(ctx->oC_Namespace());
+            std::string tmp = std::any_cast<std::string>(visit(ctx->oC_Namespace()));
             name = std::move(tmp);
         }
         name.append(ctx->oC_SymbolicName()->getText());
         return name;
     }
 
-    virtual antlrcpp::Any visitOC_Namespace(LcypherParser::OC_NamespaceContext *ctx) override {
+    virtual std::any visitOC_Namespace(LcypherParser::OC_NamespaceContext *ctx) override {
         std::string name_space;
         for (auto &s : ctx->oC_SymbolicName()) name_space.append(s->getText()).append(".");
         return name_space;
     }
 
-    virtual antlrcpp::Any visitOC_ListComprehension(
+    virtual std::any visitOC_ListComprehension(
         LcypherParser::OC_ListComprehensionContext *ctx) override {
         auto var = ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()->getText();
         Expression var_expr;
         var_expr.type = Expression::VARIABLE;
         var_expr.data = std::make_shared<Expression::EXPR_TYPE_STRING>(var);
-        Expression in_expr = visit(ctx->oC_FilterExpression()->oC_IdInColl()->oC_Expression());
+        Expression in_expr = std::any_cast<Expression>(visit(ctx->oC_FilterExpression()->oC_IdInColl()->oC_Expression()));
         Expression where_expr;
         Expression vert_expr;
         _listcompr_placeholder = var;
         if (ctx->oC_FilterExpression()->oC_Where()) {
-            where_expr = visit(ctx->oC_FilterExpression()->oC_Where());
+            where_expr = std::any_cast<Expression>(visit(ctx->oC_FilterExpression()->oC_Where()));
         }
         if (ctx->oC_Expression()) {
-            vert_expr = visit(ctx->oC_Expression());
+            vert_expr = std::any_cast<Expression>(visit(ctx->oC_Expression()));
         } else {
             CYPHER_TODO();
         }
@@ -1667,18 +1676,18 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    virtual antlrcpp::Any visitOC_PatternComprehension(
+    virtual std::any visitOC_PatternComprehension(
         LcypherParser::OC_PatternComprehensionContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_PropertyLookup(
+    virtual std::any visitOC_PropertyLookup(
         LcypherParser::OC_PropertyLookupContext *ctx) override {
-        std::string key_name = visit(ctx->oC_PropertyKeyName());
+        std::string key_name = std::any_cast<std::string>(visit(ctx->oC_PropertyKeyName()));
         return key_name;
     }
 
-    virtual antlrcpp::Any visitOC_CaseExpression(
+    virtual std::any visitOC_CaseExpression(
         LcypherParser::OC_CaseExpressionContext *ctx) override {
         Expression::EXPR_TYPE_CASE case_expr;
         case_expr.second = ctx->oC_Expression().empty()       ? 0
@@ -1686,13 +1695,13 @@ class CypherBaseVisitor : public LcypherVisitor {
                            : ctx->ELSE() != nullptr           ? 1
                                                               : 2;
         for (auto ca : ctx->oC_CaseAlternatives()) {
-            std::pair<Expression, Expression> ca_expr = visit(ca);
+            std::pair<Expression, Expression> ca_expr = std::any_cast<std::pair<Expression, Expression>>(visit(ca));
             case_expr.first.emplace_back(ca_expr.first);
             case_expr.first.emplace_back(ca_expr.second);
         }
         for (auto e : ctx->oC_Expression()) {
             // head or/and tail
-            Expression expr = visit(e);
+            Expression expr = std::any_cast<Expression>(visit(e));
             case_expr.first.emplace_back(expr);
         }
         Expression ret;
@@ -1701,31 +1710,31 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    virtual antlrcpp::Any visitOC_CaseAlternatives(
+    virtual std::any visitOC_CaseAlternatives(
         LcypherParser::OC_CaseAlternativesContext *ctx) override {
-        Expression e0 = visit(ctx->oC_Expression(0));
-        Expression e1 = visit(ctx->oC_Expression(1));
+        Expression e0 = std::any_cast<Expression>(visit(ctx->oC_Expression(0)));
+        Expression e1 = std::any_cast<Expression>(visit(ctx->oC_Expression(1)));
         return std::make_pair(e0, e1);
     }
 
-    virtual antlrcpp::Any visitOC_Variable(LcypherParser::OC_VariableContext *ctx) override {
+    virtual std::any visitOC_Variable(LcypherParser::OC_VariableContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_NumberLiteral(
+    virtual std::any visitOC_NumberLiteral(
         LcypherParser::OC_NumberLiteralContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_MapLiteral(LcypherParser::OC_MapLiteralContext *ctx) override {
+    virtual std::any visitOC_MapLiteral(LcypherParser::OC_MapLiteralContext *ctx) override {
         MAP_MAP_LITERAL map_literal;
         Expression expr;
         int i = 0;
         while (ctx->oC_PropertyKeyName(i) != nullptr) {
-            std::string name = visit(ctx->oC_PropertyKeyName(i));
+            std::string name = std::any_cast<std::string>(visit(ctx->oC_PropertyKeyName(i)));
             if (map_literal.find(name) != map_literal.end())
                 throw lgraph::ParserException("Key duplicate in map: " + ctx->getText());
-            Expression e = visit(ctx->oC_Expression(i));
+            Expression e = std::any_cast<Expression>(visit(ctx->oC_Expression(i)));
             map_literal.emplace(name, e);
             i++;
         }
@@ -1734,15 +1743,15 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_Parameter(LcypherParser::OC_ParameterContext *ctx) override {
+    virtual std::any visitOC_Parameter(LcypherParser::OC_ParameterContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_PropertyExpression(
+    virtual std::any visitOC_PropertyExpression(
         LcypherParser::OC_PropertyExpressionContext *ctx) override {
         Expression expr;
-        Expression atom = visit(ctx->oC_Atom());
-        std::string key_name = visit(ctx->oC_PropertyLookup(0));
+        Expression atom = std::any_cast<Expression>(visit(ctx->oC_Atom()));
+        std::string key_name = std::any_cast<std::string>(visit(ctx->oC_PropertyLookup(0)));
         CYPHER_PARSER_CHECK(atom.type == Expression::VARIABLE, ctx->getText());
         expr.type = Expression::PROPERTY;
         expr.data =
@@ -1750,12 +1759,12 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_PropertyKeyName(
+    virtual std::any visitOC_PropertyKeyName(
         LcypherParser::OC_PropertyKeyNameContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_IntegerLiteral(
+    virtual std::any visitOC_IntegerLiteral(
         LcypherParser::OC_IntegerLiteralContext *ctx) override {
         Expression expr;
         expr.type = Expression::INT;
@@ -1763,7 +1772,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_DoubleLiteral(
+    virtual std::any visitOC_DoubleLiteral(
         LcypherParser::OC_DoubleLiteralContext *ctx) override {
         Expression expr;
         expr.type = Expression::DOUBLE;
@@ -1771,7 +1780,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    virtual antlrcpp::Any visitOC_SchemaName(LcypherParser::OC_SchemaNameContext *ctx) override {
+    virtual std::any visitOC_SchemaName(LcypherParser::OC_SchemaNameContext *ctx) override {
         /* issue #225:
          * schema_name may be symbolic_name or reserved_word, here, we also treat reserved_word as string literal.
          */
@@ -1784,28 +1793,28 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_ReservedWord(
+    virtual std::any visitOC_ReservedWord(
         LcypherParser::OC_ReservedWordContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_SymbolicName(
+    virtual std::any visitOC_SymbolicName(
         LcypherParser::OC_SymbolicNameContext *ctx) override {
         std::string name = ctx->getText();
         return name;
     }
 
-    virtual antlrcpp::Any visitOC_LeftArrowHead(
+    virtual std::any visitOC_LeftArrowHead(
         LcypherParser::OC_LeftArrowHeadContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_RightArrowHead(
+    virtual std::any visitOC_RightArrowHead(
         LcypherParser::OC_RightArrowHeadContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    virtual antlrcpp::Any visitOC_Dash(LcypherParser::OC_DashContext *ctx) override {
+    virtual std::any visitOC_Dash(LcypherParser::OC_DashContext *ctx) override {
         return visitChildren(ctx);
     }
 

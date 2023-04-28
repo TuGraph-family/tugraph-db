@@ -620,7 +620,14 @@ void RestServer::RespondUnauthorized(const http_request& request,
  */
 void RestServer::RespondBadRequest(const http_request& request, const std::string& error) const {
     AUDIT_LOG_FAIL(error);
-    FMA_INFO_STREAM(logger_) << "Illegal request: " << _TS(request.to_string()) << ": " << error;
+    try {
+        // request.to_string() may throw an exception
+        auto req = request.to_string();
+        FMA_INFO_STREAM(logger_) << "Illegal request: " << _TS(req);
+    } catch (std::exception& e) {
+        FMA_INFO_STREAM(logger_) << "request.to_string throw an exception: " << e.what();
+    }
+    FMA_INFO_STREAM(logger_) << "RespondBadRequest error info : " << error;
     http_response response = GetCorsResponse(status_codes::BadRequest);
     web::json::value body;
     body[RestStrings::ERR_MSG] = web::json::value(_TU(error));
@@ -630,13 +637,11 @@ void RestServer::RespondBadRequest(const http_request& request, const std::strin
 
 void RestServer::RespondBadURI(const http_request& request) const {
     AUDIT_LOG_FAIL("Bad URI");
-    FMA_INFO_STREAM(logger_) << "Bad URI: " << _TS(request.to_string());
     return RespondBadRequest(request, "Illegal URI.");
 }
 
 void RestServer::RespondBadJSON(const http_request& request) const {
     AUDIT_LOG_FAIL("Illegal request");
-    FMA_INFO_STREAM(logger_) << "Illegal request: " << _TS(request.to_string());
     return RespondBadRequest(request, "Illegal JSON content.");
 }
 
