@@ -47,25 +47,25 @@ class TokenManager {
     @param[in] refresh_time    Time to judge whether it is expired
     */
     explicit TokenManager(const std::string& secret_key,
-                    const int& refresh_time = TOKEN_REFRESH_TIME);
+                    const int refresh_time = TOKEN_REFRESH_TIME);
 
     /*!
     @param[in] token         jwt token
     @param[in] refresh_time    Time to judge whether it is expired
     */
-    void ModifyRefreshTime(const std::string& token, const int& refresh_time);
+    void ModifyRefreshTime(const std::string& token, const int refresh_time);
 
     /*!
     @param[in] token         jwt token
     @return  refresh_time, expire_time
     */
-    std::pair<int64_t, int64_t> GetTokenTime(const std::string& token);
+    std::pair<int, int> GetTokenTime(const std::string& token);
 
     /*!
     @param[in] token          jwt token
     @param[in] expire_time    Time to judge whether it is expired
     */
-    void ModifyExpireTime(const std::string& token, const int& expire_time);
+    void ModifyExpireTime(const std::string& token, const int expire_time);
 
     /*!
     @brief  Generate token when logging in for the first time
@@ -78,7 +78,7 @@ class TokenManager {
     @param[in] first_login_time   first_login_time is passed in when the token is refreshed
     @return  token
     */
-    std::string IssueRefreshToken(const double& first_login_time) const;
+    std::string IssueRefreshToken(const double first_login_time) const;
 
     /*!
     @param[in] token     refresh token

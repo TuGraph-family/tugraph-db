@@ -1578,8 +1578,8 @@ void RestServer::HandlePostUpdateTokenTime(const std::string& user, const std::s
         return RespondBadURI(request);
     }
     if (token.empty()) return RespondUnauthorized(request, "Bad token.");
-    int64_t refresh_time;
-    int64_t expire_time;
+    int refresh_time;
+    int expire_time;
     if (!ExtractIntField(body, RestStrings::REFRESH_TIME, refresh_time)
         || !ExtractIntField(body, RestStrings::EXPIRE_TIME, expire_time)) {
         BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false,
@@ -1610,8 +1610,8 @@ void RestServer::HandlePostGetTokenTime(const std::string& user, const std::stri
     int64_t refresh_time = time.first;
     int64_t expire_time = time.second;
     web::json::value response;
-    response[RestStrings::REFRESH_TIME] = web::json::value::number(_TU(refresh_time));
-    response[RestStrings::EXPIRE_TIME] = web::json::value::number(_TU(expire_time));
+    response[RestStrings::REFRESH_TIME] = web::json::value::number(refresh_time);
+    response[RestStrings::EXPIRE_TIME] = web::json::value::number(expire_time);
     return RespondSuccess(request, response);
 }
 
@@ -2171,7 +2171,7 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
         return RespondBadRequest(request, FMA_FMT("label is empty"));
     }
 
-    AccessControlledDB db = galaxy_->OpenGraph(user, paths[1]);
+    AccessControlledDB db = galaxy_->OpenGraph(user, _TS(paths[1]));
     auto txn = db.CreateReadTxn();
     auto schema = txn.GetSchema(label, is_vertex);
     if (!schema) {
@@ -2179,8 +2179,9 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
             request, FMA_FMT("No such {} label: {}", is_vertex ? "vertex" : "edge", label));
     }
     auto label_id = schema->GetLabelId();
-    int src_id_index = -1, dst_id_index = -1;
-    int edge_prop_size = 0;
+    size_t NOT_FOUND = size_t(-1);
+    size_t src_id_index = NOT_FOUND, dst_id_index = NOT_FOUND;
+    size_t edge_prop_size = 0;
     if (!is_vertex) {
         edge_prop_size = properties.size();
         for (size_t i = 0; i < properties.size(); i++) {
@@ -2190,12 +2191,12 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
                 dst_id_index = i;
             }
         }
-        if (src_id_index != -1) {
+        if (src_id_index != NOT_FOUND) {
             auto iter = std::find_if(properties.begin(), properties.end(),
                                      [](auto& item){return item == "SRC_ID";});
             properties.erase(iter);
         }
-        if (dst_id_index != -1) {
+        if (dst_id_index != NOT_FOUND) {
             auto iter = std::find_if(properties.begin(), properties.end(),
                                      [](auto& item){return item == "DST_ID";});
             properties.erase(iter);
@@ -2206,8 +2207,8 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
     Concurrency::streams::producer_consumer_buffer<uint8_t> buffer;
     http_response response = GetCorsResponse(status_codes::OK);
     // enable chunked transfer
-    response.headers().add(header_names::transfer_encoding, U("chunked"));
-    response.set_body(buffer.create_istream(), U("text/plain"));
+    response.headers().add(header_names::transfer_encoding, _TU("chunked"));
+    response.set_body(buffer.create_istream(), _TU("text/plain"));
     auto response_done = request.reply(response);
     std::string chunk;
     auto write_fields = [&](const std::vector<FieldData>& fds){
@@ -2271,7 +2272,7 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
                 auto fds = txn.GetEdgeFields(eit, field_ids);
                 int index = 0;
                 std::vector<FieldData> new_fds;
-                for (int i = 0; i < edge_prop_size; i++) {
+                for (size_t i = 0; i < edge_prop_size; i++) {
                     if (i == src_id_index) {
                         new_fds.emplace_back(txn.GetVertexField(src_vit, src_fid));
                     } else if (i == dst_id_index) {

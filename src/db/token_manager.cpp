@@ -17,7 +17,7 @@
 #include "core/data_type.h"
 #include "db/token_manager.h"
 
-lgraph::TokenManager::TokenManager(const std::string& secret_key, const int& refresh_time)
+lgraph::TokenManager::TokenManager(const std::string& secret_key, const int refresh_time)
     : secret_key_(secret_key),
       refresh_time_(refresh_time),
       expire_time_(TOKEN_EXPIRE_TIME),
@@ -25,7 +25,7 @@ lgraph::TokenManager::TokenManager(const std::string& secret_key, const int& ref
           jwt::verify().allow_algorithm(jwt::algorithm::hs256{secret_key_}).with_issuer("fma.ai")) {
 }
 
-void lgraph::TokenManager::ModifyRefreshTime(const std::string& token, const int& refresh_time) {
+void lgraph::TokenManager::ModifyRefreshTime(const std::string& token, const int refresh_time) {
     auto decode_token = jwt::decode(token);
     verifier_.verify(decode_token);
     if (refresh_time == 0) {
@@ -35,7 +35,7 @@ void lgraph::TokenManager::ModifyRefreshTime(const std::string& token, const int
     }
 }
 
-std::pair<int64_t, int64_t> lgraph::TokenManager::GetTokenTime(const std::string& token) {
+std::pair<int, int> lgraph::TokenManager::GetTokenTime(const std::string& token) {
     auto decode_token = jwt::decode(token);
     verifier_.verify(decode_token);
     auto refresh_time = refresh_time_;
@@ -43,7 +43,7 @@ std::pair<int64_t, int64_t> lgraph::TokenManager::GetTokenTime(const std::string
     return std::make_pair(refresh_time, first_login_time);
 }
 
-void lgraph::TokenManager::ModifyExpireTime(const std::string& token, const int& expire_time) {
+void lgraph::TokenManager::ModifyExpireTime(const std::string& token, const int expire_time) {
     auto decode_token = jwt::decode(token);
     verifier_.verify(decode_token);
     if (expire_time == 0) {
@@ -63,7 +63,7 @@ std::string lgraph::TokenManager::IssueFirstToken() const {
     .sign(jwt::algorithm::hs256{secret_key_});
 }
 
-std::string lgraph::TokenManager::IssueRefreshToken(const double& first_login_time) const {
+std::string lgraph::TokenManager::IssueRefreshToken(const double first_login_time) const {
     return jwt::create()
     .set_type("JWT")
     .set_issuer("fma.ai")

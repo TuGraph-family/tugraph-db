@@ -471,7 +471,7 @@ bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req,
                         resp, FMA_FMT("Number of keys and values does not match: {} vs. {}",
                                       mcreq.keys_size(), mcreq.values_size()));
                 std::map<std::string, FieldData> updates;
-                for (size_t i = 0; i < (size_t)mcreq.keys_size(); i++)
+                for (int i = 0; i < mcreq.keys_size(); i++)
                     updates.emplace(mcreq.keys()[i],
                                     FieldDataConvert::ToLGraphT(mcreq.values()[i]));
                 if (updates.empty()) return RespondBadInput(resp, "Empty input.");
@@ -500,7 +500,6 @@ bool lgraph::StateMachine::ApplyRestoreRequest(const lgraph::LGraphRequest* lgra
         LGraphResponse lresp;
         lgraph::LGraphRequest m_req;
         m_req.CopyFrom(log.req());
-        m_req.release_user();
         m_req.set_user(curr_user);
         ApplyRequestDirectly(&m_req, &lresp);
         if (lresp.error_code() != LGraphResponse::SUCCESS)
@@ -829,7 +828,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                                           true, req.DebugString());
             const auto& ereq = req.del_edge_request();
             lgraph::Transaction txn = db->CreateWriteTxn();
-            EdgeUid euid(ereq.src(), ereq.dst(), ereq.lid(), 0, ereq.eid());  // TODO(heng)
+            EdgeUid euid(ereq.src(), ereq.dst(),
+                static_cast<LabelId>(ereq.lid()), 0, ereq.eid());  // TODO(heng)
             bool success = txn.DeleteEdge(euid);
             txn.Commit();
             if (success) {
@@ -850,7 +850,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                 return RespondBadInput(
                     resp, FMA_FMT("Number of fields and values does not match: [{}] vs [{}].",
                                   fields.size(), values.size()));
-            EdgeUid euid(ereq.src(), ereq.dst(), ereq.lid(), 0, ereq.eid());  // TODO(heng)
+            EdgeUid euid(ereq.src(), ereq.dst(),
+                static_cast<LabelId>(ereq.lid()), 0, ereq.eid());  // TODO(heng)
             lgraph::Transaction txn = db->CreateWriteTxn();
             bool success = txn.SetEdgeProperty(euid, fields, values);
             txn.Commit();

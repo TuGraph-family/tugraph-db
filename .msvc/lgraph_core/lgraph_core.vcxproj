@@ -21,7 +21,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\deps\tiny-process-library\process.cpp" />
     <ClCompile Include="..\..\deps\tiny-process-library\process_win.cpp" />
-    <ClCompile Include="..\..\src\algo\algo.cpp" />
     <ClCompile Include="..\..\src\core\audit_logger.cpp" />
     <ClCompile Include="..\..\src\core\data_type.cpp" />
     <ClCompile Include="..\..\src\core\edge_index.cpp" />
@@ -32,6 +31,7 @@
     <ClCompile Include="..\..\src\core\graph_edge_iterator.cpp" />
     <ClCompile Include="..\..\src\core\graph_vertex_iterator.cpp" />
     <ClCompile Include="..\..\src\core\kv_table_comparators.cpp" />
+    <ClCompile Include="..\..\src\core\load_library.cpp" />
     <ClCompile Include="..\..\src\core\sync_file.cpp" />
     <ClCompile Include="..\..\src\core\wal.cpp" />
     <ClCompile Include="..\..\src\core\index_manager.cpp" />
@@ -151,26 +151,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
