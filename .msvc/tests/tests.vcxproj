@@ -95,7 +95,6 @@
       <AdditionalIncludeDirectories>$(SolutionDir)/../src;c:\Python3\include;$(SolutionDir)/../deps/;$(SolutionDir)/../deps/fma-common;$(SolutionDir)/../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>liblgraph.lib;lgraph_core.lib;ntdll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -127,7 +126,6 @@
       <AdditionalIncludeDirectories>$(SolutionDir)/../src;c:\Python3\include;$(SolutionDir)/../deps/;$(SolutionDir)/../deps/fma-common;$(SolutionDir)/../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -139,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\client\cpp\restful\rest_client.cpp" />
+    <ClCompile Include="..\..\src\import\import_v3.cpp" />
     <ClCompile Include="..\..\src\restful\server\rest_server.cpp" />
     <ClCompile Include="..\..\src\server\lgraph_server.cpp" />
     <ClCompile Include="..\..\src\server\state_machine.cpp" />

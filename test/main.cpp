@@ -23,9 +23,12 @@ char** _ut_argv;
 bool _ut_buffer_log = true;
 bool _ut_run_benchmarks = false;
 
+#ifndef _WIN32
 namespace brpc {
 DECLARE_bool(usercode_in_pthread);
+bool brpc::FLAGS_usercode_in_pthread = true;
 }
+#endif
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
@@ -49,6 +52,5 @@ int main(int argc, char** argv) {
     fma_common::Logger::Get().SetFormatter(std::make_shared<fma_common::TimedLogFormatter>());
     _ut_argc = argc;
     _ut_argv = argv;
-    brpc::FLAGS_usercode_in_pthread = true;
     return RUN_ALL_TESTS();
 }
