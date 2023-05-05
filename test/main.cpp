@@ -26,11 +26,13 @@ bool _ut_run_benchmarks = false;
 #ifndef _WIN32
 namespace brpc {
 DECLARE_bool(usercode_in_pthread);
-bool brpc::FLAGS_usercode_in_pthread = true;
 }
 #endif
 
 int main(int argc, char** argv) {
+    #ifndef _WIN32
+    brpc::FLAGS_usercode_in_pthread = true;
+    #endif
     ::testing::InitGoogleTest(&argc, argv);
     fma_common::Configuration config;
     unsigned int verbose = 1;
