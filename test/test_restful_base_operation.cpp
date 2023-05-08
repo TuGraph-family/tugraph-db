@@ -311,9 +311,9 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
         Galaxy galaxy("./testdb");
         auto re = client1->request(methods::POST, _TU("/login"), body).get();
-        auto token = re.extract_json().get().at(_TU("jwt")).as_string();
+        auto token = _TS(re.extract_json().get().at(_TU("jwt")).as_string());
         galaxy.ModifyTokenTime(token, 1, 3600 * 24);
-        sleep(1);
+        fma_common::SleepS(1);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);
         galaxy.ModifyTokenTime(token, 600, 3600);
         UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, 600);
@@ -322,7 +322,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         UT_EXPECT_EQ(new_token != token, true);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), true);
         galaxy.ModifyTokenTime(new_token, 1, 3600 * 24);
-        sleep(1);
+        fma_common::SleepS(1);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), false);
     }
     UT_LOG() << "Testing refresh succeeded";
@@ -335,7 +335,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
         body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
         auto response = client1->request(methods::POST, _TU("/login"), body).get();
-        auto token = response.extract_json().get().at(_TU("jwt")).as_string();
+        auto token = _TS(response.extract_json().get().at(_TU("jwt")).as_string());
         UT_EXPECT_EQ(client.Logout(token), true);
         UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: Invalid token.");
         UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: Invalid token.");

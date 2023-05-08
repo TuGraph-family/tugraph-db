@@ -99,10 +99,10 @@ class Galaxy {
 
     // modify tokenmanager time
     void ModifyTokenTime(const std::string& token,
-                         const int64_t& refresh_time = 0, const int64_t& expire_time = 0);
+                         const int refresh_time = 0, const int expire_time = 0);
 
     // get tokenmanager time
-    std::pair<int64_t, int64_t> GetTokenTime(const std::string& token);
+    std::pair<int, int> GetTokenTime(const std::string& token);
 
     // parse user token and check if user is admin
     // returns user name

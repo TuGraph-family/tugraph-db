@@ -192,6 +192,16 @@ inline bool ExtractIntField(const web::json::value& js, const utility::string_t&
     return true;
 }
 
+inline bool ExtractIntField(const web::json::value& js, const utility::string_t& field,
+                            int& ret) {
+    int64_t r;
+    if (!ExtractIntField(js, field, r)) return false;
+    // check for overflow
+    if (r < std::numeric_limits<int>::min() || r > std::numeric_limits<int>::max()) return false;
+    ret = static_cast<int>(r);
+    return true;
+}
+
 inline bool ExtractStringField(const web::json::value& js, const utility::string_t& field,
                                ::std::string& ret) {
     if (!js.has_string_field(field)) return false;
@@ -265,7 +275,7 @@ inline bool JsonToType(const web::json::value& js, std::vector<T>& d) {
     for (auto& jv : js.as_array()) {
         T v;
         if (!JsonToType(jv, v)) return false;
-        d.template emplace_back(v);
+        d.emplace_back(v);
     }
     return true;
 }
