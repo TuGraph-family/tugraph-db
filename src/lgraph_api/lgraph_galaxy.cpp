@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -126,6 +126,7 @@ bool lgraph_api::Galaxy::SetPassword(const std::string& name, const std::string&
 bool lgraph_api::Galaxy::SetUserDesc(const std::string& user, const std::string& desc) {
     CHECK_DB_AND_USER();
     lgraph::ModUserRequest req;
+    req.set_user(user);
     req.set_set_desc(desc);
     return db_->ModUser(user_, req);
 }
