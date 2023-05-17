@@ -28,6 +28,7 @@ TEST_F(TestJsonConvert, JsonConvert) {
         AccessLevel src;
         auto js = ValueToJson(i);
         JsonToType<AccessLevel>(js, src);
+        UT_EXPECT_EQ(src, i);
     }
     lgraph::Schema mysch;
     auto ret_schema = ValueToJson(&mysch);
@@ -51,6 +52,7 @@ TEST_F(TestJsonConvert, JsonConvert) {
     auto ret_dinfo = ValueToJson(dinfo, graph_used).as_object();
     UT_EXPECT_EQ(ret_dinfo.at(_TU("self")), 1);
     lgraph::AuditLog al;
+    al.success = false;
     auto ret_al = ValueToJson(al).as_object();
     UT_EXPECT_FALSE(ret_al.at(_TU("success")).as_bool());
     std::vector<std::pair<std::string, std::string>> vec;
@@ -60,6 +62,7 @@ TEST_F(TestJsonConvert, JsonConvert) {
     auto ret_vec = ValueToJson(vec).as_array();
     UT_EXPECT_EQ(_TS(ret_vec[0][0].as_string()), "first");
     TaskTracker::TaskDesc taskdec;
+    taskdec.id = TaskTracker::TaskId(-1, -1);
     auto ret_taskdec = ValueToJson(taskdec).as_object();
     UT_EXPECT_EQ(_TS(ret_taskdec.at(_TU("task_id")).as_string()), "-1_-1");
     AclManager::FieldAccess s;

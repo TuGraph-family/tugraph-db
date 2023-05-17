@@ -86,6 +86,14 @@ std::string GetVName(int size, lgraph::VertexId vid) {
     return vname;
 }
 
+void DumpGraph(lgraph::Transaction& txn, bool dump_properties = false) {
+    // dump vertex and edges in the database
+    for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
+        for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+        }
+    }
+}
+
 TEST_F(TestLGraph, LGraph) {
     using namespace lgraph;
     using namespace fma_common;

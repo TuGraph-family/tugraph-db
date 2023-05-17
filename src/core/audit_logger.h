@@ -55,14 +55,14 @@ inline char* strptime(const char* s, const char* f, struct tm* tm) {
 namespace lgraph {
 
 struct AuditLog {
-    int64_t index;
+    int64_t index = -1;
     std::string begin_time;
     std::string end_time;
     std::string user;
     std::string graph;
     std::string type;
     std::string read_write;
-    bool success;
+    bool success = false;
     std::string content;
 };
 

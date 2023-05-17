@@ -27,23 +27,38 @@ class TestLGraphExport : public TuGraphTest {};
 TEST_F(TestLGraphExport, LGraphExport) {
     const std::string db_dir = "./testdb";
     const std::string export_dir = "./export_dir";
+
+    const std::string admin_user = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    const std::string admin_password = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    const std::string default_graph = lgraph::_detail::DEFAULT_GRAPH_DB_NAME;
+    #ifdef _WIN32
+    const std::string export_exe = "lgraph_export.exe";
+    const std::string import_exe = "lgraph_import.exe";
+    #else
+    const std::string export_exe = "./lgraph_export";
+    const std::string import_exe = "./lgraph_import";
+    #endif
     {
         lgraph::AutoCleanDir _test_dir(db_dir);
         lgraph::AutoCleanDir _export_dir(export_dir);
         GraphFactory::create_yago(db_dir);
         lgraph::SubProcess dumper(
-            UT_FMT("./lgraph_export -d {} -e {} -g {} -u admin -p 73@TuGraph", db_dir, export_dir,
-                   "default"));
+            UT_FMT("{} -d {} -e {} -g {} -u {} -p {}", 
+                export_exe,
+                db_dir, export_dir,
+                default_graph,
+                admin_user,
+                admin_password));
         UT_EXPECT_TRUE(dumper.Wait(10000));
 
         const std::string& imported_db = "./db2";
         lgraph::AutoCleanDir _t2(imported_db);
         lgraph::SubProcess importer(
-            UT_FMT("./lgraph_import -c {}/import.config -d {}", export_dir, imported_db));
+            UT_FMT("{} -c {}/import.config -d {}", import_exe, export_dir, imported_db));
         UT_EXPECT_TRUE(importer.Wait(100000));
         // check graph equals
-        CheckGraphEqual(db_dir, "default", "admin", "73@TuGraph", imported_db, "default", "admin",
-                        "73@TuGraph");
+        CheckGraphEqual(db_dir, default_graph, admin_user, admin_password,
+            imported_db, default_graph, admin_user, admin_password);
     }
 
     {
@@ -51,37 +66,41 @@ TEST_F(TestLGraphExport, LGraphExport) {
         lgraph::AutoCleanDir _export_dir(export_dir);
         GraphFactory::create_yago(db_dir);
         lgraph::SubProcess dumper(
-            UT_FMT("./lgraph_export -d {} -e {} -g {} -u admin -p 73@TuGraph -f json", db_dir,
-                   export_dir, "default"));
+            UT_FMT("{} -d {} -e {} -g {} -u {} -p {} -f json",
+                export_exe,
+                db_dir, export_dir,
+                default_graph,
+                admin_user,
+                admin_password));
         UT_EXPECT_TRUE(dumper.Wait(10000));
 
         const std::string& imported_db = "./db2";
         lgraph::AutoCleanDir _t2(imported_db);
         lgraph::SubProcess importer(
-            UT_FMT("./lgraph_import -c {}/import.config -d {}", export_dir, imported_db));
+            UT_FMT("{} -c {}/import.config -d {}", import_exe, export_dir, imported_db));
         UT_EXPECT_TRUE(importer.Wait(100000));
         // check graph equals
-        CheckGraphEqual(db_dir, "default", "admin", "73@TuGraph", imported_db, "default", "admin",
-                        "73@TuGraph");
+        CheckGraphEqual(db_dir, default_graph, admin_user, admin_password, imported_db,
+                        default_graph, admin_user, admin_password);
     }
 
     {
         lgraph::AutoCleanDir _test_dir(db_dir);
         lgraph::AutoCleanDir _export_dir(export_dir);
         GraphFactory::create_yago(db_dir);
-        lgraph::SubProcess dumper(
-            UT_FMT("./lgraph_export -d {} -e {} -g {} -u admin -p 73@TuGraph -f csv", db_dir,
-                   export_dir, "default"));
+        lgraph::SubProcess dumper(UT_FMT("{} -d {} -e {} -g {} -u {} -p {} -f csv", export_exe,
+                                         db_dir, export_dir, default_graph, admin_user,
+                                         admin_password));
         UT_EXPECT_TRUE(dumper.Wait(10000));
 
         const std::string& imported_db = "./db2";
         lgraph::AutoCleanDir _t2(imported_db);
         lgraph::SubProcess importer(
-            UT_FMT("./lgraph_import -c {}/import.config -d {}", export_dir, imported_db));
+            UT_FMT("{} -c {}/import.config -d {}", import_exe, export_dir, imported_db));
         UT_EXPECT_TRUE(importer.Wait(100000));
         // check graph equals
-        CheckGraphEqual(db_dir, "default", "admin", "73@TuGraph", imported_db, "default", "admin",
-                        "73@TuGraph");
+        CheckGraphEqual(db_dir, default_graph, admin_user, admin_password, imported_db,
+                        default_graph, admin_user, admin_password);
     }
     {
         const std::map<std::string, std::string> data = {
@@ -211,9 +230,9 @@ John Williams,New York,20.55
         lgraph::import_v3::Importer offline_importer(config);
         offline_importer.DoImportOffline();
 
-        lgraph::SubProcess dumper(
-            UT_FMT("./lgraph_export -d {} -e {} -g {} -u admin -p 73@TuGraph -f csv", db_dir,
-                   export_dir, "default"));
+        lgraph::SubProcess dumper(UT_FMT("{} -d {} -e {} -g {} -u {} -p {} -f csv", export_exe,
+                                         db_dir, export_dir, default_graph, admin_user,
+                                         admin_password));
         UT_EXPECT_TRUE(dumper.Wait(10000));
 
         nlohmann::json import_conf, export_conf;
@@ -242,10 +261,10 @@ John Williams,New York,20.55
         const std::string& imported_db = "./db2";
         lgraph::AutoCleanDir _t2(imported_db);
         lgraph::SubProcess importer(
-            UT_FMT("./lgraph_import -c {}/import.config -d {}", export_dir, imported_db));
+            UT_FMT("{} -c {}/import.config -d {}", import_exe, export_dir, imported_db));
         UT_EXPECT_TRUE(importer.Wait(100000));
         // check graph equals
-        CheckGraphEqual(db_dir, "default", "admin", "73@TuGraph", imported_db, "default", "admin",
-                        "73@TuGraph");
+        CheckGraphEqual(db_dir, default_graph, admin_user, admin_password, imported_db,
+                        default_graph, admin_user, admin_password);
     }
 }
