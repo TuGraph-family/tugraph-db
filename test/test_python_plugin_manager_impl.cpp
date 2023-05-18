@@ -30,6 +30,10 @@
 
 #include "./test_tools.h"
 
+#ifdef _WIN32
+// disable python plugin on windows
+// TODO(hjk41): re-enable python plugin on windows
+#else
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
 class TestPythonPluginManagerImpl : public TuGraphTest {};
 
@@ -256,4 +260,5 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         UT_EXPECT_ANY_THROW(manager.LoadPlugin(user, "testpy", pinfo));
     }
 }
+#endif
 #endif

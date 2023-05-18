@@ -840,27 +840,58 @@ typename std::enable_if<IS_EIT_TYPE(EIT) && IS_FIELD_TYPE(FieldT) && IS_DATA_TYP
                         void>::type
 Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, const DataT* values) {
     ThrowIfReadOnlyTxn();
-    Value newprop;
-    newprop.Copy(it.GetProperty());
+    auto euid = it.GetUid();
+    Value old_prop = it.GetProperty();
+    Value new_prop;
+    new_prop.Copy(old_prop);
     auto schema = curr_schema_->e_schema_manager.GetSchema(it.GetLabelId());
     FMA_DBG_ASSERT(schema);
     for (size_t i = 0; i < n_fields; i++) {
         auto fe = schema->GetFieldExtractor(fields[i]);
         if (fe->Type() == FieldType::BLOB) {
-            UpdateBlobField(fe, values[i], newprop, blob_manager_, txn_);
+            UpdateBlobField(fe, values[i], new_prop, blob_manager_, txn_);
         } else {
-            fe->ParseAndSet(newprop, values[i]);
+            fe->ParseAndSet(new_prop, values[i]);
+            // update index if there is no error
+            EdgeIndex* index = fe->GetEdgeIndex();
+            if (index && index->IsReady()) {
+                bool oldnull = fe->GetIsNull(old_prop);
+                bool newnull = fe->GetIsNull(new_prop);
+                if (!oldnull && !newnull) {
+                    // update
+                    bool r = index->Update(txn_, fe->GetConstRef(old_prop),
+                                           fe->GetConstRef(new_prop),
+                                           euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
+                    if (!r)
+                        throw InputError(FMA_FMT("{}:[{}] already exists", fe->Name(),
+                                                 fe->FieldToString(new_prop)));
+                } else if (oldnull && !newnull) {
+                    // set to non-null, add index
+                    bool r = index->Add(txn_, fe->GetConstRef(new_prop),
+                                        euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
+                    if (!r)
+                        throw InputError(FMA_FMT("{}:[{}] already exists", fe->Name(),
+                                                 fe->FieldToString(new_prop)));
+                } else if (!oldnull && newnull) {
+                    // set to null, delete index
+                    bool r = index->Delete(txn_, fe->GetConstRef(old_prop),
+                                           euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
+                    FMA_DBG_ASSERT(r);
+                } else {
+                    // both null, nothing to do
+                }
+            }
         }
     }
-    it.SetProperty(newprop);
+    it.SetProperty(new_prop);
     auto ieit = graph_->GetUnmanagedInEdgeIterator(&txn_, it.GetUid(), false);
     FMA_DBG_ASSERT(ieit.IsValid());
-    ieit.SetProperty(newprop);
+    ieit.SetProperty(new_prop);
     it.RefreshContentIfKvIteratorModified();
     if (fulltext_index_) {
         // fulltext
         schema->DeleteEdgeFullTextIndex(it.GetUid(), fulltext_buffers_);
-        schema->AddEdgeToFullTextIndex(it.GetUid(), newprop, fulltext_buffers_);
+        schema->AddEdgeToFullTextIndex(it.GetUid(), new_prop, fulltext_buffers_);
     }
 }
 

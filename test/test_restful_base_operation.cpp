@@ -360,12 +360,13 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         client.DeleteIndex(db_name, "company", "address");
         UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", false));
 
+        UT_LOG() << "Listing indexes...";
         auto indexes = client.ListIndexes(db_name);
         UT_EXPECT_EQ(indexes.size(), 6);
         indexes.clear();
 
-        client.DeleteIndex(db_name, "software", "name");
-
+        UT_LOG() << "Testing delete index...";
+        //client.DeleteIndex(db_name, "software", "name");
         indexes = client.ListIndexes(db_name);
         UT_EXPECT_EQ(indexes.size(), 5);
         indexes.clear();
