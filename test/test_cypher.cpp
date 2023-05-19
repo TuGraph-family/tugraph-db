@@ -2123,7 +2123,14 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
         {"MATCH (n:Person) RETURN -sum(n.birthyear) /*-27241*/", 1},
         // additional spaces in range literal
         {"MATCH (n) -[r:HAS_CHILD * 2 ]->(m) RETURN n,m ", 6},
-        {"MATCH (n) -[r:HAS_CHILD * .. ]->(m) RETURN n,m ", 17}};
+        {"MATCH (n) -[r:HAS_CHILD * .. ]->(m) RETURN n,m ", 17},
+        // issue #357, issue #148, github issue #188
+        {"WITH '1' as s UNWIND ['a','b'] as k RETURN s,k", 2},
+        {"WITH '1' as s UNWIND ['a','b']+s as k RETURN s,k", 3},
+        {"MATCH (n:Person)-[]->(m:Film) WITH n.name AS nname, collect(id(m)) AS mc "
+         "MATCH (n:Person {name: nname})<-[]-(o) WITH n.name AS nname, mc, collect(id(o)) AS oc "
+         "UNWIND mc+oc AS c RETURN c", 11}
+    };
     std::vector<std::string> scripts;
     std::vector<int> check;
     for (auto &s : script_check) {

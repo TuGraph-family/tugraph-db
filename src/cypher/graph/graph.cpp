@@ -243,7 +243,7 @@ std::string PatternGraph::DumpGraph() const {
             "R[{} {} {}] {}:{} {}\n", std::to_string(r.Lhs()), direction, std::to_string(r.Rhs()),
             r.Alias(), types, derivation));
     }
-    if (_nodes.empty() && _relationships.empty()) line.append("(EMPTY GRAPH)");
+    if (_nodes.empty() && _relationships.empty()) line.append("(EMPTY GRAPH)\n");
     return line;
 }
 

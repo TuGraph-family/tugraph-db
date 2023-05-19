@@ -15,6 +15,7 @@
 #pragma once
 
 #include <boost/any.hpp>
+#include "cypher_exception.h"
 #include "filter/filter.h"
 #include "data_typedef.h"
 
@@ -168,6 +169,71 @@ struct Expression {
         case FILTER:
         default:
             return false;
+        }
+    }
+
+    bool ContainAlias(const std::unordered_set<std::string> &alias) const {
+        switch (type) {
+        case INT:
+        case DOUBLE:
+        case BOOL:
+        case STRING:
+            return false;
+        case MAP:
+            {
+                for (const auto &n : Map()) {
+                    if (n.second.ContainAlias(alias)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        case VARIABLE:
+            return alias.find(String()) != alias.end();
+        case PARAMETER:
+            return false;
+        case FUNCTION:
+        case MATH:
+        case LIST:
+            {
+                for (const auto &n : List()) {
+                    if (n.ContainAlias(alias)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        case CASE:
+            {
+                for (const auto &n : Case().first) {
+                    if (n.ContainAlias(alias)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        case LABEL:
+        case PROPERTY:
+            {
+                return Property().first.ContainAlias(alias);
+            }
+        case FILTER:
+            CYPHER_TODO();
+        case LIST_COMPREHENSION:
+            {
+                for (const auto &n : ListComprehension()) {
+                    if (n.ContainAlias(alias)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        case RELATIONSHIPS_PATTERN:
+            CYPHER_TODO();
+        case NULL_:
+            return false;
+        default:
+            CYPHER_TODO();
         }
     }
 
