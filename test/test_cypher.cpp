@@ -1109,8 +1109,8 @@ int test_procedure(cypher::RTContext *ctx) {
     std::ifstream f;
     std::string text;
     std::vector<std::pair<std::string, std::string>> plugin_info = {
-        {"scan_graph", "../../test/test_plugins/scan_graph.cpp"},
-        {"standard", "../../test/test_plugins/standard_result.cpp"},
+        {"scan_graph", "../../test/test_procedures/scan_graph.cpp"},
+        {"standard", "../../test/test_procedures/standard_result.cpp"},
     };
     std::vector<std::string> plugin_scripts;
     std::string encode;
@@ -1306,13 +1306,13 @@ int test_procedure(cypher::RTContext *ctx) {
     };
 
     add_signatured_plugins("custom_shortestpath",
-                           "../../test/test_plugins/custom_shortestpath.cpp");
+                           "../../test/test_procedures/custom_shortestpath.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
         "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
         "RETURN length, nodeIds AS path");
 
-    add_signatured_plugins("custom_pagerank", "../../test/test_plugins/custom_pagerank.cpp");
+    add_signatured_plugins("custom_pagerank", "../../test/test_procedures/custom_pagerank.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "CALL plugin.cpp.custom_pagerank(10) "
         "YIELD node, weight WITH node, weight "
@@ -1325,7 +1325,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "UNWIND nodeIds AS id "
         "RETURN id, length");
 
-    add_signatured_plugins("custom_algo", "../../test/test_plugins/custom_algo.cpp");
+    add_signatured_plugins("custom_algo", "../../test/test_procedures/custom_algo.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "CALL plugin.cpp.custom_algo() YIELD res RETURN res");
     call_signatured_plugins_scripts.emplace_back(

@@ -66,12 +66,12 @@ void build_so() {
 #endif
     std::string cmd;
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./sortstr.so",
-                  "../../test/test_plugins/sortstr.cpp", LIBLGRAPH);
+                  "../../test/test_procedures/sortstr.cpp", LIBLGRAPH);
     FMA_LOG() << "cmd_sort:" << cmd;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./scan_graph.so",
-                  "../../test/test_plugins/scan_graph.cpp", LIBLGRAPH);
+                  "../../test/test_procedures/scan_graph.cpp", LIBLGRAPH);
     FMA_LOG() << "cmd_scan_graph:" << cmd;
     rt = system(cmd.c_str());
     FMA_LOG() << "rt:" << rt;
@@ -81,7 +81,7 @@ void build_so() {
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./add_label.so",
-                  "../../test/test_plugins/add_label_v.cpp", LIBLGRAPH);
+                  "../../test/test_procedures/add_label_v.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 }
@@ -217,9 +217,9 @@ TEST_F(TestCppPlugin, CppPlugin) {
     {
         // read file to string
         std::string code_so_path = "./sortstr.so";
-        std::string code_cpp_path = "../../test/test_plugins/sortstr.cpp";
+        std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
 #ifndef __clang__
-        std::string code_zip_path = "../../test/test_plugins/sortstr.zip";
+        std::string code_zip_path = "../../test/test_procedures/sortstr.zip";
 #elif __APPLE__
         std::string code_zip_path = "../../test/test_plugins/sortstr_osx.zip";
 #else

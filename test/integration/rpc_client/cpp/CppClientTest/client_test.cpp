@@ -569,21 +569,21 @@ void test_plugin(lgraph::RpcClient& client) {
     std::string str;
 
     std::string code_so_path = "./sortstr.so";
-    bool ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO",
+    bool ret = client.LoadProcedure(str, code_so_path, "CPP", "test_plugin1", "SO",
                                  "this is a test plugin", true);
     assert(ret);
 
-    ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO", "this is a test plugin",
-                            true);
+    ret = client.LoadProcedure(str, code_so_path, "CPP", "test_plugin1",
+                               "SO", "this is a test plugin", true);
     assert(ret == false);
 
     std::string code_scan_graph_path = "./scan_graph.so";
-    ret = client.LoadPlugin(str, code_scan_graph_path, "CPP", "test_plugin2", "SO",
+    ret = client.LoadProcedure(str, code_scan_graph_path, "CPP", "test_plugin2", "SO",
                             "this is a test plugin", true);
     assert(ret);
     std::string code_add_label_path = "./add_label.so";
 
-    ret = client.CallCypher(str, "CALL db.plugin.listPlugin('CPP')");
+    ret = client.ListProcedures(str, "CPP");
     assert(ret);
     nlohmann::json json_val = nlohmann::json::parse(str);
     assert(json_val.size()== 2);
@@ -594,15 +594,16 @@ void test_plugin(lgraph::RpcClient& client) {
         CheckObjectElementEqual(json_val, "plugin_description", "name", "test_plugin2", "STRING")
         == true);
 
-    ret = client.CallPlugin(str, "CPP", "test_plugin1", "gecfb");
+    ret = client.CallProcedure(str, "CPP", "test_plugin1", "gecfb");
     assert(ret);
     json_val = nlohmann::json::parse(str);
     assert(HasElement(json_val, "bcefg", "result") == true);
 
-    ret =
-        client.CallPlugin(str, "CPP", "test_plugin2", "{\"scan_edges\":true, \"times\":2}", 100.00);
+    ret = client.CallProcedure(str, "CPP", "test_plugin2",
+                             "{\"scan_edges\":true, \"times\":2}", 100.00);
     assert(ret);
     json_val = nlohmann::json::parse(str);
+    json_val[0]["result"] = nlohmann::json::parse(json_val[0]["result"].get<std::string>());
     assert(CheckObjectElementEqual(json_val, "result", "num_edges", "56", "INTEGER") == true);
     assert(CheckObjectElementEqual(json_val, "result", "num_vertices", "42", "INTEGER") == true);
 }

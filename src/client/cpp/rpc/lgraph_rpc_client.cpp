@@ -257,24 +257,65 @@ std::string RpcClient::CypherResponseExtractor(const CypherResponse cypher) {
     return "";
 }
 
-bool RpcClient::LoadPlugin(std::string& result, const std::string& source_file,
-                           const std::string& plugin_type, const std::string& plugin_name,
-                           const std::string& code_type, const std::string& plugin_description,
-                           bool read_only, const std::string& graph, bool json_format,
-                           double timeout) {
+bool RpcClient::LoadProcedure(std::string& result, const std::string& source_file,
+                              const std::string& procedure_type, const std::string& procedure_name,
+                              const std::string& code_type,
+                              const std::string& procedure_description, bool read_only,
+                              const std::string& graph) {
     try {
         std::string content;
         if (!FieldSpecSerializer::FileReader(source_file, content)) {
             std::swap(content, result);
             return false;
         }
-        fma_common::encrypt::Base64 base64;
-        std::string cypher(FMA_FMT("CALL db.plugin.loadPlugin('{}', '{}', '{}', '{}', '{}', {})",
-                                   plugin_type, plugin_name, base64.Encode(content), code_type,
-                                   plugin_description,
-                                   FieldSpecSerializer::FormatBoolean(read_only)));
-        if (!CallCypher(result, cypher, graph, json_format, timeout)) {
-            return false;
+        LGraphRequest req;
+        req.set_is_write_op(true);
+        lgraph::PluginRequest* pluginRequest = req.mutable_plugin_request();
+        pluginRequest->set_graph(graph);
+        pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
+                                                        : lgraph::PluginRequest::PYTHON);
+        lgraph::LoadPluginRequest* loadPluginRequest = pluginRequest->mutable_load_plugin_request();
+        loadPluginRequest->set_code_type([](const std::string& type) {
+            std::unordered_map<std::string, lgraph::LoadPluginRequest_CodeType> um{
+                {"SO", lgraph::LoadPluginRequest::SO},
+                {"PY", lgraph::LoadPluginRequest::PY},
+                {"ZIP", lgraph::LoadPluginRequest::ZIP},
+                {"CPP", lgraph::LoadPluginRequest::CPP}};
+            return um[type];
+        }(code_type));
+        loadPluginRequest->set_name(procedure_name);
+        loadPluginRequest->set_desc(procedure_description);
+        loadPluginRequest->set_read_only(read_only);
+        loadPluginRequest->set_code(content);
+        HandleRequest(&req);
+    } catch (std::exception& e) {
+        result = e.what();
+        return false;
+    }
+    return true;
+}
+
+bool RpcClient::CallProcedure(std::string& result, const std::string& procedure_type,
+                              const std::string& procedure_name, const std::string& param,
+                              double procedure_time_out, bool in_process,
+                              const std::string& graph, bool json_format) {
+    try {
+        LGraphRequest req;
+        lgraph::PluginRequest* pluginRequest = req.mutable_plugin_request();
+        pluginRequest->set_graph(graph);
+        pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
+                                                        : lgraph::PluginRequest::PYTHON);
+        lgraph::CallPluginRequest *cpRequest = pluginRequest->mutable_call_plugin_request();
+        cpRequest->set_name(procedure_name);
+        cpRequest->set_in_process(in_process);
+        cpRequest->set_param(param);
+        cpRequest->set_timeout(procedure_time_out);
+        cpRequest->set_result_in_json_format(json_format);
+        LGraphResponse res = HandleRequest(&req);
+        if (json_format) {
+            result = res.mutable_plugin_response()->mutable_call_plugin_response()->json_result();
+        } else {
+            result = res.mutable_plugin_response()->mutable_call_plugin_response()->reply();
         }
     } catch (std::exception& e) {
         result = e.what();
@@ -283,14 +324,41 @@ bool RpcClient::LoadPlugin(std::string& result, const std::string& source_file,
     return true;
 }
 
-bool RpcClient::CallPlugin(std::string& result, const std::string& plugin_type,
-                           const std::string& plugin_name, const std::string& param,
-                           double plugin_time_out, bool in_process, const std::string& graph,
-                           bool json_format, double timeout) {
-    std::string cypher(FMA_FMT("CALL db.plugin.callPlugin('{}', '{}', '{}', {}, {})", plugin_type,
-                               plugin_name, param, std::to_string(plugin_time_out),
-                               FieldSpecSerializer::FormatBoolean(in_process)));
-    if (!CallCypher(result, cypher, graph, json_format, timeout)) return false;
+bool RpcClient::ListProcedures(std::string& result, const std::string& procedure_type,
+                               const std::string& graph) {
+    try {
+        LGraphRequest req;
+        req.set_is_write_op(false);
+        lgraph::PluginRequest* pluginRequest = req.mutable_plugin_request();
+        pluginRequest->set_graph(graph);
+        pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
+                                                        : lgraph::PluginRequest::PYTHON);
+        pluginRequest->mutable_list_plugin_request();
+        LGraphResponse res = HandleRequest(&req);
+        result = res.mutable_plugin_response()->mutable_list_plugin_response()->reply();
+    } catch (std::exception& e) {
+        result = e.what();
+        return false;
+    }
+    return true;
+}
+
+bool RpcClient::DeleteProcedure(std::string& result, const std::string& procedure_type,
+                                const std::string& procedure_name, const std::string& graph) {
+    try {
+        LGraphRequest req;
+        req.set_is_write_op(true);
+        lgraph::PluginRequest* pluginRequest = req.mutable_plugin_request();
+        pluginRequest->set_graph(graph);
+        pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
+                                                        : lgraph::PluginRequest::PYTHON);
+        lgraph::DelPluginRequest* dpRequest = pluginRequest->mutable_del_plugin_request();
+        dpRequest->set_name(procedure_name);
+        HandleRequest(&req);
+    } catch (std::exception& e) {
+        result = e.what();
+        return false;
+    }
     return true;
 }
 
@@ -430,7 +498,7 @@ void RpcClient::Logout() {
 RpcClient::~RpcClient() {
     try {
         Logout();
-    } catch (const RpcConnectionException & e) {
+    } catch (const RpcConnectionException& e) {
         FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient Commection Exception";
     }
 }
