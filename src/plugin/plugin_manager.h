@@ -155,20 +155,8 @@ class SingleLanguagePluginManager {
 
     void UnloadAllPlugins();
 
-    void CompileAndLoadPluginFromCython(const std::string& user, KvTransaction& txn,
-                                        const std::string& name, const std::string& cython,
-                                        const std::string& desc, bool read_only);
-
-    void LoadPluginFromPyOrSo(const std::string& user, KvTransaction& txn, const std::string& name,
+    void LoadPlugin(const std::string& user, KvTransaction& txn, const std::string& name,
                               const std::string& exe, const std::string& desc, bool read_only);
-
-    void CompileAndLoadPluginFromZip(const std::string& user, KvTransaction& txn,
-                                     const std::string& name, const std::string& zip,
-                                     const std::string& desc, bool read_only);
-
-    void CompileAndLoadPluginFromCpp(const std::string& user, KvTransaction& txn,
-                                     const std::string& name, const std::string& cpp,
-                                     const std::string& desc, bool read_only);
 
     // compile plugin and return binary code
     std::string CompilePluginFromCython(const std::string& name, const std::string& cython);
