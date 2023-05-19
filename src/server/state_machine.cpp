@@ -57,6 +57,8 @@ void lgraph::StateMachine::Start() {
 
 int64_t lgraph::StateMachine::GetVersion() { return galaxy_->GetRaftLogIndex(); }
 
+void lgraph::StateMachine::SetTokenTimeUnlimited() { return galaxy_->SetTokenTimeUnlimited(); }
+
 void lgraph::StateMachine::Stop() {
     galaxy_.reset();
     backup_log_.reset();

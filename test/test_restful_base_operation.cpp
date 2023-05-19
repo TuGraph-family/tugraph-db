@@ -312,6 +312,9 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         Galaxy galaxy("./testdb");
         auto re = client1->request(methods::POST, _TU("/login"), body).get();
         auto token = re.extract_json().get().at(_TU("jwt")).as_string();
+        galaxy.SetTokenTimeUnlimited();
+        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, std::numeric_limits<int>::max());
+        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, std::numeric_limits<int>::max());
         galaxy.ModifyTokenTime(token, 1, 3600 * 24);
         sleep(1);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);

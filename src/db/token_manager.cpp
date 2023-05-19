@@ -43,6 +43,11 @@ std::pair<int64_t, int64_t> lgraph::TokenManager::GetTokenTime(const std::string
     return std::make_pair(refresh_time, first_login_time);
 }
 
+void lgraph::TokenManager::SetTokenTimeUnlimited() {
+    refresh_time_ = TOKEN_MAX_TIME;
+    expire_time_ = TOKEN_MAX_TIME;
+}
+
 void lgraph::TokenManager::ModifyExpireTime(const std::string& token, const int& expire_time) {
     auto decode_token = jwt::decode(token);
     verifier_.verify(decode_token);

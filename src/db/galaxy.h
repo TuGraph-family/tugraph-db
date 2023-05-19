@@ -101,6 +101,9 @@ class Galaxy {
     void ModifyTokenTime(const std::string& token,
                          const int64_t& refresh_time = 0, const int64_t& expire_time = 0);
 
+    // set tokenmanager time unlimited
+    void SetTokenTimeUnlimited();
+
     // get tokenmanager time
     std::pair<int64_t, int64_t> GetTokenTime(const std::string& token);
 

@@ -46,6 +46,7 @@ struct BasicConfigs {
         , backup_log_dir("./binlog")
         , snapshot_dir("./snapshot_log")
         , max_backup_log_file_size((size_t)1 << 30)
+        , unlimited_token(0)
         , ft_index_options() {}
 
     BasicConfigs(const BasicConfigs &basicConfigs)
@@ -72,6 +73,7 @@ struct BasicConfigs {
           , backup_log_dir(basicConfigs.backup_log_dir)
           , snapshot_dir(basicConfigs.snapshot_dir)
           , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
+          , unlimited_token(basicConfigs.unlimited_token)
           , ft_index_options(basicConfigs.ft_index_options) {}
 
     std::string db_dir;  // db
@@ -103,6 +105,8 @@ struct BasicConfigs {
     size_t max_backup_log_file_size;
     // fulltext index
     FullTextIndexOptions ft_index_options;
+    // token time
+    bool unlimited_token;
 };
 
 template <typename T>

@@ -56,6 +56,11 @@ class TokenManager {
     void ModifyRefreshTime(const std::string& token, const int& refresh_time);
 
     /*!
+    @brief  Set token to unlimited time
+    */
+    void SetTokenTimeUnlimited();
+
+    /*!
     @param[in] token         jwt token
     @return  refresh_time, expire_time
     */

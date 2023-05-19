@@ -250,6 +250,9 @@ int LGraphServer::Start() {
         }
 #endif
         state_machine_->Start();
+        if (config_->unlimited_token == 1) {
+            state_machine_->SetTokenTimeUnlimited();
+        }
         // start rest
         lgraph::RestServer::Config rest_config(*config_);
         rest_server_.reset(new lgraph::RestServer(state_machine_.get(), rest_config, config_));
