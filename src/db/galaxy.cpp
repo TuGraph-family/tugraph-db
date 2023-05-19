@@ -108,7 +108,7 @@ bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {
 }
 
 void lgraph::Galaxy::ModifyTokenTime(const std::string& token,
-             const int64_t& refresh_time, const int64_t& expire_time) {
+             const int refresh_time, const int expire_time) {
     token_manager_.ModifyRefreshTime(token, refresh_time);
     token_manager_.ModifyExpireTime(token, expire_time);
 }
@@ -117,7 +117,7 @@ void lgraph::Galaxy::SetTokenTimeUnlimited() {
     token_manager_.SetTokenTimeUnlimited();
 }
 
-std::pair<int64_t, int64_t> lgraph::Galaxy::GetTokenTime(const std::string& token) {
+std::pair<int, int> lgraph::Galaxy::GetTokenTime(const std::string& token) {
     return token_manager_.GetTokenTime(token);
 }
 

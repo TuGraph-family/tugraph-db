@@ -4,6 +4,7 @@
 #include <boost/asio/thread_pool.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/endian/conversion.hpp>
+#include "libcuckoo/cuckoohash_map.hh"
 #include "rocksdb/db.h"
 #include "rocksdb/table.h"
 #include "core/lightning_graph.h"

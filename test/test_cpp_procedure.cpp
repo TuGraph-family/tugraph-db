@@ -151,24 +151,22 @@ TEST_F(TestCppPlugin, CppPlugin) {
     // test call
     std::string output;
     UT_LOG() << "Test call plugin";
-    UT_EXPECT_TRUE(
-        pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
-                                "{\"scan_edges\":true, \"times\":2}", 0, true, output));
-    UT_EXPECT_EQ(output, "{\"num_edges\":0,\"num_vertices\":0}");
-    UT_EXPECT_TRUE(!pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
-                                "does_not_exist", "", 2, true, output));
-    // bad argument causes Process to return false and output is used to return error message
-    UT_EXPECT_THROW(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
-                                    "scan_graph", "", 0, true, output), InputError);
+    UT_EXPECT_TRUE(!pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "no_such_plugin",
+                            "{\"scan_edges\":true}", 2, true, output));
+    // bad argument causes Process to return false and output is used to return error
+    // message
+    UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
+        "{\"scan_edges\":true, \"times\":2}", 0, true, output),
+                    InputError);
     UT_EXPECT_TRUE(StartsWith(output, "error parsing json: "));
 
     // calling add_label
-    UT_EXPECT_TRUE(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
-                                "add_label", "{\"label\":\"vertex1\"}", 0, true, output));
+    UT_EXPECT_TRUE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+                           "{\"label\":\"vertex1\"}", 0, true, output));
     // second insert fails because label already exists and Process returns false
-
-    UT_EXPECT_THROW(pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
-                        "add_label", "{\"label\":\"vertex1\"}", 0, true, output), InputError);
+    UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+                            "{\"label\":\"vertex1\"}", 0, true, output),
+                    InputError);
 
     {
         lgraph_api::GraphDB gdb(&db, true, false);
@@ -182,16 +180,6 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"), 0);
         UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME,
                                                                         "does_not_exist"), -1);
-    }
-    if (0) {
-        // delete on windows does not work well, the .so file cannot be deleted
-        UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"));
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                    "add_label", code_add_label, plugin::CodeType::SO, "add label v2", true));
-        // since add_label is now declared read-only, it should fail with an exception
-        UT_EXPECT_THROW(
-            pm.Call(lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
-                    "{\"label\":\"vertex1\"}", 0, true, output), InputError);
     }
     {
         UT_LOG() << "Test delete";

@@ -1,5 +1,6 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
+#include <filesystem>
 #include <memory>
 #include "rocksdb/sst_file_writer.h"
 #include "import/import_v3.h"
@@ -860,7 +861,7 @@ void Importer::RocksdbToLmdb() {
     }
     std::vector<std::string> ingest_files;
     for (const auto & entry : std::filesystem::directory_iterator(sst_files_path_)) {
-        ingest_files.push_back(entry.path());
+        ingest_files.push_back(entry.path().generic_string());
     }
     rocksdb::IngestExternalFileOptions op;
     op.move_files = true;

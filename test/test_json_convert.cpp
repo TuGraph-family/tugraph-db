@@ -35,33 +35,33 @@ TEST_F(TestJsonConvert, JsonConvert) {
     fma_common::HardwareInfo::CPURate cpurate;
     cpurate.selfCPURate = 12;
     auto ret_cpurate = ValueToJson(cpurate).as_object();
-    UT_EXPECT_EQ(ret_cpurate.at("self"), 12);
+    UT_EXPECT_EQ(ret_cpurate.at(_TU("self")), 12);
 
     fma_common::HardwareInfo::DiskRate drate;
     drate.readRate = 222;
     auto ret_drate = ValueToJson(drate).as_object();
-    UT_EXPECT_EQ(ret_drate.at("read"), 222);
+    UT_EXPECT_EQ(ret_drate.at(_TU("read")), 222);
 
     fma_common::HardwareInfo::MemoryInfo minfo;
     minfo.total = 14;
     auto ret_minfo = ValueToJson(minfo).as_object();
-    UT_EXPECT_EQ(ret_minfo.at("total"), 14);
+    UT_EXPECT_EQ(ret_minfo.at(_TU("total")), 14);
     fma_common::DiskInfo dinfo;
     size_t graph_used = 1;
     auto ret_dinfo = ValueToJson(dinfo, graph_used).as_object();
-    UT_EXPECT_EQ(ret_dinfo.at("self"), 1);
+    UT_EXPECT_EQ(ret_dinfo.at(_TU("self")), 1);
     lgraph::AuditLog al;
     auto ret_al = ValueToJson(al).as_object();
-    UT_EXPECT_FALSE(ret_al.at("success").as_bool());
+    UT_EXPECT_FALSE(ret_al.at(_TU("success")).as_bool());
     std::vector<std::pair<std::string, std::string>> vec;
     std::string s1 = "first";
     std::string s2 = "second";
     vec.push_back(std::make_pair(s1, s2));
     auto ret_vec = ValueToJson(vec).as_array();
-    UT_EXPECT_EQ(ret_vec[0][0].as_string(), "first");
+    UT_EXPECT_EQ(_TS(ret_vec[0][0].as_string()), "first");
     TaskTracker::TaskDesc taskdec;
     auto ret_taskdec = ValueToJson(taskdec).as_object();
-    UT_EXPECT_EQ(ret_taskdec.at("task_id").as_string(), "-1_-1");
+    UT_EXPECT_EQ(_TS(ret_taskdec.at(_TU("task_id")).as_string()), "-1_-1");
     AclManager::FieldAccess s;
     ValueToJson(s);
 }

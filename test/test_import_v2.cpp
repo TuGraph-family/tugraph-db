@@ -2224,7 +2224,7 @@ TEST_F(TestImportV3, numEncodeDecode) {
     {
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_int_distribution<int8_t> dist(-100, 100);
+        std::uniform_int_distribution<int> dist(-100, 100);
         for (uint64_t i = 0; i < 100000l; ++i) {
             encode_decode_test<int8_t>((int8_t)dist(mt), (int8_t)dist(mt));
         }

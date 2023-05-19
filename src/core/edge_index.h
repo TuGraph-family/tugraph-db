@@ -118,7 +118,7 @@ class EdgeIndexValue {
         return _detail::GetLabelId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::LID_BEGIN);
     }
 
-    LabelId GetNthTid(int n) const {
+    TemporalId GetNthTid(int n) const {
         return _detail::GetTemporalId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::TID_BEGIN);
     }
 
