@@ -191,7 +191,7 @@ int LGraphServer::StartRpcService() {
     rpc_service_.reset(new RPCService(state_machine_.get()));
     rpc_server_.reset(new brpc::Server());
     if (rpc_server_->AddService(rpc_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-        FMA_ERR() << "Failed to add service to RPC server";
+        FMA_WARN() << "Failed to add service to RPC server";
         return -1;
     }
     return 0;
@@ -243,7 +243,7 @@ int LGraphServer::Start() {
             brpc_options.has_builtin_services = false;
             if (config_->thread_limit != 0) brpc_options.max_concurrency = config_->thread_limit;
             if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
-                FMA_ERR() << "Failed to start RPC server";
+                FMA_WARN() << "Failed to start RPC server";
                 return -1;
             }
             FMA_LOG() << "Listening for RPC on port " << config_->rpc_port;
@@ -256,7 +256,7 @@ int LGraphServer::Start() {
         FMA_LOG() << "Server started.";
     } catch (std::exception &e) {
         _kill_signal_.Notify();
-        FMA_ERR() << "Server hit an exception and shuts down abnormally: " << e.what();
+        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         ret = -2;
     }
     return ret;
@@ -269,7 +269,7 @@ int LGraphServer::WaitTillKilled() {
             WaitSignal();
         }
     } catch (std::exception &e) {
-        FMA_ERR() << "Server hit an exception and shuts down abnormally: " << e.what();
+        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
     return Stop(true);
@@ -303,7 +303,7 @@ int LGraphServer::Stop(bool force_exit) {
         if (kaishaku.joinable()) kaishaku.join();
         return 0;
     } catch (std::exception &e) {
-        FMA_ERR() << "Server hit an exception and shuts down abnormally: " << e.what();
+        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
 }
