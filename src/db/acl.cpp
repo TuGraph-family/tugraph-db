@@ -506,10 +506,7 @@ lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfo(KvTransaction& txn,
 
 void lgraph::AclManager::AddGraph(KvTransaction& txn, const std::string& curr_user,
                                   const std::string& graph) {
-    /* // we don't need to check user access here, this is used internally
-    if (!IsAdmin(curr_user)) {
-        throw AuthError("Non-admin user cannot delete graphs.");
-    }*/
+    // we don't need to check user access here, this is used internally
     if (!IsValidGraphName(graph)) throw InputError("Invalid graph name.");
     // add graph to admin role
     RoleInfo rinfo = DeserializeFromValue<RoleInfo>(
