@@ -221,9 +221,9 @@ TEST_F(TestCppPlugin, CppPlugin) {
 #ifndef __clang__
         std::string code_zip_path = "../../test/test_procedures/sortstr.zip";
 #elif __APPLE__
-        std::string code_zip_path = "../../test/test_plugins/sortstr_osx.zip";
+        std::string code_zip_path = "../../test/test_procedures/sortstr_osx.zip";
 #else
-        std::string code_zip_path = "../../test/test_plugins/sortstr_clang.zip";
+        std::string code_zip_path = "../../test/test_procedures/sortstr_clang.zip";
 #endif
         std::string code_scan_graph_path = "./scan_graph.so";
         std::string code_add_label_path = "./add_label.so";
