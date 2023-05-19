@@ -119,7 +119,8 @@ void DumpGraph(lgraph::Transaction& txn,
             UT_LOG() << "vertex index: (" << index.label << ":" << index.field << ")";
             lgraph::FieldData last_key;
             std::string istr;
-            for (auto it = txn.GetVertexIndexIterator(index.label, index.field); it.IsValid(); it.Next()) {
+            for (auto it = txn.GetVertexIndexIterator(index.label, index.field);
+                it.IsValid(); it.Next()) {
                 if (it.GetKeyData() != last_key) {
                     istr.append("\n\t").append(it.GetKeyData().ToString()).append(":");
                     last_key = it.GetKeyData();

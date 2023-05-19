@@ -43,8 +43,6 @@ static auto RemoveDir = [](const std::string& p) {
 };
 
 void KvStore::Open(bool create_if_not_exist) {
-
-
     if (create_if_not_exist) {
         std::error_code ec;
         if (!IsDir(path_) && !MkDir(path_)) {

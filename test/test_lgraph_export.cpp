@@ -43,7 +43,7 @@ TEST_F(TestLGraphExport, LGraphExport) {
         lgraph::AutoCleanDir _export_dir(export_dir);
         GraphFactory::create_yago(db_dir);
         lgraph::SubProcess dumper(
-            UT_FMT("{} -d {} -e {} -g {} -u {} -p {}", 
+            UT_FMT("{} -d {} -e {} -g {} -u {} -p {}",
                 export_exe,
                 db_dir, export_dir,
                 default_graph,
