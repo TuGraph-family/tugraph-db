@@ -325,16 +325,16 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/", exec_dir);
 #ifndef __clang__
     std::string cmd = FMA_FMT(
-        "g++ -fno-gnu-unique -fPIC -g --std=c++14 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #elif __APPLE__
     std::string cmd = FMA_FMT(
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++14 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
         "{} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #else
     std::string cmd = FMA_FMT(
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++14 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #endif
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while compiling plugin.",
@@ -592,8 +592,9 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
             impl_->LoadPlugin("", name, pinfo.get());
             procedures_.emplace(std::make_pair(name, pinfo.release()));
             FMA_DBG() << "Loaded plugin " << name;
-        } catch (...) {
-            std::throw_with_nested(InternalError("Failed to load plugin [{}].", name));
+        } catch (const std::exception& e) {
+            std::throw_with_nested(InternalError(
+                "Failed to load plugin [{}], err: {}", name, e.what()));
         }
     }
 }

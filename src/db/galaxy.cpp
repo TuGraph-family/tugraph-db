@@ -71,7 +71,7 @@ static inline void CheckPasswordString(const std::string& password) {
 std::string lgraph::Galaxy::GetUserToken(const std::string& user,
                                          const std::string& password) const {
     CheckUserName(user);
-    _HoldReadLock(acl_lock_);
+    _HoldWriteLock(acl_lock_);
     bool r = acl_->ValidateUser(user, password);
     if (!r) return "";
     std::string jwt = token_manager_.IssueFirstToken();
@@ -90,6 +90,7 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
                                         const std::string& user) const {
     std::string new_token = token_manager_.UpdateToken(token);
     if (new_token != "") {
+        _HoldWriteLock(acl_lock_);
         acl_->BindTokenUser(token, new_token, user);
     } else {
         throw InputError("token has time out.");
@@ -98,6 +99,7 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
 }
 
 bool lgraph::Galaxy::UnBindTokenUser(const std::string& token) {
+    _HoldWriteLock(acl_lock_);
     return acl_->UnBindTokenUser(token);
 }
 

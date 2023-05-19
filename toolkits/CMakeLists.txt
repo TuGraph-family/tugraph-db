@@ -83,7 +83,17 @@ add_executable(${TARGET_LGRAPH_BINLOG} lgraph_binlog.cpp
                ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
 target_link_libraries(${TARGET_LGRAPH_BINLOG} lgraph_server_lib)
 
-set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_WARMUP} ${TARGET_LGRAPH_PEEK} ${TARGET_LGRAPH_EXPORT} ${TARGET_LGRAPH_BINLOG} ${TARGET_LGRAPH_MONITOR})
+
+############### mdb_stat ######################
+
+set(TARGET_MDB_STAT mdb_stat)
+
+add_executable(${TARGET_MDB_STAT} ${LGRAPH_ROOT_DIR}/src/core/lmdb/mdb_stat.c
+        ${LGRAPH_ROOT_DIR}/src/core/lmdb/mdb.c
+        ${LGRAPH_ROOT_DIR}/src/core/lmdb/midl.c)
+target_link_libraries(${TARGET_MDB_STAT} pthread)
+
+set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_WARMUP} ${TARGET_LGRAPH_PEEK} ${TARGET_LGRAPH_EXPORT} ${TARGET_LGRAPH_BINLOG} ${TARGET_LGRAPH_MONITOR} ${TARGET_MDB_STAT})
 
 # install
 install(TARGETS ${LGRAPH_TOOLKITS}
