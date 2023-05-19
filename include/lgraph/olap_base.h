@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <sys/syscall.h>
+#include <unistd.h>
 #include <assert.h>
 #include <omp.h>
 #include <string.h>
@@ -39,6 +41,7 @@
 
 #include "lgraph/lgraph_atomic.h"
 #include "lgraph/lgraph_utils.h"
+#include "lgraph/lgraph.h"
 
 #include "libcuckoo/cuckoohash_map.hh"
 
@@ -47,6 +50,7 @@ namespace olap {
 
 #define THREAD_WORKING 0
 #define THREAD_STEALING 1
+#define VERTEX_BATCH_SIZE 1
 
 struct ThreadState {
     size_t curr;
@@ -1256,5 +1260,67 @@ class OlapBase {
             }, active_vertices, zero, reduce);
     }
 };
+
+template <typename T>
+T ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
+                const std::vector<int64_t>& vertices,
+                std::function<void(Transaction &, VertexIterator &, T &)> work,
+                std::function<void(const T &, T &)> reduce, size_t parallel_factor = 8) {
+    T results;
+    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
+    auto& worker = workers[wid];
+    size_t work_end = vertices.size(), work_curr = 0;
+    worker.Delegate([&]() {
+#pragma omp parallel num_threads(parallel_factor)
+        {
+            T local_result;
+            auto txn_ = db.ForkTxn(txn);
+            auto vit = txn_.GetVertexIterator();
+            while (true) {
+                size_t start = __sync_fetch_and_add(&work_curr, VERTEX_BATCH_SIZE);
+                if (start >= work_end) break;
+                size_t end = start + VERTEX_BATCH_SIZE;
+                if (end > work_end) end = work_end;
+                for (size_t i = start; i < end; i++) {
+                    vit.Goto(vertices[i]);
+                    work(txn_, vit, local_result);
+                }
+            }
+#pragma omp critical
+            reduce(local_result, results);
+        }
+    });
+    return results;
+}
+template <typename T>
+std::vector<T> ForEachVertex(GraphDB &db, Transaction &txn, std::vector<Worker> &workers,
+                             const std::vector<int64_t>& vertices,
+                             std::function<T(Transaction &, VertexIterator &, size_t)> work,
+                             size_t parallel_factor = 8) {
+    std::vector<T> results(vertices.size());
+    static thread_local size_t wid = syscall(__NR_gettid) % workers.size();
+    auto& worker = workers[wid];
+    size_t work_end = vertices.size(), work_curr = 0;
+    worker.Delegate([&]() {
+#pragma omp parallel num_threads(parallel_factor)
+        {
+            auto txn_ = db.ForkTxn(txn);
+            auto vit = txn_.GetVertexIterator();
+            while (true) {
+                size_t start = __sync_fetch_and_add(&work_curr, VERTEX_BATCH_SIZE);
+                if (start >= work_end) break;
+                size_t end = start + VERTEX_BATCH_SIZE;
+                if (end > work_end) end = work_end;
+                for (size_t i = start; i < end; i++) {
+                    vit.Goto(vertices[i]);
+                    results[i] = work(txn_, vit, i);
+                }
+            }
+        }
+    });
+
+    return results;
+}
+
 }  // namespace olap
 }  // namespace lgraph_api
