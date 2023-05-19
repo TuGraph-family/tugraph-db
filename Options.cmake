@@ -91,10 +91,10 @@ endif (ENABLE_FULLTEXT_INDEX)
 
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)
-    message(WARNING "Build type not set, falling back to Release mode.
+    message(WARNING "Build type not set, falling back to RelWithDebInfo mode.
  To specify build type use:
- -DCMAKE_BUILD_TYPE=<mode> where <mode> is in (Debug, Release, Coverage).")
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+ -DCMAKE_BUILD_TYPE=<mode> where <mode> is in (Debug, Release, Coverage, RelWithDebInfo).")
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING
             "Choose the type of build."
             FORCE)
 endif (NOT CMAKE_BUILD_TYPE)

@@ -250,12 +250,13 @@ class CypherBaseVisitor : public LcypherVisitor {
          * UNWIND cids AS cid MATCH (n {id:cid}) RETURN n
          */
         auto var_scope = cypher::SymbolNode::Scope::LOCAL;
-        if (e.type == Expression::VARIABLE) {
-            auto &alias_id_map = _query[_curr_query].parts[_curr_part].symbol_table.symbols;
-            auto it = alias_id_map.find(e.String());
-            if (it != alias_id_map.end() && it->second.scope == cypher::SymbolNode::ARGUMENT) {
-                var_scope = cypher::SymbolNode::DERIVED_ARGUMENT;
-            }
+        auto &alias_id_map = _query[_curr_query].parts[_curr_part].symbol_table.symbols;
+        std::unordered_set<std::string> alias_id_set;
+        for (auto &alias_pair : alias_id_map) {
+            alias_id_set.emplace(alias_pair.first);
+        }
+        if (e.ContainAlias(alias_id_set)) {
+            var_scope = cypher::SymbolNode::DERIVED_ARGUMENT;
         }
         AddSymbol(variable, cypher::SymbolNode::CONSTANT, var_scope);
         Clause clause;

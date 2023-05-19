@@ -185,7 +185,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
         galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
         GraphDB db = galaxy.OpenGraph("default");
         UT_EXPECT_EQ(db.GetDescription(), "");
-        UT_EXPECT_EQ(db.GetMaxSize(), 1LL << 40);
+        UT_EXPECT_EQ(db.GetMaxSize(), 1LL << 42);
         // add vertex label
         std::string vertex_label("vertex");
         std::vector<std::string> vertex_feild_name = {"id", "type", "content"};

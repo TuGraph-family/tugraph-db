@@ -20,7 +20,7 @@ namespace py = pybind11;
 
 void register_liblgraph_client_python(pybind11::module& m) {
     // define lgraph::RpcClient class
-    py::class_<LgraphPythonClient> c(m, "client", "this is a python rpc client");
+    py::class_<LGraphPythonClient> c(m, "client", "this is a python rpc client");
     // define the constructor
     c.def(pybind11::init<const std::string &, const std::string &, const std::string &>(),
             "Client Login\n"
@@ -32,7 +32,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
             pybind11::arg("password"));
 
     // define other function
-    c.def("callCypher", &LgraphPythonClient::CallCypher,
+    c.def("callCypher", &LGraphPythonClient::CallCypher,
           "Execute a cypher query\n"
           "cypher          [in] inquire statement.\n"
           "graph           [in] the graph to query.\n"
@@ -44,49 +44,61 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("loadPlugin", &LgraphPythonClient::LoadPlugin,
-          "Load a built-in plugin\n"
-          "source_file         [in] the source_file contain plugin code\n"
-          "plugin_type         [in] the plugin type, currently supported CPP and PY\n"
-          "plugin_name         [in] plugin name\n"
-          "code_type           [in] code type, currently supported PY, SO, CPP, ZIP\n"
-          "plugin_description  [in] plugin description\n"
-          "read_only           [in] plugin is read only or not\n"
-          "graph               [in] the graph to query.\n"
-          "json_format         [in] Returns the format， true is json，Otherwise, binary format\n"
-          "timeout             [in] Maximum execution time, overruns will be interrupted\n",
+    c.def("loadProcedure", &LGraphPythonClient::LoadProcedure,
+          "Load a built-in procedure\n"
+          "source_file              [in] the source_file contain procedure code\n"
+          "procedure_type           [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name           [in] procedure name\n"
+          "code_type                [in] code type, currently supported PY, SO, CPP, ZIP\n"
+          "procedure_description    [in] procedure description\n"
+          "read_only                [in] procedure is read only or not\n"
+          "graph                    [in] the graph to query.\n",
           pybind11::arg("source_file"),
-          pybind11::arg("plugin_type"),
-          pybind11::arg("plugin_name"),
+          pybind11::arg("procedure_type"),
+          pybind11::arg("procedure_name"),
           pybind11::arg("code_type"),
-          pybind11::arg("plugin_description"),
+          pybind11::arg("procedure_description"),
           pybind11::arg("read_only"),
           pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("callPlugin", &LgraphPythonClient::CallPlugin,
-          "Execute a built-in plugin\n"
-          "plugin_type         [in] the plugin type, currently supported CPP and PY\n"
-          "plugin_name         [in] plugin name\n"
-          "param               [in] the execution parameters\n"
-          "plugin_time_out     [in] Maximum execution time, overruns will be interrupted\n"
-          "in_process          [in] support in future\n"
-          "graph               [in] the graph to query.\n"
-          "json_format         [in] Returns the format， true is json，Otherwise, binary format\n"
-          "timeout             [in] Maximum execution time, overruns will be interrupted\n",
-          pybind11::arg("plugin_type"),
-          pybind11::arg("plugin_name"),
+    c.def("callProcedure", &LGraphPythonClient::CallProcedure,
+          "Execute a built-in procedure\n"
+          "procedure_type       [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name       [in] procedure name\n"
+          "param                [in] the execution parameters\n"
+          "procedure_time_out   [in] Maximum execution time, overruns will be interrupted\n"
+          "in_process           [in] support in future\n"
+          "graph                [in] the graph to query.\n"
+          "json_format         [in] Returns the format， true is json，Otherwise, binary format\n",
+          pybind11::arg("procedure_type"),
+          pybind11::arg("procedure_name"),
           pybind11::arg("param"),
-          pybind11::arg("plugin_time_out") = 0.0,
+          pybind11::arg("procedure_time_out") = 0.0,
           pybind11::arg("in_process") = false,
           pybind11::arg("graph") = "default",
           pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("importSchemaFromFile", &LgraphPythonClient::ImportSchemaFromFile,
+    c.def("listProcedures", &LGraphPythonClient::ListProcedures,
+          "Execute a built-in procedure\n"
+          "procedure_type     [in] the procedure type, currently supported CPP and PY\n"
+          "graph              [in] the graph to query.\n",
+          pybind11::arg("procedure_type"),
+          pybind11::arg("graph") = "default",
+          pybind11::return_value_policy::move);
+
+    c.def("deleteProcedure", &LGraphPythonClient::DeleteProcedure,
+          "Execute a built-in procedure\n"
+          "procedure_type       [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name       [in] procedure name\n"
+          "graph                [in] the graph to query.\n",
+          pybind11::arg("procedure_type"),
+          pybind11::arg("procedure_name"),
+          pybind11::arg("graph") = "default",
+          pybind11::return_value_policy::move);
+
+    c.def("importSchemaFromFile", &LGraphPythonClient::ImportSchemaFromFile,
           "import vertex or edge schema from file\n"
           "schema_file         [in] the schema_file contain schema\n"
           "graph               [in] the graph to query\n"
@@ -98,7 +110,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("importDataFromFile", &LgraphPythonClient::ImportDataFromFile,
+    c.def("importDataFromFile", &LGraphPythonClient::ImportDataFromFile,
           "import vertex or edge data from file\n"
           "conf_file           [in] data file contain format description and data\n"
           "delimiter           [in] data separator\n"
@@ -118,7 +130,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("importSchemaFromContent", &LgraphPythonClient::ImportSchemaFromContent,
+    c.def("importSchemaFromContent", &LGraphPythonClient::ImportSchemaFromContent,
           "import vertex or edge schema from content string\n"
           "schema              [in] the schema contain schema\n"
           "graph               [in] the graph to query\n"
@@ -130,7 +142,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("importDataFromContent", &LgraphPythonClient::ImportDataFromContent,
+    c.def("importDataFromContent", &LGraphPythonClient::ImportDataFromContent,
           "import vertex or edge data from content string\n"
           "desc                [in] data format description\n"
           "data                [in] the data to be imported\n"
@@ -150,11 +162,11 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("logout", &LgraphPythonClient::Logout,
+    c.def("logout", &LGraphPythonClient::Logout,
           "Execute unbind token\n");
 
 
-    c.def("close", &LgraphPythonClient::Close,
+    c.def("close", &LGraphPythonClient::Close,
           "close the channel \n");
 }
 

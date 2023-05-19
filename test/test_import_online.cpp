@@ -143,10 +143,20 @@ struct Store_store {
             ]
         },
         {
-            "label" : "node1",
+            "label" : "like",
             "type" : "EDGE",
             "properties" : [
-                {"name" : "weight", "type":"FLOAT"}
+                {"name" : "id", "type":"INT32"},
+                {"name" : "bool", "type":"BOOL",  "index":true},
+                {"name" : "int8", "type":"INT8",   "index":true},
+                {"name" : "int16", "type":"INT16",  "index":true},
+                {"name" : "int32", "type":"INT32",  "index":true},
+                {"name" : "int64", "type":"INT64",  "index":true},
+                {"name" : "float", "type":"FLOAT",  "index":true},
+                {"name" : "double", "type":"DOUBLE","index":true},
+                {"name" : "data", "type":"DATE",    "index":true},
+                {"name" : "datetime", "type":"DATETIME", "index":true},
+                {"name" : "string", "type":"STRING", "index":true}
             ]
         }
     ]

@@ -1,5 +1,5 @@
 // ===============================================================
-//                     Proto version: 1.1.0
+//                     Proto version: 1.1.1
 // Increment the version number if the proto definition is updated
 // ===============================================================
 syntax="proto2";
@@ -547,10 +547,14 @@ message CallPluginRequest {
     required bytes param = 2;
     optional double timeout = 3;
     optional bool in_process = 4;
+    optional bool result_in_json_format = 5;
 };
 
 message CallPluginResponse {
-    required bytes reply = 1;
+    oneof CallPluginResult {
+        bytes reply = 1;
+        string json_result = 2;
+    }
 };
 
 message LoadPluginRequest {
@@ -578,7 +582,9 @@ message DelPluginResponse {};
 
 message ListPluginRequest {};
 
-message ListPluginResponse {};
+message ListPluginResponse {
+    required string reply = 1;
+};
 
 message PluginRequest {
     enum PluginType {

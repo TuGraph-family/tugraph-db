@@ -311,7 +311,10 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
         Galaxy galaxy("./testdb");
         auto re = client1->request(methods::POST, _TU("/login"), body).get();
-        auto token = _TS(re.extract_json().get().at(_TU("jwt")).as_string());
+        auto token = re.extract_json().get().at(_TU("jwt")).as_string();
+        galaxy.SetTokenTimeUnlimited();
+        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, std::numeric_limits<int>::max());
+        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, std::numeric_limits<int>::max());
         galaxy.ModifyTokenTime(token, 1, 3600 * 24);
         fma_common::SleepS(1);
         UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);

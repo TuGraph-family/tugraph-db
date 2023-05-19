@@ -16,8 +16,8 @@ CLIENTOPT = {"host":"127.0.0.1:9092", "user":"admin", "password":"73@TuGraph"}
 IMPORTOPT = {"cmd":"./lgraph_import --config_file ./data/yago/yago.conf --dir ./testdb --user admin --password 73@TuGraph --graph default --overwrite 1",
              "cleanup_dir":["./testdb", "./.import_tmp"]}
 
-BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_plugins/scan_graph.cpp ./liblgraph.so -shared",
-                       "g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./sortstr.so ../../test/test_plugins/sortstr.cpp ./liblgraph.so -shared"],
+BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_procedures/scan_graph.cpp ./liblgraph.so -shared",
+                       "g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./sortstr.so ../../test/test_procedures/sortstr.cpp ./liblgraph.so -shared"],
                 "so_name":["./scan_graph.so", "./sortstr.so"]}
 
 IMPORTCONTENT = {
@@ -712,12 +712,12 @@ class TestProcedure:
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_plugin(self, build_so, importor, server, client):
         sort_so = BUILDOPT.get("so_name")[1]
-        ret = client.loadPlugin(sort_so, "CPP", "sorter", "SO", "test plugin", True)
+        ret = client.loadProcedure(sort_so, "CPP", "sorter", "SO", "test plugin", True)
         assert ret[0]
         scan_so = BUILDOPT.get("so_name")[0]
-        ret = client.loadPlugin(scan_so, "CPP", "scan", "SO", "test plugin", True)
+        ret = client.loadProcedure(scan_so, "CPP", "scan", "SO", "test plugin", True)
         assert ret[0]
-        ret = client.callCypher("CALL db.plugin.listPlugin('CPP')")
+        ret = client.listProcedures("CPP")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 2
@@ -727,21 +727,21 @@ class TestProcedure:
         plugins = json.loads(ret[1])
         assert len(plugins) == 2
 
-        ret = client.callPlugin("CPP", "sorter", "eaozy", 10, False)
+        ret = client.callProcedure("CPP", "sorter", "eaozy", 10, False)
         assert ret[0]
         result = json.loads(ret[1])[0].get("result")
         assert result == "aeoyz"
 
         d = {"times" : 1, "scan_edges" : True}
         js = json.dumps(d)
-        ret = client.callPlugin("CPP", "scan", js, 10, False)
+        ret = client.callProcedure("CPP", "scan", js, 10, False)
         assert ret[0]
-        result = json.loads(ret[1])[0].get("result")
+        result = json.loads(json.loads(ret[1])[0].get("result"))
         assert result.get("num_edges") == 28 and result.get("num_vertices") == 21
 
-        ret = client.callCypher("CALL db.plugin.deletePlugin('CPP', 'scan')")
+        ret = client.deleteProcedure("CPP", "scan")
         assert ret[0]
-        ret = client.callCypher("CALL db.plugin.listPlugin('CPP')")
+        ret = client.listProcedures("CPP")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 1

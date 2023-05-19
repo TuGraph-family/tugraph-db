@@ -16,35 +16,54 @@
 #include <memory>
 #include "lgraph/lgraph_rpc_client.h"
 
-class LgraphPythonClient {
+class LGraphPythonClient {
  public:
-    LgraphPythonClient(const std::string& url, const std::string& user, const std::string& password)
+    LGraphPythonClient(const std::string& url, const std::string& user, const std::string& password)
         : client(std::make_shared<lgraph::RpcClient>(url, user, password)) {}
 
-    ~LgraphPythonClient() {}
+    ~LGraphPythonClient() {}
 
-    std::pair<bool, std::string> LoadPlugin(const std::string& source_file,
-                                            const std::string& plugin_type,
-                                            const std::string& plugin_name,
+    std::pair<bool, std::string> LoadProcedure(const std::string& source_file,
+                                            const std::string& procedure_type,
+                                            const std::string& procedure_name,
                                             const std::string& code_type,
-                                            const std::string& plugin_description, bool read_only,
-                                            const std::string& graph = "default",
-                                            bool json_format = true, double timeout = 0) {
+                                            const std::string& procedure_description,
+                                            bool read_only,
+                                            const std::string& graph = "default") {
         std::string result;
-        bool ret = client->LoadPlugin(result, source_file, plugin_type, plugin_name, code_type,
-                                     plugin_description, read_only, graph, json_format, timeout);
+        bool ret = client->LoadProcedure(result, source_file, procedure_type,
+                                         procedure_name, code_type, procedure_description,
+                                         read_only, graph);
         return {ret, result};
     }
 
-    std::pair<bool, std::string> CallPlugin(const std::string& plugin_type,
-                                            const std::string& plugin_name,
-                                            const std::string& param, double plugin_time_out = 0.0,
+    std::pair<bool, std::string> CallProcedure(const std::string& procedure_type,
+                                            const std::string& procedure_name,
+                                            const std::string& param,
+                                            double procedure_time_out = 0.0,
                                             bool in_process = false,
                                             const std::string& graph = "default",
-                                            bool json_format = true, double timeout = 0) {
+                                            bool json_format = true) {
         std::string result;
-        bool ret = client->CallPlugin(result, plugin_type, plugin_name, param, plugin_time_out,
-                                     in_process, graph, json_format, timeout);
+        bool ret = client->CallProcedure(result, procedure_type, procedure_name,
+                                         param, procedure_time_out, in_process, graph,
+                                         json_format);
+        return {ret, result};
+    }
+
+    std::pair<bool, std::string> ListProcedures(const std::string& procedure_type,
+                                               const std::string& graph = "default") {
+        std::string result;
+        bool ret = client->ListProcedures(result, procedure_type, graph);
+        return {ret, result};
+    }
+
+    std::pair<bool, std::string> DeleteProcedure(const std::string& procedure_type,
+                                                  const std::string& procedure_name,
+                                                  const std::string& graph = "default") {
+        std::string result;
+        bool ret = client->DeleteProcedure(result, procedure_type, procedure_name,
+                                           graph);
         return {ret, result};
     }
 

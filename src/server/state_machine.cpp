@@ -57,6 +57,8 @@ void lgraph::StateMachine::Start() {
 
 int64_t lgraph::StateMachine::GetVersion() { return galaxy_->GetRaftLogIndex(); }
 
+void lgraph::StateMachine::SetTokenTimeUnlimited() { return galaxy_->SetTokenTimeUnlimited(); }
+
 void lgraph::StateMachine::Stop() {
     galaxy_.reset();
     backup_log_.reset();
@@ -1091,7 +1093,20 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
                           FMA_FMT("List plugin"));
 
             std::vector<lgraph::PluginDesc> r = db->ListPlugins(type, user);
-
+            if (!r.empty()) {
+                nlohmann::json output;
+                for (const auto &item : r) {
+                    nlohmann::json body, procedure_desc;
+                    procedure_desc["name"] = item.name;
+                    procedure_desc["description"] = item.desc;
+                    procedure_desc["read_only"] = item.read_only;
+                    body["plugin_description"] = procedure_desc;
+                    output.push_back(body);
+                }
+                presp->mutable_list_plugin_response()->set_reply(output.dump());
+            } else {
+                presp->mutable_list_plugin_response()->set_reply(nlohmann::json::array().dump());
+            }
             return RespondSuccess(resp);
         }
     case PluginRequest::kCallPluginRequest:
@@ -1116,9 +1131,20 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             if (preq.has_timeout() && preq.timeout() != 0) {
                 timeout_killer.SetTimeout(preq.timeout());
             }
-            bool r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
+            bool r = false;
+            if (preq.result_in_json_format()) {
+                r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
+                                   preq.timeout(), preq.in_process(),
+                                   *presp->mutable_call_plugin_response()->mutable_json_result());
+                nlohmann::json output, body;
+                body["result"] = *presp->mutable_call_plugin_response()->mutable_json_result();
+                output.push_back(body);
+                presp->mutable_call_plugin_response()->set_json_result(output.dump());
+            } else {
+                r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
                                    preq.timeout(), preq.in_process(),
                                    *presp->mutable_call_plugin_response()->mutable_reply());
+            }
             FMA_DBG_ASSERT(r);
             return RespondSuccess(resp);
         }

@@ -158,6 +158,11 @@ class StateMachine {
     virtual int64_t GetVersion();
 
     /**
+     * @brief  Set token to unlimited time
+     */
+    void SetTokenTimeUnlimited();
+
+    /**
      * Gets current master rest address.
      *
      * @return  The current master.

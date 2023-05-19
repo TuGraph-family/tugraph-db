@@ -129,7 +129,7 @@ static void CreateCsvFiles(const std::map<std::string, std::string>& data) {
     }
 }
 
-static void WritePythonPlugin() {
+static void WritePythonProcedure() {
     fma_common::OutputFmaStream stream;
     std::string code_sleep = R"(
 import time
@@ -1233,7 +1233,7 @@ void test_configration_valid(lgraph::RpcClient& client) {
         true);
 }
 
-void test_plugin_privilege(lgraph::RpcClient& client) {
+void test_procedure_privilege(lgraph::RpcClient& client) {
     std::string str;
     bool ret =
         client.CallCypher(str, "CALL dbms.security.createRole('role_full', 'this is test role')");
@@ -1246,18 +1246,19 @@ void test_plugin_privilege(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CALL dbms.security.addUserRoles('user_full', ['role_full'])");
     lgraph::RpcClient client_non_admin("0.0.0.0:19099", "user_full", "user_full");
-    std::string code_cpp_path = "../../test/test_plugins/sortstr.cpp";
-    // non-admin is not allowed to upload plugin
-    ret = client_non_admin.LoadPlugin(str, code_cpp_path, "CPP", "test_plugin_1", "CPP",
-                            "this is a test plugin", true);
+    std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
+    // non-admin is not allowed to upload procedure
+    ret = client_non_admin.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure_1", "CPP",
+                            "this is a test procedure", true);
     UT_EXPECT_FALSE(ret);
-    ret = client.LoadPlugin(str, code_cpp_path, "CPP", "test_plugin_1", "CPP",
-                             "this is a test plugin", true);
+    ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure_1", "CPP",
+                             "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
-    // non-admin is not allowed to delete plugin
-    ret = client_non_admin.CallCypher(str, "CALL db.plugin.deletePlugin('CPP', 'test_plugin_1')");
+    // non-admin is not allowed to delete procedure
+    ret = client_non_admin.CallCypher(str,
+                                      "CALL db.plugin.deletePlugin('CPP', 'test_procedure_1')");
     UT_EXPECT_FALSE(ret);
-    ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('CPP', 'test_plugin_1')");
+    ret = client.DeleteProcedure(str, "CPP", "test_procedure_1");
     UT_EXPECT_TRUE(ret);
 }
 
@@ -1570,8 +1571,8 @@ void test_password(lgraph::RpcClient& client) {
     }
 }
 
-void test_cpp_plugin(lgraph::RpcClient& client) {
-    UT_LOG() << "test listPlugin , deletePlugin , LoadPlugin , CallPlugin";
+void test_cpp_procedure(lgraph::RpcClient& client) {
+    UT_LOG() << "test listProcedure , deleteProcedure , LoadProcedure , CallProcedure";
     build_so();
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.dropDB()");
@@ -1582,31 +1583,31 @@ void test_cpp_plugin(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(json_val.size() == 0, true);
 
     std::string code_so_path = "./sortstr.so";
-    ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO", "this is a test plugin",
-                            true);
+    ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
+                               "SO", "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
 
-    ret = client.LoadPlugin(str, code_so_path, "CPP", "test_plugin1", "SO", "this is a test plugin",
-                            true);
+    ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
+                               "SO", "this is a test procedure", true);
     UT_EXPECT_FALSE(ret);
 
     std::string code_scan_graph_path = "./scan_graph.so";
-    ret = client.LoadPlugin(str, code_scan_graph_path, "CPP", "test_plugin2", "SO",
-                            "this is a test plugin", true);
+    ret = client.LoadProcedure(str, code_scan_graph_path, "CPP", "test_procedure2", "SO",
+                            "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
     std::string code_add_label_path = "./add_label.so";
-    ret = client.LoadPlugin(str, code_add_label_path, "CPP", "test_plugin3", "SO",
-                            "this is a test plugin", false);
+    ret = client.LoadProcedure(str, code_add_label_path, "CPP", "test_procedure3", "SO",
+                            "this is a test procedure", false);
     UT_EXPECT_TRUE(ret);
 
-    std::string code_zip_path = "../../test/test_plugins/sortstr.zip";
-    ret = client.LoadPlugin(str, code_zip_path, "CPP", "test_plugin4", "ZIP",
-                            "this is a test plugin", true);
+    std::string code_zip_path = "../../test/test_procedures/sortstr.zip";
+    ret = client.LoadProcedure(str, code_zip_path, "CPP", "test_procedure4", "ZIP",
+                            "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
 
-    std::string code_cpp_path = "../../test/test_plugins/sortstr.cpp";
-    ret = client.LoadPlugin(str, code_cpp_path, "CPP", "test_plugin5", "CPP",
-                            "this is a test plugin", true);
+    std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
+    ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure5", "CPP",
+                            "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.plugin.getPluginInfo('PY','countPersons')");
@@ -1615,59 +1616,60 @@ void test_cpp_plugin(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.plugin.listUserPlugins()");
     UT_EXPECT_TRUE(ret);
 
-    ret = client.CallCypher(str, "CALL db.plugin.listPlugin('CPP')");
+    ret = client.ListProcedures(str, "CPP");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 5);
     UT_EXPECT_EQ(
-        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_plugin1", "STRING"),
-        true);
+        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure1",
+                                "STRING"), true);
     UT_EXPECT_EQ(
-        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_plugin2", "STRING"),
-        true);
+        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure2",
+                                "STRING"), true);
     UT_EXPECT_EQ(
-        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_plugin3", "STRING"),
-        true);
+        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure3",
+                                "STRING"), true);
     UT_EXPECT_EQ(
-        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_plugin4", "STRING"),
-        true);
+        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure4",
+                                "STRING"), true);
     UT_EXPECT_EQ(
-        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_plugin5", "STRING"),
-        true);
+        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure5",
+                                "STRING"), true);
 
-    ret = client.CallPlugin(str, "CPP", "test_plugin1", "bcefg");
+    ret = client.CallProcedure(str, "CPP", "test_procedure1", "bcefg");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "bcefg", "result"), true);
 
-    ret =
-        client.CallPlugin(str, "CPP", "test_plugin2", "{\"scan_edges\":true, \"times\":2}", 100.10);
+    ret = client.CallProcedure(str, "CPP", "test_procedure2",
+                               "{\"scan_edges\":true, \"times\":2}", 100.10);
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
 
-    ret = client.CallPlugin(str, "CPP", "test_plugin3", "{\"label\":\"vertex1\"}", 20.0);
+    ret = client.CallProcedure(str, "CPP", "test_procedure3",
+                               "{\"label\":\"vertex1\"}", 20.0);
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "vertex1", "label"), true);
 
-    ret = client.CallPlugin(str, "CPP", "test_plugin4", "9876543210", 10);
+    ret = client.CallProcedure(str, "CPP", "test_procedure4", "9876543210", 10);
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "0123456789", "result"), true);
 
-    ret = client.CallPlugin(str, "CPP", "test_plugin5", "a2o4i18u5eq3", 10.1);
+    ret = client.CallProcedure(str, "CPP", "test_procedure5", "a2o4i18u5eq3", 10.1);
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "123458aeioqu", "result"), true);
 }
 
-void test_python_plugin(lgraph::RpcClient& client) {
+void test_python_procedure(lgraph::RpcClient& client) {
     std::string code_sleep("./code_sleep.py");
     std::string code_read("./code_read.py");
 
-    WritePythonPlugin();
+    WritePythonProcedure();
     std::string str;
     bool ret = client.CallCypher(str, "CALL db.dropDB()");
     UT_EXPECT_TRUE(ret);
@@ -1677,27 +1679,27 @@ void test_python_plugin(lgraph::RpcClient& client) {
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);
 
-    ret = client.LoadPlugin(str, code_sleep, "PY", "python_plugin1", "PY", "this is a test plugin",
-                            true);
+    ret = client.LoadProcedure(str, code_sleep, "PY", "python_procedure1",
+                               "PY", "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
 
-    ret = client.LoadPlugin(str, code_read, "PY", "python_plugin2", "PY", "this is a test plugin",
-                            true);
+    ret = client.LoadProcedure(str, code_read, "PY", "python_procedure2",
+                               "PY", "this is a test procedure", true);
     UT_EXPECT_TRUE(ret);
 
-    ret = client.CallCypher(str, "CALL db.plugin.listPlugin('PY')");
+    ret = client.ListProcedures(str, "PY");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 2);
 
-    ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('PY', 'python_plugin1')");
+    ret = client.DeleteProcedure(str, "PY", "python_procedure1");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('PY', 'python_plugin2')");
+    ret = client.DeleteProcedure(str, "PY", "python_procedure2");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CALL db.plugin.deletePlugin('PY', 'python_plugin2')");
+    ret = client.DeleteProcedure(str, "PY", "python_procedure2");
     UT_EXPECT_FALSE(ret);
 
-    ret = client.CallCypher(str, "CALL db.plugin.listPlugin('PY')");
+    ret = client.ListProcedures(str, "PY");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);
@@ -1944,15 +1946,15 @@ void* test_rpc_client(void*) {
 
         test_password(client3);
 
-        test_cpp_plugin(client3);
+        test_cpp_procedure(client3);
 
-        test_python_plugin(client3);
+        test_python_procedure(client3);
 
         test_import_file(client3);
 
         test_import_content(client3);
 
-        test_plugin_privilege(client3);
+        test_procedure_privilege(client3);
     }
 
     stage_3++;

@@ -506,10 +506,7 @@ lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfo(KvTransaction& txn,
 
 void lgraph::AclManager::AddGraph(KvTransaction& txn, const std::string& curr_user,
                                   const std::string& graph) {
-    /* // we don't need to check user access here, this is used internally
-    if (!IsAdmin(curr_user)) {
-        throw AuthError("Non-admin user cannot delete graphs.");
-    }*/
+    // we don't need to check user access here, this is used internally
     if (!IsValidGraphName(graph)) throw InputError("Invalid graph name.");
     // add graph to admin role
     RoleInfo rinfo = DeserializeFromValue<RoleInfo>(
@@ -907,16 +904,16 @@ bool lgraph::AclManager::SetUserMemoryLimit(KvTransaction& txn, const std::strin
 
 void lgraph::AclManager::BindTokenUser(const std::string& old_token,
                 const std::string& new_token, const std::string& user) {
-    if (token_mapping.find(old_token) != token_mapping.end()) {
-        token_mapping.erase(old_token);
+    if (token_mapping_.find(old_token) != token_mapping_.end()) {
+        token_mapping_.erase(old_token);
     }
-    token_mapping.emplace(new_token, user);
+    token_mapping_.emplace(new_token, user);
 }
 
 bool lgraph::AclManager::DecipherToken(const std::string& token,
                                 std::string& user, std::string& pwd) {
-    if (token_mapping.find(token) != token_mapping.end()) {
-        user = token_mapping[token];
+    if (token_mapping_.find(token) != token_mapping_.end()) {
+        user = token_mapping_[token];
         auto v = user_cache_.find(user);
         if (v == user_cache_.end()) return false;
         if (v->second.disabled) return false;
@@ -932,8 +929,8 @@ bool lgraph::AclManager::DecipherToken(const std::string& token,
 }
 
 bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {
-    if (token_mapping.find(token) != token_mapping.end()) {
-        token_mapping.erase(token);
+    if (token_mapping_.find(token) != token_mapping_.end()) {
+        token_mapping_.erase(token);
         return true;
     } else {
         return false;

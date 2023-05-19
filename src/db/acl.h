@@ -24,6 +24,7 @@
 
 #include "core/defs.h"
 #include "core/kv_store.h"
+#include "core/killable_rw_lock.h"
 #include "lgraph/lgraph_types.h"
 #include "protobuf/ha.pb.h"
 
@@ -194,7 +195,7 @@ class AclManager {
     std::unordered_map<std::string, CachedUserInfo> user_cache_;
 
     // {jwt: user_name}
-    std::unordered_map<std::string, std::string> token_mapping;
+    std::unordered_map<std::string, std::string> token_mapping_;
 
     // user -> UserInfo
     KvTable user_tbl_;
