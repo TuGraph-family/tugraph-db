@@ -172,15 +172,18 @@ int LGraphServer::MakeStateMachine() {
         .append(std::to_string(lgraph::_detail::VER_MINOR))
         .append(".")
         .append(std::to_string(lgraph::_detail::VER_PATCH));
-    FMA_LOG() << "**********************************************************************";
-    FMA_LOG() << "*                  TuGraph Graph Database v" << version
-              << std::string(26 - version.size(), ' ') << "*";
-    FMA_LOG() << "*                                                                    *";
-    FMA_LOG() << "*    Copyright(C) 2018-2021 Ant Group. All rights reserved.          *";
-    FMA_LOG() << "*                                                                    *";
-    FMA_LOG() << "**********************************************************************";
-    FMA_LOG() << "Server is configured with the following parameters:\n"
-              << config_->FormatAsString();
+    std::ostringstream header;
+    header << "\n"
+        << "**********************************************************************" << "\n"
+        << "*                  TuGraph Graph Database v" << version
+        << std::string(26 - version.size(), ' ') << "*" << "\n"
+        << "*                                                                    *" << "\n"
+        << "*    Copyright(C) 2018-2023 Ant Group. All rights reserved.          *" << "\n"
+        << "*                                                                    *" << "\n"
+        << "**********************************************************************" << "\n"
+        << "Server is configured with the following parameters:\n"
+        << config_->FormatAsString();
+    FMA_LOG() << header.str();
     lgraph::StateMachine::Config config(*config_);
     state_machine_.reset(new lgraph::StateMachine(config, config_));
     return 0;
