@@ -71,7 +71,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
             auto obj = ListGraphs(client)[0];
             UT_EXPECT_EQ(obj.is_object(), true);
             UT_EXPECT_EQ(obj["graph_name"].as_string(), "default");
-            UT_EXPECT_EQ(obj["configuration"]["max_size_GB"].as_integer(), 1024);
+            UT_EXPECT_EQ(obj["configuration"]["max_size_GB"].as_integer(), 4096);
 
             std::string str;
             bool ret = client.CallCypher(
