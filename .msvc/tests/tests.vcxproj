@@ -156,6 +156,7 @@
     <ClCompile Include="..\..\test\test_lgraph_export.cpp" />
     <ClCompile Include="..\..\test\test_lgraph_monkey.cpp" />
     <ClCompile Include="..\..\test\test_managed_object.cpp" />
+    <ClCompile Include="..\..\test\test_max_db_size.cpp" />
     <ClCompile Include="..\..\test\test_mdb.cpp" />
     <ClCompile Include="..\..\test\test_import_column_parser.cpp" />
     <ClCompile Include="..\..\test\test_concurrent_gettime.cpp" />
