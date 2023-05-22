@@ -63,6 +63,7 @@ add_executable(unit_test
         test_lgraph.cpp
         test_lgraph_api.cpp
         test_managed_object.cpp
+        test_max_db_size.cpp
         test_mdb.cpp
         test_mdb_wal_perf.cpp
         test_memorylimit.cpp
