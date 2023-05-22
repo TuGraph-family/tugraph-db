@@ -44,6 +44,7 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
     AddOption(options, "durable", durable);
     AddOption(options, "optimistic transaction", txn_optimistic);
     AddOption(options, "Backup log enable", enable_backup_log);
+    AddOption(options, "Whether the token is unlimited", unlimited_token);
     return options;
 }
 
@@ -159,6 +160,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     backup_log_dir = "";
     snapshot_dir = "";
     thread_limit = 0;
+    unlimited_token = 0;
     // fulltext index
     ft_index_options.enable_fulltext_index = false;
     ft_index_options.fulltext_commit_interval = 0;
@@ -223,6 +225,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Directory to store the snapshot files.");
     argparser.Add(thread_limit, "thread_limit", true)
         .Comment("Maximum number of threads to use");
+    argparser.Add(unlimited_token, "unlimited_token", true)
+        .Comment("Unlimited token for TuGraph.");
 #if LGRAPH_ENABLE_FULLTEXT_INDEX
     argparser.Add(ft_index_options.enable_fulltext_index, "enable_fulltext_index", true)
         .Comment("Whether to enable fulltext index.");

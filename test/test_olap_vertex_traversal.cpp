@@ -15,7 +15,7 @@
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 #include "fma-common/utils.h"
-#include "lgraph/olap_on_db.h"
+#include "lgraph/olap_base.h"
 #include "import/import_v2.h"
 #include "lgraph/lgraph.h"
 

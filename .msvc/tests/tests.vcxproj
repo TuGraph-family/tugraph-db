@@ -161,7 +161,6 @@
     <ClCompile Include="..\..\test\test_concurrent_gettime.cpp" />
     <ClCompile Include="..\..\test\test_core_exception.cpp" />
     <ClCompile Include="..\..\test\test_cppresetsdk_json.cpp" />
-    <ClCompile Include="..\..\test\test_cpp_plugin.cpp" />
     <ClCompile Include="..\..\test\test_import_config_parser.cpp" />
     <ClCompile Include="..\..\test\test_data_type.cpp" />
     <ClCompile Include="..\..\test\test_graph.cpp" />

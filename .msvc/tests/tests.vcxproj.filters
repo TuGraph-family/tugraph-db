@@ -99,9 +99,6 @@
     <ClCompile Include="..\..\test\test_transaction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\test\test_cpp_plugin.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\test\test_cppresetsdk_json.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

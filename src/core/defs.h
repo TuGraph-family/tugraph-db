@@ -133,7 +133,7 @@ static const size_t MAX_NUM_GRAPHS = 4096;
 static const size_t DEFAULT_GRAPH_SIZE = (size_t)1 << 30;
 static const size_t MAX_GRAPH_SIZE = (size_t)1 << 40;
 #else
-static const size_t DEFAULT_GRAPH_SIZE = (size_t)1 << 40;
+static const size_t DEFAULT_GRAPH_SIZE = (size_t)1 << 42;  // 4TB
 static const size_t MAX_GRAPH_SIZE = (size_t)1 << 44;
 #endif
 static const size_t GRAPH_SUBDIR_NAME_LEN = 8;

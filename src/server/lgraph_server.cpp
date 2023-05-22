@@ -172,15 +172,18 @@ int LGraphServer::MakeStateMachine() {
         .append(std::to_string(lgraph::_detail::VER_MINOR))
         .append(".")
         .append(std::to_string(lgraph::_detail::VER_PATCH));
-    FMA_LOG() << "**********************************************************************";
-    FMA_LOG() << "*                  TuGraph Graph Database v" << version
-              << std::string(26 - version.size(), ' ') << "*";
-    FMA_LOG() << "*                                                                    *";
-    FMA_LOG() << "*    Copyright(C) 2018-2021 Ant Group. All rights reserved.          *";
-    FMA_LOG() << "*                                                                    *";
-    FMA_LOG() << "**********************************************************************";
-    FMA_LOG() << "Server is configured with the following parameters:\n"
-              << config_->FormatAsString();
+    std::ostringstream header;
+    header << "\n"
+        << "**********************************************************************" << "\n"
+        << "*                  TuGraph Graph Database v" << version
+        << std::string(26 - version.size(), ' ') << "*" << "\n"
+        << "*                                                                    *" << "\n"
+        << "*    Copyright(C) 2018-2023 Ant Group. All rights reserved.          *" << "\n"
+        << "*                                                                    *" << "\n"
+        << "**********************************************************************" << "\n"
+        << "Server is configured with the following parameters:\n"
+        << config_->FormatAsString();
+    FMA_LOG() << header.str();
     lgraph::StateMachine::Config config(*config_);
     state_machine_.reset(new lgraph::StateMachine(config, config_));
     return 0;
@@ -191,7 +194,7 @@ int LGraphServer::StartRpcService() {
     rpc_service_.reset(new RPCService(state_machine_.get()));
     rpc_server_.reset(new brpc::Server());
     if (rpc_server_->AddService(rpc_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-        FMA_ERR_STREAM(logger_) << "Failed to add service to RPC server";
+        FMA_WARN() << "Failed to add service to RPC server";
         return -1;
     }
     return 0;
@@ -210,7 +213,7 @@ void LGraphServer::KillServer() {
 #endif
     if (state_machine_) state_machine_->Stop();
     state_machine_.reset();
-    FMA_INFO_STREAM(logger_) << "Server shutdown.";
+    FMA_LOG() << "Server shutdown.";
     server_exit_.Notify();
 }
 
@@ -243,21 +246,23 @@ int LGraphServer::Start() {
             brpc_options.has_builtin_services = false;
             if (config_->thread_limit != 0) brpc_options.max_concurrency = config_->thread_limit;
             if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
-                FMA_ERR_STREAM(logger_) << "Failed to start RPC server";
+                FMA_WARN() << "Failed to start RPC server";
                 return -1;
             }
-            FMA_INFO_STREAM(logger_) << "Listening for RPC on port " << config_->rpc_port;
+            FMA_LOG() << "Listening for RPC on port " << config_->rpc_port;
         }
 #endif
         state_machine_->Start();
+        if (config_->unlimited_token == 1) {
+            state_machine_->SetTokenTimeUnlimited();
+        }
         // start rest
         lgraph::RestServer::Config rest_config(*config_);
         rest_server_.reset(new lgraph::RestServer(state_machine_.get(), rest_config, config_));
-        FMA_INFO_STREAM(logger_) << "Server started.";
+        FMA_LOG() << "Server started.";
     } catch (std::exception &e) {
         _kill_signal_.Notify();
-        FMA_WARN_STREAM(logger_) << "Server hit an exception and shuts down abnormally:";
-        FMA_WARN_STREAM(logger_) << e.what();
+        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         ret = -2;
     }
     return ret;
@@ -270,8 +275,7 @@ int LGraphServer::WaitTillKilled() {
             WaitSignal();
         }
     } catch (std::exception &e) {
-        FMA_WARN_STREAM(logger_) << "Server hit an exception and shuts down abnormally:";
-        FMA_WARN_STREAM(logger_) << e.what();
+        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
     return Stop(true);
@@ -282,7 +286,7 @@ int LGraphServer::Stop(bool force_exit) {
     if (!state_machine_) return 0;
     // otherwise, try to stop the services, exit forcefully if necessary
     try {
-        FMA_DBG_STREAM(logger_) << "Stopping TuGraph...";
+        FMA_LOG() << "Stopping TuGraph...";
         // the kaishaku watches the server, if exit flag is set and the server cannot be shutdown
         // normally after three seconds, it kills the process
         std::thread kaishaku;
@@ -290,7 +294,7 @@ int LGraphServer::Stop(bool force_exit) {
             kaishaku = std::thread([&]() {
                 _kill_signal_.Wait(-1);
                 if (!server_exit_.Wait(3)) {
-                    FMA_WARN_STREAM(logger_) << "Killing server...";
+                    FMA_LOG() << "Killing server...";
 #ifdef _WIN32
                     exit(1);
 #else
@@ -305,8 +309,7 @@ int LGraphServer::Stop(bool force_exit) {
         if (kaishaku.joinable()) kaishaku.join();
         return 0;
     } catch (std::exception &e) {
-        FMA_WARN_STREAM(logger_) << "Server hit an exception and shuts down abnormally:";
-        FMA_WARN_STREAM(logger_) << e.what();
+        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
 }

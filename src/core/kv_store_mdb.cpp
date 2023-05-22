@@ -214,6 +214,9 @@ void KvStore::WarmUp(size_t* size) {
 }
 
 void KvStore::ServeValidation() {
+    #ifndef _WIN32
+    pthread_setname_np(pthread_self(), "ServeValidation");
+    #endif
     while (true) {
         std::unique_lock<std::mutex> queue_lock(queue_mutex_);
         while (!queue_cv_.wait_for(queue_lock, 100ms,

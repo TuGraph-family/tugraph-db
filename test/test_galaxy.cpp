@@ -34,6 +34,7 @@ TEST_F(TestGalaxy, Galaxy) {
     const std::string new_graph = "new_graph";
 
     const std::string new_user = "new_user";
+    const std::string new_user_desc = "description of the new user";
     const std::string new_pass = "new_pass";
     const std::string admin_user = lgraph::_detail::DEFAULT_ADMIN_NAME;
     const std::string admin_pass = lgraph::_detail::DEFAULT_ADMIN_PASS;
@@ -218,6 +219,43 @@ TEST_F(TestGalaxy, Galaxy) {
         // test persistence
         g = OpenExistingGalaxy(false);
         g.SetCurrentUser(new_user, "renewed");
+    }
+
+    DefineTest("SetUserDesc") {
+        MarkTestBegin("SetUserDesc");
+        auto g = OpenNewGalaxy();
+        UT_EXPECT_TRUE(g.CreateUser(new_user, new_pass));
+        UT_EXPECT_EQ(g.ListUsers().size(), 2);
+
+        // admin can set hiself description
+        UT_EXPECT_TRUE(g.SetUserDesc(admin_user, new_user_desc));
+        UT_EXPECT_EQ(g.GetUserInfo(admin_user).desc, new_user_desc);
+
+        // switch to new_user
+        g.SetCurrentUser(new_user, new_pass);
+
+        // new_user cannot set others' description
+        UT_EXPECT_THROW_REGEX(g.SetUserDesc(admin_user, "description setted by new_user"),
+                            "(Non-admin).*(cannot).*(modify)");
+
+        // new_user can set hiself description
+        UT_EXPECT_TRUE(g.SetUserDesc(new_user, new_user_desc));
+        UT_EXPECT_EQ(g.GetUserInfo(new_user).desc, new_user_desc);
+
+        // switch to admin
+        g.SetCurrentUser(admin_user, admin_pass);
+        const std::string& admin_setted_desc = "description setted by admin";
+        // admin can set others' description
+        UT_EXPECT_TRUE(g.SetUserDesc(new_user, admin_setted_desc));
+        UT_EXPECT_EQ(g.GetUserInfo(new_user).desc, admin_setted_desc);
+
+        g.Close();
+
+        // test persistence
+        g = OpenExistingGalaxy(true);
+        UT_EXPECT_EQ(g.GetUserInfo(admin_user).desc, new_user_desc);
+        UT_EXPECT_EQ(g.GetUserInfo(new_user).desc, admin_setted_desc);
+        g.Close();
     }
 
     DefineTest("CreateDeleteUser") {

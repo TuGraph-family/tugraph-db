@@ -737,7 +737,7 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
         schema->DeleteVertexFullTextIndex(vid, fulltext_buffers_);
         schema->AddVertexToFullTextIndex(vid, new_prop, fulltext_buffers_);
     }
-    it.SetProperty(new_prop);
+    it.SetProperty(std::move(new_prop));
 }
 
 template <typename FieldT>

@@ -20,15 +20,15 @@ IMPORTOPT = {"cmd":"./lgraph_import --config_file ./data/yago/yago.conf --dir ./
 BACKUPOPT = {"cmd" : "./lgraph_backup --src ./testdb -dst ./testdb1",
              "cleanup_dir":[]}
 
-BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_plugins/scan_graph.cpp ./liblgraph.so -shared"],
+BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_procedures/scan_graph.cpp ./liblgraph.so -shared"],
             "so_name":["./scan_graph.so"]}
 
 @pytest.fixture(scope="function")
 def load_plugin(server, client):
     sort_so = BUILDOPT.get("so_name")[0]
-    ret = client.loadPlugin(sort_so, "CPP", "sorter", "SO", "test plugin", True)
+    ret = client.loadProcedure(sort_so, "CPP", "sorter", "SO", "test plugin", True)
     assert ret[0]
-    ret = client.callCypher("CALL db.plugin.listPlugin('CPP')")
+    ret = client.listProcedures("CPP")
     assert ret[0]
     plugins = json.loads(ret[1])
     assert len(plugins) == 1
@@ -66,7 +66,7 @@ class TestBackup:
     @pytest.mark.parametrize("server_1", [SERVEROPT_1], indirect=True)
     @pytest.mark.parametrize("client_1", [CLIENTOPT_1], indirect=True)
     def test_backup_plugin(self, build_so, server, client, load_plugin, backup_copy_dir, server_1, client_1):
-        ret = client_1.callCypher("CALL db.plugin.listPlugin('CPP')")
+        ret = client_1.listProcedures("CPP")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins[0]) == 1
@@ -78,7 +78,7 @@ class TestBackup:
     @pytest.mark.parametrize("server_1", [SERVEROPT_1], indirect=True)
     @pytest.mark.parametrize("client_1", [CLIENTOPT_1], indirect=True)
     def test_unbackup_plugin(self, build_so, server, client, load_plugin, server_1, client_1):
-        ret = client_1.callCypher("CALL db.plugin.listPlugin('CPP')")
+        ret = client_1.listProcedures("CPP")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 0

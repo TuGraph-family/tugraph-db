@@ -1099,12 +1099,53 @@ static void _RealignAliasId(OpBase *root, const SymbolTable &sym_tab) {
 static OpBase *_Connect(OpBase *lhs, OpBase *rhs, PatternGraph *pattern_graph) {
     std::vector<OpBase *> taps;
     _StreamTaps(rhs, taps);
-    if (taps.size() == 1 && !taps[0]->IsScan()) {
+    //
+    // see issue #357: https://code.alipay.com/fma/tugraph-db/issues/357
+    // see issue #188: https://code.alipay.com/fma/tugraph-db/issues/188
+    //
+    // # Example A
+    // WITH 'a' as a UNWIND ['a', 'b'] as k RETURN a, k
+    //
+    // Execution Plan:
+    // Produce Results
+    //     Project [a,k]
+    //         Cartesian Product
+    //             Unwind [[a,b],k]
+    //             Project [a]
+    //
+    // The execution plan before issue#357&#188 fix is as follows:
+    //
+    // Plan parts:
+    // Project [a]
+    // Produce Results
+    //     Project [a,k]
+    //         Unwind [[a,b],k]
+    //
+    // -----
+    // # Example B
+    // WITH [1, 3, 5, 7] as lst UNWIND [9]+lst AS x RETURN x, lst
+    //
+    // Execution Plan:
+    // Produce Results
+    //     Project [x,lst]
+    //         Apply
+    //             Unwind [([9],lst,+),x]
+    //                 Argument [lst]
+    //             Project [lst]
+    //
+    // The execution plan before issue#357&#188 fix is as follows:
+    //
+    // Execution Plan:
+    // Produce Results
+    //     Project [x,lst]
+    //         Unwind [([9],lst,+),x]
+    //             Project [lst]
+    //
+    if (taps.size() == 1 && !taps[0]->IsScan() && taps[0]->type != OpType::UNWIND) {
         /* Single tap, entry point isn't a SCAN operation, e.g.
          * MATCH (b) WITH b.v AS V RETURN V
          * MATCH (b) WITH b.v+1 AS V CREATE (n {v:V})
-         * MATCH (b) WITH b RETURN b
-         * UNWIND [] AS x MATCH (n {id:x}) RETURN n  */
+         * MATCH (b) WITH b RETURN b */
         if (taps[0]->type == OpType::PROJECT && lhs->type == OpType::PROJECT) {
             auto parent = taps[0]->parent;
             parent->RemoveChild(taps[0]);
