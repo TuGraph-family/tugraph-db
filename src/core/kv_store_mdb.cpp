@@ -14,6 +14,7 @@
 
 #if (!LGRAPH_USE_MOCK_KV)
 #include <chrono>
+#include <filesystem>
 #include "core/kv_store_mdb.h"
 #include "core/wal.h"
 
@@ -24,14 +25,31 @@ namespace lgraph {
 static const std::string DATA_FILE_NAME = "data.mdb";  // NOLINT
 std::atomic<int64_t> KvStore::last_op_id_(-1);
 
+static auto IsDir = [](const std::string& p) {
+    std::error_code ec;
+    return std::filesystem::is_directory(p, ec);
+};
+static auto MkDir = [](const std::string& p) {
+    std::error_code ec;
+    return std::filesystem::create_directories(p, ec);
+};
+static auto FileExists = [](const std::string& p) {
+    std::error_code ec;
+    return std::filesystem::is_regular_file(p, ec);
+};
+static auto RemoveDir = [](const std::string& p) {
+    std::error_code ec;
+    return std::filesystem::remove_all(p, ec);
+};
+
 void KvStore::Open(bool create_if_not_exist) {
-    auto& fs = fma_common::FileSystem::GetFileSystem(fma_common::FilePath::SchemeType::LOCAL);
     if (create_if_not_exist) {
-        if (!fs.IsDir(path_) && !fs.Mkdir(path_)) {
+        std::error_code ec;
+        if (!IsDir(path_) && !MkDir(path_)) {
             throw KvException(std::string("Failed to create data directory ") + path_);
         }
     } else {
-        if (!fs.IsDir(path_) || !fs.FileExists(path_ + "/" + DATA_FILE_NAME)) {
+        if (!IsDir(path_) || !FileExists(path_ + "/" + DATA_FILE_NAME)) {
             throw KvException("Data directory " + path_ + " does not contain valid data.");
         }
     }
@@ -63,11 +81,11 @@ void KvStore::ReopenFromSnapshot(const std::string& snapshot_path) {
     wal_.reset();
     mdb_env_close(env_);
     // copy the snapshot file
-    fma_common::FileSystem& fs = fma_common::FileSystem::GetFileSystem(snapshot_path);
     std::string src = snapshot_path + "/" + DATA_FILE_NAME;
     std::string dst = path_ + "/" + DATA_FILE_NAME;
-    fs.RemoveDir(dst);
-    if (!fs.CopyToLocal(src, dst)) {
+    RemoveDir(dst);
+    std::error_code ec;
+    if (!std::filesystem::copy_file(src, dst, ec)) {
         throw KvException("Failed to copy snapshot file from " + src + " to " + dst);
     }
     Open(false);
@@ -196,7 +214,9 @@ void KvStore::WarmUp(size_t* size) {
 }
 
 void KvStore::ServeValidation() {
+    #ifndef _WIN32
     pthread_setname_np(pthread_self(), "ServeValidation");
+    #endif
     while (true) {
         std::unique_lock<std::mutex> queue_lock(queue_mutex_);
         while (!queue_cv_.wait_for(queue_lock, 100ms,

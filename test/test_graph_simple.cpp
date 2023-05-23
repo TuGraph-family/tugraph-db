@@ -77,6 +77,7 @@ void DumpTable(KvTransaction& txn, KvTable& t, bool track_incoming) {
 }
 
 TEST_F(TestGraphSimple, GraphSimple) {
+    AutoCleanDir _dir("./testdb");
     KvStore store("./testdb", 1 << 30, false);
 
     // clear old data
