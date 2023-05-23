@@ -101,3 +101,6 @@ logs/
 *artifacts
 .DS_Store
 .cache
+
+# docs
+docs/build
