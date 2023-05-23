@@ -14,3 +14,16 @@ build:
     # nodejs: "19"
     # rust: "1.64"
     # golang: "1.19"
+
+# Build documentation in the docs/ directory with Sphinx
+sphinx:
+   configuration: docs/en/conf.py
+
+# If using Sphinx, optionally build your docs in additional formats such as PDF
+# formats:
+#    - pdf
+
+# Optionally declare the Python requirements required to build your docs
+python:
+   install:
+   - requirements: docs/requirements.txt

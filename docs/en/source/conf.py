@@ -13,18 +13,7 @@ author = 'Ant Group'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
-    'sphinx_panels',
-    'breathe',
-    'autodocsumm',]
+extensions = ['myst_parser', 'sphinx_panels']
 
 templates_path = ['_templates']
 exclude_patterns = []
