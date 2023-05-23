@@ -325,16 +325,16 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/", exec_dir);
 #ifndef __clang__
     std::string cmd = FMA_FMT(
-        "g++ -fno-gnu-unique -fPIC -g --std=c++14 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #elif __APPLE__
     std::string cmd = FMA_FMT(
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++14 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
         "{} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #else
     std::string cmd = FMA_FMT(
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++14 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #endif
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while compiling plugin.",
@@ -344,7 +344,7 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     return ReadWholeFile(plugin_path, "plugin binary file");
 }
 
-void lgraph::SingleLanguagePluginManager::LoadPluginFromPyOrSo(
+void lgraph::SingleLanguagePluginManager::LoadPlugin(
     const std::string& user, KvTransaction& txn, const std::string& name, const std::string& exe,
     const std::string& desc, bool read_only) {
     std::string plugin_path = impl_->GetPluginPath(name);
@@ -366,30 +366,6 @@ void lgraph::SingleLanguagePluginManager::LoadPluginFromPyOrSo(
     UpdateSoToKvStore(txn, name, exe);
 }
 
-void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromCython(
-    const std::string& user, KvTransaction& txn, const std::string& name,
-    const std::string& cython, const std::string& desc, bool read_only) {
-    std::string exe = CompilePluginFromCython(name, cython);
-    LoadPluginFromPyOrSo(user, txn, name, exe, desc, read_only);
-    UpdateCythonToKvStore(txn, name, cython);
-}
-
-void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromCpp(
-    const std::string& user, KvTransaction& txn, const std::string& name, const std::string& cpp,
-    const std::string& desc, bool read_only) {
-    std::string exe = CompilePluginFromCpp(name, cpp);
-    LoadPluginFromPyOrSo(user, txn, name, exe, desc, read_only);
-    UpdateCppToKvStore(txn, name, cpp);
-}
-
-void lgraph::SingleLanguagePluginManager::CompileAndLoadPluginFromZip(
-    const std::string& user, KvTransaction& txn, const std::string& name, const std::string& zip,
-    const std::string& desc, bool read_only) {
-    std::string exe = CompilePluginFromZip(name, zip);
-    LoadPluginFromPyOrSo(user, txn, name, exe, desc, read_only);
-    UpdateZipToKvStore(txn, name, zip);
-}
-
 bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     const std::string& user, const std::string& name_, const std::string& code,
     plugin::CodeType code_type, const std::string& desc, bool read_only) {
@@ -404,8 +380,6 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     auto it = procedures_.find(name);
     if (it != procedures_.end()) return false;
 
-    // upgrade to write lock
-    AutoWriteLock wlock(lock_, tid);
     // undo the changes if there is any problem
     AutoCleanupAction rollback([&]() {
         auto it = procedures_.find(name);
@@ -425,25 +399,47 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     });
 
     // load plugin from different type
-    auto txn = db_->CreateWriteTxn();
+    std::string exe;
     switch (code_type) {
-    case plugin::CodeType::PY:
-        CompileAndLoadPluginFromCython(user, txn.GetTxn(), name, code, desc, read_only);
-        break;
     case plugin::CodeType::SO:
-        LoadPluginFromPyOrSo(user, txn.GetTxn(), name, code, desc, read_only);
+        break;
+    case plugin::CodeType::PY:
+        exe = CompilePluginFromCython(name, code);
         break;
     case plugin::CodeType::CPP:
-        CompileAndLoadPluginFromCpp(user, txn.GetTxn(), name, code, desc, read_only);
+        exe = CompilePluginFromCpp(name, code);
         break;
     case plugin::CodeType::ZIP:
-        CompileAndLoadPluginFromZip(user, txn.GetTxn(), name, code, desc, read_only);
+        exe = CompilePluginFromZip(name, code);
         break;
     default:
         throw InternalError("Unhandled code_type [{}].", code_type);
         return false;
     }
 
+    // upgrade to write lock
+    AutoWriteLock wlock(lock_, tid);
+    auto txn = db_->CreateWriteTxn();
+    switch (code_type) {
+    case plugin::CodeType::PY:
+        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only);
+        UpdateCythonToKvStore(txn.GetTxn(), name, code);
+        break;
+    case plugin::CodeType::SO:
+        LoadPlugin(user, txn.GetTxn(), name, code, desc, read_only);
+        break;
+    case plugin::CodeType::CPP:
+        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only);
+        UpdateCppToKvStore(txn.GetTxn(), name, code);
+        break;
+    case plugin::CodeType::ZIP:
+        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only);
+        UpdateZipToKvStore(txn.GetTxn(), name, code);
+        break;
+    default:
+        throw InternalError("Unhandled code_type [{}].", code_type);
+        return false;
+    }
     // commit
     txn.Commit();
     rollback.Cancel();
@@ -592,8 +588,9 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
             impl_->LoadPlugin("", name, pinfo.get());
             procedures_.emplace(std::make_pair(name, pinfo.release()));
             FMA_DBG() << "Loaded plugin " << name;
-        } catch (...) {
-            std::throw_with_nested(InternalError("Failed to load plugin [{}].", name));
+        } catch (const std::exception& e) {
+            std::throw_with_nested(InternalError(
+                "Failed to load plugin [{}], err: {}", name, e.what()));
         }
     }
 }

@@ -24,6 +24,9 @@
     <ClCompile Include="..\..\src\client\cpp\restful\rest_client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\import\import_v3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\import\column_parser.h">

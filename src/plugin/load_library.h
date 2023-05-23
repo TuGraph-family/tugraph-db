@@ -34,9 +34,9 @@ namespace dll {
 #ifdef _WIN32
 typedef HINSTANCE LibHandle;
 
-inline LibHandle LoadDynamicLibrary(const std::string& path) { return LoadLibrary(path.c_str()); }
+LibHandle LoadDynamicLibrary(const std::string& path);
 
-inline bool UnloadDynamicLibrary(LibHandle handle) { return FreeLibrary(handle); }
+bool UnloadDynamicLibrary(LibHandle handle);
 
 template <typename FuncT>
 inline FuncT GetDllFunction(LibHandle handle, const std::string& func_name) {

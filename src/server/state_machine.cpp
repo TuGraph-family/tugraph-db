@@ -57,6 +57,8 @@ void lgraph::StateMachine::Start() {
 
 int64_t lgraph::StateMachine::GetVersion() { return galaxy_->GetRaftLogIndex(); }
 
+void lgraph::StateMachine::SetTokenTimeUnlimited() { return galaxy_->SetTokenTimeUnlimited(); }
+
 void lgraph::StateMachine::Stop() {
     galaxy_.reset();
     backup_log_.reset();
@@ -471,7 +473,7 @@ bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req,
                         resp, FMA_FMT("Number of keys and values does not match: {} vs. {}",
                                       mcreq.keys_size(), mcreq.values_size()));
                 std::map<std::string, FieldData> updates;
-                for (size_t i = 0; i < (size_t)mcreq.keys_size(); i++)
+                for (int i = 0; i < mcreq.keys_size(); i++)
                     updates.emplace(mcreq.keys()[i],
                                     FieldDataConvert::ToLGraphT(mcreq.values()[i]));
                 if (updates.empty()) return RespondBadInput(resp, "Empty input.");
@@ -500,7 +502,6 @@ bool lgraph::StateMachine::ApplyRestoreRequest(const lgraph::LGraphRequest* lgra
         LGraphResponse lresp;
         lgraph::LGraphRequest m_req;
         m_req.CopyFrom(log.req());
-        m_req.release_user();
         m_req.set_user(curr_user);
         ApplyRequestDirectly(&m_req, &lresp);
         if (lresp.error_code() != LGraphResponse::SUCCESS)
@@ -829,7 +830,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                                           true, req.DebugString());
             const auto& ereq = req.del_edge_request();
             lgraph::Transaction txn = db->CreateWriteTxn();
-            EdgeUid euid(ereq.src(), ereq.dst(), ereq.lid(), 0, ereq.eid());  // TODO(heng)
+            EdgeUid euid(ereq.src(), ereq.dst(),
+                static_cast<LabelId>(ereq.lid()), 0, ereq.eid());  // TODO(heng)
             bool success = txn.DeleteEdge(euid);
             txn.Commit();
             if (success) {
@@ -850,7 +852,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                 return RespondBadInput(
                     resp, FMA_FMT("Number of fields and values does not match: [{}] vs [{}].",
                                   fields.size(), values.size()));
-            EdgeUid euid(ereq.src(), ereq.dst(), ereq.lid(), 0, ereq.eid());  // TODO(heng)
+            EdgeUid euid(ereq.src(), ereq.dst(),
+                static_cast<LabelId>(ereq.lid()), 0, ereq.eid());  // TODO(heng)
             lgraph::Transaction txn = db->CreateWriteTxn();
             bool success = txn.SetEdgeProperty(euid, fields, values);
             txn.Commit();
@@ -1090,7 +1093,20 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
                           FMA_FMT("List plugin"));
 
             std::vector<lgraph::PluginDesc> r = db->ListPlugins(type, user);
-
+            if (!r.empty()) {
+                nlohmann::json output;
+                for (const auto &item : r) {
+                    nlohmann::json body, procedure_desc;
+                    procedure_desc["name"] = item.name;
+                    procedure_desc["description"] = item.desc;
+                    procedure_desc["read_only"] = item.read_only;
+                    body["plugin_description"] = procedure_desc;
+                    output.push_back(body);
+                }
+                presp->mutable_list_plugin_response()->set_reply(output.dump());
+            } else {
+                presp->mutable_list_plugin_response()->set_reply(nlohmann::json::array().dump());
+            }
             return RespondSuccess(resp);
         }
     case PluginRequest::kCallPluginRequest:
@@ -1115,9 +1131,20 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             if (preq.has_timeout() && preq.timeout() != 0) {
                 timeout_killer.SetTimeout(preq.timeout());
             }
-            bool r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
+            bool r = false;
+            if (preq.result_in_json_format()) {
+                r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
+                                   preq.timeout(), preq.in_process(),
+                                   *presp->mutable_call_plugin_response()->mutable_json_result());
+                nlohmann::json output, body;
+                body["result"] = *presp->mutable_call_plugin_response()->mutable_json_result();
+                output.push_back(body);
+                presp->mutable_call_plugin_response()->set_json_result(output.dump());
+            } else {
+                r = db->CallPlugin(nullptr, type, user, preq.name(), preq.param(),
                                    preq.timeout(), preq.in_process(),
                                    *presp->mutable_call_plugin_response()->mutable_reply());
+            }
             FMA_DBG_ASSERT(r);
             return RespondSuccess(resp);
         }

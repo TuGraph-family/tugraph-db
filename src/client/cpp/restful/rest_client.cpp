@@ -269,7 +269,7 @@ std::string RestClient::Refresh(const std::string& token) {
     std::string auth_value = std::string("Bearer ") + ToStdString(new_token);
     _header["Authorization"] = auth_value;
     FMA_DBG_STREAM(logger_) << "[RestClient] Refresh " << " succeeded";
-    return new_token;
+    return _TS(new_token);
 }
 
 bool RestClient::Logout(const std::string& token) {

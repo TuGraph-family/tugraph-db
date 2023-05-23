@@ -1,5 +1,6 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 
+#include <filesystem>
 #include <memory>
 #include "rocksdb/sst_file_writer.h"
 #include "import/import_v3.h"
@@ -147,11 +148,11 @@ void Importer::DoImportOffline() {
                               v.HasPrimaryColumn() ? v.GetPrimaryColumn().name : "",
                               v.edge_constraints);
         if (ok) {
-            FMA_LOG() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
+            FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
                                  v.name);
         } else {
-            throw std::runtime_error(
-                FMA_FMT("Add {} label:{} error", v.is_vertex ? "vertex" : "edge", v.name));
+            throw InputError(
+                FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
         }
     }
 
@@ -175,21 +176,35 @@ void Importer::DoImportOffline() {
         // add index
         for (auto& v : schemaDesc_.label_desc) {
             for (auto& spec : v.columns) {
-                if (spec.index && !spec.primary) {
+                if (v.is_vertex && spec.index && !spec.primary) {
                     // create index, ID column has creadted
-                    bool ok = db_->AddVertexIndex(v.name, spec.name, spec.unique);
-                    if (!ok)
-                        throw std::runtime_error(
-                            FMA_FMT("Add label [{}] index [{}] error", v.name, spec.name));
+                    if (db_->AddVertexIndex(v.name, spec.name, spec.unique)) {
+                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
+                                             v.name, spec.name, spec.unique);
+                    } else {
+                        throw InputError(
+                            FMA_FMT("Vertex index [label:{}, field:{}] already exists",
+                                    v.name, spec.name));
+                    }
+                } else if (!v.is_vertex && spec.index) {
+                    if (db_->AddEdgeIndex(v.name, spec.name, spec.unique)) {
+                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
+                                             v.name, spec.name, spec.unique);
+                    } else {
+                        throw InputError(
+                            FMA_FMT("Edge index [label:{}, field:{}] already exists",
+                                    v.name, spec.name));
+                    }
                 }
                 if (spec.fulltext) {
                     bool ok = db_->AddFullTextIndex(v.is_vertex, v.name, spec.name);
                     if (ok) {
-                        FMA_LOG() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
-                                             v.name, spec.name);
+                        FMA_LOG() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
+                                             v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     } else {
-                        throw std::runtime_error(FMA_FMT(
-                            "Add fulltext index [label:{}, field:{}] error", v.name, spec.name));
+                        throw InputError(FMA_FMT(
+                            "Fulltext index [{} label:{}, field:{}] already exists",
+                            v.is_vertex ? "vertex" : "edge", v.name, spec.name));
                     }
                 }
             }
@@ -846,7 +861,7 @@ void Importer::RocksdbToLmdb() {
     }
     std::vector<std::string> ingest_files;
     for (const auto & entry : std::filesystem::directory_iterator(sst_files_path_)) {
-        ingest_files.push_back(entry.path());
+        ingest_files.push_back(entry.path().generic_string());
     }
     rocksdb::IngestExternalFileOptions op;
     op.move_files = true;

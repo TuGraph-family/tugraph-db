@@ -19,7 +19,7 @@
 #ifdef _MSC_VER
 // visual c++ does not have rand_r() function
 struct RandomSeed {
-    explicit RandomSeed(int s) : mt(s), dist(1, RAND_MAX) {}
+    explicit RandomSeed(int s = 0) : mt(s), dist(1, RAND_MAX) {}
 
     int Rand() { return dist(mt); }
 

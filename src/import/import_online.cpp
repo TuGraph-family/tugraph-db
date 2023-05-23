@@ -396,7 +396,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
     }
     txn.Abort();
 
-    // add vertex and edge
+    // add vertex, edge, index
     for (auto& v : schema_new.label_desc) {
         // create labels
         auto m = v.GetSchemaDef();
@@ -406,34 +406,41 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                               v.HasPrimaryColumn() ? v.GetPrimaryColumn().name : "",
                               v.edge_constraints);
         if (ok) {
-            FMA_LOG() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
+            FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
                                  v.name);
         } else {
-            throw std::runtime_error(
-                FMA_FMT("Add {} label:{} error", v.is_vertex ? "vertex" : "edge", v.name));
+            throw InputError(
+                FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
         }
 
         // create index
         for (auto& spec : v.columns) {
-            if (spec.index && !spec.primary) {
-                bool ok = db.AddVertexIndex(v.name, spec.name, spec.unique);
-                if (ok) {
-                    FMA_LOG() << FMA_FMT("Add index [label:{}, field:{}, unique:{}] success",
+            if (v.is_vertex && spec.index && !spec.primary) {
+                if (db.AddVertexIndex(v.name, spec.name, spec.unique)) {
+                    FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
                                          v.name, spec.name, spec.unique);
                 } else {
-                    throw std::runtime_error(
-                        FMA_FMT("Add index [label:{}, field:{}, unique:{}] error", v.name,
-                                spec.name, spec.unique));
+                    throw InputError(
+                        FMA_FMT("Vertex index [label:{}, field:{}] already exists",
+                                v.name, spec.name));
+                }
+            } else if (!v.is_vertex && spec.index) {
+                if (db.AddEdgeIndex(v.name, spec.name, spec.unique)) {
+                    FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
+                                         v.name, spec.name, spec.unique);
+                } else {
+                    throw InputError(
+                        FMA_FMT("Edge index [label:{}, field:{}] already exists",
+                                v.name, spec.name));
                 }
             }
             if (spec.fulltext) {
-                bool ok = db.AddFullTextIndex(v.is_vertex, v.name, spec.name);
-                if (ok) {
-                    FMA_LOG() << FMA_FMT("Add fulltext index [label:{}, field:{}] success", v.name,
-                                         spec.name);
+                if (db.AddFullTextIndex(v.is_vertex, v.name, spec.name)) {
+                    FMA_LOG() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
+                                         v.name, spec.name);
                 } else {
-                    throw std::runtime_error(FMA_FMT(
-                        "Add fulltext index [label:{}, field:{}] error", v.name, spec.name));
+                    throw InputError(FMA_FMT("Fulltext index [label:{}, field:{}] already exists",
+                                                     v.name, spec.name));
                 }
             }
         }

@@ -30,6 +30,10 @@
 
 #include "./test_tools.h"
 
+#ifdef _WIN32
+// disable python plugin on windows
+// TODO(hjk41): re-enable python plugin on windows
+#else
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
 class TestPythonPluginManagerImpl : public TuGraphTest {};
 
@@ -57,7 +61,7 @@ extern void read_code(const std::string& code_path, std::string& code);
 
 void buil_python_extension(const std::string& so_path, const std::string& name) {
     int rt;
-    std::string python_path = "../../test/test_plugins/" + name + ".py";
+    std::string python_path = "../../test/test_procedures/" + name + ".py";
     std::string cpp_path = "./" + name + ".cpp";
     std::string cy_cmd;
     cy_cmd = UT_FMT("cython {} -+ -3 -o {}  --module-name {}",
@@ -256,4 +260,5 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         UT_EXPECT_ANY_THROW(manager.LoadPlugin(user, "testpy", pinfo));
     }
 }
+#endif
 #endif

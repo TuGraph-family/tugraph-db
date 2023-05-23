@@ -69,8 +69,6 @@ class RPCService : public lgraph::LGraphRPCService {
 };
 
 class LGraphServer {
-    fma_common::Logger &logger_ = fma_common::Logger::Get("LGraphServer");
-
 #ifndef _WIN32
     class FMALogSink : public logging::LogSink {
      public:

@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#ifdef _WIN32
+// disable python plugin on windows
+// TODO(hjk41): re-enable python plugin on windows
+#else
+
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 
@@ -210,4 +215,5 @@ def Process(db, input):
 }
 INSTANTIATE_TEST_CASE_P(TestPythonPlugin, TestPythonPlugin,
                         testing::Values(ParamPythonPlgin{10, 10}, ParamPythonPlgin{3, 7}));
+#endif
 #endif

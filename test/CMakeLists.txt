@@ -23,7 +23,7 @@ add_executable(unit_test
         test_cache_aligned_vector.cpp
         test_concurrent_gettime.cpp
         test_core_exception.cpp
-        test_cpp_plugin.cpp
+        test_cpp_procedure.cpp
         test_cppresetsdk_json.cpp
         test_cypher.cpp
         test_cypher_plan.cpp
@@ -63,6 +63,7 @@ add_executable(unit_test
         test_lgraph.cpp
         test_lgraph_api.cpp
         test_managed_object.cpp
+        test_max_db_size.cpp
         test_mdb.cpp
         test_mdb_wal_perf.cpp
         test_memorylimit.cpp

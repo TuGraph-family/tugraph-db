@@ -82,6 +82,18 @@
             "plan": "Execution Plan:\nProduce Results\n    Traversal [f<--p-->c]\n",
             "res": 3
           }
+        ],
+        "issue148": [
+          {
+            "query": "WITH 'a' as a UNWIND ['a', 'b'] as k RETURN a, k",
+            "plan": "Execution Plan:\nProduce Results\n    Project [a,k]\n        Cartesian Product\n            Unwind [[a,b],k]\n            Project [a]\n",
+            "res": 2
+          },
+          {
+            "query": "WITH 'a' as a UNWIND ['b']+a as k RETURN a, k",
+            "plan": "Execution Plan:\nProduce Results\n    Project [a,k]\n        Apply\n            Unwind [([b],a,+),k]\n                Argument [a]\n            Project [a]\n",
+            "res": 2
+          }
         ]
       }
     }
