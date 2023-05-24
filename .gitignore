@@ -103,4 +103,5 @@ logs/
 .cache
 
 # docs
-docs/build
+docs/en/build
+docs/cn/build
