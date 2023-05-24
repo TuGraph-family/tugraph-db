@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to TuGraph's documentation!
-===================================
+TuGraph高性能图数据库
+====================
 
 .. toctree::
    :maxdepth: 2

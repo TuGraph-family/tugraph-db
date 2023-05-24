@@ -1,5 +1,5 @@
-Getting Started With Graph Database
-===================================
+快速上手
+========
 
 .. toctree::
    :maxdepth: 2
@@ -9,6 +9,7 @@ Getting Started With Graph Database
    1.what-is-graph
    2.what-is-gdbms
    3.what-is-tugraph
+   4.characteristics/index
    5.architecture
    6.functionality
    7.scenarios
