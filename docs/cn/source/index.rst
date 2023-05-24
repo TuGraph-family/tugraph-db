@@ -11,5 +11,5 @@ Welcome to TuGraph's documentation!
    :caption: Contents:
    :glob:
 
-   1.guide/index
-   2.operating/index
+   1.guide.md
+   2.introduction/index.rst
