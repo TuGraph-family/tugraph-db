@@ -46,13 +46,9 @@ test/db_test
 .ycm_extra_conf.py
 test/libradb
 bin/*
-msvc/.vs/
-msvc/client/x64/
-msvc/corelib/x64/
-msvc/test/x64/
-msvc/x64/
-msvc/*/x64
-msvc/server/x64
+.msvc/.vs/
+.msvc/x64/
+.msvc/*/x64/
 thrift/gen-cpp/
 thrift/openssl-1.1.0g/
 thrift/thrift-0.10.0/
@@ -64,9 +60,6 @@ builder
 *.gcov
 test/test
 test/*.o
-msvc/LighteningGraph/x64
-msvc/tests/x64
-msvc/RestServer/x64
 restful/server/build/
 server/united_server
 *.pem
@@ -85,6 +78,9 @@ deps/build
 deps/install
 build.debug
 
+*.exp
+*.pdb
+*.pyd
 *.swp
 *.swo
 target
@@ -103,5 +99,5 @@ logs/
 .cache
 
 # docs
-docs/en/build
-docs/cn/build
+doc/en-US/build
+doc/zh-CN/build
