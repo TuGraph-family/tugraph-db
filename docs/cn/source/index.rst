@@ -1,10 +1,5 @@
-.. TuGraph documentation master file, created by
-   sphinx-quickstart on Tue May 23 19:38:54 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 TuGraph高性能图数据库
-====================
+=====================
 
 .. toctree::
    :maxdepth: 2
@@ -13,3 +8,10 @@ TuGraph高性能图数据库
 
    1.guide.md
    2.introduction/index.rst
+   3.quick-start/index.rst
+   4.user-guide/index.rst
+   5.developer-manual/index.rst
+   6.community-manual/index.rst
+   7.best-practices/index.rst
+   8.faq.md
+   9.contacts.md
