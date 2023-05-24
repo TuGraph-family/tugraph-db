@@ -1,7 +1,7 @@
 # TuGraph
 
-![Build Status](https://github.com/Tugraph-db/Tugraph-db/actions/workflows/ci.yml/badge.svg)
-![Coverage Badge](https://codecov.io/github/TuGraph-db/tugraph-db/branch/master/graph/badge.svg)
+[![ci](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
 
 :mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-7b50ea3d20e643da95bf&ServiceVersion=1&isTrial=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**
 
