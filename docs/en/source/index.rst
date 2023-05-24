@@ -13,3 +13,6 @@ Welcome to TuGraph's documentation!
 
    1.guide/index
    2.operating/index
+   3.developer-document/index
+   4.client/index
+   6.community/index
