@@ -81,7 +81,7 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
 }
 
 TEST_F(TestLGraphApi, LGraphApi) {
-    std::string path = "testdb";
+    std::string path = "./testdb";
     auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
     auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
     int argc = _ut_argc;
@@ -185,7 +185,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
         galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
         GraphDB db = galaxy.OpenGraph("default");
         UT_EXPECT_EQ(db.GetDescription(), "");
-        UT_EXPECT_EQ(db.GetMaxSize(), 1LL << 42);
+        UT_EXPECT_EQ(db.GetMaxSize(), lgraph::_detail::DEFAULT_GRAPH_SIZE);
         // add vertex label
         std::string vertex_label("vertex");
         std::vector<std::string> vertex_feild_name = {"id", "type", "content"};

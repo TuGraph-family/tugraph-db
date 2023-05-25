@@ -86,10 +86,73 @@ std::string GetVName(int size, lgraph::VertexId vid) {
     return vname;
 }
 
+void DumpGraph(lgraph::Transaction& txn,
+    bool dump_properties = true,
+    bool dump_vertex_index = true,
+    bool dump_edge_index = true) {
+    // dump vertex and edges in the database
+    for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
+        // write vertex id and vertex properties
+        std::string vstr = fma_common::ToString(vit.GetId());
+        if (dump_properties) {
+            auto prop = txn.GetVertexFields(vit);
+            vstr.append(": {");
+            vstr.append(fma_common::ToString(prop));
+            vstr.append("}");
+        }
+        UT_LOG() << vstr << ":";
+        for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+            // write edge id and edge properties
+            std::string estr = fma_common::ToString(eit.GetUid());
+            if (dump_properties) {
+                auto prop = txn.GetEdgeFields(eit);
+                estr.append(": {");
+                estr.append(fma_common::ToString(prop));
+                estr.append("}");
+            }
+            UT_LOG() << "\t" << estr;
+        }
+    }
+    // dump indexes
+    if (dump_vertex_index) {
+        for (auto index : txn.ListVertexIndexes()) {
+            UT_LOG() << "vertex index: (" << index.label << ":" << index.field << ")";
+            lgraph::FieldData last_key;
+            std::string istr;
+            for (auto it = txn.GetVertexIndexIterator(index.label, index.field);
+                it.IsValid(); it.Next()) {
+                if (it.GetKeyData() != last_key) {
+                    istr.append("\n\t").append(it.GetKeyData().ToString()).append(":");
+                    last_key = it.GetKeyData();
+                }
+                istr.append(" ").append(fma_common::ToString(it.GetVid()));
+            }
+            UT_LOG() << istr;
+        }
+    }
+    if (dump_edge_index) {
+        for (auto index : txn.ListEdgeIndexes()) {
+            UT_LOG() << "edge index: (" << index.label << ":" << index.field << ")";
+            lgraph::FieldData last_key;
+            std::string istr;
+            for (auto it = txn.GetEdgeIndexIterator(index.label, index.field); it.IsValid();
+                 it.Next()) {
+                if (it.GetKeyData() != last_key) {
+                    istr.append("\n\t").append(it.GetKeyData().ToString()).append(":");
+                    last_key = it.GetKeyData();
+                }
+                istr.append(" ").append(fma_common::ToString(it.GetUid()));
+            }
+            UT_LOG() << istr;
+        }
+    }
+}
+
 TEST_F(TestLGraph, LGraph) {
     using namespace lgraph;
     using namespace fma_common;
 
+    AutoCleanDir _("./testdb");
     UT_LOG() << "Simple tests";
     {
         DBConfig config;
@@ -421,6 +484,7 @@ TEST_F(TestLGraph, LGraph) {
                 }
             }
         }
+        DumpGraph(txn);
     } catch (std::exception& e) {
         UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
@@ -493,6 +557,7 @@ TEST_F(TestLGraph, LGraph) {
             UT_EXPECT_EQ(iit.GetVid(), vid);
             UT_EXPECT_TRUE(!iit.Next());
         }
+        DumpGraph(txn);
     } catch (std::exception& e) {
         UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
@@ -536,6 +601,8 @@ TEST_F(TestLGraph, LGraph) {
             }
             txn.Commit();
         }
+        auto txn = db.CreateReadTxn();
+        DumpGraph(txn);
     } catch (std::exception& e) {
         UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();

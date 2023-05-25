@@ -192,7 +192,12 @@ int TestPerfKvIdPropShuffle(bool durable, int power, int prop_size) {
     // gen shuffle id
     std::vector<int64_t> shuffle_id(nk);
     for (int i = 0; i < nk; i++) shuffle_id[i] = i + 1;
-    std::random_shuffle(shuffle_id.begin(), shuffle_id.end());
+    // randomly shuffle shuffle_id
+    {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(shuffle_id.begin(), shuffle_id.end(), g);
+    }
 
     double t1, t2, t_add_kv;
     KvStore store("./testkv", (size_t)1 << 40, durable);
