@@ -1,4 +1,4 @@
-TuGraph DB Lite Server Tools
+TuGraph DB Server Tools
 ==========
 
 .. toctree::

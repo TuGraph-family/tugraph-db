@@ -1,4 +1,4 @@
-TuGraph DB Lite Community Manual
+TuGraph DB Community Manual
 ==========
 
 .. toctree::

@@ -1,4 +1,4 @@
-TuGraph DB Lite Protocol
+TuGraph DB Protocol
 ========
 
 .. toctree::

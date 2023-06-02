@@ -1,4 +1,4 @@
-TuGraph DB Lite Other
+TuGraph DB Other
 ========
 
 .. toctree::

@@ -1,4 +1,4 @@
-TuGraph DB Lite User Guide
+TuGraph DB User Guide
 ========
 
 .. toctree::

@@ -1,4 +1,4 @@
-TuGraph DB Lite Interface
+TuGraph DB Interface
 ========
 
 .. toctree::

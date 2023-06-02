@@ -1,4 +1,4 @@
-TuGraph DB Lite Ecosystem-Tools
+TuGraph DB Ecosystem-Tools
 ========
 
 .. toctree::

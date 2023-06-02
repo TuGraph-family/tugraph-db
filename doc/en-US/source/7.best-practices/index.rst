@@ -1,4 +1,4 @@
-TuGraph DB Lite Best Practices
+TuGraph DB Best Practices
 ========
 
 .. toctree::

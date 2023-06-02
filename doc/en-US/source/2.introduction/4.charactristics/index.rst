@@ -1,4 +1,4 @@
-TuGraph DB Lite Charactristics
+TuGraph DB Charactristics
 ========
 
 .. toctree::

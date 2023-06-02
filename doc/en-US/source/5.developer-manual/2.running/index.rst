@@ -1,4 +1,4 @@
-TuGraph DB Lite Running
+TuGraph DB Running
 ====
 
 .. toctree::

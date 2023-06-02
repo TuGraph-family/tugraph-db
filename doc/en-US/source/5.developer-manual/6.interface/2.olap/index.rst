@@ -1,4 +1,4 @@
-TuGraph DB Lite OLAP
+TuGraph DB OLAP
 ========
 
 .. toctree::

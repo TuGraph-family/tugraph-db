@@ -1,4 +1,4 @@
-TuGraph DB Lite Quick Start
+TuGraph DB Quick Start
 ========
 
 .. toctree::

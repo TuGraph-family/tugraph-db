@@ -1,4 +1,4 @@
-TuGraph DB Lite Quality
+TuGraph DB Quality
 ==============
 
 .. toctree::
