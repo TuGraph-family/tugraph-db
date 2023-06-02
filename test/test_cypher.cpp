@@ -704,6 +704,7 @@ int test_expression(cypher::RTContext *ctx) {
         {"MATCH p = (n {name:'Rachel Kempson'})-[*0..1]->()-[]->() RETURN p", 11},
         {"MATCH p = (n {name:'Rachel Kempson'})-[]->()-[]-() RETURN p,length(p)", 11},
         {"MATCH p = (n {name:'Rachel Kempson'})-[*0..3]->() RETURN p,length(p)", 21},
+        {"MATCH p = (n {name:'Rachel Kempson'})-[*0..3]->() RETURN p,nodes(p)", 21},
         /* null test */
         {"MATCH (n) WHERE n.name IS NULL RETURN n,label(n)", 5},
         {"MATCH (n) WHERE n.name IS NOT NULL RETURN n,label(n)", 16},
@@ -1324,6 +1325,13 @@ int test_procedure(cypher::RTContext *ctx) {
         "WITH length, nodeIds "
         "UNWIND nodeIds AS id "
         "RETURN id, length");
+
+    add_signatured_plugins("custom_path_process",
+        "../../test/test_procedures/custom_path_process.cpp");
+    call_signatured_plugins_scripts.emplace_back(
+        "MATCH p = (n {name:\"Rachel Kempson\"})-[*0..3]->() "
+        "CALL plugin.cpp.custom_path_process(nodes(p)) YIELD idSum "
+        "RETURN idSum");
 
     add_signatured_plugins("custom_algo", "../../test/test_procedures/custom_algo.cpp");
     call_signatured_plugins_scripts.emplace_back(
