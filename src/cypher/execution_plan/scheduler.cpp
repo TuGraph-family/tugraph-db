@@ -111,7 +111,10 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     }
 }
 
-bool Scheduler::DetermineReadOnly(const std::string &script, std::string& name, std::string& type) {
+bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
+                                  const std::string &script,
+                                  std::string& name,
+                                  std::string& type) {
     using namespace parser;
     using namespace antlr4;
     ANTLRInputStream input(script);
@@ -123,8 +126,7 @@ bool Scheduler::DetermineReadOnly(const std::string &script, std::string& name, 
      * add customized ErrorListener  */
     parser.addErrorListener(&CypherErrorListener::INSTANCE);
     tree::ParseTree *tree = parser.oC_Cypher();
-    CypherBaseVisitor visitor = CypherBaseVisitor();
-    visitor.visit(tree);
+    CypherBaseVisitor visitor = CypherBaseVisitor(ctx, tree);
     for (const auto &sq : visitor.GetQuery()) {
         if (!sq.ReadOnly(name, type)) return false;
     }

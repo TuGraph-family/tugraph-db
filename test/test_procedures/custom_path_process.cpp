@@ -54,8 +54,8 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
 
     Result result({{"idSum", LGraphType::INTEGER}});
 
-    auto& r = result.NewRecord();
-    r.Insert("idSum", FieldData::Int64(sum));
+    auto r = result.MutableRecord();
+    r->Insert("idSum", FieldData::Int64(sum));
     response = result.Dump();
     return true;
 }

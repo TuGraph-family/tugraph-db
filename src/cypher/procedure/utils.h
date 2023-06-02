@@ -116,7 +116,7 @@ class PluginAdapter {
             auto parameter = sig_spec_->input_list[i];
             switch (argument.type) {
                 case Entry::CONSTANT:
-                    if (!lgraph_api::LGraphTypeIsField(parameter.type)) {
+                    if (lgraph_api::LGraphTypeIsField(parameter.type)) {
                         if (parameter.type == lgraph_api::LGraphType::BOOLEAN) {
                             if(!argument.constant.IsBool()) {
                                 throw lgraph::EvaluationException("Invalid argument");
