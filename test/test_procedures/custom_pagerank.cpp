@@ -13,7 +13,6 @@
 */
 
 
-#include <iostream>
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
@@ -56,10 +55,10 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
 
 
     for (size_t i = 0; i < 2; i++) {
-        auto& r = result.NewRecord();
+        auto r = result.MutableRecord();
         auto vit = txn.GetVertexIterator(i);
-        r.Insert("node", vit);
-        r.Insert("weight", FieldData::Float(float(i) + 0.1*float(i)));
+        r->Insert("node", vit);
+        r->Insert("weight", FieldData::Float(float(i) + 0.1*float(i)));
     }
     response = result.Dump();
     return true;

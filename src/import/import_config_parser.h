@@ -709,7 +709,7 @@ class ImportConfParser {
     static SchemaDesc ParseSchema(const nlohmann::json& conf) {
         SchemaDesc sd;
         if (!conf.contains("schema")) {
-            return sd;
+            throw InputError("Missing `schema` definition");
         }
         if (!conf["schema"].is_array()) {
             throw InputError("\"schema\" is not array");
@@ -720,7 +720,7 @@ class ImportConfParser {
                 throw InputError(R"(Missing "label" or "type" definition)");
             }
             ld.name = s["label"];
-            ld.is_vertex = s["type"] == "VERTEX" ? true : false;
+            ld.is_vertex = s["type"] == "VERTEX";
             if (ld.is_vertex) {
                 if (!s.contains("primary") || !s.contains("properties")) {
                     throw InputError(FMA_FMT(

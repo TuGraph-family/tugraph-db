@@ -16,8 +16,12 @@
 // Created by wt on 6/15/18.
 //
 #include <cmath>
+#include <cstdint>
 #include <random>
 #include <stack>
+#include <string>
+#include <vector>
+#include "cypher_exception.h"
 #include "cypher_types.h"
 #include "parser/expression.h"
 #include "parser/clause.h"
@@ -202,6 +206,23 @@ cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
     auto r = args[1].Evaluate(ctx, record);
     if (!r.IsArray()) throw lgraph::CypherException("Path expected in length(): " + r.ToString());
     return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
+}
+
+// TODO(jinyejun.jyj): support native path in FieldData
+cypher::FieldData BuiltinFunction::Nodes(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray()) throw lgraph::CypherException("Path expected in nodes(): " + r.ToString());
+    std::vector<lgraph::FieldData> vids;
+    for (size_t i = 0; i < r.constant.array->size(); i += 2) {
+        std::string vid_str = (*r.constant.array)[i].AsString(); /* V[0] */
+        auto open_bracket_pos = vid_str.find('[');
+        auto close_bracket_pos = vid_str.find(']');
+        auto vid_number_str = vid_str.substr(open_bracket_pos + 1, close_bracket_pos - open_bracket_pos - 1);
+        vids.emplace_back(lgraph::FieldData(static_cast<int64_t>(std::stoll(vid_number_str.c_str()))));
+    }
+    return cypher::FieldData(vids);
 }
 
 cypher::FieldData BuiltinFunction::Labels(RTContext *ctx, const Record &record,

@@ -20,6 +20,7 @@
 #include "core/kv_store.h"
 #include "core/mock_kv.h"
 #include "core/edge_index.h"
+#include "core/lightning_graph.h"
 #include "./ut_utils.h"
 
 class TestEdgeIndex : public TuGraphTest {};
@@ -338,4 +339,85 @@ int TestEdgeIndexImpl() {
     return 0;
 }
 
-TEST_F(TestEdgeIndex, EdgeIndex) { TestEdgeIndexImpl(); }
+TEST_F(TestEdgeIndex, EdgeIndex) {
+    TestEdgeIndexImpl();
+}
+
+TEST_F(TestEdgeIndex, DeleteVertex) {
+    AutoCleanDir cleaner("./testdb");
+    DBConfig config;
+    config.dir = "./testdb";
+    LightningGraph db(config);
+    db.DropAllData();
+    std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
+                                    {"title", FieldType::STRING, false},
+                                    {"description", FieldType::STRING, true},
+                                    {"type", FieldType::INT8, false}};
+    std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
+                                    {"comments", FieldType::STRING, true},
+                                    {"weight", FieldType::FLOAT, false}};
+    UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
+    UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+    // add edge index
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "weight", false, false));
+
+    Transaction txn = db.CreateWriteTxn();
+    std::vector<std::string> v1_properties = {"name", "title", "description", "type"};
+    VertexId v_id1 = txn.AddVertex(
+        std::string("v1"), v1_properties,
+        std::vector<std::string>{"name1", "title1", "desc1", "1"});
+    VertexId v_id2 = txn.AddVertex(
+        std::string("v1"), v1_properties,
+        std::vector<std::string>{"name2", "title2", "desc2", "2"});
+    VertexId v_id3 = txn.AddVertex(
+        std::string("v1"), v1_properties,
+        std::vector<std::string>{"name3", "title3", "desc3", "3"});
+    VertexId v_id4 = txn.AddVertex(
+        std::string("v1"), v1_properties,
+        std::vector<std::string>{"name4", "title4", "desc4", "4"});
+    txn.Commit();
+
+    // add edge
+    txn = db.CreateWriteTxn();
+    std::vector<std::string> e1_properties = {"name", "comments", "weight"};
+    EdgeUid e_id1 =
+        txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name1", "comments1", "10"});
+    EdgeUid e_id2 =
+        txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name2", "comments2", "12"});
+    EdgeUid e_id3 =
+        txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name3", "comments3", "14"});
+    EdgeUid e_id4 =
+        txn.AddEdge(v_id4, v_id3, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name4", "comments4", "15"});
+
+    EdgeUid e_id5 =
+        txn.AddEdge(v_id1, v_id1, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name5", "comments5", "20"});
+
+    EdgeUid e_id6 =
+        txn.AddEdge(v_id2, v_id2, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name6", "comments6", "20"});
+    txn.Commit();
+
+    txn = db.CreateWriteTxn();
+    size_t n_in = 0;
+    size_t n_out = 0;
+    UT_EXPECT_TRUE(txn.DeleteVertex(v_id1, &n_in, &n_out));
+    UT_EXPECT_EQ(n_in, 2);
+    UT_EXPECT_EQ(n_out, 2);
+    std::unordered_set<std::string> res = {"name3", "name4", "name6"};
+    int count = 0;
+    for (auto it = txn.GetEdgeIndexIterator("e1", "name"); it.IsValid();
+         it.Next()) {
+        count++;
+        auto k = it.GetKey();
+        UT_EXPECT_TRUE(res.count(k.AsString()));
+    }
+    UT_EXPECT_EQ(count, 3);
+    txn.Commit();
+}

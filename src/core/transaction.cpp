@@ -354,24 +354,55 @@ void Transaction::Abort() {
 }
 
 void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* n_out) {
+    if (n_in) *n_in = 0;
+    if (n_out) *n_out = 0;
     // check if there is blob
     Value prop = it.GetProperty();
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, txn_);
     schema->DeleteVertexIndex(txn_, it.GetId(), prop);
-    if (!fulltext_index_) {
-        graph_->DeleteVertex(txn_, it, n_in, n_out, nullptr, nullptr);
-    } else {
-        std::vector<EdgeUid> e_in, e_out;
-        graph_->DeleteVertex(txn_, it, n_in, n_out, &e_in, &e_out);
-        // delete edge fulltext index
-        for (const auto& e : e_in) {
-            schema->DeleteEdgeFullTextIndex(e, fulltext_buffers_);
+    auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
+        if (is_out_edge) {
+            if (n_out) {
+                *n_out += edge_value.GetEdgeCount();
+            }
+        } else {
+            if (n_in) {
+                *n_in += edge_value.GetEdgeCount();
+            }
         }
-        for (const auto& e : e_out) {
-            schema->DeleteEdgeFullTextIndex(e, fulltext_buffers_);
+
+        for (size_t i = 0; i < edge_value.GetEdgeCount(); i++) {
+            const auto& data = edge_value.GetNthEdgeData(i);
+            auto edge_schema = curr_schema_->e_schema_manager.GetSchema(data.lid);
+            FMA_ASSERT(edge_schema);
+            if (is_out_edge) {
+                edge_schema->DeleteEdgeIndex(txn_, it.GetId(),
+                                        data.vid, data.lid, data.tid, data.eid,
+                                        Value(data.prop, data.psize));
+                if (fulltext_index_) {
+                    edge_schema->DeleteEdgeFullTextIndex(
+                        {it.GetId(), data.vid, data.lid, data.tid, data.eid}, fulltext_buffers_);
+                }
+            } else {
+                if (it.GetId() == data.vid) {
+                    // The in edge directing to self is already included in the out edges
+                    // skip to avoid double deleting
+                    continue;
+                }
+                edge_schema->DeleteEdgeIndex(txn_, data.vid,
+                                        it.GetId(), data.lid, data.tid, data.eid,
+                                        Value(data.prop, data.psize));
+                if (fulltext_index_) {
+                    edge_schema->DeleteEdgeFullTextIndex(
+                        {data.vid, it.GetId(), data.lid, data.tid, data.eid}, fulltext_buffers_);
+                }
+            }
         }
-        // delete vertex fulltext index
+    };
+    graph_->DeleteVertex(txn_, it, on_edge_deleted);
+    // delete vertex fulltext index
+    if (fulltext_index_) {
         schema->DeleteVertexFullTextIndex(it.GetId(), fulltext_buffers_);
     }
 }
@@ -621,7 +652,7 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             schema->AddVertexToIndex(txn_, newvid, v);
         } catch (std::exception& e) {
             // if index fails, delete the vertex & the incomplete index
-            bool success = graph_->DeleteVertex(txn_, newvid, nullptr, nullptr, nullptr, nullptr);
+            bool success = graph_->DeleteVertex(txn_, newvid);
             if (!success) throw std::runtime_error("failed to undo AddVertex");
             /* must delete the incomplete index, otherwise error occurs (issue #187):
              * trigger:

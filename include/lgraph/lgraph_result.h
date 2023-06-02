@@ -213,7 +213,7 @@ class Record {
     bool HasKey(const std::string &key) { return header.find(key) != header.end(); }
 };
 /**
- * @brief   Result table, result instance provide [NewRecord], [ResetHeader], [Dump] and [Load]
+ * @brief   Result table, result instance provide [MutableRecord], [ResetHeader], [Dump] and [Load]
  *          method. Table also provide some method to view content of table. For example,
  *          [Header] and [Recordview].
  *          
@@ -270,7 +270,7 @@ class Result {
      *
      * @returns The reference of record.
      */
-    Record &NewRecord();
+    Record *MutableRecord();
 
     /**
      * @brief   return header of the table.
