@@ -68,14 +68,13 @@ Slack (在线开发沟通):
 
 钉钉群 (技术交流)
 
-![alert](./doc/images/dingtalk.png)
+![alert](./doc/doc_images/dingtalk.png)
 
 微信群 (技术交流)
 
-![alert](./doc/images/wechat_tech.png)
+![alert](./doc/doc_images/wechat_tech.png)
 
 微信公众号 (信息发布)
 
-![alert](./doc/images/wechat.png)
+![alert](./doc/doc_images/wechat.png)
 
-![alert](../images/wechat.png)

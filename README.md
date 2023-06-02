@@ -73,13 +73,13 @@ Slack (For developer quick communication):
 
 DingTalk Group (For general technical discussion)
 
-![alert](./doc/images/dingtalk.png)
+![alert](./doc/doc_images/dingtalk.png)
 
 WeChat Group (For general technical discussion)
 
-![alert](./doc/images/wechat_tech.png)
+![alert](./doc/doc_images/wechat_tech.png)
 
 WeChat Official Account (For announcement)
 
-![alert](./doc/images/wechat.png)
+![alert](./doc/doc_images/wechat.png)
 
