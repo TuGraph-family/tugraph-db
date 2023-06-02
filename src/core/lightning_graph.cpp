@@ -337,7 +337,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
                 // use unique_idx and delete vertexes one by one
                 for (auto iit = unique_idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
                      iit.IsValid(); iit.Next()) {
-                    bool r = graph_->DeleteVertex(txn.GetTxn(), iit.GetVid(), nullptr, nullptr);
+                    bool r = graph_->DeleteVertex(txn.GetTxn(), iit.GetVid());
                     FMA_DBG_ASSERT(r);
                     modified++;
                     if (modified != 0 && modified % commit_size == 0) {

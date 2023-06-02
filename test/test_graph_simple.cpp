@@ -241,8 +241,15 @@ TEST_F(TestGraphSimple, GraphSimple) {
 
     // test remove edge and remove vertex
     txn = store.CreateWriteTxn();
-    size_t n_in, n_out;
-    UT_EXPECT_TRUE(graph.DeleteVertex(txn, 4, &n_in, &n_out));
+    size_t n_in = 0, n_out = 0;
+    auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
+        if (is_out_edge) {
+            n_out += edge_value.GetEdgeCount();
+        } else {
+            n_in += edge_value.GetEdgeCount();
+        }
+    };
+    UT_EXPECT_TRUE(graph.DeleteVertex(txn, 4, on_edge_deleted));
     UT_EXPECT_EQ(n_in, 1);
     UT_EXPECT_EQ(n_out, 0);
     UT_EXPECT_TRUE(graph.DeleteEdge(txn, EdgeUid(1, 2, 0, 0, 0)));

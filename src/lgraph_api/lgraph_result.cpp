@@ -279,7 +279,7 @@ void Record::Insert(const std::string &key, const traversal::Path &path, lgraph:
         repl.label_id = euid.lid;
         repl.tid = euid.tid;
         repl.label = txn->GetEdgeLabel(eit);
-        repl.forward = (vid == euid.src);
+        repl.forward = ((int64_t)vid == euid.src);
         for (const auto &property : txn->GetEdgeFields(eit)) {
             repl.properties[property.first] = property.second;
         }

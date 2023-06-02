@@ -156,8 +156,15 @@ TEST_F(TestGraph, Graph) {
                 }
             }
             UT_EXPECT_EQ(nd, epv);
-            size_t ni, no;
-            UT_EXPECT_TRUE(graph.DeleteVertex(txn, 0, &ni, &no));
+            size_t ni = 0, no = 0;
+            auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
+                if (is_out_edge) {
+                    no += edge_value.GetEdgeCount();
+                } else {
+                    ni += edge_value.GetEdgeCount();
+                }
+            };
+            UT_EXPECT_TRUE(graph.DeleteVertex(txn, 0, on_edge_deleted));
             UT_EXPECT_EQ(ni, (nv - 1) * (epv / nv + (epv % nv != 0)));
             UT_EXPECT_EQ(no, 0);
 
