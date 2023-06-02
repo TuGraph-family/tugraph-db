@@ -48,7 +48,7 @@ class WCCCore:
         self.active_in.Fill()
         self.active_out = g.AllocVertexSubset()
         self.label = g.AllocVertexArray[size_t]()
-        vi: cython.int
+        vi: cython.size_t
         for vi in range(num_vertices):
             self.label[vi] = vi
         num_activations = cython.declare(size_t, num_vertices)
@@ -73,7 +73,7 @@ def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict
     cost = time.time() - cost
     printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
 
-    component = [0] * olapondb.NumVertices()
+    component = [0] * int(olapondb.NumVertices())
     i: size_t
     for i in range(olapondb.NumVertices()):
         component[a.label[i]] += 1
@@ -105,7 +105,7 @@ def Standalone(input_dir: str):
     a.run(cython.address(graph))
     cost = time.time() - cost
     printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
-    component = [0] * graph.NumVertices()
+    component = [0] * int(graph.NumVertices())
     for i in range(graph.NumVertices()):
         component[a.label[i]] += 1
     max_component = 0
