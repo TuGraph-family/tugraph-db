@@ -311,10 +311,10 @@ Result::Result(const std::initializer_list<std::pair<std::string, LGraphType>> &
     row_count_ = -1;
 }
 
-Record &Result::NewRecord() {
+Record *Result::MutableRecord() {
     result.emplace_back(Record(header));
     row_count_++;
-    return result[row_count_];
+    return &result[row_count_];
 }
 
 void Result::ResetHeader(const std::vector<std::pair<std::string, LGraphType>> &new_header) {
@@ -404,26 +404,26 @@ void Result::Load(const std::string &output) {
             header.push_back({title_name, title_type});
         }
         for (auto &row : data) {
-            auto &record = this->NewRecord();
+            auto record = this->MutableRecord();
             for (auto &col : row.items()) {
                 auto title = col.key();
                 switch (GetType(title)) {
                 case LGraphType::INTEGER:
-                    record.Insert(title, FieldData(std::forward<int>(col.value().get<int>())));
+                    record->Insert(title, FieldData(std::forward<int>(col.value().get<int>())));
                     break;
                 case LGraphType::FLOAT:
-                    record.Insert(title, FieldData(std::forward<float>(col.value().get<float>())));
+                    record->Insert(title, FieldData(std::forward<float>(col.value().get<float>())));
                     break;
                 case LGraphType::DOUBLE:
-                    record.Insert(title,
+                    record->Insert(title,
                                   FieldData(std::forward<double>(col.value().get<double>())));
                     break;
                 case LGraphType::BOOLEAN:
-                    record.Insert(title, FieldData(std::forward<bool>(col.value().get<bool>())));
+                    record->Insert(title, FieldData(std::forward<bool>(col.value().get<bool>())));
                     break;
                 case LGraphType::STRING:
                 case LGraphType::ANY:
-                    record.Insert(
+                    record->Insert(
                         title,
                         FieldData(std::forward<std::string>(col.value().get<std::string>())));
                     break;
@@ -431,7 +431,7 @@ void Result::Load(const std::string &output) {
                     {
                         std::vector<FieldData> list;
                         for (auto &obj : col.value()) list.push_back(FieldData(obj.dump()));
-                        record.Insert(title, list);
+                        record->Insert(title, list);
                     }
                     break;
                 case LGraphType::MAP:
@@ -439,7 +439,7 @@ void Result::Load(const std::string &output) {
                         std::map<std::string, FieldData> map;
                         for (auto &obj : col.value().items())
                             map[obj.key()] = FieldData(lgraph_rfc::JsonToFieldData(obj.value()));
-                        record.Insert(title, map);
+                        record->Insert(title, map);
                     }
                     break;
                 case LGraphType::NODE:
@@ -451,9 +451,9 @@ void Result::Load(const std::string &output) {
                         for (auto &obj : col.value()["properties"].items())
                             properties[obj.key()] = lgraph_rfc::JsonToFieldData(obj.value());
                         node.properties = properties;
-                        record.record[title] =
+                        record->record[title] =
                             std::shared_ptr<ResultElement>(new ResultElement(node));
-                        record.length_++;
+                        record->length_++;
                     }
                     break;
                 case LGraphType::RELATIONSHIP:
@@ -468,9 +468,9 @@ void Result::Load(const std::string &output) {
                         for (auto &obj : col.value()["properties"].items())
                             properties[obj.key()] = lgraph_rfc::JsonToFieldData(obj.value());
                         repl.properties = properties;
-                        record.record[title] =
+                        record->record[title] =
                             std::shared_ptr<ResultElement>(new ResultElement(repl));
-                        record.length_++;
+                        record->length_++;
                     }
                     break;
                 case LGraphType::PATH:
@@ -503,8 +503,8 @@ void Result::Load(const std::string &output) {
                                 path.emplace_back(lgraph_result::PathElement(repl));
                             }
                             is_node = !is_node;
-                            record.length_++;
-                            record.record[title] =
+                            record->length_++;
+                            record->record[title] =
                                 std::shared_ptr<ResultElement>(new ResultElement(path));
                         }
                     }
@@ -515,9 +515,9 @@ void Result::Load(const std::string &output) {
             }
         }
     } catch (std::exception &e) {
-        auto &record = this->NewRecord();
-        record.Insert(header[0].first, FieldData(output));
-        record.length_++;
+        auto record = this->MutableRecord();
+        record->Insert(header[0].first, FieldData(output));
+        record->length_++;
         FMA_LOG() << FMA_FMT("[Plugin Error] Error: {}", e.what());
     }
 }
