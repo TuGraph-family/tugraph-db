@@ -27,9 +27,9 @@
 #include "protobuf/ha.pb.h"
 #include "server/proto_convert.h"
 #include "server/state_machine.h"
-#include "execution_plan/runtime_context.h"
 
 #ifndef _WIN32
+#include "execution_plan/runtime_context.h"
 #include "cypher/resultset/record.h"
 #endif
 
