@@ -85,7 +85,7 @@ TEST_F(TestGraph, Graph) {
     KvTable graph_table = Graph::OpenTable(txn, store, "graph");
     KvTable meta_table =
         store.OpenTable(txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
-    Graph graph(txn, graph_table, & meta_table);
+    Graph graph(txn, graph_table, &meta_table);
     txn.Commit();
 
     UT_LOG() << "Testing iterator refresh";
@@ -157,7 +157,7 @@ TEST_F(TestGraph, Graph) {
             }
             UT_EXPECT_EQ(nd, epv);
             size_t ni = 0, no = 0;
-            auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
+            auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value) {
                 if (is_out_edge) {
                     no += edge_value.GetEdgeCount();
                 } else {
@@ -204,7 +204,7 @@ TEST_F(TestGraph, DeleteVertexRemoveEdges) {
     // that have the vertex as source or destination
     AutoCleanDir _dir("./testdb");
     KvStore store("./testdb", 1 << 30, false);
-    
+
     // open table
     auto txn = store.CreateWriteTxn();
     KvTable graph_table = Graph::OpenTable(txn, store, "graph");
@@ -229,11 +229,12 @@ TEST_F(TestGraph, DeleteVertexRemoveEdges) {
                        EdgeUid(0, 2, 0, 2000, 0));
         UT_EXPECT_TRUE(graph.AddEdge(txn, EdgeSid(0, 1, 0, 3000), prop, {}) ==
                        EdgeUid(0, 1, 0, 3000, 0));
+        UT_EXPECT_TRUE(graph.AddEdge(txn, EdgeSid(0, 0, 0, 4000), prop, {}) ==
+                       EdgeUid(0, 0, 0, 4000, 0));
+        UT_EXPECT_TRUE(graph.AddEdge(txn, EdgeSid(0, 1, 0, 5000), prop, {}) ==
+                       EdgeUid(0, 1, 0, 5000, 0));
         // delete vertex 0
-        size_t ni, no;
-        UT_EXPECT_TRUE(graph.DeleteVertex(txn, 0, &ni, &no));
-        UT_EXPECT_EQ(ni, 0);
-        UT_EXPECT_EQ(no, 3);
+        UT_EXPECT_TRUE(graph.DeleteVertex(txn, 0, nullptr));
         // check that edges are gone
         UT_EXPECT_TRUE(
             !graph.GetUnmanagedInEdgeIterator(&txn, EdgeUid(0, 1, 0, 0, 0), true).IsValid());
