@@ -1,5 +1,23 @@
 # Change Log for TuGraph
 
+# 3.5.0 (2023-6-5)
+
+**Breaking Changes:**
+
+1. TPOG (aka APOC) support
+
+2. New TuGraph Browser
+
+3. Document reorganize, readthedocs support
+
+**Improvements And Bug Fixes:**
+
+1. Fix edge index bug
+
+2. Update antlr
+
+3. Other bug fix
+
 # 3.4.0 (2023-3-11)
 
 **Breaking Changes:**

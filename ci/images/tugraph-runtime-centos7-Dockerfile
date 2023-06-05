@@ -56,8 +56,8 @@ RUN cd opt \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
-COPY tugraph-3.4.0-1.el7.x86_64.rpm /tugraph-3.4.0-1.el7.x86_64.rpm
-RUN rpm -ivh tugraph-3.4.0-1.el7.x86_64.rpm && rm /tugraph-3.4.0-1.el7.x86_64.rpm
+COPY tugraph-3.5.0-1.el7.x86_64.rpm /tugraph-3.5.0-1.el7.x86_64.rpm
+RUN rpm -ivh tugraph-3.5.0-1.el7.x86_64.rpm && rm /tugraph-3.5.0-1.el7.x86_64.rpm
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
