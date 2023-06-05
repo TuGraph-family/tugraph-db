@@ -969,7 +969,7 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
     BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
                                   "[CYPHER] " + req.query());
     TimeoutTaskKiller timeout_killer;
-    if (req.has_timeout() && req.timeout() != 0) {
+    if (req.has_timeout() && req.timeout() > 0) {
         timeout_killer.SetTimeout(req.timeout());
     }
     cypher::ElapsedTime elapsed;
@@ -1135,7 +1135,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             FMA_DBG_STREAM(logger_) << "Calling plugin " << preq.name() << " with param "
                                     << preq.param() << " timeout " << preq.timeout();
             TimeoutTaskKiller timeout_killer;
-            if (preq.has_timeout() && preq.timeout() != 0) {
+            if (preq.has_timeout() && preq.timeout() > 0) {
                 timeout_killer.SetTimeout(preq.timeout());
             }
             bool r = false;
