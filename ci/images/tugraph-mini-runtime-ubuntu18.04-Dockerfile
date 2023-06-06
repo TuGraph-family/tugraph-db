@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     gcc \
     libssl-dev
 
-COPY tugraph-mini-3.4.0-1.x86_64.deb /tugraph-mini-3.4.0-1.x86_64.deb
-RUN dpkg -i tugraph-mini-3.4.0-1.x86_64.deb && rm /tugraph-mini-3.4.0-1.x86_64.deb
+COPY tugraph-mini-3.5.0-1.x86_64.deb /tugraph-mini-3.5.0-1.x86_64.deb
+RUN dpkg -i tugraph-mini-3.5.0-1.x86_64.deb && rm /tugraph-mini-3.5.0-1.x86_64.deb
 
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+
