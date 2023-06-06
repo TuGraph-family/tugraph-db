@@ -200,6 +200,9 @@ class BuiltinProcedure {
     static void DbmsGraphListGraphs(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                     const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbmsGraphListUserGraphs(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                    const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbmsGraphGetGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -658,6 +661,12 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("dbms.graph.listGraphs", BuiltinProcedure::DbmsGraphListGraphs, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"configuration", {1, lgraph_api::LGraphType::MAP}}},
+              true, true),
+
+    Procedure("dbms.graph.listUserGraphs", BuiltinProcedure::DbmsGraphListUserGraphs,
+              Procedure::SIG_SPEC{{"user_name", {0, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"configuration", {1, lgraph_api::LGraphType::MAP}}},
               true, true),

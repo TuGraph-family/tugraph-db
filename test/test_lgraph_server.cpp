@@ -103,7 +103,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
                                     "call dbms.graph.modGraph('default', {description:'default "
                                     "graph', max_size_GB:3})");
             UT_EXPECT_EQ(ret, false);
-            UT_EXPECT_EQ(str, "Access denied: Invalid token.");
+            UT_EXPECT_EQ(str, "Access denied: Authentication failed.");
         }
         std::string str;
         auto server = StartLGraphServer(conf);

@@ -82,7 +82,7 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user,
 std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) const {
     std::string user, password;
     _HoldReadLock(acl_lock_);
-    if (!acl_->DecipherToken(token, user, password)) throw AuthError("Invalid token.");
+    if (!acl_->DecipherToken(token, user, password)) throw AuthError();
     return user;
 }
 
@@ -93,7 +93,7 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
         _HoldWriteLock(acl_lock_);
         acl_->BindTokenUser(token, new_token, user);
     } else {
-        throw InputError("token has time out.");
+        throw InputError("token has timeout.");
     }
     return new_token;
 }
@@ -196,6 +196,10 @@ std::map<std::string, lgraph::DBConfig> lgraph::Galaxy::ListGraphs(
     const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot list graphs.");
+    return ListGraphsInternal();
+}
+
+std::map<std::string, lgraph::DBConfig> lgraph::Galaxy::ListGraphsInternal() const {
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
     return graphs_->ListGraphs();
 }

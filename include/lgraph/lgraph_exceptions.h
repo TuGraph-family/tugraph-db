@@ -120,6 +120,26 @@ class IOError : public std::runtime_error {
 /** @brief   User not authorized to perform this action. */
 class UnauthorizedError : public InputError {
  public:
-    explicit UnauthorizedError(const std::string& msg = "Unauthorized.") : InputError(msg) {}
+    explicit UnauthorizedError(const std::string& msg = "Authentication failed.")
+        : InputError(msg) {}
 };
+
+class InternalErrorException : public std::exception {
+    std::string err_;
+
+ public:
+    explicit InternalErrorException(const std::string& err) : err_("InternalError " + err) {}
+
+    const char* what() const noexcept override { return err_.c_str(); }
+};
+
+class BadRequestException : public std::exception {
+    std::string err_;
+
+ public:
+    explicit BadRequestException(const std::string& err) : err_("BadRequest " + err) {}
+
+    const char* what() const noexcept override { return err_.c_str(); }
+};
+
 }  // namespace lgraph_api
