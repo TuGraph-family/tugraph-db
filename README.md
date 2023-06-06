@@ -27,7 +27,7 @@ Performance and scalability:
 - Visit millions of vertices per second
 - Fast bulk import
 
-Welcome to our [website](https://www.tugraph.org)
+Welcome to our [website](https://www.tugraph.org).
 
 ## 1. Quick Start
 
@@ -54,7 +54,7 @@ for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers 
 
 We have a [roadmap](doc/en-US/source/6.community-manual/5.roadmap.md) to help you understand TuGraph.
 
-To contribute, please read [doc](doc/en-US/source/6.community-manual/1.contributing.md)
+To contribute, please read [doc](doc/en-US/source/6.community-manual/1.contributing.md).
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
