@@ -32,7 +32,7 @@ Welcome to our [website](https://www.tugraph.org)
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
 
-For more details, please refer to [quick start doc](doc/zh-CN/1.guide/3.quick-start.md).
+For more details, please refer to [quick start doc](doc/en-US/source/3.quick-start/1.preparation.md).
 
 ## 2. Build from Source
 
@@ -50,9 +50,9 @@ Here are steps to compile TuGraph:
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-compile-[os]:[compile version]`, 
 for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers get started easily.
 
-We have a [roadmap](doc/zh-CN/6.community/3.roadmap.md) to help you understand TuGraph.
+We have a [roadmap](doc/en-US/source/6.community-manual/5.roadmap.md) to help you understand TuGraph.
 
-To contribute, please read [doc](doc/zh-CN/6.community/1.contributing.md)
+To contribute, please read [doc](doc/en-US/source/6.community-manual/1.contributing.md)
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
