@@ -4,7 +4,9 @@
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 
-:mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-7b50ea3d20e643da95bf&ServiceVersion=1&isTrial=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**
+[[中文版]](README_CN.md)
+
+:mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-7b50ea3d20e643da95bf&ServiceVersion=1&isTrial=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**.
 
 ## 0. Introduction
 TuGraph is an efficient graph database that supports high data volume, low latency lookup and fast graph analytics.
@@ -25,14 +27,14 @@ Performance and scalability:
 - Visit millions of vertices per second
 - Fast bulk import
 
-Welcome to our [website](https://www.tugraph.org)
+Welcome to our [website](https://www.tugraph.org).
 
 ## 1. Quick Start
 
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
 
-For more details, please refer to [quick start doc](doc/zh-CN/1.guide/3.quick-start.md).
+For more details, please refer to [quick start doc](doc/en-US/source/3.quick-start/1.preparation.md).
 
 ## 2. Build from Source
 
@@ -50,9 +52,9 @@ Here are steps to compile TuGraph:
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-compile-[os]:[compile version]`, 
 for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers get started easily.
 
-We have a [roadmap](doc/zh-CN/6.community/3.roadmap.md) to help you understand TuGraph.
+We have a [roadmap](doc/en-US/source/6.community-manual/5.roadmap.md) to help you understand TuGraph.
 
-To contribute, please read [doc](doc/zh-CN/6.community/1.contributing.md)
+To contribute, please read [doc](doc/en-US/source/6.community-manual/1.contributing.md).
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
