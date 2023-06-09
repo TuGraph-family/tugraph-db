@@ -1,3 +1,18 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+
 #pragma once
 
 #ifdef _WIN32
@@ -23,9 +38,7 @@ extern "C" {
 #include <stdint.h>
 
 typedef struct lgraph_api_date_t lgraph_api_date_t;
-// TODO: implement
 typedef struct lgraph_api_date_time_t lgraph_api_date_time_t;
-// TODO: implement
 typedef struct lgraph_api_field_data_t lgraph_api_field_data_t;
 typedef struct lgraph_api_field_spec_t lgraph_api_field_spec_t;
 typedef struct lgraph_api_index_spec_t lgraph_api_index_spec_t;
@@ -37,7 +50,6 @@ typedef struct lgraph_api_in_edge_iterator_t lgraph_api_in_edge_iterator_t;
 typedef struct lgraph_api_vertex_iterator_t lgraph_api_vertex_iterator_t;
 typedef struct lgraph_api_edge_index_iterator_t lgraph_api_edge_index_iterator_t;
 typedef struct lgraph_api_vertex_index_iterator_t lgraph_api_vertex_index_iterator_t;
-
 typedef struct lgraph_api_transaction_t lgraph_api_transaction_t;
 typedef struct lgraph_api_graph_db_t lgraph_api_graph_db_t;
 typedef struct lgraph_api_galaxy_t lgraph_api_galaxy_t;
