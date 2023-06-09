@@ -2230,7 +2230,6 @@ bool lgraph_api_graph_db_alter_edge_label_add_fields(
             label, lgraph_api_field_spec_array_to_feild_spec_vec(add_fields, add_fields_len),
             lgraph_api_field_data_array_to_field_data_vec(default_values, default_values_len),
             n_modified);
-        ;
     } catch (const std::exception& e) {
         *errptr = strdup(e.what());
         return false;
