@@ -20,6 +20,7 @@
 #include "server/service.h"
 #include "server/state_machine.h"
 #include "restful/server/rest_server.h"
+#include "http/http_server.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"
@@ -86,6 +87,7 @@ class LGraphServer {
     std::unique_ptr<lgraph::RestServer> rest_server_;
 #ifndef _WIN32
     std::unique_ptr<lgraph::RPCService> rpc_service_;
+    std::unique_ptr<lgraph::http::HttpService> http_service_;
     std::unique_ptr<brpc::Server> rpc_server_;
     std::unique_ptr<logging::LogSink> blog_sink_;
 #endif
@@ -107,6 +109,8 @@ class LGraphServer {
     virtual int MakeStateMachine();
 
     virtual int StartRpcService();
+
+    virtual int StartHttpService();
 
     virtual void KillServer();
 

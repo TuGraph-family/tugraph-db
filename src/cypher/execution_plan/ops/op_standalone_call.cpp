@@ -48,8 +48,8 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 s.append(p.name).append(" | ").append(p.desc).append(" | ").append(
                     p.read_only ? "READ" : "WRITE");
 
-                auto &r = ctx->result_->NewRecord();
-                r.Insert(title, lgraph::FieldData(s));
+                auto r = ctx->result_->MutableRecord();
+                r->Insert(title, lgraph::FieldData(s));
             }
         } else {
             if (ctx->txn_) ctx->txn_->Abort();
@@ -100,7 +100,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
-            auto &record = ctx->result_->NewRecord();
+            auto record = ctx->result_->MutableRecord();
             int idx = 0;
             for (auto &v : r.values) {
                 auto title = header[idx].first;
@@ -115,7 +115,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 case lgraph_api::LGraphType::ANY:
                 case lgraph_api::LGraphType::PATH:
                     // TODO PATH is undefine
-                    record.Insert(title, lgraph::FieldData(v.ToString()));
+                    record->Insert(title, lgraph::FieldData(v.ToString()));
                     break;
                 case lgraph_api::LGraphType::MAP:
                     {
@@ -124,7 +124,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         for (auto &o : obj.items()) {
                             map[o.key()] = lgraph::FieldData(o.value().dump());
                         }
-                        record.Insert(title, map);
+                        record->Insert(title, map);
                         break;
                     }
                 case lgraph_api::LGraphType::LIST:
@@ -134,15 +134,15 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         for (auto &o : obj) {
                             list.emplace_back(lgraph::FieldData(o.dump()));
                         }
-                        record.Insert(title, list);
+                        record->Insert(title, list);
                         break;
                     }
                 default:
                     if (v.constant.array != nullptr) {
-                        record.Insert(title, lgraph::FieldData(v.ToString()));
+                        record->Insert(title, lgraph::FieldData(v.ToString()));
                     }
                     else {
-                        record.Insert(title, v.constant.scalar);
+                        record->Insert(title, v.constant.scalar);
                     }
                 }
                 idx++;

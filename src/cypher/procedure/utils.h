@@ -116,59 +116,58 @@ class PluginAdapter {
             auto parameter = sig_spec_->input_list[i];
             switch (argument.type) {
                 case Entry::CONSTANT:
-                    if (!lgraph_api::LGraphTypeIsField(parameter.type)) {
-                        throw lgraph::EvaluationException("Invalid argument");
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::BOOLEAN) {
-                        if(!argument.constant.IsBool()) {
-                            throw lgraph::EvaluationException("Invalid argument");
-                        } else {
-                            arguments.emplace_back(argument.ToString("null"));
-                            continue;
+                    if (lgraph_api::LGraphTypeIsField(parameter.type)) {
+                        if (parameter.type == lgraph_api::LGraphType::BOOLEAN) {
+                            if(!argument.constant.IsBool()) {
+                                throw lgraph::EvaluationException("Invalid argument");
+                            } else {
+                                arguments.emplace_back(argument.ToString("null"));
+                                continue;
+                            }
                         }
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::INTEGER) {
-                        if(!argument.constant.IsInteger()) {
-                            throw lgraph::EvaluationException("Invalid argument");
-                        } else {
-                            arguments.emplace_back(argument.ToString("null"));
-                            continue;
+                        if (parameter.type == lgraph_api::LGraphType::INTEGER) {
+                            if(!argument.constant.IsInteger()) {
+                                throw lgraph::EvaluationException("Invalid argument");
+                            } else {
+                                arguments.emplace_back(argument.ToString("null"));
+                                continue;
+                            }
                         }
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::FLOAT) {
-                        if(!argument.constant.IsReal()) {
-                            throw lgraph::EvaluationException("Invalid argument");
-                        } else {
-                            arguments.emplace_back(argument.ToString("null"));
-                            continue;
+                        if (parameter.type == lgraph_api::LGraphType::FLOAT) {
+                            if(!argument.constant.IsReal()) {
+                                throw lgraph::EvaluationException("Invalid argument");
+                            } else {
+                                arguments.emplace_back(argument.ToString("null"));
+                                continue;
+                            }
                         }
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::DOUBLE) {
-                        if(!argument.constant.IsReal()) {
-                            throw lgraph::EvaluationException("Invalid argument");
-                        } else {
-                            arguments.emplace_back(argument.ToString("null"));
-                            continue;
+                        if (parameter.type == lgraph_api::LGraphType::DOUBLE) {
+                            if(!argument.constant.IsReal()) {
+                                throw lgraph::EvaluationException("Invalid argument");
+                            } else {
+                                arguments.emplace_back(argument.ToString("null"));
+                                continue;
+                            }
                         }
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::STRING) {
-                        if(!argument.constant.IsString()) {
-                            throw lgraph::EvaluationException("Invalid argument");
-                        } else {
-                            arguments.emplace_back("\"" + argument.ToString("null") + "\"");
-                            continue;
+                        if (parameter.type == lgraph_api::LGraphType::STRING) {
+                            if(!argument.constant.IsString()) {
+                                throw lgraph::EvaluationException("Invalid argument");
+                            } else {
+                                arguments.emplace_back("\"" + argument.ToString("null") + "\"");
+                                continue;
+                            }
                         }
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::LIST) {
-                        if (!argument.constant.IsArray()) {
-                            throw lgraph::EvaluationException("Invalid argument");
+                    } else {
+                        if (parameter.type == lgraph_api::LGraphType::LIST) {
+                            if (!argument.constant.IsArray()) {
+                                throw lgraph::EvaluationException("Invalid argument");
+                            } else {
+                                arguments.emplace_back(argument.ToString("null"));
+                                continue;
+                            }
                         } else {
-                            arguments.emplace_back(argument.ToString("null"));
-                            continue;
+                            throw lgraph::EvaluationException("Invalid argument");
                         }
-                    }
-                    if (parameter.type == lgraph_api::LGraphType::MAP) {
-                        throw lgraph::EvaluationException("Invalid argument, not support map");
                     }
                     break;
                 case Entry::NODE:

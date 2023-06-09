@@ -95,7 +95,14 @@ TEST_P(TestRestClient, RestClient) {
         fma_common::file_system::RemoveDir(gconfig->db_dir);
         server = StartEmptyServer();
         client = GetRestClient();
-        client->Login(admin_user, admin_pass);
+        for (int retry_times = 5; retry_times > 0; --retry_times) {
+            try {
+                if (client->Login(admin_user, admin_pass)) break;
+            } catch (std::exception& e) {
+                UT_LOG() << FMA_FMT("error on connect rest server : {} ", e.what());
+            }
+            fma_common::SleepS(2);
+        }
     };
 
     DefineTest("DeleteAdminRole") {

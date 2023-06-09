@@ -63,8 +63,8 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
             ctx->result_ = std::make_unique<lgraph::Result>();
 
             ctx->result_->ResetHeader({{"@plan", lgraph_api::LGraphType::STRING}});
-            auto &r = ctx->result_->NewRecord();
-            r.Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
+            auto r = ctx->result_->MutableRecord();
+            r->Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
             return;
         }
         FMA_DBG_STREAM(Logger()) << "Plan cache disabled.";
@@ -96,8 +96,8 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
         ctx->result_ = std::make_unique<lgraph::Result>();
         ctx->result_->ResetHeader({{"@profile", lgraph_api::LGraphType::STRING}});
 
-        auto &r = ctx->result_->NewRecord();
-        r.Insert("@profile", lgraph::FieldData(plan->DumpGraph()));
+        auto r = ctx->result_->MutableRecord();
+        r->Insert("@profile", lgraph::FieldData(plan->DumpGraph()));
         return;
     } else {
         /* promote priority of the recent plan
@@ -111,7 +111,10 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     }
 }
 
-bool Scheduler::DetermineReadOnly(const std::string &script, std::string& name, std::string& type) {
+bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
+                                  const std::string &script,
+                                  std::string& name,
+                                  std::string& type) {
     using namespace parser;
     using namespace antlr4;
     ANTLRInputStream input(script);
@@ -123,8 +126,7 @@ bool Scheduler::DetermineReadOnly(const std::string &script, std::string& name, 
      * add customized ErrorListener  */
     parser.addErrorListener(&CypherErrorListener::INSTANCE);
     tree::ParseTree *tree = parser.oC_Cypher();
-    CypherBaseVisitor visitor = CypherBaseVisitor();
-    visitor.visit(tree);
+    CypherBaseVisitor visitor = CypherBaseVisitor(ctx, tree);
     for (const auto &sq : visitor.GetQuery()) {
         if (!sq.ReadOnly(name, type)) return false;
     }

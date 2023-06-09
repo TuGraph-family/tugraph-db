@@ -327,7 +327,7 @@ int TestPerfGraphNoncontinuous(bool durable) {
         txn = store.CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             vid = rand_id(re);
-            graph.DeleteVertex(txn, vid, nullptr, nullptr);
+            graph.DeleteVertex(txn, vid);
         }
         txn.Commit();
     }

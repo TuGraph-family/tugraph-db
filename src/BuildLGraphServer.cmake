@@ -49,7 +49,10 @@ add_library(${TARGET_SERVER_LIB} STATIC
         import/import_v2.cpp
         import/import_v3.cpp
         restful/server/rest_server.cpp
-        restful/server/stdafx.cpp)
+        restful/server/stdafx.cpp
+        http/http_server.cpp
+        http/import_manager.cpp
+        http/import_task.cpp)
 
 target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}

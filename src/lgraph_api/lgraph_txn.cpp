@@ -37,10 +37,6 @@ namespace lgraph_api {
 Transaction::Transaction(lgraph::Transaction&& impl)
     : txn_(new lgraph::Transaction(std::move(impl))) {}
 
-Transaction::Transaction(Transaction&& rhs) = default;
-Transaction& Transaction::operator=(Transaction&& rhs) = default;
-Transaction::~Transaction() {}
-
 VertexIterator Transaction::GetVertexIterator() {
     ThrowIfInvalid();
     return VertexIterator(txn_->GetVertexIterator(), txn_);

@@ -63,8 +63,8 @@ RUN cd opt \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
-COPY tugraph-3.4.0-1.x86_64.deb /tugraph-3.4.0-1.x86_64.deb
-RUN dpkg -i tugraph-3.4.0-1.x86_64.deb && rm /tugraph-3.4.0-1.x86_64.deb
+COPY tugraph-3.5.0-1.x86_64.deb /tugraph-3.5.0-1.x86_64.deb
+RUN dpkg -i tugraph-3.5.0-1.x86_64.deb && rm /tugraph-3.5.0-1.x86_64.deb
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/:$LD_LIBRARY_PATH \

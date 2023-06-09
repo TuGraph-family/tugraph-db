@@ -423,6 +423,10 @@ void BuiltinProcedure::DbGetVertexSchema(RTContext *ctx, const Record *record, c
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     const lgraph::Schema *schema = ctx->txn_->GetTxn()->GetSchema(args[0].String(), true);
+    if (!schema) {
+        throw lgraph::CypherException(FMA_FMT(
+            "vertex label {} does not exist", args[0].String()));
+    }
     Record r;
     r.AddConstant(lgraph::FieldData(ValueToJson(schema).serialize()));
     records->emplace_back(r.Snapshot());
@@ -434,6 +438,10 @@ void BuiltinProcedure::DbGetEdgeSchema(RTContext *ctx, const Record *record, con
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     const lgraph::Schema *schema = ctx->txn_->GetTxn()->GetSchema(args[0].String(), false);
+    if (!schema) {
+        throw lgraph::CypherException(FMA_FMT(
+            "edge label {} does not exist", args[0].String()));
+    }
     Record r;
     r.AddConstant(lgraph::FieldData(ValueToJson(schema).serialize()));
     records->emplace_back(r.Snapshot());
@@ -992,6 +1000,34 @@ void BuiltinProcedure::DbmsGraphListGraphs(RTContext *ctx, const cypher::Record 
     }
 }
 
+void BuiltinProcedure::DbmsGraphListUserGraphs(RTContext *ctx, const cypher::Record *record,
+                                           const cypher::VEC_EXPR &args,
+                                           const cypher::VEC_STR &yield_items,
+                                           std::vector<cypher::Record> *records) {
+    if (ctx->txn_) ctx->txn_->Abort();
+    CYPHER_ARG_CHECK(args.size() == 1, FMA_FMT("Function requires 1 arguments, but {} are "
+                                           "given. Usage: dbms.graph.listUserGraphs(user_name)",
+                                           args.size()))
+    std::string user_name = args[0].String();
+    if ((ctx->user_ != user_name) && !ctx->galaxy_->IsAdmin(ctx->user_))
+        throw lgraph::AuthError("Admin access right required.");
+    const std::map<std::string, lgraph::DBConfig> & graphs = ctx->galaxy_->ListGraphsInternal();
+    std::map<std::string, lgraph::DBConfig> userGraphs;
+    for (auto graph : graphs) {
+        lgraph_api::AccessLevel acl = ctx->galaxy_->GetAcl(ctx->user_, user_name, graph.first);
+       if (acl == lgraph_api::AccessLevel::NONE) {
+            continue ;
+       }
+       userGraphs.emplace(graph.first, graph.second);
+    }
+    for (auto &g : userGraphs) {
+       Record r;
+       r.AddConstant(lgraph::FieldData(g.first));
+       r.AddConstant(lgraph::FieldData(lgraph::ValueToJson(g.second).serialize()));
+       records->emplace_back(r.Snapshot());
+    }
+}
+
 void BuiltinProcedure::DbmsGraphGetGraphInfo(RTContext *ctx, const Record *record,
                                              const VEC_EXPR &args, const VEC_STR &yield_items,
                                              std::vector<cypher::Record> *records) {
@@ -1118,6 +1154,14 @@ void BuiltinProcedure::DbmsSecurityListRoles(RTContext *ctx, const cypher::Recor
     for (auto &u : rs) {
         Record r;
         r.AddConstant(lgraph::FieldData(u.first));
+        auto & table = u.second.graph_access;
+        auto it = table.begin();
+        while(it != table.end()){
+            if(it->first == lgraph::_detail::META_GRAPH)
+                table.erase(it++);
+            else
+                ++it;
+        }
         r.AddConstant(lgraph::FieldData(ValueToJson(u.second).serialize()));
         records->emplace_back(r.Snapshot());
     }
@@ -1558,7 +1602,7 @@ void BuiltinProcedure::DbPluginListUserPlugins(RTContext *ctx, const Record *rec
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
-                                           "given. Usage: dbms.graph.listGraphs()",
+                                           "given. Usage: dbms.graph.listUserPlugins()",
                                            args.size()))
     std::unordered_map<std::string, lgraph::AccessControlledDB> dbs =
         ctx->galaxy_->OpenUserGraphs(ctx->user_, ctx->user_);
@@ -1597,7 +1641,9 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
     lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     std::string name = args[1].String();
     lgraph::TimeoutTaskKiller timeout_killer;
-    timeout_killer.SetTimeout(args[3].Double());
+    if (args[3].Double() > 0) {
+        timeout_killer.SetTimeout(args[3].Double());
+    }
     std::string res;
     bool success = db.CallPlugin(ctx->txn_.get(), type, ctx->user_, name, args[2].String(), args[3].Double(),
                                  args[4].Bool(), res);

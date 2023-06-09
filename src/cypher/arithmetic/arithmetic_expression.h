@@ -72,6 +72,9 @@ struct BuiltinFunction {
     static cypher::FieldData Length(RTContext *ctx, const Record &record,
                                     const std::vector<ArithExprNode> &args);
 
+    static cypher::FieldData Nodes(RTContext *ctx, const Record &record,
+                                   const std::vector<ArithExprNode> &args);
+
     /* List functions */
     static cypher::FieldData Labels(RTContext *ctx, const Record &record,
                                     const std::vector<ArithExprNode> &args);
@@ -288,6 +291,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("last", BuiltinFunction::Last);
         ae_registered_funcs.emplace("size", BuiltinFunction::Size);
         ae_registered_funcs.emplace("length", BuiltinFunction::Length);
+        ae_registered_funcs.emplace("nodes", BuiltinFunction::Nodes);
         ae_registered_funcs.emplace("labels", BuiltinFunction::Labels);
         ae_registered_funcs.emplace("keys", BuiltinFunction::Keys);
         ae_registered_funcs.emplace("range", BuiltinFunction::Range);

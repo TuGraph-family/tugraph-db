@@ -29,6 +29,7 @@
 #include "server/state_machine.h"
 
 #ifndef _WIN32
+#include "execution_plan/runtime_context.h"
 #include "cypher/resultset/record.h"
 #endif
 
@@ -1689,9 +1690,11 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
 
     LGraphRequest proto_req;
     proto_req.set_token(token);
+    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, graph);
+    cypher::RTContext ctx(state_machine_, galaxy_, token, user, graph, field_access);
     std::string name;
     std::string type;
-    bool ret = cypher::Scheduler::DetermineReadOnly(query, name, type);
+    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query, name, type);
     if (name.empty() || type.empty()) {
         proto_req.set_is_write_op(!ret);
     } else {
