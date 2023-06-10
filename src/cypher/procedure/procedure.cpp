@@ -1843,7 +1843,7 @@ static void _FetchPath(lgraph::Transaction &txn, size_t hops,
                        std::unordered_map<lgraph::VertexId, lgraph::VertexId> &child,
                        lgraph::VertexId vid_from, lgraph::VertexId vid_a, lgraph::VertexId vid_b,
                        lgraph::VertexId vid_to, cypher::Path &path) {
-    std::vector<lgraph::VertexId> vids(hops + 1);
+    std::vector<lgraph::VertexId> vids;
     auto vid = vid_a;
     while (vid != vid_from) {
         vids.push_back(vid);
@@ -1857,7 +1857,10 @@ static void _FetchPath(lgraph::Transaction &txn, size_t hops,
         vid = child[vid];
     }
     vids.push_back(vid);
-    for (int i = 0; i < (int)hops; i++) {
+    if(hops != 0 && vids.size() != hops + 1) {
+        throw lgraph::ReminderException("_FetchPath failed");
+    }
+    for (size_t i = 0; i < hops; i++) {
         // TODO(any): fake edges!
         path.Append(lgraph::EdgeUid(vids[i], vids[i + 1], 0, 0, 0));
     }
