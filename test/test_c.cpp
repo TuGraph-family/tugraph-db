@@ -188,7 +188,7 @@ TEST_F(TestC, FieldData) {
     ASSERT_FALSE(lgraph_api_field_data_is_null(blob_fd));
     char* as_blob = lgraph_api_field_data_as_blob(blob_fd);
     ASSERT_EQ(strlen(as_blob), 5);
-    ASSERT_TRUE(strcmp(as_blob, "hello") == 0);
+    ASSERT_EQ(strcmp(as_blob, "hello"), 0);
     lgraph_api_field_data_destroy(blob_fd);
     free(as_blob);
 
@@ -201,7 +201,7 @@ TEST_F(TestC, FieldData) {
     ASSERT_FALSE(lgraph_api_field_data_is_null(base64_blob_fd));
     char* as_base64_blob = lgraph_api_field_data_as_blob(base64_blob_fd);
     ASSERT_EQ(strlen(as_base64_blob), 5);
-    ASSERT_TRUE(strcmp(as_base64_blob, "hello") == 0);
+    ASSERT_EQ(strcmp(as_base64_blob, "hello"), 0);
     lgraph_api_field_data_destroy(base64_blob_fd);
     free(as_base64_blob);
 
