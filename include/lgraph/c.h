@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
 #pragma once
 
 #ifdef _WIN32
@@ -254,10 +253,13 @@ extern LGRAPH_LIBRARY_API int lgraph_api_role_info_get_access_level(lgraph_api_r
 extern LGRAPH_LIBRARY_API size_t lgraph_api_role_info_get_graph_access(lgraph_api_role_info_t* ri,
                                                                        char*** graph_names,
                                                                        int** access_levels);
+extern LGRAPH_LIBRARY_API void lgraph_api_role_info_destroy_graph_access(char** graph_names,
+                                                                         int* access_levels,
+                                                                         size_t n);
 extern LGRAPH_LIBRARY_API bool lgraph_api_role_info_get_disabled(lgraph_api_role_info_t* ri);
 extern LGRAPH_LIBRARY_API void lgraph_api_role_info_set_desc(lgraph_api_role_info_t* ri,
                                                              const char* desc);
-extern LGRAPH_LIBRARY_API void lgraph_api_role_info_add_access_level(lgraph_api_role_info_t* ri,
+extern LGRAPH_LIBRARY_API bool lgraph_api_role_info_add_access_level(lgraph_api_role_info_t* ri,
                                                                      const char* graph,
                                                                      int access_level);
 extern LGRAPH_LIBRARY_API void lgraph_api_role_info_set_graph_access(lgraph_api_role_info_t* ri,
@@ -265,7 +267,7 @@ extern LGRAPH_LIBRARY_API void lgraph_api_role_info_set_graph_access(lgraph_api_
                                                                      int* access_levels, size_t n);
 /* if graph_name not exist, return -1 */
 extern LGRAPH_LIBRARY_API int lgraph_api_role_info_del_access_level(lgraph_api_role_info_t* ri,
-                                                                    char* graph_name);
+                                                                    const char* graph_name);
 extern LGRAPH_LIBRARY_API void lgraph_api_role_info_set_disabled(lgraph_api_role_info_t* ri,
                                                                  bool disabled);
 

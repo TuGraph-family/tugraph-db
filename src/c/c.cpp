@@ -362,7 +362,9 @@ const char* lgraph_api_user_info_get_desc(lgraph_api_user_info_t* ui) {
 }
 size_t lgraph_api_user_info_get_roles(lgraph_api_user_info_t* ui, char*** roles) {
     size_t n = ui->repr.roles.size();
-    *roles = new char*[n];
+    if (n != 0 && roles != nullptr) {
+        *roles = new char*[n];
+    }
     size_t i = 0;
     for (const auto& r : ui->repr.roles) {
         (*roles)[i] = strdup(r.c_str());
@@ -418,8 +420,10 @@ int lgraph_api_role_info_get_access_level(lgraph_api_role_info_t* ri, const char
 size_t lgraph_api_role_info_get_graph_access(lgraph_api_role_info_t* ri, char*** graph_names,
                                              int** access_levels) {
     size_t n = ri->repr.graph_access.size();
-    *graph_names = new char*[n];
-    *access_levels = new int[n];
+    if (n != 0 && graph_names != nullptr && access_levels != nullptr) {
+        *graph_names = new char*[n];
+        *access_levels = new int[n];
+    }
 
     size_t i = 0;
     for (const auto& kv : ri->repr.graph_access) {
@@ -429,13 +433,21 @@ size_t lgraph_api_role_info_get_graph_access(lgraph_api_role_info_t* ri, char***
     }
     return n;
 }
+void lgraph_api_role_info_destroy_graph_access(char** graph_names, int* access_levels, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        delete graph_names[i];
+    }
+    delete[] graph_names;
+    delete[] access_levels;
+}
 bool lgraph_api_role_info_get_disabled(lgraph_api_role_info_t* ri) { return ri->repr.disabled; }
 void lgraph_api_role_info_set_desc(lgraph_api_role_info_t* ri, const char* desc) {
     ri->repr.desc = desc;
 }
-void lgraph_api_role_info_add_access_level(lgraph_api_role_info_t* ri, const char* graph,
+bool lgraph_api_role_info_add_access_level(lgraph_api_role_info_t* ri, const char* graph,
                                            int access_level) {
-    ri->repr.graph_access.insert({graph, static_cast<AccessLevel>(access_level)});
+    auto result = ri->repr.graph_access.insert({graph, static_cast<AccessLevel>(access_level)});
+    return result.second;
 }
 void lgraph_api_role_info_set_graph_access(lgraph_api_role_info_t* ri, char** graph_names,
                                            int* access_levels, size_t n) {
@@ -445,8 +457,8 @@ void lgraph_api_role_info_set_graph_access(lgraph_api_role_info_t* ri, char** gr
     }
     ri->repr.graph_access = graph_access;
 }
-/* if graph_name not exist, return -1 */
-int lgraph_api_role_info_del_access_level(lgraph_api_role_info_t* ri, char* graph_name) {
+/*return the number of deleted ones */
+int lgraph_api_role_info_del_access_level(lgraph_api_role_info_t* ri, const char* graph_name) {
     return ri->repr.graph_access.erase(graph_name);
 }
 void lgraph_api_role_info_set_disabled(lgraph_api_role_info_t* ri, bool disabled) {

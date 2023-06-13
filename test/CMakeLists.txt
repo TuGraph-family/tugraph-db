@@ -11,8 +11,7 @@ add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)
 
-
-add_executable(unit_test
+set(UNIT_TEST_SRC
         main.cpp
         ut_utils.cpp
         test_audit_logger.cpp
@@ -108,9 +107,22 @@ add_executable(unit_test
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
 
+if (ENABLE_C_BINDINGS)
+        list(APPEND UNIT_TEST_SRC test_c.cpp)
+endif ()
+
+
+
+add_executable(unit_test ${UNIT_TEST_SRC})
+
 target_link_libraries(unit_test
         lgraph_server_lib
         librocksdb.a)
+
+if (ENABLE_C_BINDINGS)
+        target_link_libraries(unit_test
+                lgraph-cbindings)
+endif ()
 
 target_link_libraries(unit_test
         ${GTEST_MAIN_LIB}
