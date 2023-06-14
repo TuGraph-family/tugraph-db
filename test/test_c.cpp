@@ -437,7 +437,6 @@ TEST_F(TestC, Galaxy) {
     lgraph_api_graph_db_t* graph = lgraph_api_galaxy_open_graph(galaxy, "graph1", true, &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     ASSERT_NE(graph, nullptr);
-    lgraph_api_graph_db_destroy(graph);
 
     // delete graph1
     ret = lgraph_api_galaxy_delete_graph(galaxy, "graph1", &errptr);
