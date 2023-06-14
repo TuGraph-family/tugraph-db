@@ -815,7 +815,7 @@ struct FieldSpec {
     /** @brief   is this field optional? */
     bool optional;
 
-    FieldSpec() {}
+    FieldSpec(): name(), type(FieldType::NUL), optional(false) {};
 
     /**
      * @brief   Constructor
