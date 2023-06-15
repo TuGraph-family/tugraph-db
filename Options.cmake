@@ -89,12 +89,6 @@ else (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is disabled.")
 endif (ENABLE_FULLTEXT_INDEX)
 
-option(ENABLE_C_BINDINGS "Enable build c bindings." ON)
-if (ENABLE_C_BINDINGS)
-    message("C Bindings support is enabled.")
-else (ENABLE_C_BINDINGS)
-    message("C Bindings support is disabled.")
-endif (ENABLE_C_BINDINGS)
 
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)

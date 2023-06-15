@@ -11,7 +11,8 @@ add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)
 
-set(UNIT_TEST_SRC
+
+add_executable(unit_test
         main.cpp
         ut_utils.cpp
         test_audit_logger.cpp
@@ -19,6 +20,7 @@ set(UNIT_TEST_SRC
         test_batch_vertex_index.cpp
         test_batch_edge_index.cpp
         test_blob_manager.cpp
+        test_c.cpp
         test_cache_aligned_vector.cpp
         test_concurrent_gettime.cpp
         test_core_exception.cpp
@@ -105,24 +107,13 @@ set(UNIT_TEST_SRC
         test_edge_constraint.cpp
         test_olap_vertex_traversal.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
-        ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
-
-if (ENABLE_C_BINDINGS)
-        list(APPEND UNIT_TEST_SRC test_c.cpp)
-endif ()
-
-
-
-add_executable(unit_test ${UNIT_TEST_SRC})
+        ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
+)
 
 target_link_libraries(unit_test
         lgraph_server_lib
+        lgraph-cbindings
         librocksdb.a)
-
-if (ENABLE_C_BINDINGS)
-        target_link_libraries(unit_test
-                lgraph-cbindings)
-endif ()
 
 target_link_libraries(unit_test
         ${GTEST_MAIN_LIB}
