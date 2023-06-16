@@ -89,7 +89,6 @@ else (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is disabled.")
 endif (ENABLE_FULLTEXT_INDEX)
 
-
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)
     message(WARNING "Build type not set, falling back to RelWithDebInfo mode.
