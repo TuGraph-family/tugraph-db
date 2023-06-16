@@ -63,6 +63,7 @@ set(LGRAPH_DB_SRC
         db/token_manager.cpp)
 
 set(LGRAPH_API_SRC
+        lgraph_api/c.cpp
         lgraph_api/lgraph_db.cpp
         lgraph_api/lgraph_edge_iterator.cpp
         lgraph_api/lgraph_galaxy.cpp
@@ -89,7 +90,6 @@ add_library(${TARGET_LGRAPH} SHARED
         plugin/plugin_manager.cpp
         plugin/python_plugin.cpp
 
-        c/c.cpp
 
         ${DEPS_INCLUDE_DIR}/tiny-process-library/process.cpp
         ${DEPS_INCLUDE_DIR}/tiny-process-library/process_unix.cpp
