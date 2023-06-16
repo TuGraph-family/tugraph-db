@@ -89,6 +89,8 @@ add_library(${TARGET_LGRAPH} SHARED
         plugin/plugin_manager.cpp
         plugin/python_plugin.cpp
 
+        c/c.cpp
+
         ${DEPS_INCLUDE_DIR}/tiny-process-library/process.cpp
         ${DEPS_INCLUDE_DIR}/tiny-process-library/process_unix.cpp
         ${PROTO_SRCS})

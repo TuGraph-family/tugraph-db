@@ -112,7 +112,6 @@ add_executable(unit_test
 
 target_link_libraries(unit_test
         lgraph_server_lib
-        lgraph-cbindings
         librocksdb.a)
 
 target_link_libraries(unit_test
