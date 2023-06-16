@@ -20,6 +20,7 @@ add_executable(unit_test
         test_batch_vertex_index.cpp
         test_batch_edge_index.cpp
         test_blob_manager.cpp
+        test_c.cpp
         test_cache_aligned_vector.cpp
         test_concurrent_gettime.cpp
         test_core_exception.cpp
@@ -106,7 +107,8 @@ add_executable(unit_test
         test_edge_constraint.cpp
         test_olap_vertex_traversal.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
-        ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
+        ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
+)
 
 target_link_libraries(unit_test
         lgraph_server_lib
