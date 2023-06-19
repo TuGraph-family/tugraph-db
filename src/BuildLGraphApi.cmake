@@ -63,6 +63,7 @@ set(LGRAPH_DB_SRC
         db/token_manager.cpp)
 
 set(LGRAPH_API_SRC
+        lgraph_api/c.cpp
         lgraph_api/lgraph_db.cpp
         lgraph_api/lgraph_edge_iterator.cpp
         lgraph_api/lgraph_galaxy.cpp

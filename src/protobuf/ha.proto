@@ -1,5 +1,5 @@
 // ===============================================================
-//                     Proto version: 1.1.1
+//                     Proto version: 1.1.2
 // Increment the version number if the proto definition is updated
 // ===============================================================
 syntax="proto2";
@@ -767,4 +767,13 @@ message LogMessage {
 
 service LGraphRPCService {
     rpc HandleRequest(LGraphRequest) returns (LGraphResponse);
+};
+
+// add by jzj for restful server
+
+message HttpRequest {};
+message HttpResponse {};
+
+service LGraphHttpService {
+  rpc Query(HttpRequest) returns (HttpResponse);
 };

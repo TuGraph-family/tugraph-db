@@ -242,32 +242,27 @@ class Graph {
      *
      * \param [in,out]  txn     The transaction.
      * \param           vid     The vid.
-     * \param [in,out]  n_in    If non-null, return number of incoming edges.
-     * \param [in,out]  n_out   If non-null, return number of outgoing edges.
-     * \param [in,out]  e_in    If non-null, return incoming edges associated with that
-     *                          vertex. No effect if track_incoming==false.
-     * \param [in,out]  e_out   If non-null, return outgoing edges associated with that
-     *                          vertex.
+     * \param           on_edge_deleted  Callback function when deleting edges
      *
      * \return  True if it succeeds, false if it fails.
      */
-    bool DeleteVertex(KvTransaction& txn, VertexId vid, size_t* n_in = nullptr,
-                      size_t* n_out = nullptr, std::vector<EdgeUid>* e_in = nullptr,
-                      std::vector<EdgeUid>* e_out = nullptr) {
+    bool DeleteVertex(KvTransaction& txn, VertexId vid,
+                      const std::function<void(bool, const EdgeValue&)>&
+                          on_edge_deleted = nullptr) {
         KvIterator it(txn, table_);
         it.GotoClosestKey(KeyPacker::CreatePackedDataKey(vid));
         if (!it.IsValid() || KeyPacker::GetFirstVid(it.GetKey()) != vid)
             return false;  // no such vertex
-        DeleteVertexInternal(txn, it, n_in, n_out, e_in, e_out);
+        DeleteVertexInternal(txn, it, on_edge_deleted);
         return true;
     }
 
-    void DeleteVertex(KvTransaction& txn, VertexIterator& vertex_it, size_t* n_in = nullptr,
-                      size_t* n_out = nullptr, std::vector<EdgeUid>* e_in = nullptr,
-                      std::vector<EdgeUid>* e_out = nullptr) {
+    void DeleteVertex(KvTransaction& txn, VertexIterator& vertex_it,
+                      const std::function<void(bool, const EdgeValue&)>&
+                          on_edge_deleted = nullptr) {
         if (!vertex_it.IsValid()) return;
         KvIterator& it = vertex_it.GetIt();
-        DeleteVertexInternal(txn, it, n_in, n_out, e_in, e_out);
+        DeleteVertexInternal(txn, it, on_edge_deleted);
         vertex_it.LoadContentFromIt();
     }
 
@@ -453,42 +448,37 @@ class Graph {
                         size_t& n_modified, size_t commit_size = 100000);
 
  private:
-    void DeleteCorrespondingInEdges(KvTransaction& txn, KvIterator& it, VertexId vid,
+    void DeleteCorrespondingInEdges(KvTransaction& txn, KvIterator& tmp_it, VertexId src,
                                     const EdgeValue& oev) {
-        KvIterator tmp_it(txn, table_);
         InIteratorImpl ieit(tmp_it);
-        LabelId last_lid = -1;
-        VertexId last_dst = -1;
         size_t ne = oev.GetEdgeCount();
         for (size_t i = 0; i < ne; i++) {
+            // TODO(hjk41): optimize this
+            // when there are multiple edges with the same (src, tid, lid, dst), we can delete
+            // these edges in one go
             auto e = oev.GetNthEdgeHeader(i);
-            if (e.lid == last_lid && e.vid == last_dst) continue;
-            last_lid = e.lid;
-            last_dst = e.vid;
-            if (e.vid == vid) continue;
-            // delete all in-edges (vid->last_dst)
-            ieit.Goto(EdgeUid(vid, last_dst, e.lid, e.tid, 0), true);
-            while (ieit.IsValid() && ieit.GetLabelId() == last_lid && ieit.GetVid2() == vid)
-                ieit.Delete();
+            // do not delete self-loop, as they will be deleted by DeleteVertex
+            if (e.vid == src) continue;
+            ieit.Goto(EdgeUid(src, e.vid, e.lid, e.tid, e.eid), false);
+            FMA_ASSERT(ieit.IsValid());
+            ieit.Delete();
         }
     }
 
-    void DeleteCorrespondingOutEdges(KvTransaction& txn, KvIterator& tmp_it, VertexId vid,
+    void DeleteCorrespondingOutEdges(KvTransaction& txn, KvIterator& tmp_it, VertexId dst,
                                      const EdgeValue& iev) {
         OutIteratorImpl oeit(tmp_it);
-        LabelId last_lid = -1;
-        VertexId last_src = -1;
         size_t ne = iev.GetEdgeCount();
         for (size_t i = 0; i < ne; i++) {
+            // TODO(hjk41): optimize this
+            // when there are multiple edges with the same (src, tid, lid, dst), we can delete
+            // these edges in one go
             auto e = iev.GetNthEdgeHeader(i);
-            if (e.lid == last_lid && e.vid == last_src) continue;
-            last_lid = e.lid;
-            last_src = e.vid;
-            if (e.vid == vid) continue;
-            // delete all out-edges (last_src->vid)
-            oeit.Goto(EdgeUid(last_src, vid, e.lid, e.tid, 0), true);
-            while (oeit.IsValid() && oeit.GetLabelId() == last_lid && oeit.GetVid2() == vid)
-                oeit.Delete();
+            // do not delete self-loop, as they will be deleted by DeleteVertex
+            if (e.vid == dst) continue;
+            oeit.Goto(EdgeUid(e.vid, dst, e.lid, e.tid, e.eid), false);
+            FMA_ASSERT(oeit.IsValid());
+            oeit.Delete();
         }
     }
 
@@ -497,46 +487,28 @@ class Graph {
      *
      * \param [in,out]  txn     The transaction.
      * \param [in,out]  it      The iterator.
-     * \param [in,out]  n_in    The in-edges number
-     * \param [in,out]  n_out   The out-edges number
-     * \param [in,out]  e_in    The in-edges.
-     * \param [in,out]  e_out   The out-edges.
-     *
+     * \param [in]      on_edge_deleted Callback function when deleting edges
      * \return  True if it succeeds, false if it fails.
      */
-    void DeleteVertexInternal(KvTransaction& txn, KvIterator& it, size_t* n_in, size_t* n_out,
-                              std::vector<EdgeUid>* e_in, std::vector<EdgeUid>* e_out) {
-        if (n_in) *n_in = 0;
-        if (n_out) *n_out = 0;
-        if (e_in) e_in->clear();
-        if (e_out) e_out->clear();
+    void DeleteVertexInternal(KvTransaction& txn, KvIterator& it,
+                              const std::function<void(bool, const EdgeValue&)>&
+                                  on_edge_deleted = nullptr) {
         const Value& k = it.GetKey();
         VertexId vid = KeyPacker::GetFirstVid(k);
         PackType pt = KeyPacker::GetNodeType(k);
         if (pt == PackType::PACKED_DATA) {
             PackedDataValue pdv(Value::MakeCopy(it.GetValue()));
+            // tmp_it is modified when deleting edges, do not use it for other purpose
             KvIterator tmp_it(txn, table_);
             const EdgeValue& oev = pdv.GetOutEdge();
-            if (n_out) {
-                *n_out += oev.GetEdgeCount();
-            }
-            if (e_out) {
-                for (size_t i = 0; i < oev.GetEdgeCount(); i++) {
-                    const auto& e = oev.GetNthEdgeHeader(i);
-                    e_out->emplace_back(vid, e.vid, e.lid, e.tid, e.eid);
-                }
+            if (on_edge_deleted) {
+                on_edge_deleted(true, oev);
             }
             DeleteCorrespondingInEdges(txn, tmp_it, vid, oev);
             // delete incoming edges
             const EdgeValue& iev = pdv.GetInEdge();
-            if (n_in) {
-                *n_in += iev.GetEdgeCount();
-            }
-            if (e_in) {
-                for (size_t i = 0; i < iev.GetEdgeCount(); i++) {
-                    const auto& e = iev.GetNthEdgeHeader(i);
-                    e_in->emplace_back(e.vid, vid, e.lid, e.tid, e.eid);
-                }
+            if (on_edge_deleted) {
+                on_edge_deleted(false, iev);
             }
             DeleteCorrespondingOutEdges(txn, tmp_it, vid, iev);
             // delete vertex
@@ -547,18 +519,13 @@ class Graph {
             FMA_DBG_CHECK_EQ(KeyPacker::GetNodeType(it.GetKey()), PackType::VERTEX_ONLY);
             it.DeleteKey();
             // now it points to out-edge node
+            // tmp_it is modified when deleting edges, do not use it for other purpose
             KvIterator tmp_it(txn, table_);
             while (it.IsValid() && KeyPacker::GetNodeType(it.GetKey()) == PackType::OUT_EDGE) {
                 FMA_DBG_CHECK_EQ(KeyPacker::GetFirstVid(it.GetKey()), vid);
                 EdgeValue oev(Value::MakeCopy(it.GetValue()));
-                if (n_out) {
-                    *n_out += oev.GetEdgeCount();
-                }
-                if (e_out) {
-                    for (size_t i = 0; i < oev.GetEdgeCount(); i++) {
-                        const auto& e = oev.GetNthEdgeHeader(i);
-                        e_out->emplace_back(vid, e.vid, e.lid, e.tid, e.eid);
-                    }
+                if (on_edge_deleted) {
+                    on_edge_deleted(true, oev);
                 }
                 DeleteCorrespondingInEdges(txn, tmp_it, vid, oev);
                 it.RefreshAfterModify();
@@ -567,14 +534,8 @@ class Graph {
             // delete incoming edges
             while (it.IsValid() && KeyPacker::GetNodeType(it.GetKey()) == PackType::IN_EDGE) {
                 EdgeValue iev(Value::MakeCopy(it.GetValue()));
-                if (n_in) {
-                    *n_in += iev.GetEdgeCount();
-                }
-                if (e_in) {
-                    for (size_t i = 0; i < iev.GetEdgeCount(); i++) {
-                        const auto& e = iev.GetNthEdgeHeader(i);
-                        e_in->emplace_back(e.vid, vid, e.lid, e.tid, e.eid);
-                    }
+                if (on_edge_deleted) {
+                    on_edge_deleted(false, iev);
                 }
                 DeleteCorrespondingOutEdges(txn, tmp_it, vid, iev);
                 it.RefreshAfterModify();

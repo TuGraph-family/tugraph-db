@@ -32,7 +32,7 @@ void Importer::OnErrorOffline(const std::string& msg) {
 }
 
 void Importer::AppendFieldData(std::string& ret, const FieldData& data) {
-    switch (data.getType()) {
+    switch (data.GetType()) {
     case FieldType::NUL:
         FMA_ASSERT(false);
         break;

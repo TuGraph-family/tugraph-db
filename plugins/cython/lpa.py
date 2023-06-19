@@ -33,10 +33,11 @@ class LPACore:
         labels[src_label] = 1
         for i in range(degree):
             dst_label = self.label_curr[out_edges[i].neighbour]
-            if labels.count(dst_label):
-                labels[dst_label] += 1
-            else:
+            it = cython.declare(unordered_map[size_t, size_t].iterator, labels.find(dst_label))
+            if it == labels.end():
                 labels[dst_label] = 1
+            else:
+                deref(it).second = deref(it).second + 1
         max_l = cython.declare(size_t, src_label)
         max_n = cython.declare(size_t, 1)
         begin = cython.declare(unordered_map[size_t, size_t].iterator, labels.begin())
@@ -96,7 +97,7 @@ def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict
     cost = time.time() - cost
     printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
 
-    community = [0] * olapondb.NumVertices()
+    community = [0] * int(olapondb.NumVertices())
     i: size_t
     for i in range(olapondb.NumVertices()):
         community[a.label_curr[i]] += 1
@@ -130,7 +131,7 @@ def Standalone(input_dir: str, num_iteration: size_t = 20):
     cost = time.time() - cost
     printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
 
-    community = [0] * graph.NumVertices()
+    community = [0] * int(graph.NumVertices())
     i: size_t
     for i in range(graph.NumVertices()):
         community[a.label_curr[i]] += 1

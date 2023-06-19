@@ -33,6 +33,7 @@ cd $MY_WORKSPACE
 # integrate tests 
 cd build/output
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
+cp ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
 cp -r ../../test/integration/* ./
 pytest ./
 

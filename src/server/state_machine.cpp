@@ -79,10 +79,16 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             throw InternalError("Cypher is not supported on Windows yet.");
 #else
             // determine if this is a write op
+            const CypherRequest& cypher_req = req->cypher_request();
+            // const std::string& user = GetCurrUser(lgraph_req);
+            std::string user = req->has_user() ? req->user() : GetCurrUser(req);
+            auto field_access = galaxy_->GetRoleFieldAccessLevel(user, cypher_req.graph());
+            cypher::RTContext ctx(this, galaxy_.get(), req->token(), user, cypher_req.graph(),
+                          field_access);
             std::string name;
             std::string type;
-            bool ret =
-                cypher::Scheduler::DetermineReadOnly(req->cypher_request().query(), name, type);
+            bool ret = cypher::Scheduler::DetermineReadOnly(&ctx,
+                req->cypher_request().query(), name, type);
             if (name.empty() || type.empty()) {
                 return !ret;
             } else {
@@ -926,13 +932,20 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
 #else
     bool is_write;
     using namespace web;
+    const CypherRequest& req = lgraph_req->cypher_request();
+    CypherResponse* cresp = resp->mutable_cypher_response();
+    // const std::string& user = GetCurrUser(lgraph_req);
+    std::string user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
+    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
+    cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
+                      field_access);
     if (lgraph_req->has_is_write_op()) {
         is_write = lgraph_req->is_write_op();
     } else {
         std::string name;
         std::string type;
-        bool ret =
-            cypher::Scheduler::DetermineReadOnly(lgraph_req->cypher_request().query(), name, type);
+        bool ret = cypher::Scheduler::DetermineReadOnly(&ctx,
+            lgraph_req->cypher_request().query(), name, type);
         if (name.empty() || type.empty()) {
             is_write = !ret;
         } else {
@@ -951,18 +964,12 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
                                  is_write);
     static fma_common::Logger& logger =
         fma_common::Logger::Get("lgraph.StateMachine.ApplyCypherRequest");
-    const CypherRequest& req = lgraph_req->cypher_request();
-    CypherResponse* cresp = resp->mutable_cypher_response();
-    // const std::string& user = GetCurrUser(lgraph_req);
-    std::string user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
-    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
-    cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
-                          field_access);
+
 
     BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
                                   "[CYPHER] " + req.query());
     TimeoutTaskKiller timeout_killer;
-    if (req.has_timeout() && req.timeout() != 0) {
+    if (req.has_timeout() && req.timeout() > 0) {
         timeout_killer.SetTimeout(req.timeout());
     }
     cypher::ElapsedTime elapsed;
@@ -1128,7 +1135,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             FMA_DBG_STREAM(logger_) << "Calling plugin " << preq.name() << " with param "
                                     << preq.param() << " timeout " << preq.timeout();
             TimeoutTaskKiller timeout_killer;
-            if (preq.has_timeout() && preq.timeout() != 0) {
+            if (preq.has_timeout() && preq.timeout() > 0) {
                 timeout_killer.SetTimeout(preq.timeout());
             }
             bool r = false;

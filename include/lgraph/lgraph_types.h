@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -726,9 +726,7 @@ struct FieldData {
 
     FieldType type;
 
-    FieldType getType() const {
-        return type;
-    }
+    FieldType GetType() const { return type; }
 
     union {
         bool boolean;
@@ -759,8 +757,26 @@ struct FieldData {
     /** @brief   Query if this object is string */
     bool IsString() const { return type == FieldType::STRING; }
 
+    /** @brief   Query if this object is INT8 */
+    bool IsInt8() const { return type == FieldType::INT8; }
+
+    /** @brief   Query if this object is INT16 */
+    bool IsInt16() const { return type == FieldType::INT16; }
+
+    /** @brief   Query if this object is INT32 */
+    bool IsInt32() const { return type == FieldType::INT32; }
+
+    /** @brief   Query if this object is INT64 */
+    bool IsInt64() const { return type == FieldType::INT64; }
+
     /** @brief   Is this a INT8, INT16, INT32 or INT64? */
     bool IsInteger() const { return IsInteger(type); }
+
+    /** @brief   Query if this object is float */
+    bool IsFloat() const { return type == FieldType::FLOAT; }
+
+    /** @brief   Query if this object is double */
+    bool IsDouble() const { return type == FieldType::DOUBLE; }
 
     /** @brief   Is this a FLOAT or DOUBLE? */
     bool IsReal() const { return IsReal(type); }
@@ -799,7 +815,7 @@ struct FieldSpec {
     /** @brief   is this field optional? */
     bool optional;
 
-    FieldSpec() {}
+    FieldSpec(): name(), type(FieldType::NUL), optional(false) {}
 
     /**
      * @brief   Constructor

@@ -11,7 +11,6 @@
 * distributed under the License is distributed on an "AS IS" BASIS,
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-#include <iostream>
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
@@ -31,8 +30,8 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
                               const std::string &request,
                               std::string &response) {
     Result result({{"res", LGraphType::STRING}});
-    auto& r = result.NewRecord();
-    r.Insert("res", FieldData::String("custom algo result"));
+    auto r = result.MutableRecord();
+    r->Insert("res", FieldData::String("custom algo result"));
     response = result.Dump();
     return true;
 }

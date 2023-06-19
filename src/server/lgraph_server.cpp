@@ -203,6 +203,20 @@ int LGraphServer::StartRpcService() {
 #endif
 }
 
+int LGraphServer::StartHttpService() {
+#ifndef _WIN32
+    http_service_.reset(new http::HttpService(state_machine_.get()));
+    if (rpc_server_->AddService(http_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
+        FMA_WARN() << "Failed to add http service to http server";
+        return -1;
+    }
+    return 0;
+#else
+    return -1;
+#endif
+}
+
+
 void LGraphServer::KillServer() {
     lgraph::TaskTracker::GetInstance().KillAllTasks();
     if (rest_server_) rest_server_->Stop();
@@ -238,13 +252,22 @@ int LGraphServer::Start() {
             // start RPC service
             if (StartRpcService() == -1)
                 return -1;
-            // start RPC server
+            // start http server
+            if (StartHttpService() == -1)
+                return -1;
             std::string rpc_addr =
                 fma_common::StringFormatter::Format("{}:{}", config_->bind_host, config_->rpc_port);
 
             brpc::ServerOptions brpc_options;
             brpc_options.has_builtin_services = false;
             if (config_->thread_limit != 0) brpc_options.max_concurrency = config_->thread_limit;
+            if (config_->enable_ssl) {
+                brpc_options.mutable_ssl_options()->default_cert.certificate =
+                    config_->server_cert_file;
+                brpc_options.mutable_ssl_options()->default_cert.private_key =
+                    config_->server_key_file;
+            }
+
             if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
                 FMA_WARN() << "Failed to start RPC server";
                 return -1;
@@ -259,6 +282,9 @@ int LGraphServer::Start() {
         // start rest
         lgraph::RestServer::Config rest_config(*config_);
         rest_server_.reset(new lgraph::RestServer(state_machine_.get(), rest_config, config_));
+        if (config_->enable_rpc) {
+            http_service_->Start(config_.get());
+        }
         FMA_LOG() << "Server started.";
     } catch (std::exception &e) {
         _kill_signal_.Notify();

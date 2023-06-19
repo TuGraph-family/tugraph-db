@@ -27,6 +27,7 @@
 #include "plugin/python_plugin.h"
 
 #include "execution_plan/execution_plan.h"
+#include "execution_plan/runtime_context.h"
 #include "lru_cache.h"
 
 namespace lgraph {
@@ -51,6 +52,9 @@ class Scheduler {
         return nullptr;
     }
 
-    static bool DetermineReadOnly(const std::string &script, std::string& name, std::string& type);
+    static bool DetermineReadOnly(cypher::RTContext *ctx,
+                                  const std::string &script,
+                                  std::string& name,
+                                  std::string& type);
 };
 }  // namespace cypher

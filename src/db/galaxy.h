@@ -123,6 +123,8 @@ class Galaxy {
 
     std::map<std::string, DBConfig> ListGraphs(const std::string& curr_user) const;
 
+    std::map<std::string, DBConfig> ListGraphsInternal() const;
+
     bool CreateUser(const std::string& curr_user, const std::string& name,
                     const std::string& password, const std::string& desc);
 

@@ -13,7 +13,6 @@
 */
 
 
-#include <iostream>
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
@@ -60,9 +59,9 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
         {"nodeIds", LGraphType::LIST},
     });
 
-    auto& r = result.NewRecord();
-    r.Insert("length", FieldData::Int32(5));
-    r.Insert("nodeIds",  std::vector<FieldData>{
+    auto r = result.MutableRecord();
+    r->Insert("length", FieldData::Int32(5));
+    r->Insert("nodeIds",  std::vector<FieldData>{
                             FieldData::Int64(parse_vertex_node(start_node)),
                             FieldData::Int64(100), FieldData::Int64(200), FieldData::Int64(300),
                             FieldData::Int64(parse_vertex_node(end_node))

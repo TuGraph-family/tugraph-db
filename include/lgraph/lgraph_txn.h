@@ -57,15 +57,13 @@ class EdgeIndexIterator;
 class Transaction {
     friend class GraphDB;
     std::shared_ptr<lgraph::Transaction> txn_;
-
     explicit Transaction(lgraph::Transaction&&);
-    Transaction(const Transaction&) = delete;
-    Transaction& operator=(const Transaction&) = delete;
 
  public:
-    Transaction(Transaction&& rhs);
-    Transaction& operator=(Transaction&& rhs);
-    ~Transaction();
+    Transaction(Transaction&& rhs) = default;
+    Transaction& operator=(Transaction&& rhs) = default;
+    Transaction(const Transaction&) = delete;
+    Transaction& operator=(const Transaction&) = delete;
 
     /**
      * @brief   Commits this transaction. Note that optimistic write transactions may fail to

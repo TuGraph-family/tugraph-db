@@ -50,35 +50,35 @@ extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::stri
         if (ot.IsValid()) vid2 = vit.GetId();
     }
     for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
-        auto &record = result.NewRecord();
+        auto record = result.MutableRecord();
         std::map<std::string, FieldData> edge_num_map;
-        record.Insert("node", vit);
+        record->Insert("node", vit);
         int in_num_edges = 0;
         int out_num_edges = 0;
         float w = 123.233;
         std::string key = "key";
         double d = w;
         bool b = true;
-        record.Insert("float_var", FieldData::Float(w));
-        record.Insert("double_var", FieldData::Double(d));
-        record.Insert("bool_var", FieldData::Bool(b));
-        record.Insert("list_var", vf);
+        record->Insert("float_var", FieldData::Float(w));
+        record->Insert("double_var", FieldData::Double(d));
+        record->Insert("bool_var", FieldData::Bool(b));
+        record->Insert("list_var", vf);
         auto vit1 = txn.GetVertexIterator();
         vit1.Goto(vid1);
-        record.Insert("in_edge", vit1.GetInEdgeIterator());
+        record->Insert("in_edge", vit1.GetInEdgeIterator());
         vit1.Goto(vid2);
-        record.Insert("out_edge", vit1.GetOutEdgeIterator());
-        record.Insert("path", p, &txn);
+        record->Insert("out_edge", vit1.GetOutEdgeIterator());
+        record->Insert("path", p, &txn);
         for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) out_num_edges += 1;
         edge_num_map["out_num_edges"] = FieldData(out_num_edges);
         for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) in_num_edges += 1;
         edge_num_map["in_num_edges"] = FieldData(in_num_edges);
 
-        record.Insert("edge_num_sum", FieldData(in_num_edges + out_num_edges));
+        record->Insert("edge_num_sum", FieldData(in_num_edges + out_num_edges));
 
-        record.Insert("edge_num", edge_num_map);
-        Record copy_record(record);
-        copy_record = record;
+        record->Insert("edge_num", edge_num_map);
+        Record copy_record(*record);
+        copy_record = *record;
         break;
     }
 

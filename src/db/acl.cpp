@@ -597,13 +597,9 @@ bool lgraph::AclManager::ModRoleDisable(KvTransaction& txn, const std::string& r
     }
 
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
-    bool need_refresh_acl_table = false;
-    if (!rinfo.disabled) {
+    if (rinfo.disabled != disable) {
         rinfo.disabled = disable;
-        need_refresh_acl_table = true;
-    }
-    StoreRoleInfoToKv(txn, role, rinfo);
-    if (need_refresh_acl_table) {
+        StoreRoleInfoToKv(txn, role, rinfo);
         // refresh user acl one by one
         std::unordered_map<std::string, RoleInfo> roles = GetAllRolesFromKv(txn);
         for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
