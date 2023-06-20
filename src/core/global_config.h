@@ -47,7 +47,7 @@ struct BasicConfigs {
         , snapshot_dir("./snapshot_log")
         , max_backup_log_file_size((size_t)1 << 30)
         , unlimited_token(0)
-        , ft_index_options() {}
+        , enable_realtime_count(true) {}
 
     BasicConfigs(const BasicConfigs &basicConfigs)
         : db_dir(basicConfigs.db_dir)
@@ -107,6 +107,8 @@ struct BasicConfigs {
     FullTextIndexOptions ft_index_options;
     // token time
     bool unlimited_token;
+    // vertex and edge count
+    bool enable_realtime_count;
 };
 
 template <typename T>

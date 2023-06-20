@@ -388,6 +388,83 @@ class Graph {
 
     VertexId GetLooseNumVertex(KvTransaction& txn) { return GetNextVid(txn); }
 
+    void IncreaseCount(KvTransaction& txn, bool is_vertex, LabelId lid, int64_t delta) {
+        std::string key;
+        if (is_vertex) {
+            key.append(lgraph::_detail::VERTEX_COUNT_PREFIX);
+        } else {
+            key.append(lgraph::_detail::EDGE_COUNT_PREFIX);
+        }
+        key.append((const char*)(&lid), sizeof(LabelId));
+        auto k = Value::ConstRef(key);
+        auto it = meta_table_->GetIterator(txn, k);
+        if (!it.IsValid()) {
+            int64_t count = delta;
+            if (count < 0) {
+                FMA_ERR() << "Unexpected count value, is_vertex: " << is_vertex
+                          << ", LabelId: " << lid << ", count: " << count;
+            }
+            meta_table_->AddKV(txn, k, Value::ConstRef(count));
+        } else {
+            int64_t count = it.GetValue().AsType<int64_t>();
+            count += delta;
+            if (count < 0) {
+                FMA_ERR() << "Unexpected count value, is_vertex: " << is_vertex
+                          << ", LabelId: " << lid << ", count: " << count;
+            }
+            it.SetValue(Value::ConstRef(count));
+        }
+    }
+
+    void DeleteCount(KvTransaction& txn, bool is_vertex, LabelId lid) {
+        std::string key;
+        if (is_vertex) {
+            key.append(lgraph::_detail::VERTEX_COUNT_PREFIX);
+        } else {
+            key.append(lgraph::_detail::EDGE_COUNT_PREFIX);
+        }
+        key.append((const char*)(&lid), sizeof(LabelId));
+        auto k = Value::ConstRef(key);
+        auto it = meta_table_->GetIterator(txn, k);
+        if (it.IsValid()) {
+            it.DeleteKey();
+        }
+    }
+
+    void DeleteAllCount(KvTransaction& txn) {
+        std::vector<std::string> prefixes = {
+            lgraph::_detail::VERTEX_COUNT_PREFIX,
+            lgraph::_detail::EDGE_COUNT_PREFIX};
+
+        for (auto& prefix : prefixes) {
+            auto k = Value::ConstRef(prefix);
+            for (auto it = meta_table_->GetClosestIterator(txn, k); it.IsValid();) {
+                auto key = it.GetKey().AsString();
+                if (!fma_common::StartsWith(key, prefix)) {
+                    break;
+                }
+                it.DeleteKey();
+            }
+        }
+    }
+
+    int64_t GetCount(KvTransaction& txn, bool is_vertex, LabelId lid) {
+        std::string key;
+        if (is_vertex) {
+            key.append(lgraph::_detail::VERTEX_COUNT_PREFIX);
+        } else {
+            key.append(lgraph::_detail::EDGE_COUNT_PREFIX);
+        }
+        key.append((const char*)(&lid), sizeof(LabelId));
+        auto k = Value::ConstRef(key);
+        auto it = meta_table_->GetIterator(txn, k);
+        if (it.IsValid()) {
+            return it.GetValue().AsType<int64_t>();
+        } else {
+            return 0;
+        }
+    }
+
 #ifdef _USELESS_CODE
     // Adds a bunch of out-edges and in-edges for the same vertex.
     // Make sure out-edge and in-edges are inserted in the same order.

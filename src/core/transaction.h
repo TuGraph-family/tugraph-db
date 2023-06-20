@@ -81,6 +81,8 @@ class Transaction {
     std::vector<IteratorBase*> iterators_;
     FullTextIndex* fulltext_index_;
     std::vector<FTIndexEntry> fulltext_buffers_;
+    std::unordered_map<LabelId, int64_t> vertex_delta_count_;
+    std::unordered_map<LabelId, int64_t> edge_delta_count_;
     void ThrowIfReadOnlyTxn() const {
         if (read_only_)
             throw lgraph_api::WriteNotAllowedError(
@@ -862,6 +864,8 @@ class Transaction {
     std::vector<IndexSpec> ListEdgeIndexByLabel(const std::string& label);
     std::vector<std::tuple<bool, std::string, std::string>> ListFullTextIndexes();
 
+    std::vector<std::tuple<bool, std::string, int64_t>> countDetail();
+
     /**
      * Check if index is ready.
      *
@@ -1026,6 +1030,10 @@ class Transaction {
         for (auto& it : iterators_) {
             it->RefreshContentIfKvIteratorModified();
         }
+    }
+
+    void IncreaseCount(bool is_vertex, LabelId lid, int64_t delta) {
+        graph_->IncreaseCount(txn_, is_vertex, lid, delta);
     }
 
     size_t GetLooseNumVertex() { return graph_->GetLooseNumVertex(txn_); }

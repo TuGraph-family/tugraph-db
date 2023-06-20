@@ -40,13 +40,15 @@ class GraphManager {
         bool load_plugins = true;
         int plugin_subprocess_max_idle_seconds = 600;
         FullTextIndexOptions ft_index_options;
+        bool enable_realtime_count = true;
 
         Config() {}
         explicit Config(const GlobalConfig& gc)
             : durable(gc.durable),
               load_plugins(true),
               plugin_subprocess_max_idle_seconds(gc.subprocess_max_idle_seconds),
-              ft_index_options(gc.ft_index_options) {}
+              ft_index_options(gc.ft_index_options),
+              enable_realtime_count(gc.enable_realtime_count) {}
     };
 
     struct ModGraphActions {

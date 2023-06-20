@@ -623,6 +623,19 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_EQ(eit3.GetField("blob").AsBlob(), std::string("1234"));
             txn.Abort();
         }
+
+        // test count
+        std::pair<uint64_t, uint64_t> count_befor, count_after;
+        {
+            auto txn = db.CreateReadTxn();
+            count_befor = txn.Count();
+        }
+        db.RefreshCount();
+        {
+            auto txn = db.CreateReadTxn();
+            count_after = txn.Count();
+        }
+        UT_EXPECT_EQ(count_befor, count_after);
     }
     {
         UT_LOG() << "Testing label modifications.";

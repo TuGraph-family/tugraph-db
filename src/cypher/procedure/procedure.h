@@ -151,6 +151,14 @@ class BuiltinProcedure {
     static void DbmsProcedures(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbmsMetaCountDetail(RTContext *ctx, const Record *record,const VEC_EXPR &args,
+                                  const VEC_STR &yield_items,std::vector<Record> *records);
+
+    static void DbmsMetaCount(RTContext *ctx, const Record *record,const VEC_EXPR &args,
+                                  const VEC_STR &yield_items,std::vector<Record> *records);
+    static void DbmsMetaRefreshCount(RTContext *ctx, const Record *record,const VEC_EXPR &args,
+                              const VEC_STR &yield_items,std::vector<Record> *records);
+
     static void DbmsSecurityChangePassword(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
                                            std::vector<Record> *records);
@@ -588,6 +596,18 @@ static std::vector<Procedure> global_procedures = {
                                   {"read_only", {2, lgraph_api::LGraphType::BOOLEAN}}},
               true, false),
 
+    Procedure("dbms.meta.countDetail", BuiltinProcedure::DbmsMetaCountDetail, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"is_vertex", {0, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"label", {1, lgraph_api::LGraphType::STRING}},
+                                  {"count", {2, lgraph_api::LGraphType::INTEGER}}},
+              true, false),
+    Procedure("dbms.meta.count", BuiltinProcedure::DbmsMetaCount, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"type", {1, lgraph_api::LGraphType::STRING}},
+                  {"number", {2, lgraph_api::LGraphType::INTEGER}}}, true, false),
+    Procedure("dbms.meta.refreshCount", BuiltinProcedure::DbmsMetaRefreshCount,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
                   {"current_password", {0, lgraph_api::LGraphType::STRING}},

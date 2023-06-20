@@ -84,6 +84,7 @@ inline void UpdateDBConfigWithGMConfig(lgraph::DBConfig& dbc,
     dbc.durable = gmc.durable;
     dbc.subprocess_max_idle_seconds = gmc.plugin_subprocess_max_idle_seconds;
     dbc.ft_index_options = gmc.ft_index_options;
+    dbc.enable_realtime_count = gmc.enable_realtime_count;
 }
 
 bool lgraph::GraphManager::CreateGraph(KvTransaction& txn, const std::string& name,

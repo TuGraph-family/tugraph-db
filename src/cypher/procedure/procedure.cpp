@@ -747,6 +747,63 @@ void BuiltinProcedure::DbAddEdgeConstraints(RTContext *ctx, const Record *record
     ac_db.AddEdgeConstraints(label, edge_constraints);
 }
 
+void BuiltinProcedure::DbmsMetaCountDetail(RTContext* ctx, const Record* record, const VEC_EXPR& args,
+                              const VEC_STR& yield_items, std::vector<Record>* records) {
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: dbms.meta.countDetail()",
+                                           args.size()))
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    const auto& counts = ctx->txn_->GetTxn()->countDetail();
+    for (const auto& count : counts) {
+        Record r;
+        r.AddConstant(lgraph::FieldData(std::get<0>(count)));
+        r.AddConstant(lgraph::FieldData(std::get<1>(count)));
+        r.AddConstant(lgraph::FieldData(std::get<2>(count)));
+        records->emplace_back(r.Snapshot());
+    }
+}
+
+void BuiltinProcedure::DbmsMetaCount(RTContext* ctx, const Record* record, const VEC_EXPR& args,
+                                         const VEC_STR& yield_items, std::vector<Record>* records) {
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: dbms.meta.count()",
+                                           args.size()))
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    const auto& counts = ctx->txn_->GetTxn()->countDetail();
+    int64_t vertex_num = 0;
+    int64_t edge_num = 0;
+    for (const auto& count : counts) {
+        if (std::get<0>(count)) {
+            vertex_num += std::get<2>(count);
+        } else {
+            edge_num += std::get<2>(count);
+        }
+    }
+    {
+        Record r;
+        r.AddConstant(lgraph::FieldData("vertex"));
+        r.AddConstant(lgraph::FieldData(vertex_num));
+        records->emplace_back(r.Snapshot());
+    }
+    {
+        Record r;
+        r.AddConstant(lgraph::FieldData("edge"));
+        r.AddConstant(lgraph::FieldData(edge_num));
+        records->emplace_back(r.Snapshot());
+    }
+}
+
+void BuiltinProcedure::DbmsMetaRefreshCount(RTContext* ctx, const Record* record, const VEC_EXPR& args,
+                                     const VEC_STR& yield_items, std::vector<Record>* records) {
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: dbms.meta.refreshCount()",
+                                           args.size()))
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    ac_db.RefreshCount();
+}
+
 void BuiltinProcedure::DbmsSecurityChangePassword(RTContext *ctx, const cypher::Record *record,
                                                   const cypher::VEC_EXPR &args,
                                                   const cypher::VEC_STR &yield_items,

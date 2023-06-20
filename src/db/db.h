@@ -123,6 +123,7 @@ class AccessControlledDB {
 
     std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string& label,
                                                   const std::string& query, int top_n);
+    void RefreshCount();
 
     void WarmUp() const;
 

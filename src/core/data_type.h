@@ -169,6 +169,7 @@ struct DBConfig {
     bool enable_wal = false;
 
     FullTextIndexOptions ft_index_options;
+    bool enable_realtime_count = true;
 
     template <typename StreamT>
     size_t Serialize(StreamT& stream) const {

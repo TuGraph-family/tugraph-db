@@ -181,6 +181,12 @@ bool lgraph::AccessControlledDB::ClearEdgeConstraints(const std::string& label) 
     return graph_->ClearEdgeConstraints(label);
 }
 
+void lgraph::AccessControlledDB::RefreshCount() {
+    CheckFullAccess();
+    graph_->RefreshCount();
+}
+
+
 bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const std::string& field,
                                                 bool is_unique) {
     CheckFullAccess();

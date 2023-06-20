@@ -45,8 +45,7 @@ std::vector<std::tuple<bool, std::string, std::string>> Transaction::ListFullTex
         FMA_ASSERT(schema);
         const auto& ft_fields = schema->GetFullTextFields();
         for (auto field : ft_fields) {
-            ret.emplace_back(std::tuple<bool, std::string, std::string>{
-                true, label, schema->GetFieldExtractor(field)->Name()});
+            ret.emplace_back(true, label, schema->GetFieldExtractor(field)->Name());
         }
     }
     const auto& e_labels = curr_schema_->e_schema_manager.GetAllLabels();
@@ -55,9 +54,23 @@ std::vector<std::tuple<bool, std::string, std::string>> Transaction::ListFullTex
         FMA_ASSERT(schema);
         const auto& ft_fields = schema->GetFullTextFields();
         for (auto field : ft_fields) {
-            ret.emplace_back(std::tuple<bool, std::string, std::string>{
-                false, label, schema->GetFieldExtractor(field)->Name()});
+            ret.emplace_back(false, label, schema->GetFieldExtractor(field)->Name());
         }
+    }
+    return ret;
+}
+
+std::vector<std::tuple<bool, std::string, int64_t>> Transaction::countDetail() {
+    std::vector<std::tuple<bool, std::string, int64_t>> ret;
+    const auto& v_labels = curr_schema_->v_schema_manager.GetAllLabels();
+    for (const auto& label : v_labels) {
+        auto schema = curr_schema_->v_schema_manager.GetSchema(label);
+        ret.emplace_back(true, label, graph_->GetCount(txn_, true, schema->GetLabelId()));
+    }
+    const auto& e_labels = curr_schema_->e_schema_manager.GetAllLabels();
+    for (const auto& label : e_labels) {
+        auto schema = curr_schema_->e_schema_manager.GetSchema(label);
+        ret.emplace_back(false, label, graph_->GetCount(txn_, false, schema->GetLabelId()));
     }
     return ret;
 }
@@ -174,7 +187,9 @@ Transaction::Transaction(Transaction&& rhs)
       index_manager_(rhs.index_manager_),
       blob_manager_(rhs.blob_manager_),
       fulltext_index_(rhs.fulltext_index_),
-      fulltext_buffers_(std::move(rhs.fulltext_buffers_)) {
+      fulltext_buffers_(std::move(rhs.fulltext_buffers_)),
+      vertex_delta_count_(std::move(rhs.vertex_delta_count_)),
+      edge_delta_count_(std::move(rhs.edge_delta_count_)) {
     FMA_DBG_ASSERT(rhs.iterators_.empty()) << "Non-empty transactions should not be moved.";
     rhs.read_only_ = true;
 }
@@ -195,6 +210,8 @@ Transaction& Transaction::operator=(Transaction&& rhs) {
     blob_manager_ = rhs.blob_manager_;
     fulltext_index_ = rhs.fulltext_index_;
     fulltext_buffers_ = std::move(rhs.fulltext_buffers_);
+    vertex_delta_count_ = std::move(rhs.vertex_delta_count_);
+    edge_delta_count_ = std::move(rhs.edge_delta_count_);
     return *this;
 }
 
@@ -331,6 +348,16 @@ void Transaction::CommitFullTextIndex() {
 void Transaction::Commit() {
     if (!IsValid()) return;
     CloseAllIterators();
+    if (db_->GetConfig().enable_realtime_count && !txn_.IsOptimistic()) {
+        for (const auto& pair : vertex_delta_count_) {
+            IncreaseCount(true, pair.first, pair.second);
+        }
+        for (const auto& pair : edge_delta_count_) {
+            IncreaseCount(false, pair.first, pair.second);
+        }
+        vertex_delta_count_.clear();
+        edge_delta_count_.clear();
+    }
     txn_.Commit();
     if (fulltext_index_) {
         CommitFullTextIndex();
@@ -380,6 +407,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                 edge_schema->DeleteEdgeIndex(txn_, it.GetId(),
                                         data.vid, data.lid, data.tid, data.eid,
                                         Value(data.prop, data.psize));
+                edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
                         {it.GetId(), data.vid, data.lid, data.tid, data.eid}, fulltext_buffers_);
@@ -393,6 +421,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                 edge_schema->DeleteEdgeIndex(txn_, data.vid,
                                         it.GetId(), data.lid, data.tid, data.eid,
                                         Value(data.prop, data.psize));
+                edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
                         {data.vid, it.GetId(), data.lid, data.tid, data.eid}, fulltext_buffers_);
@@ -401,6 +430,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
         }
     };
     graph_->DeleteVertex(txn_, it, on_edge_deleted);
+    vertex_delta_count_[schema->GetLabelId()]--;
     // delete vertex fulltext index
     if (fulltext_index_) {
         schema->DeleteVertexFullTextIndex(it.GetId(), fulltext_buffers_);
@@ -435,6 +465,7 @@ Transaction::DeleteEdge(EIT& eit) {
     schema->DeleteEdgeIndex(txn_, eit.GetSrc(), eit.GetDst(), eit.GetLabelId(), eit.GetTemporalId(),
                             eit.GetEdgeId(), prop);
     graph_->DeleteEdge(txn_, eit);
+    edge_delta_count_[euid.lid]--;
     if (fulltext_index_) {
         schema->DeleteEdgeFullTextIndex(euid, fulltext_buffers_);
     }
@@ -633,6 +664,7 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
     const std::vector<std::pair<BlobManager::BlobKey, Value>>& blobs, bool continue_on_error) {
     std::string error;
     const std::string& label = schema->GetLabel();
+    int64_t count = 0;
     for (auto& v : vprops) {
         // add the new vertex without index
         VertexId newvid;
@@ -669,11 +701,13 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             }
             error.append(msg);
         }
+        count++;
         // add fulltext index
         if (fulltext_index_) {
             schema->AddVertexToFullTextIndex(newvid, v, fulltext_buffers_);
         }
     }
+    vertex_delta_count_[schema->GetLabelId()] += count;
     blob_manager_->_BatchAddBlobs(txn_, blobs);
     return error;
 }
@@ -692,11 +726,14 @@ std::string Transaction::_OnlineImportBatchAddEdges(
             schema->AddEdgeToFullTextIndex({src, dst, label, tid, eid}, record, fulltext_buffers_);
         };
     }
+    int64_t count = 0;
     for (auto& v : data) {
+        count += v.outs.size();
         graph::Graph::OutIteratorImpl::InsertEdges(v.vid, v.outs.begin(), v.outs.end(), it,
                                                    add_fulltext_index);
         graph::Graph::InIteratorImpl::InsertEdges(v.vid, v.ins.begin(), v.ins.end(), it, nullptr);
     }
+    edge_delta_count_[schema->GetLabelId()] += count;
     blob_manager_->_BatchAddBlobs(txn_, blobs);
     return error;
 }
@@ -1026,6 +1063,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     if (fulltext_index_) {
         schema->AddVertexToFullTextIndex(newvid, prop, fulltext_buffers_);
     }
+    vertex_delta_count_[schema->GetLabelId()]++;
     return newvid;
 }
 
@@ -1085,6 +1123,7 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     if (fulltext_index_) {
         schema->AddEdgeToFullTextIndex(euid, prop, fulltext_buffers_);
     }
+    edge_delta_count_[schema->GetLabelId()]++;
     return euid;
 }
 

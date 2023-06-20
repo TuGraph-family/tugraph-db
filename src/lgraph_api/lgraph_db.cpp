@@ -278,4 +278,10 @@ std::vector<std::pair<EdgeUid, float>> GraphDB::QueryEdgeByFullTextIndex(const s
     return db_->QueryEdgeByFullTextIndex(label, query, top_n);
 }
 
+void GraphDB::RefreshCount() {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    db_->RefreshCount();
+}
+
 }  // namespace lgraph_api

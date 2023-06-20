@@ -210,6 +210,8 @@ class LightningGraph {
 
     void FullTextIndexRefresh();
 
+    void RefreshCount();
+
     std::vector<std::tuple<bool, std::string, std::string>> ListFullTextIndexes();
 
     std::vector<std::pair<int64_t, float>> QueryVertexByFullTextIndex(const std::string& label,

@@ -626,6 +626,22 @@ class Transaction {
      * @returns The primary field.
      */
     const std::string& GetVertexPrimaryField(const std::string& label);
+
+
+    /**
+     * @brief   Get the total number of vertex and edge
+     *
+     * @returns std::pair object, first element is vertex number, second is edge number.
+     */
+    std::pair<uint64_t, uint64_t> Count();
+
+    /**
+     * @brief   Get the total number of vertex or edge for each label
+     *
+     * @returns std::tuple object list, first element indicates whether it is VERTEX or EDGE,
+     *          second is label name, third is number.
+     */
+    std::vector<std::tuple<bool, std::string, int64_t>> CountDetail();
 };
 
 }  // namespace lgraph_api

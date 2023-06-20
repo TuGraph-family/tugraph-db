@@ -639,6 +639,15 @@ class GraphDB {
     std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string &label,
                                                                     const std::string &query,
                                                                     int top_n);
+
+    /**
+     * @brief   Recount the total number of vertex and edge, stop writing during the count
+     *
+     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     *                                      level.
+     */
+    void RefreshCount();
 };
 
 }  // namespace lgraph_api
