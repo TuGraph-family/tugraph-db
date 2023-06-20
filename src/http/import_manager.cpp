@@ -33,8 +33,13 @@ std::string ImportManager::GetUserPath(const std::string& user) {
 
 void ImportManager::NewRecord(const std::string& id) {
     ImportRecord& record = task_record_[id];
-    if (record.task_id_ == "None")
+    if (record.task_id_ == "None") {
         record.task_id_ = id;
+    } else {
+        record.err_msg_ = "";
+        record.done_ = false;
+        record.state_ = PREPARE;
+    }
 }
 
 uint64_t ImportManager::GetProcessedPackages(const std::string& id) {
@@ -43,7 +48,9 @@ uint64_t ImportManager::GetProcessedPackages(const std::string& id) {
     return it->second.processed_packages_;
 }
 
-void ImportManager::RecordErrorMsg(const std::string& id, const std::string& err_msg) {
+void ImportManager::RecordErrorMsg(const std::string& id,
+                                   const nlohmann::json& schema,
+                                   const std::string& err_msg) {
     ImportRecord& record = task_record_[id];
     if (record.err_msg_.empty()) {
         record.err_msg_ = err_msg;
@@ -51,6 +58,7 @@ void ImportManager::RecordErrorMsg(const std::string& id, const std::string& err
         std::string append_str = " /n " + err_msg;
         record.err_msg_ += err_msg;
     }
+    RecordFinish(id, schema, false);
 }
 
 void ImportManager::RecordProgress(const std::string& id, uint64_t packages, uint64_t progress) {
@@ -64,20 +72,64 @@ void ImportManager::RecordTotalBytes(const std::string& id, uint64_t total_bytes
     record.total_in_bytes_ = total_bytes;
 }
 
-std::string ImportManager::GetImportProgress(const std::string& id, std::string& reason) {
+void ImportManager::RecordProcessing(const std::string& id) {
+    ImportRecord& record = task_record_[id];
+    record.state_ = PROCESSING;
+    record.start_timestamp_ = fma_common::GetTime();
+}
+
+void ImportManager::RecordFinish(const std::string& id,
+                                 const nlohmann::json& schema, bool correct) {
+    ImportRecord& record = task_record_[id];
+    record.done_ = true;
+    if (correct) {
+        record.state_ = SUCCESS;
+    } else {
+        record.state_ = ERROR;
+    }
+    record.finish_timestamp_ = fma_common::GetTime();
+    DeleteDataFiles(id, schema);
+}
+
+int ImportManager::GetImportProgress(const std::string& id,
+                                     std::string& progress,
+                                     std::string& reason) {
     auto it = task_record_.find(id);
     if (it == task_record_.end()) throw lgraph_api::BadRequestException("Not a valid task id");
-    if (it->second.err_msg_.size()) reason = it->second.err_msg_;
-    if (it->second.processed_bytes_ == 0 || it->second.total_in_bytes_ == 0) return "0";
-    double progress = (double)it->second.processed_bytes_ / (double)it->second.total_in_bytes_;
-    std::string ret;
-    try {
-        ret = boost::lexical_cast<std::string>(progress);
-    } catch (boost::bad_lexical_cast& e) {
-        throw lgraph_api::InternalErrorException(
-            "current progress cannot be obtained");
+
+    switch (it->second.state_) {
+    case PROCESSING: {
+            if (it->second.total_in_bytes_ == 0) return SUCCESS;
+            double p = (double)it->second.processed_bytes_ / (double)it->second.total_in_bytes_;
+            try {
+                progress = boost::lexical_cast<std::string>(p);
+            } catch (boost::bad_lexical_cast& e) {
+                throw lgraph_api::InternalErrorException("current progress cannot be obtained");
+            }
+            return PROCESSING;
+        }
+    case ERROR: {
+            reason = it->second.err_msg_;
+            return ERROR;
+        }
+    case SUCCESS:
+        return SUCCESS;
+    case PREPARE:
+        return PREPARE;
     }
-    return ret;
+    return PREPARE;
+}
+
+void ImportManager::DeleteDataFiles(const std::string& id, const nlohmann::json& schema) {
+    const nlohmann::json& files = schema.at(HTTP_FILES);
+    for (size_t idx = 0; idx < files.size(); ++idx) {
+        const nlohmann::json& item = files[idx];
+        std::string file = item[HTTP_PATH].get<std::string>();
+        fma_common::LocalFileSystem fs;
+        if (!fs.Remove(file)) {
+            FMA_LOG() << FMA_FMT("{} file remove failed in {} task", file, id);
+        }
+    }
 }
 
 }  //  end of namespace http

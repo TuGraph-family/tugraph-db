@@ -239,7 +239,7 @@ void HttpService::DoCheckFile(brpc::Controller* cntl, std::string& res) {
                 file_size = boost::lexical_cast<off_t>(size_str);
             } catch (boost::bad_lexical_cast& e) {
                 throw lgraph_api::BadRequestException(
-                    "`flag` should be an integer of the string type");
+                    "`file_size` should be an integer of the string type");
             }
             if (file_size != GetFileSize(absolute_file_name)) {
                 js["pass"] = false;
@@ -273,18 +273,6 @@ void HttpService::DoImportFile(brpc::Controller* cntl, std::string& res) {
     bool continue_on_error = false;
     ExtractTypedField<bool>(req, HTTP_CONTINUE_ON_ERROR, continue_on_error);
 
-    std::string flag_str;
-    ExtractTypedField<std::string>(req, HTTP_FLAG, flag_str);
-    int16_t flag = 0;
-    if (!flag_str.empty()) {
-        try {
-            flag = boost::lexical_cast<int16_t>(flag_str);
-        } catch (boost::bad_lexical_cast& e) {
-            throw lgraph_api::BadRequestException(
-                "`flag` should be an integer of the string type");
-        }
-    }
-
     std::string skip_str;
     ExtractTypedField<std::string>(req, HTTP_SKIP_PACKAGES, skip_str);
     uint64_t skip_packages = 0;
@@ -302,7 +290,7 @@ void HttpService::DoImportFile(brpc::Controller* cntl, std::string& res) {
     id = id.empty() ? GetRandomUuid() : id;
 
     ImportTask task(this, &import_manager_, id, user, *token, graph,
-                    delimiter, continue_on_error, skip_packages, schema, flag);
+                    delimiter, continue_on_error, skip_packages, schema);
     pool_.PushTask(0, GetSerialNumber(), task);
     nlohmann::json js;
     js[HTTP_TASK_ID] = id;
@@ -337,17 +325,28 @@ void HttpService::DoImportProgress(brpc::Controller* cntl, std::string& res) {
     std::string task_id;
     if (!ExtractTypedField<std::string>(req, HTTP_TASK_ID, task_id))
         throw lgraph_api::BadRequestException("`taskId` not specified.");
-    std::string reason;
-    const std::string& progress = import_manager_.GetImportProgress(task_id, reason);
+    std::string reason, progress;
+    int state = import_manager_.GetImportProgress(task_id, progress, reason);
     nlohmann::json js;
-    if (reason.empty()) {
-        if (progress == "1") {
-            js[HTTP_SUCCESS] = true;
+    switch (state) {
+    case 0: {
+            js[HTTP_PROGRESS_STATE] = "0";
+            break;
         }
-        js[HTTP_PROGRESS] = progress;
-    } else {
-        js[HTTP_SUCCESS] = false;
-        js[HTTP_REASON] = reason;
+    case 1: {
+            js[HTTP_PROGRESS_STATE] = "1";
+            js[HTTP_PROGRESS] = progress;
+            break;
+        }
+    case 2: {
+            js[HTTP_PROGRESS_STATE] = "2";
+            break;
+        }
+    case 3: {
+            js[HTTP_PROGRESS_STATE] = "3";
+            js[HTTP_REASON] = reason;
+            break;
+        }
     }
     res = js.dump();
 }
@@ -725,8 +724,7 @@ void HttpService::AddAccessControlCORS(brpc::Controller* cntl) {
 
 void HttpService::RespondUnauthorized(brpc::Controller* cntl, const std::string& res) const {
     nlohmann::json js;
-    js[HTTP_SUCCESS] = 401;
-    js[HTTP_ERROR_CODE] = 401;
+    js[HTTP_ERROR_CODE] = "401";
     js[HTTP_ERROR_MESSAGE] = res;
     cntl->response_attachment().append(js.dump());
     cntl->http_response().set_status_code(brpc::HTTP_STATUS_OK);
@@ -734,8 +732,7 @@ void HttpService::RespondUnauthorized(brpc::Controller* cntl, const std::string&
 
 void HttpService::RespondSuccess(brpc::Controller* cntl, const std::string& res) const {
     nlohmann::json js;
-    js[HTTP_SUCCESS] = 00;
-    js[HTTP_ERROR_CODE] = 00;
+    js[HTTP_ERROR_CODE] = "200";
     js[HTTP_ERROR_MESSAGE] = "";
     if (!res.empty()) {
         js[HTTP_DATA] = nlohmann::json::parse(res);
@@ -748,8 +745,7 @@ void HttpService::RespondSuccess(brpc::Controller* cntl, const std::string& res)
 
 void HttpService::RespondInternalError(brpc::Controller* cntl, const std::string& res) const {
     nlohmann::json js;
-    js[HTTP_SUCCESS] = 402;
-    js[HTTP_ERROR_CODE] = 402;
+    js[HTTP_ERROR_CODE] = "500";
     js[HTTP_ERROR_MESSAGE] = res;
     cntl->response_attachment().append(js.dump());
     cntl->http_response().set_status_code(brpc::HTTP_STATUS_OK);
@@ -757,8 +753,7 @@ void HttpService::RespondInternalError(brpc::Controller* cntl, const std::string
 
 void HttpService::RespondBadRequest(brpc::Controller* cntl, const std::string& res) const {
     nlohmann::json js;
-    js[HTTP_SUCCESS] = 403;
-    js[HTTP_ERROR_CODE] = 403;
+    js[HTTP_ERROR_CODE] = "400";
     js[HTTP_ERROR_MESSAGE] = res;
     cntl->response_attachment().append(js.dump());
     cntl->http_response().set_status_code(brpc::HTTP_STATUS_OK);

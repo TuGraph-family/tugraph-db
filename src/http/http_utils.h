@@ -54,6 +54,7 @@ static const string_t HTTP_DATA = "data";
 static const string_t HTTP_REASON = "reason";
 static const string_t HTTP_FILES = "files";
 static const string_t HTTP_PATH = "path";
+static const string_t HTTP_PROGRESS_STATE = "state";
 static const string_t HTTP_HEADER_FILE_NAME = "File-Name";
 static const string_t HTTP_HEADER_BEGIN_POS = "Begin-Pos";
 static const string_t HTTP_HEADER_SIZE = "Size";
