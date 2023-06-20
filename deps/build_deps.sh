@@ -1,13 +1,32 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-    MAKE_ARGS=-j8
-elif [ $# -eq 1 ]; then
-    MAKE_ARGS=$1
-else
-    echo "usage: ./build_deps [-jN]"
-    exit 1
-fi
+function usage {
+    echo "usage: ./build_deps [-jN] [-o <output_dir>] [-h]"
+    echo "  -jN: use N threads to build"
+    echo "  -o <output_dir>: output directory"
+    echo "  -h: print this message"
+    exit 0
+}
+
+# usage: ./build_deps [-jN] [-o <output_dir>] [-h]
+# parse arguments
+while getopts ":j:o:h" opt; do
+    case ${opt} in
+        j)
+            MAKE_ARGS="-j${OPTARG}"
+            ;;
+        o)
+            OUT_DIR=${OPTARG}
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
 
 if [ ! ${USE_CLANG} ] || [ ${USE_CLANG} = 0 ]; then
     CC="gcc"
@@ -18,8 +37,11 @@ elif [ ${USE_CLANG} = 1 ]; then
 fi
 
 DEPS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-INSTALL_DIR=${DEPS_DIR}/install
-BUILD_DIR=${DEPS_DIR}/build
+if [ ! ${OUT_DIR} ]; then
+    OUT_DIR=${DEPS_DIR}
+fi
+INSTALL_DIR=${OUT_DIR}/install
+BUILD_DIR=${OUT_DIR}/build
 
 mkdir -p ${INSTALL_DIR}
 mkdir -p ${BUILD_DIR}
@@ -32,9 +54,7 @@ function BuildPackage {
     echo "======================================"
     echo "Building ${NAME}"
     echo "======================================"
-    mkdir -p ${BUILD_DIR}/${NAME}
-    cd ${BUILD_DIR}/${NAME}
-    cmake ${DEPS_DIR}/${SOURCE_DIR} \
+    cmake -S ${DEPS_DIR}/${SOURCE_DIR} -B ${BUILD_DIR}/${NAME} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_SHARED_LIBS=0 \
@@ -43,13 +63,11 @@ function BuildPackage {
         -DCMAKE_C_COMPILER=${CC} \
         -DCMAKE_CXX_COMPILER=${CXX} \
         ${ARGS[@]:2}
-    make ${MAKE_ARGS}
-    make install
+    cmake --build ${BUILD_DIR}/${NAME} --target install  ${MAKE_ARGS}
     res=$?
     if [ ${res} -ne 0 ]; then
         echo "Failed to build ${NAME}"
     fi
-    cd -
     return ${res}
 }
 

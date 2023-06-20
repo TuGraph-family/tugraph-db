@@ -12,7 +12,7 @@ endif ()
 
 # protbuf
 include(cmake/GenerateProtobuf.cmake)
-GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
+GenerateProtobufCpp(${CMAKE_CURRENT_BINARY_DIR}/protobuf
         PROTO_SRCS PROTO_HEADERS
         ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto)
 
@@ -40,7 +40,8 @@ target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher    # for FieldDataConvert
         ${LGRAPH_INCLUDE_DIR}
-        ${JNI_INCLUDE_DIRS})
+        ${JNI_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_BINARY_DIR})
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_link_libraries(${TARGET_CPP_CLIENT_RPC}
@@ -118,7 +119,8 @@ target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher
         ${LGRAPH_INCLUDE_DIR}
-        ${JNI_INCLUDE_DIRS})
+        ${JNI_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_BINARY_DIR})
 
 ############### liblgraph_client_python ######################
 

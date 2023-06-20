@@ -8,9 +8,22 @@ include(Options.cmake)
 
 # env
 set(LGRAPH_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
-set(DEPS_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/include)
-set(DEPS_LIBRARY_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/lib)
-set(DEPS_LIBRARY64_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/lib64)
+# if DEPS_INCLUDE_DIR not set, use default
+if (NOT DEPS_INCLUDE_DIR)
+    set(DEPS_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/include)
+endif ()
+message(STATUS "DEPS_INCLUDE_DIR: ${DEPS_INCLUDE_DIR}")
+# if DEPS_LIBRARY_DIR not set, use default
+if (NOT DEPS_LIBRARY_DIR)
+    set(DEPS_LIBRARY_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/lib)
+endif ()
+message(STATUS "DEPS_LIBRARY_DIR: ${DEPS_LIBRARY_DIR}")
+# if DEPS_LIBRARY64_DIR not set, use default
+if (NOT DEPS_LIBRARY64_DIR)
+    set(DEPS_LIBRARY64_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/lib64)
+endif ()
+message(STATUS "DEPS_LIBRARY64_DIR: ${DEPS_LIBRARY64_DIR}")
+
 set(LGRAPH_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(CMAKEFILES_COMPILER_DIR ${PROJECT_BINARY_DIR})
 set(DEPS_LOCAL_INCLUDE_DIR /usr/local/include)

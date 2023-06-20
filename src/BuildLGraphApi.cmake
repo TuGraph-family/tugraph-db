@@ -19,11 +19,13 @@ endif ()
 include(cmake/GenerateVersionInfo.cmake)
 GenerateVersionInfo(${LGRAPH_VERSION_MAJOR} ${LGRAPH_VERSION_MINOR} ${LGRAPH_VERSION_PATCH}
         ${CMAKE_CURRENT_LIST_DIR}/core/version.h.in
-        ${CMAKE_CURRENT_LIST_DIR}/core/version.h)
+        ${CMAKE_CURRENT_BINARY_DIR}/core/version.h)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # protbuf
 include(cmake/GenerateProtobuf.cmake)
-GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
+GenerateProtobufCpp(${CMAKE_CURRENT_BINARY_DIR}/protobuf
         PROTO_SRCS PROTO_HEADERS
         ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto)
 
@@ -100,7 +102,8 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
         ${LGRAPH_INCLUDE_DIR}
         ${LGRAPH_SRC_DIR}
         ${LGRAPH_SRC_DIR}/cypher
-        ${JNI_INCLUDE_DIRS})
+        ${JNI_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_BINARY_DIR})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC

@@ -26,7 +26,7 @@ find_package(OpenSSL)
 
 # protbuf
 include(cmake/GenerateProtobuf.cmake)
-GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
+GenerateProtobufCpp(${CMAKE_CURRENT_BINARY_DIR}/protobuf
         PROTO_SRCS PROTO_HEADERS
         ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto)
 
