@@ -1,5 +1,5 @@
-存储过程
-========
+Stored Procedures
+========================
 
 .. toctree::
    :maxdepth: 2

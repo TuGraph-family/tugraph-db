@@ -7,5 +7,5 @@ TuGraph DB Interface
 
    1.cypher.md
    2.olap/index.rst
-   3.procedure.md
+   3.procedure/index.rst
    4.protocol/index.rst
