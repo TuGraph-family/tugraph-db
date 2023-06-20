@@ -1,5 +1,5 @@
 TuGraph DB Quick Start
-========
+========================
 
 .. toctree::
    :maxdepth: 2
@@ -7,5 +7,4 @@ TuGraph DB Quick Start
    :glob:
 
    1.preparation.md
-   2.demo/1.movie.md
-   2.demo/2.wandering-earth.md
+   2.demo/index.rst

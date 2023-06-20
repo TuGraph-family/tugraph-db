@@ -1,5 +1,5 @@
 TuGraph DB Characteristics
-========
+================================
 
 .. toctree::
    :maxdepth: 2

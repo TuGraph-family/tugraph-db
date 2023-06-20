@@ -4,4 +4,4 @@
 # 3. run this script
 rm output -rf
 mkdir -p _static _templates
-sphinx-build-3 -b html . output
+sphinx-build -W -b html . output

@@ -1,5 +1,5 @@
 TuGraph DB Protocol
-========
+================================
 
 .. toctree::
    :maxdepth: 2

@@ -15,7 +15,7 @@ Copyright (C) 2018-2022 Ant Group.
 
 Introduction
 ------------------
-Similar to SQLite and Noe4j, TutGraph can work in embedded mode. In embedded mode, it works
+Similar to SQLite and Noe4j, TuGraph can work in embedded mode. In embedded mode, it works
 like a library. You can write your own application and call the library functions to create, query
 and modify the graph. In this case, all the data exchange between the application and the graph
 database goes in the same process. It is very simple and efficient.
@@ -25,7 +25,7 @@ can open or create a database, and then query or modify the database.
 
 API
 ------------------
-.. automodule:: lgraph_python 
+.. automodule:: liblgraph_python_api
    :members:
 
 

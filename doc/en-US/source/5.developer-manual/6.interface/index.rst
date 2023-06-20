@@ -1,5 +1,5 @@
 TuGraph DB Interface
-========
+========================
 
 .. toctree::
    :maxdepth: 2

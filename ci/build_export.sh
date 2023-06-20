@@ -11,7 +11,7 @@ cd ${ACB_BUILD_DIR}/code-repo
 pwd
 ls -al
 cd deps
-SKIP_WEB=1 bash ./build_deps.sh -j6
+bash ./build_deps.sh -j6
 cd ${ACB_BUILD_DIR}/code-repo
 mkdir build && cd build
 
@@ -23,7 +23,7 @@ else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
 fi
 
-make -j6
+make package -j6
 
 # build java
 cd ${ACB_BUILD_DIR}/code-repo/deps/tugraph-db-client-java/

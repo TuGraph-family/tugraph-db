@@ -1,5 +1,5 @@
 TuGraph DB Developer Manual
-========
+========================================
 
 .. toctree::
    :maxdepth: 2

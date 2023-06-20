@@ -1,2 +1,4 @@
+sphinx
 myst-parser
 sphinx-panels
+sphinx-rtd-theme

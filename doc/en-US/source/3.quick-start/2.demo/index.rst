@@ -1,5 +1,5 @@
-TuGraph DB User Guide
-========================
+demo example
+=============
 
 .. toctree::
    :maxdepth: 2
