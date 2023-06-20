@@ -118,9 +118,11 @@ class PythonWorkerProcess {
     // invocation results in undefined behavior.
     void Kill() {
         if (killed_) return;
+        while (!process_->try_get_exit_status(exit_code_)) {
+            process_->kill(true);
+            fma_common::SleepS(0.1);
+        }
         killed_ = true;
-        process_->kill(true);
-        exit_code_ = -1;
     }
 
     int Wait() {

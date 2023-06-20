@@ -185,7 +185,6 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
 
         UT_LOG() << "Testing call plugin";
         std::string output;
-        UT_LOG() << "Testing call plugin1111";
 
         manager.DoCall(nullptr, user, &db, "echo", pinfo, "hello", 0, true, output);
         UT_EXPECT_EQ(output, "hello");
@@ -243,15 +242,18 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 2, true, output);
         UT_EXPECT_EQ(manager.GetNFree(), 0);
         thrs.clear();
-        for (size_t i = 0; i < 3; i++) {
+        n_processes = 10;
+        for (size_t i = 0; i < n_processes; i++) {
             thrs.emplace_back([i, &manager, &db, pinfo, &user]() {
                 std::string out;
                 manager.DoCall(nullptr, user, &db, "sleep", pinfo, std::to_string(i), 0, true, out);
             });
         }
         for (auto& thr : thrs) thr.join();
-        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "1.4", 2, true, output);
-        UT_EXPECT_EQ(manager.GetNFree(), std::min(max_idle_seconds - 1, 3));
+        double sleep_time = 1.4;
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, std::to_string(sleep_time), 2, true,
+                       output);
+        UT_EXPECT_EQ(manager.GetNFree(), max_idle_seconds - std::ceil(sleep_time) + 1);
         std::string path("sleep");
         auto res = manager.GetPluginPath(path);
         UT_LOG() << res;
