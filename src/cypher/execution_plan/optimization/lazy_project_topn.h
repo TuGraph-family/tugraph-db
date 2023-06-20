@@ -17,6 +17,10 @@
  */
 #pragma once
 
+#include "cypher/execution_plan/ops/op_project.h"
+#include "cypher/execution_plan/ops/op_limit.h"
+#include "cypher/execution_plan/ops/op_sort.h"
+#include "cypher/execution_plan/ops/op_topn.h"
 #include "opt_pass.h"
 
 namespace cypher {
@@ -69,7 +73,9 @@ class LazyProjectTopN : public OptPass {
         op_sort->RemoveChild(op_project);
         op_limit->RemoveChild(op_sort);
         op_post->RemoveChild(op_limit);
-        delete op_project, op_sort, op_limit;
+        delete op_project;
+        delete op_sort;
+        delete op_limit;
         op_project = nullptr;
         op_sort = nullptr;
         op_limit = nullptr;
