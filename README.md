@@ -32,7 +32,8 @@ Welcome to our [website](https://www.tugraph.org).
 ## 1. Quick Start
 
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
-for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
+for example, `tugraph/tugraph-runtime-centos7:3.3.0`. 
+For a quick start, please choose the "runtime" label with the latest version number (either OS version).
 
 For more details, please refer to [quick start doc](doc/en-US/source/3.quick-start/1.preparation.md).
 
