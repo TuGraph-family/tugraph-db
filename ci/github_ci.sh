@@ -43,6 +43,7 @@ cd $WORKSPACE/build/output
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
 cp -r ../../test/integration/* ./
+cp -r ../../demo/movie .
 pytest ./
 
 # codecov
