@@ -57,6 +57,10 @@ class Node {
 
     const std::string &Label() const;
 
+    void SetLabel(std::string schema_label){
+        label_=schema_label;
+    }
+
     const std::string &Alias() const;
 
     bool &Visited() { return visited_; }

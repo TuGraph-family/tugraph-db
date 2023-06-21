@@ -29,6 +29,9 @@
 #include "optimization/pass_manager.h"
 #include "procedure/procedure.h"
 #include "validation/check_graph.h"
+#include "rewrite/schema_rewrite.h"
+
+#define IsSchemaRewrite true
 
 namespace cypher {
 using namespace parser;
@@ -550,20 +553,80 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
     for (auto &stream : expand_streams) {
         std::vector<OpBase *> expand_ops;
         bool hanging = false;  // if the stream is a hanging node
+
+        SchemaNodeMap schema_node_map;
+        SchemaRelpMap schema_relp_map;
+        bool is_schema_rewrite=IsSchemaRewrite && (_schema_info!=nullptr);
         for (auto &step : stream) {
             auto &start = pattern_graph.GetNode(std::get<0>(step));
             auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
             auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
             if (relp.Empty() && neighbor.Empty()) {
+                //单独悬挂点，无需使用schema优化
+                schema_node_map.clear();
+                schema_relp_map.clear();
+                is_schema_rewrite=false;
+                break;
+            }
+            else if(relp.VarLen()){
+                //目前不处理可变长的情况
+                schema_node_map.clear();
+                schema_relp_map.clear();
+                is_schema_rewrite=false;
+                break;
+            }
+            else{
+                //源点schema插入
+                if(schema_node_map.find(std::get<0>(step))==schema_node_map.end()){
+                    schema_node_map[std::get<0>(step)]=start.Label();
+                }
+                //终点schema插入
+                if(schema_node_map.find(std::get<2>(step))==schema_node_map.end()){
+                    schema_node_map[std::get<2>(step)]=neighbor.Label();
+                }
+                //插入边schema
+                std::tuple<NodeID,NodeID,std::set<std::string>,parser::LinkDirection> relp_map_value(start.ID(),neighbor.ID(),relp.Types(),relp.direction_);
+                schema_relp_map[std::get<1>(step)]=relp_map_value;
+            }
+        }
+        //调用schema函数
+        rewrite_cypher::SchemaRewrite schema_rewrite;
+        std::vector<SchemaGraphMap> schema_graph_maps;
+        if(is_schema_rewrite){
+            schema_graph_maps=schema_rewrite.GetEffectivePath(*_schema_info,&schema_node_map,&schema_relp_map);
+            // 目前只对一条可行路径的情况进行重写
+            if(schema_graph_maps.size()!=1){is_schema_rewrite=false;}
+        }
+
+        for (auto &step : stream) {
+            auto &start = pattern_graph.GetNode(std::get<0>(step));
+            auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
+            auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
+            //更改点、边的label信息
+            if(is_schema_rewrite){
+                auto schema_node_map=schema_graph_maps[0].first;
+                auto schema_relp_map=schema_graph_maps[0].second;
+                if(schema_node_map.find(std::get<0>(step))!=schema_node_map.end()){
+                    start.SetLabel(schema_node_map.find(std::get<0>(step))->second);
+                }
+                if(schema_node_map.find(std::get<2>(step))!=schema_node_map.end()){
+                    neighbor.SetLabel(schema_node_map.find(std::get<2>(step))->second);
+                }
+                if(schema_relp_map.find(std::get<1>(step))!=schema_relp_map.end()){
+                    relp.SetTypes(std::get<2>(schema_relp_map.find(std::get<1>(step))->second));
+                }
+            }
+
+            if (relp.Empty() && neighbor.Empty()) {
                 // 邻居节点和关系都为空，证明是悬挂点 hanging为true
                 /* Node doesn't have any incoming nor outgoing edges,
-                 * this is an hanging node "()", create a scan operation. */
+                * this is an hanging node "()", create a scan operation. */
                 CYPHER_THROW_ASSERT(stream.size() == 1);
                 hanging = true;
                 _AddScanOp(part, &pattern_graph.symbol_table, &start, expand_ops,
-                           skip_hanging_argument_op);
+                        skip_hanging_argument_op);
                 /* Skip all the rest hanging arguments after one is added.
-                 * e.g. MATCH (a),(b) WITH a, b MATCH (c) RETURN a,b,c  */
+                * e.g. MATCH (a),(b) WITH a, b MATCH (c) RETURN a,b,c  */
                 auto it = pattern_graph.symbol_table.symbols.find(start.Alias());
                 if (it != pattern_graph.symbol_table.symbols.end() &&
                     it->second.scope == SymbolNode::ARGUMENT) {
@@ -584,14 +647,14 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             if (!pf.field.empty()) {
                 ArithExprNode ae1, ae2;
                 ae1.SetOperand(ArithOperandNode::AR_OPERAND_VARIADIC, neighbor.Alias(), pf.field,
-                               pattern_graph.symbol_table);
+                            pattern_graph.symbol_table);
                 if (pf.type == Property::PARAMETER) {
                     // todo: use record
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
-                                   cypher::FieldData(lgraph::FieldData(pf.value_alias)));
+                                cypher::FieldData(lgraph::FieldData(pf.value_alias)));
                 } else {
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_CONSTANT,
-                                   cypher::FieldData(pf.value));
+                                cypher::FieldData(pf.value));
                 }
                 std::shared_ptr<lgraph::Filter> filter =
                     std::make_shared<lgraph::RangeFilter>(lgraph::CompareOp::LBR_EQ, ae1, ae2);
@@ -600,7 +663,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             }
         }  // end for steps
         /* Add optional match.
-         * Do not add optional op if the expand ops is empty, e.g. when hanging argument. */
+        * Do not add optional op if the expand ops is empty, e.g. when hanging argument. */
         if (part.match_clause && std::get<3>(*part.match_clause) && !expand_ops.empty()) {
             OpBase *optional = new Optional();
             expand_ops.emplace_back(optional);
@@ -608,7 +671,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
         /* Save expand ops in reverse order. */
         std::reverse(expand_ops.begin(), expand_ops.end());
         /* Locates expand all operations which do not have a child operation,
-         * And adds a scan operation as a new child. */
+        * And adds a scan operation as a new child. */
         if (!hanging) {
             // 如果不是悬挂点，就补一个scanop
             CYPHER_THROW_ASSERT(!stream.empty());

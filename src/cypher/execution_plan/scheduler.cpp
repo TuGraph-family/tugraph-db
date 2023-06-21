@@ -55,9 +55,26 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
         for (const auto& sql_query: visitor.GetQuery()) {
             FMA_DBG_STREAM(Logger()) << sql_query.ToString();
         }
+
         plan = std::make_shared<ExecutionPlan>();
-        plan->Build(visitor.GetQuery(), visitor.CommandType());
+        //在生成执行计划时获取Schema信息
+        if (ctx->graph_.empty()) {
+            ctx->ac_db_.reset(nullptr);
+            plan->Build(visitor.GetQuery(), visitor.CommandType());
+        }   
+        else{
+            ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
+            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+            lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
+            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
+            auto schema_info=ctx->txn_->GetTxn()->GetSchemaInfo();
+            plan->SetSchemaInfo(&schema_info);
+            plan->Build(visitor.GetQuery(), visitor.CommandType());
+        }
         plan->Validate(ctx);
+        ctx->txn_.reset(nullptr);
+        ctx->ac_db_.reset(nullptr);
+
         if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
             ctx->result_info_ = std::make_unique<ResultInfo>();
             ctx->result_ = std::make_unique<lgraph::Result>();
