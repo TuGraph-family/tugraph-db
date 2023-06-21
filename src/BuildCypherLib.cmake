@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.1)
 find_package(PythonLibs REQUIRED)
 
 #antlr4-runtime
+find_package(antlr4-runtime REQUIRED)
+include_directories( ${ANTLR4_INCLUDE_DIR} )
 set(ANTRL4_LIBRARY antlr4-runtime.a)
 
 set(TARGET_LGRAPH_CYPHER_LIB lgraph_cypher_lib)
