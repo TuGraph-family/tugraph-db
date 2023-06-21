@@ -372,4 +372,24 @@ const std::string& Transaction::GetVertexPrimaryField(const std::string& label) 
     return txn_->GetVertexPrimaryField(label);
 }
 
+std::pair<uint64_t, uint64_t> Transaction::Count() {
+    ThrowIfInvalid();
+    const auto& counts = txn_->countDetail();
+    uint64_t vertex_num = 0;
+    uint64_t edge_num = 0;
+    for (const auto& count : counts) {
+        if (std::get<0>(count)) {
+            vertex_num += std::get<2>(count);
+        } else {
+            edge_num += std::get<2>(count);
+        }
+    }
+    return {vertex_num, edge_num};
+}
+
+std::vector<std::tuple<bool, std::string, int64_t>> Transaction::CountDetail() {
+    ThrowIfInvalid();
+    return txn_->countDetail();
+}
+
 }  // namespace lgraph_api

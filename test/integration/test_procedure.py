@@ -467,7 +467,7 @@ class TestProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 86
+        assert len(procedures) == 89
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
@@ -881,3 +881,24 @@ class TestProcedure:
         assert ret[0]
         res = json.loads(ret[1])[0]
         assert res.get("count(r)") == 8
+
+        ret = client.callCypher("call dbms.meta.count()")
+        assert ret[0]
+        res = json.loads(ret[1])
+        assert len(res) == 2
+        assert res[0]['number'] == 21
+        assert res[1]['number'] == 28
+        ret = client.callCypher("call dbms.meta.countDetail()")
+        assert ret[0]
+        assert len(json.loads(ret[1])) == 10
+        ret = client.callCypher("call dbms.meta.refreshCount()")
+        assert ret[0]
+        ret = client.callCypher("call dbms.meta.count()")
+        assert ret[0]
+        res = json.loads(ret[1])
+        assert len(res) == 2
+        assert res[0]['number'] == 21
+        assert res[1]['number'] == 28
+        ret = client.callCypher("call dbms.meta.countDetail()")
+        assert ret[0]
+        assert len(json.loads(ret[1])) == 10

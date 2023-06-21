@@ -56,8 +56,43 @@ RUN cd opt \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
+# install tugraph
 COPY tugraph-3.5.0-1.el7.x86_64.rpm /tugraph-3.5.0-1.el7.x86_64.rpm
 RUN rpm -ivh tugraph-3.5.0-1.el7.x86_64.rpm && rm /tugraph-3.5.0-1.el7.x86_64.rpm
+
+# install tugraph demo
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
+    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph/data/upload_files/admin \
+    && cp -r tugraph-demo/movie /var/lib/lgraph/data/upload_files/admin/movie \
+    && cp -r tugraph-demo/the_three_body /var/lib/lgraph/data/upload_files/admin/the_three_body \
+    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph/data/upload_files/admin/three_kingdoms \
+    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph/data/upload_files/admin/wandering_earth \
+    && cp tugraph-demo/setup.sh /setup.sh
+
+# install node.js && yarn
+# if it is not accessible, replace it with the link below
+# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6.0-linux-x64.tar.gz \
+    && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \
+    && ln -s /node-v16.6.0-linux-x64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com \
+    && rm -rf /node-v16.6.0-linux-x64.tar.gz \
+    && npm install --global yarn \
+    && ln -s /node-v16.6.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
+    && yarn config set registry https://registry.npmmirror.com
+
+# install tugraoh-db-web dependencies
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugrpah-db-browser.tar.gz \
+    && mkdir -p /var/lib/web \
+    && mv tugrpah-db-browser.tar.gz /var/lib/web \
+    && cd /var/lib/web \
+    && tar xf tugrpah-db-browser.tar.gz \
+    && rm tugrpah-db-browser.tar.gz \
+    && cd tugraph-db-browser/server \
+    && chown root:root . && cd .. \
+    && yarn run bootstrap \
+    && yarn run server-build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \

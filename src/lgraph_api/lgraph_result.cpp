@@ -183,23 +183,17 @@ void Record::Insert(const std::string &key, const lgraph_api::OutEdgeIterator &o
     length_++;
 }
 
-void Record::Insert(const std::string &key, const int64_t vid, lgraph::Transaction *txn) {
-    auto vit = txn->GetVertexIterator(vid);
+void Record::Insert(const std::string &key, const int64_t vid, lgraph_api::Transaction *txn) {
+    auto core_txn = txn->GetTxn().get();
+    auto vit = core_txn->GetVertexIterator(vid);
     lgraph_result::Node node;
     node.id = vid;
-    node.label = txn->GetVertexLabel(vit);
-    for (auto &property : txn->GetVertexFields(vit)) {
+    node.label = core_txn->GetVertexLabel(vit);
+    for (auto &property : core_txn->GetVertexFields(vit)) {
         node.properties.insert(property);
     }
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(node));
     length_++;
-}
-
-void Record::Insert(const std::string &key, const int64_t vid, lgraph_api::Transaction *txn) {
-    // WARNING: call deprecated interface.
-    // TODO(jiazheng.jia): Please move deprecated interface's code to here
-    // when you replace all of old interface to new one.
-    Insert(key, vid, txn->GetTxn().get());
 }
 
 void Record::InsertVertexByID(const std::string &key, int64_t node_id) {
@@ -209,29 +203,23 @@ void Record::InsertVertexByID(const std::string &key, int64_t node_id) {
     length_++;
 }
 
-void Record::Insert(const std::string &key, EdgeUid &uid, lgraph::Transaction *txn) {
-    auto eit = txn->GetOutEdgeIterator(uid, false);
+void Record::Insert(const std::string &key, EdgeUid &uid, lgraph_api::Transaction *txn) {
+    auto core_txn = txn->GetTxn().get();
+    auto eit = core_txn->GetOutEdgeIterator(uid, false);
     lgraph_result::Relationship repl;
     repl.id = uid.eid;
     repl.src = uid.src;
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
-    repl.label = txn->GetEdgeLabel(eit);
+    repl.label = core_txn->GetEdgeLabel(eit);
     repl.tid = uid.tid;
     // repl.forward is unknown
-    auto rel_fields = txn->GetEdgeFields(eit);
+    auto rel_fields = core_txn->GetEdgeFields(eit);
     for (auto &property : rel_fields) {
         repl.properties.insert(property);
     }
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
     length_++;
-}
-
-void Record::Insert(const std::string &key, EdgeUid &uid, lgraph_api::Transaction *txn) {
-    // WARNING: call deprecated interface.
-    // TODO(jiazheng.jia): Please move deprecated interface's code to here
-    // when you replace all of old interface to new one.
-    Insert(key, uid, txn->GetTxn().get());
 }
 
 void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
@@ -249,7 +237,9 @@ void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
 
 Result::Result() : row_count_(-1) {}
 
-void Record::Insert(const std::string &key, const traversal::Path &path, lgraph::Transaction *txn) {
+void Record::Insert(const std::string &key, const traversal::Path &path,
+                    lgraph_api::Transaction *txn) {
+    auto core_txn = txn->GetTxn().get();
     if (!HasKey(key) || header[key] != LGraphType::PATH) {
         throw std::runtime_error(
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
@@ -261,10 +251,10 @@ void Record::Insert(const std::string &key, const traversal::Path &path, lgraph:
     for (size_t i = 0; i < path.Length(); i++) {
         lgraph_result::Node node;
         auto vid = path.GetNthVertex(i).GetId();
-        auto vit = txn->GetVertexIterator(vid);
+        auto vit = core_txn->GetVertexIterator(vid);
         node.id = vid;
-        node.label = txn->GetVertexLabel(vit);
-        for (const auto &property : txn->GetVertexFields(vit)) {
+        node.label = core_txn->GetVertexLabel(vit);
+        for (const auto &property : core_txn->GetVertexFields(vit)) {
             node.properties[property.first] = property.second;
         }
         result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
@@ -272,38 +262,30 @@ void Record::Insert(const std::string &key, const traversal::Path &path, lgraph:
         lgraph_result::Relationship repl;
         auto euid = lgraph::EdgeUid(edge.GetSrcVertex().GetId(), edge.GetDstVertex().GetId(),
                                     edge.GetLabelId(), edge.GetTemporalId(), edge.GetEdgeId());
-        auto eit = txn->GetOutEdgeIterator(euid, false);
+        auto eit = core_txn->GetOutEdgeIterator(euid, false);
         repl.id = euid.eid;
         repl.src = euid.src;
         repl.dst = euid.dst;
         repl.label_id = euid.lid;
         repl.tid = euid.tid;
-        repl.label = txn->GetEdgeLabel(eit);
+        repl.label = core_txn->GetEdgeLabel(eit);
         repl.forward = ((int64_t)vid == euid.src);
-        for (const auto &property : txn->GetEdgeFields(eit)) {
+        for (const auto &property : core_txn->GetEdgeFields(eit)) {
             repl.properties[property.first] = property.second;
         }
         result_path.emplace_back(lgraph_result::PathElement(std::move(repl)));
     }
     lgraph_result::Node node;
     auto vid = path.GetEndVertex().GetId();
-    auto vit = txn->GetVertexIterator(vid);
+    auto vit = core_txn->GetVertexIterator(vid);
     node.id = vid;
-    node.label = txn->GetVertexLabel(vit);
-    for (const auto &property : txn->GetVertexFields(vit)) {
+    node.label = core_txn->GetVertexLabel(vit);
+    for (const auto &property : core_txn->GetVertexFields(vit)) {
         node.properties[property.first] = property.second;
     }
     result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
     length_++;
-}
-
-void Record::Insert(const std::string &key, const traversal::Path &path,
-                    lgraph_api::Transaction *txn) {
-    // WARNING: call deprecated interface.
-    // TODO(jiazheng.jia): Please move deprecated interface's code to here
-    // when you replace all of old interface to new one.
-    Insert(key, path, txn->GetTxn().get());
 }
 
 Result::Result(const std::initializer_list<std::pair<std::string, LGraphType>> &args) {

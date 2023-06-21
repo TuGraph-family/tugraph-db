@@ -7,6 +7,10 @@ find_path(GTEST_HEADER NAMES gtest/gtest.h)
 set(GTEST_LIB libgtest.a)
 set(GTEST_MAIN_LIB libgtest_main.a)
 
+#antlr4-runtime
+find_package(antlr4-runtime REQUIRED)
+include_directories( ${ANTLR4_INCLUDE_DIR} )
+
 add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)

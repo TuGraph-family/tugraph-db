@@ -69,18 +69,6 @@ class Record {
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
-     *          and value type must be same as you defined earlier. You can get properties
-     *          and label from the interface, this is different from InsertEdgeByID.
-     * @param   fname     title name you defined earlier.
-     * @param   vid       VertextId
-     * @param   txn       Transaction
-     */
-    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
-    void Insert(const std::string &fname, const int64_t vid,
-        lgraph::Transaction* txn);
-
-    /**
-     * @brief   insert a value to result table. You can insert a value by insert function,
      *          and value type must be same as you defined earlier.  You can get properties
      *          and label from the interface, this is different from InsertVertexByID.
      * @param   fname     title name you defined earlier.
@@ -88,17 +76,6 @@ class Record {
      * @param   txn       Transaction
      */
     void Insert(const std::string &fname, const int64_t vid, lgraph_api::Transaction* txn);
-
-    /**
-     * @brief   insert a value to result table. You can insert a value by insert function,
-     *          and value type must be same as you defined earlier. You can get properties
-     *          and label from the interface, this is different from InsertVertexByID.
-     * @param   fname   title name you defined earlier.
-     * @param   euid    EdgeUid
-     * @param   txn     Transaction
-     */
-    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
-    void Insert(const std::string &fname, EdgeUid &euid, lgraph::Transaction* txn);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
@@ -174,16 +151,6 @@ class Record {
     void Insert(const std::string &fname, const std::map<std::string, FieldData> &map);
 
 #ifndef _WIN32
-    /**
-     * @brief   insert value into result table. You can insert a value by the function,
-     *          and value must be same as you defined earlier.
-     * @param  fname    one of title name you defined earlier.
-     * @param  path     Path of traverse api.
-     * @param  txn      Trasaction
-     */
-    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
-    void Insert(const std::string &fname, const traversal::Path &path, lgraph::Transaction* txn);
-
     /**
      * @brief   insert value into result table. You can insert a value by the function,
      *          and value must be same as you defined earlier.

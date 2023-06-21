@@ -400,6 +400,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         new_schema->e_schema_manager.RefreshEdgeConstraintsLids(
             new_schema->v_schema_manager);
     }
+    graph_->DeleteCount(txn.GetTxn(), is_vertex, lid);
     txn.Commit();
     // delete fulltext index if has any
     if (fulltext_index_) {
@@ -1461,6 +1462,49 @@ bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
     // install the new index
     schema_.Assign(new_schema.release());
     return true;
+}
+
+
+void LightningGraph::RefreshCount() {
+    auto txn = CreateWriteTxn();
+    auto num = txn.GetLooseNumVertex();
+    const auto processor = std::thread::hardware_concurrency();
+    auto batch = num / processor + 1;
+    std::vector<std::thread> threads;
+    std::vector<std::unordered_map<LabelId, int64_t>>
+        count_vertex(processor), count_edge(processor);
+    auto count = [this](VertexId startId, VertexId endId,
+                        std::unordered_map<LabelId, int64_t>& vertex,
+                        std::unordered_map<LabelId, int64_t>& edge) {
+        auto txn = CreateReadTxn();
+        for (auto vit = txn.GetVertexIterator(startId, true);
+             vit.IsValid() && vit.GetId() < endId; vit.Next()) {
+            auto vlid = txn.GetVertexLabelId(vit);
+            vertex[vlid]++;
+            for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+                auto elid = eit.GetLabelId();
+                edge[elid]++;
+            }
+        }
+    };
+    for (uint16_t i = 0; i < processor; i++) {
+        threads.emplace_back(count, i*batch, (i+1)*batch,
+                             std::ref(count_vertex[i]),
+                             std::ref(count_edge[i]));
+    }
+    for (auto& t : threads) t.join();
+    graph_->DeleteAllCount(txn.GetTxn());
+    for (auto& item : count_vertex) {
+        for (auto& pair : item) {
+            graph_->IncreaseCount(txn.GetTxn(), true, pair.first, pair.second);
+        }
+    }
+    for (auto& item : count_edge) {
+        for (auto& pair : item) {
+            graph_->IncreaseCount(txn.GetTxn(), false, pair.first, pair.second);
+        }
+    }
+    txn.Commit();
 }
 
 bool LightningGraph::BlockingAddIndex(const std::string& label, const std::string& field,

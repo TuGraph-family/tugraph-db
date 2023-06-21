@@ -30,7 +30,6 @@ class TuGraphRestClient:
 
     def logout(self):
         r = self._sync(partial(self.__post__, 'logout'))
-        log.info(r)
         if isinstance(r['data'], str):
             if r['data'] == '':
                 return True
@@ -184,7 +183,7 @@ class TuGraphRestClient:
         except Exception as e:
             logging.error(e)
         if r.status_code == 200:
-            if js["errorCode"] == 00:
+            if js["errorCode"] == "200":
                 return (True, js)
             else:
                 return (False, js)

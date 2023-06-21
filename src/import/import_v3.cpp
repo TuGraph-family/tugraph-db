@@ -881,6 +881,16 @@ void Importer::RocksdbToLmdb() {
         }
         FMA_LOG() << "CompactRange, time: " << fma_common::GetTime() - begin << "s";
     }
+
+    auto txn = db_->CreateReadTxn();
+    for (auto& label : txn.GetAllLabels(true)) {
+        vertex_count_[txn.GetLabelId(true, label)] = 0;
+    }
+    for (auto& label : txn.GetAllLabels(false)) {
+        edge_count_[txn.GetLabelId(false, label)] = 0;
+    }
+    txn.Abort();
+
     std::atomic<uint64_t> pending_tasks(0);
     std::atomic<uint16_t> stage(0);
     std::unique_ptr<boost::asio::thread_pool> lmdb_writer(
@@ -1000,6 +1010,7 @@ void Importer::RocksdbToLmdb() {
                     auto val = iter->value();
                     const char* p = key.data();
                     if (key.size() == sizeof(VertexId)) {
+                        vertex_count_.at(_detail::GetLabelId(val.data()))++;
                         VertexId vid = (*(VertexId*)p);
                         boost::endian::big_to_native_inplace(vid);
                         if (pre_vid != vid) {
@@ -1025,6 +1036,9 @@ void Importer::RocksdbToLmdb() {
                         p += 1;
                         LabelId labelId = *(LabelId*)p;
                         boost::endian::big_to_native_inplace(labelId);
+                        if (out_edge) {
+                            edge_count_.at(labelId)++;
+                        }
                         p += sizeof(LabelId);
                         VertexId vertexId = *(VertexId*)p;
                         boost::endian::big_to_native_inplace(vertexId);
@@ -1093,8 +1107,23 @@ void Importer::RocksdbToLmdb() {
     }
     rocksdb_readers->join();
     lmdb_writer->join();
+    WriteCount();
     auto t2 = fma_common::GetTime();
     FMA_LOG() << "Dump rocksdb into lmdb, time: " << t2 - t1 << "s";
+}
+
+void Importer::WriteCount() {
+    if (!db_->GetConfig().enable_realtime_count) {
+        return;
+    }
+    Transaction txn = db_->CreateWriteTxn();
+    for (auto& pair : vertex_count_) {
+        txn.IncreaseCount(true, pair.first, pair.second);
+    }
+    for (auto& pair : edge_count_) {
+        txn.IncreaseCount(false, pair.first, pair.second);
+    }
+    txn.Commit();
 }
 
 AccessControlledDB Importer::OpenGraph(Galaxy& galaxy, bool empty_db) {

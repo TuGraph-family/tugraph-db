@@ -404,6 +404,18 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
                     std::vector<std::string>{"name6", "comments6", "20"});
     txn.Commit();
 
+    txn = db.CreateReadTxn();
+    auto counts_befor = txn.countDetail();
+    UT_EXPECT_EQ(counts_befor.size(), 2);
+    UT_EXPECT_EQ(std::get<2>(counts_befor[0]), 4);
+    UT_EXPECT_EQ(std::get<2>(counts_befor[1]), 6);
+    txn.Abort();
+    db.RefreshCount();
+    txn = db.CreateReadTxn();
+    auto counts_after = txn.countDetail();
+    UT_EXPECT_EQ(counts_befor, counts_after);
+    txn.Abort();
+
     txn = db.CreateWriteTxn();
     size_t n_in = 0;
     size_t n_out = 0;

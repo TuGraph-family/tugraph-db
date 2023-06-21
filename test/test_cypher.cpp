@@ -1282,6 +1282,9 @@ int test_procedure(cypher::RTContext *ctx) {
         "return node, r, n LIMIT 1"
         "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */",
         "CALL dbms.procedures() YIELD name, signature WHERE name='db.subgraph' RETURN signature",
+        "CALL dbms.meta.count()",
+        "CALL dbms.meta.countDetail()",
+        "CALL dbms.meta.refreshCount()",
     };
     eval_scripts(ctx, scripts);
 

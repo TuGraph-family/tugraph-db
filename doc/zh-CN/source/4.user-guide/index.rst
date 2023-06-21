@@ -6,4 +6,4 @@
    :caption: Contents:
    :glob:
 
-   1.tugraph-browser.md
+   *

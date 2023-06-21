@@ -13,7 +13,6 @@
  */
 
 #include "http/import_task.h"
-#include "http/http_utils.h"
 #include "fma-common/logger.h"
 #include "import/import_config_parser.h"
 #include "import/file_cutter.h"
@@ -31,8 +30,7 @@ ImportTask::ImportTask(HttpService* http_service,
                        const std::string& delimiter,
                        bool continue_on_error,
                        uint64_t skip_packages,
-                       const nlohmann::json& schema,
-                       int16_t flag)
+                       const nlohmann::json& schema)
     : http_service_(http_service)
     , import_manager_(import_manager)
     , id_(std::move(id))
@@ -42,8 +40,7 @@ ImportTask::ImportTask(HttpService* http_service,
     , delimiter_(std::move(delimiter))
     , continue_on_error_(continue_on_error)
     , skip_packages_(skip_packages)
-    , schema_(std::move(schema))
-    , flag_(flag) {}
+    , schema_(std::move(schema)) {}
 
 void ImportTask::operator()() {
     try {
@@ -51,7 +48,7 @@ void ImportTask::operator()() {
         std::vector<import_v2::CsvDesc> data_files =
             import_v2::ImportConfParser::ParseFiles(schema_);
         if (data_files.empty()) {
-            return import_manager_->RecordErrorMsg(id_, "data files is empty");
+            return import_manager_->RecordFinish(id_, schema_, true);
         }
 
         std::stable_sort(data_files.begin(), data_files.end(),
@@ -66,6 +63,7 @@ void ImportTask::operator()() {
         uint64_t processed_packages = import_manager_->GetProcessedPackages(id_);
         uint64_t skip_packages =
             skip_packages_ > processed_packages ? skip_packages_ : processed_packages;
+        import_manager_->RecordProcessing(id_);
         for (import_v2::CsvDesc& fd : data_files) {
             const auto& filename = fd.path;
             std::string desc = fd.Dump();
@@ -81,24 +79,26 @@ void ImportTask::operator()() {
                 ++processed_packages;
                 if (is_first_package) {
                     if (fd.n_header_line >
-                        static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n'))
-                    return import_manager_->RecordErrorMsg(id_, "HEADER too large");
+                        static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n')) {
+                        return import_manager_->RecordErrorMsg(id_, schema_, "HEADER too large");
+                    }
                 } else {
                     fd.n_header_line = 0;
                     desc = fd.Dump();
                 }
                 std::string res = SendImportRequest(desc, std::string(begin, end));
+                if (res.size()) {
+                    if (!continue_on_error_) {
+                        return import_manager_->RecordErrorMsg(id_, schema_, res);
+                    }
+                }
                 uint64_t bytes_sent = end - begin;
                 import_manager_->RecordProgress(id_, processed_packages, bytes_sent);
-                if (res.size()) {
-                    return import_manager_->RecordErrorMsg(id_, res);
-                }
             }
         }
-        if (flag_ == 1)
-            DeleteDataFiles();
+        import_manager_->RecordFinish(id_, schema_, true);
     } catch (std::exception& e) {
-        import_manager_->RecordErrorMsg(id_, e.what());
+        import_manager_->RecordErrorMsg(id_, schema_, e.what());
     }
 }
 
@@ -125,18 +125,6 @@ std::string ImportTask::SendImportRequest(const std::string& description, const 
         log = std::move(*proto_resp.mutable_error());
     }
     return log;
-}
-
-void ImportTask::DeleteDataFiles() {
-    nlohmann::json& files = schema_.at(HTTP_FILES);
-    for (size_t idx = 0; idx < files.size(); ++idx) {
-        nlohmann::json& item = files[idx];
-        std::string file = item[HTTP_PATH].get<std::string>();
-        fma_common::LocalFileSystem fs;
-        if (!fs.Remove(file)) {
-            import_manager_->RecordErrorMsg(id_, FMA_FMT("{} file remove failed", file));
-        }
-    }
 }
 
 }  //  end of namespace http

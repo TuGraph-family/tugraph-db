@@ -161,6 +161,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     snapshot_dir = "";
     thread_limit = 0;
     unlimited_token = 0;
+    enable_realtime_count = true;
     // fulltext index
     ft_index_options.enable_fulltext_index = false;
     ft_index_options.fulltext_commit_interval = 0;
@@ -227,6 +228,9 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Maximum number of threads to use");
     argparser.Add(unlimited_token, "unlimited_token", true)
         .Comment("Unlimited token for TuGraph.");
+    argparser.Add(enable_realtime_count, "realtime vertex and edge count", true)
+        .Comment("Whether to enable realtime vertex and edge count.");
+
 #if LGRAPH_ENABLE_FULLTEXT_INDEX
     argparser.Add(ft_index_options.enable_fulltext_index, "enable_fulltext_index", true)
         .Comment("Whether to enable fulltext index.");

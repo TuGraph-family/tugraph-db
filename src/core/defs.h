@@ -117,6 +117,10 @@ static const char* const VER_PATCH_KEY = "ver_patch";
 static const char* const DB_SECRET_KEY = "_db_secret_";  // key to store db secret in meta table
 static const char* const NEXT_VID_KEY = "_next_vid_";    // key to store next vid in meta table
 
+// real-time count of vertex and edge
+static const char* const VERTEX_COUNT_PREFIX = "_vertex_count_";
+static const char* const EDGE_COUNT_PREFIX = "_edge_count_";
+
 // version info
 static const int VER_MAJOR = LGRAPH_VERSION_MAJOR;
 static const int VER_MINOR = LGRAPH_VERSION_MINOR;

@@ -23,19 +23,32 @@ namespace http {
 
 class ImportManager {
  public:
+    enum TASKSTATE {
+        PREPARE = 0,
+        PROCESSING = 1,
+        SUCCESS = 2,
+        ERROR = 3
+    };
+
     struct ImportRecord {
         std::string task_id_;
         std::string err_msg_;
         uint64_t processed_packages_;
         uint64_t processed_bytes_;
         uint64_t total_in_bytes_;
+        bool done_;
+        TASKSTATE state_;
+        double start_timestamp_;
+        double finish_timestamp_;
 
         ImportRecord()
             : task_id_("None")
             , err_msg_()
             , processed_packages_(0)
             , processed_bytes_(0.0)
-            , total_in_bytes_(0) {}
+            , total_in_bytes_(0)
+            , done_(false)
+            , state_(PREPARE) {}
     };
 
     ImportManager() {}
@@ -50,13 +63,21 @@ class ImportManager {
 
     void NewRecord(const std::string& id);
 
-    void RecordErrorMsg(const std::string& id, const std::string& err_msg);
+    void RecordErrorMsg(const std::string& id,
+                        const nlohmann::json& schema,
+                        const std::string& err_msg);
 
     void RecordTotalBytes(const std::string& id, uint64_t total_bytes);
 
+    void RecordProcessing(const std::string& id);
+
+    void RecordFinish(const std::string& id, const nlohmann::json& schema, bool correct);
+
     uint64_t GetProcessedPackages(const std::string& id);
 
-    std::string GetImportProgress(const std::string& id, std::string& reason);
+    int GetImportProgress(const std::string& id, std::string& progress, std::string& reason);
+
+    void DeleteDataFiles(const std::string& id, const nlohmann::json& schema);
 
  private:
     std::unordered_map<std::string, ImportRecord> task_record_;

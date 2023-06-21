@@ -34,14 +34,11 @@ class ImportTask {
                const std::string& delimiter,
                bool continue_on_error,
                uint64_t skip_packages,
-               const nlohmann::json& schema,
-               int16_t flag);
+               const nlohmann::json& schema);
 
     void operator()();
 
     std::string SendImportRequest(const std::string& description, const std::string& data);
-
-    void DeleteDataFiles();
 
  private:
     HttpService* http_service_;
@@ -54,7 +51,6 @@ class ImportTask {
     bool continue_on_error_;
     uint64_t skip_packages_;
     nlohmann::json schema_;
-    int16_t flag_;
 };
 
 }  //  end of namespace http

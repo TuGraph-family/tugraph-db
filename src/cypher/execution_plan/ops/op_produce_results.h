@@ -23,7 +23,7 @@
 
 /* Runtime Record to User Record */
 static void RRecordToURecord(
-    lgraph::Transaction* txn, const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
+    lgraph_api::Transaction* txn, const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
     const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record) {
     using unordered_json = nlohmann::ordered_json;
     if (header.empty()) {
@@ -169,7 +169,7 @@ class ProduceResults : public OpBase {
         auto res = child->Consume(ctx);
         if (res != OP_OK) return res;
         auto record = ctx->result_->MutableRecord();
-        RRecordToURecord(ctx->txn_->GetTxn().get(), ctx->result_->Header(), child->record, *record);
+        RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
         return OP_OK;
     }
 

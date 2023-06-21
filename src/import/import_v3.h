@@ -154,6 +154,7 @@ class Importer {
     void EdgeDataToSST();
     void VertexPrimaryIndexToLmdb();
     void RocksdbToLmdb();
+    void WriteCount();
     cuckoohash_map<std::string, VertexId> key_vid_maps_;  // vertex primary key => vid
     Config config_;
     std::mutex next_vid_lock_;
@@ -173,6 +174,8 @@ class Importer {
     std::mutex exceptions_lock_;
     std::queue<std::exception_ptr> exceptions_;
     std::unique_ptr<rocksdb::DB> rocksdb_vids_;
+    std::unordered_map<LabelId, std::atomic<int64_t>> vertex_count_;
+    std::unordered_map<LabelId, std::atomic<int64_t>> edge_count_;
 };
 
 }  // namespace import_v3
