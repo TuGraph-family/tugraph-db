@@ -620,13 +620,13 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             if (relp.Empty() && neighbor.Empty()) {
                 // 邻居节点和关系都为空，证明是悬挂点 hanging为true
                 /* Node doesn't have any incoming nor outgoing edges,
-                * this is an hanging node "()", create a scan operation. */
+                 * this is an hanging node "()", create a scan operation. */
                 CYPHER_THROW_ASSERT(stream.size() == 1);
                 hanging = true;
                 _AddScanOp(part, &pattern_graph.symbol_table, &start, expand_ops,
-                        skip_hanging_argument_op);
+                           skip_hanging_argument_op);
                 /* Skip all the rest hanging arguments after one is added.
-                * e.g. MATCH (a),(b) WITH a, b MATCH (c) RETURN a,b,c  */
+                 * e.g. MATCH (a),(b) WITH a, b MATCH (c) RETURN a,b,c  */
                 auto it = pattern_graph.symbol_table.symbols.find(start.Alias());
                 if (it != pattern_graph.symbol_table.symbols.end() &&
                     it->second.scope == SymbolNode::ARGUMENT) {
@@ -647,14 +647,14 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             if (!pf.field.empty()) {
                 ArithExprNode ae1, ae2;
                 ae1.SetOperand(ArithOperandNode::AR_OPERAND_VARIADIC, neighbor.Alias(), pf.field,
-                            pattern_graph.symbol_table);
+                               pattern_graph.symbol_table);
                 if (pf.type == Property::PARAMETER) {
                     // todo: use record
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
-                                cypher::FieldData(lgraph::FieldData(pf.value_alias)));
+                                   cypher::FieldData(lgraph::FieldData(pf.value_alias)));
                 } else {
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_CONSTANT,
-                                cypher::FieldData(pf.value));
+                                   cypher::FieldData(pf.value));
                 }
                 std::shared_ptr<lgraph::Filter> filter =
                     std::make_shared<lgraph::RangeFilter>(lgraph::CompareOp::LBR_EQ, ae1, ae2);
@@ -663,7 +663,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             }
         }  // end for steps
         /* Add optional match.
-        * Do not add optional op if the expand ops is empty, e.g. when hanging argument. */
+         * Do not add optional op if the expand ops is empty, e.g. when hanging argument. */
         if (part.match_clause && std::get<3>(*part.match_clause) && !expand_ops.empty()) {
             OpBase *optional = new Optional();
             expand_ops.emplace_back(optional);
@@ -671,7 +671,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
         /* Save expand ops in reverse order. */
         std::reverse(expand_ops.begin(), expand_ops.end());
         /* Locates expand all operations which do not have a child operation,
-        * And adds a scan operation as a new child. */
+         * And adds a scan operation as a new child. */
         if (!hanging) {
             // 如果不是悬挂点，就补一个scanop
             CYPHER_THROW_ASSERT(!stream.empty());
