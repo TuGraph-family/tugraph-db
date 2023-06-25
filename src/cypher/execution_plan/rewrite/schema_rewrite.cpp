@@ -15,7 +15,7 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
     label2idx.insert({"", -2});
     std::vector<std::string> v_labels = schema_info.v_schema_manager.GetAllLabels();
     int i = 0;
-    for (; i < v_labels.size(); i++) {
+    for (; i < (int)v_labels.size(); i++) {
         label2idx.insert({v_labels[i], i});
         idx2label.push_back(v_labels[i]);
         target_graph.AddNode((size_t)i, GetLabelNum(v_labels[i]));
@@ -24,7 +24,7 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
     size_t label_num = 0;
     const lgraph::Schema* schema;
     size_t e_cnt = 0;
-    while (schema = e_schema_manager.GetSchema(label_num)) {
+    while ((schema = e_schema_manager.GetSchema(label_num))) {
         // std::cout<<"schema label:"<<schema->GetLabel()<<std::endl;
         label2idx.insert({schema->GetLabel(), i});
         idx2label.push_back(schema->GetLabel());
