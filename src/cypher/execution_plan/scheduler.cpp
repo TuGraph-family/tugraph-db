@@ -52,22 +52,21 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         FMA_DBG_STREAM(Logger()) << "-----CLAUSE TO STRING-----";
-        for (const auto& sql_query: visitor.GetQuery()) {
+        for (const auto &sql_query : visitor.GetQuery()) {
             FMA_DBG_STREAM(Logger()) << sql_query.ToString();
         }
 
         plan = std::make_shared<ExecutionPlan>();
-        //在生成执行计划时获取Schema信息
+        // 在生成执行计划时获取Schema信息
         if (ctx->graph_.empty()) {
             ctx->ac_db_.reset(nullptr);
             plan->Build(visitor.GetQuery(), visitor.CommandType());
-        }   
-        else{
+        } else {
             ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+                ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
             lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
             ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-            auto schema_info=ctx->txn_->GetTxn()->GetSchemaInfo();
+            auto schema_info = ctx->txn_->GetTxn()->GetSchemaInfo();
             plan->SetSchemaInfo(&schema_info);
             plan->Build(visitor.GetQuery(), visitor.CommandType());
         }
@@ -128,10 +127,8 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     }
 }
 
-bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
-                                  const std::string &script,
-                                  std::string& name,
-                                  std::string& type) {
+bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx, const std::string &script,
+                                  std::string &name, std::string &type) {
     using namespace parser;
     using namespace antlr4;
     ANTLRInputStream input(script);

@@ -66,17 +66,16 @@ int test_file_script(const std::string &file, cypher::RTContext *ctx) {
         for (auto &p : s.parts) p.symbol_table.DumpTable();
     }
     cypher::ExecutionPlan execution_plan;
-    //execution_plan需要提前获取Schema信息
+    // execution_plan需要提前获取Schema信息
     if (ctx->graph_.empty()) {
         ctx->ac_db_.reset(nullptr);
         execution_plan.Build(stmt, visitor.CommandType());
-    }   
-    else{
+    } else {
         ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-        ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
         lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
         ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-        auto schema_info=ctx->txn_->GetTxn()->GetSchemaInfo();
+        auto schema_info = ctx->txn_->GetTxn()->GetSchemaInfo();
         execution_plan.SetSchemaInfo(&schema_info);
         execution_plan.Build(stmt, visitor.CommandType());
     }
@@ -106,17 +105,16 @@ int test_interactive(cypher::RTContext *ctx) {
             parser.addErrorListener(&CypherErrorListener::INSTANCE);
             visitor.visit(parser.oC_Cypher());
             cypher::ExecutionPlan execution_plan;
-            //execution_plan需要提前获取Schema信息
+            // execution_plan需要提前获取Schema信息
             if (ctx->graph_.empty()) {
                 ctx->ac_db_.reset(nullptr);
                 execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
-            }   
-            else{
+            } else {
                 ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-                ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+                    ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
                 lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
                 ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-                auto schema_info=ctx->txn_->GetTxn()->GetSchemaInfo();
+                auto schema_info = ctx->txn_->GetTxn()->GetSchemaInfo();
                 execution_plan.SetSchemaInfo(&schema_info);
                 execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
             }
@@ -146,17 +144,16 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
-        //execution_plan需要提前获取Schema信息
+        // execution_plan需要提前获取Schema信息
         if (ctx->graph_.empty()) {
             ctx->ac_db_.reset(nullptr);
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
-        }   
-        else{
+        } else {
             ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
                 ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
             lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
             ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-            auto schema_info=ctx->txn_->GetTxn()->GetSchemaInfo();
+            auto schema_info = ctx->txn_->GetTxn()->GetSchemaInfo();
             execution_plan.SetSchemaInfo(&schema_info);
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
         }
@@ -332,7 +329,8 @@ int test_query(cypher::RTContext *ctx) {
         {"MATCH (n:Person) WHERE n.birthyear > 1900 AND n.birthyear < 2000 RETURN count(n)", 1},
         {"MATCH (n:Person) RETURN n.birthyear, count(n)", 13},
         {"MATCH (f:Film)<-[:ACTED_IN]-(p:Person)-[:BORN_IN]->(c:City) "
-         "RETURN c.name, count(f) AS sum ORDER BY sum DESC", 3},
+         "RETURN c.name, count(f) AS sum ORDER BY sum DESC",
+         3},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -387,8 +385,9 @@ int test_multi_match(cypher::RTContext *ctx) {
         /* multi connected components */
         {"MATCH (n:Film), (m:City) RETURN n, m", 15},
         {"MATCH (n1:Person {name: \"John Williams\"})-[]->(m1:Film), "
-        "(n2: Person {name: \"Michael Redgrave\"})-[]->(m2:Film) "
-        "WHERE m1.title = m2.title RETURN m1, m2", 1},
+         "(n2: Person {name: \"Michael Redgrave\"})-[]->(m2:Film) "
+         "WHERE m1.title = m2.title RETURN m1, m2",
+         1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -1171,9 +1170,8 @@ int test_procedure(cypher::RTContext *ctx) {
         }
         f.close();
         encode = lgraph_api::encode_base64(text);
-        plugin_scripts.push_back(
-            "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
-            "','CPP','" + i.first + "', true)");
+        plugin_scripts.push_back("CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode +
+                                 "','CPP','" + i.first + "', true)");
     }
     eval_scripts(ctx, plugin_scripts);
 
@@ -1337,8 +1335,8 @@ int test_procedure(cypher::RTContext *ctx) {
 
     std::vector<std::string> call_signatured_plugins_scripts;
     auto add_signatured_plugins = [&call_signatured_plugins_scripts](
-                                      const std::string& name,
-                                      const std::string& plugin_source_path) {
+                                      const std::string &name,
+                                      const std::string &plugin_source_path) {
         std::ifstream f;
         f.open(plugin_source_path, std::ios::in);
 
@@ -1350,9 +1348,8 @@ int test_procedure(cypher::RTContext *ctx) {
         }
         f.close();
         std::string encoded = lgraph_api::encode_base64(text);
-        call_signatured_plugins_scripts.emplace_back(
-            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true)",
-                    name, encoded, name));
+        call_signatured_plugins_scripts.emplace_back(FMA_FMT(
+            "CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true)", name, encoded, name));
     };
 
     add_signatured_plugins("custom_shortestpath",
@@ -1376,14 +1373,14 @@ int test_procedure(cypher::RTContext *ctx) {
         "RETURN id, length");
 
     add_signatured_plugins("peek_some_node_salt",
-        "../../test/test_procedures/peek_some_node_salt.cpp");
+                           "../../test/test_procedures/peek_some_node_salt.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "CALL plugin.cpp.peek_some_node_salt(10) "
         "YIELD node, salt WITH node, salt "
         "MATCH(node)-[r]->(n) RETURN node, r, n, salt");
 
     add_signatured_plugins("custom_path_process",
-        "../../test/test_procedures/custom_path_process.cpp");
+                           "../../test/test_procedures/custom_path_process.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH p = (n {name:\"Rachel Kempson\"})-[*0..3]->() "
         "CALL plugin.cpp.custom_path_process(nodes(p)) YIELD idSum "
@@ -1392,8 +1389,7 @@ int test_procedure(cypher::RTContext *ctx) {
     add_signatured_plugins("custom_algo", "../../test/test_procedures/custom_algo.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "CALL plugin.cpp.custom_algo() YIELD res RETURN res");
-    call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_algo()");
+    call_signatured_plugins_scripts.emplace_back("CALL plugin.cpp.custom_algo()");
     eval_scripts(ctx, call_signatured_plugins_scripts);
     return 0;
 }
@@ -2193,8 +2189,8 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
         {"WITH '1' as s UNWIND ['a','b']+s as k RETURN s,k", 3},
         {"MATCH (n:Person)-[]->(m:Film) WITH n.name AS nname, collect(id(m)) AS mc "
          "MATCH (n:Person {name: nname})<-[]-(o) WITH n.name AS nname, mc, collect(id(o)) AS oc "
-         "UNWIND mc+oc AS c RETURN c", 11}
-    };
+         "UNWIND mc+oc AS c RETURN c",
+         11}};
     std::vector<std::string> scripts;
     std::vector<int> check;
     for (auto &s : script_check) {
@@ -2219,13 +2215,12 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     // #issue 340
     expected_exception_any(ctx, "MERGE (n:null {id: 2909}) RETURN n");
 
-
     // issue #199
     expected_exception_any(ctx,
-        "MATCH (n:Person {name:'Liam Neeson'}), "
-        "(m:Person {name:'Liam Neeson'}), "
-        "(o:Person {name:'Liam Neeson'}) "
-        "WHERE custom.myadd('asd')='1' RETURN 1");
+                           "MATCH (n:Person {name:'Liam Neeson'}), "
+                           "(m:Person {name:'Liam Neeson'}), "
+                           "(o:Person {name:'Liam Neeson'}) "
+                           "WHERE custom.myadd('asd')='1' RETURN 1");
     // issue #312
     auto graph = ctx->graph_;
     ctx->graph_ = "";
@@ -2317,18 +2312,10 @@ int test_edge_id_query(cypher::RTContext *ctx) {
 void TestCypherDetermineReadonly() {
     std::string dummy;
     UT_EXPECT_EQ(
-        cypher::Scheduler::DetermineReadOnly(
-            nullptr,
-            "match (n) return n limit 100",
-            dummy,
-            dummy),
+        cypher::Scheduler::DetermineReadOnly(nullptr, "match (n) return n limit 100", dummy, dummy),
         true);
     UT_EXPECT_EQ(
-        cypher::Scheduler::DetermineReadOnly(
-            nullptr,
-            "CALL dbms.listGraphs()",
-            dummy,
-            dummy),
+        cypher::Scheduler::DetermineReadOnly(nullptr, "CALL dbms.listGraphs()", dummy, dummy),
         true);
 }
 
@@ -2475,128 +2462,128 @@ TEST_P(TestCypher, Cypher) {
                          lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
                          lgraph::AclManager::FieldAccess());
     db.param_tab_ = g_param_tab;
-    
+
     auto no_throw_test_case = [&] {
         switch (test_case) {
-            case TC_FILE_SCRIPT:
-                test_file_script(file, &db);
-                break;
-            case TC_INTERACTIVE:
-                test_interactive(&db);
-                break;
-            case TC_FIND:
-                test_find(&db);
-                break;
-            case TC_QUERY:
-                test_query(&db);
-                break;
-            case TC_HINT:
-                test_hint(&db);
-                break;
-            case TC_MULTI_MATCH:
-                test_multi_match(&db);
-                break;
-            case TC_OPTIONAL_MATCH:
-                test_optional_match(&db);
-                break;
-            case TC_UNION:
-                test_union(&db);
-                break;
-            case TC_FUNCTION:
-                test_function(&db);
-                break;
-            case TC_PARAMETER:
-                test_parameter(&db);
-                break;
-            case TC_VAR_LEN_EDGE:
-                test_var_len_expand(&db);
-                break;
-            case TC_UNIQUENESS:
-                test_uniqueness(&db);
-                break;
-            case TC_FUNC_FILTER:
-                test_func_filter(&db);
-                break;
-            case TC_EXPRESSION:
-                test_expression(&db);
-                break;
-            case TC_WITH:
-                test_with(&db);
-                break;
-            case TC_LIST_COMPREHENSION:
-                test_list_comprehension(&db);
-                break;
-            case TC_PROFILE:
-                test_profile(&db);
-                break;
-            case TC_UNWIND:
-                test_unwind(&db);
-                break;
-            case TC_PROCEDURE:
-                test_procedure(&db);
-                break;
-            case TC_ADD:
-                test_add(&db);
-                break;
-            case TC_SET:
-                test_set(&db);
-                break;
-            case TC_DELETE:
-                test_delete(&db);
-                break;
-            case TC_REMOVE:
-                test_remove(&db);
-                break;
-            case TC_ORDER_BY:
-                test_order_by(&db);
-                break;
-            case TC_CREATE_YAGO:
-                test_create_yago(&db);
-                break;
-            case TC_AGGREGATE:
-                test_aggregate(&db);
-                break;
-            case TC_ALGO:
-                test_algo(&db);
-                break;
-            case TC_TOPN:
-                test_topn(&db);
-                break;
-            case TC_MERGE:
-                test_merge(&db);
-                break;
-            case TC_ERROR_REPORT:
-                test_error_report(&db);
-                break;
-            case TC_DEBUG_STACK_CHAOS:
-                debug_stack_chaos(&db);
-                break;
-            case TC_LDBC_SNB:
-                test_ldbc_snb(&db);
-                break;
-            case TC_OPT:
-                test_opt(&db);
-                break;
-            case TC_FIX_CRASH_ISSUES:
-                test_fix_crash_issues(&db);
-                break;
-            case TC_UNDEFINED_VAR:
-                test_undefined_var(&db);
-                break;
-            case TC_CREATE_LABEL:
-                test_create_label(&db);
-                break;
-            case TC_READONLY:
-                TestCypherDetermineReadonly();
-                break;
-            case TC_EDGE_ID:
-                test_edge_id_query(&db);
-                break;
-            case TC_EMPTY_GRAPH:
-                TestCypherEmptyGraph(&db);
-                break;
-            default:
-                break;
+        case TC_FILE_SCRIPT:
+            test_file_script(file, &db);
+            break;
+        case TC_INTERACTIVE:
+            test_interactive(&db);
+            break;
+        case TC_FIND:
+            test_find(&db);
+            break;
+        case TC_QUERY:
+            test_query(&db);
+            break;
+        case TC_HINT:
+            test_hint(&db);
+            break;
+        case TC_MULTI_MATCH:
+            test_multi_match(&db);
+            break;
+        case TC_OPTIONAL_MATCH:
+            test_optional_match(&db);
+            break;
+        case TC_UNION:
+            test_union(&db);
+            break;
+        case TC_FUNCTION:
+            test_function(&db);
+            break;
+        case TC_PARAMETER:
+            test_parameter(&db);
+            break;
+        case TC_VAR_LEN_EDGE:
+            test_var_len_expand(&db);
+            break;
+        case TC_UNIQUENESS:
+            test_uniqueness(&db);
+            break;
+        case TC_FUNC_FILTER:
+            test_func_filter(&db);
+            break;
+        case TC_EXPRESSION:
+            test_expression(&db);
+            break;
+        case TC_WITH:
+            test_with(&db);
+            break;
+        case TC_LIST_COMPREHENSION:
+            test_list_comprehension(&db);
+            break;
+        case TC_PROFILE:
+            test_profile(&db);
+            break;
+        case TC_UNWIND:
+            test_unwind(&db);
+            break;
+        case TC_PROCEDURE:
+            test_procedure(&db);
+            break;
+        case TC_ADD:
+            test_add(&db);
+            break;
+        case TC_SET:
+            test_set(&db);
+            break;
+        case TC_DELETE:
+            test_delete(&db);
+            break;
+        case TC_REMOVE:
+            test_remove(&db);
+            break;
+        case TC_ORDER_BY:
+            test_order_by(&db);
+            break;
+        case TC_CREATE_YAGO:
+            test_create_yago(&db);
+            break;
+        case TC_AGGREGATE:
+            test_aggregate(&db);
+            break;
+        case TC_ALGO:
+            test_algo(&db);
+            break;
+        case TC_TOPN:
+            test_topn(&db);
+            break;
+        case TC_MERGE:
+            test_merge(&db);
+            break;
+        case TC_ERROR_REPORT:
+            test_error_report(&db);
+            break;
+        case TC_DEBUG_STACK_CHAOS:
+            debug_stack_chaos(&db);
+            break;
+        case TC_LDBC_SNB:
+            test_ldbc_snb(&db);
+            break;
+        case TC_OPT:
+            test_opt(&db);
+            break;
+        case TC_FIX_CRASH_ISSUES:
+            test_fix_crash_issues(&db);
+            break;
+        case TC_UNDEFINED_VAR:
+            test_undefined_var(&db);
+            break;
+        case TC_CREATE_LABEL:
+            test_create_label(&db);
+            break;
+        case TC_READONLY:
+            TestCypherDetermineReadonly();
+            break;
+        case TC_EDGE_ID:
+            test_edge_id_query(&db);
+            break;
+        case TC_EMPTY_GRAPH:
+            TestCypherEmptyGraph(&db);
+            break;
+        default:
+            break;
         }
     };
     UT_EXPECT_NO_THROW(no_throw_test_case());

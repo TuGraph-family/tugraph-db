@@ -60,9 +60,7 @@ class Relationship {
 
     const std::set<std::string> &Types() const;
 
-    void SetTypes(std::set<std::string> types){
-        types_=types;
-    }
+    void SetTypes(std::set<std::string> types) { types_ = types; }
 
     NodeID Lhs() const { return lhs_; }
 

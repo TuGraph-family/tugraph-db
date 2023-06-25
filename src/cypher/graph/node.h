@@ -32,7 +32,7 @@ class Node {
     std::vector<RelpID> lhs_relps_;  // lhs relationship ids
     Property property_;              // e.g. {name:'Tom Hanks'}, {name:$name}
     lgraph::VIter it_;
-    lgraph::VertexId vid_ = -1;  // the cache vid of iterator
+    lgraph::VertexId vid_ = -1;      // the cache vid of iterator
     bool materialized_ = false;
     bool visited_ = false;
 
@@ -57,9 +57,7 @@ class Node {
 
     const std::string &Label() const;
 
-    void SetLabel(std::string schema_label){
-        label_=schema_label;
-    }
+    void SetLabel(std::string schema_label) { label_ = schema_label; }
 
     const std::string &Alias() const;
 
