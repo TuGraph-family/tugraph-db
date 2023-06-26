@@ -30,6 +30,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 
 # target
+add_subdirectory(deps/fma-common)
+add_subdirectory(deps/tiny-process-library)
+set_target_properties(tiny-process-library PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(toolkits)

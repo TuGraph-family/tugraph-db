@@ -46,6 +46,8 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_link_libraries(${TARGET_CPP_CLIENT_RPC}
             PUBLIC
             # begin static linking
+            fma-common
+            tiny-process-library
             -Wl,-Bstatic
             ${BRPC_LIB}
             ${GFLAGS_LIBRARY}
@@ -105,12 +107,16 @@ add_library(${TARGET_CPP_CLIENT_REST} SHARED
         ${PROTO_SRCS})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
+    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
         lgraph_server_lib
         ${BRPC_LIB}
         boost_system
         boost_filesystem
         ${JAVA_JVM_LIBRARY})
+else()
+    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
+        fma-common
+        tiny-process-library)
 endif()
 
 target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE

@@ -24,7 +24,7 @@
 #include "core/lightning_graph.h"
 #include "db/galaxy.h"
 #include "plugin/plugin_context.h"
-#include "tiny-process-library/process.hpp"
+#include "process.hpp"
 #include "plugin/python_plugin.h"
 #include "./ut_utils.h"
 

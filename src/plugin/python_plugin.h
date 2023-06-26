@@ -23,7 +23,7 @@
 #include <thread>
 
 #include "fma-common/bounded_queue.h"
-#include "tiny-process-library/process.hpp"
+#include "process.hpp"
 
 #include "core/defs.h"
 #include "core/kv_store.h"
