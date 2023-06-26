@@ -1,16 +1,11 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 #include <memory>
@@ -38,16 +33,16 @@ class EdgeIndexIterator;
  * @brief   TuGraph operations happen in transactions. A transaction is sequence of operations
  *          that is carried out atomically on the GraphDB. TuGraph transactions provides full
  *          ACID guarantees.
- *          
+ *
  *          Transactions are created using GraphDB::CreateReadTxn() and
  *          GraphDB::CreateWriteTxn(). A read transaction can only perform read operations,
  *          otherwise an exception is thrown. A write transaction can perform reads as well as
  *          writes. There are performance differences between read and write operations. So if
  *          you only need read in a transaction, you should create a read transaction.
- *          
+ *
  *          Each transaction must be used in one thread only, and they should not be passed from
  *          one thread to another unless it is a forked transaction.
- *          
+ *
  *          Read transactions can be forked. The new copy of the transaction will have the same
  *          view as the forked one, and it can be used in a separate thread. By forking from one
  *          read transaction and using the forked copies in different threads, we can parallelize
@@ -502,11 +497,11 @@ class Transaction {
     /**
      * @brief   Query if index is ready for use. This should be used only to decide whether to
      *          use an index. To wait for an index to be ready, use lgraphDB::WaitIndexReady().
-     *          
+     *
      *          VertexIndex building is async, especially when added for a (label, field) that
      *          already has a lot of vertices. This function tells us if the index building is
      *          finished.
-     *          
+     *
      *          DO NOT wait for index building in a transaction. Write transactions block other
      *          write transactions, so blocking in a write transaction is always a bad idea. And
      *          long-living read transactions interfere with GC, making the DB grow unexpectly.
@@ -521,11 +516,11 @@ class Transaction {
     /**
      * @brief   Query if index is ready for use. This should be used only to decide whether to
      *          use an index. To wait for an index to be ready, use lgraphDB::WaitIndexReady().
-     *          
+     *
      *          VertexIndex building is async, especially when added for a (label, field) that
      *          already has a lot of edges. This function tells us if the index building is
      *          finished.
-     *          
+     *
      *          DO NOT wait for index building in a transaction. Write transactions block other
      *          write transactions, so blocking in a write transaction is always a bad idea. And
      *          long-living read transactions interfere with GC, making the DB grow unexpectly.

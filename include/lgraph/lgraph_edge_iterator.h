@@ -1,16 +1,11 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 
@@ -43,18 +38,18 @@ class VertexIterator;
  * @brief   An OutEdgeIterator can be used to iterate through the out-going edges of a vertex.
  *          Edges are sorted in (lid, dst, eid) order, and each (src, lid, tid, dst, eid) tuple
  *          is guaranteed to uniquely identify an edge.
- *          
+ *
  *          An OutEdgeIterator is valid iff it points to a valid out-going edge, otherwise it is
  *          invalid. Calling member function on an invalid OutEdgeIterator throws an
  *          InvalidIteratorError, except for the IsValid() and Goto() functions.
- *          
+ *
  *          The following operations invalidates an OutEdgeIterator:
  *          1. Constructing an OutEdgeIterator for non-existing edge.
  *          2. Calling Goto() with the id of a non-existing edge.
  *          3. Calling Next() on the last out-going edge.
  *          4. Calling Delete() on the last out-going edge.
  *          5. Calling Close() on the iterator.
- *          
+ *
  *          In TuGraph, every iterator belongs to a transaction, and can only be used when the
  *          transaction is valid. Calling member functions on an iterator inside an invalid
  *          transaction yields InvalidTxnError, except for Invalid().
@@ -371,18 +366,18 @@ class OutEdgeIterator {
  * @brief   An InEdgeIterator can be used to iterate through the in-coming edges of a vertex.
  *          Edges are sorted in (lid, tid, src, eid) order, and each (dst, lid, tid, src, eid)
  *          tuple is guaranteed to uniquely identify an edge.
- *          
+ *
  *          An InEdgeIterator is valid iff it points to a valid in-coming edge, otherwise it is
  *          invalid. Calling member function on an invalid InEdgeIterator throws an exception,
  *          except for the IsValid() and Goto() functions.
- *          
+ *
  *          The following operations invalidates an InEdgeIterator:
- *          1. Constructing an InEdgeIterator for non-existing edge.  
- *          2. Calling Goto() with the id of a non-existing edge.  
- *          3. Calling Next() on the last in-coming edge.  
- *          4. Calling Delete() on the last in-coming edge.  
- *          5. Calling Close() on the iterator.  
- *          
+ *          1. Constructing an InEdgeIterator for non-existing edge.
+ *          2. Calling Goto() with the id of a non-existing edge.
+ *          3. Calling Next() on the last in-coming edge.
+ *          4. Calling Delete() on the last in-coming edge.
+ *          5. Calling Close() on the iterator.
+ *
  *          In TuGraph, every iterator belongs to a transaction, and can only be used when the
  *          transaction is valid. Calling member functions on an iterator inside an invalid
  *          transaction yields InvalidTxnError, except for Invalid().
