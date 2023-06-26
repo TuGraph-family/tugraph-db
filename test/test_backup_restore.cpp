@@ -16,7 +16,7 @@
 #include "fma-common/logger.h"
 #include "fma-common/unit_test_utils.h"
 
-#include "process.hpp"
+#include "tiny-process-library/process.hpp"
 #include "./ut_utils.h"
 
 #include "lgraph/lgraph_rpc_client.h"

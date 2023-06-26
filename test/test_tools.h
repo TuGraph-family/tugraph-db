@@ -20,7 +20,7 @@
 #include "fma-common/file_system.h"
 #include "fma-common/type_traits.h"
 #include "./ut_utils.h"
-#include "process.hpp"
+#include "tiny-process-library/process.hpp"
 
 #include "core/global_config.h"
 

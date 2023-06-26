@@ -23,7 +23,7 @@
 #include "fma-common/string_formatter.h"
 #include "fma-common/text_parser.h"
 
-#include "process.hpp"
+#include "tiny-process-library/process.hpp"
 
 #include "core/defs.h"
 #include "core/task_tracker.h"

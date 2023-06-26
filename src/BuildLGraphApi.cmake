@@ -90,6 +90,8 @@ add_library(${TARGET_LGRAPH} SHARED
         plugin/plugin_manager.cpp
         plugin/python_plugin.cpp
 
+        tiny-process-library/process.cpp
+        tiny-process-library/process_unix.cpp
         ${PROTO_SRCS})
 
 target_include_directories(${TARGET_LGRAPH} PUBLIC
@@ -103,7 +105,6 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC
             fma-common
-            tiny-process-library
             libgomp.a
             -static-libstdc++
             -static-libgcc

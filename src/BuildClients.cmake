@@ -47,7 +47,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             PUBLIC
             # begin static linking
             fma-common
-            tiny-process-library
             -Wl,-Bstatic
             ${BRPC_LIB}
             ${GFLAGS_LIBRARY}
@@ -115,8 +114,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         ${JAVA_JVM_LIBRARY})
 else()
     target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
-        fma-common
-        tiny-process-library)
+        fma-common)
 endif()
 
 target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE
