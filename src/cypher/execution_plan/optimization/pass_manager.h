@@ -24,6 +24,7 @@
 #include "locate_node_by_vid.h"
 #include "locate_node_by_indexed_prop.h"
 #include "parallel_traversal.h"
+#include "opt_rewrite_with_schema_inference.h"
 
 namespace cypher {
 
@@ -33,6 +34,7 @@ class PassManager {
 
  public:
     explicit PassManager(ExecutionPlan *plan) : plan_(plan) {
+        all_passes_.emplace_back(new OptRewriteWithSchemaInference());
         all_passes_.emplace_back(new PassReduceCount());
         all_passes_.emplace_back(new EdgeFilterPushdownExpand());
         all_passes_.emplace_back(new LazyProjectTopN());

@@ -52,7 +52,7 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         FMA_DBG_STREAM(Logger()) << "-----CLAUSE TO STRING-----";
-        for (const auto &sql_query : visitor.GetQuery()) {
+        for (const auto& sql_query: visitor.GetQuery()) {
             FMA_DBG_STREAM(Logger()) << sql_query.ToString();
         }
 
@@ -127,8 +127,10 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     }
 }
 
-bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx, const std::string &script,
-                                  std::string &name, std::string &type) {
+bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
+                                  const std::string &script,
+                                  std::string& name,
+                                  std::string& type) {
     using namespace parser;
     using namespace antlr4;
     ANTLRInputStream input(script);

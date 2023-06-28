@@ -36,8 +36,6 @@ typedef std::map<NodeID, std::string> SchemaNodeMap;
 // key为pattern graph中的边id,value为(源点id,终点id,边label值,边方向)的四元组
 typedef std::map<RelpID, std::tuple<NodeID, NodeID, std::set<std::string>, parser::LinkDirection>>
     SchemaRelpMap;
-// typedef std::map<RelpID,std::tuple<NodeID,NodeID,std::set<std::string>,LinkDirection>>
-// SchemaRelpMap;
 typedef std::pair<SchemaNodeMap, SchemaRelpMap> SchemaGraphMap;
 
 class ExecutionPlan {
@@ -110,15 +108,18 @@ class ExecutionPlan {
 
     OpBase *BuildSgl(const parser::SglQuery &stmt, size_t parts_offset);
 
-    void Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd);
+    void Build(const std::vector<parser::SglQuery> &stmt,
+               parser::CmdType cmd);
 
-    void Validate(cypher::RTContext *ctx);
+    void Validate(cypher::RTContext* ctx);
 
     void Reset();
 
     const ResultInfo &GetResultInfo() const;
 
     void SetSchemaInfo(lgraph::SchemaInfo *schema_info) { _schema_info = schema_info; }
+
+    lgraph::SchemaInfo *GetSchemaInfo() { return _schema_info; }
 
     OpBase *Root() { return _root; }
 

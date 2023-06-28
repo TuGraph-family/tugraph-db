@@ -39,13 +39,21 @@ TEST_F(TestEdgeConstraint, lgraph_api) {
     const std::string& dir = "./testdb";
     lgraph::AutoCleanDir cleaner(dir);
     Galaxy galaxy(dir, false, true);
-    galaxy.SetCurrentUser(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
+    galaxy.SetCurrentUser(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                          lgraph::_detail::DEFAULT_ADMIN_PASS);
     auto db = galaxy.OpenGraph(lgraph::_detail::DEFAULT_GRAPH_DB_NAME);
-    UT_EXPECT_TRUE(db.AddVertexLabel("v1", {{"id", FieldType::STRING, false}}, "id"));
-    UT_EXPECT_TRUE(db.AddVertexLabel("v2", {{"id", FieldType::STRING, false}}, "id"));
-    UT_EXPECT_TRUE(db.AddVertexLabel("v3", {{"id", FieldType::STRING, false}}, "id"));
-    UT_EXPECT_TRUE(db.AddEdgeLabel("v1_v2", {{"weight", FieldType::FLOAT, false}}, {},
-                                   {{"v1", "v2"}}));  // NOLINT
+    UT_EXPECT_TRUE(db.AddVertexLabel("v1",
+                         {{"id", FieldType::STRING, false}},
+                         "id"));
+    UT_EXPECT_TRUE(db.AddVertexLabel("v2",
+                         {{"id", FieldType::STRING, false}},
+                         "id"));
+    UT_EXPECT_TRUE(db.AddVertexLabel("v3",
+                                     {{"id", FieldType::STRING, false}},
+                                     "id"));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("v1_v2",
+                       {{"weight", FieldType::FLOAT, false}},
+                       {}, {{"v1","v2"}})); // NOLINT
 
     std::string err_msg = "Does not meet the edge constraints";
     Transaction txn = db.CreateWriteTxn();
@@ -64,20 +72,22 @@ TEST_F(TestEdgeConstraint, lgraph_api) {
     UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
     UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
     txn.Abort();
-    UT_EXPECT_TRUE(db.AddVertexLabel("v1", {{"id", FieldType::STRING, false}}, "id"));
+    UT_EXPECT_TRUE(db.AddVertexLabel("v1",
+                                     {{"id", FieldType::STRING, false}},
+                                     "id"));
     txn = db.CreateWriteTxn();
     auto v1_1 = txn.AddVertex("v1", {"id"}, {"1"});
     txn.AddEdge(v1_1, v2, "v1_v2", {"weight"}, {"1"});
     txn.Commit();
     UT_EXPECT_TRUE(db.AlterVertexLabelAddFields("v1",
-                                                {{"name", FieldType::STRING, true}},  // NOLINT
-                                                {FieldData("")}));
+                                 {{"name",FieldType::STRING,true}}, // NOLINT
+                                 {FieldData("")}));
     txn = db.CreateWriteTxn();
     txn.AddEdge(v1_1, v2, "v1_v2", {"weight"}, {"1"});
     txn.Commit();
 }
 
-static void eval_scripts(cypher::RTContext* ctx, const std::vector<std::string>& scripts) {
+static void eval_scripts(cypher::RTContext *ctx, const std::vector<std::string> &scripts) {
     for (int i = 0; i < (int)scripts.size(); i++) {
         auto s = scripts[i];
         UT_LOG() << s;
@@ -118,21 +128,21 @@ TEST_F(TestEdgeConstraint, cypher) {
     lgraph::Galaxy::Config gconf;
     gconf.dir = dir;
     lgraph::Galaxy galaxy(gconf, true, nullptr);
-    cypher::RTContext db(nullptr, &galaxy,
-                         galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                             lgraph::_detail::DEFAULT_ADMIN_PASS),
-                         lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
-                         lgraph::AclManager::FieldAccess());
+    cypher::RTContext db(
+        nullptr,
+        &galaxy,
+        galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                            lgraph::_detail::DEFAULT_ADMIN_PASS),
+        lgraph::_detail::DEFAULT_ADMIN_NAME,
+        "default", lgraph::AclManager::FieldAccess());
 
     eval_scripts(&db, {"CALL db.createVertexLabel('v1', 'id', 'id', STRING, false)"});
     eval_scripts(&db, {"CALL db.createVertexLabel('v2', 'id', 'id', STRING, false)"});
     eval_scripts(&db, {"CALL db.createVertexLabel('v3', 'id', 'id', STRING, false)"});
     UT_EXPECT_THROW_MSG(
-        eval_scripts(
-            &db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v4", "v2"]]', 'weight', FLOAT, false))"}),
+        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v4", "v2"]]', 'weight', FLOAT, false))"}),
         "No such vertex label");
-    eval_scripts(&db,
-                 {R"(CALL db.createEdgeLabel('v1_v2', '[["v1", "v2"]]', 'weight', FLOAT, false))"});
+    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v1", "v2"]]', 'weight', FLOAT, false))"});
     eval_scripts(&db, {"CREATE (:v1 {id:'1'}), (:v2 {id:'2'}), (:v3 {id:'3'})"});
     eval_scripts(&db, {"MATCH (a:v1 {id:'1'}),(b:v2 {id:'2'}) CREATE (a)-[:v1_v2{weight:1}]->(b)"});
     std::string constraints_err_msg = "Does not meet the edge constraints";
@@ -151,19 +161,18 @@ TEST_F(TestEdgeConstraint, cypher) {
 
     // test exception
     UT_EXPECT_THROW_MSG(
-        eval_scripts(
-            &db,
-            {R"(CALL db.createEdgeLabel('v2_v3', '[["v4", "v2"],["v4", "v2"]]', 'weight', FLOAT, false))"}),
+        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v4", "v2"],["v4", "v2"]]', 'weight', FLOAT, false))"}),
         "Duplicate constraints");
-    eval_scripts(&db,
-                 {R"(CALL db.createEdgeLabel('v2_v3', '[["v2", "v3"]]', 'weight', FLOAT, false))"});
+    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v2", "v3"]]', 'weight', FLOAT, false))"});
     UT_EXPECT_THROW_MSG(
         eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '[["v2", "v3"]]'))"}),
         "already exist");
-    UT_EXPECT_THROW_MSG(eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '[]'))"}),
-                        "Constraints are empty");
-    UT_EXPECT_THROW_MSG(eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '["ddddd"]'))"}),
-                        "json.exception.type_error");
+    UT_EXPECT_THROW_MSG(
+        eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '[]'))"}),
+        "Constraints are empty");
+    UT_EXPECT_THROW_MSG(
+        eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '["ddddd"]'))"}),
+        "json.exception.type_error");
     UT_EXPECT_THROW_MSG(
         eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '[["v4","v2"]]'))"}),
         "No such vertex label");
