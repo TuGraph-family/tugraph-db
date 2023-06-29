@@ -9,3 +9,4 @@ Stored Procedures
    2.procedure-legacy.md
    3.C++-procedure/index.rst
    4.Python-procedure.rst
+   5.Rust-procedure.md
