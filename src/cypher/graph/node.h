@@ -57,7 +57,7 @@ class Node {
 
     const std::string &Label() const;
 
-    void SetLabel(const std::string schema_label) { label_ = schema_label; }
+    void SetLabel(const std::string &schema_label) { label_ = schema_label; }
 
     const std::string &Alias() const;
 
