@@ -126,11 +126,11 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 prev = curr;
             }
         } else if (c.type == Clause::INQUERYCALL) {
-            const auto &call = c.GetCall();
-            const auto &yield_items = std::get<2>(call);
-            for (const auto &item : yield_items) {
-                const auto &name = item.first;
-                const auto &type = item.second;
+            const auto& call = c.GetCall();
+            const auto& yield_items = std::get<2>(call);
+            for (const auto& item : yield_items) {
+                const auto& name = item.first;
+                const auto& type = item.second;
                 if (type == lgraph_api::LGraphType::NODE) {
                     TUP_PROPERTIES props = {Expression(), ""};
                     VEC_STR labels = {};
@@ -231,15 +231,15 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             auto &yield_items = std::get<2>(*stmt.sa_call_clause);
             auto &result = p->signature.result_list;
             if (yield_items.empty()) {
-                for (auto &r : result) {
+                for (auto &r: result) {
                     result_info.header.colums.emplace_back(r.name, r.name, false, r.type);
                 }
             } else {
                 for (auto &yield_item : yield_items) {
                     for (auto &r : result) {
                         if (yield_item.first == r.name) {
-                            result_info.header.colums.emplace_back(yield_item.first,
-                                                                   yield_item.first, false, r.type);
+                            result_info.header.colums.emplace_back(
+                                yield_item.first, yield_item.first, false, r.type);
                             break;
                         }
                     }
@@ -1257,8 +1257,8 @@ static bool CheckReturnElements(const std::vector<parser::SglQuery> &stmt) {
     return true;
 }
 
-void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
-                          cypher::RTContext *ctx) {
+void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt,
+                          parser::CmdType cmd) {
     // check return elements first
     if (!CheckReturnElements(stmt)) {
         throw lgraph::CypherException(
@@ -1291,7 +1291,7 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::Cmd
     pass_manager.ExecutePasses();
 }
 
-void ExecutionPlan::Validate(cypher::RTContext *ctx_) {
+void ExecutionPlan::Validate(cypher::RTContext* ctx_) {
     CheckGraphVisitor check_graph(ctx_);
     check_graph.Visit(*_root);
 }
@@ -1338,8 +1338,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         if (ReadOnly()) {
             ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
         } else {
-            ctx->txn_ =
-                std::make_unique<lgraph_api::Transaction>(db.CreateWriteTxn(ctx->optimistic_));
+            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateWriteTxn(ctx->optimistic_));
         }
     }
 
@@ -1390,7 +1389,8 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     ctx->ac_db_.reset(nullptr);
     std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
 #ifndef NDEBUG
-    if (entry_id != out_id) FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
+    if (entry_id != out_id)
+        FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
 #endif
     return 0;
 }

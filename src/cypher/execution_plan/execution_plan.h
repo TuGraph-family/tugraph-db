@@ -107,10 +107,10 @@ class ExecutionPlan {
 
     OpBase *BuildSgl(const parser::SglQuery &stmt, size_t parts_offset);
 
-    void Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
-               cypher::RTContext *ctx);
+    void Build(const std::vector<parser::SglQuery> &stmt,
+               parser::CmdType cmd);
 
-    void Validate(cypher::RTContext *ctx);
+    void Validate(cypher::RTContext* ctx);
 
     void Reset();
 

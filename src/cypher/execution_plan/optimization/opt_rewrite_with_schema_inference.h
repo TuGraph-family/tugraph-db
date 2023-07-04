@@ -22,24 +22,28 @@
 
 namespace cypher {
 
-/* Count edges:
- * // count all edges
- * MATCH ()-[r]->() RETURN count(r)
- * // count edges of a certain type
- * MATCH ()-[r:WORKS_IN]->() RETURN count(r)
- * // count edges in a certain patter
- * MATCH (p:Person)-[r:WORKS_IN]->()
- * RETURN count(r) AS jobs
+/* Opt Rewrite With Schema Inference:
+ * Graph : MovieDemo
+ * example Cypher:
+ * match p=(n0)-[e0]->(n1)-[e1]->(n2)-[e2]->(m:keyword) return COUNT(p);
+ * is equivalent to :
+ * match p=(n0:user)-[e0:is_friend]->(n1:user)-[e1:rate]->(n2:movie)-[e2:has_keyword]->(m:keyword) return COUNT(p);
  *
  * Plan before optimization:
- * Produce Results
- *     Aggregate [count(r)]
- *         Expand(All) [_ANON_NODE_0 --> _ANON_NODE_2]
- *             All Node Scan [_ANON_NODE_0]
+ * Produce Results 
+ *     Aggregate [COUNT(p)] 
+ *         Expand(All) [n2 --> m ] 
+ *             Expand(All) [n1 --> n2 ] 
+ *                 Expand(All) [n0 --> n1 ] 
+ *                     All Node Scan [n0]
  *
  * Plan after optimization:
- * Produce Results
- *     RelationshipCountFromCountStore
+ * Produce Results 
+ *     Aggregate [COUNT(p)] 
+ *         Expand(All) [n2 --> m ] 
+ *             Expand(All) [n1 --> n2 ] 
+ *                 Expand(All) [n0 --> n1 ] 
+ *                     Node By Label Scan [n0:user]
  **/
 
 class OptRewriteWithSchemaInference : public OptPass {
