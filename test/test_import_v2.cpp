@@ -1191,12 +1191,23 @@ TEST_F(TestImportV2, ImportV2) {
         auto TryImport = [&](const std::string& expect_output, int expect_ec) {
             SubProcess proc(
                 UT_FMT("./lgraph_import --online false -c {} "
-                        "--overwrite true --continue_on_error false",
+                        "--overwrite true --continue_on_error false --v3 false",
                         import_conf));
             UT_EXPECT_TRUE(proc.ExpectOutput(expect_output, 100 * 1000));
             proc.Wait();
             UT_EXPECT_EQ(proc.GetExitCode(), expect_ec);
         };
+
+        auto TryImportV3 = [&](const std::string& expect_output, int expect_ec) {
+            SubProcess proc(
+                UT_FMT("./lgraph_import --online false -c {} "
+                       "--overwrite true --continue_on_error false --v3 true",
+                       import_conf));
+            UT_EXPECT_TRUE(proc.ExpectOutput(expect_output, 100 * 1000));
+            proc.Wait();
+            UT_EXPECT_EQ(proc.GetExitCode(), expect_ec);
+        };
+
         auto ValidateGraph = [&](const std::function<void(lgraph_api::GraphDB&)>& validate) {
             lgraph_api::Galaxy galaxy(db_dir);
             galaxy.SetCurrentUser(lgraph::_detail::DEFAULT_ADMIN_NAME,
@@ -1441,11 +1452,25 @@ TEST_F(TestImportV2, ImportV2) {
             auto txn = g.CreateReadTxn();
             auto it1 = txn.GetVertexByUniqueIndex("node", "id", FieldData(1));
             auto eit12 = it1.GetOutEdgeIterator();
-            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 50);
             eit12.Next();
             UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 70);
             eit12.Next();
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
+        });
+
+        // V3 tid test
+        db_cleaner.Clean();
+        TryImportV3("Import finished", 0);
+        ValidateGraph([](lgraph_api::GraphDB& g) {
+            auto txn = g.CreateReadTxn();
+            auto it1 = txn.GetVertexByUniqueIndex("node", "id", FieldData(1));
+            auto eit12 = it1.GetOutEdgeIterator();
             UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 50);
+            eit12.Next();
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 70);
+            eit12.Next();
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
         });
     }
 }

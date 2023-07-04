@@ -480,6 +480,8 @@ void Importer::EdgeDataToSST() {
         uint16_t src_id_pos = 0;
         uint16_t dst_id_pos = 0;
         LabelId label_id = 0;
+        size_t tid_pos = 0;
+        bool has_tid = false;
         LabelId src_label_id = 0;
         LabelId dst_label_id = 0;
         Schema* schema = nullptr;
@@ -557,6 +559,11 @@ void Importer::EdgeDataToSST() {
                     edgeDataBlock->src_id_pos = src_id_pos;
                     edgeDataBlock->dst_id_pos = dst_id_pos;
                     edgeDataBlock->label_id = boost::endian::native_to_big(label_id);
+                    if (schemaDesc_.FindEdgeLabel(file.label).HasPrimaryColumn()) {
+                        edgeDataBlock->has_tid = true;
+                        edgeDataBlock->tid_pos = (int)file.FindIdxExcludeSkip(
+                            schemaDesc_.FindEdgeLabel(file.label).GetPrimaryColumn().name);
+                    }
                     edgeDataBlock->src_label_id = boost::endian::native_to_big(src_label_id);
                     edgeDataBlock->dst_label_id = boost::endian::native_to_big(dst_label_id);
                     edgeDataBlock->schema = schema;
@@ -588,12 +595,15 @@ void Importer::EdgeDataToSST() {
                             std::string k;
                             k.reserve(sizeof(VertexId));
                             VertexId src_vid, dst_vid;
+
                             auto hasBlob = edgeDataBlock->schema->HasBlob();
                             rocksdb::ReadOptions ro;
                             std::string vid_str;
                             for (auto& line : edgeDataBlock->block) {
                                 const FieldData& src_fd = line[edgeDataBlock->src_id_pos];
                                 const FieldData& dst_fd = line[edgeDataBlock->dst_id_pos];
+                                int64_t tid = edgeDataBlock->has_tid
+                                                  ? line[edgeDataBlock->tid_pos].AsInt64() : 0;
                                 k.clear();
                                 k.append((const char*)&edgeDataBlock->src_label_id,
                                          sizeof(edgeDataBlock->src_label_id));
@@ -660,6 +670,7 @@ void Importer::EdgeDataToSST() {
                                 edge_key.append(1, 0x00);  // out edge flag
                                 edge_key.append((const char*)&edgeDataBlock->label_id,
                                                 sizeof(edgeDataBlock->label_id));
+                                edge_key.append((const char*)&tid, sizeof(tid));
                                 edge_key.append((const char*)&dst_vid, sizeof(dst_vid));
                                 edge_key.append((const char*)&edgeDataBlock->start_eid,
                                                 sizeof(edgeDataBlock->start_eid));
@@ -670,6 +681,7 @@ void Importer::EdgeDataToSST() {
                                 edge_key.append(1, 0x01);  // in edge flag
                                 edge_key.append((const char*)&edgeDataBlock->label_id,
                                                 sizeof(edgeDataBlock->label_id));
+                                edge_key.append((const char*)&tid, sizeof(tid));
                                 edge_key.append((const char*)&src_vid, sizeof(src_vid));
                                 edge_key.append((const char*)&edgeDataBlock->start_eid,
                                                 sizeof(edgeDataBlock->start_eid));
@@ -1040,14 +1052,16 @@ void Importer::RocksdbToLmdb() {
                             edge_count_.at(labelId)++;
                         }
                         p += sizeof(LabelId);
+                        int64_t tid = *(int64_t*)p;
+                        p += sizeof(tid);
                         VertexId vertexId = *(VertexId*)p;
                         boost::endian::big_to_native_inplace(vertexId);
                         import_v2::DenseString edge_val(val.data(), val.size());
                         total_size += edge_val.size() + 16;
                         if (out_edge) {
-                            outs.emplace_back(labelId, 0, vertexId, std::move(edge_val));
+                            outs.emplace_back(labelId, tid, vertexId, std::move(edge_val));
                         } else {
-                            ins.emplace_back(labelId, 0, vertexId, std::move(edge_val));
+                            ins.emplace_back(labelId, tid, vertexId, std::move(edge_val));
                         }
                         if (total_size > ::lgraph::_detail::NODE_SPLIT_THRESHOLD) {
                             if (!split) {
