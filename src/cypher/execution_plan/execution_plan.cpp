@@ -1257,8 +1257,8 @@ static bool CheckReturnElements(const std::vector<parser::SglQuery> &stmt) {
     return true;
 }
 
-void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt,
-                          parser::CmdType cmd) {
+void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
+                          cypher::RTContext *ctx) {
     // check return elements first
     if (!CheckReturnElements(stmt)) {
         throw lgraph::CypherException(
