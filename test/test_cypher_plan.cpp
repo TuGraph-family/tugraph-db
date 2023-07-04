@@ -60,23 +60,7 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
 
     double t0, t1, t2;
     t0 = fma_common::GetTime();
-    // execution_plan需要提前获取Schema信息
-    if (ctx->graph_.empty()) {
-        ctx->ac_db_.reset(nullptr);
-        execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
-    } else {
-        ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
-        lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
-        ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-        auto schema_info = ctx->txn_->GetTxn()->GetSchemaInfo();
-        execution_plan.SetSchemaInfo(&schema_info);
-        execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
-    }
-    execution_plan.Validate(ctx);
-    ctx->txn_.reset(nullptr);
-    ctx->ac_db_.reset(nullptr);
-
+    execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
     execution_plan.DumpGraph();
     std::string res_plan = execution_plan.DumpPlan(0, false);
 

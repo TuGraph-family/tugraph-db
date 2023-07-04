@@ -22,43 +22,39 @@
 
 namespace cypher {
 
-/* Opt Rewrite With Schema Inference:
- * Graph : MovieDemo
- * example Cypher:
- * match p=(n0)-[e0]->(n1)-[e1]->(n2)-[e2]->(m:keyword) return COUNT(p);
- * is equivalent to :
- * match p=(n0:user)-[e0:is_friend]->(n1:user)-[e1:rate]->(n2:movie)-[e2:has_keyword]->(m:keyword) return COUNT(p);
+/* Count edges:
+ * // count all edges
+ * MATCH ()-[r]->() RETURN count(r)
+ * // count edges of a certain type
+ * MATCH ()-[r:WORKS_IN]->() RETURN count(r)
+ * // count edges in a certain patter
+ * MATCH (p:Person)-[r:WORKS_IN]->()
+ * RETURN count(r) AS jobs
  *
  * Plan before optimization:
- * Produce Results 
- *     Aggregate [COUNT(p)] 
- *         Expand(All) [n2 --> m ] 
- *             Expand(All) [n1 --> n2 ] 
- *                 Expand(All) [n0 --> n1 ] 
- *                     All Node Scan [n0]
+ * Produce Results
+ *     Aggregate [count(r)]
+ *         Expand(All) [_ANON_NODE_0 --> _ANON_NODE_2]
+ *             All Node Scan [_ANON_NODE_0]
  *
  * Plan after optimization:
- * Produce Results 
- *     Aggregate [COUNT(p)] 
- *         Expand(All) [n2 --> m ] 
- *             Expand(All) [n1 --> n2 ] 
- *                 Expand(All) [n0 --> n1 ] 
- *                     Node By Label Scan [n0:user]
+ * Produce Results
+ *     RelationshipCountFromCountStore
  **/
 
 class OptRewriteWithSchemaInference : public OptPass {
     // match子句中的模式图可以分为多个极大连通子图，该函数提取每个极大连通子图的点和边，经过分析后加上标签信息
-    void _ExtractStreamAndAddLabels(OpBase *root, lgraph::SchemaInfo *schema_info) {
+    void _ExtractStreamAndAddLabels(OpBase *root, const lgraph::SchemaInfo *schema_info) {
         CYPHER_THROW_ASSERT(root->type == OpType::EXPAND_ALL);
         SchemaNodeMap schema_node_map;
         SchemaRelpMap schema_relp_map;
         auto op = root;
         while (true) {
             if (op->type == OpType::EXPAND_ALL) {
-                auto op_expand_all = dynamic_cast<ExpandAll *>(op);
-                auto start = op_expand_all->GetStartNode();
-                auto relp = op_expand_all->GetRelationship();
-                auto neighbor = op_expand_all->GetNeighborNode();
+                // ExpandAll *op_expand_all=dynamic_cast<ExpandAll *>(op);
+                auto start = dynamic_cast<ExpandAll *>(op)->GetStartNode();
+                auto relp = dynamic_cast<ExpandAll *>(op)->GetRelationship();
+                auto neighbor = dynamic_cast<ExpandAll *>(op)->GetNeighborNode();
 
                 schema_node_map[start->ID()] = start->Label();
                 schema_node_map[neighbor->ID()] = neighbor->Label();
@@ -173,7 +169,7 @@ class OptRewriteWithSchemaInference : public OptPass {
         }
     }
 
-    void _RewriteWithSchemaInference(OpBase *root, lgraph::SchemaInfo *schema_info) {
+    void _RewriteWithSchemaInference(OpBase *root, const lgraph::SchemaInfo *schema_info) {
         // 对单独的点和可变长不予优化
         if (root->type == OpType::EXPAND_ALL) {
             _ExtractStreamAndAddLabels(root, schema_info);
@@ -185,12 +181,28 @@ class OptRewriteWithSchemaInference : public OptPass {
     }
 
  public:
-    OptRewriteWithSchemaInference() : OptPass(typeid(OptRewriteWithSchemaInference).name()) {}
+    cypher::RTContext *_ctx;
+
+    OptRewriteWithSchemaInference(cypher::RTContext *ctx)
+        : OptPass(typeid(OptRewriteWithSchemaInference).name()), _ctx(ctx) {}
 
     bool Gate() override { return true; }
 
     int Execute(ExecutionPlan *plan) override {
-        _RewriteWithSchemaInference(plan->Root(), plan->GetSchemaInfo());
+        const lgraph::SchemaInfo *schema_info;
+        if (_ctx->graph_.empty()) {
+            _ctx->ac_db_.reset(nullptr);
+            schema_info = nullptr;
+        } else {
+            _ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
+                _ctx->galaxy_->OpenGraph(_ctx->user_, _ctx->graph_));
+            lgraph_api::GraphDB db(_ctx->ac_db_.get(), true);
+            _ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
+            schema_info = &_ctx->txn_->GetTxn()->GetSchemaInfo();
+        }
+        _ctx->txn_.reset(nullptr);
+        _ctx->ac_db_.reset(nullptr);
+        _RewriteWithSchemaInference(plan->Root(), schema_info);
         return 0;
     }
 };

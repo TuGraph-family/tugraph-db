@@ -98,23 +98,8 @@ static void eval_scripts(cypher::RTContext *ctx, const std::vector<std::string> 
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
-        // execution_plan需要提前获取Schema信息
-        if (ctx->graph_.empty()) {
-            ctx->ac_db_.reset(nullptr);
-            execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
-        } else {
-            ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-                ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
-            lgraph_api::GraphDB db(ctx->ac_db_.get(), true);
-            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-            auto schema_info = ctx->txn_->GetTxn()->GetSchemaInfo();
-            execution_plan.SetSchemaInfo(&schema_info);
-            execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
-        }
+        execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         execution_plan.Validate(ctx);
-        ctx->txn_.reset(nullptr);
-        ctx->ac_db_.reset(nullptr);
-
         execution_plan.DumpGraph();
         execution_plan.DumpPlan(0, false);
         execution_plan.Execute(ctx);

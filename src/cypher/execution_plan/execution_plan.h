@@ -33,7 +33,7 @@ namespace cypher {
 
 // key为pattern graph中的点id,value为label值
 typedef std::map<NodeID, std::string> SchemaNodeMap;
-// key为pattern graph中的边id,value为(源点id,终点id,边label值,边方向)的四元组
+// key为pattern graph中的边id,value为(源点id,终点id,边label值,边方向,最小跳数,最大跳数)的六元组
 typedef std::map<RelpID, std::tuple<NodeID, NodeID, std::set<std::string>, parser::LinkDirection>>
     SchemaRelpMap;
 typedef std::pair<SchemaNodeMap, SchemaRelpMap> SchemaGraphMap;
@@ -47,7 +47,6 @@ class ExecutionPlan {
     ResultInfo _result_info;
     // query parts local member
     std::vector<PatternGraph> _pattern_graphs;
-    lgraph::SchemaInfo *_schema_info = nullptr;
 
     void _AddScanOp(const parser::QueryPart &part, const SymbolTable *sym_tab, Node *node,
                     std::vector<OpBase *> &ops, bool skip_arg_op);
@@ -108,18 +107,14 @@ class ExecutionPlan {
 
     OpBase *BuildSgl(const parser::SglQuery &stmt, size_t parts_offset);
 
-    void Build(const std::vector<parser::SglQuery> &stmt,
-               parser::CmdType cmd);
+    void Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
+               cypher::RTContext *ctx);
 
-    void Validate(cypher::RTContext* ctx);
+    void Validate(cypher::RTContext *ctx);
 
     void Reset();
 
     const ResultInfo &GetResultInfo() const;
-
-    void SetSchemaInfo(lgraph::SchemaInfo *schema_info) { _schema_info = schema_info; }
-
-    lgraph::SchemaInfo *GetSchemaInfo() { return _schema_info; }
 
     OpBase *Root() { return _root; }
 

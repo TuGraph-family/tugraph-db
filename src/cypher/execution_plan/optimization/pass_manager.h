@@ -33,8 +33,8 @@ class PassManager {
     std::vector<OptPass *> all_passes_;
 
  public:
-    explicit PassManager(ExecutionPlan *plan) : plan_(plan) {
-        all_passes_.emplace_back(new OptRewriteWithSchemaInference());
+    explicit PassManager(ExecutionPlan *plan, cypher::RTContext *ctx) : plan_(plan) {
+        all_passes_.emplace_back(new OptRewriteWithSchemaInference(ctx));
         all_passes_.emplace_back(new PassReduceCount());
         all_passes_.emplace_back(new EdgeFilterPushdownExpand());
         all_passes_.emplace_back(new LazyProjectTopN());
