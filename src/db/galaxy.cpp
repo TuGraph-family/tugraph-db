@@ -440,7 +440,7 @@ std::vector<std::string> lgraph::Galaxy::SaveSnapshot(const std::string& dir) {
     // TODO: for now, we require TLSRWLock write lock to be held before saving snapshot // NOLINT
     // However, we should be able to leverage MVCC here and thus avoid locking the whole
     // galaxy.
-    _HoldWriteLock(reload_lock_);
+    _HoldReadLock(reload_lock_);
     // clear dir
     auto& fs = fma_common::FileSystem::GetFileSystem(dir);
     if (fs.IsDir(dir)) {
