@@ -2402,7 +2402,8 @@ TEST_P(TestCypher, Cypher) {
     char **argv = _ut_argv;
     fma_common::Configuration config;
     config.Add(test_case, "tc", true).Comment(str);
-    config.Add(database, "d", true).Comment("Select database: 0-current, 1-new yago, 2-empty, 3-yago with constraints");
+    config.Add(database, "d", true)
+        .Comment("Select database: 0-current, 1-new yago, 2-empty, 3-yago with constraints");
     config.Add(file, "f", true).Comment("File path");
     config.Add(verbose, "v", true).Comment("Verbose: 0-WARNING, 1-INFO, 2-DEBUG");
     config.ExitAfterHelp();
