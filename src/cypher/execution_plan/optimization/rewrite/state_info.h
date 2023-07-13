@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-namespace rewrite_cypher {
+namespace cypher::rewrite {
 
 class StateInfo {
  public:

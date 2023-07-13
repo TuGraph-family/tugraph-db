@@ -2,7 +2,8 @@
 #include "node.h"
 #include <vector>
 #include "parser/data_typedef.h"
-namespace rewrite_cypher {
+
+namespace cypher::rewrite {
 class Node;
 
 class Edge {
@@ -25,4 +26,4 @@ class Edge {
     ~Edge(){};
 };
 
-};  // namespace rewrite_cypher
+};  // namespace cypher::rewrite

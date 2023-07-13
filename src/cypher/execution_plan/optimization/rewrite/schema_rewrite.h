@@ -11,7 +11,16 @@
 #include "state_info.h"
 #include "execution_plan/execution_plan.h"
 
-namespace rewrite_cypher {
+namespace cypher {
+
+// key为pattern graph中的点id,value为label值
+typedef std::map<NodeID, std::string> SchemaNodeMap;
+// key为pattern graph中的边id,value为(源点id,终点id,边label值,边方向,最小跳数,最大跳数)的六元组
+typedef std::map<RelpID, std::tuple<NodeID, NodeID, std::set<std::string>, parser::LinkDirection>>
+    SchemaRelpMap;
+typedef std::pair<SchemaNodeMap, SchemaRelpMap> SchemaGraphMap;
+
+namespace rewrite {
 
 class SchemaRewrite {
  public:
@@ -60,3 +69,4 @@ class SchemaRewrite {
 };
 
 };  // namespace rewrite_cypher
+};  // namespace cypher

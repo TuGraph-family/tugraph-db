@@ -1,9 +1,7 @@
 #include "graph.h"
 
-namespace rewrite_cypher {
-void Graph::AddNode(size_t id, int label_num) {
-    m_nodes.push_back(rewrite_cypher::Node(id, label_num));
-}
+namespace cypher::rewrite {
+void Graph::AddNode(size_t id, int label_num) { m_nodes.push_back(rewrite::Node(id, label_num)); }
 
 void Graph::AddEdge(size_t id, size_t source_id, size_t target_id, std::set<int> labels,
                     parser::LinkDirection direction) {
@@ -49,4 +47,4 @@ void Graph::PrintGraph() {
         FMA_LOG();
     }
 }
-};  // namespace rewrite_cypher
+};  // namespace cypher::rewrite

@@ -126,7 +126,7 @@ class OptRewriteWithSchemaInference : public OptPass {
             op = op->children[0];
         }
         // 调用schema函数
-        rewrite_cypher::SchemaRewrite schema_rewrite;
+        rewrite::SchemaRewrite schema_rewrite;
         std::vector<SchemaGraphMap> schema_graph_maps;
         schema_graph_maps =
             schema_rewrite.GetEffectivePath(*schema_info, &schema_node_map, &schema_relp_map);

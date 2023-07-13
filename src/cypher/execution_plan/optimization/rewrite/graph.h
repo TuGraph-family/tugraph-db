@@ -6,12 +6,12 @@
 #include "edge.h"
 
 #include "cypher/execution_plan/ops/op.h"
-namespace rewrite_cypher {
+namespace cypher::rewrite {
 
 class Graph {
  public:
-    std::vector<rewrite_cypher::Node> m_nodes;
-    std::vector<rewrite_cypher::Edge> m_edges;
+    std::vector<rewrite::Node> m_nodes;
+    std::vector<rewrite::Edge> m_edges;
 
     Graph(/* args */){};
     ~Graph(){};
@@ -23,4 +23,4 @@ class Graph {
     void PrintGraph();
 };
 
-};  // namespace rewrite_cypher
+};  // namespace cypher::rewrite

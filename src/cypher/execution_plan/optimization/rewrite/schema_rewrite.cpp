@@ -2,7 +2,7 @@
 
 // #define DEBUG
 
-namespace rewrite_cypher {
+namespace cypher::rewrite {
 
 // 根据schema信息和cypher信息获取有效路径
 std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
@@ -362,4 +362,4 @@ void SchemaRewrite::PrintLabel2Idx() {
     }
 }
 
-};  // namespace rewrite_cypher
+};  // namespace cypher::rewrite
