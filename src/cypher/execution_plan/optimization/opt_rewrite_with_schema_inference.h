@@ -27,26 +27,45 @@ namespace cypher {
  * example Cypher:
  * match p=(n0)-[e0]->(n1)-[e1]->(n2)-[e2]->(m:keyword) return COUNT(p);
  * is equivalent to :
- * match p=(n0:user)-[e0:is_friend]->(n1:user)-[e1:rate]->(n2:movie)-[e2:has_keyword]->(m:keyword) return COUNT(p);
+ * match p=(n0:user)-[e0:is_friend]->(n1:user)-[e1:rate]->(n2:movie)-[e2:has_keyword]->(m:keyword)
+ *return COUNT(p);
  *
  * Plan before optimization:
- * Produce Results 
- *     Aggregate [COUNT(p)] 
- *         Expand(All) [n2 --> m ] 
- *             Expand(All) [n1 --> n2 ] 
- *                 Expand(All) [n0 --> n1 ] 
+ * Produce Results
+ *     Aggregate [COUNT(p)]
+ *         Expand(All) [n2 --> m ]
+ *             Expand(All) [n1 --> n2 ]
+ *                 Expand(All) [n0 --> n1 ]
  *                     All Node Scan [n0]
  *
  * Plan after optimization:
- * Produce Results 
- *     Aggregate [COUNT(p)] 
- *         Expand(All) [n2 --> m ] 
- *             Expand(All) [n1 --> n2 ] 
- *                 Expand(All) [n0 --> n1 ] 
+ * Produce Results
+ *     Aggregate [COUNT(p)]
+ *         Expand(All) [n2 --> m ]
+ *             Expand(All) [n1 --> n2 ]
+ *                 Expand(All) [n0 --> n1 ]
  *                     Node By Label Scan [n0:user]
  **/
 
 class OptRewriteWithSchemaInference : public OptPass {
+    void check_v_label_valid(const lgraph::SchemaInfo *schema_info, const std::string label) {
+        auto vertex_labels = schema_info->v_schema_manager.GetAllLabels();
+        if (!label.empty() &&
+            std::find(vertex_labels.begin(), vertex_labels.end(), label) == vertex_labels.end()) {
+            throw lgraph::CypherException("Vertex label \"" + label + "\" does not exist.");
+        }
+    }
+
+    void check_e_labels_valid(const lgraph::SchemaInfo *schema_info,
+                              const std::set<std::string> labels) {
+        auto edge_labels = schema_info->e_schema_manager.GetAllLabels();
+        for (auto label : labels) {
+            if (std::find(edge_labels.begin(), edge_labels.end(), label) == edge_labels.end()) {
+                throw lgraph::CypherException("Edge label \"" + label + "\" does not exist.");
+            }
+        }
+    }
+
     // match子句中的模式图可以分为多个极大连通子图，该函数提取每个极大连通子图的点和边，经过分析后加上标签信息
     void _ExtractStreamAndAddLabels(OpBase *root, const lgraph::SchemaInfo *schema_info) {
         CYPHER_THROW_ASSERT(root->type == OpType::EXPAND_ALL);
@@ -54,11 +73,13 @@ class OptRewriteWithSchemaInference : public OptPass {
         SchemaRelpMap schema_relp_map;
         auto op = root;
         while (true) {
-            if (op->type == OpType::EXPAND_ALL) {
-                // ExpandAll *op_expand_all=dynamic_cast<ExpandAll *>(op);
-                auto start = dynamic_cast<ExpandAll *>(op)->GetStartNode();
-                auto relp = dynamic_cast<ExpandAll *>(op)->GetRelationship();
-                auto neighbor = dynamic_cast<ExpandAll *>(op)->GetNeighborNode();
+            if (auto expand_all = dynamic_cast<ExpandAll *>(op)) {
+                auto start = expand_all->GetStartNode();
+                auto relp = expand_all->GetRelationship();
+                auto neighbor = expand_all->GetNeighborNode();
+                check_v_label_valid(schema_info, start->Label());
+                check_v_label_valid(schema_info, neighbor->Label());
+                check_e_labels_valid(schema_info, relp->Types());
 
                 schema_node_map[start->ID()] = start->Label();
                 schema_node_map[neighbor->ID()] = neighbor->Label();
@@ -67,32 +88,33 @@ class OptRewriteWithSchemaInference : public OptPass {
                 schema_relp_map[relp->ID()] = relp_map_value;
             }
             // 目前对可变长的情况不予处理
-            else if (op->type == OpType::VAR_LEN_EXPAND) {
+            else if (auto var_len = dynamic_cast<VarLenExpand *>(op)) {
                 return;
-            } else if (op->type == OpType::ALL_NODE_SCAN) {
-                auto op_node = dynamic_cast<AllNodeScan *>(op);
-                auto node = op_node->GetNode();
-                schema_node_map[node->ID()] = node->Label();
-            } else if (op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
-                auto op_node = dynamic_cast<AllNodeScanDynamic *>(op);
-                auto node = op_node->GetNode();
-                schema_node_map[node->ID()] = node->Label();
-            } else if (op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
-                auto op_node = dynamic_cast<NodeByLabelScan *>(op);
-                auto node = op_node->GetNode();
-                schema_node_map[node->ID()] = node->Label();
-            } else if (op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
-                auto op_node = dynamic_cast<NodeByLabelScanDynamic *>(op);
-                auto node = op_node->GetNode();
-                schema_node_map[node->ID()] = node->Label();
-            } else if (op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
-                auto op_node = dynamic_cast<NodeIndexSeek *>(op);
-                auto node = op_node->GetNode();
-                schema_node_map[node->ID()] = node->Label();
-            } else if (op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
-                auto op_node = dynamic_cast<NodeIndexSeekDynamic *>(op);
-                auto node = op_node->GetNode();
-                schema_node_map[node->ID()] = node->Label();
+            } else if ((op->IsScan() || op->IsDynamicScan()) && op->type != OpType::ARGUMENT) {
+                NodeID id;
+                std::string label;
+                if (auto all_node_scan = dynamic_cast<AllNodeScan *>(op)) {
+                    id = all_node_scan->GetNode()->ID();
+                    label = all_node_scan->GetNode()->Label();
+                } else if (auto all_node_scan_dy = dynamic_cast<AllNodeScanDynamic *>(op)) {
+                    id = all_node_scan_dy->GetNode()->ID();
+                    label = all_node_scan_dy->GetNode()->Label();
+                } else if (auto node_by_label_scan = dynamic_cast<NodeByLabelScan *>(op)) {
+                    id = node_by_label_scan->GetNode()->ID();
+                    label = node_by_label_scan->GetNode()->Label();
+                } else if (auto node_by_label_scan_dy =
+                               dynamic_cast<NodeByLabelScanDynamic *>(op)) {
+                    id = node_by_label_scan_dy->GetNode()->ID();
+                    label = node_by_label_scan_dy->GetNode()->Label();
+                } else if (auto node_index_seek = dynamic_cast<NodeIndexSeek *>(op)) {
+                    id = node_index_seek->GetNode()->ID();
+                    label = node_index_seek->GetNode()->Label();
+                } else if (auto node_index_seek_dy = dynamic_cast<NodeIndexSeekDynamic *>(op)) {
+                    id = node_index_seek_dy->GetNode()->ID();
+                    label = node_index_seek_dy->GetNode()->Label();
+                }
+                check_v_label_valid(schema_info, label);
+                schema_node_map[id] = label;
             }
 
             if (op->children.empty()) {
@@ -101,7 +123,6 @@ class OptRewriteWithSchemaInference : public OptPass {
             CYPHER_THROW_ASSERT(op->children.size() == 1);
             op = op->children[0];
         }
-
         // 调用schema函数
         rewrite_cypher::SchemaRewrite schema_rewrite;
         std::vector<SchemaGraphMap> schema_graph_maps;
@@ -111,16 +132,14 @@ class OptRewriteWithSchemaInference : public OptPass {
         if (schema_graph_maps.size() != 1) {
             return;
         }
-
         schema_node_map = schema_graph_maps[0].first;
         schema_relp_map = schema_graph_maps[0].second;
         op = root;
         while (true) {
-            if (op->type == OpType::EXPAND_ALL) {
-                auto op_expand_all = dynamic_cast<ExpandAll *>(op);
-                auto start = op_expand_all->GetStartNode();
-                auto relp = op_expand_all->GetRelationship();
-                auto neighbor = op_expand_all->GetNeighborNode();
+            if (auto expand_all = dynamic_cast<ExpandAll *>(op)) {
+                auto start = expand_all->GetStartNode();
+                auto relp = expand_all->GetRelationship();
+                auto neighbor = expand_all->GetNeighborNode();
                 if (schema_node_map.find(start->ID()) != schema_node_map.end()) {
                     start->SetLabel(schema_node_map.find(start->ID())->second);
                 }
@@ -130,46 +149,55 @@ class OptRewriteWithSchemaInference : public OptPass {
                 if (schema_relp_map.find(relp->ID()) != schema_relp_map.end()) {
                     relp->SetTypes(std::get<2>(schema_relp_map.find(relp->ID())->second));
                 }
-            }
-            if (op->type == OpType::ALL_NODE_SCAN) {
-                auto op_node = dynamic_cast<AllNodeScan *>(op);
-                auto node = op_node->GetNode();
+            } else if (auto all_node_scan = dynamic_cast<AllNodeScan *>(op)) {
+                auto node = all_node_scan->GetNode();
                 if (schema_node_map.find(node->ID()) != schema_node_map.end()) {
                     node->SetLabel(schema_node_map.find(node->ID())->second);
                 }
-                auto op_label_scan = new NodeByLabelScan(node, op_node->GetSymbolTable());
-                auto parent = op->parent;
-                parent->RemoveChild(op);
+                auto op_label_scan = new NodeByLabelScan(node, all_node_scan->GetSymbolTable());
+                auto parent = all_node_scan->parent;
+                for(auto child:all_node_scan->children){
+                    op_label_scan->AddChild(child);
+                }
+                parent->RemoveChild(all_node_scan);
                 parent->AddChild(op_label_scan);
-            } else if (op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
-                auto op_node = dynamic_cast<AllNodeScanDynamic *>(op);
-                auto node = op_node->GetNode();
+            } else if (auto all_node_scan_dy = dynamic_cast<AllNodeScanDynamic *>(op)) {
+                auto node = all_node_scan_dy->GetNode();
                 if (schema_node_map.find(node->ID()) != schema_node_map.end()) {
                     node->SetLabel(schema_node_map.find(node->ID())->second);
                 }
-                auto op_label_scan = new NodeByLabelScanDynamic(node, op_node->GetSymbolTable());
-                auto parent = op->parent;
-                parent->RemoveChild(op);
+                auto op_label_scan =
+                    new NodeByLabelScanDynamic(node, all_node_scan_dy->GetSymbolTable());
+                auto parent = all_node_scan_dy->parent;
+                for(auto child:all_node_scan_dy->children){
+                    op_label_scan->AddChild(child);
+                }
+                parent->RemoveChild(all_node_scan_dy);
                 parent->AddChild(op_label_scan);
-            } else if (op->type == OpType::NODE_INDEX_SEEK) {
-                auto op_node = dynamic_cast<NodeIndexSeek *>(op);
-                auto node = op_node->GetNode();
+            } else if (auto node_index_seek = dynamic_cast<NodeIndexSeek *>(op)) {
+                auto node = node_index_seek->GetNode();
                 if (schema_node_map.find(node->ID()) != schema_node_map.end()) {
                     node->SetLabel(schema_node_map.find(node->ID())->second);
                 }
-            } else if (op->type == OpType::NODE_INDEX_SEEK_DYNAMIC) {
-                auto op_node = dynamic_cast<NodeIndexSeekDynamic *>(op);
-                auto node = op_node->GetNode();
+            } else if (auto node_index_seek_dy = dynamic_cast<NodeIndexSeekDynamic *>(op)) {
+                auto node = node_index_seek_dy->GetNode();
                 if (schema_node_map.find(node->ID()) != schema_node_map.end()) {
                     node->SetLabel(schema_node_map.find(node->ID())->second);
                 }
             }
-
             if (op->children.empty()) {
+                if (op->type == OpType::ALL_NODE_SCAN ||
+                    op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
+                    delete op;
+                }
                 break;
             }
             CYPHER_THROW_ASSERT(op->children.size() == 1);
-            op = op->children[0];
+            auto child = op->children[0];
+            if (op->type == OpType::ALL_NODE_SCAN || op->type == OpType::ALL_NODE_SCAN_DYNAMIC) {
+                delete op;
+            }
+            op = child;
         }
     }
 
