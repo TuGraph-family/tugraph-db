@@ -24,21 +24,16 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
     const lgraph::Schema* schema;
     size_t e_cnt = 0;
     while ((schema = e_schema_manager.GetSchema(label_num))) {
-        // std::cout<<"schema label:"<<schema->GetLabel()<<std::endl;
         label2idx.insert({schema->GetLabel(), i});
         idx2label.push_back(schema->GetLabel());
         i++;
         const lgraph::EdgeConstraints& ec = schema->GetEdgeConstraints();
         for (auto pair : ec) {
-            // std::cout<<"src:"<<pair.first<<",dst:"<<pair.second<<std::endl;
             std::set<int> label_nums;
             label_nums.insert(GetLabelNum(schema->GetLabel()));
             target_graph.AddEdge(e_cnt, (size_t)GetLabelNum(pair.first),
                                  (size_t)GetLabelNum(pair.second), label_nums,
                                  parser::LinkDirection::LEFT_TO_RIGHT);
-            // std::cout<<"edge id :"<<e_cnt<<",label num:"<<GetLabelNum(schema->GetLabel())<<",src
-            // id:"<<(size_t)GetLabelNum(pair.first)<<",dst
-            // id:"<<(size_t)GetLabelNum(pair.second)<<std::endl;
             e_cnt++;
         }
         label_num++;
@@ -50,7 +45,6 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
         vidx2pidx.insert({cnt, it->first});
         pidx2vidx.insert({it->first, cnt});
         query_graph.AddNode(cnt, GetLabelNum(it->second));
-        // std::cout<<"node id :"<<cnt<<",label num:"<<GetLabelNum(it->second)<<std::endl;
         cnt++;
     }
 
@@ -85,9 +79,9 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
 
 #ifdef DEBUG
     PrintLabel2Idx();
-    std::cout << "目标图:" << std::endl;
+    FMA_DBG() << "目标图:";
     target_graph.PrintGraph();
-    std::cout << "查询图:" << std::endl;
+    FMA_DBG() << "查询图:";
     query_graph.PrintGraph();
 #endif
 
@@ -124,20 +118,18 @@ void SchemaRewrite::MatchRecursive(size_t vid, size_t t_vid) {
         std::vector<StateInfo> candidate_state_infos = GenCandidateStateInfo();
 
 #ifdef DEBUG
-        std::cout << "num of stateinfos:" << candidate_state_infos.size() << ",depth:" << depth
-                  << std::endl;
+        FMA_DBG() << "num of stateinfos:" << candidate_state_infos.size() << ",depth:" << depth;
         for (StateInfo si : candidate_state_infos) {
-            std::cout << "vid:" << si.m_vid << std::endl;
-            std::cout << "next vid:" << si.m_next_vid << std::endl;
-            std::cout << "eid:" << si.m_eid << std::endl;
+            FMA_DBG() << "vid:" << si.m_vid;
+            FMA_DBG() << "next vid:" << si.m_next_vid;
+            FMA_DBG() << "eid:" << si.m_eid;
         }
 #endif
 
         for (StateInfo si : candidate_state_infos) {
             for (auto it = si.m_id_map.begin(); it != si.m_id_map.end(); it++) {
 #ifdef DEBUG
-                std::cout << "check:query:" << si.m_next_vid << ",target:" << it->first
-                          << std::endl;
+                FMA_DBG() << "check:query:" << si.m_next_vid << ",target:" << it->first;
 #endif
                 if (CheckNodeLabel(si.m_next_vid, it->first)) {
                     core_2[si.m_next_vid] = it->first;
@@ -334,14 +326,14 @@ void SchemaRewrite::AddMapping() {
 }
 // 打印当前匹配的路径
 void SchemaRewrite::PrintMapping() {
-    std::cout << "Node Mapping:" << std::endl;
+    FMA_LOG() << "Node Mapping:";
     for (size_t j = 0; j < query_size; j++) {
         int core_id = core_2[j];
         std::string label = idx2label[core_id];
-        std::cout << "(" << core_id << "[" << label << "]-" << j << ")";
+        FMA_LOG() << "(" << core_id << "[" << label << "]-" << j << ")";
     }
-    std::cout << std::endl;
-    std::cout << "Edge Mapping:" << std::endl;
+    FMA_LOG();
+    FMA_LOG() << "Edge Mapping:";
     for (Edge e : query_graph.m_edges) {
         size_t src_id = e.m_source_id, tar_id = e.m_target_id;
         size_t core_src_id = core_2[src_id], core_tar_id = core_2[tar_id];
@@ -359,14 +351,14 @@ void SchemaRewrite::PrintMapping() {
         }
         std::string src_label = idx2label[core_src_id];
         std::string tar_label = idx2label[core_tar_id];
-        std::cout << "(" << src_id << "[" << src_label << "])-[" << label_str << "]-(" << tar_id
-                  << "[" << tar_label << "]) " << std::endl;
+        FMA_LOG() << "(" << src_id << "[" << src_label << "])-[" << label_str << "]-(" << tar_id
+                  << "[" << tar_label << "]) ";
     }
 }
 
 void SchemaRewrite::PrintLabel2Idx() {
     for (auto it : label2idx) {
-        std::cout << it.first << " " << it.second << std::endl;
+        FMA_LOG() << it.first << " " << it.second;
     }
 }
 

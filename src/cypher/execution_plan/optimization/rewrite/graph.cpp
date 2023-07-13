@@ -26,27 +26,27 @@ void Graph::AddEdge(size_t id, size_t source_id, size_t target_id, std::set<int>
 
 void Graph::PrintGraph() {
     for (Node node : m_nodes) {
-        std::cout << "Node id:" << node.m_id << std::endl;
-        std::cout << "In edges:" << std::endl;
+        FMA_LOG() << "Node id:" << node.m_id;
+        FMA_LOG() << "In edges:";
         for (size_t eid : node.m_inedges) {
             Edge& edge = m_edges[eid];
-            std::cout << edge.m_id << "-" << edge.m_source_id << ".";
+            FMA_LOG() << edge.m_id << "-" << edge.m_source_id << ".";
         }
-        std::cout << std::endl;
+        FMA_LOG();
 
-        std::cout << "Out edges:" << std::endl;
+        FMA_LOG() << "Out edges:";
         for (size_t eid : node.m_outedges) {
             Edge& edge = m_edges[eid];
-            std::cout << edge.m_id << "-" << edge.m_target_id << ".";
+            FMA_LOG() << edge.m_id << "-" << edge.m_target_id << ".";
         }
-        std::cout << std::endl;
+        FMA_LOG();
 
-        std::cout << "Undirection edges:" << std::endl;
+        FMA_LOG() << "Undirection edges:";
         for (size_t eid : node.m_undirectededges) {
             Edge& edge = m_edges[eid];
-            std::cout << edge.m_id << "-" << edge.m_direction << ".";
+            FMA_LOG() << edge.m_id << "-" << edge.m_direction << ".";
         }
-        std::cout << std::endl;
+        FMA_LOG();
     }
 }
 };  // namespace rewrite_cypher
