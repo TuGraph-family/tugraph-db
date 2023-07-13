@@ -531,6 +531,53 @@ cypher::FieldData BuiltinFunction::ToInteger(RTContext *ctx, const Record &recor
     CYPHER_ARGUMENT_ERROR();
 }
 
+cypher::FieldData BuiltinFunction::Date(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
+    if(args.size() == 1) {
+        // date() Returns the current date;
+        return cypher::FieldData(::lgraph::FieldData(::lgraph::Date::Now()));
+    } else {
+        CYPHER_THROW_ASSERT(args.size() == 2);
+        // date(string) Returns a Date by parsing a string.
+        auto r = args[1].Evaluate(ctx, record);
+        if(!r.IsString()) CYPHER_ARGUMENT_ERROR();
+        auto dt = ::lgraph::FieldData::Date(r.constant.scalar.AsString());
+        return cypher::FieldData(dt);
+    }
+}
+
+cypher::FieldData BuiltinFunction::DateComponent(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    static const int64_t MAX_DAYS_EPOCH = 2000000; 
+    static const std::unordered_map<std::string, int> COMPONENT_MAP{
+        {"year", 0}, {"month", 1}, {"day", 2}
+    };
+    auto days_stamp = args[1].Evaluate(ctx, record);
+    auto component = args[2].Evaluate(ctx, record);
+
+    if (!days_stamp.IsInteger() || !component.IsString()) CYPHER_ARGUMENT_ERROR();
+    auto days_epoch = days_stamp.constant.scalar.AsInt64();
+    if(days_epoch > MAX_DAYS_EPOCH) days_epoch /= 1000;
+
+    auto d = lgraph::Date(static_cast<int32_t>(days_epoch));
+    auto YMD = d.GetYearMonthDay();
+    auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
+    if (it == COMPONENT_MAP.end())
+        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+    switch(it->second) {
+    case 0:
+        return cypher::FieldData(::lgraph::FieldData(YMD.year));
+    case 1:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(YMD.month)));
+    case 2:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(YMD.day)));
+    default:
+        throw ::lgraph::InternalError("");
+    }
+}  
+
 cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();

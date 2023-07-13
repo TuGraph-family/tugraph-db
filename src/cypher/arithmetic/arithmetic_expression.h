@@ -120,6 +120,12 @@ struct BuiltinFunction {
                                       const std::vector<ArithExprNode> &args);
 
     /* temporal functions - instant types */
+    static cypher::FieldData Date(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);  
+    
+    static cypher::FieldData DateComponent(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args);
+
     static cypher::FieldData DateTime(RTContext *ctx, const Record &record,
                                       const std::vector<ArithExprNode> &args);
 
@@ -306,6 +312,8 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("tofloat", BuiltinFunction::ToFloat);
         ae_registered_funcs.emplace("tostring", BuiltinFunction::ToString);
         ae_registered_funcs.emplace("tointeger", BuiltinFunction::ToInteger);
+        ae_registered_funcs.emplace("date", BuiltinFunction::Date);
+        ae_registered_funcs.emplace("datecomponent", BuiltinFunction::DateComponent);
         ae_registered_funcs.emplace("datetime", BuiltinFunction::DateTime);
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
