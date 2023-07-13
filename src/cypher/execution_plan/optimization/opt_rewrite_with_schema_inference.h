@@ -48,22 +48,24 @@ namespace cypher {
  **/
 
 class OptRewriteWithSchemaInference : public OptPass {
-    void check_v_label_valid(const lgraph::SchemaInfo *schema_info, const std::string label) {
+    bool check_v_label_valid(const lgraph::SchemaInfo *schema_info, const std::string label) {
         auto vertex_labels = schema_info->v_schema_manager.GetAllLabels();
         if (!label.empty() &&
             std::find(vertex_labels.begin(), vertex_labels.end(), label) == vertex_labels.end()) {
-            throw lgraph::CypherException("Vertex label \"" + label + "\" does not exist.");
+            return false;
         }
+        return true;
     }
 
-    void check_e_labels_valid(const lgraph::SchemaInfo *schema_info,
+    bool check_e_labels_valid(const lgraph::SchemaInfo *schema_info,
                               const std::set<std::string> labels) {
         auto edge_labels = schema_info->e_schema_manager.GetAllLabels();
         for (auto label : labels) {
             if (std::find(edge_labels.begin(), edge_labels.end(), label) == edge_labels.end()) {
-                throw lgraph::CypherException("Edge label \"" + label + "\" does not exist.");
+                return false;
             }
         }
+        return true;
     }
 
     // match子句中的模式图可以分为多个极大连通子图，该函数提取每个极大连通子图的点和边，经过分析后加上标签信息
@@ -77,9 +79,9 @@ class OptRewriteWithSchemaInference : public OptPass {
                 auto start = expand_all->GetStartNode();
                 auto relp = expand_all->GetRelationship();
                 auto neighbor = expand_all->GetNeighborNode();
-                check_v_label_valid(schema_info, start->Label());
-                check_v_label_valid(schema_info, neighbor->Label());
-                check_e_labels_valid(schema_info, relp->Types());
+                if(!check_v_label_valid(schema_info, start->Label())){return;}
+                if(!check_v_label_valid(schema_info, neighbor->Label())){return;}
+                if(!check_e_labels_valid(schema_info, relp->Types())){return;}
 
                 schema_node_map[start->ID()] = start->Label();
                 schema_node_map[neighbor->ID()] = neighbor->Label();
@@ -113,7 +115,7 @@ class OptRewriteWithSchemaInference : public OptPass {
                     id = node_index_seek_dy->GetNode()->ID();
                     label = node_index_seek_dy->GetNode()->Label();
                 }
-                check_v_label_valid(schema_info, label);
+                if(!check_v_label_valid(schema_info, label)){return;}
                 schema_node_map[id] = label;
             }
 
