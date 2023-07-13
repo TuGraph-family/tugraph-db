@@ -83,7 +83,7 @@ int test_cypher_plan(const nlohmann::json &conf) {
         dataset = el["dataset"];
         if (dataset == "yago") {
             UT_LOG() << "test on dataset:" << dataset;
-            GraphFactory::create_yago("./testdb");
+            GraphFactory::create_yago_with_constraints("./testdb");
             lgraph::Galaxy::Config gconf;
             gconf.dir = "./testdb";
             lgraph::Galaxy galaxy(gconf, true, nullptr);

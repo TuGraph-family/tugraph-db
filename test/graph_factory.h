@@ -173,8 +173,14 @@ class GraphFactory {
                 {"name": "title", "type":"STRING"}
             ]
         },
-        {"label" : "HAS_CHILD", "type" : "EDGE"},
-        {"label" : "MARRIED", "type" : "EDGE"},
+        {
+            "label" : "HAS_CHILD", 
+            "type" : "EDGE"
+        },
+        {
+            "label" : "MARRIED",
+            "type" : "EDGE"
+        },
         {
             "label" : "BORN_IN", 
             "type" : "EDGE",
@@ -182,14 +188,237 @@ class GraphFactory {
                 {"name" : "weight", "type":"FLOAT", "optional":true}
             ]
         },
-        {"label" : "DIRECTED", "type" : "EDGE"},
-        {"label" : "WROTE_MUSIC_FOR", "type" : "EDGE"},
+        {
+            "label" : "DIRECTED",
+            "type" : "EDGE"
+        },
+        {
+            "label" : "WROTE_MUSIC_FOR",
+            "type" : "EDGE"
+        },
         {
             "label" : "ACTED_IN",
             "type" : "EDGE",
             "properties" : [
                 {"name" : "charactername", "type":"STRING"}
             ]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "person.csv",
+            "format" : "CSV",
+            "label" : "Person",
+            "columns" : ["name","birthyear"]
+        },
+        {
+            "path" : "city.csv",
+            "format" : "CSV",
+            "label" : "City",
+            "columns" : ["name"]
+        },
+        {
+            "path" : "film.csv",
+            "format" : "CSV",
+            "label" : "Film",
+            "columns" : ["title"]
+        },
+        {
+            "path" : "has_child.csv",
+            "format" : "CSV",
+            "label" : "HAS_CHILD",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "married.csv",
+            "format" : "CSV",
+            "label" : "MARRIED",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "born_in.csv",
+            "format" : "CSV",
+            "label" : "BORN_IN",
+            "SRC_ID" : "Person",
+            "DST_ID" : "City",
+            "columns" : ["SRC_ID","DST_ID","weight"]
+        },
+        {
+            "path" : "directed.csv",
+            "format" : "CSV",
+            "label" : "DIRECTED",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Film",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "wrote.csv",
+            "format" : "CSV",
+            "label" : "WROTE_MUSIC_FOR",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Film",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "acted_in.csv",
+            "format" : "CSV",
+            "label" : "ACTED_IN",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Film",
+            "columns" : ["SRC_ID","DST_ID","charactername"]
+        }
+    ]
+}
+                    )"},
+
+            {"person.csv",
+             R"(Rachel Kempson,1910
+Michael Redgrave,1908
+Vanessa Redgrave,1937
+Corin Redgrave,1939
+Liam Neeson,1952
+Natasha Richardson,1963
+Richard Harris,1930
+Dennis Quaid,1954
+Lindsay Lohan,1986
+Jemma Redgrave,1965
+Roy Redgrave,1873
+John Williams,1932
+Christopher Nolan,1970
+)"},
+
+            {"city.csv",
+             R"(New York
+London
+Houston
+)"},
+
+            {"film.csv",
+             R"("Goodbye, Mr. Chips"
+Batman Begins
+Harry Potter and the Sorcerer's Stone
+The Parent Trap
+Camelot
+)"},
+
+            {"has_child.csv",
+             R"(Rachel Kempson,Vanessa Redgrave
+Rachel Kempson,Corin Redgrave
+Michael Redgrave,Vanessa Redgrave
+Michael Redgrave,Corin Redgrave
+Corin Redgrave,Jemma Redgrave
+Vanessa Redgrave,Natasha Richardson
+Roy Redgrave,Michael Redgrave
+)"},
+
+            {"married.csv",
+             R"(Rachel Kempson,Michael Redgrave
+Michael Redgrave,Rachel Kempson
+Natasha Richardson,Liam Neeson
+Liam Neeson,Natasha Richardson
+)"},
+
+            {"born_in.csv",
+             R"(Vanessa Redgrave,London,20.21
+Natasha Richardson,London,20.18
+Christopher Nolan,London,19.93
+Dennis Quaid,Houston,19.11
+Lindsay Lohan,New York,20.62
+John Williams,New York,20.55
+)"},
+
+            {"directed.csv",
+             R"(Christopher Nolan,Batman Begins
+)"},
+
+            {"wrote.csv",
+             R"(John Williams,Harry Potter and the Sorcerer's Stone
+John Williams,"Goodbye, Mr. Chips"
+)"},
+
+            {"acted_in.csv",
+             R"(Michael Redgrave,"Goodbye, Mr. Chips",The Headmaster
+Vanessa Redgrave,Camelot,Guenevere
+Richard Harris,Camelot,King Arthur
+Richard Harris,Harry Potter and the Sorcerer's Stone,Albus Dumbledore
+Natasha Richardson,The Parent Trap,Liz James
+Dennis Quaid,The Parent Trap,Nick Parker
+Lindsay Lohan,The Parent Trap,Halle/Annie
+Liam Neeson,Batman Begins,Henri Ducard
+)"}};
+
+        CreateCsvFiles(data);
+    }
+
+static void WriteYagoFilesWithConstraints() {
+        static const std::map<std::string, std::string> data = {
+            {"yago.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "Person",
+            "type" : "VERTEX",
+            "primary" : "name",
+            "properties" : [
+                {"name" : "name", "type":"STRING"},
+                {"name" : "birthyear", "type":"INT16", "optional":true}
+            ]
+        },
+        {
+            "label" : "City",
+            "type" : "VERTEX",
+            "primary" : "name",
+            "properties" : [
+                {"name": "name", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "Film",
+            "primary": "title",
+            "type" : "VERTEX",
+            "properties" : [
+                {"name": "title", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "HAS_CHILD", 
+            "type" : "EDGE",
+            "constraints": [["Person", "Person"]]
+        },
+        {
+            "label" : "MARRIED",
+            "type" : "EDGE",
+            "constraints": [["Person", "Person"]]
+        },
+        {
+            "label" : "BORN_IN", 
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "weight", "type":"FLOAT", "optional":true}
+            ],
+            "constraints": [["Person", "City"]]
+        },
+        {
+            "label" : "DIRECTED",
+            "type" : "EDGE",
+            "constraints": [["Person", "Film"]]
+        },
+        {
+            "label" : "WROTE_MUSIC_FOR",
+            "type" : "EDGE",
+            "constraints": [["Person", "Film"]]
+        },
+        {
+            "label" : "ACTED_IN",
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "charactername", "type":"STRING"}
+            ],
+            "constraints": [["Person", "Film"]]
         }
     ],
     "files" : [
@@ -350,6 +579,24 @@ Liam Neeson,Batman Begins,Henri Ducard
     static void create_yago(const std::string& dir = "./lgraph_db") {
         using namespace lgraph;
         WriteYagoFiles();
+        import_v3::Importer::Config config;
+        config.config_file = "./yago.conf";  // the config file specifying which files to import
+        config.db_dir = dir;                 // db data dir to use
+        config.delete_if_exists = true;
+        config.graph = "default";
+
+        config.parse_block_threads = 1;
+        config.parse_file_threads = 1;
+        config.generate_sst_threads = 1;
+
+        import_v3::Importer importer(config);
+        importer.DoImportOffline();
+    }
+
+    // add edge constraints for yago
+    static void create_yago_with_constraints(const std::string& dir = "./lgraph_db") {
+        using namespace lgraph;
+        WriteYagoFilesWithConstraints();
         import_v3::Importer::Config config;
         config.config_file = "./yago.conf";  // the config file specifying which files to import
         config.db_dir = dir;                 // db data dir to use
