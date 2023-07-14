@@ -111,6 +111,7 @@ add_executable(unit_test
         test_vid_table.cpp
         test_edge_constraint.cpp
         test_olap_vertex_traversal.cpp
+        test_detach_property.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
 )

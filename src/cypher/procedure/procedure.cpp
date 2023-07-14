@@ -358,7 +358,7 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     _ExtractFds(args, label, primary_fd, fds);
-    auto ret = ctx->ac_db_->AddLabel(true, label, fds, primary_fd, {});
+    auto ret = ctx->ac_db_->AddLabel(true, label, fds, lgraph::VertexOptions(primary_fd));
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -394,7 +394,17 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
     }
     auto field_specs = ParseFieldSpecs(args, 3);
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    auto ret = ac_db.AddLabel(is_vertex, label, field_specs, primary_fd, edge_constraints);
+    std::unique_ptr<lgraph::LabelOptions> options;
+    if (is_vertex) {
+        auto vo = std::make_unique<lgraph::VertexOptions>();
+        vo->primary_field = primary_fd;
+        options = std::move(vo);
+    } else {
+        auto eo = std::make_unique<lgraph::EdgeOptions>();
+        eo->edge_constraints = edge_constraints;
+        options = std::move(eo);
+    }
+    auto ret = ac_db.AddLabel(is_vertex, label, field_specs, *options);
     if (!ret) {
         throw lgraph::LabelExistException(label, is_vertex);
     }
@@ -578,7 +588,7 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
         edge_constraints.push_back(std::make_pair(item[0], item[1]));
     }
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    auto ret = ac_db.AddLabel(false, label, fds, {}, edge_constraints);
+    auto ret = ac_db.AddLabel(false, label, fds, lgraph::EdgeOptions(edge_constraints));
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }

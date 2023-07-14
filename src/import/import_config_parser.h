@@ -238,6 +238,7 @@ struct LabelDesc {
     std::vector<ColumnSpec> columns;
     EdgeConstraints edge_constraints;
     bool is_vertex;
+    bool detach_property{false};
     LabelDesc() {}
     std::string ToString() const {
         std::string prefix = is_vertex ? "vertex" : "edge";
@@ -781,6 +782,13 @@ class ImportConfParser {
 
                     ld.columns.push_back(cs);
                 }
+            }
+            if (s.contains("detach_property")) {
+                if (!s["detach_property"].is_boolean()) {
+                    throw InputError(FMA_FMT(
+                        "Label[{}]: \"detach_property\" is not boolean", ld.name));
+                }
+                ld.detach_property = s["detach_property"];
             }
             sd.label_desc.push_back(ld);
         }

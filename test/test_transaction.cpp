@@ -37,7 +37,7 @@ TEST_F(TestTransaction, TestConcurrentVertexAdd) {
     LightningGraph db(conf);
     db.AddLabel("v",
         std::vector<lgraph::FieldSpec>{lgraph::FieldSpec("id", lgraph::FieldType::INT64, false)},
-        true, "id", {});
+        true, lgraph::VertexOptions("id"));
     Barrier bar(n_threads);
     std::atomic<size_t> n_success(0);
     std::atomic<size_t> n_fail(0);

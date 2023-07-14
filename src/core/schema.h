@@ -80,12 +80,16 @@ class Schema {
     EdgeConstraints edge_constraints_;
     std::unordered_set<size_t> fulltext_fields_;
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
+    bool detach_property_ = false;
+    KvTable property_table_;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
     void SetLabel(const std::string& label) { label_ = label; }
 
     void SetLabelId(LabelId lid) { label_id_ = lid; }
+
+    void SetDetachProperty(bool detach) { detach_property_ = detach; }
 
     void SetDeleted(bool deleted) { deleted_ = deleted; }
 
@@ -167,11 +171,22 @@ class Schema {
     const std::string& GetLabel() const { return label_; }
     const std::string& GetTemporalField() const { return primary_field_; }
     const std::string& GetPrimaryField() const { return primary_field_; }
+    bool DetachProperty() const { return detach_property_; }
     bool HasTemporalField() const { return !primary_field_.empty(); }
     const EdgeConstraints& GetEdgeConstraints() const { return edge_constraints_; }
     void SetEdgeConstraints(const EdgeConstraints& edge_constraints) {
         edge_constraints_ = edge_constraints;
     }
+    void SetPropertyTable(KvTable&& t) { property_table_ = std::move(t); }
+    KvTable& GetPropertyTable() { return property_table_; }
+    void AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property);
+    Value GetDetachedVertexProperty(KvTransaction& txn, VertexId vid);
+    void SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property);
+    void DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid);
+    void AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid, const Value& property);
+    Value GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid);
+    void SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid, const Value& property);
+    void DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid);
 
     LabelId GetLabelId() const { return label_id_; }
 
@@ -458,6 +473,9 @@ class Schema {
         s = BinaryRead(buf, edge_constraints_);
         if (!s) return 0;
         bytes_read += s;
+        s = BinaryRead(buf, detach_property_);
+        if (!s) return 0;
+        bytes_read += s;
         SetSchema(is_vertex_, fds, primary_field_, edge_constraints_);
         return bytes_read;
     }
@@ -467,7 +485,8 @@ class Schema {
         return BinaryWrite(buf, label_) + BinaryWrite(buf, label_id_) +
                BinaryWrite(buf, label_in_record_) + BinaryWrite(buf, deleted_) +
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
-               BinaryWrite(buf, primary_field_) + BinaryWrite(buf, edge_constraints_);
+               BinaryWrite(buf, primary_field_) + BinaryWrite(buf, edge_constraints_) +
+               BinaryWrite(buf, detach_property_);
     }
 
     std::string ToString() const { return fma_common::ToString(GetFieldSpecsAsMap()); }
@@ -480,6 +499,9 @@ class Schema {
      * reduce memory realloc.
      */
     Value CreateEmptyRecord(size_t size_hint = 0) const;
+
+    // only used for property detach
+    Value CreateRecordWithLabelId() const;
 
  protected:
     FieldData GetFieldDataFromField(const _detail::FieldExtractor* extractor,

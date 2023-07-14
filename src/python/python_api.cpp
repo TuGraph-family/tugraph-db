@@ -172,6 +172,32 @@ void register_python_api(pybind11::module& m) {
                                                        a.field, a.unique);
         });
 
+    pybind11::class_<EdgeOptions>(m, "EdgeOptions", "Edge options.")
+        .def(pybind11::init<>())
+        .def(pybind11::init<const std::vector<std::pair<std::string, std::string>>&>(),
+             "Define EdgeOptions with edge constraints",
+             pybind11::arg("edge_constraints"))
+        .def_readwrite("edge_constraints", &EdgeOptions::edge_constraints, "Edge constraints.")
+        .def_readwrite("temporal_field", &EdgeOptions::temporal_field, "Edge temporal field.")
+        .def_readwrite("detach_property", &EdgeOptions::detach_property,
+                       "Whether to store property in detach model.")
+        .def("__repr__", [](const EdgeOptions& a) {
+            return a.to_string();
+        });
+
+    pybind11::class_<VertexOptions>(m, "VertexOptions", "Vertex options.")
+        .def(pybind11::init<>())
+        .def(pybind11::init<const std::string&>(),
+             "Define VertexOptions with primary field",
+             pybind11::arg("primary_field"))
+        .def_readwrite("primary_field", &VertexOptions::primary_field,
+                       "Vertex primary field.")
+        .def_readwrite("detach_property", &VertexOptions::detach_property,
+                       "Whether to store property in detach model.")
+        .def("__repr__", [](const VertexOptions& a) {
+            return a.to_string();
+        });
+
     pybind11::class_<FieldData> data(m, "FieldData", "FieldData is the data type of field value.");
     data.def(pybind11::init<>(), "Constructs an empty FieldData (is_null() == true).")
         .def(pybind11::init<bool>(), "Constructs an bool type FieldData.")
@@ -456,7 +482,7 @@ void register_python_api(pybind11::module& m) {
              "This can be inaccurate if there were vertex removals.")
         .def("AddVertexLabel", &GraphDB::AddVertexLabel, "Add a vertex label.",
              pybind11::arg("label_name"), pybind11::arg("field_specs"),
-             pybind11::arg("primary_field"))
+             pybind11::arg("options"))
         .def(
             "DeleteVertexLabel",
             [](GraphDB& db, const std::string& label) {
@@ -504,8 +530,7 @@ void register_python_api(pybind11::module& m) {
             pybind11::arg("label"), pybind11::arg("mod_fields"))
         .def("AddEdgeLabel", &GraphDB::AddEdgeLabel, "Adds an edge label.",
              pybind11::arg("label_name"), pybind11::arg("field_specs"),
-             pybind11::arg("temporal_field") = std::string(),
-             pybind11::arg("constraints") = std::vector<std::pair<std::string, std::string>>())
+             pybind11::arg("options"))
         .def(
             "DeleteEdgeLabel",
             [](GraphDB& db, const std::string& label) {

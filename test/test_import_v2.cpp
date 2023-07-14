@@ -1716,6 +1716,60 @@ TEST_F(TestImportV2, ImportJson) {
     }
 
     {
+        UT_LOG() << "Test detaching property";
+        Importer::Config config;
+        config.delete_if_exists = true;
+        config.continue_on_error = true;
+        std::vector<std::pair<std::string, std::string>> data = {
+            {"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "node",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT32"},
+                {"name" : "name", "type":"STRING"}
+            ],
+            "detach_property" : true
+        },
+        {
+            "label" : "edge",
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "weight", "type" : "FLOAT"}
+            ],
+            "detach_property" : true
+        }
+    ],
+    "files" : [
+        {
+            "path" : "node1.csv",
+            "format" : "JSON",
+            "label" : "node",
+            "columns" : ["SKIP","id","SKIP","name","SKIP"]
+        },
+        {
+            "path" : "edge1.csv",
+            "format" : "JSON",
+            "label" : "edge",
+            "SRC_ID" : "node",
+            "DST_ID" : "node",
+            "columns" : ["SKIP","SRC_ID","weight","SKIP","DST_ID"]
+        }
+    ]
+}
+                    )"},
+            {"node1.csv",
+             "[\"skip\",1,\"skip\",\"name001\",\"skip\"]\n"
+             "[\"skip\",2,\"skip\",\"name002\",\"skip\"]\n"},
+            {"edge1.csv", "[\"skip\",1,1.1,\"skip\",2]\n"
+             "[\"skip\",1,2.2,\"skip\",2]\n"}};
+        TestImportOnData(data, config, 2, 2);
+    }
+
+    {
         UT_LOG() << "Test edge constraints";
         Importer::Config config;
         config.delete_if_exists = true;

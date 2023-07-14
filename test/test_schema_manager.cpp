@@ -36,15 +36,15 @@ TEST_F(TestSchemaManager, SchemaManager) {
                                            {"gender", FieldType::INT8, true},
                                            {"age", FieldType::INT8, true}};
         UT_EXPECT_TRUE(manager.AddLabel(txn, true, "student", student_fds.size(),
-                                        student_fds.data(), "id", {}));
+                                        student_fds.data(), VertexOptions("id")));
         auto lid = manager.GetLabelId("student");
         UT_EXPECT_EQ(manager.DeleteLabel(txn, "student"), true);
         UT_EXPECT_EQ(manager.DeleteLabel(txn, "student"), false);
         UT_EXPECT_EQ(manager.AddLabel(txn, true, "student", student_fds.size(), student_fds.data(),
-                                      "id", {}),
+                                      VertexOptions("id")),
                      true);
         UT_EXPECT_EQ(manager.AddLabel(txn, true, "student", student_fds.size(), student_fds.data(),
-                                      "id", {}),
+                                      VertexOptions("id")),
                      false);
         UT_EXPECT_EQ(manager.GetSchema("student")->GetFieldSpecs().size(), 4);
         UT_EXPECT_EQ(manager.GetLabelId("student"), lid);
@@ -65,7 +65,7 @@ TEST_F(TestSchemaManager, SchemaManager) {
                                            {"class", FieldType::INT8, true},
                                            {"score", FieldType::FLOAT, true}};
         UT_EXPECT_TRUE(manager.AddLabel(txn, true, "teacher", teacher_fds.size(),
-                                        teacher_fds.data(), "id", {}));
+                                        teacher_fds.data(), VertexOptions("id")));
         txn.Commit();
     }
     {

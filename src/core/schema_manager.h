@@ -182,8 +182,7 @@ class SchemaManager {
      * \return  True if it succeeds, false if the label already exists. Throws exception on error.
      */
     bool AddLabel(KvTransaction& txn, bool is_vertex, const std::string& label, size_t n_fields,
-                  const FieldSpec* fields, const std::string& primary_field,
-                  const EdgeConstraints& edge_constraints) {
+                  const FieldSpec* fields, const LabelOptions& options) {
         auto it = name_to_idx_.find(label);
         if (it != name_to_idx_.end()) return false;
         Schema* ls = nullptr;
@@ -204,9 +203,19 @@ class SchemaManager {
             }
             ls->SetLabelId((LabelId)(schemas_.size() - 1));
         }
-        ls->SetSchema(is_vertex, n_fields, fields, primary_field, edge_constraints);
+        std::string primary;
+        if (is_vertex) {
+            primary = dynamic_cast<const VertexOptions&>(options).primary_field;
+        }
+        EdgeConstraints edge_constraints;
+        if (!is_vertex) {
+            edge_constraints = dynamic_cast<const EdgeOptions&>(options).edge_constraints;
+            primary = dynamic_cast<const EdgeOptions&>(options).temporal_field;
+        }
+        ls->SetSchema(is_vertex, n_fields, fields, primary, edge_constraints);
         ls->SetLabel(label);
-        name_to_idx_.emplace_hint(it, std::make_pair(label, ls->GetLabelId()));
+        ls->SetDetachProperty(options.detach_property);
+        name_to_idx_.emplace_hint(it, label, ls->GetLabelId());
         // now write the modification to the kvstore
         using namespace fma_common;
         BinaryBuffer buf;
@@ -218,10 +227,8 @@ class SchemaManager {
     }
 
     bool AddLabel(KvTransaction& txn, bool is_vertex, const std::string& label,
-                  const std::vector<FieldSpec>& fields, const std::string& primary_field,
-                  const EdgeConstraints& edge_constraints) {
-        return AddLabel(txn, is_vertex, label, fields.size(), fields.data(), primary_field,
-                        edge_constraints);
+                  const std::vector<FieldSpec>& fields, const LabelOptions& options) {
+        return AddLabel(txn, is_vertex, label, fields.size(), fields.data(), options);
     }
 
     /**

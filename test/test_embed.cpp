@@ -53,7 +53,7 @@ TEST_F(TestEmbed, Embed) {
                                  {"id", lgraph_api::FieldType::INT64, false},
                                  {"name", lgraph_api::FieldType::STRING, false},
                              },
-                             "id");
+                             lgraph_api::VertexOptions("id"));
             auto txn = g.CreateWriteTxn();
             UT_EXPECT_EQ(txn.AddVertex("v", std::vector<std::string>{"id", "name"},
                                        std::vector<std::string>{"001", "s001"}),
@@ -69,7 +69,7 @@ TEST_F(TestEmbed, Embed) {
                 "v",
                 std::vector<lgraph_api::FieldSpec>{{"id", lgraph_api::FieldType::INT64, false},
                                                    {"name", lgraph_api::FieldType::STRING, false}},
-                "id");
+                lgraph_api::VertexOptions("id"));
             auto txn = g2.CreateWriteTxn();
             UT_EXPECT_EQ(txn.AddVertex("v", std::vector<std::string>{"id", "name"},
                                        std::vector<std::string>{"001", "s001"}),

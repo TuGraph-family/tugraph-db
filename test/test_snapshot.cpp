@@ -51,8 +51,8 @@ void CreateTestDB() {
                                     {"type", FieldType::INT8, false}};
     std::vector<FieldSpec> e_fds = {{"source", FieldType::INT8, false},
                                     {"weight", FieldType::FLOAT, false}};
-    UT_EXPECT_TRUE(db.AddLabel(true, "v", v_fds, "name", {}));
-    UT_EXPECT_TRUE(db.AddLabel(false, "e", e_fds, {}, {}));
+    UT_EXPECT_TRUE(db.AddLabel(true, "v", v_fds, VertexOptions("name")));
+    UT_EXPECT_TRUE(db.AddLabel(false, "e", e_fds, EdgeOptions()));
     // ASSERT(db.AddVertexIndex("v", "name", false));
     while (!db.IsVertexIndexed("v", "name")) fma_common::SleepUs(100);
 

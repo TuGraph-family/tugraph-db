@@ -176,7 +176,7 @@ TEST_P(TestMerge, Merge) {
                       vector<FieldSpec>{{"name", FieldType::STRING, false},
                                         {"age", FieldType::INT32, true},
                                         {"gender", FieldType::INT8, false}},
-                      "name");
+                      VertexOptions("name"));
     db.AddEdgeLabel(
         label_e,
         vector<FieldSpec>{{"since", FieldType::INT32, false}, {"weight", FieldType::DOUBLE, false}},

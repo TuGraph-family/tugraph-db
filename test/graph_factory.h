@@ -47,8 +47,8 @@ class GraphFactory {
                                                   {"since", lgraph::FieldType::INT32, true}};
         std::string e_label_2("created");
         std::vector<lgraph::FieldSpec> e_fds_2 = {{"weight", lgraph::FieldType::FLOAT, false}};
-        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, "uid"));
-        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, "uid"));
+        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, lgraph::VertexOptions("uid")));
+        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, lgraph::VertexOptions("uid")));
         UT_ASSERT(db.AddEdgeLabel(e_label_1, e_fds_1, {}));
         UT_ASSERT(db.AddEdgeLabel(e_label_2, e_fds_2, {}));
 
@@ -94,8 +94,8 @@ class GraphFactory {
                                                   {"since", lgraph::FieldType::INT32, true}};
         std::string e_label_2("created");
         std::vector<lgraph::FieldSpec> e_fds_2 = {{"weight", lgraph::FieldType::FLOAT, false}};
-        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, "uid"));
-        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, "uid"));
+        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, lgraph::VertexOptions("uid")));
+        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, lgraph::VertexOptions("uid")));
         UT_ASSERT(db.AddEdgeLabel(e_label_1, e_fds_1, {}));
         UT_ASSERT(db.AddEdgeLabel(e_label_2, e_fds_2, {}));
 

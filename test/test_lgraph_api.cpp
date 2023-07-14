@@ -45,7 +45,7 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
     graph.AddVertexLabel(std::string("v"),
                          std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                  {"content", FieldType::STRING, true}}),
-                         "id");
+                         VertexOptions("id"));
 
     Barrier bar(n_threads);
     std::atomic<size_t> n_success(0);
@@ -195,7 +195,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
                           std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                   {"type", FieldType::INT8, false},
                                                   {"content", FieldType::STRING, true}}),
-                          "id");
+                          VertexOptions("id"));
         UT_EXPECT_TRUE(db.IsVertexIndexed(vertex_label, "id"));
         // UT_EXPECT_TRUE(db.DeleteVertexIndex(vertex_label, "id"));
         Transaction txn_write = db.CreateWriteTxn();
@@ -230,7 +230,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
                           std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                   {"type", FieldType::INT8, false},
                                                   {"content", FieldType::STRING, true}}),
-                          "id");
+                          VertexOptions("id"));
         std::string elabel = "e";
         db.AddEdgeLabel(elabel, std::vector<FieldSpec>({{"weight", FieldType::FLOAT, false}}), {});
         UT_EXPECT_TRUE(db.IsVertexIndexed(vlabel, "id"));
@@ -246,7 +246,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
             db.AddEdgeLabel("esw", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
             db.AddVertexLabel("esk", std::vector<FieldSpec>({{"fs", FieldType::INT64, false}}),
-                              "fs");
+                              VertexOptions("fs"));
             db.AddEdgeLabel("esp", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
             db.AddEdgeLabel("unique", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
@@ -436,10 +436,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                                                   {"datetime", FieldType::DATETIME, true},
                                                   {"img", FieldType::BLOB, true},
                                                   {"valid", FieldType::BOOL, true}}),
-                          "id");
+                          VertexOptions("id"));
         UT_EXPECT_THROW_MSG(
-            db.AddVertexLabel("v3", std::vector<FieldSpec>({{"f", FieldType::NUL, false}}), "f"),
-            "NUL type");
+            db.AddVertexLabel("v3", std::vector<FieldSpec>({{"f", FieldType::NUL, false}}),
+                              VertexOptions("f")), "NUL type");
         auto txn = db.CreateWriteTxn();
         size_t label_id = txn.GetVertexLabelId("v2");
         std::vector<size_t> field_ids = txn.GetVertexFieldIds(
@@ -482,7 +482,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
                           std::vector<FieldSpec>({{"id", FieldType::INT32, false},
                                                   {"name", FieldType::STRING, false},
                                                   {"img", FieldType::BLOB, true}}),
-                          "id");
+                          VertexOptions("id"));
         db.AddVertexIndex("v2", "name", false);
         UT_EXPECT_ANY_THROW(db.AddVertexIndex("v2", "img", true));  // blob cannot be indexed
         auto AddVertexWithString = [&](int32_t id, const std::string& name,
@@ -551,11 +551,13 @@ TEST_F(TestLGraphApi, LGraphApi) {
         {
             // testing edges with tid
             FMA_LOG() << "Testing edges with tid";
+            EdgeOptions options;
+            options.temporal_field = "ts";
             db.AddEdgeLabel("et",
                             std::vector<lgraph_api::FieldSpec>{
                                 lgraph_api::FieldSpec("ts", FieldType::INT64, false),
                                 lgraph_api::FieldSpec("tt", FieldType::INT64, false)},
-                            "ts", {});
+                            options);
             auto AddEdgeWithInt = [&](int64_t src, int64_t dst, const int64_t i) {
                 auto txn = db.CreateWriteTxn();
                 auto eid = txn.AddEdge(src, dst, "et", std::vector<std::string>{"ts", "tt"},
@@ -646,16 +648,16 @@ TEST_F(TestLGraphApi, LGraphApi) {
         UT_EXPECT_TRUE(db.AddVertexLabel("v1",
                                          std::vector<FieldSpec>({{"id", FieldType::INT32, false},
                                                                  {"img", FieldType::BLOB, true}}),
-                                         "id"));
+                                         VertexOptions("id")));
 
         UT_EXPECT_TRUE(db.AddVertexLabel("v2",
                                          std::vector<FieldSpec>({{"id2", FieldType::INT32, false},
                                                                  {"valid", FieldType::BOOL, true}}),
-                                         "id2"));
+                                         VertexOptions("id2")));
         UT_EXPECT_TRUE(db.AddVertexLabel("test_v",
                                          std::vector<FieldSpec>({{"id3", FieldType::INT32, false},
                                                                  {"img3", FieldType::BOOL, true}}),
-                                         "id3"));
+                                         VertexOptions("id3")));
         UT_EXPECT_TRUE(db.AlterVertexLabelAddFields(
             "test_v", std::vector<FieldSpec>({{"test3", FieldType::STRING, false}}),
             std::vector<FieldData>{FieldData("test_value")}));
@@ -709,7 +711,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
                                          std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                                  {"id1", FieldType::STRING, false},
                                                                  {"img", FieldType::BLOB, true}}),
-                                         "id"));
+                                         VertexOptions("id")));
         {
             auto txn = db.CreateWriteTxn();
             auto vid1 = txn.AddVertex(

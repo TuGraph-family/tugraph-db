@@ -695,9 +695,19 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                     ec.push_back(std::make_pair(item.src_label(), item.dst_label()));
                 }
             }
+            std::unique_ptr<LabelOptions> options;
+            if (lreq.is_vertex()) {
+                auto vo = std::make_unique<VertexOptions>();
+                vo->primary_field = lreq.primary();
+                options = std::move(vo);
+            } else {
+                auto eo = std::make_unique<EdgeOptions>();
+                eo->edge_constraints = ec;
+                options = std::move(eo);
+            }
             bool success =
                 db->AddLabel(lreq.is_vertex(), lreq.label(),
-                            FieldSpecConvert::ToLGraphT(lreq.fields()), lreq.primary(), ec);
+                            FieldSpecConvert::ToLGraphT(lreq.fields()), *options);
             if (success) {
                 return RespondSuccess(resp);
             } else {

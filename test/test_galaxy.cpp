@@ -624,7 +624,7 @@ TEST_F(TestGalaxy, Galaxy) {
             lgraph_api::FieldSpec("last_access_time", lgraph_api::FieldType::INT64, false));
         fds.push_back(lgraph_api::FieldSpec("gdb_timestamp", lgraph_api::FieldType::INT64, false));
         fds.push_back(lgraph_api::FieldSpec("deleted", lgraph_api::FieldType::INT64, false));
-        db.AddVertexLabel("data", fds, "guid");
+        db.AddVertexLabel("data", fds, VertexOptions("guid"));
         fds.resize(0);
         fds.push_back(lgraph_api::FieldSpec("props", lgraph_api::FieldType::STRING, false));
         fds.push_back(

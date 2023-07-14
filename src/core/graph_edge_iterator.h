@@ -381,15 +381,15 @@ class EdgeIteratorImpl {
     template <class InputIt>
     static void InsertEdges(
         VertexId vid1, InputIt begin, InputIt end, KvIterator& it,
-        std::function<void(int64_t, int64_t, uint16_t, int64_t, int64_t, const Value&)>
-            add_fulltext_index) {
+        const std::function<void(const EdgeUid&, const Value&)>&
+            extra_work, bool detach_property) {
         // @TODO: optimize
         for (InputIt i = begin; i != end; ++i) {
             auto eid =
                 InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), 0),
-                           std::get<2>(*i), it);
-            if (ET == PackType::OUT_EDGE && add_fulltext_index) {
-                add_fulltext_index(vid1, std::get<1>(*i), std::get<0>(*i), 0, eid, std::get<2>(*i));
+                           detach_property ? Value() : std::get<2>(*i), it);
+            if (ET == PackType::OUT_EDGE) {
+                extra_work({vid1, std::get<1>(*i), std::get<0>(*i), 0, eid}, std::get<2>(*i));
             }
         }
     }

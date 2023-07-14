@@ -47,7 +47,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
         "vertex",
         std::vector<FieldSpec>(
             {{"id", STRING, false}, {"type", FieldType::INT8, false}, {"content", STRING, true}}),
-        "id"));
+        VertexOptions("id")));
     db.Flush();
     UT_EXPECT_EQ(db.AddVertexIndex("vertex", "id", false), false);
     UT_EXPECT_ANY_THROW(db.DeleteVertexIndex("vertex", "id"));
@@ -66,9 +66,10 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     UT_EXPECT_TRUE(db.AddEdgeLabel(
         "edge", std::vector<FieldSpec>({{"type", STRING, false}, {"weight", STRING, false}}), {}));
     UT_EXPECT_TRUE(!db.AddEdgeLabel(
-        "edge", std::vector<FieldSpec>({{"type", STRING, false}, {"height", STRING, false}})));
+        "edge", std::vector<FieldSpec>({{"type", STRING, false}, {"height", STRING, false}}), {}));
     UT_EXPECT_TRUE(db.AddEdgeLabel(
-        "edge_B", std::vector<FieldSpec>({{"type", STRING, false}, {"height", STRING, false}})));
+        "edge_B", std::vector<FieldSpec>({{"type", STRING, false},
+                                          {"height", STRING, false}}), {}));
 
     lgraph_api::Transaction txn_write = db.CreateWriteTxn();
     size_t vlid = txn_write.GetVertexLabelId("vertex");

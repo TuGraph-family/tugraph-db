@@ -188,6 +188,8 @@ class Importer {
     std::unique_ptr<rocksdb::DB> rocksdb_vids_;
     std::unordered_map<LabelId, std::atomic<int64_t>> vertex_count_;
     std::unordered_map<LabelId, std::atomic<int64_t>> edge_count_;
+    std::unordered_map<LabelId, bool> vlid_detach_;
+    std::unordered_map<LabelId, bool> elid_detach_;
 };
 
 }  // namespace import_v3

@@ -48,8 +48,8 @@ TEST_F(TestMoveConstructors, MoveConstructor) {
         std::vector<FieldSpec> vfd = {{"name", FieldType::STRING, false},
                                       {"id", FieldType::INT64, false}};
         std::vector<FieldSpec> efd = {{"type", FieldType::INT8, false}};
-        db.AddLabel("v", vfd, true, "id", {});
-        db.AddLabel("e", efd, false, {}, {});
+        db.AddLabel("v", vfd, true, VertexOptions("id"));
+        db.AddLabel("e", efd, false, EdgeOptions());
 
         {
             auto txn_ = db.CreateWriteTxn(false);

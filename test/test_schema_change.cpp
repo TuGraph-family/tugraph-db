@@ -46,24 +46,30 @@ static std::string RandomString(size_t n) {
     return str;
 }
 
-static void CreateSampleDB(const std::string& dir) {
+static void CreateSampleDB(const std::string& dir, bool detach_property) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
     lgraph::LightningGraph lg(conf);
+    VertexOptions vo;
+    vo.primary_field = "id";
+    vo.detach_property = detach_property;
     UT_EXPECT_TRUE(lg.AddLabel(
         "person",
         std::vector<FieldSpec>(
             {FieldSpec("id", FieldType::INT32, false), FieldSpec("name", FieldType::STRING, false),
              FieldSpec("age", FieldType::FLOAT, true), FieldSpec("img", FieldType::BLOB, true),
              FieldSpec("desc", FieldType::STRING, true), FieldSpec("img2", FieldType::BLOB, true)}),
-        true, "id", {}));
+        true, vo));
     lg.BlockingAddIndex("person", "name", false, true);
     lg.BlockingAddIndex("person", "age", false, true);
+    EdgeOptions options;
+    options.temporal_field = "ts";
+    options.detach_property = detach_property;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
                                std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
                                                        FieldSpec("ts", FieldType::INT64, true)}),
-                               false, "ts", {}));
+                               false, options));
     lg.BlockingAddIndex("knows", "weight", false, false);
     auto txn = lg.CreateWriteTxn();
     VertexId v0 =
@@ -89,16 +95,19 @@ static void CreateSampleDB(const std::string& dir) {
     txn.Commit();
 }
 
-static void CreateLargeSampleDB(const std::string& dir) {
+static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
     lgraph::LightningGraph lg(conf);
+    VertexOptions vo;
+    vo.primary_field = "name";
+    vo.detach_property = detach_property;
     UT_EXPECT_TRUE(
         lg.AddLabel("large",
                     std::vector<FieldSpec>({FieldSpec("name", FieldType::STRING, false),
                                             FieldSpec("number", FieldType::INT32, false)}),
-                    true, "name", {}));
+                    true, vo));
 
     auto txn = lg.CreateWriteTxn();
     const size_t commit_size = 110000;  // commit size when moding field is 100000
@@ -111,9 +120,11 @@ static void CreateLargeSampleDB(const std::string& dir) {
     txn.Commit();
 }
 
-class TestSchemaChange : public TuGraphTest {};
+class TestSchemaChange : public TuGraphTestWithParam<bool> {};
 
-TEST_F(TestSchemaChange, ModifyFields) {
+INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false, true));
+
+TEST_P(TestSchemaChange, ModifyFields) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
@@ -195,7 +206,7 @@ TEST_F(TestSchemaChange, ModifyFields) {
     }
 }
 
-TEST_F(TestSchemaChange, DelFields) {
+TEST_P(TestSchemaChange, DelFields) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
@@ -219,7 +230,7 @@ TEST_F(TestSchemaChange, DelFields) {
     DBConfig conf;
     conf.dir = dir;
     UT_LOG() << "Testing del field";
-    CreateSampleDB(dir);
+    CreateSampleDB(dir, GetParam());
     auto orig_v_schema = GetCurrSchema(dir, true);
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
@@ -292,7 +303,7 @@ TEST_F(TestSchemaChange, DelFields) {
     }
 }
 
-TEST_F(TestSchemaChange, ModData) {
+TEST_P(TestSchemaChange, ModData) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
@@ -300,7 +311,7 @@ TEST_F(TestSchemaChange, ModData) {
     DBConfig conf;
     conf.dir = dir;
     UT_LOG() << "Testing mod with data";
-    CreateSampleDB(dir);
+    CreateSampleDB(dir, GetParam());
     auto orig_v_schema = GetCurrSchema(dir, true);
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
@@ -370,7 +381,7 @@ TEST_F(TestSchemaChange, ModData) {
     }
 }
 
-TEST_F(TestSchemaChange, UpdateConstraints) {
+TEST_P(TestSchemaChange, UpdateConstraints) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
@@ -379,7 +390,7 @@ TEST_F(TestSchemaChange, UpdateConstraints) {
     conf.dir = dir;
 
     UT_LOG() << "Testing upate edge constraints";
-    CreateSampleDB(dir);
+    CreateSampleDB(dir, GetParam());
     EdgeConstraints new_ec = {{"ver1", "ver2"}, {"ver3", "ver4"}};
     {
         LightningGraph graph(conf);
@@ -397,7 +408,7 @@ TEST_F(TestSchemaChange, UpdateConstraints) {
     }
 }
 
-TEST_F(TestSchemaChange, ModAndAddfieldWithData) {
+TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
@@ -408,7 +419,7 @@ TEST_F(TestSchemaChange, ModAndAddfieldWithData) {
     UT_LOG() << "Testing mod with large data";
     {
         AutoCleanDir cleaner(dir);
-        CreateLargeSampleDB(dir);
+        CreateLargeSampleDB(dir, GetParam());
         {
             LightningGraph graph(conf);
             size_t n_changed = 0;
@@ -424,7 +435,7 @@ TEST_F(TestSchemaChange, ModAndAddfieldWithData) {
     UT_LOG() << "Testing add field with data";
     {
         AutoCleanDir cleaner(dir);
-        CreateSampleDB(dir);
+        CreateSampleDB(dir, GetParam());
         auto orig_v_schema = GetCurrSchema(dir, true);
         auto orig_e_schema = GetCurrSchema(dir, false);
         {
@@ -500,7 +511,7 @@ TEST_F(TestSchemaChange, ModAndAddfieldWithData) {
     }
 }
 
-TEST_F(TestSchemaChange, DelLabel) {
+TEST_P(TestSchemaChange, DelLabel) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);

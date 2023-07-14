@@ -354,8 +354,8 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                     {"comments", FieldType::STRING, true},
                                     {"weight", FieldType::FLOAT, false}};
-    UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
-    UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+    UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, VertexOptions("name")));
+    UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, EdgeOptions()));
     // add edge index
     UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", false, false));
     UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", false, false));

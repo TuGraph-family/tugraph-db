@@ -95,7 +95,7 @@ void TestLGraphApiMultiWriter() {
     db.AddVertexLabel("vertex",
                       std::vector<FieldSpec>(
                           {{"id", FieldType::INT32, false}, {"name", FieldType::STRING, false}}),
-                      "id");
+                      VertexOptions("id"));
     db.AddVertexIndex("vertex", "name", false);
 
     {

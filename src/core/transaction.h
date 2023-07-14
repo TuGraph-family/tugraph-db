@@ -935,9 +935,14 @@ class Transaction {
 
     ENABLE_IF_EIT(EIT, std::string)
     EdgeToString(const EIT& eit) {
+        Value prop = eit.GetProperty();
+        auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
+        if (schema->DetachProperty()) {
+            prop = schema->GetDetachedEdgeProperty(txn_, eit.GetUid());
+        }
         return fma_common::StringFormatter::Format(
             "E[{}]: DST = {}, EP = {}", eit.GetEdgeId(), eit.GetDst(),
-            curr_schema_->e_schema_manager.DumpRecord(eit.GetProperty(), eit.GetLabelId()));
+            curr_schema_->e_schema_manager.DumpRecord(prop, eit.GetLabelId()));
     }
 
 #ifdef _USELESS_CODE

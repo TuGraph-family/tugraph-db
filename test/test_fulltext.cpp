@@ -27,9 +27,11 @@
 using namespace lgraph;
 using namespace fma_common;
 
-class TestFullIndex : public TuGraphTest {};
+class TestFullTextIndex : public TuGraphTestWithParam<bool> {};
 
-TEST_F(TestFullIndex, FullIndex) {
+INSTANTIATE_TEST_CASE_P(TestFullTextIndex, TestFullTextIndex, testing::Values(false, true));
+
+TEST_P(TestFullTextIndex, basic) {
     {
         DBConfig config;
         config.dir = "./testdb";
@@ -38,6 +40,11 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 1;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
+        EdgeOptions eo;
+        eo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"title", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
@@ -45,8 +52,8 @@ TEST_F(TestFullIndex, FullIndex) {
         std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                         {"comments", FieldType::STRING, true},
                                         {"weight", FieldType::FLOAT, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
-        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
+        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, eo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "name"));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "title"));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
@@ -228,6 +235,11 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 1;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
+        EdgeOptions eo;
+        eo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"title", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
@@ -235,8 +247,8 @@ TEST_F(TestFullIndex, FullIndex) {
         std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                         {"comments", FieldType::STRING, true},
                                         {"weight", FieldType::FLOAT, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
-        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
+        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, eo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "name"));
         UT_EXPECT_TRUE(db.AddFullTextIndex(false, "e1", "name"));
 
@@ -327,10 +339,13 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 1;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
                                         {"type", FieldType::INT8, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
         Transaction txn = db.CreateWriteTxn();
         std::vector<std::string> v1_properties = {"name", "description", "type"};
@@ -381,10 +396,13 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 0;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
                                         {"type", FieldType::INT8, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
         Transaction txn = db.CreateWriteTxn();
         std::vector<std::string> v1_properties = {"name", "description", "type"};

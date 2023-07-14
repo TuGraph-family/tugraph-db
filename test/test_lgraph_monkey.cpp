@@ -184,8 +184,8 @@ class MonkeyTest {
                   const std::vector<FieldSpec>& fds, const std::string& primary,
                   const lgraph::EdgeConstraints& constraints) {
         txn_.reset();
-        bool r = is_vertex ? db_.AddVertexLabel(label, fds, primary)
-                           : db_.AddEdgeLabel(label, fds, "", constraints);
+        bool r = is_vertex ? db_.AddVertexLabel(label, fds, VertexOptions(primary))
+                           : db_.AddEdgeLabel(label, fds, EdgeOptions(constraints));
         auto vgit = schema.find(label);
         UT_EXPECT_EQ(r, vgit == schema.end());
         if (!r) return r;

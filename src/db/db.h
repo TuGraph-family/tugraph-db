@@ -76,7 +76,7 @@ class AccessControlledDB {
     size_t EstimateNumVertices();
 
     bool AddLabel(bool is_vertex, const std::string& label, const std::vector<FieldSpec>& fds,
-                  const std::string& primary_field, const EdgeConstraints& edge_constraints);
+                  const LabelOptions& options);
 
     bool DeleteLabel(bool is_vertex, const std::string& label, size_t* n_modified);
 
