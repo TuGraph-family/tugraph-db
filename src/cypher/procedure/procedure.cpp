@@ -1895,6 +1895,7 @@ void BuiltinProcedure::DbmsHaClusterInfo(RTContext *ctx, const Record *record, c
     auto peers = ctx->sm_->ListPeers();
     Record r;
     r.AddConstant(lgraph::FieldData(lgraph::ValueToJson(peers).serialize()));
+    r.AddConstant(lgraph::FieldData(ctx->sm_->IsCurrentMaster()));
     records->emplace_back(r.Snapshot());
 }
 

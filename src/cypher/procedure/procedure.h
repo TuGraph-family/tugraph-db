@@ -941,8 +941,9 @@ static std::vector<Procedure> global_procedures = {
               false, true),
 
     Procedure("dbms.ha.clusterInfo", BuiltinProcedure::DbmsHaClusterInfo, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}}}, true,
-              true)};
+              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}},
+                                  {"is_master", {1, lgraph_api::LGraphType::BOOLEAN}}
+              }, true, true)};
 
 class ProcedureTable {
     std::unordered_map<std::string, Procedure> ptable_;
