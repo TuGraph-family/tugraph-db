@@ -1072,8 +1072,8 @@ void RestServer::HandleGetInfo(const std::string& user, const http_request& requ
             if (s == 0) num_log = 100;
         }
         if (it_descending_order != query.end())
-            size_t s = fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
-                                                                 descending_order);
+            fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
+                                                      descending_order);
         FMA_DBG_STREAM(logger_) << " log_order: " << descending_order;
 
         std::vector<lgraph::AuditLog> logs = AuditLogger::GetInstance().GetLog(

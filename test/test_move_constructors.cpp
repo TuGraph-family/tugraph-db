@@ -75,7 +75,6 @@ TEST_F(TestMoveConstructors, MoveConstructor) {
             {
                 auto vit_ = txn.GetVertexIterator(vid1_);
                 UT_EXPECT_TRUE(vit_.IsValid());
-                VertexId vid = vit_.GetId();
                 Value v = vit_.GetProperty();
                 auto vit = std::move(vit_);
                 UT_EXPECT_TRUE(vit.IsValid());

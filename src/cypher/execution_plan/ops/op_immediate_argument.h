@@ -71,7 +71,6 @@ class ImmediateArgument : public OpBase {
                 throw lgraph::CypherException("Unknown node variable: " + a.alias);
             }
             auto &input = input_record_->values[it->second.id];
-            auto &value = record->values[a.rec_idx];
             if (input.type != Entry::NODE) CYPHER_TODO();
             /* Note: The input may be invalid, such as nodes produced by OPTIONAL MATCH.
              * Set the record invalid in that cases. */

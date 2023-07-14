@@ -101,7 +101,7 @@ double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag) {
         throw std::runtime_error("|V| mismatch");
     }
     for (int i_iter=0; i_iter < num_iterations; i_iter++) {
-        size_t num_changed = graph.ProcessVertexInRange<size_t>(
+        graph.ProcessVertexInRange<size_t>(
             [&](size_t vi) {
                 if (graph.OutDegree(vi) == 0) {
                     return 0;

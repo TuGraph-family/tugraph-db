@@ -38,7 +38,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
     if (part.match_clause) {
         auto &pattern = std::get<0>(*part.match_clause);
         for (auto &pattern_part : pattern) {
-            auto &pp_variable = std::get<0>(pattern_part);
             auto &pattern_element = std::get<1>(pattern_part);
             auto &node_pattern = std::get<0>(pattern_element);
             auto &pattern_element_chains = std::get<1>(pattern_element);
@@ -59,8 +58,7 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
     for (auto &a : graph.symbol_table.symbols) {
         if (a.second.scope == SymbolNode::ARGUMENT) {
             if (a.second.type == SymbolNode::NODE && graph.GetNode(a.first).Empty()) {
-                auto nid = graph.AddNode("", a.first, Node::ARGUMENT);
-                auto &node = graph.GetNode(nid);
+                graph.AddNode("", a.first, Node::ARGUMENT);
             } else if (a.second.type == SymbolNode::RELATIONSHIP &&
                        graph.GetRelationship(a.first).Empty()) {
                 auto src_alias = std::string(INVISIBLE).append("NODE_").append(
@@ -84,7 +82,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
     for (auto &c : part.clauses) {
         if (c.type == Clause::CREATE) {
             for (auto &pattern_part : c.GetCreate()) {
-                auto &pp_variable = std::get<0>(pattern_part);
                 auto &pattern_element = std::get<1>(pattern_part);
                 auto &node_pattern = std::get<0>(pattern_element);
                 auto &pattern_element_chains = std::get<1>(pattern_element);
@@ -98,7 +95,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 for (auto &chain : pattern_element_chains) {
                     auto &relp_patn = std::get<0>(chain);
                     auto &node_patn = std::get<1>(chain);
-                    auto &rhs_var = std::get<0>(node_patn);
                     curr = graph.BuildNode(node_patn, Node::CREATED);
                     graph.BuildRelationship(relp_patn, prev, curr, Relationship::CREATED);
                     prev = curr;
@@ -106,7 +102,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
             }
         } else if (c.type == Clause::MERGE) {
             auto &pattern_part = std::get<0>(c.GetMerge());
-            auto &pp_variable = std::get<0>(pattern_part);
             auto &pattern_element = std::get<1>(pattern_part);
             auto &node_pattern = std::get<0>(pattern_element);
             auto &pattern_element_chains = std::get<1>(pattern_element);
@@ -120,7 +115,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
             for (auto &chain : pattern_element_chains) {
                 auto &relp_patn = std::get<0>(chain);
                 auto &node_patn = std::get<1>(chain);
-                auto &rhs_var = std::get<0>(node_patn);
                 curr = graph.BuildNode(node_patn, Node::MERGED);
                 graph.BuildRelationship(relp_patn, prev, curr, Relationship::MERGED);
                 prev = curr;
@@ -135,7 +129,7 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                     TUP_PROPERTIES props = {Expression(), ""};
                     VEC_STR labels = {};
                     TUP_NODE_PATTERN node_pattern = {name, labels, props};
-                    NodeID node = graph.BuildNode(node_pattern, Node::YIELD);
+                    graph.BuildNode(node_pattern, Node::YIELD);
                 }
             }
         }
@@ -644,7 +638,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
         }
         if (!has_arg) CYPHER_TODO();
         // 2. 判断是否都是悬挂点
-        bool hanging = true;  // 所有stream都是悬挂点
+        // 所有stream都是悬挂点
         for (auto &stream : expand_streams) {
             if (stream.size() != 1 ||
                 !pattern_graph.GetRelationship(std::get<1>(stream[0])).Empty()) {

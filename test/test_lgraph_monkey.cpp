@@ -438,7 +438,6 @@ class MonkeyTest {
         auto vgit = vgraph_.begin();
         for (auto dbit = txn_->GetVertexIterator(); dbit.IsValid(); dbit.Next(), vgit++) {
             UT_EXPECT_TRUE(vgit != vgraph_.end());
-            auto vid = vgit->first;
             UT_EXPECT_EQ(dbit.GetId(), vgit->first);
             UT_EXPECT_EQ(dbit.GetLabel(), vgit->second.label);
             auto fvs = dbit.GetAllFields();

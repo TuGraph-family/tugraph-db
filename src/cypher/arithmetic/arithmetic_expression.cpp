@@ -670,7 +670,6 @@ cypher::FieldData BuiltinFunction::_ListComprehension(RTContext *ctx, const Reco
     nested_record_for_list_comprehension.values = record.values;
     nested_record_for_list_comprehension.values.emplace_back(Entry());
     CYPHER_THROW_ASSERT(args.size() == 4);
-    auto &var = args[0].operand.variadic.alias;
     auto range = args[1].Evaluate(ctx, record);
     CYPHER_THROW_ASSERT(range.IsArray());
     for (auto &a : *range.constant.array) {

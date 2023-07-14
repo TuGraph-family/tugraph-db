@@ -71,7 +71,6 @@ struct MonitorManager {
     }
 
     void MinusMemoryUsage(size_t size) {
-        size_t memory_limit = this->GetMemoryLimit();
         std::lock_guard<std::mutex> lck(_mutex);
         std::thread::id tid = std::this_thread::get_id();
 

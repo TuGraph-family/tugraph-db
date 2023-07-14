@@ -40,8 +40,6 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
                               lgraph::_detail::DEFAULT_ADMIN_PASS,
                               false, true);
     lgraph_api::GraphDB db = galaxy.OpenGraph("default");
-    size_t msize;
-    size_t next_vid;
     // database add/delete data vertex must be no tranaction declear
     db.DropAllData();
     db.DropAllVertex();
@@ -77,7 +75,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     size_t elid = txn_write.GetEdgeLabelId("edge");
     size_t v_id_fid = txn_write.GetVertexFieldId(vlid, "id");
     size_t v_type_fid = txn_write.GetVertexFieldId(vlid, "type");
-    size_t v_content_fid = txn_write.GetVertexFieldId(vlid, "content");
+    txn_write.GetVertexFieldId(vlid, "content");
     size_t e_type_fid = txn_write.GetEdgeFieldId(elid, "type");
     size_t e_weight_fid = txn_write.GetEdgeFieldId(elid, "weight");
     // construct condition of database

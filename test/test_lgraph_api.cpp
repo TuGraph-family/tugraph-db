@@ -202,7 +202,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
 
         for (int i = 0; i < 4; i++) {
             std::vector<std::string> v = {std::to_string(i), "8", "content"};
-            auto vid = txn_write.AddVertex(vertex_label, vertex_feild_name, v);
+            txn_write.AddVertex(vertex_label, vertex_feild_name, v);
         }
         txn_write.Commit();
         // txn_write.AddVertex();
@@ -236,8 +236,8 @@ TEST_F(TestLGraphApi, LGraphApi) {
         UT_EXPECT_TRUE(db.IsVertexIndexed(vlabel, "id"));
         Transaction txn_write = db.CreateWriteTxn();
         for (int i = 0; i < 4; i++) {
-            auto vid = txn_write.AddVertex(vlabel, {"id", "type"},
-                                           {FieldData(std::to_string(i)), FieldData((int64_t)0)});
+            txn_write.AddVertex(vlabel, {"id", "type"},
+                                {FieldData(std::to_string(i)), FieldData((int64_t)0)});
         }
         txn_write.Commit();
 

@@ -1705,8 +1705,10 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
         timeout_killer.SetTimeout(args[3].Double());
     }
     std::string res;
-    bool success = db.CallPlugin(ctx->txn_.get(), type, ctx->user_, name, args[2].String(),
-                                 args[3].Double(), args[4].Bool(), res);
+    if (!db.CallPlugin(ctx->txn_.get(), type, ctx->user_, name, args[2].String(), args[3].Double(),
+                       args[4].Bool(), res)) {
+        throw lgraph::PluginNotExistException(name);
+    }
     Record r;
     r.AddConstant(lgraph::FieldData(res));
     records->emplace_back(r.Snapshot());

@@ -87,7 +87,6 @@ class Argument : public OpBase {
         if (state == StreamDepleted) return OP_DEPLETED;
         for (auto &a : args_) {
             auto &input = (*input_record_)->values[a.rec_idx];
-            auto &value = record->values[a.rec_idx];
             int64_t vid = -1;
             switch (input.type) {
             case Entry::CONSTANT:

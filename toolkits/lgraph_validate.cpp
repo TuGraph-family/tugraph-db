@@ -29,9 +29,6 @@ int main(int argc, char** argv) {
     std::string db_dir = "./testdb";
     std::string graph = "";
     std::string user, password;
-    bool durable = false;
-    int64_t begin = -1;
-    int64_t end = -1;
 
     fma_common::Configuration config;
     config.Add(db_dir, "d,dir", true).Comment("Database directory");

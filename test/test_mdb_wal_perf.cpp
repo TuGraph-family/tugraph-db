@@ -79,8 +79,6 @@ class TestMdbWalPerf : public TuGraphTest {
 };
 
 TEST_F(TestMdbWalPerf, TestRaw) {
-    double t1 = fma_common::GetTime();
-    double t2 = fma_common::GetTime();
     std::string vstr(val_size_, 'a');
     MDB_val value;
     value.mv_data = (void*)vstr.data();

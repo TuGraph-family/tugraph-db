@@ -184,14 +184,12 @@ class OpSet : public OpBase {
     }
 
     void SetVE(RTContext *ctx) {
-        OpBase *child = children[0];
         for (auto &s : set_data_) {
             for (auto &set_item : s) {
                 auto &lhs_var = std::get<0>(set_item);
                 auto &lhs_prop_expr = std::get<1>(set_item);
                 std::string sign = std::get<2>(set_item);
                 auto &rhs_expr = std::get<3>(set_item);
-                auto &rhs_node_labels = std::get<4>(set_item);
                 if (lhs_var.empty()) {
                     auto &property = lhs_prop_expr.Property();
                     auto &key_expr = property.first;

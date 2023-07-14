@@ -124,7 +124,7 @@ extern "C" bool MergeVertex(lgraph_api::Transaction &txn, MatchIterator vertex,
         fns.insert(fns.end(), field_names_on_create.begin(), field_names_on_create.end());
         fvs.insert(fvs.end(), vertex.field_values.begin(), vertex.field_values.end());
         fvs.insert(fvs.end(), field_values_on_create.begin(), field_values_on_create.end());
-        int64_t vid = txn.AddVertex(vertex.label, fns, fvs);
+        txn.AddVertex(vertex.label, fns, fvs);
     } else {
         err = "invalid index";
         return false;

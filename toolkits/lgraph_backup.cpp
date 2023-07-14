@@ -75,12 +75,10 @@ int main(int argc, char** argv) {
         fs.Mkdir(dst);
     }
     try {
-        double t1 = fma_common::GetTime();
         // lock the whole galaxy
         lgraph::Galaxy src_galaxy(src, false);
         _HoldWriteLock(src_galaxy.GetReloadLock());
         src_galaxy.Backup(dst, compact);
-        double t2 = fma_common::GetTime();
     } catch (std::exception& e) {
         ERR() << "Failed to backup the db: " << e.what();
         return -1;

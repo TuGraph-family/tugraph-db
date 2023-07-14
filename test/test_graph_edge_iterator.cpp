@@ -230,7 +230,6 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
     try {
         std::vector<OutEdgeIterator> oeits;
         KvIterator it(txn, table);
-        bool already_has_edge = false;
         for (int i = 0; i < n_edges; i++) {
             EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, dst, lid, 0), GenProp(i),
                                                              it);
@@ -401,7 +400,6 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
 
     srand(0);
     KvIterator kvit(txn, table);
-    bool already_has_edge = false;
     for (int i = 0; i < 10000; i++) {
         VertexId dst = rand_r(&seed);
         EdgeId eid = rand_r(&seed);

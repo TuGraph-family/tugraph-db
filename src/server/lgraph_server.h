@@ -42,8 +42,8 @@ class Signal {
             cv.wait(l, [this]() { return signal; });
             return true;
         } else {
-            bool success = cv.wait_for(l, std::chrono::milliseconds((size_t)(timeout_s * 1000)),
-                                       [this]() { return signal; });
+            cv.wait_for(l, std::chrono::milliseconds((size_t)(timeout_s * 1000)),
+                        [this]() { return signal; });
             return signal;
         }
     }

@@ -703,7 +703,6 @@ void lgraph::Galaxy::CheckTuGraphVersion(KvTransaction& txn) {
     auto ver = GetAndSetTuGraphVersionIfNecessary(txn);
     int major = std::get<0>(ver);
     int minor = std::get<1>(ver);
-    int patch = std::get<2>(ver);
     if (major != _detail::VER_MAJOR) {
         FMA_WARN_STREAM(logger_) << "Mismatching major version: DB is created with ver " << major
                                  << ", while current TuGraph is ver " << _detail::VER_MAJOR;

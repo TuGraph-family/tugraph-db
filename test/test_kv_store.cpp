@@ -147,7 +147,6 @@ TEST_F(TestKvStore, KvStore) {
             cleaners.emplace_back(dir);
             kvs.emplace_back(new KvStore(dir, (size_t)1 << db_size));
         }
-        size_t s = 0;
         std::vector<KvTransaction> txns;
         for (auto& s : kvs) {
             txns.emplace_back(s->CreateWriteTxn());

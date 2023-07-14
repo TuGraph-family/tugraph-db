@@ -172,10 +172,9 @@ TEST_F(TestFullIndex, FullIndex) {
             std::lock_guard<std::mutex> guard(mutex);
             Transaction txn = db.CreateWriteTxn();
             std::vector<std::string> v1_properties = {"name", "title", "description", "type"};
-            VertexId v_id1 = txn.AddVertex(
-                std::string("v1"), v1_properties,
-                std::vector<std::string>{"thread_name" + std::to_string(num),
-                                         "thread thread1 thread2", "desc1 desc2", "1"});
+            txn.AddVertex(std::string("v1"), v1_properties,
+                          std::vector<std::string>{"thread_name" + std::to_string(num),
+                                                   "thread thread1 thread2", "desc1 desc2", "1"});
             txn.Commit();
         };
         for (int i = 0; i < 10; i++) {
@@ -335,36 +334,33 @@ TEST_F(TestFullIndex, FullIndex) {
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
         Transaction txn = db.CreateWriteTxn();
         std::vector<std::string> v1_properties = {"name", "description", "type"};
-        VertexId v_id1 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name1",
-                              "党的十八大提出，倡导富强、民主、文明、和谐，倡导自由、平等、公正、法"
-                              "治，倡导爱国、敬业、诚信、友善，积极培育和践行社会主义核心价值观。",
-                              "1"});
-        VertexId v_id2 = txn.AddVertex(
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name1",
+                          "党的十八大提出，倡导富强、民主、文明、和谐，倡导自由、平等、公正、法"
+                          "治，倡导爱国、敬业、诚信、友善，积极培育和践行社会主义核心价值观。",
+                          "1"});
+        txn.AddVertex(
             std::string("v1"), v1_properties,
             std::vector<std::string>{
                 "name2", "“富强、民主、文明、和谐”，是我国社会主义现代化国家的建设目标", "1"});
-        VertexId v_id3 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name3", "“自由、平等、公正、法治”，是对美好社会的生动表述", "1"});
-        VertexId v_id4 = txn.AddVertex(
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name3", "“自由、平等、公正、法治”，是对美好社会的生动表述", "1"});
+        txn.AddVertex(
             std::string("v1"), v1_properties,
             std::vector<std::string>{"name4", "“爱国、敬业、诚信、友善”，是公民基本道德规范", "1"});
-        VertexId v_id5 = txn.AddVertex(
+        txn.AddVertex(
             std::string("v1"), v1_properties,
             std::vector<std::string>{
                 "name5", "Apache Lucene is an open source project available for free download",
                 "1"});
-        VertexId v_id6 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name6",
-                              "HUAWEI/华为 P50 "
-                              "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
-                              "1"});
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name6",
+                          "HUAWEI/华为 P50 "
+                          "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
+                          "1"});
         txn.Commit();
         db.FullTextIndexRefresh();
         auto vids = db.QueryVertexByFullTextIndex("v1", "description:富强", 10);
@@ -392,13 +388,12 @@ TEST_F(TestFullIndex, FullIndex) {
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
         Transaction txn = db.CreateWriteTxn();
         std::vector<std::string> v1_properties = {"name", "description", "type"};
-        VertexId v_id1 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name1",
-                              "HUAWEI/华为 P50 "
-                              "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
-                              "1"});
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name1",
+                          "HUAWEI/华为 P50 "
+                          "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
+                          "1"});
         txn.Commit();
         auto vids = db.QueryVertexByFullTextIndex("v1", "description:HUAWEI", 10);
         UT_EXPECT_EQ(vids.size(), 1);

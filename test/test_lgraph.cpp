@@ -168,7 +168,7 @@ TEST_F(TestLGraph, LGraph) {
         // ASSERT(db.BlockingAddIndex("v", "name", false));
 
         Transaction txn = db.CreateWriteTxn();
-        VertexId vid1_ = AddVertex(txn, "v1", "1");
+        AddVertex(txn, "v1", "1");
         VertexId vid2_ = AddVertex(txn, "v2", "2");
         {
             VertexIndexIterator iit = txn.GetVertexIndexIterator("v", "name", "v2", "v2");

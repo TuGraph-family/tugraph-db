@@ -302,7 +302,6 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     n = edges.size();
 
     std::vector<OnlineImportEdgesOfSameVertex> edges_of_vertex;
-    VertexId last_first = -1;
     for (size_t L = 0, R; L < n; L = R) {
         for (R = L; R < n && edges[R].vid1 == edges[L].vid1; R++) {
         }
@@ -356,7 +355,6 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     {
         std::unique_ptr<fma_common::InputFileStream> data_stream(
             new fma_common::InputMemoryFileStream(std::move(data)));
-        std::vector<std::string>& columns = fd.columns;
         std::unique_ptr<BlockParser> parser;
         if (fd.data_format == "CSV") {
             parser.reset(new ColumnParser(data_stream.get(), field_specs, 1 << 20, 8,

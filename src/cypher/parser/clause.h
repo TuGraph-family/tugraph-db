@@ -357,7 +357,7 @@ struct QueryPart {
         std::string s = std::string(cur_indent, ' ') + "[";
         for (size_t i = 0; i < clauses.size(); i++) {
             const auto& clause = clauses[i];
-            s.append("\n").append(clause.ToString(cur_indent+indent_size));
+            s.append("\n").append(clause.ToString(next_indent));
             if (i < clauses.size() - 1) {
                 s.append(",");
             } else {
@@ -384,7 +384,7 @@ struct SglQuery {
         std::string s = std::string(cur_indent, ' ') + "[";
         for (size_t i = 0; i < parts.size(); i++) {
             const auto& part = parts[i];
-            s.append("\n").append(part.ToString(cur_indent+indent_size));
+            s.append("\n").append(part.ToString(next_indent));
             if (i < parts.size() - 1) {
                 s.append(",");
             } else {

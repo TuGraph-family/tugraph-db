@@ -51,7 +51,6 @@ namespace lgraph {
 struct AuditLog;
 
 namespace RestStrings {
-static const char* EILLEGAL = "Illegal URI.";
 static const utility::string_t ACTION = _TU("action");
 static const utility::string_t ADDED = _TU("added");
 static const utility::string_t ALGO = _TU("algorithm");

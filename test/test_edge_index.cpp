@@ -171,7 +171,6 @@ int TestEdgeIndexImpl() {
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("amazon story"),
                                                Value::ConstRef("a"));
             int64_t local_vid = 1;
-            int64_t local_eid = 1;
             while (it.IsValid()) {
                 UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
                 local_vid += 2;
@@ -221,7 +220,6 @@ int TestEdgeIndexImpl() {
         {
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("a"), Value::ConstRef("a"));
             int64_t local_vid = 1;
-            int64_t local_eid = 1;
             while (it.IsValid()) {
                 UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
                 local_vid += 2;
