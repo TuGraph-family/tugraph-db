@@ -29,7 +29,7 @@ cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-${JAVA_CLIENT_VERSION}.jar
 # unittest
 mkdir -p $WORKSPACE/testresult/gtest/
 cd $WORKSPACE/build/output
-OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
+OMP_NUM_THREADS=6 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
 rm -rf testdb* .import_tmp
 
 #cd $WORKSPACE/src/client/python/TuGraphClient
@@ -43,6 +43,7 @@ cd $WORKSPACE/build/output
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
 cp -r ../../test/integration/* ./
+cp -r ../../learn/examples/* ./
 cp -r ../../demo/movie .
 pytest ./
 
