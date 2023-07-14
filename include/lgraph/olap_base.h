@@ -87,6 +87,11 @@ class Worker {
      *                  Note that Delegate cannot be nested.
      */
     void Delegate(const std::function<void()> &work);
+
+    template <typename Compute>
+    void DelegateCompute(const std::function<void(Compute &)> &work, Compute &compute) {
+        Worker::Delegate([& work, &compute]() { work(compute); });
+    }
 };
 
 /**

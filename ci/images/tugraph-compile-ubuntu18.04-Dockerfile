@@ -234,6 +234,15 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.1
   && cmake $CMAKE_OPT -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DANTLR4_INSTALL=1 .. \
   && make -j && make install && rm -rf /antlr4*
 
+# numpy
+RUN pip3 install numpy==1.19.5 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# torch
+RUN pip3 install --upgrade torch==1.10.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# dgl
+RUN pip3 install dgl==1.0.0 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec 
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \

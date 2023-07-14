@@ -55,6 +55,7 @@ add_embed(lpa)
 
 add_embed2(khop_kth)
 add_embed2(khop_within)
+add_embed2(feature_float)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/src/cython/)
 find_package(PythonInterp 3)
