@@ -28,7 +28,7 @@ def python_embed_main(algo):
         algo.Process(db, olapondb, 1433, [163], 2, NodeInfo, EdgeInfo)
         print("the label of 35 is:", NodeInfo[2][0])
     if sys.argv[1] == "negative_sampling":
-        algo.Process(db, olapondb, 1433, 100, NodeInfo)
+        algo.Process(db, olapondb, 1433, 100, NodeInfo, EdgeInfo)
         print("the num of NodeInfo =")
     del db
     del galaxy
