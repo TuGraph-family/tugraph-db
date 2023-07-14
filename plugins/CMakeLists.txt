@@ -8,7 +8,7 @@ set(LGRAPH_API_SRC
 
 function(add_standalone APP)
     add_executable(${APP}_standalone cpp/${APP}_core.cpp cpp/${APP}_standalone.cpp ${LGRAPH_API_SRC})
-    target_link_libraries(${APP}_standalone fma-common libstdc++fs.a libgomp.a dl)
+    target_link_libraries(${APP}_standalone libstdc++fs.a libgomp.a dl)
     set_target_properties( ${APP}_standalone PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
     target_include_directories(${APP}_standalone PUBLIC ${CMAKE_SOURCE_DIR}/include

@@ -15,6 +15,7 @@ add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)
 
+add_subdirectory(test_fma)
 
 add_executable(unit_test
         main.cpp

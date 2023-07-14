@@ -46,7 +46,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_link_libraries(${TARGET_CPP_CLIENT_RPC}
             PUBLIC
             # begin static linking
-            fma-common
             -Wl,-Bstatic
             ${BRPC_LIB}
             ${GFLAGS_LIBRARY}
@@ -112,9 +111,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         boost_system
         boost_filesystem
         ${JAVA_JVM_LIBRARY})
-else()
-    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
-        fma-common)
 endif()
 
 target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE
