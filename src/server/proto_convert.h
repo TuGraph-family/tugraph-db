@@ -189,10 +189,10 @@ struct FieldDataConvert {
         ret->Reserve(static_cast<int>(fds.size()));
 
         for (auto& h : header) {
-            if (lgraph_api::LGraphTypeIsField(h.second)) {
+            if (lgraph_api::LGraphTypeIsField(h.second) || lgraph_api::LGraphTypeIsAny(h.second)) {
                 FromLGraphT(*fds.at(h.first)->v.fieldData, ret->Add());
             } else {
-                FromLGraphT(FieldData(std::move(fds.at(h.first)->ToString())), ret->Add());
+                FromLGraphT(FieldData(fds.at(h.first)->ToString()), ret->Add());
             }
         }
     }

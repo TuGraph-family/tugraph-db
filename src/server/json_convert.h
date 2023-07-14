@@ -14,7 +14,7 @@
 
 #pragma once
 #include "tools/json.hpp"
-#include "lgraph/lgraph_types.h"
+#include "core/data_type.h"
 
 namespace lgraph_rfc {
 
@@ -64,10 +64,12 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         }
     case lgraph_api::FieldType::STRING:
         {
-            try {
-                return json::parse(data.AsString());
-            } catch (...) {
-                return json(data.AsString());
+            std::string str = data.AsString();
+            json j = nlohmann::json::parse(str, nullptr, false);
+            if (j.is_array() || j.is_object()) {
+                return j;
+            } else {
+                return json(str);
             }
         }
     case lgraph_api::FieldType::BLOB:
@@ -75,7 +77,8 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
             return json(data.AsBase64Blob());
         }
     default:
-        abort();
+        throw lgraph::InputError(fma_common::StringFormatter::Format(
+            "FieldDataToJson: unsupported field type: {}", data.type));
     }
 }
 
@@ -83,13 +86,17 @@ static lgraph_api::FieldData JsonToFieldData(const json& j_object) {
     if (j_object.is_boolean()) {
         return lgraph_api::FieldData(j_object.get<bool>());
     } else if (j_object.is_number_integer()) {
-        return lgraph_api::FieldData(j_object.get<int>());
+        return lgraph_api::FieldData(j_object.get<int64_t>());
     } else if (j_object.is_number_float()) {
         return lgraph_api::FieldData(j_object.get<float>());
     } else if (j_object.is_string()) {
         return lgraph_api::FieldData(j_object.get<std::string>());
-    } else {
+    } else if (j_object.is_null()) {
         return lgraph_api::FieldData();
+    } else if (!j_object.is_discarded()) {
+        return lgraph_api::FieldData(j_object.dump());
+    } else {
+        throw lgraph::InputError("JsonToFieldData: unsupported json");
     }
 }
 }  // namespace lgraph_rfc

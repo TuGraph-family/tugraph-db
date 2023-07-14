@@ -18,6 +18,7 @@
 #include "procedure/utils.h"
 #include "op_standalone_call.h"
 #include "procedure/procedure.h"
+#include "resultset/record.h"
 #include "server/json_convert.h"
 
 cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
@@ -113,6 +114,13 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                     CYPHER_TODO();
                     break;
                 case lgraph_api::LGraphType::ANY:
+                    if (v.type == Entry::RecordEntryType::CONSTANT &&
+                        v.constant.type == cypher::FieldData::FieldType::SCALAR) {
+                        record->Insert(title, lgraph::FieldData(v.constant.scalar));
+                    } else {
+                        record->Insert(title, lgraph::FieldData(v.ToString()));
+                    }
+                    break;
                 case lgraph_api::LGraphType::PATH:
                     // TODO PATH is undefine
                     record->Insert(title, lgraph::FieldData(v.ToString()));
@@ -122,7 +130,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::map<std::string, lgraph::FieldData> map;
                         for (auto &o : obj.items()) {
-                            map[o.key()] = lgraph::FieldData(o.value().dump());
+                            map[o.key()] = lgraph_rfc::JsonToFieldData(o.value());
                         }
                         record->Insert(title, map);
                         break;
@@ -132,7 +140,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::vector<lgraph::FieldData> list;
                         for (auto &o : obj) {
-                            list.emplace_back(lgraph::FieldData(o.dump()));
+                            list.emplace_back(lgraph_rfc::JsonToFieldData(o));
                         }
                         record->Insert(title, list);
                         break;
