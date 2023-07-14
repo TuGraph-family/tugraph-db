@@ -25,7 +25,8 @@ endif ()
 
 find_library(SNAPPY NAMES snappy)
 
-find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp 3)
+find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 
 ############### liblgraph_client_cpp_rpc ######################
 
