@@ -18,7 +18,7 @@
 #pragma once
 
 #include "execution_plan/ops/op_argument.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -94,7 +94,6 @@ class ImmediateArgument : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 
 }  // namespace cypher

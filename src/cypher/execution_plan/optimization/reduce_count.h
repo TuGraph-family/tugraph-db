@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "opt_pass.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
 

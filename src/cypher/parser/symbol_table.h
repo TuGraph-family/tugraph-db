@@ -16,7 +16,7 @@
 // Created by wt on 19-2-25.
 //
 #pragma once
-#include "data_typedef.h"
+#include "cypher/parser/data_typedef.h"
 
 namespace cypher {
 

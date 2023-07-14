@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -27,7 +27,7 @@ class Sort : public OpBase {
     std::vector<std::pair<int, bool>> sort_items_;
     size_t limit_ = 0;
     std::function<bool(const Record &, const Record &)> compare_;
-    // todo: handle skip clause
+    // TODO(anyone) handle skip clause
 
     OpResult HandOff(std::shared_ptr<Record> &r) {
         if (buffer_.empty()) return OP_DEPLETED;
@@ -110,6 +110,5 @@ class Sort : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 #include "parser/clause.h"
 
 namespace cypher {
@@ -37,7 +37,7 @@ class OpDelete : public OpBase {
                 auto node = record->values[it->second.id].node;
                 if (node && node->PullVid() >= 0) {
                     vertices_to_delete_.emplace_back(node->PullVid());
-                    /* TODO: if buffer size overflow, do this task with
+                    /* TODO(anyone) if buffer size overflow, do this task with
                      * optimized op. dump ids to delete into tmp file, note that
                      * manage file with object and delete file in destructor,
                      * make sure the tmp files removed after exception occurs.
@@ -156,6 +156,5 @@ class OpDelete : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

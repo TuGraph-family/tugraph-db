@@ -349,7 +349,7 @@ struct QueryPart {
                 }
             }
         }
-        // TODO: handle annotation in WITH/RETURN, UNWIND, DEL, etc. // NOLINT
+        // TODO(anyone) handle annotation in WITH/RETURN, UNWIND, DEL, etc.
     }
 
     std::string ToString(const size_t &cur_indent, const size_t &indent_size = 2) const {

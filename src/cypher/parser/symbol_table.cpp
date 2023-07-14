@@ -15,8 +15,8 @@
 //
 // Created by wt on 2019/12/31.
 //
-#include "symbol_table.h"
-#include "clause.h"
+#include "cypher/parser/symbol_table.h"
+#include "cypher/parser/clause.h"
 
 static std::string ToString(const cypher::SymbolTable &sym_tab) {
     std::string str = "Alias_ID_Map of Symbol Table:\n";

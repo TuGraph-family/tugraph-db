@@ -16,7 +16,7 @@
 // Created by wt on 6/12/18.
 //
 
-#include "relationship.h"
+#include "cypher/graph/relationship.h"
 
 namespace cypher {
 

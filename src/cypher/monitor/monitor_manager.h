@@ -14,33 +14,34 @@
 
 #pragma once
 
-#include "core/defs.h"
-#include "graph/graph.h"
-#include "parser/data_typedef.h"
-#include "execution_plan/runtime_context.h"
-#include "cypher_types.h"
+#include <stdlib.h>
+#include <pthread.h>
 
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
 #include <string>
-#include <stdlib.h>
-#include <pthread.h>
 #include <thread>
 #include <limits>
+
+#include "core/defs.h"
+#include "graph/graph.h"
+#include "parser/data_typedef.h"
+#include "execution_plan/runtime_context.h"
+#include "cypher/cypher_types.h"
 
 struct MemoryInfo {
     size_t usage;
     size_t limit;
     MemoryInfo() : usage(0), limit(lgraph::_detail::DEFAULT_MEM_LIMIT) {}
     MemoryInfo(size_t u, size_t l, size_t m) : usage(u), limit(l) {}
-    MemoryInfo(const MemoryInfo& other) : usage(other.usage), limit(other.limit){};
+    MemoryInfo(const MemoryInfo& other) : usage(other.usage), limit(other.limit) {}
     MemoryInfo& operator=(const MemoryInfo& other) {
         usage = other.usage;
         limit = other.limit;
         return *this;
     }
-    ~MemoryInfo(){};
+    ~MemoryInfo() {}
 };
 
 struct MonitorManager {

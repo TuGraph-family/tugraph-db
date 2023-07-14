@@ -48,7 +48,7 @@ static const char *const ANONYMOUS = "@ANON_";
 static const char *const INVISIBLE = "@INVIS_";
 static const int VAR_LEN_EXPAND_MAX_HOP = 128;
 
-// typedefs, TODO: simplify
+// typedefs, TODO(anyone) simplify
 typedef std::vector<std::string> VEC_STR;
 typedef std::map<std::string, std::string> MAP_STR;
 // property_key_name, expression

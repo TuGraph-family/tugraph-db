@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -97,7 +97,7 @@ class NodeByLabelScanDynamic : public OpBase {
         if (complete) {
             // undo method initialize()
             record = nullptr;
-            // todo: cleaned in ExecutionPlan::Execute
+            // TODO(anyone) cleaned in ExecutionPlan::Execute
             if (it_ && it_->Initialized()) it_->FreeIter();
         } else {
             if (it_ && it_->Initialized()) it_->Reset();
@@ -116,6 +116,5 @@ class NodeByLabelScanDynamic : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

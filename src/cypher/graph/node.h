@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include "common.h"
+#include "cypher/graph/common.h"
 
 namespace cypher {
 struct RTContext;

@@ -19,8 +19,8 @@
 
 #include "fma-common/type_traits.h"
 
-#include "node.h"
-#include "relationship.h"
+#include "cypher/graph/node.h"
+#include "cypher/graph/relationship.h"
 #include "parser/data_typedef.h"
 #include "parser/symbol_table.h"
 
@@ -43,7 +43,7 @@ class PatternGraph {
         const auto &node = GetNode(id);
         for (auto rr : node.RhsRelps()) {
             auto &r = GetRelationship(rr);
-            // todo: think about this again
+            // TODO(anyone) think about this again
             if (!ignore_created || (r.derivation_ != Relationship::CREATED &&
                                     GetNode(r.Rhs()).derivation_ != Node::CREATED &&
                                     r.derivation_ != Relationship::MERGED &&

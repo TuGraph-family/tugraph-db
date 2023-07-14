@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -58,7 +58,7 @@ class NodeByLabelScan : public OpBase {
         record->values[node_rec_idx_].node = node_;
         record->SetParameter(ctx->param_tab_);
         // transaction allocated before in plan:execute
-        // todo: remove patternGraph's state (ctx)
+        // TODO(anyone) remove patternGraph's state (ctx)
         auto primary_filed = ctx->txn_->GetVertexPrimaryField(node_->Label());
         node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
                                    node_->Label(), primary_filed,
@@ -114,6 +114,5 @@ class NodeByLabelScan : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

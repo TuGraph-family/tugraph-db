@@ -17,13 +17,13 @@
 //
 #pragma once
 
-#include "reduce_count.h"
-#include "lazy_project_topn.h"
-#include "edge_filter_pushdown_expand.h"
-#include "var_len_expand_with_limit.h"
-#include "locate_node_by_vid.h"
-#include "locate_node_by_indexed_prop.h"
-#include "parallel_traversal.h"
+#include "cypher/execution_plan/optimization/reduce_count.h"
+#include "cypher/execution_plan/optimization/lazy_project_topn.h"
+#include "cypher/execution_plan/optimization/edge_filter_pushdown_expand.h"
+#include "cypher/execution_plan/optimization/var_len_expand_with_limit.h"
+#include "cypher/execution_plan/optimization/locate_node_by_vid.h"
+#include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
+#include "cypher/execution_plan/optimization/parallel_traversal.h"
 
 namespace cypher {
 

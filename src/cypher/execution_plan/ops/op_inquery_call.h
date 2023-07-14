@@ -23,7 +23,7 @@
 #include "db/galaxy.h"
 #include "cypher/procedure/utils.h"
 #include "cypher/cypher_exception.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 class InQueryCall : public OpBase {
@@ -52,10 +52,11 @@ class InQueryCall : public OpBase {
         auto &rec = buffer_.back();
         for (int i = 0; i < (int)yield_idx_.size(); i++) {
             if (rec.values[i].IsNode()) {
-                cypher::Node& node =
+                cypher::Node &node =
                     const_cast<Node &>(pattern_->GetNode(rec.values[i].node->Alias()));
                 node.SetVid(rec.values[i].node->ID());
-                node.ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER, rec.values[i].node->ID());
+                node.ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER,
+                                         rec.values[i].node->ID());
                 r->values[yield_idx_[i]].type = Entry::NODE;
                 r->values[yield_idx_[i]].node = &node;
             } else {
@@ -72,9 +73,9 @@ class InQueryCall : public OpBase {
           pattern_(pattern_graph),
           call_clause_(*stmt->iq_call_clause) {
         state = StreamUnInitialized;
-        const auto& yield_items = std::get<2>(*stmt->iq_call_clause);
+        const auto &yield_items = std::get<2>(*stmt->iq_call_clause);
         std::vector<std::string> yield_names;
-        for (const auto& item: yield_items) {
+        for (const auto &item : yield_items) {
             yield_names.emplace_back(item.first);
         }
         modifies = std::move(yield_names);
@@ -108,17 +109,16 @@ class InQueryCall : public OpBase {
                 throw lgraph::EvaluationException(
                     "Calling python plugin in CYPHER is disabled in this release.");
             }
-            const auto& params = std::get<1>(call_clause_);
+            const auto &params = std::get<1>(call_clause_);
             auto pm = ctx->ac_db_->GetLightningGraph()->GetPluginManager();
-            lgraph_api::SigSpec* sig_spec = nullptr;
+            lgraph_api::SigSpec *sig_spec = nullptr;
             pm->GetPluginSignature(type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", names[2], &sig_spec);
             // it's ok for old plugins without signature
             // plugins without signature not support to be called using plugin_adapter_
             // use Utils::CallPlugin instead
             if (sig_spec) {
-                plugin_adapter_ = std::make_unique<PluginAdapter>(
-                    sig_spec, type, names[2]);
-                for (const auto& expr : params) {
+                plugin_adapter_ = std::make_unique<PluginAdapter>(sig_spec, type, names[2]);
+                for (const auto &expr : params) {
                     params_.emplace_back(expr, sym_tab);
                 }
             }
@@ -186,12 +186,9 @@ class InQueryCall : public OpBase {
                 auto &yield_items = std::get<2>(call);
                 SetFunc(procedure_name);
                 std::vector<std::string> _yield_items;
-                std::transform(
-                    yield_items.cbegin(),
-                    yield_items.cend(),
-                    std::back_inserter(_yield_items), [](const auto& item) {
-                    return item.first;
-                });
+                std::transform(yield_items.cbegin(), yield_items.cend(),
+                               std::back_inserter(_yield_items),
+                               [](const auto &item) { return item.first; });
                 procedure_->function(ctx, record.get(), parameters, _yield_items, &buffer_);
                 std::reverse(buffer_.begin(), buffer_.end());
                 state = StreamDepleted;
@@ -206,16 +203,13 @@ class InQueryCall : public OpBase {
                     auto &yield_items = std::get<2>(call);
                     SetFunc(procedure_name);
                     std::vector<std::string> _yield_items;
-                    std::transform(
-                        yield_items.cbegin(),
-                        yield_items.cend(),
-                        std::back_inserter(_yield_items), [](const auto& item) {
-                            return item.first;
-                        });
+                    std::transform(yield_items.cbegin(), yield_items.cend(),
+                                   std::back_inserter(_yield_items),
+                                   [](const auto &item) { return item.first; });
                     /* If the procedure need a separate txn while the other operations
-                 * working in the previous one, throw exception.
-                 * e.g.
-                 *   MATCH (n) CALL db.addLabel(n.name)  */
+                     * working in the previous one, throw exception.
+                     * e.g.
+                     *   MATCH (n) CALL db.addLabel(n.name)  */
                     if (procedure_->separate_txn) CYPHER_TODO();
                     procedure_->function(ctx, record.get(), parameters, _yield_items, &buffer_);
                     std::reverse(buffer_.begin(), buffer_.end());
@@ -238,11 +232,10 @@ class InQueryCall : public OpBase {
         return str;
     }
 
-    const parser::Clause::TYPE_CALL& CallClause() const { return call_clause_; }
+    const parser::Clause::TYPE_CALL &CallClause() const { return call_clause_; }
 
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

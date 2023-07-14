@@ -17,13 +17,13 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
 /* Variable Length Expand Into */
 class VarLenExpandInto : public OpBase {
-    // TODO: 20210712, refer to plugins/var_len_khop.cpp // NOLINT
+    // TODO(anyone) 20210712, refer to plugins/var_len_khop.cpp
 
  public:
     cypher::Node *start_ = nullptr;         // start node to expand
@@ -115,6 +115,5 @@ class VarLenExpandInto : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

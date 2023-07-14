@@ -21,13 +21,13 @@
 #include <stack>
 #include <string>
 #include <vector>
-#include "cypher_exception.h"
-#include "cypher_types.h"
-#include "parser/expression.h"
-#include "parser/clause.h"
-#include "parser/symbol_table.h"
-#include "procedure/utils.h"
-#include "arithmetic_expression.h"
+#include "cypher/cypher_exception.h"
+#include "cypher/cypher_types.h"
+#include "cypher/parser/expression.h"
+#include "cypher/parser/clause.h"
+#include "cypher/parser/symbol_table.h"
+#include "cypher/procedure/utils.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
@@ -59,7 +59,7 @@ cypher::FieldData BuiltinFunction::Id(RTContext *ctx, const Record &record,
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
     auto operand = args[1];
     auto r = operand.Evaluate(ctx, record);
-    // TODO: handle snapshot of node/relp // NOLINT
+    // TODO(anyone) handle snapshot of node/relp
     if (r.IsNode()) {
         if (!VALIDATE_IT(r)) return {};
         return cypher::FieldData(lgraph::FieldData(r.node->PullVid()));
@@ -219,8 +219,10 @@ cypher::FieldData BuiltinFunction::Nodes(RTContext *ctx, const Record &record,
         std::string vid_str = (*r.constant.array)[i].AsString(); /* V[0] */
         auto open_bracket_pos = vid_str.find('[');
         auto close_bracket_pos = vid_str.find(']');
-        auto vid_number_str = vid_str.substr(open_bracket_pos + 1, close_bracket_pos - open_bracket_pos - 1);
-        vids.emplace_back(lgraph::FieldData(static_cast<int64_t>(std::stoll(vid_number_str.c_str()))));
+        auto vid_number_str =
+            vid_str.substr(open_bracket_pos + 1, close_bracket_pos - open_bracket_pos - 1);
+        vids.emplace_back(
+            lgraph::FieldData(static_cast<int64_t>(std::stoll(vid_number_str.c_str()))));
     }
     return cypher::FieldData(vids);
 }
@@ -547,7 +549,7 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
     }
 }
 
-/* TODO: Consider the following 2 style:
+/* TODO(anyone) Consider the following 2 style:
  * 1.
  * RETURN datetimeComponent({epochMillis:1347062400000, component:year}),
  * datetimeComponent({epochMillis:1347062400, component:day}) 2. WITH datetime({ year:1984,
@@ -1093,7 +1095,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
     switch (type) {
     case AR_OP_AGGREGATE:
         /* Aggregation function should be reduced by now.
-         * TODO: verify above statement. */
+         * TODO(anyone) verify above statement. */
         return agg_func->result;
     case AR_OP_FUNC:
         {
@@ -1109,8 +1111,8 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
             }
             auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
             bool exists =
-                ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
-                                 input, 0, false, output);
+                ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP,
+                                 "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false, output);
             if (!exists) {
                 throw lgraph::InputError(FMA_FMT("Plugin [{}] does not exist.", name));
             }
@@ -1158,7 +1160,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
         }
     case AR_OP_MATH:
         {
-            /* TODO: move out to AR_OP_FUNC */
+            /* TODO(anyone) move out to AR_OP_FUNC */
             std::stack<cypher::FieldData> s;
             for (auto &c : children) {
                 if (!IsMathOperator(c)) {

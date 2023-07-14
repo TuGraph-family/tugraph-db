@@ -18,7 +18,7 @@
 #pragma once
 
 #include "core/data_type.h"
-#include "cypher_exception.h"
+#include "cypher/cypher_exception.h"
 
 namespace cypher {
 
@@ -51,7 +51,7 @@ struct FieldData {
         if (type == ARRAY) delete array;
     }
 
-    FieldData(const ::cypher::FieldData& rhs) {
+    FieldData(const FieldData& rhs) {
         type = rhs.type;
         if (rhs.type == ARRAY) {
             array = new std::vector<::lgraph::FieldData>(*rhs.array);
@@ -60,7 +60,7 @@ struct FieldData {
         }
     }
 
-    FieldData(::cypher::FieldData&& rhs) {
+    FieldData(FieldData&& rhs) {
         type = rhs.type;
         scalar = std::move(rhs.scalar);
         array = rhs.array;

@@ -18,7 +18,7 @@
 #pragma once
 
 #include "filter/filter.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -34,7 +34,7 @@ class OpFilter : public OpBase {
     } _state;
 
  public:
-    OpFilter(const std::shared_ptr<lgraph::Filter> &filter)
+    explicit OpFilter(const std::shared_ptr<lgraph::Filter> &filter)
         : OpBase(OpType::FILTER, "Filter"), filter_(filter) {
         _state = FilterUninitialized;
     }
@@ -131,6 +131,5 @@ class OpFilter : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

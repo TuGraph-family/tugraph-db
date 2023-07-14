@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 #ifndef NDEBUG
 #define VAR_LEN_EXP_DUMP_FOR_DEBUG()                                                         \
@@ -65,7 +65,7 @@ class VarLenExpand : public OpBase {
 #endif
             }
             if (hop_ == max_hop) return;
-            hop_ ++;
+            hop_++;
             lgraph::EIter eit;
             _InitializeEdgeIter(ctx, vid, eit);
             while (eit.IsValid()) {
@@ -79,7 +79,7 @@ class VarLenExpand : public OpBase {
                 }
                 eit.Next();
             }
-            hop_ --;
+            hop_--;
         }
 
         void _CollectFrontierByDFS(RTContext *ctx, int64_t vid, const std::set<std::string> &types, int min_hop) { // NOLINT
@@ -95,7 +95,7 @@ class VarLenExpand : public OpBase {
 #endif
                 return;
             }
-            hop_ ++;
+            hop_++;
             lgraph::EIter eit;
             _InitializeEdgeIter(ctx, vid, eit);
             while (eit.IsValid()) {
@@ -109,7 +109,7 @@ class VarLenExpand : public OpBase {
                 }
                 eit.Next();
             }
-            hop_ --;
+            hop_--;
         }
 
         OpResult Next(RTContext *ctx) {
@@ -118,7 +118,7 @@ class VarLenExpand : public OpBase {
              * produced by OPTIONAL MATCH.  */
             if (!start_it_->IsValid()) return OP_REFRESH;
             auto &types = relp_->Types();
-            if (collect_all_ || min_hop_ == 0) { // we didnot handle 0hop in other branch
+            if (collect_all_ || min_hop_ == 0) {  // we didnot handle 0hop in other branch
                 if (state_ == Resetted) {
                     relp_->path_.SetStart(start_it_->GetId());
                     /* collect all the vertex, save them into result_buffer_ */
@@ -169,7 +169,7 @@ class VarLenExpand : public OpBase {
                         eit.Next();
                     }
                 }
-            } // if collect all
+            }  // if collect all
 #ifndef NDEBUG
             FMA_DBG() << "[" << __FILE__ << "] neighbor:" << nbr_it_->GetId();
 #endif
@@ -259,7 +259,7 @@ class VarLenExpand : public OpBase {
             if (vid < 0) return OP_REFRESH;
             if (hop_ > 1 && !eits_[hop_ - 2].IsValid()) CYPHER_INTL_ERR();
             _InitializeEdgeIter(ctx, vid, eits_[hop_ - 1]);
-            // TODO: merge these code similiar to GetNextFromKthHop // NOLINT
+            // TODO(anyone) merge these code similiar to GetNextFromKthHop
             do {
                 if (!eits_[hop_ - 1].IsValid()) {
                     auto v = GetNextFromKthHop(ctx, hop_ - 1, false);
@@ -273,7 +273,7 @@ class VarLenExpand : public OpBase {
             } while (!eits_[hop_ - 1].IsValid());
             neighbor_->PushVid(eits_[hop_ - 1].GetNbr(expand_direction_));
             relp_->path_.Append(eits_[hop_ - 1].GetUid());
-            // todo: remove in last hop
+            // TODO(anyone) remove in last hop
             if (ctx->path_unique_) pattern_graph_->VisitedEdges().Add(eits_[hop_ - 1]);
             VAR_LEN_EXP_DUMP_FOR_DEBUG();
             return OP_OK;
@@ -379,7 +379,7 @@ class VarLenExpand : public OpBase {
         // std::queue<lgraph::VertexId>().swap(frontier_buffer_);
         // std::queue<Path>().swap(path_buffer_);
         hop_ = 0;
-        // TODO: reset modifies // NOLINT
+        // TODO(anyone) reset modifies
         return OP_OK;
     }
 
@@ -392,13 +392,12 @@ class VarLenExpand : public OpBase {
             std::to_string(min_hop_), std::to_string(max_hop_), neighbor_->Alias());
     }
 
-    Node* GetStartNode() const { return start_; }
-    Node* GetNeighborNode() const { return neighbor_; }
-    Relationship* GetRelationship() const { return relp_; }
+    Node *GetStartNode() const { return start_; }
+    Node *GetNeighborNode() const { return neighbor_; }
+    Relationship *GetRelationship() const { return relp_; }
 
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

@@ -33,7 +33,7 @@ class LabeledEdgeIterator : public EIT {
     bool valid_;
 
  public:
-    LabeledEdgeIterator(EIT &&eit, uint16_t lid, int64_t tid)
+    LabeledEdgeIterator(EIT&& eit, uint16_t lid, int64_t tid)
         : EIT(std::move(eit)), lid_(lid), tid_(tid) {
         valid_ = EIT::IsValid() && EIT::GetLabelId() == lid_ && EIT::GetTemporalId() == tid_;
     }
@@ -46,7 +46,7 @@ class LabeledEdgeIterator : public EIT {
         return valid_;
     }
 
-    void Reset(graph::VertexIterator &vit, uint16_t lid, int64_t tid) {
+    void Reset(graph::VertexIterator& vit, uint16_t lid, int64_t tid) {
         Reset(vit.GetId(), lid, tid);
     }
 
@@ -80,6 +80,7 @@ namespace cypher {
 class PluginAdapter {
     class NodeBuffer {
         std::vector<cypher::Node> buffer_;
+
      public:
         NodeBuffer() { buffer_.reserve(128); }
         ~NodeBuffer() = default;
@@ -95,107 +96,101 @@ class PluginAdapter {
     } node_buffer_;
 
  public:
-    PluginAdapter(lgraph_api::SigSpec* sig_spec,
-                  lgraph::plugin::Type type,
-                  std::string name)
-        : sig_spec_(sig_spec),
-          type_(type),
-          name_(std::move(name)) {}
+    PluginAdapter(lgraph_api::SigSpec* sig_spec, lgraph::plugin::Type type, std::string name)
+        : sig_spec_(sig_spec), type_(type), name_(std::move(name)) {}
     PluginAdapter(const PluginAdapter&) = delete;
     PluginAdapter& operator=(const PluginAdapter&) = delete;
     PluginAdapter(PluginAdapter&&) = delete;
     PluginAdapter& operator=(PluginAdapter&&) = delete;
-    bool Process(const RTContext *ctx, const std::vector<ArithExprNode> &params,
+    bool Process(const RTContext* ctx, const std::vector<ArithExprNode>& params,
                  const Record& input, std::vector<Record>* results) {
         CYPHER_THROW_ASSERT(params.size() == sig_spec_->input_list.size());
         CYPHER_THROW_ASSERT(sig_spec_ != nullptr);
         std::vector<std::string> arguments;
         // input params type check
         for (size_t i = 0; i < params.size(); i++) {
-            auto argument = params[i].Evaluate(const_cast<RTContext *>(ctx), input);
+            auto argument = params[i].Evaluate(const_cast<RTContext*>(ctx), input);
             auto parameter = sig_spec_->input_list[i];
             switch (argument.type) {
-                case Entry::CONSTANT:
-                    if (lgraph_api::LGraphTypeIsField(parameter.type)) {
-                        if (parameter.type == lgraph_api::LGraphType::BOOLEAN) {
-                            if(!argument.constant.IsBool()) {
-                                throw lgraph::EvaluationException("Invalid argument");
-                            } else {
-                                arguments.emplace_back(argument.ToString("null"));
-                                continue;
-                            }
-                        }
-                        if (parameter.type == lgraph_api::LGraphType::INTEGER) {
-                            if(!argument.constant.IsInteger()) {
-                                throw lgraph::EvaluationException("Invalid argument");
-                            } else {
-                                arguments.emplace_back(argument.ToString("null"));
-                                continue;
-                            }
-                        }
-                        if (parameter.type == lgraph_api::LGraphType::FLOAT) {
-                            if(!argument.constant.IsReal()) {
-                                throw lgraph::EvaluationException("Invalid argument");
-                            } else {
-                                arguments.emplace_back(argument.ToString("null"));
-                                continue;
-                            }
-                        }
-                        if (parameter.type == lgraph_api::LGraphType::DOUBLE) {
-                            if(!argument.constant.IsReal()) {
-                                throw lgraph::EvaluationException("Invalid argument");
-                            } else {
-                                arguments.emplace_back(argument.ToString("null"));
-                                continue;
-                            }
-                        }
-                        if (parameter.type == lgraph_api::LGraphType::STRING) {
-                            if(!argument.constant.IsString()) {
-                                throw lgraph::EvaluationException("Invalid argument");
-                            } else {
-                                arguments.emplace_back("\"" + argument.ToString("null") + "\"");
-                                continue;
-                            }
-                        }
-                    } else {
-                        if (parameter.type == lgraph_api::LGraphType::LIST) {
-                            if (!argument.constant.IsArray()) {
-                                throw lgraph::EvaluationException("Invalid argument");
-                            } else {
-                                arguments.emplace_back(argument.ToString("null"));
-                                continue;
-                            }
-                        } else {
+            case Entry::CONSTANT:
+                if (lgraph_api::LGraphTypeIsField(parameter.type)) {
+                    if (parameter.type == lgraph_api::LGraphType::BOOLEAN) {
+                        if (!argument.constant.IsBool()) {
                             throw lgraph::EvaluationException("Invalid argument");
+                        } else {
+                            arguments.emplace_back(argument.ToString("null"));
+                            continue;
                         }
                     }
-                    break;
-                case Entry::NODE:
-                    if (parameter.type != lgraph_api::LGraphType::NODE) {
-                        throw lgraph::EvaluationException("Invalid argument");
-                    } else {
-                        arguments.emplace_back("\"" + argument.ToString("null") + "\"");
-                        continue;
+                    if (parameter.type == lgraph_api::LGraphType::INTEGER) {
+                        if (!argument.constant.IsInteger()) {
+                            throw lgraph::EvaluationException("Invalid argument");
+                        } else {
+                            arguments.emplace_back(argument.ToString("null"));
+                            continue;
+                        }
                     }
-                case Entry::RELATIONSHIP:
-                    if (parameter.type != lgraph_api::LGraphType::RELATIONSHIP) {
-                        throw lgraph::EvaluationException("Invalid argument");
-                    } else {
-                        arguments.emplace_back("\"" + argument.ToString("null") + "\"");
-                        continue;
+                    if (parameter.type == lgraph_api::LGraphType::FLOAT) {
+                        if (!argument.constant.IsReal()) {
+                            throw lgraph::EvaluationException("Invalid argument");
+                        } else {
+                            arguments.emplace_back(argument.ToString("null"));
+                            continue;
+                        }
                     }
-                default:
-                    throw lgraph::EvaluationException("Invalid argument");
+                    if (parameter.type == lgraph_api::LGraphType::DOUBLE) {
+                        if (!argument.constant.IsReal()) {
+                            throw lgraph::EvaluationException("Invalid argument");
+                        } else {
+                            arguments.emplace_back(argument.ToString("null"));
+                            continue;
+                        }
+                    }
+                    if (parameter.type == lgraph_api::LGraphType::STRING) {
+                        if (!argument.constant.IsString()) {
+                            throw lgraph::EvaluationException("Invalid argument");
+                        } else {
+                            arguments.emplace_back("\"" + argument.ToString("null") + "\"");
+                            continue;
+                        }
+                    }
+                } else {
+                    if (parameter.type == lgraph_api::LGraphType::LIST) {
+                        if (!argument.constant.IsArray()) {
+                            throw lgraph::EvaluationException("Invalid argument");
+                        } else {
+                            arguments.emplace_back(argument.ToString("null"));
+                            continue;
+                        }
+                    } else {
+                        throw lgraph::EvaluationException("Invalid argument");
+                    }
                 }
+                break;
+            case Entry::NODE:
+                if (parameter.type != lgraph_api::LGraphType::NODE) {
+                    throw lgraph::EvaluationException("Invalid argument");
+                } else {
+                    arguments.emplace_back("\"" + argument.ToString("null") + "\"");
+                    continue;
+                }
+            case Entry::RELATIONSHIP:
+                if (parameter.type != lgraph_api::LGraphType::RELATIONSHIP) {
+                    throw lgraph::EvaluationException("Invalid argument");
+                } else {
+                    arguments.emplace_back("\"" + argument.ToString("null") + "\"");
+                    continue;
+                }
+            default:
+                throw lgraph::EvaluationException("Invalid argument");
+            }
             arguments.emplace_back(argument.ToString("null"));
         }
 
         std::string request("{");
         int input_list_size = sig_spec_->input_list.size();
         for (int i = 0; i < input_list_size - 1; i++) {
-            request.append(
-                FMA_FMT("\"{}\":{},", sig_spec_->input_list[i].name, arguments[i])
-            );
+            request.append(FMA_FMT("\"{}\":{},", sig_spec_->input_list[i].name, arguments[i]));
         }
         if (input_list_size > 0) {
             request.append(FMA_FMT("\"{}\":{}", sig_spec_->input_list[input_list_size - 1].name,
@@ -204,8 +199,8 @@ class PluginAdapter {
         request.append("}");
 
         std::string response;
-        ctx->ac_db_->CallPlugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_, request, 0, false,
-                               response);
+        ctx->ac_db_->CallPlugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
+                                request, 0, false, response);
 
         try {
             lgraph_api::Result api_result;
@@ -214,71 +209,68 @@ class PluginAdapter {
                 const auto& rview = api_result.RecordView(i);
                 Record r;
                 for (const auto& result : sig_spec_->result_list) {
-                     const auto it = rview.find(result.name);
-                     CYPHER_THROW_ASSERT(it != rview.end());
-                     switch (result.type) {
-                        case lgraph_api::LGraphType::INTEGER:
-                        case lgraph_api::LGraphType::FLOAT:
-                        case lgraph_api::LGraphType::DOUBLE:
-                        case lgraph_api::LGraphType::BOOLEAN:
-                        case lgraph_api::LGraphType::STRING:
-                            r.AddConstant(*(it->second->v.fieldData));
-                            break;
-                        case lgraph_api::LGraphType::LIST:
-                            {
-                                auto list = it->second->v.list;
-                                std::vector<lgraph::FieldData> entry;
-                                for (const auto& json_obj : *list) {
-                                    CYPHER_THROW_ASSERT(json_obj.is_primitive());
-                                    if (json_obj.is_number_float()) {
-                                        entry.emplace_back(json_obj.get<float>());
-                                    } else if (json_obj.is_number_integer()) {
-                                        entry.emplace_back(json_obj.get<int64_t>());
-                                    } else if (json_obj.is_boolean()) {
-                                        entry.emplace_back(json_obj.get<bool>());
-                                    } else if (json_obj.is_string()) {
-                                        entry.emplace_back(json_obj.get<std::string>());
-                                    } else {
-                                        CYPHER_TODO();
-                                    }
+                    const auto it = rview.find(result.name);
+                    CYPHER_THROW_ASSERT(it != rview.end());
+                    switch (result.type) {
+                    case lgraph_api::LGraphType::INTEGER:
+                    case lgraph_api::LGraphType::FLOAT:
+                    case lgraph_api::LGraphType::DOUBLE:
+                    case lgraph_api::LGraphType::BOOLEAN:
+                    case lgraph_api::LGraphType::STRING:
+                        r.AddConstant(*(it->second->v.fieldData));
+                        break;
+                    case lgraph_api::LGraphType::LIST:
+                        {
+                            auto list = it->second->v.list;
+                            std::vector<lgraph::FieldData> entry;
+                            for (const auto& json_obj : *list) {
+                                CYPHER_THROW_ASSERT(json_obj.is_primitive());
+                                if (json_obj.is_number_float()) {
+                                    entry.emplace_back(json_obj.get<float>());
+                                } else if (json_obj.is_number_integer()) {
+                                    entry.emplace_back(json_obj.get<int64_t>());
+                                } else if (json_obj.is_boolean()) {
+                                    entry.emplace_back(json_obj.get<bool>());
+                                } else if (json_obj.is_string()) {
+                                    entry.emplace_back(json_obj.get<std::string>());
+                                } else {
+                                    CYPHER_TODO();
                                 }
-                                r.AddConstant(cypher::FieldData(std::move(entry)));
                             }
-                            break;
-                        case lgraph_api::LGraphType::NODE:
-                            {
-                                auto node_ptr = it->second->v.node;
-                                lgraph::VertexId vid = node_ptr->id;
-                                Node& node = node_buffer_.AllocNode(vid, result.name);
-                                r.AddNode(&node);
-                            }
-                            break;
-                        default:
-                            CYPHER_TODO();
-                     }
+                            r.AddConstant(cypher::FieldData(std::move(entry)));
+                        }
+                        break;
+                    case lgraph_api::LGraphType::NODE:
+                        {
+                            auto node_ptr = it->second->v.node;
+                            lgraph::VertexId vid = node_ptr->id;
+                            Node& node = node_buffer_.AllocNode(vid, result.name);
+                            r.AddNode(&node);
+                        }
+                        break;
+                    default:
+                        CYPHER_TODO();
+                    }
                 }
                 results->emplace_back(std::move(r));
             }
-
-        } catch (std::exception &e) {
+        } catch (std::exception& e) {
             response = std::string("error parsing json: ") + e.what();
             return false;
         }
         return true;
     }
+
  private:
     std::string name_;
     lgraph::plugin::Type type_ = lgraph::plugin::Type::CPP;
     lgraph_api::SigSpec* sig_spec_ = nullptr;
 };
 
-
-
-
 class Utils {
  public:
-    static bool CallPlugin(const RTContext &ctx, lgraph::plugin::Type type, const std::string &name,
-                           const std::vector<parser::Expression> &params, std::string &output) {
+    static bool CallPlugin(const RTContext& ctx, lgraph::plugin::Type type, const std::string& name,
+                           const std::vector<parser::Expression>& params, std::string& output) {
         std::string input;
         CYPHER_THROW_ASSERT(params.size() <= 1);
         if (!params.empty()) {
@@ -293,8 +285,8 @@ class Utils {
                 throw lgraph::EvaluationException("Invalid argument");
             }
         }
-        return ctx.ac_db_->CallPlugin(ctx.txn_.get(), type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false,
-                                output);
+        return ctx.ac_db_->CallPlugin(ctx.txn_.get(), type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
+                                      input, 0, false, output);
     }
 };
 
