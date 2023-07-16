@@ -265,7 +265,7 @@ struct FieldData {
 
     explicit FieldData(const DateTime& d) {
         type = FieldType::DATETIME;
-        data.int64 = d.SecondsSinceEpoch();
+        data.int64 = d.MicroSecondsSinceEpoch();
     }
 
     explicit FieldData(const std::string& buf) {

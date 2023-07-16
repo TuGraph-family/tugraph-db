@@ -288,7 +288,7 @@ MaxStoreValue<FieldType::DATE>() {
 template <>
 constexpr inline typename FieldType2StorageType<FieldType::DATETIME>::type
 MaxStoreValue<FieldType::DATETIME>() {
-    return ::lgraph_api::MaxSecondsSinceEpochForDateTime();
+    return ::lgraph_api::MaxMicroSecondsSinceEpochForDateTime();
 }
 
 template <FieldType FT>
@@ -308,7 +308,7 @@ MinStoreValue<FieldType::DATE>() {
 template <>
 constexpr inline typename FieldType2StorageType<FieldType::DATETIME>::type
 MinStoreValue<FieldType::DATETIME>() {
-    return ::lgraph_api::MinSecondsSinceEpochForDateTime();
+    return ::lgraph_api::MinMicroSecondsSinceEpochForDateTime();
 }
 
 template <FieldType DstType>
@@ -360,7 +360,7 @@ template <>
 inline bool CopyFdIntoDstStorageType<FieldType::DATETIME>(
     const FieldData& fd, typename FieldType2StorageType<FieldType::DATETIME>::type& dst) {
     FMA_DBG_ASSERT(fd.IsDate());
-    dst = DateTime(fd.AsDate()).SecondsSinceEpoch();
+    dst = DateTime(fd.AsDate()).MicroSecondsSinceEpoch();
     return true;
 }
 

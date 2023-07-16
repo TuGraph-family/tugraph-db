@@ -26,7 +26,7 @@ class Date;
 
 /** @brief   A class that represents a time zone. */
 class TimeZone {
-    int time_diff_seconds_;
+    int64_t time_diff_microseconds_;
     static TimeZone GetLocalTZ();
     static TimeZone& LocalTZ();
 
@@ -273,14 +273,14 @@ static inline constexpr int32_t MaxDaysSinceEpochForDate() { return 2932896; }
 
 /**
  * @brief   Implements a DateTime class that holds DateTime in the range of
- *          0000-01-01 00:00:00 to 9999-12-31 23:59:59.
+ *          0000-01-01 00:00:00.000000 to 9999-12-31 23:59:59.999999.
  */
 class DateTime {
-    int64_t seconds_since_epoch_;
+    int64_t microseconds_since_epoch_;
 
  public:
-    /** @brief   Representation of a DateTime in year, month, day, hour, minute, second. */
-    struct YMDHMS {
+    /** @brief   Representation of a DateTime in year, month, day, hour, minute, second, fraction. */
+    struct YMDHMSF {
         /** @brief   The year, 0-9999 */
         int year;
         /** @brief   The month, 1-12 */
@@ -293,6 +293,8 @@ class DateTime {
         unsigned minute;
         /** @brief   The second, 0-59 */
         unsigned second;
+        /** @brief   The fraction 000000-999999*/
+        unsigned fraction;
     };
 
     /**
@@ -312,27 +314,27 @@ class DateTime {
 
     /**
      * @brief   Construct a new DateTime object with date set to the specified date and time
-     *          given in YMDHMS.
+     *          given in YMDHMSF.
      *
      * @exception   OutOfRangeError Thrown if the time point is out of range.
      *
-     * @param   ymdhms  Date and time to set the DateTime to.
+     * @param   ymdhmsf  Date and time to set the DateTime to.
      */
-    explicit DateTime(const YMDHMS& ymdhms);
+    explicit DateTime(const YMDHMSF& ymdhmsf);
 
     /**
-     * @brief   Construct a new DateTime object with date set to specified number of seconds
+     * @brief   Construct a new DateTime object with date set to specified number of microseconds
      *          since epoch.
      *
      * @exception   OutOfRangeError Thrown if the time point is out of range.
      *
-     * @param   seconds_since_epoch Number of seconds since epoch.
+     * @param   microseconds_since_epoch Number of seconds since epoch.
      */
-    explicit DateTime(int64_t seconds_since_epoch);
+    explicit DateTime(int64_t microseconds_since_epoch);
 
     /**
      * @brief   Construct a new DateTime object with date set to the specified date and time
-     *          given in the form of YYYY-MM-DD HH:MM:SS.
+     *          given in the form of YYYY-MM-DD HH:MM:SS[.FFFFFF].
      *
      * @exception   OutOfRangeError Thrown if the time point is out of range.
      * @exception   InputError      Thrown if str has invalid format.
@@ -342,7 +344,7 @@ class DateTime {
     explicit DateTime(const std::string& str);
 
     /**
-     * @brief   Parse date from YYYY-MM-DD HH:MM:SS, save valud in d.
+     * @brief   Parse date from YYYY-MM-DD HH:MM:SS(.FFFFFF), save valud in d.
      *
      * @param       str The string.
      * @param [out] d   A DateTime to process.
@@ -352,13 +354,13 @@ class DateTime {
     static bool Parse(const std::string& str, DateTime& d) noexcept;
 
     /**
-     * @brief   Parse date from YYYY-MM-DD HH:MM:SS, save valud in d.
+     * @brief   Parse date from YYYY-MM-DD HH:MM:SS(.FFFFFF), save valud in d.
      *
      * @param           beg The beg.
      * @param           end The end.
      * @param [in,out]  d   A DateTime to process.
-     *
-     * @returns Number of bytes parsed (must be 19), 0 if failed.
+     * 
+     * @returns Number of bytes parsed (must be 19 or 26), 0 if failed.
      */
     static size_t Parse(const char* beg, const char* end, DateTime& d) noexcept;
 
@@ -377,57 +379,57 @@ class DateTime {
     static DateTime LocalNow() noexcept;
 
     /**
-     * @brief   Get current DateTime in the form of year, month, day, hour, minute, second.
+     * @brief   Get current DateTime in the form of year, month, day, hour, minute, second, fraction.
      *
-     * @returns The ymdhms.
+     * @returns The ymdhmsf.
      */
-    YMDHMS GetYMDHMS() const noexcept;
+    YMDHMSF GetYMDHMSF() const noexcept;
 
     /**
-     * @brief   Add a number of seconds to the DateTime.
+     * @brief   Add a number of microseconds to the DateTime.
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_seconds   Number of seconds to add.
+     * @param   n_microseconds   Number of micorseconds to add.
      *
      * @returns The resulting DateTime.
      */
-    DateTime operator+(int64_t n_seconds) const;
+    DateTime operator+(int64_t n_microseconds) const;
 
     /**
-     * @brief   Adds a number of seconds to the current DateTime object. In case of overflow, the
+     * @brief   Adds a number of microseconds to the current DateTime object. In case of overflow, the
      *          current DateTime object is not modified.
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_seconds   Number of seconds to add.
+     * @param   n_microseconds   Number of seconds to add.
      *
      * @returns A reference to current object.
      */
-    DateTime& operator+=(int64_t n_seconds);
+    DateTime& operator+=(int64_t n_microseconds);
 
     /**
-     * @brief   Subtract a number of seconds from the DateTime.
+     * @brief   Subtract a number of microseconds from the DateTime.
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_seconds   Number of seconds to subtract.
+     * @param   n_microseconds   Number of seconds to subtract.
      *
      * @returns The resulting DateTime.
      */
-    DateTime operator-(int64_t n_seconds) const;
+    DateTime operator-(int64_t n_microseconds) const;
 
     /**
-     * @brief   Subtract a number of seconds from the current DateTime object. In case of
+     * @brief   Subtract a number of microseconds from the current DateTime object. In case of
      *          overflow, the current DateTime object is not modified.
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_seconds   Number of seconds to subtract.
+     * @param   n_microseconds   Number of seconds to subtract.
      *
      * @returns A reference to current object.
      */
-    DateTime& operator-=(int64_t n_seconds);
+    DateTime& operator-=(int64_t n_microseconds);
 
     bool operator<(const DateTime& rhs) const noexcept;
     bool operator<=(const DateTime& rhs) const noexcept;
@@ -436,13 +438,13 @@ class DateTime {
     bool operator==(const DateTime& rhs) const noexcept;
     bool operator!=(const DateTime& rhs) const noexcept;
 
-    /** Get the number of seconds this DateTime is since epoch. */
-    int64_t SecondsSinceEpoch() const noexcept;
+    /** Get the number of microseconds this DateTime is since epoch. */
+    int64_t MicroSecondsSinceEpoch() const noexcept;
 
-    /** @brief   Get the number of seconds this DateTime is since epoch. */
+    /** @brief   Get the number of microseconds this DateTime is since epoch. */
     int64_t GetStorage() const noexcept;
 
-    /** @brief   Get the number of seconds this DateTime is since epoch. */
+    /** @brief   Get the number of microseconds this DateTime is since epoch. */
     explicit operator int64_t() const noexcept;
 
     /** @brief   Get the timepoint correponding to this DateTime. */
@@ -450,7 +452,7 @@ class DateTime {
 
     /**
      * @brief   Get string representation of the date and time in the form of
-     *          YYYY-MM-DD HH:MM:SS. */
+     *          YYYY-MM-DD HH:MM:SS.[ffffff] */
     std::string ToString() const noexcept;
 
     /** @brief   Get the Date object corresponding to this DateTime. */
@@ -478,9 +480,9 @@ class DateTime {
 };
 
 /** @brief   min and max values that Date can hold */
-static inline constexpr int64_t MinSecondsSinceEpochForDateTime() { return -62167219200L; }
+static inline constexpr int64_t MinMicroSecondsSinceEpochForDateTime() { return -62167219200000000LL; }
 
 /** @brief   Maximum seconds since epoch for date time */
-static inline constexpr int64_t MaxSecondsSinceEpochForDateTime() { return 253402300799L; }
+static inline constexpr int64_t MaxMicroSecondsSinceEpochForDateTime() { return 253402300799999999LL; }
 
 }  // namespace lgraph_api

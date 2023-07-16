@@ -807,10 +807,10 @@ int test_expression(cypher::RTContext *ctx) {
          "'month'),datetimeComponent(1582705717, 'day')",
          1},
         {"RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, "
-         "'minute'),datetimeComponent(1582705717, 'second')",
+         "'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717, 'microsecond')",
          1},
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
-         "'second')",
+         "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
     };
     std::vector<std::string> scripts;

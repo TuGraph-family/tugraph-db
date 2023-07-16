@@ -134,9 +134,9 @@ int main(int argc, char** argv) {
         }
         // check beg and end time
         int64_t min_time = std::numeric_limits<int64_t>::min();
-        if (!beg_time.empty()) min_time = lgraph::DateTime(beg_time).SecondsSinceEpoch();
+        if (!beg_time.empty()) min_time = lgraph::DateTime(beg_time).MicroSecondsSinceEpoch();
         int64_t max_time = std::numeric_limits<int64_t>::max();
-        if (!end_time.empty()) max_time = lgraph::DateTime(end_time).SecondsSinceEpoch();
+        if (!end_time.empty()) max_time = lgraph::DateTime(end_time).MicroSecondsSinceEpoch();
         if (limit <= 0) limit = std::numeric_limits<int64_t>::max();
         // check skip list
         std::unordered_set<int64_t> skip_ids;

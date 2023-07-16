@@ -111,13 +111,13 @@ lgraph_api_date_time_t* lgraph_api_create_date_time_ymdhms(int year, unsigned mo
                                                            unsigned hour, unsigned minute,
                                                            unsigned second) {
     return new lgraph_api_date_time_t{
-        DateTime(DateTime::YMDHMS{year, month, day, hour, minute, second})};
+        DateTime(DateTime::YMDHMSF{year, month, day, hour, minute, second})};
 }
 lgraph_api_date_time_t* lgraph_api_create_date_time_seconds(int64_t seconds_since_epoch) {
     return new lgraph_api_date_time_t{DateTime(seconds_since_epoch)};
 }
 int64_t lgraph_api_date_time_seconds_since_epoch(lgraph_api_date_time_t* dt) {
-    return dt->repr.SecondsSinceEpoch();
+    return dt->repr.MicroSecondsSinceEpoch();
 }
 void lgraph_api_date_time_destroy(lgraph_api_date_time_t* dt) { delete dt; }
 

@@ -68,7 +68,7 @@ class BackupLog {
         std::lock_guard<std::mutex> l(mtx_);
         BackupLogEntry log;
         *log.mutable_req() = *req;
-        log.set_time(lgraph::DateTime::LocalNow().SecondsSinceEpoch());
+        log.set_time(lgraph::DateTime::LocalNow().MicroSecondsSinceEpoch());
         log.set_index(idx_++);
         std::string buf = log.SerializeAsString();
         size_t s = buf.size();
