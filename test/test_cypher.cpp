@@ -791,6 +791,9 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN datetime('2017-05-03 10:40:32') AS timePoint", 1},
         {"RETURN datetime('2017-05-01 10:00:00') > datetime('2017-05-03 08:00:00')", 1},
         {"RETURN datetime('2017-05-01 10:00:00') < datetime('2017-05-03 08:00:00')", 1},
+        {"RETURN datetime('2017-05-01 10:00:00.000001') > datetime('2017-05-01 10:00:00')", 1},
+        {"RETURN datetime('2017-05-01 10:00:00.000002') > datetime('2017-05-01 10:00:00.000001')",
+        1},
         {"WITH datetime('2017-05-01 10:00:00') AS t1, datetime('2017-05-03 08:00:00') AS t2 RETURN "
          "t1>t2,t1<t2",
          1},
@@ -807,10 +810,11 @@ int test_expression(cypher::RTContext *ctx) {
          "'month'),datetimeComponent(1582705717, 'day')",
          1},
         {"RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, "
-         "'minute'),datetimeComponent(1582705717, 'second')",
+         "'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717,"
+         " 'microsecond')",
          1},
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
-         "'second')",
+         "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
     };
     std::vector<std::string> scripts;

@@ -37,7 +37,7 @@ TEST_F(TestC, LGraphTypes) {
     lgraph_api_date_time_t* dt3 = lgraph_api_create_date_time_seconds(1609459200);
     ASSERT_NE(dt3, nullptr);
     ASSERT_EQ(lgraph_api_date_time_seconds_since_epoch(dt), 0);
-    ASSERT_EQ(lgraph_api_date_time_seconds_since_epoch(dt2), 1609459200);
+    ASSERT_EQ(lgraph_api_date_time_seconds_since_epoch(dt2), 1609459200000000);
     ASSERT_EQ(lgraph_api_date_time_seconds_since_epoch(dt3), 1609459200);
     lgraph_api_date_time_destroy(dt);
     lgraph_api_date_time_destroy(dt2);

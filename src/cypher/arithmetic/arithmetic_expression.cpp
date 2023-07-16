@@ -608,7 +608,8 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
     static const int64_t MAX_SECONDS_EPOCH = 100000000000;  // 5138-11-16 09:46:40
     static const std::unordered_map<std::string, int> COMPONENT_MAP{
-        {"year", 0}, {"month", 1}, {"day", 2}, {"hour", 3}, {"minute", 4}, {"second", 5},
+        {"year", 0}, {"month", 1}, {"day", 2}, {"hour", 3}, {"minute", 4}, {"second", 5}, 
+        {"microsecond", 6}
     };
     auto time_stamp = args[1].Evaluate(ctx, record);
     auto component = args[2].Evaluate(ctx, record);
@@ -616,23 +617,25 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     auto seconds_epoch = time_stamp.constant.scalar.AsInt64();
     if (seconds_epoch > MAX_SECONDS_EPOCH) seconds_epoch /= 1000;
     auto dt = lgraph::DateTime(seconds_epoch);
-    auto ymdhms = dt.GetYMDHMS();
+    auto ymdhmsf = dt.GetYMDHMSF();
     auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
     if (it == COMPONENT_MAP.end())
         throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
     switch (it->second) {
     case 0:
-        return cypher::FieldData(::lgraph::FieldData(ymdhms.year));
+        return cypher::FieldData(::lgraph::FieldData(ymdhmsf.year));
     case 1:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.month)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.month)));
     case 2:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.day)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.day)));
     case 3:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.hour)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.hour)));
     case 4:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.minute)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.minute)));
     case 5:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.second)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.second)));
+    case 6:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.fraction)));
     default:
         throw ::lgraph::InternalError("");
     }
