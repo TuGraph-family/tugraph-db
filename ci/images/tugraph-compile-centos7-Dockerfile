@@ -1,4 +1,5 @@
-FROM centos:7.3.1611
+#FROM centos:7.3.1611  # Docker hub image
+FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611 # Alibaba Image
 
 RUN yum update -y && yum install -y \
     git \
@@ -50,8 +51,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
-    && python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
 
 # install cmake
