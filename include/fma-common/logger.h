@@ -506,14 +506,26 @@ _FMA_DEF_CHECK_FUNC__(CheckGe, _FMA_CHECK_GE_FUNC);
 #define FMA_DBG_CHECK_GT(a, b) FMA_CHECK_GT(a, b)
 #define FMA_DBG_CHECK_GE(a, b) FMA_CHECK_GE(a, b)
 #else
-#define FMA_DBG_ASSERT(pred) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK(pred) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK_EQ(a, b) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK_NEQ(a, b) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK_LT(a, b) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK_LE(a, b) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK_GT(a, b) true || ::fma_common::NullStream()
-#define FMA_DBG_CHECK_GE(a, b) true || ::fma_common::NullStream()
+#define FMA_DBG_ASSERT(pred) true || (pred) || ::fma_common::NullStream()
+#define FMA_DBG_CHECK(pred) true || (pred) || ::fma_common::NullStream()
+#define FMA_DBG_CHECK_EQ(a, b) \
+    true || (::fma_common::_detail::CheckEq((a), (b), "CHECK_EQ", #a, #b, __FILE__, __LINE__)) \
+         || ::fma_common::NullStream()
+#define FMA_DBG_CHECK_NEQ(a, b) \
+    true || (::fma_common::_detail::CheckNeq((a), (b), "CHECK_NEQ", #a, #b, __FILE__, __LINE__)) \
+         || ::fma_common::NullStream()
+#define FMA_DBG_CHECK_LT(a, b) \
+    true || (::fma_common::_detail::CheckLt((a), (b), "CHECK_LT", #a, #b, __FILE__, __LINE__)) \
+         || ::fma_common::NullStream()
+#define FMA_DBG_CHECK_LE(a, b) \
+    true || (::fma_common::_detail::CheckLe((a), (b), "CHECK_LE", #a, #b, __FILE__, __LINE__)) \
+         || ::fma_common::NullStream()
+#define FMA_DBG_CHECK_GT(a, b) \
+    true || (::fma_common::_detail::CheckGt((a), (b), "CHECK_GT", #a, #b, __FILE__, __LINE__)) \
+         || ::fma_common::NullStream()
+#define FMA_DBG_CHECK_GE(a, b) \
+    true || (::fma_common::_detail::CheckGe((a), (b), "CHECK_GE", #a, #b, __FILE__, __LINE__)) \
+         || ::fma_common::NullStream()
 #endif
 
 #define FMA_EXIT() exit(0)

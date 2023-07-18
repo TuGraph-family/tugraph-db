@@ -6,6 +6,8 @@
 ASAN=$1
 JAVA_CLIENT_VERSION=1.2.1
 
+set -e
+
 # set $WORKSPACE to root dir
 cd ${ACB_BUILD_DIR}/code-repo
 pwd
