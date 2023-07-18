@@ -177,6 +177,7 @@ class GraphFactory {
             "label" : "BORN_IN", 
             "type" : "EDGE",
             "properties" : [
+                {"name" : "reg_time", "type":"DATETIME", "optional":true},
                 {"name" : "weight", "type":"FLOAT", "optional":true}
             ]
         },
@@ -231,7 +232,7 @@ class GraphFactory {
             "label" : "BORN_IN",
             "SRC_ID" : "Person",
             "DST_ID" : "City",
-            "columns" : ["SRC_ID","DST_ID","weight"]
+            "columns" : ["SRC_ID","DST_ID","reg_time","weight"]
         },
         {
             "path" : "directed.csv",
@@ -309,12 +310,12 @@ Liam Neeson,Natasha Richardson
 )"},
 
             {"born_in.csv",
-             R"(Vanessa Redgrave,London,20.21
-Natasha Richardson,London,20.18
-Christopher Nolan,London,19.93
-Dennis Quaid,Houston,19.11
-Lindsay Lohan,New York,20.62
-John Williams,New York,20.55
+             R"(Vanessa Redgrave,London,2023-05-01 10:00:00,20.21
+Natasha Richardson,London,2023-05-01 11:00:00,20.18
+Christopher Nolan,London,2023-05-01 12:00:00,19.93
+Dennis Quaid,Houston,2023-05-01 13:00:00,19.11
+Lindsay Lohan,New York,2023-05-01 14:00:00,20.62
+John Williams,New York,2023-05-01 15:00:00,20.55
 )"},
 
             {"directed.csv",
