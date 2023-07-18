@@ -72,11 +72,6 @@ void CreateTestDB() {
     txn.Commit();
 }
 
-static lgraph::AccessControlledDB OpenGraph(const std::string& dir) {
-    lgraph::Galaxy galaxy(dir);
-    return galaxy.OpenGraph("admin", "default");
-}
-
 TEST_F(TestSnapshot, Snapshot) {
     using namespace lgraph;
     using namespace fma_common;

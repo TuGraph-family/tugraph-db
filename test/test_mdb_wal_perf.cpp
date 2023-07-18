@@ -80,10 +80,6 @@ class TestMdbWalPerf : public TuGraphTest {
 
 TEST_F(TestMdbWalPerf, TestRaw) {
     std::string vstr(val_size_, 'a');
-    MDB_val value;
-    value.mv_data = (void*)vstr.data();
-    value.mv_size = vstr.size();
-    MDB_val key;
     size_t keyint = 0;
     for (size_t i = 0; i < n_iter_; i++) {
         lgraph::AutoCleanDir _(path_);
@@ -97,8 +93,6 @@ TEST_F(TestMdbWalPerf, TestRaw) {
             UT_EXPECT_EQ(mdb_txn_begin(env, nullptr, 0, &txn), MDB_SUCCESS);
             for (size_t k = 0; k < n_kv_per_txn_; k++) {
                 keyint++;
-                key.mv_data = &keyint;
-                key.mv_size = sizeof(keyint);
             }
         }
         mdb_env_close(env);

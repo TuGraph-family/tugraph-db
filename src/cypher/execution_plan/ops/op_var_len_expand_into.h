@@ -26,6 +26,7 @@ class VarLenExpandInto : public OpBase {
     // TODO(anyone) 20210712, refer to plugins/var_len_khop.cpp
 
  public:
+    cypher::PatternGraph *pattern_graph_ = nullptr;
     cypher::Node *start_ = nullptr;         // start node to expand
     cypher::Node *neighbor_ = nullptr;      // neighbor of start node
     cypher::Relationship *relp_ = nullptr;  // relationship to expand
@@ -35,7 +36,6 @@ class VarLenExpandInto : public OpBase {
     int start_rec_idx_;
     int nbr_rec_idx_;
     int relp_rec_idx_;
-    cypher::PatternGraph *pattern_graph_ = nullptr;
     int min_hop_;
     int max_hop_;
     int hop_;  // current hop working on
@@ -53,9 +53,9 @@ class VarLenExpandInto : public OpBase {
 
     VarLenExpandInto(PatternGraph *pattern_graph, Node *start, Node *neighbor, Relationship *relp)
         : OpBase(OpType::VAR_LEN_EXPAND_INTO, "Variable Length Expand Into"),
+          pattern_graph_(pattern_graph),
           start_(start),
           neighbor_(neighbor),
-          pattern_graph_(pattern_graph),
           relp_(relp),
           min_hop_(relp->MinHop()),
           max_hop_(relp->MaxHop()),

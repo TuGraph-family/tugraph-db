@@ -73,8 +73,8 @@ struct BasicConfigs {
           , backup_log_dir(basicConfigs.backup_log_dir)
           , snapshot_dir(basicConfigs.snapshot_dir)
           , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
-          , unlimited_token(basicConfigs.unlimited_token)
-          , ft_index_options(basicConfigs.ft_index_options) {}
+          , ft_index_options(basicConfigs.ft_index_options)
+          , unlimited_token(basicConfigs.unlimited_token) {}
 
     std::string db_dir;  // db
     int thread_limit;                // number of threads, for both rpc and http

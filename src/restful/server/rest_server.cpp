@@ -816,35 +816,6 @@ static void FieldDataToJson(const std::string& key, lgraph::FieldData& value,
 }
 
 /**
- * Convert JSON to field data. If JSON value is null integer, double or string, convert to
- * corresponding FieldData, otherwise fd is left unchanged and return false.
- *
- * @param          v    A web::json::value to process.
- * @param [in,out] fd   The fd.
- *
- * @return  True if success, otherwise false
- */
-static bool JsonToFieldData(const web::json::value& v, FieldData& fd) {
-    if (v.is_integer()) {
-        fd = lgraph::FieldData(static_cast<int64_t>(v.as_number().to_int64()));
-        return true;
-    }
-    if (v.is_double()) {
-        fd = lgraph::FieldData(v.as_double());
-        return true;
-    }
-    if (v.is_string()) {
-        fd = lgraph::FieldData(_TS(v.as_string()));
-        return true;
-    }
-    if (v.is_null()) {
-        fd = lgraph::FieldData();
-        return true;
-    }
-    return false;
-}
-
-/**
  * Gets node properties and convert to JSON. This assumes that the node iterator is valid.
  *
  * @param [in,out] txn          The transaction.
@@ -893,13 +864,6 @@ static bool ExtractVidFromString(const utility::string_t& str, lgraph::VertexId&
     const std::string& s = _TS(str);
     if (_F_UNLIKELY(s.empty())) return false;
     size_t r = fma_common::TextParserUtils::ParseInt64(s.data(), s.data() + s.size(), vid);
-    return r == s.size();
-}
-
-static bool ExtractLidFromString(const utility::string_t& str, lgraph::LabelId& lid) {
-    const std::string& s = _TS(str);
-    if (_F_UNLIKELY(s.empty())) return false;
-    size_t r = fma_common::TextParserUtils::ParseT<LabelId>(s.data(), s.data() + s.size(), lid);
     return r == s.size();
 }
 

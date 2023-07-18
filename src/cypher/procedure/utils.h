@@ -262,9 +262,9 @@ class PluginAdapter {
     }
 
  private:
-    std::string name_;
-    lgraph::plugin::Type type_ = lgraph::plugin::Type::CPP;
     lgraph_api::SigSpec* sig_spec_ = nullptr;
+    lgraph::plugin::Type type_ = lgraph::plugin::Type::CPP;
+    std::string name_;
 };
 
 class Utils {

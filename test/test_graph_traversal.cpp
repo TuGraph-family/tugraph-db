@@ -237,7 +237,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     for (int i = 0; i < 1019; i++) {
         std::vector<std::string> v = {std::to_string(i), "8", "content"};
         auto ver_id_get = txn_write.AddVertex(vertex_label, vertex_feild_name, v);
-        auto edge_id_get = txn_write.AddEdge(ver_id_tmp, ver_id_get, "edge", edge_name, edge_value);
+        txn_write.AddEdge(ver_id_tmp, ver_id_get, "edge", edge_name, edge_value);
         ver_id_tmp = ver_id_get;
     }
 

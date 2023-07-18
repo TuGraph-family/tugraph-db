@@ -98,7 +98,7 @@ class OpMerge : public OpBase {
         MatchIterator(lgraph::Transaction *txn, const std::string &l,
                       const std::vector<std::string> &fns,
                       const std::vector<lgraph_api::FieldData> &fvs, Node *n)
-            : label(l), _txn(txn), field_names(fns), field_values(fvs), node_p(n) {
+            : label(l), field_names(fns), field_values(fvs), _txn(txn), node_p(n) {
             if (field_names.size() == field_values.size()) {
                 /* there must be at least 1 valid index */
                 for (int i = 0; i < (int)field_names.size(); i++) {

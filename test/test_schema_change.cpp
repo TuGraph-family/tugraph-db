@@ -243,6 +243,7 @@ TEST_P(TestSchemaChange, DelFields) {
     {
         LightningGraph graph(conf);
         auto txn = graph.CreateReadTxn();
+        DumpGraph(graph, txn);
         auto labels = txn.GetAllLabels(true);
         UT_EXPECT_EQ(labels.size(), 1);
         UT_EXPECT_EQ(labels.front(), "person");

@@ -23,6 +23,31 @@
 
 namespace parser {
 
+static std::string Serialize(const TUP_PROPERTIES &properties,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_NODE_PATTERN &node_pattern,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_RELATIONSHIP_PATTERN &relationship_pattern,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_PATTERN_ELEMENT &pattern_element,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_PATTERN_PART &pattern_part,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const VEC_PATTERN &pattern,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_RETURN &tup_return,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_RETURN_BODY &return_body,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize_1(const TUP_RETURN_ITEM &return_item,
+                               const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_CALL &call,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const TUP_SET_ITEM &set_item,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+static std::string Serialize(const VEC_SET &set,
+                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
+
 struct Clause {
     // pattern, hints(JOIN_ON), where-clause, optional
     typedef std::tuple<VEC_PATTERN, VEC_STR, Expression, bool> TYPE_MATCH;
@@ -397,6 +422,7 @@ struct SglQuery {
 };
 
 // helper methods
+[[maybe_unused]]
 static lgraph::FieldData MakeFieldData(const Expression &expr) {
     lgraph::FieldData ld;
     switch (expr.type) {

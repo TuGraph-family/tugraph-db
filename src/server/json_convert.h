@@ -20,6 +20,7 @@ namespace lgraph_rfc {
 
 using json = nlohmann::json;
 
+[[maybe_unused]]
 static json FieldDataToJson(const lgraph_api::FieldData& data) {
     switch (data.type) {
     case lgraph_api::FieldType::NUL:
@@ -82,6 +83,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
     }
 }
 
+[[maybe_unused]]
 static lgraph_api::FieldData JsonToFieldData(const json& j_object) {
     if (j_object.is_boolean()) {
         return lgraph_api::FieldData(j_object.get<bool>());

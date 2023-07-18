@@ -380,26 +380,18 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     // add edge
     txn = db.CreateWriteTxn();
     std::vector<std::string> e1_properties = {"name", "comments", "weight"};
-    EdgeUid e_id1 =
-        txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name1", "comments1", "10"});
-    EdgeUid e_id2 =
-        txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name2", "comments2", "12"});
-    EdgeUid e_id3 =
-        txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name3", "comments3", "14"});
-    EdgeUid e_id4 =
-        txn.AddEdge(v_id4, v_id3, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name4", "comments4", "15"});
-
-    EdgeUid e_id5 =
-        txn.AddEdge(v_id1, v_id1, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name5", "comments5", "20"});
-
-    EdgeUid e_id6 =
-        txn.AddEdge(v_id2, v_id2, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name6", "comments6", "20"});
+    txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name1", "comments1", "10"});
+    txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name2", "comments2", "12"});
+    txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name3", "comments3", "14"});
+    txn.AddEdge(v_id4, v_id3, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name4", "comments4", "15"});
+    txn.AddEdge(v_id1, v_id1, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name5", "comments5", "20"});
+    txn.AddEdge(v_id2, v_id2, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name6", "comments6", "20"});
     txn.Commit();
 
     txn = db.CreateReadTxn();

@@ -41,10 +41,10 @@ RpcClient::RpcClient(const std::string& url, const std::string& user, const std:
     : url(url),
       user(user),
       password(pass),
-      logger_(fma_common::Logger::Get("lgraph.RpcClient")),
       channel(std::make_shared<lgraph_rpc::m_channel>()),
       cntl(std::make_shared<lgraph_rpc::m_controller>()),
-      options(std::make_shared<lgraph_rpc::m_channel_options>()) {
+      options(std::make_shared<lgraph_rpc::m_channel_options>()),
+      logger_(fma_common::Logger::Get("lgraph.RpcClient")) {
     server_version = -1;
     options->protocol = FLAGS_protocol;
     options->connection_type = FLAGS_connection_type;

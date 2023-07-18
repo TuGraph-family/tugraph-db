@@ -26,7 +26,6 @@ static void RRecordToURecord(
     lgraph_api::Transaction *txn,
     const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
     const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record) {
-    using unordered_json = nlohmann::ordered_json;
     if (header.empty()) {
         return;
     }

@@ -81,15 +81,12 @@ TEST_F(TestMoveConstructors, MoveConstructor) {
                 Value v2 = vit.GetProperty();
                 UT_EXPECT_EQ(v.Data(), v2.Data());
             }
-            EdgeUid eid0 =
-                txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
-                            std::vector<std::string>({"1"}));
-            EdgeUid eid1 =
-                txn.AddEdge(vid2_, vid1_, std::string("e"), std::vector<std::string>({"type"}),
-                            std::vector<std::string>({"2"}));
-            EdgeUid eid2 =
-                txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
-                            std::vector<std::string>({"3"}));
+            txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
+                        std::vector<std::string>({"1"}));
+            txn.AddEdge(vid2_, vid1_, std::string("e"), std::vector<std::string>({"type"}),
+                        std::vector<std::string>({"2"}));
+            txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
+                        std::vector<std::string>({"3"}));
             {
                 auto eit_ = txn.GetOutEdgeIterator(EdgeUid(vid1_, vid2_, 0, 0, 0), true);
                 CheckEdgeMove(eit_);

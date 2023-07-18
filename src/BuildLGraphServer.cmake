@@ -58,7 +58,6 @@ target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}
         -D__const__=
         -pipe
-        #-W -Wall -Wno-unused-parameter
         -fPIC -fno-omit-frame-pointer)
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))

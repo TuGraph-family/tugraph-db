@@ -230,8 +230,8 @@ class EdgeIteratorImpl {
         : it_(rhs.it_),
           ev_(std::move(rhs.ev_)),
           vid1_(rhs.vid1_),
-          tid_(rhs.tid_),
           lid_(rhs.lid_),
+          tid_(rhs.tid_),
           vid2_(rhs.vid2_),
           eid_(rhs.eid_),
           prop_(rhs.prop_),
@@ -505,7 +505,6 @@ class EdgeIteratorImpl {
                 throw std::runtime_error("Too many edges from src to dst with the same label");
         }
         int64_t size_diff = ev.InsertAtPos(pos, esid.lid, esid.tid, esid.dst, eid, prop);
-        const Value& v = it.GetValue();
         if (pt == PackType::PACKED_DATA) {
             if (it.GetValue().Size() + size_diff < ::lgraph::_detail::NODE_SPLIT_THRESHOLD) {
                 // pack back and store

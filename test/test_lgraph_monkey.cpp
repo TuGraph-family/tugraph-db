@@ -585,7 +585,7 @@ TEST_P(TestLGraphMonkey, LGraphMonkey) {
                 test.BeginWriteTxn();
                 for (int i = 0; i < 10; i++) {
                     size_t psize = lgraph::_detail::MAX_PROP_SIZE + 1;
-                    auto euid = test.AddEdge(0, 0, elabels[myrand() % nelabel], psize);
+                    test.AddEdge(0, 0, elabels[myrand() % nelabel], psize);
                 }
                 test.CommitTxn();
             });

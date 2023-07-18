@@ -186,12 +186,13 @@ enum ExpandTowards {
 };
 
 namespace _detail {
-static std::string EdgeUid2String(const ::lgraph::EdgeUid& e) {
+static inline std::string EdgeUid2String(const ::lgraph::EdgeUid& e) {
     // WARNING: Five tuple is temporary solution.
     //          You should rewrite the func when the finally plan have be proposed.
     return fma_common::StringFormatter::Format("{}_{}_{}_{}_{}", e.src, e.dst, e.lid, e.tid, e.eid);
 }
 
+[[maybe_unused]]
 static ::lgraph::EdgeUid ExtractEdgeUid(const std::string& s) {
     std::stringstream ss(s);
     std::vector<int64_t> ns;
@@ -208,36 +209,6 @@ static ::lgraph::EdgeUid ExtractEdgeUid(const std::string& s) {
     return {ns[0], ns[1], static_cast<::lgraph::LabelId>(ns[2]), ns[3], ns[4]};
 }
 
-static std::string AccessLevel2String(const ::lgraph_api::AccessLevel& ac) {
-    switch (ac) {
-    case ::lgraph_api::AccessLevel::NONE:
-        return "NONE";
-    case ::lgraph_api::AccessLevel::READ:
-        return "READ";
-    case ::lgraph_api::AccessLevel::WRITE:
-        return "WRITE";
-    case ::lgraph_api::AccessLevel::FULL:
-        return "FULL";
-    default:
-        CYPHER_THROW_ASSERT(false);
-        return {};
-    }
-}
-
-static ::lgraph_api::AccessLevel String2AccessLevel(std::string& s) {
-    static const std::unordered_map<std::string, ::lgraph_api::AccessLevel> acl_tab = {
-        {"NONE", ::lgraph_api::AccessLevel::NONE},
-        {"READ", ::lgraph_api::AccessLevel::READ},
-        {"WRITE", ::lgraph_api::AccessLevel::WRITE},
-        {"FULL", ::lgraph_api::AccessLevel::FULL},
-    };
-    std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-    auto it = acl_tab.find(s);
-    if (it == acl_tab.end()) {
-        throw lgraph::CypherException("Unrecognized AccessLevel value: " + s);
-    }
-    return it->second;
-}
 }  // namespace _detail
 
 }  // namespace cypher

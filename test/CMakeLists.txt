@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(LightningGraphTests C CXX)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-message(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_path(GTEST_HEADER NAMES gtest/gtest.h)
 set(GTEST_LIB libgtest.a)

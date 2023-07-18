@@ -103,24 +103,6 @@ struct FieldsDumper {
     }
 };
 
-static std::string DumpSchema(const std::vector<lgraph_api::FieldSpec>& schema, size_t id_field,
-                              const std::string& delimiter) {
-    // id_field==-1 means no id field
-    std::string ret;
-    for (size_t i = 0; i < schema.size(); i++) {
-        const lgraph_api::FieldSpec& f = schema[i];
-        ret.append(f.name).append(":").append(lgraph::field_data_helper::FieldTypeName(f.type));
-        if (i == id_field) ret.append(":ID");
-        if (f.optional) ret.append(":OPTIONAL");
-        if (i != schema.size() - 1) ret.append(delimiter);
-    }
-    return ret;
-}
-
-static void WriteStringToFile(fma_common::OutputFmaStream& file, const std::string& s) {
-    file.Write(s.data(), s.size());
-}
-
 class VertexDumper {
     std::string label_;
     std::vector<lgraph_api::FieldSpec> schema_;

@@ -54,22 +54,21 @@ class GraphFactory {
 
         auto txn = db.CreateWriteTxn();
         // add vertex
-        lgraph::VertexId vid[6];
-        vid[0] = txn.AddVertex(
+        txn.AddVertex(
             v_label_1,
             std::vector<std::string>{"uid", "name", "age", "age16", "age32", "agef", "aged"},
             std::vector<std::string>{"1", "marko", "29", "23", "22", "5.0", "6.0"});
-        vid[1] = txn.AddVertex(
+        txn.AddVertex(
             v_label_1,
             std::vector<std::string>{"uid", "name", "age", "age16", "age32", "agef", "aged"},
             std::vector<std::string>{"2", "vadas", "27", "23", "34", "23", "232.9"});
-        vid[2] = txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
+        txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
                                std::vector<std::string>{"3", "lop", "java"});
-        vid[3] = txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
+        txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
                                std::vector<std::string>{"4", "josh", "32"});
-        vid[4] = txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
+        txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
                                std::vector<std::string>{"5", "ripple", "java"});
-        vid[5] = txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
+        txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
                                std::vector<std::string>{"6", "peter", "35"});
         // add edge
         txn.Commit();
@@ -115,7 +114,6 @@ class GraphFactory {
         vid[5] = txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
                                std::vector<std::string>{"6", "peter", "35"});
         // add edge
-        // lgraph::EdgeId eid[6];
         txn.AddEdge(vid[0], vid[1], e_label_1, std::vector<std::string>{"weight", "since"},
                     std::vector<std::string>{"0.5", "2018"});
         txn.AddEdge(vid[0], vid[3], e_label_1, std::vector<std::string>{"weight", "since"},

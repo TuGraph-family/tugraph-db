@@ -97,39 +97,6 @@ typedef std::vector<Expression> VEC_DEL;
 // RemoveItem = (Variable, NodeLabels) | PropertyExpression
 typedef std::vector<Expression> VEC_REMOVE;
 
-static std::string Serialize(const TUP_PROPERTIES &properties,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_NODE_PATTERN &node_pattern,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_RELATIONSHIP_PATTERN &relationship_pattern,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_PATTERN_ELEMENT &pattern_element,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_PATTERN_PART &pattern_part,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const VEC_PATTERN &pattern,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_RETURN &tup_return,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_RETURN_BODY &return_body,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize_1(const TUP_RETURN_ITEM &return_item,
-                               const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_CALL &call,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const TUP_SET_ITEM &set_item,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-static std::string Serialize(const VEC_SET &set,
-                             const size_t &cur_indent = 0, const size_t &indent_size = 2);
-
-// helper methods
-static VEC_STR FieldData2String(const std::vector<lgraph::FieldData> &data) {
-    VEC_STR vstr;
-    for (auto &d : data) vstr.emplace_back(d.ToString("__null__"));
-    return vstr;
-}
-
-static lgraph::FieldData MakeFieldData(const Expression &expr);
 }  // namespace parser
 
 namespace cypher {
