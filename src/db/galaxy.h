@@ -24,6 +24,7 @@
 
 #include "fma-common/thread_pool.h"
 #include "fma-common/rw_lock.h"
+#include "fma-common/utils.h"
 
 #include "core/global_config.h"
 #include "core/killable_rw_lock.h"
@@ -35,6 +36,10 @@
 #include "db/graph_manager.h"
 #include "db/token_manager.h"
 #include "protobuf/ha.pb.h"
+
+#define MAX_TOKEN_NUM_PER_USER 10
+#define RETRY_WAIT_TIME 60
+#define MAX_LOGIN_FAILED_TIMES 5
 
 namespace lgraph {
 class HaStateMachine;
@@ -49,6 +54,9 @@ class Galaxy {
         std::string jwt_secret = "fma.ai";
         bool load_plugins = true;
     };
+
+    std::unordered_map<std::string, int> login_failed_times_;
+    double retry_login_time = 0.0;
 
  private:
     fma_common::Logger& logger_ = fma_common::Logger::Get("Galaxy");
@@ -87,6 +95,9 @@ class Galaxy {
 
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;
+
+    // generate random string
+    std::string GenerateRandomString() const;
 
     // refresh token
     std::string RefreshUserToken(const std::string& token, const std::string& user) const;

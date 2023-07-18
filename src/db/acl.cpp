@@ -923,6 +923,16 @@ bool lgraph::AclManager::DecipherToken(const std::string& token,
     }
 }
 
+int lgraph::AclManager::GetUserTokenNum(const std::string& user) {
+    int num = 0;
+    for (auto& kv : token_mapping_) {
+        if (kv.second == user) {
+            num++;
+        }
+    }
+    return num;
+}
+
 bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {
     if (token_mapping_.find(token) != token_mapping_.end()) {
         token_mapping_.erase(token);

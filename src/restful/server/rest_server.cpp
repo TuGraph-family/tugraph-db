@@ -16,6 +16,7 @@
 
 #include "fma-common/file_system.h"
 #include "fma-common/fma_stream.h"
+#include "fma-common/utils.h"
 #include "restful/server/rest_server.h"
 #include "restful/server/json_convert.h"
 
@@ -593,9 +594,16 @@ http_response RestServer::GetCorsResponse(status_code code) const {
     response.headers().add(_TU("Access-Control-Allow-Credentials"), true);
     response.headers().add(_TU("Access-Control-Allow-Methods"),
                            _TU("GET, POST, PUT, OPTIONS, DELETE"));
+    response.headers().add(_TU("Set-Cookie"), _TU("HttpOnly; Secure; SameSite=Strict"));
     response.headers().add(RestStrings::SVR_VER, state_machine_->GetVersion());
     return response;
 }
+
+// http_response RestServer::HeaderResponse(status_code code) const {
+//     GetCorsResponse(code);
+//     response.headers().add(_TU("Set-Cookie"), _TU("HttpOnly;Secure;SameSite=Strict"));
+//     return response;
+// }
 
 /**
  * Respond "HTTP BadRequest" (400).
@@ -1541,12 +1549,33 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     }
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
     _HoldReadLock(galaxy_->GetReloadLock());
-    std::string token = galaxy_->GetUserToken(username, password);
-    if (token.empty()) return RespondUnauthorized(request, "Bad user/password.");
-    web::json::value response;
-    response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
-    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
-    return RespondSuccess(request, response);
+    if ((fabs(galaxy_->retry_login_time - 0.0) < std::numeric_limits<double>::epsilon()) ||
+        fma_common::GetTime() - galaxy_->retry_login_time >= RETRY_WAIT_TIME) {
+        std::string token = galaxy_->GetUserToken(username, password);
+        if ((fabs(galaxy_->retry_login_time - 0.0) >= std::numeric_limits<double>::epsilon())) {
+            galaxy_->login_failed_times_.erase(username);
+            galaxy_->retry_login_time = 0.0;
+        }
+        if (token.empty()) {
+            if (galaxy_->login_failed_times_.find(username) !=
+                    galaxy_->login_failed_times_.end()) {
+                galaxy_->login_failed_times_[username]++;
+            } else {
+                galaxy_->login_failed_times_[username] = 1;
+            }
+            if (galaxy_->login_failed_times_[username] >= MAX_LOGIN_FAILED_TIMES) {
+                galaxy_->retry_login_time = fma_common::GetTime();
+            }
+            return RespondUnauthorized(request, "Bad user/password.");
+        }
+        web::json::value response;
+        response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
+        response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
+        return RespondSuccess(request, response);
+    } else {
+        return RespondUnauthorized(request,
+            "Too many login failures, please try again in a minute");
+    }
 }
 
 // /refresh
@@ -2460,7 +2489,7 @@ void RestServer::HandlePostUser(const std::string& user, const std::string& toke
     }
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-        if (paths.size() == 3 && paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
+        if (paths.size() == 3 && paths[2] == RestStrings::PASS && galaxy_->IsAdmin(user)) {
             if (!galaxy_->UnBindTokenUser(token)) return RespondBadRequest(request, "Bad token.");
         }
         return RespondSuccess(request);

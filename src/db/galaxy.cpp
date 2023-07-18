@@ -12,14 +12,29 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <random>
 #include "core/audit_logger.h"
 #include "core/defs.h"
 #include "core/killable_rw_lock.h"
 #include "db/galaxy.h"
 #include "db/token_manager.h"
 
+std::string lgraph::Galaxy::GenerateRandomString() const {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    const std::string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    std::uniform_int_distribution<int> dist(0, charset.size() - 1);
+    std::string result;
+    for (int i = 0; i < 26; ++i) {
+        result += charset[dist(mt)];
+    }
+    return result;
+}
+
 lgraph::Galaxy::Galaxy(const std::string& dir, bool create_if_not_exist)
-    : Galaxy(Config{dir, false, true, "fma.ai"}, create_if_not_exist, nullptr) {}
+    : Galaxy(Config{dir, false, true, "fma.ai" + GenerateRandomString()},
+    create_if_not_exist, nullptr) {}
 
 static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
     return parent_dir + "/.meta";
@@ -27,7 +42,8 @@ static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
 
 lgraph::Galaxy::Galaxy(const lgraph::Galaxy::Config& config, bool create_if_not_exist,
                        std::shared_ptr<GlobalConfig> global_config)
-    : config_(config), global_config_(global_config), token_manager_(config.jwt_secret) {
+    : config_(config), global_config_(global_config),
+        token_manager_("fma.ai" + GenerateRandomString()) {
     if (!global_config_) {
         dummy_global_config_.reset(new GlobalConfig);
         global_config_ = dummy_global_config_;
@@ -74,6 +90,10 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user,
     _HoldWriteLock(acl_lock_);
     bool r = acl_->ValidateUser(user, password);
     if (!r) return "";
+    auto user_token_num = acl_->GetUserTokenNum(user);
+    if (user_token_num >= MAX_TOKEN_NUM_PER_USER)
+        throw AuthError("User has reached the maximum number of tokens.");
+
     std::string jwt = token_manager_.IssueFirstToken();
     acl_->BindTokenUser("", jwt, user);
     return jwt;
@@ -93,6 +113,7 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
         _HoldWriteLock(acl_lock_);
         acl_->BindTokenUser(token, new_token, user);
     } else {
+        acl_->UnBindTokenUser(token);
         throw InputError("token has timeout.");
     }
     return new_token;
