@@ -1,8 +1,12 @@
-#FROM ubuntu:18.04  # Docker hub Image
-FROM reg.docker.alibaba-inc.com/fma/ubuntu:18.04 # Alibaba Image
+# Docker hub Image
+#FROM ubuntu:18.04
+# Alibaba Image
+FROM reg.docker.alibaba-inc.com/fma/ubuntu:18.04
 
-ARG FILEPATH  # specifies the path of the object storage where the installation package resides
-ARG FILENAME  # specifies installation package name for tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 
 RUN rm -rf /et/apt/sources.list \
     && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list \

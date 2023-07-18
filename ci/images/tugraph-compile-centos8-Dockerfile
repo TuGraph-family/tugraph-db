@@ -1,5 +1,7 @@
-#FROM centos:8.4.2105  # Docker hub Image
-FROM reg.docker.alibaba-inc.com/fma/centos:8.4.2105 # Alibaba Image
+# Docker hub Image
+#FROM centos:8.4.2105
+# Alibaba Image
+FROM reg.docker.alibaba-inc.com/fma/centos:8.4.2105
 
 RUN rm -rf /etc/yum.repos.d \
     && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
@@ -54,7 +56,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
     && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
 
 # install cmake
@@ -233,15 +235,6 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.1
   && tar zxf antlr4-4.12.0.tar.gz && cd antlr4-4.12.0/runtime/Cpp/ && mkdir build && cd build \
   && cmake $CMAKE_OPT -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DANTLR4_INSTALL=1 .. \
   && make -j && make install && rm -rf /antlr4*
-
-# numpy
-RUN pip3 install numpy==1.19.5 -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# torch
-RUN pip3 install --upgrade torch==1.10.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# dgl
-RUN pip3 install dgl==1.0.0 -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 

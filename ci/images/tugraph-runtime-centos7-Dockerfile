@@ -1,8 +1,12 @@
-#FROM centos:7.3.1611  # Docker hub image
-FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611 # Alibaba Image
+# Docker hub image
+#FROM centos:7.3.1611
+# Alibaba Image
+FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
-ARG FILEPATH  # specifies the path of the object storage where the installation package resides
-ARG FILENAME  # specifies installation package name for tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 
 RUN yum update -y && yum install -y \
     git \
