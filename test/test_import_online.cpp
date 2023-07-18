@@ -950,7 +950,7 @@ TEST_F(TestImportOnline, ImportOnline) {
             TryImport("not meet the edge constraints", 1, config_file);
             server.reset();
         }
-
+#if LGRAPH_ENABLE_FULLTEXT_INDEX
         {
             db_cleaner.Clean();
             WriteFile(config_file, R"(
@@ -1027,6 +1027,7 @@ TEST_F(TestImportOnline, ImportOnline) {
 )");
             TryImport("Import finished", 0, config_file);
         }
+#endif
         {
             db_cleaner.Clean();
             auto server = StartServer();

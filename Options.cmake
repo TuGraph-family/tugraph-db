@@ -81,7 +81,7 @@ else (ENABLE_SHARE_DIR)
     message("Data dir sharing is disabled. HA will work in replication mode.")
 endif (ENABLE_SHARE_DIR)
 
-option(ENABLE_FULLTEXT_INDEX "Enable fulltext index." ON)
+option(ENABLE_FULLTEXT_INDEX "Enable fulltext index." OFF)
 if (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is enabled.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLGRAPH_ENABLE_FULLTEXT_INDEX=1")
