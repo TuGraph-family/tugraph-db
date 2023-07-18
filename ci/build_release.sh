@@ -4,7 +4,6 @@
 # Larger runner will support soon(current in Beta).
 
 ASAN=$1
-JAVA_CLIENT_VERSION=1.2.1
 
 set -e
 

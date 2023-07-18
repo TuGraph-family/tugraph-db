@@ -20,7 +20,7 @@ IMPORTOPT = {"cmd":"./lgraph_import --config_file ./data/yago/yago.conf --dir ./
 BACKUPOPT = {"cmd" : "./lgraph_backup --src ./testdb -dst ./testdb1",
              "cleanup_dir":[]}
 
-BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++11 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_procedures/scan_graph.cpp ./liblgraph.so -shared"],
+BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++17 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./scan_graph.so ../../test/test_procedures/scan_graph.cpp ./liblgraph.so -shared"],
             "so_name":["./scan_graph.so"]}
 
 @pytest.fixture(scope="function")
