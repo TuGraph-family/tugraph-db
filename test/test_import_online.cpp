@@ -341,6 +341,7 @@ TEST_F(TestImportOnline, ImportOnline) {
             return server;
         };
 
+#if LGRAPH_ENABLE_FULLTEXT_INDEX
         auto StartServerWithFTIndextEnabled = [&]() {
             std::ifstream ifd("lgraph_standalone.json");
             nlohmann::json config;
@@ -361,6 +362,7 @@ TEST_F(TestImportOnline, ImportOnline) {
             }
             return server;
         };
+#endif
 
         auto TryImport = [&](const std::string &expect_output, int expect_ec,
                              std::string config_file_, bool continue_on_error = false) {

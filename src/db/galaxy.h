@@ -37,7 +37,7 @@
 #include "db/token_manager.h"
 #include "protobuf/ha.pb.h"
 
-#define MAX_TOKEN_NUM_PER_USER 10
+#define MAX_TOKEN_NUM_PER_USER 100
 #define RETRY_WAIT_TIME 60
 #define MAX_LOGIN_FAILED_TIMES 5
 

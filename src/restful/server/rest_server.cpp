@@ -599,12 +599,6 @@ http_response RestServer::GetCorsResponse(status_code code) const {
     return response;
 }
 
-// http_response RestServer::HeaderResponse(status_code code) const {
-//     GetCorsResponse(code);
-//     response.headers().add(_TU("Set-Cookie"), _TU("HttpOnly;Secure;SameSite=Strict"));
-//     return response;
-// }
-
 /**
  * Respond "HTTP BadRequest" (400).
  *

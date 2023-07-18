@@ -20,16 +20,18 @@
 #include "db/token_manager.h"
 
 std::string lgraph::Galaxy::GenerateRandomString() const {
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    const std::string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-    std::uniform_int_distribution<int> dist(0, charset.size() - 1);
-    std::string result;
-    for (int i = 0; i < 26; ++i) {
-        result += charset[dist(mt)];
-    }
-    return result;
+// TODO(lmy): error in ci
+//    std::random_device rd;
+//    std::mt19937 mt(rd());
+//    const std::string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+//
+//    std::uniform_int_distribution<int> dist(0, charset.size() - 1);
+//    std::string result;
+//    for (int i = 0; i < 26; ++i) {
+//        result += charset[dist(mt)];
+//    }
+//    return result;
+    return "";
 }
 
 lgraph::Galaxy::Galaxy(const std::string& dir, bool create_if_not_exist)
@@ -43,7 +45,7 @@ static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
 lgraph::Galaxy::Galaxy(const lgraph::Galaxy::Config& config, bool create_if_not_exist,
                        std::shared_ptr<GlobalConfig> global_config)
     : config_(config), global_config_(global_config),
-        token_manager_("fma.ai" + GenerateRandomString()) {
+        token_manager_(config.jwt_secret) {
     if (!global_config_) {
         dummy_global_config_.reset(new GlobalConfig);
         global_config_ = dummy_global_config_;
