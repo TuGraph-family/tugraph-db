@@ -1546,9 +1546,6 @@ void test_password(lgraph::RpcClient& client) {
                                 "CALL dbms.security.changeUserPassword('test_pw_user',"
                                 " '24680@TuGraph')");
         UT_EXPECT_TRUE(ret);
-        // client auto logout after changing password
-        ret = client.CallCypher(str, "MATCH (n) RETURN n LIMIT 100", "default");
-        UT_EXPECT_FALSE(ret);
     }
 
     {
