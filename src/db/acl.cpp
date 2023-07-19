@@ -767,6 +767,7 @@ bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::st
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
     StoreUserInfoToKv(txn, user, uinfo);
+    UnBindAllToken(user);
     return true;
 }
 
@@ -784,6 +785,7 @@ bool lgraph::AclManager::ChangeUserPassword(KvTransaction& txn, const std::strin
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
     StoreUserInfoToKv(txn, user, uinfo);
+    UnBindAllToken(user);
     return true;
 }
 
@@ -940,4 +942,20 @@ bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {
     } else {
         return false;
     }
+}
+
+bool lgraph::AclManager::UnBindAllToken(const std::string& user) {
+    std::vector<std::string> tokenToDel;
+    for (const auto& pair : token_mapping_) {
+        if (pair.second == user) {
+            tokenToDel.push_back(pair.first);
+        }
+    }
+    if (tokenToDel.empty()) {
+        return false;
+    }
+    for (const auto& token : tokenToDel) {
+        token_mapping_.erase(token);
+    }
+    return true;
 }

@@ -1539,12 +1539,15 @@ void test_password(lgraph::RpcClient& client) {
         web::json::value json_val = web::json::value::parse(str);
         UT_EXPECT_EQ(HasElement(json_val, "test_pw_user", "current_user"), true);
         ret = client.CallCypher(str,
+                                "CALL dbms.security.changeUserPassword('test_not_exist_user',"
+                                " '24680@TuGraph')");
+        UT_EXPECT_FALSE(ret);
+        ret = client.CallCypher(str,
                                 "CALL dbms.security.changeUserPassword('test_pw_user',"
                                 " '24680@TuGraph')");
         UT_EXPECT_TRUE(ret);
-        ret = client.CallCypher(str,
-                                "CALL dbms.security.changeUserPassword('test_not_exist_user',"
-                                " '24680@TuGraph')");
+        // client auto logout after changing password
+        ret = client.CallCypher(str, "MATCH (n) RETURN n LIMIT 100", "default");
         UT_EXPECT_FALSE(ret);
     }
 
@@ -1560,6 +1563,9 @@ void test_password(lgraph::RpcClient& client) {
                                     " '13579@TuGraph')",
                                     "");
         UT_EXPECT_TRUE(ret);
+        // client auto logout after changing password
+        ret = new_client.CallCypher(str, "MATCH (n) RETURN n LIMIT 100", "default");
+        UT_EXPECT_FALSE(ret);
     }
 
     {

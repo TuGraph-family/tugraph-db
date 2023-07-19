@@ -841,9 +841,9 @@ void BuiltinProcedure::DbmsSecurityChangeUserPassword(RTContext *ctx, const cyph
                                                       std::vector<Record> *records) {
     CYPHER_ARG_CHECK(
         args.size() == 2,
-        "need 2 parameters, e.g. dbms.security.changeUserPassword(current_password, new_password)")
+        "need 2 parameters, e.g. dbms.security.changeUserPassword(user_name, new_password)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
-                     "current_password type should be string")
+                     "user_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
                      "new_password type should be string")
 
