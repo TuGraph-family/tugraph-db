@@ -24,7 +24,7 @@
 #include "cypher/execution_plan/optimization/locate_node_by_vid.h"
 #include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
 #include "cypher/execution_plan/optimization/parallel_traversal.h"
-#include "cypher/execution_plan/opt_rewrite_with_schema_inference.h"
+#include "cypher/execution_plan/optimization/opt_rewrite_with_schema_inference.h"
 
 namespace cypher {
 
