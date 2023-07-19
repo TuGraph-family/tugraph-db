@@ -315,15 +315,15 @@ void SchemaRewrite::AddMapping() {
         snm[p_id] = label;
     }
     for (Edge e : query_graph.m_edges) {
-        size_t src_id = e.m_source_id, tar_id = e.m_target_id;
-        size_t core_src_id = core_2[src_id];
-        size_t core_tar_id = core_2[tar_id];
+        // size_t src_id = e.m_source_id, tar_id = e.m_target_id;
+        // size_t core_src_id = core_2[src_id];
+        // size_t core_tar_id = core_2[tar_id];
 
         auto p_id_it = eidx2pidx.find(e.m_id);
         auto p_id = p_id_it->second;
         auto srm_it = srm.find(p_id);
 
-        parser::LinkDirection direction = std::get<3>(srm_it->second);
+        // parser::LinkDirection direction = std::get<3>(srm_it->second);
         std::set<size_t> edge_ids = edge_core[e.m_id];
         std::set<std::string> edge_labels;
 

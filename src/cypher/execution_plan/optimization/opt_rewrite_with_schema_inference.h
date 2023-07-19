@@ -94,7 +94,8 @@ class OptRewriteWithSchemaInference : public OptPass {
                 std::tuple<NodeID, NodeID, std::set<std::string>, parser::LinkDirection>
                     relp_map_value(start->ID(), neighbor->ID(), relp->Types(), relp->direction_);
                 schema_relp_map[relp->ID()] = relp_map_value;
-            } else if (auto var_len = dynamic_cast<VarLenExpand *>(op)) {
+            } else if (op->type == OpType::VAR_LEN_EXPAND) {
+                // 含有可变长算子的情况暂不处理
                 return;
             } else if ((op->IsScan() || op->IsDynamicScan()) && op->type != OpType::ARGUMENT) {
                 NodeID id;
