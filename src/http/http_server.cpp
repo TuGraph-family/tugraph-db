@@ -372,8 +372,30 @@ void HttpService::DoLoginRequest(const brpc::Controller* cntl, std::string& res)
             throw lgraph_api::BadRequestException("`userName` or `password` not specified.");
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
-    if (token.empty()) throw lgraph_api::BadRequestException(
-        FMA_FMT("userName {} is invalid", username));
+    if ((fabs(galaxy_->retry_login_time - 0.0) < std::numeric_limits<double>::epsilon()) ||
+        fma_common::GetTime() - galaxy_->retry_login_time >= RETRY_WAIT_TIME) {
+        if ((fabs(galaxy_->retry_login_time - 0.0) >=
+                std::numeric_limits<double>::epsilon())) {
+            galaxy_->login_failed_times_.erase(username);
+            galaxy_->retry_login_time = 0.0;
+        }
+        if (token.empty()) {
+            if (galaxy_->login_failed_times_.find(username) !=
+                    galaxy_->login_failed_times_.end()) {
+                galaxy_->login_failed_times_[username]++;
+            } else {
+                galaxy_->login_failed_times_[username] = 1;
+            }
+            if (galaxy_->login_failed_times_[username] >= MAX_LOGIN_FAILED_TIMES) {
+                galaxy_->retry_login_time = fma_common::GetTime();
+            }
+            throw lgraph_api::BadRequestException(
+                FMA_FMT("userName {} is invalid", username));
+        }
+    } else {
+        throw lgraph_api::BadRequestException(
+            "Too many login failures, please try again in a minute");
+    }
     nlohmann::json js;
     js[HTTP_AUTHORIZATION] = token;
     res = js.dump();
@@ -720,6 +742,7 @@ void HttpService::AddAccessControlCORS(brpc::Controller* cntl) {
                                     " Content-Encoding");
     cntl->http_response().SetHeader("Access-Control-Allow-Methods",
                                     "POST, OPTIONS, PUT, GET, DELETE");
+    cntl->http_response().SetHeader("Set-Cookie", "HttpOnly; Secure; SameSite=Strict");
 }
 
 void HttpService::RespondUnauthorized(brpc::Controller* cntl, const std::string& res) const {

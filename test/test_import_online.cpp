@@ -341,6 +341,7 @@ TEST_F(TestImportOnline, ImportOnline) {
             return server;
         };
 
+#if LGRAPH_ENABLE_FULLTEXT_INDEX
         auto StartServerWithFTIndextEnabled = [&]() {
             std::ifstream ifd("lgraph_standalone.json");
             nlohmann::json config;
@@ -361,6 +362,7 @@ TEST_F(TestImportOnline, ImportOnline) {
             }
             return server;
         };
+#endif
 
         auto TryImport = [&](const std::string &expect_output, int expect_ec,
                              std::string config_file_, bool continue_on_error = false) {
@@ -950,7 +952,7 @@ TEST_F(TestImportOnline, ImportOnline) {
             TryImport("not meet the edge constraints", 1, config_file);
             server.reset();
         }
-
+#if LGRAPH_ENABLE_FULLTEXT_INDEX
         {
             db_cleaner.Clean();
             WriteFile(config_file, R"(
@@ -1027,6 +1029,7 @@ TEST_F(TestImportOnline, ImportOnline) {
 )");
             TryImport("Import finished", 0, config_file);
         }
+#endif
         {
             db_cleaner.Clean();
             auto server = StartServer();

@@ -8,7 +8,7 @@ set(REST_SDK_PATH "${DB_PATH}/restful/cpprestsdk")
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_FLAGS "-I${REST_SDK_PATH}/Release/include \
     -I${DB_PATH}/fma-common -I${DB_PATH} -I${DB_PATH}/core \
-    -std=c++11 -O0 -g ${CMAKE_CXX_FLAGS}")
+    -std=c++17 -O0 -g ${CMAKE_CXX_FLAGS}")
 set(EXTRA_LIBS "-lboost_system -lcrypto -lssl -L${DB_LIB_PATH}/lib -lcpprest")
 set(EXTRA_LIBS "${EXTRA_LIBS} -L${DB_LIB_PATH} -llgraph -lpthread -static-libstdc++ -static-libgcc")
 set(CMAKE_VERBOSE_MAKEFILE ON)

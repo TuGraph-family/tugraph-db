@@ -34,7 +34,6 @@ static Value GenProp(size_t s, char c) {
 
 TEST_F(TestGraphVertexIterator, GraphVertexIterator) {
     size_t vpsize = 1024;
-    size_t epsize = 1024;
     size_t nv = 10;
     size_t epv = 1024;
     int argc = _ut_argc;

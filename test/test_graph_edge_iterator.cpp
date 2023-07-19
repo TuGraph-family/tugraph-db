@@ -43,12 +43,6 @@ void DumpTable(KvTransaction& txn, KvTable& tbl) {
         nullptr);
 }
 
-static Value GenProp(size_t size, char c) {
-    Value v(size);
-    memset(v.Data(), c, v.Size());
-    return v;
-}
-
 static Value GenProp(size_t size) {
     Value v(size);
     memset(v.Data(), size % 128, v.Size());
@@ -230,7 +224,6 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
     try {
         std::vector<OutEdgeIterator> oeits;
         KvIterator it(txn, table);
-        bool already_has_edge = false;
         for (int i = 0; i < n_edges; i++) {
             EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, dst, lid, 0), GenProp(i),
                                                              it);
@@ -401,7 +394,6 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
 
     srand(0);
     KvIterator kvit(txn, table);
-    bool already_has_edge = false;
     for (int i = 0; i < 10000; i++) {
         VertexId dst = rand_r(&seed);
         EdgeId eid = rand_r(&seed);
@@ -413,7 +405,6 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
                 eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
                     EdgeSid(vid, dst, lid, 0), GenProp(s),
                     kvit);
-                auto map_it = all_pairs.lower_bound(std::make_pair(dst, 0));
                 all_pairs.emplace(std::make_pair(dst, eid), s);
             }
         } else {

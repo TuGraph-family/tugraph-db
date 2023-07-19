@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "op.h"
-#include "op_argument.h"
+#include "cypher/execution_plan/ops/op.h"
+#include "cypher/execution_plan/ops/op_argument.h"
 
 namespace cypher {
 
@@ -129,6 +129,5 @@ class Apply : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

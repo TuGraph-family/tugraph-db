@@ -230,8 +230,8 @@ class EdgeIteratorImpl {
         : it_(rhs.it_),
           ev_(std::move(rhs.ev_)),
           vid1_(rhs.vid1_),
-          tid_(rhs.tid_),
           lid_(rhs.lid_),
+          tid_(rhs.tid_),
           vid2_(rhs.vid2_),
           eid_(rhs.eid_),
           prop_(rhs.prop_),
@@ -381,15 +381,15 @@ class EdgeIteratorImpl {
     template <class InputIt>
     static void InsertEdges(
         VertexId vid1, InputIt begin, InputIt end, KvIterator& it,
-        std::function<void(int64_t, int64_t, uint16_t, int64_t, int64_t, const Value&)>
-            add_fulltext_index) {
+        const std::function<void(const EdgeUid&, const Value&)>&
+            extra_work, bool detach_property) {
         // @TODO: optimize
         for (InputIt i = begin; i != end; ++i) {
             auto eid =
                 InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), 0),
-                           std::get<2>(*i), it);
-            if (ET == PackType::OUT_EDGE && add_fulltext_index) {
-                add_fulltext_index(vid1, std::get<1>(*i), std::get<0>(*i), 0, eid, std::get<2>(*i));
+                           detach_property ? Value() : std::get<2>(*i), it);
+            if (ET == PackType::OUT_EDGE) {
+                extra_work({vid1, std::get<1>(*i), std::get<0>(*i), 0, eid}, std::get<2>(*i));
             }
         }
     }
@@ -505,7 +505,6 @@ class EdgeIteratorImpl {
                 throw std::runtime_error("Too many edges from src to dst with the same label");
         }
         int64_t size_diff = ev.InsertAtPos(pos, esid.lid, esid.tid, esid.dst, eid, prop);
-        const Value& v = it.GetValue();
         if (pt == PackType::PACKED_DATA) {
             if (it.GetValue().Size() + size_diff < ::lgraph::_detail::NODE_SPLIT_THRESHOLD) {
                 // pack back and store

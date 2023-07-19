@@ -1,4 +1,12 @@
-FROM centos:7.3.1611
+# Docker hub image
+#FROM centos:7.3.1611
+# Alibaba Image
+FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
+
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 
 
 RUN yum update -y && yum install -y \
@@ -6,8 +14,9 @@ RUN yum update -y && yum install -y \
     openssl-static \
     wget
 
-COPY tugraph-mini-3.5.0-1.el7.x86_64.rpm /tugraph-mini-3.5.0-1.el7.x86_64.rpm
-RUN rpm -ivh tugraph-mini-3.5.0-1.el7.x86_64.rpm  && rm /tugraph-mini-3.5.0-1.el7.x86_64.rpm
+# install tugraph
+RUN wget ${FILEPATH}/${FILENAME}
+RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 

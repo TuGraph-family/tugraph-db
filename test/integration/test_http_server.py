@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 
 class TestHttpServer:
 
-    SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 27070 --rpc_port 27071",
+    SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 27070 --rpc_port 27071 --log_dir '' ",
                  "cleanup_dir":["./testdb"]}
     CLIENTOPT = {"host":"http://127.0.0.1:27071/LGraphHttpService/Query/", "user":"admin", "password":"73@TuGraph"}
 

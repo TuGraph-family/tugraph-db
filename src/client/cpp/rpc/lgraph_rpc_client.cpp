@@ -38,10 +38,13 @@ DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 
 RpcClient::RpcClient(const std::string& url, const std::string& user, const std::string& pass)
-    : logger_(fma_common::Logger::Get("lgraph.RpcClient")),
+    : url(url),
+      user(user),
+      password(pass),
       channel(std::make_shared<lgraph_rpc::m_channel>()),
       cntl(std::make_shared<lgraph_rpc::m_controller>()),
-      options(std::make_shared<lgraph_rpc::m_channel_options>()) {
+      options(std::make_shared<lgraph_rpc::m_channel_options>()),
+      logger_(fma_common::Logger::Get("lgraph.RpcClient")) {
     server_version = -1;
     options->protocol = FLAGS_protocol;
     options->connection_type = FLAGS_connection_type;
@@ -119,7 +122,7 @@ bool RpcClient::CallCypher(std::string& result, const std::string& cypher, const
         return false;
     }
     CypherResponse cypher_res = res.cypher_response();
-    result = std::move(CypherResponseExtractor(cypher_res));
+    result = CypherResponseExtractor(cypher_res);
     return true;
 }
 
@@ -483,6 +486,10 @@ bool RpcClient::ImportDataFromContent(std::string& result, const std::string& de
         return false;
     }
     return true;
+}
+
+std::string RpcClient::GetUrl() {
+    return url;
 }
 
 void RpcClient::Logout() {

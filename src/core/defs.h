@@ -121,6 +121,10 @@ static const char* const NEXT_VID_KEY = "_next_vid_";    // key to store next vi
 static const char* const VERTEX_COUNT_PREFIX = "_vertex_count_";
 static const char* const EDGE_COUNT_PREFIX = "_edge_count_";
 
+// store property data in a separate kv table
+static const char* const VERTEX_PROPERTY_TABLE_PREFIX = "_vertex_property_";
+static const char* const EDGE_PROPERTY_TABLE_PREFIX = "_edge_property_";
+
 // version info
 static const int VER_MAJOR = LGRAPH_VERSION_MAJOR;
 static const int VER_MINOR = LGRAPH_VERSION_MINOR;

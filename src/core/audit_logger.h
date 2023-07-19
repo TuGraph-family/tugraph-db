@@ -286,7 +286,6 @@ class AuditLogger {
         AutoWriteLock<RWLock> lock(lock_);
         int64_t log_time = lgraph_api::DateTime::LocalNow().SecondsSinceEpoch();
 
-        auto& fs = fma_common::FileSystem::GetFileSystem(dir_);
         if ((file_.Size() >= file_size_limit_) && (last_log_time_ < log_time)) {
             file_.Close();
             if (!SetLogFileName(log_time))

@@ -17,10 +17,10 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 #include "parser/clause.h"
 
-// todo: get resources then set all
+// TODO(anyone) get resources then set all
 namespace cypher {
 
 class OpSet : public OpBase {
@@ -95,8 +95,7 @@ class OpSet : public OpBase {
                 }
                 auto idx = GetRecordIdx(lhs);
                 auto vid = record->values[idx].node->PullVid();
-                ctx->txn_->GetTxn()->SetVertexProperty(vid, fields,
-                                             values);
+                ctx->txn_->GetTxn()->SetVertexProperty(vid, fields, values);
                 ctx->txn_->GetTxn()->RefreshIterators();
                 ctx->result_info_->statistics.properties_set += fields.size();
             } else {
@@ -135,8 +134,8 @@ class OpSet : public OpBase {
         fields.emplace_back(lhs.second);
         ExtractProperties(ctx, rhs, values);
         auto idx = GetRecordIdx(edge_variable);
-        ctx->txn_->GetTxn()->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(), fields,
-                                   values);
+        ctx->txn_->GetTxn()->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(),
+                                             fields, values);
         ctx->txn_->GetTxn()->RefreshIterators();
         ctx->result_info_->statistics.properties_set++;
     }
@@ -155,8 +154,8 @@ class OpSet : public OpBase {
             }
             if (sign == "+=") {
                 auto idx = GetRecordIdx(edge_variable);
-                ctx->txn_->GetTxn()->SetEdgeProperty(record->values[idx].relationship->ItRef()->GetUid(),
-                                           fields, values);
+                ctx->txn_->GetTxn()->SetEdgeProperty(
+                    record->values[idx].relationship->ItRef()->GetUid(), fields, values);
                 ctx->txn_->GetTxn()->RefreshIterators();
                 ctx->result_info_->statistics.properties_set++;
             } else {
@@ -168,7 +167,8 @@ class OpSet : public OpBase {
             auto dst = record->values[GetRecordIdx(lhs)];
             if (sign != "=") CYPHER_TODO();
             GetEdgeFields(ctx, src.relationship->ItRef()->GetUid(), fields, values);
-            ctx->txn_->GetTxn()->SetEdgeProperty(dst.relationship->ItRef()->GetUid(), fields, values);
+            ctx->txn_->GetTxn()->SetEdgeProperty(dst.relationship->ItRef()->GetUid(), fields,
+                                                 values);
             ctx->txn_->GetTxn()->RefreshIterators();
             ctx->result_info_->statistics.properties_set++;
         } else if (rhs.type == parser::Expression::DataType::NULL_) {
@@ -184,14 +184,12 @@ class OpSet : public OpBase {
     }
 
     void SetVE(RTContext *ctx) {
-        OpBase *child = children[0];
-        for (auto &s : set_data_) {   
+        for (auto &s : set_data_) {
             for (auto &set_item : s) {
                 auto &lhs_var = std::get<0>(set_item);
                 auto &lhs_prop_expr = std::get<1>(set_item);
                 std::string sign = std::get<2>(set_item);
                 auto &rhs_expr = std::get<3>(set_item);
-                auto &rhs_node_labels = std::get<4>(set_item);
                 if (lhs_var.empty()) {
                     auto &property = lhs_prop_expr.Property();
                     auto &key_expr = property.first;
@@ -322,13 +320,12 @@ class OpSet : public OpBase {
         return str;
     }
 
-    const std::vector<parser::Clause::TYPE_SET>& GetSetData() const { return set_data_; }
+    const std::vector<parser::Clause::TYPE_SET> &GetSetData() const { return set_data_; }
 
-    PatternGraph* GetPatternGraph() const { return pattern_graph_; }
+    PatternGraph *GetPatternGraph() const { return pattern_graph_; }
 
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

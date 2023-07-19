@@ -167,7 +167,6 @@ def Process(db, input):
         UT_EXPECT_TRUE(manager.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME,
                                             &db, "sleep", "1", 0, true, output));
         UT_LOG() << "Calling plugin with seperate process";
-        double t1 = GetTime();
         std::vector<std::thread> threads;
         for (size_t i = 0; i < n_jobs; i++) {
             threads.emplace_back([&]() {
@@ -177,8 +176,6 @@ def Process(db, input):
             });
         }
         for (auto& t : threads) t.join();
-        double t2 = GetTime();
-        // UT_EXPECT_LT((t2 - t1), (n_jobs + n_workers - 1) /n_workers + 0.5);
         UT_EXPECT_TRUE(manager.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
                                             "scan_graph", "0", 0, true, output));
         UT_LOG() << "Scan graph returned: " << output;

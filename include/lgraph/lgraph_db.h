@@ -214,7 +214,7 @@ class GraphDB {
      * @returns True if it succeeds, false if the label already exists.
      */
     bool AddVertexLabel(const std::string &label, const std::vector<FieldSpec> &fds,
-                        const std::string &primary_field);
+                        const VertexOptions& options);
 
     /**
      * @brief   Deletes a vertex label and all the vertices with this label.
@@ -314,8 +314,7 @@ class GraphDB {
      */
     bool AddEdgeLabel(
         const std::string &label, const std::vector<FieldSpec> &fds,
-        const std::string &temporal_field = {},
-        const std::vector<std::pair<std::string, std::string>> &edge_constraints = {});
+        const EdgeOptions& options);
 
     /**
      * @brief   Deletes an edge label and all the edges of this type.

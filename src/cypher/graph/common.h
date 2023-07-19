@@ -101,7 +101,8 @@ struct Path {
         }
         return dirs_[n]
                    ? lgraph::EdgeUid(ids_[0 + n * 2], ids_[2 + n * 2], lids_[n], 0, ids_[1 + n * 2])
-                   : lgraph::EdgeUid(ids_[2 + n * 2], ids_[0 + n * 2], lids_[n], 0, ids_[1 + n * 2]); // TODO(heng)
+                   : lgraph::EdgeUid(ids_[2 + n * 2], ids_[0 + n * 2], lids_[n], 0,
+                                     ids_[1 + n * 2]);  // TODO(heng)
     }
 
     std::string ToString() const {

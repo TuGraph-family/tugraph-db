@@ -15,7 +15,7 @@
 //
 // Created by wt on 18-8-14.
 //
-#include "antlr4-runtime.h"
+#include "./antlr4-runtime.h"
 
 #include "core/task_tracker.h"
 
@@ -24,8 +24,8 @@
 #include "parser/cypher_base_visitor.h"
 #include "parser/cypher_error_listener.h"
 
-#include "execution_plan.h"
-#include "scheduler.h"
+#include "cypher/execution_plan/execution_plan.h"
+#include "cypher/execution_plan/scheduler.h"
 
 namespace cypher {
 
@@ -52,7 +52,7 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         FMA_DBG_STREAM(Logger()) << "-----CLAUSE TO STRING-----";
-        for (const auto& sql_query: visitor.GetQuery()) {
+        for (const auto &sql_query : visitor.GetQuery()) {
             FMA_DBG_STREAM(Logger()) << sql_query.ToString();
         }
         plan = std::make_shared<ExecutionPlan>();
@@ -111,10 +111,8 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     }
 }
 
-bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
-                                  const std::string &script,
-                                  std::string& name,
-                                  std::string& type) {
+bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx, const std::string &script,
+                                  std::string &name, std::string &type) {
     using namespace parser;
     using namespace antlr4;
     ANTLRInputStream input(script);
@@ -140,7 +138,7 @@ bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
 //            cypher::PARAM_TAB *param_tab,
 //            double &elapsed)
 //    {
-//        // TODO: store script in the plan so we can track the task name
+//        // TODO(anyone) store script in the plan so we can track the task name
 //        lgraph::AutoTaskTracker task_tracker("[CYPHER_WITH_PARAM]");
 //        auto t0 = fma_common::GetTime();
 //        plan->Reset();

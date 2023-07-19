@@ -220,12 +220,17 @@ Transaction::~Transaction() { Abort(); }
 std::vector<std::pair<std::string, FieldData>> Transaction::GetVertexFields(
     const VertexIterator& it) {
     Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, it.GetId());
+    }
     std::vector<std::pair<std::string, FieldData>> values;
     for (size_t i = 0; i < schema->GetNumFields(); i++) {
         auto fe = schema->GetFieldExtractor(i);
-        values.emplace_back(fe->Name(), GetField(schema, prop, i, blob_manager_, txn_));
+        values.emplace_back(
+            fe->Name(), GetField(schema, prop, i, blob_manager_, txn_));
     }
     return values;
 }
@@ -385,9 +390,14 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     if (n_out) *n_out = 0;
     // check if there is blob
     Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
+    auto vid = it.GetId();
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, vid);
+    }
     if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, txn_);
-    schema->DeleteVertexIndex(txn_, it.GetId(), prop);
+    schema->DeleteVertexIndex(txn_, vid, prop);
     auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
         if (is_out_edge) {
             if (n_out) {
@@ -404,36 +414,49 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
             auto edge_schema = curr_schema_->e_schema_manager.GetSchema(data.lid);
             FMA_ASSERT(edge_schema);
             if (is_out_edge) {
-                edge_schema->DeleteEdgeIndex(txn_, it.GetId(),
+                Value property(data.prop, data.psize);
+                if (edge_schema->DetachProperty()) {
+                    property = edge_schema->GetDetachedEdgeProperty(
+                        txn_, {vid, data.vid, data.lid, data.tid, data.eid});
+                }
+                edge_schema->DeleteEdgeIndex(txn_, vid,
                                         data.vid, data.lid, data.tid, data.eid,
-                                        Value(data.prop, data.psize));
+                                             property);
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
-                        {it.GetId(), data.vid, data.lid, data.tid, data.eid}, fulltext_buffers_);
+                        {vid, data.vid, data.lid, data.tid, data.eid}, fulltext_buffers_);
                 }
             } else {
-                if (it.GetId() == data.vid) {
+                if (vid == data.vid) {
                     // The in edge directing to self is already included in the out edges
                     // skip to avoid double deleting
                     continue;
                 }
+                Value property(data.prop, data.psize);
+                if (edge_schema->DetachProperty()) {
+                    property = edge_schema->GetDetachedEdgeProperty(
+                        txn_, {data.vid, vid, data.lid, data.tid, data.eid});
+                }
                 edge_schema->DeleteEdgeIndex(txn_, data.vid,
-                                        it.GetId(), data.lid, data.tid, data.eid,
-                                        Value(data.prop, data.psize));
+                                        vid, data.lid, data.tid, data.eid,
+                                             property);
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
-                        {data.vid, it.GetId(), data.lid, data.tid, data.eid}, fulltext_buffers_);
+                        {data.vid, vid, data.lid, data.tid, data.eid}, fulltext_buffers_);
                 }
             }
         }
     };
     graph_->DeleteVertex(txn_, it, on_edge_deleted);
+    if (schema->DetachProperty()) {
+        schema->DeleteDetachedVertexProperty(txn_, vid);
+    }
     vertex_delta_count_[schema->GetLabelId()]--;
     // delete vertex fulltext index
     if (fulltext_index_) {
-        schema->DeleteVertexFullTextIndex(it.GetId(), fulltext_buffers_);
+        schema->DeleteVertexFullTextIndex(vid, fulltext_buffers_);
     }
 }
 
@@ -459,12 +482,19 @@ ENABLE_IF_EIT(EIT, void)
 Transaction::DeleteEdge(EIT& eit) {
     ThrowIfReadOnlyTxn();
     Value prop = eit.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto euid = eit.GetUid();
     auto schema = curr_schema_->e_schema_manager.GetSchema(euid.lid);
-    if (schema->HasBlob()) DeleteBlobs(eit.GetProperty(), schema, blob_manager_, txn_);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedEdgeProperty(txn_, euid);
+    }
+    if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, txn_);
     schema->DeleteEdgeIndex(txn_, eit.GetSrc(), eit.GetDst(), eit.GetLabelId(), eit.GetTemporalId(),
                             eit.GetEdgeId(), prop);
     graph_->DeleteEdge(txn_, eit);
+    if (schema->DetachProperty()) {
+        schema->DeleteDetachedEdgeProperty(txn_, euid);
+    }
     edge_delta_count_[euid.lid]--;
     if (fulltext_index_) {
         schema->DeleteEdgeFullTextIndex(euid, fulltext_buffers_);
@@ -630,18 +660,27 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
 
 std::string Transaction::VertexToString(const VertexIterator& vit) {
     Value prop = vit.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, vit.GetId());
+    }
     std::string line;
     fma_common::StringFormatter::Append(
         line, "V[{}]:{} {}\n", vit.GetId(), schema->GetLabel(),
-        curr_schema_->v_schema_manager.DumpRecord(vit.GetProperty()));
+        curr_schema_->v_schema_manager.DumpRecord(prop));
     for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
         auto s = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
         FMA_DBG_ASSERT(s);
+        auto edge_prop = eit.GetProperty();
+        FMA_DBG_ASSERT(edge_prop.IsSlice());
+        if (s->DetachProperty()) {
+            edge_prop = s->GetDetachedEdgeProperty(txn_, eit.GetUid());
+        }
         fma_common::StringFormatter::Append(
             line, "\t -> E[{}]:{}, DST = {}, EP = {}", eit.GetEdgeId(), s->GetLabel(), eit.GetDst(),
-            curr_schema_->e_schema_manager.DumpRecord(eit.GetProperty(), eit.GetLabelId()));
+            curr_schema_->e_schema_manager.DumpRecord(edge_prop, eit.GetLabelId()));
     }
     line.append("\n\t <- [");
     for (auto iit = vit.GetInEdgeIterator(); iit.IsValid(); iit.Next()) {
@@ -669,7 +708,12 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
         // add the new vertex without index
         VertexId newvid;
         try {
-            newvid = graph_->AddVertex(txn_, v);
+            if (schema->DetachProperty()) {
+                newvid = graph_->AddVertex(txn_, schema->CreateEmptyRecord());
+                schema->AddDetachedVertexProperty(txn_, newvid, v);
+            } else {
+                newvid = graph_->AddVertex(txn_, v);
+            }
         } catch (std::exception& e) {
             std::string msg =
                 FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
@@ -686,6 +730,9 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             // if index fails, delete the vertex & the incomplete index
             bool success = graph_->DeleteVertex(txn_, newvid);
             if (!success) throw std::runtime_error("failed to undo AddVertex");
+            if (schema->DetachProperty()) {
+                schema->DeleteDetachedVertexProperty(txn_, newvid);
+            }
             /* must delete the incomplete index, otherwise error occurs (issue #187):
              * trigger:
              * (1) label `person` with import config: name:ID,age:INDEX
@@ -720,18 +767,22 @@ std::string Transaction::_OnlineImportBatchAddEdges(
     KvIterator it(txn_, graph_->_GetKvTable());
     std::function<void(int64_t, int64_t, uint16_t, int64_t, int64_t, const Value&)>
         add_fulltext_index;
-    if (fulltext_index_) {
-        add_fulltext_index = [this, schema](int64_t src, int64_t dst, uint16_t label, int64_t tid,
-                                            int64_t eid, const Value& record) {
-            schema->AddEdgeToFullTextIndex({src, dst, label, tid, eid}, record, fulltext_buffers_);
-        };
-    }
+
+    auto extra_work = [this, schema](const EdgeUid& eid, const Value& record) {
+        if (fulltext_index_) {
+            schema->AddEdgeToFullTextIndex(eid, record, fulltext_buffers_);
+        }
+        if (schema->DetachProperty()) {
+            schema->AddDetachedEdgeProperty(txn_, eid, record);
+        }
+    };
     int64_t count = 0;
     for (auto& v : data) {
         count += v.outs.size();
         graph::Graph::OutIteratorImpl::InsertEdges(v.vid, v.outs.begin(), v.outs.end(), it,
-                                                   add_fulltext_index);
-        graph::Graph::InIteratorImpl::InsertEdges(v.vid, v.ins.begin(), v.ins.end(), it, nullptr);
+                                                   extra_work, schema->DetachProperty());
+        graph::Graph::InIteratorImpl::InsertEdges(v.vid, v.ins.begin(), v.ins.end(), it,
+                                                  extra_work, schema->DetachProperty());
     }
     edge_delta_count_[schema->GetLabelId()] += count;
     blob_manager_->_BatchAddBlobs(txn_, blobs);
@@ -759,11 +810,15 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                                const DataT* values) {
     ThrowIfReadOnlyTxn();
     Value old_prop = it.GetProperty();
+    FMA_DBG_ASSERT(old_prop.IsSlice());
     VertexId vid = it.GetId();
-    Value new_prop;
-    new_prop.Copy(old_prop);
     Schema* schema = curr_schema_->v_schema_manager.GetSchema(old_prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        old_prop = schema->GetDetachedVertexProperty(txn_, vid);
+    }
+    Value new_prop;
+    new_prop.Copy(old_prop);
     for (size_t i = 0; i < n_fields; i++) {
         // TODO: use SetField like SetEdgeProperty // NOLINT
         auto fe = schema->GetFieldExtractor(fields[i]);
@@ -782,13 +837,15 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                     bool r = index->Update(txn_, fe->GetConstRef(old_prop),
                                            fe->GetConstRef(new_prop), vid);
                     if (!r)
-                        throw InputError(FMA_FMT("{}:[{}] already exists", fe->Name(),
+                        throw InputError(FMA_FMT(
+                            "failed to update vertex index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop)));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(txn_, fe->GetConstRef(new_prop), vid);
                     if (!r)
-                        throw InputError(FMA_FMT("{}:[{}] already exists", fe->Name(),
+                        throw InputError(FMA_FMT(
+                            "failed to add vertex index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop)));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
@@ -805,15 +862,23 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
         schema->DeleteVertexFullTextIndex(vid, fulltext_buffers_);
         schema->AddVertexToFullTextIndex(vid, new_prop, fulltext_buffers_);
     }
-    it.SetProperty(std::move(new_prop));
+    if (schema->DetachProperty()) {
+        schema->SetDetachedVertexProperty(txn_, vid, new_prop);
+    } else {
+        it.SetProperty(std::move(new_prop));
+    }
 }
 
 template <typename FieldT>
 typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type Transaction::GetVertexField(
     const VertexIterator& it, const FieldT& fd) {
-    const auto& prop = it.GetProperty();
+    Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, it.GetId());
+    }
     return GetField(schema, prop, fd, blob_manager_, txn_);
 }
 
@@ -830,8 +895,12 @@ template <typename FieldT>
 typename std::enable_if<IS_FIELD_TYPE(FieldT), void>::type Transaction::GetVertexFields(
     const graph::VertexIterator& it, size_t n_fields, const FieldT* fds, FieldData* fields) {
     Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, it.GetId());
+    }
     for (size_t i = 0; i < n_fields; i++) {
         fields[i] = GetField(schema, prop, fds[i], blob_manager_, txn_);
     }
@@ -851,8 +920,12 @@ template <typename E, typename T>
 typename std::enable_if<IS_EIT_TYPE(E) && IS_FIELD_TYPE(T), void>::type Transaction::GetEdgeFields(
     const E& it, size_t n_fields, const T* fds, FieldData* fields) {
     Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->e_schema_manager.GetSchema(it.GetLabelId());
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedEdgeProperty(txn_, it.GetUid());
+    }
     for (size_t i = 0; i < n_fields; i++) {
         fields[i] = GetField(schema, prop, fds[i], blob_manager_, txn_);
     }
@@ -863,8 +936,12 @@ template <typename EIT>
 typename std::enable_if<IS_EIT_TYPE(EIT), std::vector<std::pair<std::string, FieldData>>>::type
 Transaction::GetEdgeFields(const EIT& it) {
     Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->e_schema_manager.GetSchema(it.GetLabelId());
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedEdgeProperty(txn_, it.GetUid());
+    }
     std::vector<std::pair<std::string, FieldData>> values;
     for (size_t i = 0; i < schema->GetNumFields(); i++) {
         auto fe = schema->GetFieldExtractor(i);
@@ -887,8 +964,12 @@ template <typename E, typename T>
 typename std::enable_if<IS_EIT_TYPE(E) && IS_FIELD_TYPE(T), FieldData>::type
 Transaction::GetEdgeField(const E& it, const T& fd) {
     Value prop = it.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->e_schema_manager.GetSchema(it.GetLabelId());
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedEdgeProperty(txn_, it.GetUid());
+    }
     return GetField(schema, prop, fd, blob_manager_, txn_);
 }
 
@@ -910,10 +991,14 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
     ThrowIfReadOnlyTxn();
     auto euid = it.GetUid();
     Value old_prop = it.GetProperty();
-    Value new_prop;
-    new_prop.Copy(old_prop);
+    FMA_DBG_ASSERT(old_prop.IsSlice());
     auto schema = curr_schema_->e_schema_manager.GetSchema(it.GetLabelId());
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        old_prop = schema->GetDetachedEdgeProperty(txn_, euid);
+    }
+    Value new_prop;
+    new_prop.Copy(old_prop);
     for (size_t i = 0; i < n_fields; i++) {
         auto fe = schema->GetFieldExtractor(fields[i]);
         if (fe->Type() == FieldType::BLOB) {
@@ -931,14 +1016,16 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                                            fe->GetConstRef(new_prop),
                                            euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
                     if (!r)
-                        throw InputError(FMA_FMT("{}:[{}] already exists", fe->Name(),
+                        throw InputError(FMA_FMT(
+                            "failed to update edge index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop)));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(txn_, fe->GetConstRef(new_prop),
                                         euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
                     if (!r)
-                        throw InputError(FMA_FMT("{}:[{}] already exists", fe->Name(),
+                        throw InputError(FMA_FMT(
+                            "failed to add edge index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop)));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
@@ -951,11 +1038,15 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
             }
         }
     }
-    it.SetProperty(new_prop);
-    auto ieit = graph_->GetUnmanagedInEdgeIterator(&txn_, it.GetUid(), false);
-    FMA_DBG_ASSERT(ieit.IsValid());
-    ieit.SetProperty(new_prop);
-    it.RefreshContentIfKvIteratorModified();
+    if (schema->DetachProperty()) {
+        schema->SetDetachedEdgeProperty(txn_, euid, new_prop);
+    } else {
+        it.SetProperty(new_prop);
+        auto ieit = graph_->GetUnmanagedInEdgeIterator(&txn_, it.GetUid(), false);
+        FMA_DBG_ASSERT(ieit.IsValid());
+        ieit.SetProperty(new_prop);
+        it.RefreshContentIfKvIteratorModified();
+    }
     if (fulltext_index_) {
         // fulltext
         schema->DeleteEdgeFullTextIndex(it.GetUid(), fulltext_buffers_);
@@ -979,8 +1070,12 @@ typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type Transaction::Get
     auto vit = graph_->GetUnmanagedVertexIterator(&txn_, vid);
     if (!vit.IsValid()) throw InputError(FMA_FMT("Vertex {} does not exist.", vid));
     Value prop = vit.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, vid);
+    }
     return GetField(schema, prop, fd, blob_manager_, txn_);
 }
 
@@ -1001,8 +1096,12 @@ Transaction::GetVertexFields(VertexId vid, const std::vector<FieldT>& fds) {
     auto vit = graph_->GetUnmanagedVertexIterator(&txn_, vid);
     if (!vit.IsValid()) throw InputError(FMA_FMT("Vertex {} does not exist.", vid));
     Value prop = vit.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
     FMA_DBG_ASSERT(schema);
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedVertexProperty(txn_, vid);
+    }
     for (size_t i = 0; i < fds.size(); i++) {
         fields[i] = GetField(schema, prop, fds[i], blob_manager_, txn_);
     }
@@ -1028,7 +1127,12 @@ typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type Transaction::Get
     if (!eit.IsValid()) throw InputError("Edge does not exist");
     auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
     FMA_DBG_ASSERT(schema);
-    return GetField(schema, eit.GetProperty(), fd, blob_manager_, txn_);
+    Value prop = eit.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedEdgeProperty(txn_, uid);
+    }
+    return GetField(schema, prop, fd, blob_manager_, txn_);
 }
 
 template <typename FieldT>
@@ -1039,7 +1143,11 @@ typename std::enable_if<IS_FIELD_TYPE(FieldT), void>::type Transaction::GetEdgeF
     if (!eit.IsValid()) throw InputError("Edge does not exist");
     auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
     FMA_DBG_ASSERT(schema);
-    const Value& prop = eit.GetProperty();
+    Value prop = eit.GetProperty();
+    FMA_DBG_ASSERT(prop.IsSlice());
+    if (schema->DetachProperty()) {
+        prop = schema->GetDetachedEdgeProperty(txn_, eit.GetUid());
+    }
     for (size_t i = 0; i < n_fields; i++) {
         fields[i] = GetField(schema, prop, fds[i], blob_manager_, txn_);
     }
@@ -1056,10 +1164,15 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     Value prop = schema->HasBlob()
                      ? schema->CreateRecordWithBlobs(
                            n_fields, fields, values,
-                           [this](const Value& blob) { return blob_manager_->Add(txn_, blob); })
+                           [this](const Value& blob) {
+                               return blob_manager_->Add(txn_, blob); })
                      : schema->CreateRecord(n_fields, fields, values);
-    VertexId newvid = graph_->AddVertex(txn_, prop);
+    VertexId newvid = graph_->AddVertex(
+        txn_, schema->DetachProperty() ? schema->CreateRecordWithLabelId() : prop);
     schema->AddVertexToIndex(txn_, newvid, prop);
+    if (schema->DetachProperty()) {
+        schema->AddDetachedVertexProperty(txn_, newvid, prop);
+    }
     if (fulltext_index_) {
         schema->AddVertexToFullTextIndex(newvid, prop, fulltext_buffers_);
     }
@@ -1115,10 +1228,14 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     }
     const auto& constraints = schema->GetEdgeConstraintsLids();
     EdgeUid euid = graph_->AddEdge(
-        txn_, EdgeSid(src, dst, schema->GetLabelId(), tid), prop, constraints);
+        txn_, EdgeSid(src, dst, schema->GetLabelId(), tid),
+        schema->DetachProperty() ? Value() : prop, constraints);
     EdgeId eid = euid.eid;
     tid = euid.tid;
     LabelId lid = euid.lid;
+    if (schema->DetachProperty()) {
+        schema->AddDetachedEdgeProperty(txn_, euid, prop);
+    }
     schema->AddEdgeToIndex(txn_, src, dst, lid, tid, eid, prop);
     if (fulltext_index_) {
         schema->AddEdgeToFullTextIndex(euid, prop, fulltext_buffers_);

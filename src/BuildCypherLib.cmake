@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
-find_package(PythonLibs REQUIRED)
-
+find_package(PythonInterp 3)
+find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 #antlr4-runtime
 find_package(antlr4-runtime REQUIRED)
 include_directories( ${ANTLR4_INCLUDE_DIR} )

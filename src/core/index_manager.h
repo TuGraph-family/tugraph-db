@@ -192,16 +192,5 @@ class IndexManager {
         }
         return indexes;
     }
-
- private:
-    template <typename T>
-    static void BuildIndexBatch(KvTransaction& txn, graph::VertexIterator& vit, size_t batch_size,
-                                VertexId& next_vid, const Schema* schema,
-                                const _detail::FieldExtractor* extractor);
-
-    template <typename T>
-    static void BuildEdgeIndexBatch(KvTransaction& txn, graph::VertexIterator& vit,
-                                    size_t batch_size, VertexId& next_vid, const Schema* schema,
-                                    const _detail::FieldExtractor* extractor);
 };
 }  // namespace lgraph

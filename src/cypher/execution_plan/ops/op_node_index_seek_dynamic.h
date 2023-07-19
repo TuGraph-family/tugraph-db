@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -116,8 +116,8 @@ class NodeIndexSeekDynamic : public OpBase {
             auto value =
                 value_rec_idx_ < 0 ? value_ : record->values[value_rec_idx_].constant.scalar;
             if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
-                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(), field_,
-                                value, value);
+                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
+                                node_->Label(), field_, value, value);
             } else {
                 // Weak index iterator
                 it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
@@ -150,6 +150,5 @@ class NodeIndexSeekDynamic : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

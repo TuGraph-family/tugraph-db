@@ -1,12 +1,12 @@
 set(LGRAPH_VERSION_MAJOR 3)
 set(LGRAPH_VERSION_MINOR 5)
-set(LGRAPH_VERSION_PATCH 0)
+set(LGRAPH_VERSION_PATCH 1)
 
 # options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)
 if (ENABLE_WALL)
     message("Wall is enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-unused-local-typedefs -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function -Wno-reorder")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 else (ENABLE_WALL)
     message("Wall is disabled.")
 endif (ENABLE_WALL)
@@ -81,7 +81,7 @@ else (ENABLE_SHARE_DIR)
     message("Data dir sharing is disabled. HA will work in replication mode.")
 endif (ENABLE_SHARE_DIR)
 
-option(ENABLE_FULLTEXT_INDEX "Enable fulltext index." ON)
+option(ENABLE_FULLTEXT_INDEX "Enable fulltext index." OFF)
 if (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is enabled.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLGRAPH_ENABLE_FULLTEXT_INDEX=1")

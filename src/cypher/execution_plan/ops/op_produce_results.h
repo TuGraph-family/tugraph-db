@@ -17,15 +17,15 @@
 //
 #pragma once
 
-#include "op.h"
-#include "server/json_convert.h"
 #include <regex>
+#include "cypher/execution_plan/ops/op.h"
+#include "server/json_convert.h"
 
 /* Runtime Record to User Record */
 static void RRecordToURecord(
-    lgraph_api::Transaction* txn, const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
+    lgraph_api::Transaction *txn,
+    const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
     const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record) {
-    using unordered_json = nlohmann::ordered_json;
     if (header.empty()) {
         return;
     }
@@ -72,11 +72,8 @@ static void RRecordToURecord(
                     auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
                     auto tid = static_cast<int64_t>(std::stoll(id++->str()));
                     auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
-                    record.InsertEdgeByID(header[index].first, lgraph_api::EdgeUid(start,
-                                                                                   end,
-                                                                                   lid,
-                                                                                   tid,
-                                                                                   eid));
+                    record.InsertEdgeByID(header[index].first,
+                                          lgraph_api::EdgeUid(start, end, lid, tid, eid));
                 } else if (v.type == cypher::Entry::RELATIONSHIP) {
                     auto uit = v.relationship->ItRef();
                     auto uid = uit->GetUid();
@@ -101,7 +98,8 @@ static void RRecordToURecord(
                 std::regex split_word("_");
                 for (auto &path_pattern : *v.constant.array) {
                     auto path_pattern_str = path_pattern.ToString();
-                    CYPHER_THROW_ASSERT(std::regex_match(path_pattern_str, match_group, regex_word));
+                    CYPHER_THROW_ASSERT(
+                        std::regex_match(path_pattern_str, match_group, regex_word));
                     auto type = match_group[1].str();
                     if (type == "V") continue;
                     auto ids = match_group[2].str();
@@ -113,7 +111,7 @@ static void RRecordToURecord(
                     auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
                     bool forward = true;
                     if (path.GetEndVertex().GetId() != start) {
-                        auto tmp_id =start;
+                        auto tmp_id = start;
                         forward = false;
                         start = end;
                         end = tmp_id;
@@ -145,7 +143,7 @@ class ProduceResults : public OpBase {
     } state_;
 
  public:
-    explicit ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
+    ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
         state_ = Uninitialized;
     }
 
@@ -187,6 +185,5 @@ class ProduceResults : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

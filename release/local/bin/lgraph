@@ -75,7 +75,7 @@ elif cmd == 'plugin':
             include_dir = '/usr/local/include/lgraph'
             library_dir = '/usr/local/lib64'
             plugin_dir = config.get('cpp_plugin', '/usr/local/lib64/lgraph/cpp_plugin')
-            p = subprocess.Popen(['g++', '-fPIC', '-g', '--std=c++11', '-I%s' % os.path.dirname(filename), '-I%s' % include_dir, '-rdynamic', '-O3', '-fopenmp', '-o', '/tmp/%s.so' % name, filename, '%s/liblgraph.so' % library_dir, '-L%s' % plugin_dir, '-shared'])
+            p = subprocess.Popen(['g++', '-fPIC', '-g', '--std=c++17', '-I%s' % os.path.dirname(filename), '-I%s' % include_dir, '-rdynamic', '-O3', '-fopenmp', '-o', '/tmp/%s.so' % name, filename, '%s/liblgraph.so' % library_dir, '-L%s' % plugin_dir, '-shared'])
             c = p.wait()
             if c!=0:
                 print('Compilation failed')

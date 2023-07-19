@@ -95,7 +95,7 @@ void TestLGraphApiMultiWriter() {
     db.AddVertexLabel("vertex",
                       std::vector<FieldSpec>(
                           {{"id", FieldType::INT32, false}, {"name", FieldType::STRING, false}}),
-                      "id");
+                      VertexOptions("id"));
     db.AddVertexIndex("vertex", "name", false);
 
     {
@@ -103,9 +103,8 @@ void TestLGraphApiMultiWriter() {
 #pragma omp parallel for
         for (int i = 0; i < 1000; i++) {
             auto txn = db.CreateWriteTxn(false);
-            auto vid =
-                txn.AddVertex("vertex", std::vector<std::string>({"id", "name"}),
-                              std::vector<std::string>({std::to_string(i), std::to_string(i)}));
+            txn.AddVertex("vertex", std::vector<std::string>({"id", "name"}),
+                          std::vector<std::string>({std::to_string(i), std::to_string(i)}));
             txn.Commit();
         }
         auto t1 = fma_common::GetTime();
@@ -133,9 +132,8 @@ void TestLGraphApiMultiWriter() {
         // #pragma omp parallel for
         for (int i = 0; i < 1000; i++) {
             auto txn = db.CreateWriteTxn(true);
-            auto vid =
-                txn.AddVertex("vertex", std::vector<std::string>({"id", "name"}),
-                              std::vector<std::string>({std::to_string(i), std::to_string(i)}));
+            txn.AddVertex("vertex", std::vector<std::string>({"id", "name"}),
+                          std::vector<std::string>({std::to_string(i), std::to_string(i)}));
             txn.Commit();
         }
         auto t1 = fma_common::GetTime();

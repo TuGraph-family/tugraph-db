@@ -7,7 +7,7 @@ ext_modules = [
         "pagerank", ['pagerank.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
-        include_dirs=['../../deps/fma-common', "../../src", "../../include"],
+        include_dirs=["../../src", "../../include"],
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
@@ -15,7 +15,7 @@ ext_modules = [
         "sssp", ['sssp.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
-        include_dirs=['../../deps/fma-common', "../../src", "../../include"],
+        include_dirs=["../../src", "../../include"],
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
@@ -23,7 +23,7 @@ ext_modules = [
         "wcc", ['wcc.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
-        include_dirs=['../../deps/fma-common', "../../src", "../../include"],
+        include_dirs=["../../src", "../../include"],
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
@@ -31,7 +31,7 @@ ext_modules = [
         "lpa", ['lpa.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
-        include_dirs=['../../deps/fma-common', "../../src", "../../include"],
+        include_dirs=["../../src", "../../include"],
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
@@ -39,7 +39,7 @@ ext_modules = [
         "lcc", ['lcc.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
-        include_dirs=['../../deps/fma-common', "../../src", "../../include"],
+        include_dirs=["../../src", "../../include"],
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
@@ -47,7 +47,7 @@ ext_modules = [
         "bfs", ['bfs.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
-        include_dirs=['../../deps/fma-common', "../../src", "../../include"],
+        include_dirs=["../../src", "../../include"],
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     )

@@ -1,4 +1,16 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 #pragma once
 #include <boost/asio/thread_pool.hpp>
@@ -176,6 +188,8 @@ class Importer {
     std::unique_ptr<rocksdb::DB> rocksdb_vids_;
     std::unordered_map<LabelId, std::atomic<int64_t>> vertex_count_;
     std::unordered_map<LabelId, std::atomic<int64_t>> edge_count_;
+    std::unordered_map<LabelId, bool> vlid_detach_;
+    std::unordered_map<LabelId, bool> elid_detach_;
 };
 
 }  // namespace import_v3

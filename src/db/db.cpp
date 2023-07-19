@@ -129,10 +129,9 @@ size_t lgraph::AccessControlledDB::EstimateNumVertices() {
 
 bool lgraph::AccessControlledDB::AddLabel(bool is_vertex, const std::string& label,
                                           const std::vector<FieldSpec>& fds,
-                                          const std::string& primary_field,
-                                          const EdgeConstraints& edge_constraints) {
+                                          const LabelOptions& options) {
     CheckFullAccess();
-    return graph_->AddLabel(label, fds, is_vertex, primary_field, edge_constraints);
+    return graph_->AddLabel(label, fds, is_vertex, options);
 }
 
 bool lgraph::AccessControlledDB::DeleteLabel(bool is_vertex, const std::string& label,

@@ -814,7 +814,6 @@ bool lgraph::AclManager::DeleteUserRoles(KvTransaction& txn, const std::string& 
     if (ait == user_cache_.end()) return false;
     bool need_refresh_acl_table = false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
-    size_t old_size = uinfo.roles.size();
     CheckRolesExist(txn, roles);
     for (auto& role : roles) {
         if (role == user) throw InputError("Cannnot delete primary role from user.");
@@ -922,6 +921,16 @@ bool lgraph::AclManager::DecipherToken(const std::string& token,
     } else {
         return false;
     }
+}
+
+int lgraph::AclManager::GetUserTokenNum(const std::string& user) {
+    int num = 0;
+    for (auto& kv : token_mapping_) {
+        if (kv.second == user) {
+            num++;
+        }
+    }
+    return num;
 }
 
 bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {

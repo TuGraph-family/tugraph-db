@@ -18,8 +18,8 @@
 #pragma once
 
 #include "lgraph/lgraph.h"
-#include "record.h"
-#include "resultset_statistics.h"
+#include "cypher/resultset/record.h"
+#include "cypher/resultset/resultset_statistics.h"
 #include "parser/symbol_table.h"
 
 namespace cypher {

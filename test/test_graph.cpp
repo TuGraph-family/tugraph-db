@@ -50,12 +50,6 @@ static Value GenProp(size_t s, size_t seed) {
     return v;
 }
 
-static void DumpTable(KvTransaction& txn, KvTable& t, bool track_incoming) {
-    t.Print(
-        txn, [](const Value& k) -> std::string { return k.AsString(); },
-        [track_incoming](const Value& v) -> std::string { return v.AsString(); });
-}
-
 TEST_F(TestGraph, Graph) {
     size_t vpsize = 1024;
     size_t epsize = 1024;

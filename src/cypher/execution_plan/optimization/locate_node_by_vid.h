@@ -1,3 +1,17 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 /*
  * @Author: gelincheng
  * @Date: 2022-01-11
@@ -7,7 +21,7 @@
 
 #pragma once
 
-#include "opt_pass.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
 
@@ -63,8 +77,8 @@ class LocateNodeByVid : public OptPass {
             range_filter->GetAeLeft().op.func_name == "id" &&
             range_filter->GetCompareOp() == lgraph::LBR_EQ) {
             if (!range_filter->GetAeRight().operand.constant.IsInteger()) {
-                return -1;  // TODO: 右值可能不是integer,这里用-1做flag合适嘛？
-            };
+                return -1;  // TODO(anyone): 右值可能不是integer,这里用-1做flag合适嘛？
+            }
             return range_filter->GetAeRight().operand.constant.scalar.integer();
         }
         return -1;
@@ -109,7 +123,7 @@ class LocateNodeByVid : public OptPass {
              * 混合其他的属性 暂时不管
              *
              *
-             * TODO: 加更多的容错判断
+             * TODO(anyone) 加更多的容错判断
              *
              * */
             vid = getVidFromRangeFilter(filter->Right());
@@ -129,7 +143,7 @@ class LocateNodeByVid : public OptPass {
             if (vid == -1) return false;
             target_vids.emplace_back(vid);
 
-            //如果需要按照原来的输入顺序输出的话
+            // 如果需要按照原来的输入顺序输出的话
             std::reverse(target_vids.begin(), target_vids.end());
             return true;
         }

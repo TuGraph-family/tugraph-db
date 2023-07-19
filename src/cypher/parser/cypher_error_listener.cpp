@@ -13,7 +13,7 @@
  */
 
 #include "parser/cypher_error_listener.h"
-#include "cypher_exception.h"
+#include "cypher/cypher_exception.h"
 using namespace parser;
 
 CypherErrorListener CypherErrorListener::INSTANCE;

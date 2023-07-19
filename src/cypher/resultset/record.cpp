@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "record.h"
+#include "cypher/resultset/record.h"
 
 #include "execution_plan/runtime_context.h"
 #include "parser/symbol_table.h"

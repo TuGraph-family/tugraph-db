@@ -36,7 +36,7 @@ class ExecutionPlan {
     parser::CmdType _cmd_type = parser::CmdType::QUERY;
     bool _read_only = true;
     OpBase *_root = nullptr;
-    // resultset of CURRENT part being built, todo: alloc for every part
+    // resultset of CURRENT part being built, TODO(anyone) alloc for every part
     ResultInfo _result_info;
     // query parts local member
     std::vector<PatternGraph> _pattern_graphs;
@@ -103,7 +103,7 @@ class ExecutionPlan {
     void Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
                cypher::RTContext *ctx);
 
-    void Validate(cypher::RTContext* ctx);
+    void Validate(cypher::RTContext *ctx);
 
     void Reset();
 

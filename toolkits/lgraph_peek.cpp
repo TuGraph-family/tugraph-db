@@ -43,8 +43,6 @@ static void PeekGraph(lgraph::AccessControlledDB& db, int64_t begin, int64_t end
 
 int main(int argc, char** argv) {
     std::string db_dir = "./lgraph_db";
-    size_t db_size = (size_t)1 << 42;
-    bool durable = false;
     std::string graph = "default";
     std::string user;
     std::string password;

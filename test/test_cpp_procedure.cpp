@@ -52,16 +52,16 @@ void build_so() {
     int rt;
 #ifndef __clang__
     std::string cmd_f =
-        "g++ -fno-gnu-unique -fPIC -g --std=c++11 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
         "-o {} {} {} -shared";
 #elif __APPLE__
     std::string cmd_f =
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++11 -I {} -I {} -rdynamic -O3 -Xpreprocessor "
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -Xpreprocessor "
         "-fopenmp -DNDEBUG "
         "-o {} {} {} -shared";
 #else
     std::string cmd_f =
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++11 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
         "-o {} {} {} -shared";
 #endif
     std::string cmd;

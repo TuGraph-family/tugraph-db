@@ -32,7 +32,7 @@ int MemUsage::parseMemLine(char * line) {
 }
 
 void MemUsage::reset() {
-    size_t maxMemUsage = 0;
+    maxMemUsage = 0;
     std::cout << "  reset memory record..." << std::endl;
     startMemRecord();
     return;

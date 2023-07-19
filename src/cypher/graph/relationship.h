@@ -18,7 +18,7 @@
 #pragma once
 
 #include <string>
-#include "common.h"
+#include "cypher/graph/common.h"
 #include "parser/data_typedef.h"
 
 namespace cypher {

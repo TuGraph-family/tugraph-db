@@ -457,10 +457,7 @@ bool lgraph::StateMachine::ApplyImportRequest(const LGraphRequest* req, LGraphRe
 
 bool lgraph::StateMachine::ApplyConfigRequest(const LGraphRequest* lgraph_req,
                                               LGraphResponse* resp) {
-    static fma_common::Logger& logger =
-        fma_common::Logger::Get("lgraph.StateMachine.ApplyConfigRequest");
     const ConfigRequest& req = lgraph_req->config_request();
-    ConfigResponse* aresp = resp->mutable_config_response();
     switch (req.Req_case()) {
     case ConfigRequest::kModConfigRequest:
         {
@@ -526,10 +523,7 @@ bool lgraph::StateMachine::ApplyRestoreRequest(const lgraph::LGraphRequest* lgra
 
 bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req,
                                              LGraphResponse* resp) {
-    static fma_common::Logger& logger =
-        fma_common::Logger::Get("lgraph.StateMachine.ApplyGraphRequest");
     const GraphRequest& req = lgraph_req->graph_request();
-    GraphResponse* gresp = resp->mutable_graph_response();
     std::string curr_user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
     switch (req.Req_case()) {
     case GraphRequest::kAddGraphRequest:
@@ -560,8 +554,6 @@ bool lgraph::StateMachine::ApplyGraphRequest(const LGraphRequest* lgraph_req,
 }
 
 bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp) {
-    static fma_common::Logger& logger =
-        fma_common::Logger::Get("lgraph.StateMachine.ApplyAclRequest");
     const AclRequest& req = lgraph_req->acl_request();
     AclResponse* aresp = resp->mutable_acl_response();
 
@@ -674,9 +666,6 @@ bool lgraph::StateMachine::ApplyAclRequest(const LGraphRequest* lgraph_req, LGra
 
 bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                                                 LGraphResponse* resp) {
-    static fma_common::Logger& logger =
-        fma_common::Logger::Get("lgraph.StateMachine.ApplyGraphApiRequest");
-
     const GraphApiRequest& req = lgraph_req->graph_api_request();
     GraphApiResponse* gresp = resp->mutable_graph_api_response();
     std::string curr_user;
@@ -706,10 +695,19 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                     ec.push_back(std::make_pair(item.src_label(), item.dst_label()));
                 }
             }
+            std::unique_ptr<LabelOptions> options;
+            if (lreq.is_vertex()) {
+                auto vo = std::make_unique<VertexOptions>();
+                vo->primary_field = lreq.primary();
+                options = std::move(vo);
+            } else {
+                auto eo = std::make_unique<EdgeOptions>();
+                eo->edge_constraints = ec;
+                options = std::move(eo);
+            }
             bool success =
                 db->AddLabel(lreq.is_vertex(), lreq.label(),
-                            FieldSpecConvert::ToLGraphT(lreq.fields()), lreq.primary(), ec);
-            AddLabelResponse* lresp = gresp->mutable_add_label_response();
+                            FieldSpecConvert::ToLGraphT(lreq.fields()), *options);
             if (success) {
                 return RespondSuccess(resp);
             } else {
@@ -962,10 +960,6 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
     }
     AutoTaskTracker task_tracker("[CYPHER] " + lgraph_req->cypher_request().query(), true,
                                  is_write);
-    static fma_common::Logger& logger =
-        fma_common::Logger::Get("lgraph.StateMachine.ApplyCypherRequest");
-
-
     BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
                                   "[CYPHER] " + req.query());
     TimeoutTaskKiller timeout_killer;
@@ -1095,7 +1089,6 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
     case PluginRequest::kListPluginRequest:
         {
             AutoTaskTracker task_tracker(false, true);
-            const auto& preq = req.list_plugin_request();
             BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true,
                           FMA_FMT("List plugin"));
 

@@ -62,55 +62,6 @@ inline Value CutKeyIfLong(const Value& k) {
 
 inline Value ReturnKeyEvenIfLong(Value&& v) { return std::move(v); }
 
-/**
- * The comparators for fixed-length types.
- * Compare first by key, then by vid.
- */
-template <FieldType DT>
-struct KeyVidCompareFunc {
-    static int func(const MDB_val* a, const MDB_val* b) {
-        typedef typename ::lgraph::field_data_helper::FieldType2StorageType<DT>::type T;
-        FMA_DBG_ASSERT(a->mv_size == sizeof(T) + VID_SIZE && b->mv_size == sizeof(T) + VID_SIZE);
-        int r = field_data_helper::ValueCompare<DT>(a->mv_data, sizeof(T), b->mv_data, sizeof(T));
-        if (r != 0) return r;
-        int64_t a_vid = GetVid((char*)a->mv_data + sizeof(T));
-        int64_t b_vid = GetVid((char*)b->mv_data + sizeof(T));
-        return a_vid < b_vid ? -1 : a_vid > b_vid ? 1 : 0;
-    }
-};
-
-template <FieldType DT>
-struct KeyCompareFunc {
-    static int func(const MDB_val* a, const MDB_val* b) {
-        typedef typename ::lgraph::field_data_helper::FieldType2StorageType<DT>::type T;
-        return field_data_helper::ValueCompare<DT>(a->mv_data, a->mv_size, b->mv_data, b->mv_size);
-    }
-};
-
-/**
- * The comparator for bytes or strings.
- */
-static int LexicalKeyVidCompareFunc(const MDB_val* a, const MDB_val* b) {
-    int diff;
-    int len_diff;
-    unsigned int len;
-
-    len = static_cast<int>(a->mv_size) - VID_SIZE;
-    len_diff = static_cast<int>(a->mv_size) - static_cast<int>(b->mv_size);
-    if (len_diff > 0) {
-        len = static_cast<int>(b->mv_size) - VID_SIZE;
-        len_diff = 1;
-    }
-
-    diff = memcmp(a->mv_data, b->mv_data, len);
-    if (diff == 0 && len_diff == 0) {
-        int64_t a_vid = GetVid((char*)a->mv_data + a->mv_size - VID_SIZE);
-        int64_t b_vid = GetVid((char*)b->mv_data + b->mv_size - VID_SIZE);
-        return a_vid < b_vid ? -1 : a_vid > b_vid ? 1 : 0;
-    }
-    return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
-}
-
 }  // namespace _detail
 
 class VertexIndex;

@@ -15,9 +15,9 @@
 #pragma once
 
 #include <boost/any.hpp>
-#include "cypher_exception.h"
+#include "cypher/cypher_exception.h"
 #include "filter/filter.h"
-#include "data_typedef.h"
+#include "cypher/parser/data_typedef.h"
 
 namespace parser {
 
@@ -69,12 +69,12 @@ struct Expression {
 
     int64_t Int() const {
 #if __APPLE__
-        CYPHER_THROW_ASSERT(data.type() == typeid(long long) ||
-                            data.type() == typeid(long));  // NOLINT
-        if (data.type() == typeid(long long)) {
-            return boost::any_cast<long long>(data);
+        CYPHER_THROW_ASSERT(data.type() == typeid(long long) ||  // NOLINT
+                            data.type() == typeid(long));        // NOLINT
+        if (data.type() == typeid(long long)) {                  // NOLINT
+            return boost::any_cast<long long>(data);             // NOLINT
         } else {
-            return boost::any_cast<long>(data);
+            return boost::any_cast<long>(data);                  // NOLINT
         }
 #else
         CYPHER_THROW_ASSERT(data.type() == typeid(int64_t));
@@ -172,7 +172,7 @@ struct Expression {
         }
     }
 
-    bool ContainAlias(const std::unordered_set<std::string> &alias) const {
+    bool ContainAlias(const std::unordered_set<std::string>& alias) const {
         switch (type) {
         case INT:
         case DOUBLE:
@@ -181,7 +181,7 @@ struct Expression {
             return false;
         case MAP:
             {
-                for (const auto &n : Map()) {
+                for (const auto& n : Map()) {
                     if (n.second.ContainAlias(alias)) {
                         return true;
                     }
@@ -196,7 +196,7 @@ struct Expression {
         case MATH:
         case LIST:
             {
-                for (const auto &n : List()) {
+                for (const auto& n : List()) {
                     if (n.ContainAlias(alias)) {
                         return true;
                     }
@@ -205,7 +205,7 @@ struct Expression {
             }
         case CASE:
             {
-                for (const auto &n : Case().first) {
+                for (const auto& n : Case().first) {
                     if (n.ContainAlias(alias)) {
                         return true;
                     }
@@ -221,7 +221,7 @@ struct Expression {
             CYPHER_TODO();
         case LIST_COMPREHENSION:
             {
-                for (const auto &n : ListComprehension()) {
+                for (const auto& n : ListComprehension()) {
                     if (n.ContainAlias(alias)) {
                         return true;
                     }

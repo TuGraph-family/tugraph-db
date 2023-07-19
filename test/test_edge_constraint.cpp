@@ -44,16 +44,16 @@ TEST_F(TestEdgeConstraint, lgraph_api) {
     auto db = galaxy.OpenGraph(lgraph::_detail::DEFAULT_GRAPH_DB_NAME);
     UT_EXPECT_TRUE(db.AddVertexLabel("v1",
                          {{"id", FieldType::STRING, false}},
-                         "id"));
+                         lgraph::VertexOptions("id")));
     UT_EXPECT_TRUE(db.AddVertexLabel("v2",
                          {{"id", FieldType::STRING, false}},
-                         "id"));
+                         lgraph::VertexOptions("id")));
     UT_EXPECT_TRUE(db.AddVertexLabel("v3",
-                                     {{"id", FieldType::STRING, false}},
-                                     "id"));
+                         {{"id", FieldType::STRING, false}},
+                         lgraph::VertexOptions("id")));
     UT_EXPECT_TRUE(db.AddEdgeLabel("v1_v2",
                        {{"weight", FieldType::FLOAT, false}},
-                       {}, {{"v1","v2"}})); // NOLINT
+                       lgraph::EdgeOptions(lgraph::EdgeConstraints{{"v1","v2"}}))); // NOLINT
 
     std::string err_msg = "Does not meet the edge constraints";
     Transaction txn = db.CreateWriteTxn();
@@ -74,7 +74,7 @@ TEST_F(TestEdgeConstraint, lgraph_api) {
     txn.Abort();
     UT_EXPECT_TRUE(db.AddVertexLabel("v1",
                                      {{"id", FieldType::STRING, false}},
-                                     "id"));
+                                     lgraph::VertexOptions("id")));
     txn = db.CreateWriteTxn();
     auto v1_1 = txn.AddVertex("v1", {"id"}, {"1"});
     txn.AddEdge(v1_1, v2, "v1_v2", {"weight"}, {"1"});

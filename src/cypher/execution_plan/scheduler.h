@@ -28,7 +28,7 @@
 
 #include "execution_plan/execution_plan.h"
 #include "execution_plan/runtime_context.h"
-#include "lru_cache.h"
+#include "cypher/execution_plan/lru_cache.h"
 
 namespace lgraph {
 class StateMachine;

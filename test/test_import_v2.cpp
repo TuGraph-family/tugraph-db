@@ -1191,12 +1191,23 @@ TEST_F(TestImportV2, ImportV2) {
         auto TryImport = [&](const std::string& expect_output, int expect_ec) {
             SubProcess proc(
                 UT_FMT("./lgraph_import --online false -c {} "
-                        "--overwrite true --continue_on_error false",
+                        "--overwrite true --continue_on_error false --v3 false",
                         import_conf));
             UT_EXPECT_TRUE(proc.ExpectOutput(expect_output, 100 * 1000));
             proc.Wait();
             UT_EXPECT_EQ(proc.GetExitCode(), expect_ec);
         };
+
+        auto TryImportV3 = [&](const std::string& expect_output, int expect_ec) {
+            SubProcess proc(
+                UT_FMT("./lgraph_import --online false -c {} "
+                       "--overwrite true --continue_on_error false --v3 true",
+                       import_conf));
+            UT_EXPECT_TRUE(proc.ExpectOutput(expect_output, 100 * 1000));
+            proc.Wait();
+            UT_EXPECT_EQ(proc.GetExitCode(), expect_ec);
+        };
+
         auto ValidateGraph = [&](const std::function<void(lgraph_api::GraphDB&)>& validate) {
             lgraph_api::Galaxy galaxy(db_dir);
             galaxy.SetCurrentUser(lgraph::_detail::DEFAULT_ADMIN_NAME,
@@ -1441,11 +1452,25 @@ TEST_F(TestImportV2, ImportV2) {
             auto txn = g.CreateReadTxn();
             auto it1 = txn.GetVertexByUniqueIndex("node", "id", FieldData(1));
             auto eit12 = it1.GetOutEdgeIterator();
-            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 50);
             eit12.Next();
             UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 70);
             eit12.Next();
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
+        });
+
+        // V3 tid test
+        db_cleaner.Clean();
+        TryImportV3("Import finished", 0);
+        ValidateGraph([](lgraph_api::GraphDB& g) {
+            auto txn = g.CreateReadTxn();
+            auto it1 = txn.GetVertexByUniqueIndex("node", "id", FieldData(1));
+            auto eit12 = it1.GetOutEdgeIterator();
             UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 50);
+            eit12.Next();
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 70);
+            eit12.Next();
+            UT_EXPECT_EQ(eit12.GetField("ts").AsInt64(), 100);
         });
     }
 }
@@ -1688,6 +1713,60 @@ TEST_F(TestImportV2, ImportJson) {
              "[\"skip\",2,\"skip\",\"name002\",\"skip\"]\n"},
             {"edge1.csv", "[\"skip\",1,1.1,\"skip\",2]\n"}};
         TestImportOnData(data, config, 2, 1);
+    }
+
+    {
+        UT_LOG() << "Test detaching property";
+        Importer::Config config;
+        config.delete_if_exists = true;
+        config.continue_on_error = true;
+        std::vector<std::pair<std::string, std::string>> data = {
+            {"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "node",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT32"},
+                {"name" : "name", "type":"STRING"}
+            ],
+            "detach_property" : true
+        },
+        {
+            "label" : "edge",
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "weight", "type" : "FLOAT"}
+            ],
+            "detach_property" : true
+        }
+    ],
+    "files" : [
+        {
+            "path" : "node1.csv",
+            "format" : "JSON",
+            "label" : "node",
+            "columns" : ["SKIP","id","SKIP","name","SKIP"]
+        },
+        {
+            "path" : "edge1.csv",
+            "format" : "JSON",
+            "label" : "edge",
+            "SRC_ID" : "node",
+            "DST_ID" : "node",
+            "columns" : ["SKIP","SRC_ID","weight","SKIP","DST_ID"]
+        }
+    ]
+}
+                    )"},
+            {"node1.csv",
+             "[\"skip\",1,\"skip\",\"name001\",\"skip\"]\n"
+             "[\"skip\",2,\"skip\",\"name002\",\"skip\"]\n"},
+            {"edge1.csv", "[\"skip\",1,1.1,\"skip\",2]\n"
+             "[\"skip\",1,2.2,\"skip\",2]\n"}};
+        TestImportOnData(data, config, 2, 2);
     }
 
     {

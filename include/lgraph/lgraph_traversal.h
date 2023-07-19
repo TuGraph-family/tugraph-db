@@ -279,8 +279,8 @@ class Edge {
     size_t start_;
     size_t end_;
     size_t eid_;
-    int64_t tid_;
     uint16_t lid_;
+    int64_t tid_;
     bool forward_;
 
  public:

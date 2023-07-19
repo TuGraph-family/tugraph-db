@@ -16,7 +16,7 @@
 // Created by wt on 6/12/18.
 //
 
-#include "node.h"
+#include "cypher/graph/node.h"
 #include "execution_plan/runtime_context.h"
 
 namespace cypher {
@@ -70,7 +70,7 @@ bool Node::AddRelp(cypher::RelpID rid, bool is_rhs_relp) {
 
 void Node::Set(const std::string &label, const cypher::Property &property) {
     if (!label.empty()) label_ = label;
-    // todo: multi pair
+    // TODO(anyone) multi pair
     if (property.type != Property::NUL) property_ = property;
 }
 

@@ -47,29 +47,28 @@ class GraphFactory {
                                                   {"since", lgraph::FieldType::INT32, true}};
         std::string e_label_2("created");
         std::vector<lgraph::FieldSpec> e_fds_2 = {{"weight", lgraph::FieldType::FLOAT, false}};
-        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, "uid"));
-        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, "uid"));
+        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, lgraph::VertexOptions("uid")));
+        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, lgraph::VertexOptions("uid")));
         UT_ASSERT(db.AddEdgeLabel(e_label_1, e_fds_1, {}));
         UT_ASSERT(db.AddEdgeLabel(e_label_2, e_fds_2, {}));
 
         auto txn = db.CreateWriteTxn();
         // add vertex
-        lgraph::VertexId vid[6];
-        vid[0] = txn.AddVertex(
+        txn.AddVertex(
             v_label_1,
             std::vector<std::string>{"uid", "name", "age", "age16", "age32", "agef", "aged"},
             std::vector<std::string>{"1", "marko", "29", "23", "22", "5.0", "6.0"});
-        vid[1] = txn.AddVertex(
+        txn.AddVertex(
             v_label_1,
             std::vector<std::string>{"uid", "name", "age", "age16", "age32", "agef", "aged"},
             std::vector<std::string>{"2", "vadas", "27", "23", "34", "23", "232.9"});
-        vid[2] = txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
+        txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
                                std::vector<std::string>{"3", "lop", "java"});
-        vid[3] = txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
+        txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
                                std::vector<std::string>{"4", "josh", "32"});
-        vid[4] = txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
+        txn.AddVertex(v_label_2, std::vector<std::string>{"uid", "name", "lang"},
                                std::vector<std::string>{"5", "ripple", "java"});
-        vid[5] = txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
+        txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
                                std::vector<std::string>{"6", "peter", "35"});
         // add edge
         txn.Commit();
@@ -94,8 +93,8 @@ class GraphFactory {
                                                   {"since", lgraph::FieldType::INT32, true}};
         std::string e_label_2("created");
         std::vector<lgraph::FieldSpec> e_fds_2 = {{"weight", lgraph::FieldType::FLOAT, false}};
-        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, "uid"));
-        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, "uid"));
+        UT_ASSERT(db.AddVertexLabel(v_label_1, v_fds_1, lgraph::VertexOptions("uid")));
+        UT_ASSERT(db.AddVertexLabel(v_label_2, v_fds_2, lgraph::VertexOptions("uid")));
         UT_ASSERT(db.AddEdgeLabel(e_label_1, e_fds_1, {}));
         UT_ASSERT(db.AddEdgeLabel(e_label_2, e_fds_2, {}));
 
@@ -115,7 +114,6 @@ class GraphFactory {
         vid[5] = txn.AddVertex(v_label_1, std::vector<std::string>{"uid", "name", "age"},
                                std::vector<std::string>{"6", "peter", "35"});
         // add edge
-        // lgraph::EdgeId eid[6];
         txn.AddEdge(vid[0], vid[1], e_label_1, std::vector<std::string>{"weight", "since"},
                     std::vector<std::string>{"0.5", "2018"});
         txn.AddEdge(vid[0], vid[3], e_label_1, std::vector<std::string>{"weight", "since"},
@@ -185,6 +183,7 @@ class GraphFactory {
             "label" : "BORN_IN", 
             "type" : "EDGE",
             "properties" : [
+                {"name" : "reg_time", "type":"DATETIME", "optional":true},
                 {"name" : "weight", "type":"FLOAT", "optional":true}
             ]
         },
@@ -245,7 +244,7 @@ class GraphFactory {
             "label" : "BORN_IN",
             "SRC_ID" : "Person",
             "DST_ID" : "City",
-            "columns" : ["SRC_ID","DST_ID","weight"]
+            "columns" : ["SRC_ID","DST_ID","reg_time","weight"]
         },
         {
             "path" : "directed.csv",
@@ -323,12 +322,12 @@ Liam Neeson,Natasha Richardson
 )"},
 
             {"born_in.csv",
-             R"(Vanessa Redgrave,London,20.21
-Natasha Richardson,London,20.18
-Christopher Nolan,London,19.93
-Dennis Quaid,Houston,19.11
-Lindsay Lohan,New York,20.62
-John Williams,New York,20.55
+             R"(Vanessa Redgrave,London,2023-05-01 10:00:00,20.21
+Natasha Richardson,London,2023-05-01 11:00:00,20.18
+Christopher Nolan,London,2023-05-01 12:00:00,19.93
+Dennis Quaid,Houston,2023-05-01 13:00:00,19.11
+Lindsay Lohan,New York,2023-05-01 14:00:00,20.62
+John Williams,New York,2023-05-01 15:00:00,20.55
 )"},
 
             {"directed.csv",

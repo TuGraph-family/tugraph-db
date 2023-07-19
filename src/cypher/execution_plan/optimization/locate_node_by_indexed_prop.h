@@ -1,10 +1,24 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 //
 // Created by gelincheng on 1/21/22.
 //
 
 #pragma once
 
-#include "opt_pass.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
 
@@ -37,7 +51,7 @@ class LocateNodeByIndexedProp : public OptPass {
             Node *node;
             const SymbolTable *symtab;
 
-            // TODO 2/9/22 gelincheng: 这里可以写的再优雅些嘛？
+            // TODO(anyone) 2/9/22 gelincheng: 这里可以写的再优雅些嘛？
             if (op_filter->children[0]->type == OpType::ALL_NODE_SCAN) {
                 node = dynamic_cast<AllNodeScan *>(op_filter->children[0])->GetNode();
                 symtab = dynamic_cast<AllNodeScan *>(op_filter->children[0])->sym_tab_;
@@ -71,13 +85,13 @@ class LocateNodeByIndexedProp : public OptPass {
             range_filter->GetCompareOp() == lgraph::LBR_EQ &&
             range_filter->GetAeRight().operand.type == ArithOperandNode::AR_OPERAND_CONSTANT) {
             if (field.empty()) {
-                //右值可能会不是constant? 如果是para类型？需要处理嘛？
+                // 右值可能会不是constant? 如果是para类型？需要处理嘛？
                 field = range_filter->GetAeLeft().operand.variadic.entity_prop;
             }
             if (field != range_filter->GetAeLeft().operand.variadic.entity_prop) {
                 return false;
             }
-            //这里默认是scalar,数组情况后续处理
+            // 这里默认是scalar,数组情况后续处理
             value = range_filter->GetAeRight().operand.constant.scalar;
             return true;
         }
@@ -125,7 +139,7 @@ class LocateNodeByIndexedProp : public OptPass {
             }
             if (!getValueFromRangeFilter(filter->Left(), field, value)) return false;
             target_value_datas.emplace_back(value);
-            //如果需要按照原来的输入顺序输出的话
+            // 如果需要按照原来的输入顺序输出的话
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
         }

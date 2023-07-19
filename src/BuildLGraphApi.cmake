@@ -104,7 +104,6 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC
-            fma-common
             libgomp.a
             -static-libstdc++
             -static-libgcc

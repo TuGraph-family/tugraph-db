@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 #include "filter/filter.h"
 
 namespace cypher {
@@ -128,7 +128,7 @@ class ExpandAll : public OpBase {
         ExpandAllConsuming,     /* ExpandAll consuming data. */
     } state_;
 
-    // TODO: rename expandAll to expand // NOLINT
+    // TODO(anyone) rename expandAll to expand
     ExpandAll(PatternGraph *pattern_graph, Node *start, Node *neighbor, Relationship *relp,
               std::shared_ptr<lgraph::Filter> edge_filter = nullptr)
         : OpBase(OpType::EXPAND_ALL, "Expand"),
@@ -195,7 +195,7 @@ class ExpandAll : public OpBase {
     }
 
     OpResult ResetImpl(bool complete) override {
-        /* TODO: optimize, the apply operator need reset rhs stream completely,
+        /* TODO(anyone) optimize, the apply operator need reset rhs stream completely,
          * while the cartesian product doesn't.
          * e.g.:
          * match (n:Person {name:'Vanessa Redgrave'})-->(m) with m as m1
@@ -228,6 +228,5 @@ class ExpandAll : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

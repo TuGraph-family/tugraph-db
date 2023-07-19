@@ -48,8 +48,8 @@ TEST_F(TestMoveConstructors, MoveConstructor) {
         std::vector<FieldSpec> vfd = {{"name", FieldType::STRING, false},
                                       {"id", FieldType::INT64, false}};
         std::vector<FieldSpec> efd = {{"type", FieldType::INT8, false}};
-        db.AddLabel("v", vfd, true, "id", {});
-        db.AddLabel("e", efd, false, {}, {});
+        db.AddLabel("v", vfd, true, VertexOptions("id"));
+        db.AddLabel("e", efd, false, EdgeOptions());
 
         {
             auto txn_ = db.CreateWriteTxn(false);
@@ -75,22 +75,18 @@ TEST_F(TestMoveConstructors, MoveConstructor) {
             {
                 auto vit_ = txn.GetVertexIterator(vid1_);
                 UT_EXPECT_TRUE(vit_.IsValid());
-                VertexId vid = vit_.GetId();
                 Value v = vit_.GetProperty();
                 auto vit = std::move(vit_);
                 UT_EXPECT_TRUE(vit.IsValid());
                 Value v2 = vit.GetProperty();
                 UT_EXPECT_EQ(v.Data(), v2.Data());
             }
-            EdgeUid eid0 =
-                txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
-                            std::vector<std::string>({"1"}));
-            EdgeUid eid1 =
-                txn.AddEdge(vid2_, vid1_, std::string("e"), std::vector<std::string>({"type"}),
-                            std::vector<std::string>({"2"}));
-            EdgeUid eid2 =
-                txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
-                            std::vector<std::string>({"3"}));
+            txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
+                        std::vector<std::string>({"1"}));
+            txn.AddEdge(vid2_, vid1_, std::string("e"), std::vector<std::string>({"type"}),
+                        std::vector<std::string>({"2"}));
+            txn.AddEdge(vid1_, vid2_, std::string("e"), std::vector<std::string>({"type"}),
+                        std::vector<std::string>({"3"}));
             {
                 auto eit_ = txn.GetOutEdgeIterator(EdgeUid(vid1_, vid2_, 0, 0, 0), true);
                 CheckEdgeMove(eit_);

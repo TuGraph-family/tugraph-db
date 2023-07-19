@@ -16,7 +16,7 @@
 // Created by wt on 6/15/18.
 //
 
-#include "iterator.h"
+#include "cypher/filter/iterator.h"
 
 int64_t lgraph::EIter::HashId() const {
     EuidHash th;

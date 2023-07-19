@@ -18,12 +18,12 @@
 #pragma once
 
 #include "core/lightning_graph.h"
-#include "cypher_types.h"
-#include "cypher_exception.h"
+#include "cypher/cypher_types.h"
+#include "cypher/cypher_exception.h"
 
 namespace lgraph {
 
-// TODO: using native lgraph iterator // NOLINT
+// TODO(anyone) using native lgraph iterator
 class LabelVertexIterator {
     lgraph::Transaction *_txn = nullptr;
     lgraph::graph::VertexIterator *_it = nullptr;
@@ -123,7 +123,7 @@ class WeakIndexIterator {
             _iit_idx = 0;
             _valid = true;
         } else {
-            // TODO: optimize, use label iterator // NOLINT
+            // TODO(anyone) optimize, use label iterator
             _it = new lgraph::graph::VertexIterator(_txn->GetVertexIterator());
             while (_it->IsValid()) {
                 if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
@@ -286,8 +286,8 @@ class VIter {
         _txn = txn;
         _type = type;
         if (_type == INDEX_ITER) {
-            _iit =
-                new lgraph::VertexIndexIterator(_txn->GetVertexIndexIterator(label, field, key_start, key_end));
+            _iit = new lgraph::VertexIndexIterator(
+                _txn->GetVertexIndexIterator(label, field, key_start, key_end));
         } else {
             throw lgraph::CypherException("VIter constructor type error.");
         }
@@ -380,7 +380,7 @@ class VIter {
     }
 
     lgraph::VertexId GetId() const {
-        const static int64_t INVALID_VERTEX_ID = -1;
+        static const int64_t INVALID_VERTEX_ID = -1;
         switch (_type) {
         case VERTEX_ITER:
             return _vit ? _vit->GetId() : INVALID_VERTEX_ID;
@@ -413,7 +413,7 @@ class VIter {
     }
 
     std::string GetLabel() const {
-        const static std::string EMPTY_LABEL;
+        static const std::string EMPTY_LABEL;
         switch (_type) {
         case VERTEX_ITER:
             return _vit ? _txn->GetVertexLabel(*_vit) : EMPTY_LABEL;
@@ -437,7 +437,7 @@ class VIter {
     }
 
     std::string Properties() const {
-        const static std::string EMPTY_PROPERTIES;
+        static const std::string EMPTY_PROPERTIES;
         switch (_type) {
         case VERTEX_ITER:
             return _vit ? Properties(*_vit) : EMPTY_PROPERTIES;
@@ -454,7 +454,7 @@ class VIter {
     }
 
     std::vector<std::string> Keys() const {
-        const static std::vector<std::string> EMPTY_KEYS;
+        static const std::vector<std::string> EMPTY_KEYS;
         switch (_type) {
         case VERTEX_ITER:
             return _vit ? Keys(*_vit) : EMPTY_KEYS;
@@ -476,7 +476,7 @@ class VIter {
             _vit->Goto(_vid);
             break;
         case INDEX_ITER:
-            // todo: use goto method
+            // TODO(anyone): use goto method
             delete _iit;
             _iit = new lgraph::VertexIndexIterator(
                 _txn->GetVertexIndexIterator(_label, _field, _key_start, _key_end));
@@ -539,8 +539,8 @@ class VIter {
 };
 
 // Labeled Edge Iterator
-// TODO: Is there an optimization opportunity? considering the edges is sorted by labelId now. //
-// NOLINT
+// TODO(anyone): Is there an optimization opportunity? considering the edges is sorted by labelId
+// now.
 template <typename EIT>
 class TypeEdgeIterator {
     lgraph::Transaction *_txn = nullptr;
@@ -555,7 +555,7 @@ class TypeEdgeIterator {
  public:
     TypeEdgeIterator(lgraph::Transaction *txn, EIT *eit, const std::set<std::string> &types)
         : _txn(txn), _eit(eit), _types(types) {
-        // TODO: optimize with eit.goto label_id // NOLINT
+        // TODO(anyone) optimize with eit.goto label_id
         while (_eit->IsValid()) {
             if (_types.find(_txn->GetEdgeLabel(*_eit)) != _types.end()) {
                 _valid = true;
@@ -645,9 +645,7 @@ class EIter {
         Initialize(txn, type, vid, relp_types);
     }
 
-    EIter(lgraph::Transaction *txn, lgraph::EdgeUid &euid) {
-        Initialize(txn, euid);
-    }
+    EIter(lgraph::Transaction *txn, lgraph::EdgeUid &euid) { Initialize(txn, euid); }
 
     ~EIter() { FreeIter(); }
 
@@ -1023,7 +1021,8 @@ class EIter {
         case BI_EDGE:
             return _is_out ? _txn->GetEdgeFields(*_oeit) : _txn->GetEdgeFields(*_ieit);
         case BI_TYPE_EDGE:
-            return _is_out ? _txn->GetEdgeFields(*(_toeit->Eit())) : _txn->GetEdgeFields(*(_tieit->Eit()));
+            return _is_out ? _txn->GetEdgeFields(*(_toeit->Eit()))
+                           : _txn->GetEdgeFields(*(_tieit->Eit()));
         default:
             break;
         }

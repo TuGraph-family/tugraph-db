@@ -81,11 +81,26 @@ void LightningGraph::DropAllVertex() {
                 ext->GetEdgeIndex()->Clear(txn.GetTxn());
             }
         }
+        // clear detached property data
+        for (auto& name : curr_schema->v_schema_manager.GetAllLabels()) {
+            auto s = curr_schema->v_schema_manager.GetSchema(name);
+            if (s->DetachProperty()) {
+                s->GetPropertyTable().Drop(txn.GetTxn());
+            }
+        }
+        for (auto& name : curr_schema->e_schema_manager.GetAllLabels()) {
+            auto s = curr_schema->e_schema_manager.GetSchema(name);
+            if (s->DetachProperty()) {
+                s->GetPropertyTable().Drop(txn.GetTxn());
+            }
+        }
         // clear graph data
         graph_->Drop(txn.GetTxn());
+        // clear count data
+        graph_->DeleteAllCount(txn.GetTxn());
         txn.Commit();
     } catch (std::exception& e) {
-        FMA_WARN_STREAM(logger_) << "Failed to drop all indexes: " << e.what();
+        FMA_WARN_STREAM(logger_) << "Failed to drop all vertex : " << e.what();
     }
 }
 
@@ -134,8 +149,7 @@ inline void CheckIsValidLabelFieldName(const std::string& lof) {
  * \return  True if it succeeds, false if the label already exists. Throws exception on error.
  */
 bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const FieldSpec* fds,
-                              bool is_vertex, const std::string& primary_field,
-                              const EdgeConstraints& edge_constraints) {
+                              bool is_vertex, const LabelOptions& options) {
     // check that label and field names are legal
     CheckIsValidLabelFieldName<true>(label);
     if (_F_UNLIKELY(n_fields > 1024)) {
@@ -160,6 +174,7 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
 
     // check constraints
     if (is_vertex) {
+        const auto& primary_field = dynamic_cast<const VertexOptions&>(options).primary_field;
         if (n_fields == 0)
             throw InputError(FMA_FMT("Vertex[{}]: Schema must have properties", label));
         if (primary_field.empty())
@@ -175,6 +190,7 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         }
         if (!found) throw InputError(FMA_FMT("Vertex[{}]: No primary property found", label));
     } else {
+        const auto& edge_constraints = dynamic_cast<const EdgeOptions&>(options).edge_constraints;
         auto temp = edge_constraints;
         std::sort(temp.begin(), temp.end());
         auto iter = std::unique(temp.begin(), temp.end());
@@ -203,12 +219,12 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
     ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
     SchemaManager* sm = is_vertex ? &new_schema->v_schema_manager : &new_schema->e_schema_manager;
-    bool r = sm->AddLabel(txn.GetTxn(), is_vertex, label, n_fields, fds, primary_field,
-                          edge_constraints);
+    bool r = sm->AddLabel(txn.GetTxn(), is_vertex, label, n_fields, fds, options);
     if (r && is_vertex) {
         // add vertex primary index
         Schema* schema = sm->GetSchema(label);
         FMA_DBG_ASSERT(schema);
+        const auto& primary_field = dynamic_cast<const VertexOptions&>(options).primary_field;
         const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(primary_field);
         FMA_DBG_ASSERT(extractor);
         std::unique_ptr<VertexIndex> index;
@@ -218,6 +234,22 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         schema->MarkVertexIndexed(extractor->GetFieldId(), index.release());
     }
     if (r) {
+        Schema* schema = sm->GetSchema(label);
+        FMA_DBG_ASSERT(schema);
+        if (schema->DetachProperty()) {
+            KvTable table;
+            if (is_vertex) {
+                std::string prefix = _detail::VERTEX_PROPERTY_TABLE_PREFIX;
+                table = store_->OpenTable(txn.GetTxn(), prefix + label, true,
+                                          ComparatorDesc::DefaultComparator());
+            } else {
+                std::string prefix = _detail::EDGE_PROPERTY_TABLE_PREFIX;
+                table = store_->OpenTable(txn.GetTxn(), prefix + label, true,
+                                          ComparatorDesc::DefaultComparator());
+            }
+            schema->SetPropertyTable(std::move(table));
+        }
+
         // refill `EdgeConstraintsLids` with right vertex label id.
         new_schema->e_schema_manager.RefreshEdgeConstraintsLids(
             new_schema->v_schema_manager);
@@ -242,9 +274,8 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
  * \return  True if it succeeds, false if the label already exists. Throws exception on error.
  */
 bool LightningGraph::AddLabel(const std::string& label, const std::vector<FieldSpec>& fds,
-                              bool is_vertex, const std::string& primary_field,
-                              const EdgeConstraints& edge_constraints) {
-    return AddLabel(label, fds.size(), fds.data(), is_vertex, primary_field, edge_constraints);
+                              bool is_vertex, const LabelOptions& options) {
+    return AddLabel(label, fds.size(), fds.data(), is_vertex, options);
 }
 
 bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* n_modified) {
@@ -457,12 +488,19 @@ bool LightningGraph::_AlterLabel(
         std::unique_ptr<lgraph::graph::VertexIterator> vit(
             new lgraph::graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
         while (vit->IsValid()) {
-            const Value& prop = vit->GetProperty();
+            Value prop = vit->GetProperty();
             if (curr_sm->GetRecordLabelId(prop) == curr_lid) {
                 modified++;
+                if (curr_schema->DetachProperty()) {
+                    prop = curr_schema->GetDetachedVertexProperty(txn.GetTxn(), vit->GetId());
+                }
                 Value new_prop = make_new_prop_and_destroy_old(prop, curr_schema, new_schema, txn);
                 vit->RefreshContentIfKvIteratorModified();
-                vit->SetProperty(new_prop);
+                if (curr_schema->DetachProperty()) {
+                    curr_schema->SetDetachedVertexProperty(txn.GetTxn(), vit->GetId(), new_prop);
+                } else {
+                    vit->SetProperty(new_prop);
+                }
                 if (modified - n_committed >= commit_size) {
 #if PERIODIC_COMMIT
                     VertexId vid = vit->GetId();
@@ -490,19 +528,30 @@ bool LightningGraph::_AlterLabel(
             for (auto eit = vit->GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                 if (eit.GetLabelId() == curr_lid) {
                     modified++;
-                    Value new_prop = make_new_prop_and_destroy_old(eit.GetProperty(), curr_schema,
+                    Value property = eit.GetProperty();
+                    if (curr_schema->DetachProperty()) {
+                        property = curr_schema->GetDetachedEdgeProperty(txn.GetTxn(), eit.GetUid());
+                    }
+                    Value new_prop = make_new_prop_and_destroy_old(property, curr_schema,
                                                                    new_schema, txn);
                     eit.RefreshContentIfKvIteratorModified();
-                    eit.SetProperty(new_prop);
+                    if (curr_schema->DetachProperty()) {
+                        curr_schema->SetDetachedEdgeProperty(txn.GetTxn(), eit.GetUid(), new_prop);
+                    } else {
+                        eit.SetProperty(new_prop);
+                    }
                 }
             }
             vit->RefreshContentIfKvIteratorModified();
-            for (auto eit = vit->GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() == curr_lid) {
-                    Value new_prop = make_new_prop_and_destroy_old(eit.GetProperty(), curr_schema,
-                                                                   new_schema, txn);
-                    eit.RefreshContentIfKvIteratorModified();
-                    eit.SetProperty(new_prop);
+            if (!curr_schema->DetachProperty()) {  // has been processed in above OutEdgeIterator
+                for (auto eit = vit->GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() == curr_lid) {
+                        Value property = eit.GetProperty();
+                        Value new_prop =
+                            make_new_prop_and_destroy_old(property, curr_schema, new_schema, txn);
+                        eit.RefreshContentIfKvIteratorModified();
+                        eit.SetProperty(new_prop);
+                    }
                 }
             }
             vit->RefreshContentIfKvIteratorModified();
@@ -1126,7 +1175,8 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                                      VertexId start_vid, VertexId end_vid, bool is_vertex) {
     if (is_vertex) {
         SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
-        auto* field_extractor = schema_manager->GetSchema(label_id)->GetFieldExtractor(field_id);
+        auto v_schema = schema_manager->GetSchema(label_id);
+        auto* field_extractor = v_schema->GetFieldExtractor(field_id);
         FMA_DBG_ASSERT(field_extractor);
         VertexIndex* index = field_extractor->GetVertexIndex();
         FMA_DBG_ASSERT(index);
@@ -1137,8 +1187,11 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
             key_vids.reserve(curr_end - vid);
             for (auto it = txn.GetVertexIterator(vid, true); it.IsValid() && it.GetId() < curr_end;
                  it.Next()) {
-                const Value& prop = it.GetProperty();
+                Value prop = it.GetProperty();
                 if (schema_manager->GetRecordLabelId(prop) != label_id) continue;
+                if (v_schema->DetachProperty()) {
+                    prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
+                }
                 const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
                 CheckKeySizeForIndex(key);
                 key_vids.emplace_back(key, it.GetId());
@@ -1194,7 +1247,8 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
         }
     } else {
         SchemaManager* schema_manager = &new_schema_info->e_schema_manager;
-        auto* field_extractor = schema_manager->GetSchema(label_id)->GetFieldExtractor(field_id);
+        auto e_schema = schema_manager->GetSchema(label_id);
+        auto* field_extractor = e_schema->GetFieldExtractor(field_id);
         FMA_DBG_ASSERT(field_extractor);
         EdgeIndex* edge_index = field_extractor->GetEdgeIndex();
         FMA_DBG_ASSERT(edge_index);
@@ -1207,10 +1261,13 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                  it.Next()) {
                 auto et = it.GetOutEdgeIterator();
                 while (et.IsValid()) {
-                    const Value& prop = et.GetProperty();
+                    Value prop = et.GetProperty();
                     if (et.GetLabelId() != label_id) {
                         et.Next();
                         continue;
+                    }
+                    if (e_schema->DetachProperty()) {
+                        prop = e_schema->GetDetachedEdgeProperty(txn.GetTxn(), et.GetUid());
                     }
                     const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
                     CheckKeySizeForIndex(key);
@@ -1396,7 +1453,12 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
         for (auto iit = txn.GetVertexIndexIterator(schema->GetLabel(), schema->GetTemporalField());
              iit.IsValid(); iit.Next()) {
             VertexId vid = iit.GetVid();
-            const auto& properties = txn.GetVertexIterator(vid).GetProperty();
+            Value properties;
+            if (schema->DetachProperty()) {
+                properties = schema->GetDetachedVertexProperty(txn.GetTxn(), vid);
+            } else {
+                properties = txn.GetVertexIterator(vid).GetProperty();
+            }
             std::vector<std::pair<std::string, std::string>> kvs;
             for (auto& idx : fulltext_filelds) {
                 auto fe = schema->GetFieldExtractor(idx);
@@ -1417,7 +1479,12 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
                     const auto& fulltext_filelds = schema->GetFullTextFields();
                     for (auto& idx : fulltext_filelds) {
                         auto fe = schema->GetFieldExtractor(idx);
-                        const auto& properties = eit.GetProperty();
+                        Value properties;
+                        if (schema->DetachProperty()) {
+                            properties = schema->GetDetachedEdgeProperty(txn.GetTxn(), euid);
+                        } else {
+                            properties = eit.GetProperty();
+                        }
                         if (fe->GetIsNull(properties)) continue;
                         kvs.emplace_back(fe->Name(), fe->FieldToString(properties));
                     }
@@ -1699,6 +1766,9 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                     next_vertex_id = vit.GetId();
                     break;
                 }
+                if (schema->DetachProperty()) {
+                    v = schema->GetDetachedVertexProperty(txn.GetTxn(), vit.GetId());
+                }
                 key_vids.emplace_back(GetIndexKeyFromValue<T>(extractor->GetConstRef(v)),
                                       vit.GetId());
             }
@@ -1763,6 +1833,11 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             FMA_DBG_ASSERT(extractor);
             for (; vit.IsValid(); vit.Next()) {
                 Value v = vit.GetProperty();
+                auto v_lid = SchemaManager::GetRecordLabelId(v);
+                auto v_schema = txn.curr_schema_->v_schema_manager.GetSchema(v_lid);
+                if (v_schema->DetachProperty()) {
+                    v = v_schema->GetDetachedVertexProperty(txn.GetTxn(), vit.GetId());
+                }
                 auto eit = vit.GetOutEdgeIterator();
                 for (; eit.IsValid(); eit.Next()) {
                     if (eit.GetLabelId() == lid) {
@@ -1771,7 +1846,6 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                                                euid);
                     }
                 }
-                auto v_lid = SchemaManager::GetRecordLabelId(v);
                 if (v_lid != start_lid) {
                     next_vertex_id = vit.GetId();
                     break;
@@ -2183,8 +2257,28 @@ void LightningGraph::Open() {
     // load schema info
     KvTable v_s_tbl = SchemaManager::OpenTable(txn, *store_, _detail::V_SCHEMA_TABLE);
     SchemaManager vs(txn, v_s_tbl, true);
+    for (auto& label : vs.GetAllLabels()) {
+        auto s = vs.GetSchema(label);
+        FMA_ASSERT(s);
+        if (s->DetachProperty()) {
+            std::string prefix = _detail::VERTEX_PROPERTY_TABLE_PREFIX;
+            auto t = store_->OpenTable(txn, prefix + label,
+                                       true, ComparatorDesc::DefaultComparator());
+            s->SetPropertyTable(std::move(t));
+        }
+    }
     KvTable e_s_tbl = SchemaManager::OpenTable(txn, *store_, _detail::E_SCHEMA_TABLE);
     SchemaManager es(txn, e_s_tbl, false);
+    for (auto& label : es.GetAllLabels()) {
+        auto s = es.GetSchema(label);
+        FMA_ASSERT(s);
+        if (s->DetachProperty()) {
+            std::string prefix = _detail::EDGE_PROPERTY_TABLE_PREFIX;
+            auto t = store_->OpenTable(txn, prefix + label,
+                                       true, ComparatorDesc::DefaultComparator());
+            s->SetPropertyTable(std::move(t));
+        }
+    }
     es.RefreshEdgeConstraintsLids(vs);
     schema_.Assign(new SchemaInfo{std::move(vs), std::move(es)});
     // open graph

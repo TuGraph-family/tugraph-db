@@ -16,7 +16,7 @@
 // Created by wt on 6/12/18.
 //
 
-#include "relationship.h"
+#include "cypher/graph/relationship.h"
 
 namespace cypher {
 
@@ -29,8 +29,8 @@ Relationship::Relationship(RelpID id, const std::set<std::string> &types, NodeID
       types_(types),
       lhs_(lhs),
       rhs_(rhs),
-      direction_(direction),
       alias_(alias),
+      direction_(direction),
       derivation_(derivation) {}
 
 Relationship::Relationship(RelpID id, const std::set<std::string> &types, NodeID src, NodeID dst,
@@ -40,11 +40,11 @@ Relationship::Relationship(RelpID id, const std::set<std::string> &types, NodeID
       types_(types),
       lhs_(src),
       rhs_(dst),
-      direction_(direction),
       alias_(alias),
+      direction_(direction),
+      derivation_(derivation),
       min_hop_(min_hop),
-      max_hop_(max_hop),
-      derivation_(derivation) {}
+      max_hop_(max_hop) {}
 
 RelpID Relationship::ID() const { return id_; }
 

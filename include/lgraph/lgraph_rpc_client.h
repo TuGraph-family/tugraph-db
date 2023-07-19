@@ -208,6 +208,13 @@ class RpcClient {
                     const std::string& graph = "default", bool json_format = true,
                     double timeout = 0);
 
+    /**
+     * @brief   Get the url of client.
+     *
+     * @returns the url of client.
+     */
+     std::string GetUrl();
+
     void Logout();
 
  private:
@@ -225,6 +232,9 @@ class RpcClient {
 #endif
     std::string CypherResponseExtractor(CypherResponse cypher);
 
+    std::string url;
+    std::string user;
+    std::string password;
     std::string token;
     int64_t server_version;
     // A Channel represents a communication line to a Server. Notice that

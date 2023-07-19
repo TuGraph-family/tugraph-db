@@ -99,10 +99,18 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             // create labels
             auto m = v.GetSchemaDef();
             std::vector<FieldSpec> fds;
+            std::unique_ptr<LabelOptions> options;
+            if (v.is_vertex) {
+                auto vo = std::make_unique<VertexOptions>();
+                vo->primary_field = v.GetPrimaryColumn().name;
+                options = std::move(vo);
+            } else {
+                auto eo = std::make_unique<EdgeOptions>();
+                eo->edge_constraints = v.edge_constraints;
+                options = std::move(eo);
+            }
             for (auto& p : m) fds.emplace_back(p.second);
-            bool ok = db.AddLabel(v.is_vertex, v.name, fds,
-                                  v.HasPrimaryColumn() ? v.GetPrimaryColumn().name : "",
-                                  v.edge_constraints);
+            bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
             if (ok) {
                 FMA_LOG() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
                                      v.name);

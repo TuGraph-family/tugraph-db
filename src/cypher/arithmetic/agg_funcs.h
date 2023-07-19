@@ -17,8 +17,8 @@
 //
 #pragma once
 
-#include "cypher_types.h"
-#include "agg_ctx.h"
+#include "cypher/cypher_types.h"
+#include "cypher/arithmetic/agg_ctx.h"
 
 namespace cypher {
 
@@ -57,7 +57,7 @@ class SumAggCtx : public AggCtx {
     }
 
     int ReduceNext() override {
-        // TODO: handle int64_t // NOLINT
+        // TODO(anyone) handle int64_t
         result.type = Entry::CONSTANT;
         result.constant = lgraph::FieldData(total);
         // Reset(); ?
@@ -139,7 +139,7 @@ class MinAggCtx : public AggCtx {
     }
 };
 
-// TODO: remove duplicate, defined in filter.h
+// TODO(anyone): remove duplicate, defined in filter.h
 struct FieldDataHash {
     size_t operator()(const lgraph_api::FieldData &fd) const {
         using namespace lgraph_api;

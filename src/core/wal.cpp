@@ -610,7 +610,7 @@ void Wal::ReplayLogs()  {
                     throw KvException("TXN_COMMIT !is_child");
                     BREAK_ON_UNEXPECTED_OP("TXN_COMMIT");
                 }
-                int ec = mdb_txn_commit(root_txn);
+                THROW_ON_ERR(mdb_txn_commit(root_txn));
                 root_txn = nullptr;
             }
             break;
@@ -718,9 +718,9 @@ void Wal::ReplayLogs()  {
 }
 
 void Wal::FlusherThread() {
-    double last_report = fma_common::GetTime();
     std::unordered_map<size_t, size_t> hist;
 #if WAL_PROFILE
+    double last_report = fma_common::GetTime();
     double total_sync_time = 0;
     size_t nsyncs = 0;
     size_t ntxns = 0;

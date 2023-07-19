@@ -19,7 +19,7 @@
 
 #include "arithmetic/arithmetic_expression.h"
 #include "grouping/group.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 #include "parser/clause.h"
 
 namespace cypher {
@@ -243,7 +243,6 @@ class Aggregate : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 
 }  // namespace cypher

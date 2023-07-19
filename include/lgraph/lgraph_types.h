@@ -66,6 +66,79 @@ inline static std::string to_string(const FieldAccessLevel& v) {
     }
 }
 
+/**
+ * @brief  Edge constraints type define
+ */
+typedef std::vector<std::pair<std::string, std::string>> EdgeConstraints;
+
+/**
+ * @brief  Label options, base class, define some common fields and methods
+ */
+struct LabelOptions {
+    // store property data in detached model
+    // Default: false
+    bool detach_property = false;
+    virtual std::string to_string() const = 0;
+    virtual void clear() = 0;
+    virtual ~LabelOptions() {}
+};
+
+/**
+ * @brief  Edge label options, contain fields only edge have
+ */
+struct EdgeOptions : LabelOptions {
+    // edge constraints, specify the start and end vertex label in edge direction
+    // Default: empty, means no constraints
+    EdgeConstraints edge_constraints;
+    // edge temporal field, edge will be stored in the order of this field
+    // Default: empty
+    std::string temporal_field;
+
+    EdgeOptions() = default;
+    explicit EdgeOptions(const EdgeConstraints& edge_constraints)
+        : edge_constraints(edge_constraints) {}
+
+    std::string to_string() const {
+        std::string ret;
+        std::string constraints;
+        for (size_t i = 0; i < edge_constraints.size(); i++) {
+            constraints += edge_constraints[i].first + " -> " + edge_constraints[i].second;
+            if (i != edge_constraints.size()-1) {
+                constraints += ", ";
+            }
+        }
+        constraints = "[" + constraints + "]";
+
+        return "detach_property: " + std::to_string(detach_property) +
+               ", edge_constraints: " + constraints +
+               ", temporal_field: " + temporal_field;
+    }
+    void clear() {
+        detach_property = false;
+        edge_constraints.clear();
+        temporal_field.clear();
+    }
+};
+
+/**
+ * @brief  Vertex label options, contain fields only vertex have
+ */
+struct VertexOptions : public LabelOptions {
+    // vertex primary field, must be set
+    std::string primary_field;
+
+    VertexOptions() = default;
+    explicit VertexOptions(const std::string& primary_field) : primary_field(primary_field) {}
+    std::string to_string() const {
+        return "detach_property: " + std::to_string(detach_property) +
+               ", primary_field: " + primary_field;
+    }
+    void clear() {
+        detach_property = false;
+        primary_field.clear();
+    }
+};
+
 /** @brief   Field and value types. */
 enum FieldType {
     NUL = 0,        // NULL value, used to represent an empty value, can not be used as field type

@@ -302,7 +302,6 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     n = edges.size();
 
     std::vector<OnlineImportEdgesOfSameVertex> edges_of_vertex;
-    VertexId last_first = -1;
     for (size_t L = 0, R; L < n; L = R) {
         for (R = L; R < n && edges[R].vid1 == edges[L].vid1; R++) {
         }
@@ -356,7 +355,6 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     {
         std::unique_ptr<fma_common::InputFileStream> data_stream(
             new fma_common::InputMemoryFileStream(std::move(data)));
-        std::vector<std::string>& columns = fd.columns;
         std::unique_ptr<BlockParser> parser;
         if (fd.data_format == "CSV") {
             parser.reset(new ColumnParser(data_stream.get(), field_specs, 1 << 20, 8,
@@ -401,10 +399,19 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
         // create labels
         auto m = v.GetSchemaDef();
         std::vector<FieldSpec> fds;
+        std::unique_ptr<LabelOptions> options;
+        if (v.is_vertex) {
+            auto vo = std::make_unique<VertexOptions>();
+            vo->primary_field = v.GetPrimaryColumn().name;
+            options = std::move(vo);
+        } else {
+            auto eo = std::make_unique<EdgeOptions>();
+            eo->edge_constraints = v.edge_constraints;
+            options = std::move(eo);
+        }
+
         for (auto& p : m) fds.emplace_back(p.second);
-        bool ok = db.AddLabel(v.is_vertex, v.name, fds,
-                              v.HasPrimaryColumn() ? v.GetPrimaryColumn().name : "",
-                              v.edge_constraints);
+        bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
             FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
                                  v.name);

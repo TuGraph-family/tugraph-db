@@ -249,8 +249,8 @@ class InMemoryGraph {
     bool DeleteVertex(VertexId vid) {
         auto vgit = vgraph_.find(vid);
         if (vgit == vgraph_.end()) return false;
-        size_t ni = vgit->second.ins.size();
-        size_t no = vgit->second.outs.size();
+        vgit->second.ins.size();
+        vgit->second.outs.size();
         for (auto& out : vgit->second.outs) {
             EdgeUid euid = out.first;
             vgraph_[euid.dst].ins.erase(euid);

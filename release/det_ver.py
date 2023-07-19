@@ -30,8 +30,12 @@ def replace_ver(file_name, pattern, curr_ver):
 
 curr_ver = get_ver()
 print("current version: %s" % curr_ver)
-replace_ver('doc/autogen/TuGraph-Python-Procedure-API/index.rst', 'Version: ', curr_ver)
-replace_ver('doc/autogen/TuGraph-CPP-Procedure-API/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/autogen/TuGraph-Python-Procedure-API/index.rst', 'Version: ', curr_ver)
+replace_ver('docs/autogen/TuGraph-CPP-Procedure-API/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/en-US/source/5.developer-manual/6.interface/3.procedure/4.Python-procedure.rst', 'Version: ', curr_ver)
+replace_ver('docs/en-US/source/5.developer-manual/6.interface/3.procedure/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/zh-CN/source/5.developer-manual/6.interface/3.procedure/4.Python-procedure.rst', 'Version: ', curr_ver)
+replace_ver('docs/zh-CN/source/5.developer-manual/6.interface/3.procedure/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
 
 dockerfiles = [
     "tugraph-mini-runtime-centos7-Dockerfile",

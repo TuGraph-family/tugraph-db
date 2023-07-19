@@ -21,7 +21,7 @@
 #include "cypher/execution_plan/ops/op_limit.h"
 #include "cypher/execution_plan/ops/op_sort.h"
 #include "cypher/execution_plan/ops/op_topn.h"
-#include "opt_pass.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
 /*

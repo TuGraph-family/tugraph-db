@@ -47,8 +47,6 @@ class MyTestService : public Service {
     int Run() override {
         fma_common::Logger::Get().SetDevice(std::shared_ptr<fma_common::LogDevice>(
             new fma_common::FileLogDevice("./testservice.log")));
-        int count_run = 0;
-        pid_t pid = getpid();
         fma_common::SleepS(interval_);
         UT_LOG() << "Finish";
         return 0;

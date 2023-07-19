@@ -42,6 +42,10 @@ typedef lgraph_api::Date Date;
 typedef lgraph_api::DateTime DateTime;
 typedef lgraph_api::LGraphType ElementType;
 typedef lgraph_api::Result Result;
+typedef lgraph_api::EdgeConstraints EdgeConstraints;
+typedef lgraph_api::LabelOptions LabelOptions;
+typedef lgraph_api::VertexOptions VertexOptions;
+typedef lgraph_api::EdgeOptions EdgeOptions;
 
 typedef int64_t VertexId;
 typedef int64_t EdgeId;
@@ -49,7 +53,6 @@ typedef int32_t DataOffset;      // offset used in a record
 typedef int32_t PackDataOffset;  // offset used in a packed data (maximum 1024)
 typedef uint16_t LabelId;
 typedef int64_t TemporalId;
-typedef std::vector<std::pair<std::string, std::string>> EdgeConstraints;
 
 enum CompareOp { LBR_EQ = 0, LBR_NEQ = 1, LBR_LT = 2, LBR_LE = 3, LBR_GT = 4, LBR_GE = 5 };
 

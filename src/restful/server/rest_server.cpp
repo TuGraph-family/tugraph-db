@@ -16,6 +16,7 @@
 
 #include "fma-common/file_system.h"
 #include "fma-common/fma_stream.h"
+#include "fma-common/utils.h"
 #include "restful/server/rest_server.h"
 #include "restful/server/json_convert.h"
 
@@ -593,6 +594,7 @@ http_response RestServer::GetCorsResponse(status_code code) const {
     response.headers().add(_TU("Access-Control-Allow-Credentials"), true);
     response.headers().add(_TU("Access-Control-Allow-Methods"),
                            _TU("GET, POST, PUT, OPTIONS, DELETE"));
+    response.headers().add(_TU("Set-Cookie"), _TU("HttpOnly; Secure; SameSite=Strict"));
     response.headers().add(RestStrings::SVR_VER, state_machine_->GetVersion());
     return response;
 }
@@ -808,35 +810,6 @@ static void FieldDataToJson(const std::string& key, lgraph::FieldData& value,
 }
 
 /**
- * Convert JSON to field data. If JSON value is null integer, double or string, convert to
- * corresponding FieldData, otherwise fd is left unchanged and return false.
- *
- * @param          v    A web::json::value to process.
- * @param [in,out] fd   The fd.
- *
- * @return  True if success, otherwise false
- */
-static bool JsonToFieldData(const web::json::value& v, FieldData& fd) {
-    if (v.is_integer()) {
-        fd = lgraph::FieldData(static_cast<int64_t>(v.as_number().to_int64()));
-        return true;
-    }
-    if (v.is_double()) {
-        fd = lgraph::FieldData(v.as_double());
-        return true;
-    }
-    if (v.is_string()) {
-        fd = lgraph::FieldData(_TS(v.as_string()));
-        return true;
-    }
-    if (v.is_null()) {
-        fd = lgraph::FieldData();
-        return true;
-    }
-    return false;
-}
-
-/**
  * Gets node properties and convert to JSON. This assumes that the node iterator is valid.
  *
  * @param [in,out] txn          The transaction.
@@ -885,13 +858,6 @@ static bool ExtractVidFromString(const utility::string_t& str, lgraph::VertexId&
     const std::string& s = _TS(str);
     if (_F_UNLIKELY(s.empty())) return false;
     size_t r = fma_common::TextParserUtils::ParseInt64(s.data(), s.data() + s.size(), vid);
-    return r == s.size();
-}
-
-static bool ExtractLidFromString(const utility::string_t& str, lgraph::LabelId& lid) {
-    const std::string& s = _TS(str);
-    if (_F_UNLIKELY(s.empty())) return false;
-    size_t r = fma_common::TextParserUtils::ParseT<LabelId>(s.data(), s.data() + s.size(), lid);
     return r == s.size();
 }
 
@@ -1072,8 +1038,8 @@ void RestServer::HandleGetInfo(const std::string& user, const http_request& requ
             if (s == 0) num_log = 100;
         }
         if (it_descending_order != query.end())
-            size_t s = fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
-                                                                 descending_order);
+            fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
+                                                      descending_order);
         FMA_DBG_STREAM(logger_) << " log_order: " << descending_order;
 
         std::vector<lgraph::AuditLog> logs = AuditLogger::GetInstance().GetLog(
@@ -1541,12 +1507,33 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     }
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
     _HoldReadLock(galaxy_->GetReloadLock());
-    std::string token = galaxy_->GetUserToken(username, password);
-    if (token.empty()) return RespondUnauthorized(request, "Bad user/password.");
-    web::json::value response;
-    response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
-    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
-    return RespondSuccess(request, response);
+    if ((fabs(galaxy_->retry_login_time - 0.0) < std::numeric_limits<double>::epsilon()) ||
+        fma_common::GetTime() - galaxy_->retry_login_time >= RETRY_WAIT_TIME) {
+        std::string token = galaxy_->GetUserToken(username, password);
+        if ((fabs(galaxy_->retry_login_time - 0.0) >= std::numeric_limits<double>::epsilon())) {
+            galaxy_->login_failed_times_.erase(username);
+            galaxy_->retry_login_time = 0.0;
+        }
+        if (token.empty()) {
+            if (galaxy_->login_failed_times_.find(username) !=
+                    galaxy_->login_failed_times_.end()) {
+                galaxy_->login_failed_times_[username]++;
+            } else {
+                galaxy_->login_failed_times_[username] = 1;
+            }
+            if (galaxy_->login_failed_times_[username] >= MAX_LOGIN_FAILED_TIMES) {
+                galaxy_->retry_login_time = fma_common::GetTime();
+            }
+            return RespondUnauthorized(request, "Bad user/password.");
+        }
+        web::json::value response;
+        response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
+        response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
+        return RespondSuccess(request, response);
+    } else {
+        return RespondUnauthorized(request,
+            "Too many login failures, please try again in a minute");
+    }
 }
 
 // /refresh
@@ -2460,7 +2447,7 @@ void RestServer::HandlePostUser(const std::string& user, const std::string& toke
     }
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-        if (paths.size() == 3 && paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
+        if (paths.size() == 3 && paths[2] == RestStrings::PASS && galaxy_->IsAdmin(user)) {
             if (!galaxy_->UnBindTokenUser(token)) return RespondBadRequest(request, "Bad token.");
         }
         return RespondSuccess(request);

@@ -1,4 +1,12 @@
-FROM ubuntu:18.04
+# Docker hub Image
+#FROM ubuntu:18.04
+# Alibaba Image
+FROM reg.docker.alibaba-inc.com/fma/ubuntu:18.04
+
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 
 RUN rm -rf /et/apt/sources.list \
     && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list \
@@ -8,10 +16,11 @@ RUN rm -rf /et/apt/sources.list \
 
 RUN apt-get update && apt-get install -y \
     gcc \
-    libssl-dev
+    libssl-dev \
+    wget
 
-COPY tugraph-mini-3.5.0-1.x86_64.deb /tugraph-mini-3.5.0-1.x86_64.deb
-RUN dpkg -i tugraph-mini-3.5.0-1.x86_64.deb && rm /tugraph-mini-3.5.0-1.x86_64.deb
+RUN wget ${FILEPATH}/${FILENAME}
+RUN dpkg -i ${FILENAME} && rm /${FILENAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 
