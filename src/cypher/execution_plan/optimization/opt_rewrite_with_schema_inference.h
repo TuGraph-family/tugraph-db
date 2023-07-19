@@ -235,7 +235,7 @@ class OptRewriteWithSchemaInference : public OptPass {
             schema_info = &_ctx->txn_->GetTxn()->GetSchemaInfo();
         }
         _ctx->txn_.reset(nullptr);
-        _ctx->ac_db_.reset(nullptr);
+        // _ctx->ac_db_.reset(nullptr);
         _RewriteWithSchemaInference(plan->Root(), schema_info);
         return 0;
     }

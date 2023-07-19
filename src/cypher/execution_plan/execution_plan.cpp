@@ -1332,8 +1332,10 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     if (ctx->graph_.empty()) {
         ctx->ac_db_.reset(nullptr);
     } else {
-        ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        if (!ctx->ac_db_) {
+            ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
+                ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        }
         lgraph_api::GraphDB db(ctx->ac_db_.get(), ReadOnly());
         if (ReadOnly()) {
             ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());

@@ -68,5 +68,5 @@ class SchemaRewrite {
     std::vector<StateInfo> GenCandidateStateInfo();
 };
 
-};  // namespace rewrite_cypher
+};  // namespace rewrite
 };  // namespace cypher

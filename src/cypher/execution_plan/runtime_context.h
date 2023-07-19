@@ -72,10 +72,10 @@ class RTContext : public SubmitQueryContext {
 
     bool Check(std::string &msg) const {
         if (!SubmitQueryContext::Check(msg)) return false;
-        if (ac_db_) {
-            msg = "Access controlled db not empty";
-            return false;
-        }
+        // if (ac_db_) {
+        //     msg = "Access controlled db not empty";
+        //     return false;
+        // }
         if (txn_) {
             msg = "Previous transaction not closed.";
             return false;
