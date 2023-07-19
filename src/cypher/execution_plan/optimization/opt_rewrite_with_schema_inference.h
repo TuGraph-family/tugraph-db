@@ -13,12 +13,12 @@
  */
 
 //
-// Created by wt on 19-11-27.
+// Created by seijiang on 23-07-19.
 //
 #pragma once
 
-#include "opt_pass.h"
-#include "rewrite/schema_rewrite.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
+#include "cypher/execution_plan/optimization/rewrite/schema_rewrite.h"
 
 namespace cypher {
 
@@ -79,18 +79,22 @@ class OptRewriteWithSchemaInference : public OptPass {
                 auto start = expand_all->GetStartNode();
                 auto relp = expand_all->GetRelationship();
                 auto neighbor = expand_all->GetNeighborNode();
-                if(!check_v_label_valid(schema_info, start->Label())){return;}
-                if(!check_v_label_valid(schema_info, neighbor->Label())){return;}
-                if(!check_e_labels_valid(schema_info, relp->Types())){return;}
+                if (!check_v_label_valid(schema_info, start->Label())) {
+                    return;
+                }
+                if (!check_v_label_valid(schema_info, neighbor->Label())) {
+                    return;
+                }
+                if (!check_e_labels_valid(schema_info, relp->Types())) {
+                    return;
+                }
 
                 schema_node_map[start->ID()] = start->Label();
                 schema_node_map[neighbor->ID()] = neighbor->Label();
                 std::tuple<NodeID, NodeID, std::set<std::string>, parser::LinkDirection>
                     relp_map_value(start->ID(), neighbor->ID(), relp->Types(), relp->direction_);
                 schema_relp_map[relp->ID()] = relp_map_value;
-            }
-            // 目前对可变长的情况不予处理
-            else if (auto var_len = dynamic_cast<VarLenExpand *>(op)) {
+            } else if (auto var_len = dynamic_cast<VarLenExpand *>(op)) {
                 return;
             } else if ((op->IsScan() || op->IsDynamicScan()) && op->type != OpType::ARGUMENT) {
                 NodeID id;
@@ -115,7 +119,9 @@ class OptRewriteWithSchemaInference : public OptPass {
                     id = node_index_seek_dy->GetNode()->ID();
                     label = node_index_seek_dy->GetNode()->Label();
                 }
-                if(!check_v_label_valid(schema_info, label)){return;}
+                if (!check_v_label_valid(schema_info, label)) {
+                    return;
+                }
                 schema_node_map[id] = label;
             }
 
@@ -158,7 +164,7 @@ class OptRewriteWithSchemaInference : public OptPass {
                 }
                 auto op_label_scan = new NodeByLabelScan(node, all_node_scan->GetSymbolTable());
                 auto parent = all_node_scan->parent;
-                for(auto child:all_node_scan->children){
+                for (auto child : all_node_scan->children) {
                     op_label_scan->AddChild(child);
                 }
                 parent->RemoveChild(all_node_scan);
@@ -171,7 +177,7 @@ class OptRewriteWithSchemaInference : public OptPass {
                 auto op_label_scan =
                     new NodeByLabelScanDynamic(node, all_node_scan_dy->GetSymbolTable());
                 auto parent = all_node_scan_dy->parent;
-                for(auto child:all_node_scan_dy->children){
+                for (auto child : all_node_scan_dy->children) {
                     op_label_scan->AddChild(child);
                 }
                 parent->RemoveChild(all_node_scan_dy);
@@ -217,7 +223,7 @@ class OptRewriteWithSchemaInference : public OptPass {
  public:
     cypher::RTContext *_ctx;
 
-    OptRewriteWithSchemaInference(cypher::RTContext *ctx)
+    explicit OptRewriteWithSchemaInference(cypher::RTContext *ctx)
         : OptPass(typeid(OptRewriteWithSchemaInference).name()), _ctx(ctx) {}
 
     bool Gate() override { return true; }
