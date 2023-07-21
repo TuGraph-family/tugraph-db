@@ -279,12 +279,8 @@ class DateTime {
     int64_t microseconds_since_epoch_;
 
  public:
-<<<<<<< HEAD
     /** @brief   Representation of a DateTime in year, month, day, hour, minute, second,
      *  fraction. */
-=======
-    /** @brief   Representation of a DateTime in year, month, day, hour, minute, second, fraction. */
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     struct YMDHMSF {
         /** @brief   The year, 0-9999 */
         int year;
@@ -349,11 +345,7 @@ class DateTime {
     explicit DateTime(const std::string& str);
 
     /**
-<<<<<<< HEAD
      * @brief   Parse date from YYYY-MM-DD HH:MM:SS(.FFFFFF), save value in d.
-=======
-     * @brief   Parse date from YYYY-MM-DD HH:MM:SS(.FFFFFF), save valud in d.
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
      *
      * @param       str The string.
      * @param [out] d   A DateTime to process.
@@ -363,11 +355,7 @@ class DateTime {
     static bool Parse(const std::string& str, DateTime& d) noexcept;
 
     /**
-<<<<<<< HEAD
      * @brief   Parse date from YYYY-MM-DD HH:MM:SS(.FFFFFF), save value in d.
-=======
-     * @brief   Parse date from YYYY-MM-DD HH:MM:SS(.FFFFFF), save valud in d.
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
      *
      * @param           beg The beg.
      * @param           end The end.
@@ -493,7 +481,6 @@ class DateTime {
 };
 
 /** @brief   min and max values that Date can hold */
-<<<<<<< HEAD
 static inline constexpr int64_t MinMicroSecondsSinceEpochForDateTime() {
     return -62167219200000000LL;
 }
@@ -502,11 +489,5 @@ static inline constexpr int64_t MinMicroSecondsSinceEpochForDateTime() {
 static inline constexpr int64_t MaxMicroSecondsSinceEpochForDateTime() {
     return 253402300799999999LL;
 }
-=======
-static inline constexpr int64_t MinMicroSecondsSinceEpochForDateTime() { return -62167219200000000LL; }
-
-/** @brief   Maximum seconds since epoch for date time */
-static inline constexpr int64_t MaxMicroSecondsSinceEpochForDateTime() { return 253402300799999999LL; }
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
 
 }  // namespace lgraph_api

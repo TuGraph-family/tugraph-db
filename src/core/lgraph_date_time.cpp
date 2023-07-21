@@ -37,23 +37,14 @@ TimeZone TimeZone::GetLocalTZ() {
 #else 
     DateTime utc(std::chrono::system_clock::now());
     time_t rawtime = (time_t)(utc.MicroSecondsSinceEpoch() / 1000000);
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     struct tm timeinfo;
     localtime_r(&rawtime, &timeinfo);
     char buf[128];
     size_t s = std::strftime(buf, 128, "%Y-%m-%d %H:%M:%S", &timeinfo);
     if (s != 19) throw InputError("failed to convert from DateTime to Local DateTime");
     DateTime local(buf);
-<<<<<<< HEAD
     int64_t microtime_diff_seconds = static_cast<int64_t>(local.MicroSecondsSinceEpoch()
     - utc.MicroSecondsSinceEpoch());
-=======
-    int microtime_diff_seconds = static_cast<int>(local.MicroSecondsSinceEpoch() - utc.MicroSecondsSinceEpoch());
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     FMA_DBG_CHECK_EQ((microtime_diff_seconds / 1000000) % 3600, 0);
     return TimeZone((microtime_diff_seconds / 1000000) / 3600);
 #endif
@@ -66,11 +57,7 @@ TimeZone& TimeZone::LocalTZ() {
 
 TimeZone::TimeZone(int time_diff_hours) {
     if (time_diff_hours < -10 || time_diff_hours > 14)
-<<<<<<< HEAD
         throw InvalidParameterError("time_diff_hours must be within [-10, 14]");
-=======
-        throw InvalidParameterError("time_diff_hours must be within [-24, 24]");
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     time_diff_microseconds_ = time_diff_hours * 3600 * 1000000LL;
 }
 
@@ -84,13 +71,9 @@ DateTime TimeZone::ToUTC(const DateTime& dt) const {
 
 int64_t TimeZone::UTCDiffSeconds() const noexcept { return time_diff_microseconds_ / 1000000; }
 
-<<<<<<< HEAD
 int64_t TimeZone::UTCDiffHours() const noexcept {
     return (time_diff_microseconds_ / 3600)/ 1000000;
 }
-=======
-int64_t TimeZone::UTCDiffHours() const noexcept { return (time_diff_microseconds_ / 3600) / 1000000; }
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
 
 const TimeZone& TimeZone::LocalTimeZone() noexcept { return LocalTZ(); }
 
@@ -266,15 +249,10 @@ DateTime::DateTime(const std::chrono::system_clock::time_point& tp)
 DateTime::DateTime(const YMDHMSF& YMDHMSF) {
     date::year_month_day tp{date::year(YMDHMSF.year), date::month(YMDHMSF.month),
                             date::day(YMDHMSF.day)};
-<<<<<<< HEAD
     microseconds_since_epoch_ = duration_cast<microseconds>
     (((date::sys_days)tp).time_since_epoch()).count();
     microseconds_since_epoch_ += (YMDHMSF.hour * 3600 + YMDHMSF.minute * 60 + YMDHMSF.second)
     * 1000000LL + YMDHMSF.fraction;
-=======
-    microseconds_since_epoch_ = duration_cast<microseconds>(((date::sys_days)tp).time_since_epoch()).count();
-    microseconds_since_epoch_ += (YMDHMSF.hour * 3600 + YMDHMSF.minute * 60 + YMDHMSF.second) * 1000000LL + YMDHMSF.fraction;
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     CheckDateTimeOverflow(microseconds_since_epoch_);
 }
 
@@ -301,22 +279,13 @@ size_t DateTime::Parse(const char* beg, const char* end, DateTime& d) noexcept {
         !TryParseInt(&beg, end, day, 2, 1, 31, ' ') ||
         !TryParseInt(&beg, end, hour, 2, 0, 23, ':') ||
         !TryParseInt(&beg, end, minute, 2, 0, 59, ':');
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     const char *flag = beg;
     int r = 26;
     if (f || !TryParseInt(&beg, end, second, 2, 0, 59, '.') ||
                 !TryParseInt(&beg, end, fraction, 6, 0, 999999, '\0')) {
         beg = flag;
         r = 19;
-<<<<<<< HEAD
         if (f || !TryParseInt(&beg, end, second, 2, 0, 59, '\0')) {
-=======
-        if(f || !TryParseInt(&beg, end, second, 2, 0, 59, '\0')) {
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
             return 0;
         }
     }
@@ -347,7 +316,6 @@ DateTime::YMDHMSF DateTime::GetYMDHMSF() const noexcept {
         day_count = microseconds_since_epoch_ / microseconds_per_day;
     }
     date::year_month_day dat{date::sys_days() + date::days(day_count)};
-<<<<<<< HEAD
     auto dur = microseconds(microseconds_since_epoch_ -duration_cast<microseconds>
     (((date::sys_days)dat).time_since_epoch()).count());
     unsigned hours = std::chrono::duration_cast<std::chrono::hours>(dur).count() % 24;
@@ -358,16 +326,6 @@ DateTime::YMDHMSF DateTime::GetYMDHMSF() const noexcept {
     return YMDHMSF(
         {int(dat.year()), unsigned(dat.month()), unsigned(dat.day()),
         hours, minutes, seconds, microseconds});
-=======
-    auto dur = microseconds(microseconds_since_epoch_ -
-                       duration_cast<microseconds>(((date::sys_days)dat).time_since_epoch()).count());
-    unsigned hours = std::chrono::duration_cast<std::chrono::hours>(dur).count() % 24;
-    unsigned minutes = std::chrono::duration_cast<std::chrono::minutes>(dur).count() % 60;
-    unsigned seconds = std::chrono::duration_cast<std::chrono::seconds>(dur).count() % 60;
-    unsigned microseconds = std::chrono::duration_cast<std::chrono::microseconds>(dur).count() % 1000000;
-    return YMDHMSF(
-        {int(dat.year()), unsigned(dat.month()), unsigned(dat.day()), hours, minutes, seconds, microseconds});
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
 }
 
 DateTime DateTime::operator+(int64_t n_microseconds) const {
@@ -429,15 +387,9 @@ std::chrono::system_clock::time_point DateTime::TimePoint() const noexcept {
 std::string DateTime::ToString() const noexcept {
     YMDHMSF d = GetYMDHMSF();
     std::string ret = "YYYY-MM-DD hh:mm:ss";
-<<<<<<< HEAD
     if (d.fraction)
         ret += ".ffffff";
 
-=======
-    if(d.fraction)
-        ret += ".ffffff";
-    
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     char* buf = &ret[0];
     buf = PrintNDigits<4>(buf, d.year);
     buf++;
@@ -450,19 +402,11 @@ std::string DateTime::ToString() const noexcept {
     buf = PrintNDigits<2>(buf, d.minute);
     buf++;
     buf = PrintNDigits<2>(buf, d.second);
-<<<<<<< HEAD
     if (d.fraction) {
         buf++;
         buf = PrintNDigits<6>(buf, d.fraction);
     }
 
-=======
-    if(d.fraction) {
-        buf++;
-        buf = PrintNDigits<6>(buf, d.fraction);
-    }
- 
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     return ret;
 }
 
@@ -470,12 +414,8 @@ DateTime::operator Date() const noexcept {
     if (microseconds_since_epoch_ >= 0) {
         return Date((int32_t)(microseconds_since_epoch_ / (24 * 3600 * 1000000LL)));
     } else {
-<<<<<<< HEAD
         return Date((int32_t)(-((-microseconds_since_epoch_ + 24 * 3600 * 1000000LL - 1)
         / (24 * 3600 * 1000000LL))));
-=======
-        return Date((int32_t)(-((-microseconds_since_epoch_ + 24 * 3600 * 1000000LL - 1) / (24 * 3600 * 1000000LL))));
->>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     }
 }
 
