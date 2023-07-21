@@ -810,8 +810,12 @@ int test_expression(cypher::RTContext *ctx) {
          "'month'),datetimeComponent(1582705717, 'day')",
          1},
         {"RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, "
+<<<<<<< HEAD
          "'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717,"
          " 'microsecond')",
+=======
+         "'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717, 'microsecond')",
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
          1},
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
          "'second'), datetimeComponent(1582705717000, 'microsecond')",

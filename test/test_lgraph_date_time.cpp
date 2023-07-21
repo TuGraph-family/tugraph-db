@@ -35,6 +35,7 @@ TEST_F(TestDateTime, DateTime) {
         UT_LOG() << dt.ToString();
         UT_LOG() << "Date min: " << Date("0000-01-01").DaysSinceEpoch();
         UT_LOG() << "Date max: " << Date("9999-12-31").DaysSinceEpoch();
+<<<<<<< HEAD
         UT_LOG() << "DateTime min: " <<
         DateTime("0000-01-01 00:00:00").MicroSecondsSinceEpoch();
         UT_LOG() << "DateTime max: " <<
@@ -43,6 +44,12 @@ TEST_F(TestDateTime, DateTime) {
         DateTime("0000-01-01 00:00:00.000000").MicroSecondsSinceEpoch();
         UT_LOG() << "DateTime(f) max: " <<
         DateTime("9999-12-31 23:59:59.999999").MicroSecondsSinceEpoch();
+=======
+        UT_LOG() << "DateTime min: " << DateTime("0000-01-01 00:00:00").MicroSecondsSinceEpoch();
+        UT_LOG() << "DateTime max: " << DateTime("9999-12-31 23:59:59").MicroSecondsSinceEpoch();
+        UT_LOG() << "DateTime(f) min: " << DateTime("0000-01-01 00:00:00.000000").MicroSecondsSinceEpoch();
+        UT_LOG() << "DateTime(f) max: " << DateTime("9999-12-31 23:59:59.999999").MicroSecondsSinceEpoch();
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     }
 
     {{UT_LOG() << "Testing constructors...";
@@ -59,7 +66,11 @@ TEST_F(TestDateTime, DateTime) {
     UT_EXPECT_EQ(dt, dt2);
     UT_EXPECT_EQ(dt.ToString(),
                  "2019-03-01 11:23:34");  // there is no 02-29 in 2019
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     UT_EXPECT_ANY_THROW(DateTime("2019-03-01 11:3:34"));
 
     const std::string dtfstr = "2019-02-29 11:23:34.123456";
@@ -176,8 +187,12 @@ TEST_F(TestDateTime, DateTime) {
     UT_EXPECT_EQ(dt.TimePoint(), ::date::floor<::std::chrono::microseconds>(now));
     UT_EXPECT_EQ((Date)dt, d);
     int64_t microseconds_since_epoch =
+<<<<<<< HEAD
         Floor2Day(std::chrono::duration_cast<std::chrono::microseconds>
         (now.time_since_epoch()).count());
+=======
+        Floor2Day(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count());
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     DateTime d_round(microseconds_since_epoch);
     UT_EXPECT_EQ((DateTime)d, d_round);
 
@@ -188,8 +203,12 @@ TEST_F(TestDateTime, DateTime) {
 
     system_clock::time_point epoch;
     Date oldd("1899-12-30");
+<<<<<<< HEAD
     UT_EXPECT_EQ(oldd.TimePoint(), epoch + microseconds(oldd.DaysSinceEpoch()
     * 24 * 3600 * 1000000LL));
+=======
+    UT_EXPECT_EQ(oldd.TimePoint(), epoch + microseconds(oldd.DaysSinceEpoch() * 24 * 3600 * 1000000LL));
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     DateTime olddate("1899-12-30 12:30:31");
     UT_EXPECT_EQ(olddate.TimePoint(), epoch + microseconds(olddate.MicroSecondsSinceEpoch()));
     UT_EXPECT_EQ(oldd, (Date)olddate);
@@ -235,8 +254,13 @@ TEST_F(TestDateTime, DateTime) {
     DateTime utc_now2 = utc_now;
     DateTime local_now2 = local_now;
 
+<<<<<<< HEAD
     /* the microdiff between between utc_now and local_now should be within 20 microseconds 
     despite the time zone; */
+=======
+    // the microdiff between between utc_now and local_now should be within 20 microseconds despite the 
+    // time zone;
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
     // UT_EXPECT_EQ(utc_now.ConvertToLocal(), local_now);
     // UT_EXPECT_EQ(utc_now2, local_now.ConvertToUTC());
 
@@ -255,7 +279,11 @@ TEST_F(TestDateTime, DateTime) {
     UT_EXPECT_ANY_THROW(TimeZone(-25));
     UT_EXPECT_ANY_THROW(TimeZone(25));
     UT_EXPECT_EQ(local_now2, tz.FromUTC(tz.ToUTC(local_now2)));
+<<<<<<< HEAD
     // UT_EXPECT_EQ(DateTime(tz.ToUTC(local_now2).ToString()), utc_now2);
+=======
+    //UT_EXPECT_EQ(DateTime(tz.ToUTC(local_now2).ToString()), utc_now2);
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
 
     UT_EXPECT_TRUE(utc_now2 > DateTime(tz.ToUTC(local_now2).ToString()));
     UT_EXPECT_TRUE(DateTime(tz.ToUTC(local_now2).ToString()) > utc_now2 - 20);

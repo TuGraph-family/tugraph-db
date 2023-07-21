@@ -104,30 +104,50 @@ TEST_F(TestAuditLogger, AuditLogger) {
         BEG_AUDIT_LOG("user", "graph", lgraph::LogApiType::Cypher, true, "Cypher Task1");
         AUDIT_LOG_FAIL("parse error");
         // ascending order
+<<<<<<< HEAD
         auto logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1,
         "", 100, false);
+=======
+        auto logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1, "",
+                                  100, false);
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
         UT_EXPECT_EQ(logs.size(), 2);
         UT_EXPECT_EQ(logs[0].content, "SingleApi Task1    Successful");
         UT_EXPECT_EQ(logs[0].success, true);
         UT_EXPECT_EQ(logs[1].content, "Cypher Task1    Failed: parse error");
         UT_EXPECT_EQ(logs[1].success, false);
         // limit to 1
+<<<<<<< HEAD
         logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1,
         "", 1, false);
+=======
+        logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1, "", 1,
+                             false);
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
         UT_EXPECT_EQ(logs.size(), 1);
         UT_EXPECT_EQ(logs[0].content, "SingleApi Task1    Successful");
         UT_EXPECT_EQ(logs[0].success, true);
         // descending order
+<<<<<<< HEAD
         logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1,
         "", 100, true);
+=======
+        logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1, "", 100,
+                             true);
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
         UT_EXPECT_EQ(logs.size(), 2);
         UT_EXPECT_EQ(logs[1].content, "SingleApi Task1    Successful");
         UT_EXPECT_EQ(logs[1].success, true);
         UT_EXPECT_EQ(logs[0].content, "Cypher Task1    Failed: parse error");
         UT_EXPECT_EQ(logs[0].success, false);
         // limit to 1
+<<<<<<< HEAD
         logs = logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1,
                "", 1, true);
+=======
+        logs =
+            logger.GetLog(0, lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch() + 1, "", 1, true);
+>>>>>>> 5ef1ca618bc5bfeefbf78251d6513eb437e106f4
         UT_EXPECT_EQ(logs.size(), 1);
         UT_EXPECT_EQ(logs[0].content, "Cypher Task1    Failed: parse error");
         UT_EXPECT_EQ(logs[0].success, false);
