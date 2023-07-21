@@ -34,7 +34,7 @@ TimeZone TimeZone::GetLocalTZ() {
         throw std::runtime_error("Failed to get local timezone.");
     }
     return TimeZone(temp.Bias / 60);
-#else 
+#else
     DateTime utc(std::chrono::system_clock::now());
     time_t rawtime = (time_t)(utc.MicroSecondsSinceEpoch() / 1000000);
     struct tm timeinfo;
