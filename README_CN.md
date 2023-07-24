@@ -37,11 +37,23 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 建议在Linux系统中构建TuGraph，Docker环境是个不错的选择。如果您想设置一个新的环境，请参考[Dockerfile](ci/images).
 
 以下是编译TuGraph的步骤：
-1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
-2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
-3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
-4. `make`
-5. `make package` or `cpack --config CPackConfig.cmake`
+
+1. 如果需要web接口运行`deps/build_deps.sh`，不需要web接口则运行`SKIP_WEB=1 deps/build_deps.sh`
+2. 根据容器系统信息执行`cmake .. -DOURSYSTEM=centos`或者`cmake .. -DOURSYSTEM=ubuntu`，如果需要shell运行lgraph_cypher，加上`-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
+3. `make`
+4. `make package` 或者 `cpack --config CPackConfig.cmake`
+
+示例：`tugraph/tugraph-compile-centos7`Docker环境
+
+```bash
+$ git clone --recursive https://github.com/TuGraph-family/tugraph-db.git
+$ cd tugraph-db
+$ deps/build_deps.sh
+$ mkdir build && cd build
+$ cmake .. -DOURSYSTEM=centos -DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1
+$ make
+$ make package
+```
 
 ## 4. 开发
 
