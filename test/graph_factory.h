@@ -356,7 +356,7 @@ class GraphFactory {
     static void WriteYagoFilesWithConstraints() {
         // add constraints for yago.conf
         std::string yago_conf = yago_data.at("yago.conf");
-        std::vector<string> original_strings, constraints_strings;
+        std::vector<std::string> original_strings, constraints_strings;
         original_strings.emplace_back(R"("label" : "HAS_CHILD", 
                 "type" : "EDGE")");
         original_strings.emplace_back(R"("label" : "MARRIED",
