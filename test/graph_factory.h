@@ -358,29 +358,29 @@ class GraphFactory {
         std::string yago_conf = yago_data.at("yago.conf");
         std::vector<std::string> original_strings, constraints_strings;
         original_strings.emplace_back(R"("label" : "HAS_CHILD", 
-                "type" : "EDGE")");
+            "type" : "EDGE")");
         original_strings.emplace_back(R"("label" : "MARRIED",
-                "type" : "EDGE")");
+            "type" : "EDGE")");
         original_strings.emplace_back(R"({"name" : "weight", "type":"FLOAT", "optional":true}
-                ])");
+            ])");
         original_strings.emplace_back(R"("label" : "DIRECTED",
-                "type" : "EDGE")");
+            "type" : "EDGE")");
         original_strings.emplace_back(R"("label" : "WROTE_MUSIC_FOR",
-                "type" : "EDGE")");
+            "type" : "EDGE")");
         original_strings.emplace_back(R"({"name" : "charactername", "type":"STRING"}
-                ])");
+            ])");
         constraints_strings.emplace_back(R"(,
-                "constraints": [["Person", "Person"]])");
+            "constraints": [["Person", "Person"]])");
         constraints_strings.emplace_back(R"(,
-                "constraints": [["Person", "Person"]])");
+            "constraints": [["Person", "Person"]])");
         constraints_strings.emplace_back(R"(,
-                "constraints": [["Person", "City"]])");
+            "constraints": [["Person", "City"]])");
         constraints_strings.emplace_back(R"(,
-                "constraints": [["Person", "Film"]])");
+            "constraints": [["Person", "Film"]])");
         constraints_strings.emplace_back(R"(,
-                "constraints": [["Person", "Film"]])");
+            "constraints": [["Person", "Film"]])");
         constraints_strings.emplace_back(R"(,
-                "constraints": [["Person", "Film"]])");
+            "constraints": [["Person", "Film"]])");
         for (int i = 0; i < 6; i++) {
             int n = yago_conf.find(original_strings[i]);
             yago_conf.insert(n + original_strings[i].length(), constraints_strings[i]);
