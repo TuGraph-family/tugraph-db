@@ -163,7 +163,7 @@ class OptRewriteWithSchemaInference : public OptPass {
                 if (schema_node_map.find(node->ID()) != schema_node_map.end()) {
                     node->SetLabel(schema_node_map.find(node->ID())->second);
                 }
-                auto op_label_scan = new NodeByLabelScan(node, all_node_scan->GetSymbolTable());
+                auto op_label_scan = new NodeByLabelScan(node, all_node_scan->SymTab());
                 auto parent = all_node_scan->parent;
                 for (auto child : all_node_scan->children) {
                     op_label_scan->AddChild(child);
@@ -176,7 +176,7 @@ class OptRewriteWithSchemaInference : public OptPass {
                     node->SetLabel(schema_node_map.find(node->ID())->second);
                 }
                 auto op_label_scan =
-                    new NodeByLabelScanDynamic(node, all_node_scan_dy->GetSymbolTable());
+                    new NodeByLabelScanDynamic(node, all_node_scan_dy->SymTab());
                 auto parent = all_node_scan_dy->parent;
                 for (auto child : all_node_scan_dy->children) {
                     op_label_scan->AddChild(child);
