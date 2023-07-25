@@ -1277,6 +1277,7 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::Cmd
         // NOTE: handle plan's destructor with care!
     }
     // Optimize the operations in the ExecutionPlan.
+    // TODO: split context-free optimizations & context-dependent ones
     PassManager pass_manager(this, ctx);
     pass_manager.ExecutePasses();
 }
