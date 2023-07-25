@@ -1277,7 +1277,7 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::Cmd
         // NOTE: handle plan's destructor with care!
     }
     // Optimize the operations in the ExecutionPlan.
-    // TODO: split context-free optimizations & context-dependent ones
+    // TODO(seijiang): split context-free optimizations & context-dependent ones
     PassManager pass_manager(this, ctx);
     pass_manager.ExecutePasses();
 }
@@ -1325,6 +1325,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     if (ctx->graph_.empty()) {
         ctx->ac_db_.reset(nullptr);
     } else {
+        // We have already created ctx->ac_db_ in opt_rewrite_with_schema_inference.h
         if (!ctx->ac_db_) {
             ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
                 ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));

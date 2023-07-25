@@ -102,7 +102,7 @@ class AllNodeScan : public OpBase {
 
     Node *GetNode() const { return node_; }
 
-    const SymbolTable *GetSymbolTable() { return sym_tab_; }
+    const SymbolTable *SymTab() const { return sym_tab_; }
 
     CYPHER_DEFINE_VISITABLE()
 
