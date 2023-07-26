@@ -355,38 +355,143 @@ class GraphFactory {
 
     static void WriteYagoFilesWithConstraints() {
         // add constraints for yago.conf
-        std::string yago_conf = yago_data.at("yago.conf");
-        std::vector<std::string> original_strings, constraints_strings;
-        original_strings.emplace_back(R"("label" : "HAS_CHILD", 
-            "type" : "EDGE")");
-        original_strings.emplace_back(R"("label" : "MARRIED",
-            "type" : "EDGE")");
-        original_strings.emplace_back(R"({"name" : "weight", "type":"FLOAT", "optional":true}
-            ])");
-        original_strings.emplace_back(R"("label" : "DIRECTED",
-            "type" : "EDGE")");
-        original_strings.emplace_back(R"("label" : "WROTE_MUSIC_FOR",
-            "type" : "EDGE")");
-        original_strings.emplace_back(R"({"name" : "charactername", "type":"STRING"}
-            ])");
-        constraints_strings.emplace_back(R"(,
-            "constraints": [["Person", "Person"]])");
-        constraints_strings.emplace_back(R"(,
-            "constraints": [["Person", "Person"]])");
-        constraints_strings.emplace_back(R"(,
-            "constraints": [["Person", "City"]])");
-        constraints_strings.emplace_back(R"(,
-            "constraints": [["Person", "Film"]])");
-        constraints_strings.emplace_back(R"(,
-            "constraints": [["Person", "Film"]])");
-        constraints_strings.emplace_back(R"(,
-            "constraints": [["Person", "Film"]])");
-        for (int i = 0; i < 6; i++) {
-            int n = yago_conf.find(original_strings[i]);
-            yago_conf.insert(n + original_strings[i].length(), constraints_strings[i]);
-        }
         auto yago_data_with_constraints = yago_data;
-        yago_data_with_constraints.at("yago.conf") = yago_conf;
+        yago_data_with_constraints.at("yago.conf") =
+R"(
+{
+    "schema": [
+        {
+            "label" : "Person",
+            "type" : "VERTEX",
+            "primary" : "name",
+            "properties" : [
+                {"name" : "name", "type":"STRING"},
+                {"name" : "birthyear", "type":"INT16", "optional":true}
+            ]
+        },
+        {
+            "label" : "City",
+            "type" : "VERTEX",
+            "primary" : "name",
+            "properties" : [
+                {"name": "name", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "Film",
+            "primary": "title",
+            "type" : "VERTEX",
+            "properties" : [
+                {"name": "title", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "HAS_CHILD", 
+            "type" : "EDGE",
+            "constraints": [["Person", "Person"]]
+        },
+        {
+            "label" : "MARRIED",
+            "type" : "EDGE",
+            "constraints": [["Person", "Person"]]
+        },
+        {
+            "label" : "BORN_IN", 
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "weight", "type":"FLOAT", "optional":true}
+            ],
+            "constraints": [["Person", "City"]]
+        },
+        {
+            "label" : "DIRECTED",
+            "type" : "EDGE",
+            "constraints": [["Person", "Film"]]
+        },
+        {
+            "label" : "WROTE_MUSIC_FOR",
+            "type" : "EDGE",
+            "constraints": [["Person", "Film"]]
+        },
+        {
+            "label" : "ACTED_IN",
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "charactername", "type":"STRING"}
+            ],
+            "constraints": [["Person", "Film"]]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "person.csv",
+            "format" : "CSV",
+            "label" : "Person",
+            "columns" : ["name","birthyear"]
+        },
+        {
+            "path" : "city.csv",
+            "format" : "CSV",
+            "label" : "City",
+            "columns" : ["name"]
+        },
+        {
+            "path" : "film.csv",
+            "format" : "CSV",
+            "label" : "Film",
+            "columns" : ["title"]
+        },
+        {
+            "path" : "has_child.csv",
+            "format" : "CSV",
+            "label" : "HAS_CHILD",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "married.csv",
+            "format" : "CSV",
+            "label" : "MARRIED",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "born_in.csv",
+            "format" : "CSV",
+            "label" : "BORN_IN",
+            "SRC_ID" : "Person",
+            "DST_ID" : "City",
+            "columns" : ["SRC_ID","DST_ID","weight"]
+        },
+        {
+            "path" : "directed.csv",
+            "format" : "CSV",
+            "label" : "DIRECTED",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Film",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "wrote.csv",
+            "format" : "CSV",
+            "label" : "WROTE_MUSIC_FOR",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Film",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "acted_in.csv",
+            "format" : "CSV",
+            "label" : "ACTED_IN",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Film",
+            "columns" : ["SRC_ID","DST_ID","charactername"]
+        }
+    ]
+}
+)";
 
         CreateCsvFiles(yago_data_with_constraints);
     }
