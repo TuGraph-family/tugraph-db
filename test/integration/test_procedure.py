@@ -762,6 +762,9 @@ class TestProcedure:
 
         ret = client.callCypher("CALL dbms.security.changeUserPassword('test_user1','modpwd2')")
         assert ret[0]
+        ret = test_client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
+        assert not ret[0] # client auto logout after changing password
+
         test_client2 = liblgraph_client_python.client("127.0.0.1:9092", "test_user1", "modpwd2")
         ret = test_client2.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
@@ -770,6 +773,8 @@ class TestProcedure:
 
         ret = test_client2.callCypher("CALL dbms.security.changePassword('modpwd2','modagainpwd3')")
         assert ret[0]
+        ret = test_client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
+        assert not ret[0] # client auto logout after changing password
         with pytest.raises(RuntimeError) as exception:
             test_client3 = liblgraph_client_python.client("127.0.0.1:9092", "test_user1", "modpwd2")
         assert exception.typename == "RuntimeError"
