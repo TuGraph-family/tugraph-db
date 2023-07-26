@@ -41,11 +41,24 @@ For more details, please refer to [quick start doc](docs/en-US/source/3.quick-st
 It's recommended to build TuGraph in linux system, and docker environment is a good choice. If you want to setup a new environment, please refer to [Dockerfile](ci/images).
 
 Here are steps to compile TuGraph:
-1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
+1. `deps/build_deps.sh` or to skip building web interface `SKIP_WEB=1 deps/build_deps.sh` 
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 4. `make`
 5. `make package` or `cpack --config CPackConfig.cmake`
+
+Example:
+`tugraph/tugraph-compile-centos7`Docker environment
+
+```bash
+$ git clone --recursive https://github.com/TuGraph-family/tugraph-db.git
+$ cd tugraph-db
+$ deps/build_deps.sh
+$ mkdir build && cd build
+$ cmake .. -DOURSYSTEM=centos -DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1
+$ make
+$ make package
+```
 
 ## 4. Develop
 
