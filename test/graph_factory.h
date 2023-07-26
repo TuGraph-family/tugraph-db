@@ -399,6 +399,7 @@ R"(
             "label" : "BORN_IN", 
             "type" : "EDGE",
             "properties" : [
+                {"name" : "reg_time", "type":"DATETIME", "optional":true},
                 {"name" : "weight", "type":"FLOAT", "optional":true}
             ],
             "constraints": [["Person", "City"]]
@@ -463,7 +464,7 @@ R"(
             "label" : "BORN_IN",
             "SRC_ID" : "Person",
             "DST_ID" : "City",
-            "columns" : ["SRC_ID","DST_ID","weight"]
+            "columns" : ["SRC_ID","DST_ID","reg_time","weight"]
         },
         {
             "path" : "directed.csv",
