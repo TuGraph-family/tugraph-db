@@ -98,7 +98,7 @@ static void eval_scripts(cypher::RTContext *ctx, const std::vector<std::string> 
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
-        execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
+        execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         execution_plan.Validate(ctx);
         execution_plan.DumpGraph();
         execution_plan.DumpPlan(0, false);

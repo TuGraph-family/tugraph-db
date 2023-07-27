@@ -110,6 +110,8 @@ class AllNodeScanDynamic : public OpBase {
 
     Node *GetNode() const { return node_; }
 
+    const SymbolTable *SymTab() const { return sym_tab_; }
+
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
