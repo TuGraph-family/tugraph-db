@@ -57,6 +57,8 @@ class Node {
 
     const std::string &Label() const;
 
+    void SetLabel(const std::string &label) { label_ = label; }
+
     const std::string &Alias() const;
 
     bool &Visited() { return visited_; }

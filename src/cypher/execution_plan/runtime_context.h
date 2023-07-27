@@ -72,10 +72,8 @@ class RTContext : public SubmitQueryContext {
 
     bool Check(std::string &msg) const {
         if (!SubmitQueryContext::Check(msg)) return false;
-        if (ac_db_) {
-            msg = "Access controlled db not empty";
-            return false;
-        }
+        // We removed the check for the existence of ac_db_ during execution plan execution
+        // since ac_db_ is already created during the execution plan optimization phase
         if (txn_) {
             msg = "Previous transaction not closed.";
             return false;

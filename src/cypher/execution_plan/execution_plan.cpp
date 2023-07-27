@@ -1247,7 +1247,8 @@ static bool CheckReturnElements(const std::vector<parser::SglQuery> &stmt) {
     return true;
 }
 
-void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd) {
+void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
+                          cypher::RTContext *ctx) {
     // check return elements first
     if (!CheckReturnElements(stmt)) {
         throw lgraph::CypherException(
@@ -1276,7 +1277,8 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::Cmd
         // NOTE: handle plan's destructor with care!
     }
     // Optimize the operations in the ExecutionPlan.
-    PassManager pass_manager(this);
+    // TODO(seijiang): split context-free optimizations & context-dependent ones
+    PassManager pass_manager(this, ctx);
     pass_manager.ExecutePasses();
 }
 
@@ -1323,8 +1325,11 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     if (ctx->graph_.empty()) {
         ctx->ac_db_.reset(nullptr);
     } else {
-        ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        // We have already created ctx->ac_db_ in opt_rewrite_with_schema_inference.h
+        if (!ctx->ac_db_) {
+            ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
+                ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        }
         lgraph_api::GraphDB db(ctx->ac_db_.get(), ReadOnly());
         if (ReadOnly()) {
             ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());

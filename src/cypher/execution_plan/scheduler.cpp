@@ -56,7 +56,7 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
             FMA_DBG_STREAM(Logger()) << sql_query.ToString();
         }
         plan = std::make_shared<ExecutionPlan>();
-        plan->Build(visitor.GetQuery(), visitor.CommandType());
+        plan->Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         plan->Validate(ctx);
         if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
             ctx->result_info_ = std::make_unique<ResultInfo>();
