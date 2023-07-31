@@ -1399,10 +1399,10 @@ int test_add(cypher::RTContext *ctx) {
 int test_set(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts = {
         "CALL db.createVertexLabel('Person', 'name', 'name', STRING, false, 'age', INT16, true, "
-        "'eyes', STRING, true)",
+        "'eyes', STRING, true, 'date', DATE, true)",
         "CALL db.createEdgeLabel('KNOWS', '[]', 'weight', INT16, true)",
         R"(
-CREATE (a:Person {name:'A', age:13})
+CREATE (a:Person {name:'A', age:13, date:DATE('2023-07-23')})
 CREATE (b:Person {name:'B', age:33, eyes:'blue'})
 CREATE (c:Person {name:'C', age:44, eyes:'blue'})
 CREATE (d:Person {name:'D', eyes:'brown'})

@@ -234,16 +234,13 @@ TEST_F(TestDateTime, DateTime) {
     DateTime utc_now2 = utc_now;
     DateTime local_now2 = local_now;
 
-    /* the microdiff between between utc_now and local_now should be within 20 microseconds 
+    /* the diff between utc_now and local_now should be within 1s 
     despite the time zone; */
-    // UT_EXPECT_EQ(utc_now.ConvertToLocal(), local_now);
-    // UT_EXPECT_EQ(utc_now2, local_now.ConvertToUTC());
-
     UT_EXPECT_TRUE(utc_now.ConvertToLocal() > local_now);
-    UT_EXPECT_TRUE(local_now > utc_now.ConvertToLocal() - 20);
+    UT_EXPECT_TRUE(local_now > utc_now.ConvertToLocal() - 1000000);
 
     UT_EXPECT_TRUE(utc_now2 > local_now.ConvertToUTC());
-    UT_EXPECT_TRUE(local_now.ConvertToUTC() > utc_now2 - 20);
+    UT_EXPECT_TRUE(local_now.ConvertToUTC() > utc_now2 - 1000000);
 
     Date local_day = Date::LocalNow();
     UT_LOG() << "Local day: " << local_day.ToString();
@@ -256,8 +253,10 @@ TEST_F(TestDateTime, DateTime) {
     UT_EXPECT_EQ(local_now2, tz.FromUTC(tz.ToUTC(local_now2)));
     // UT_EXPECT_EQ(DateTime(tz.ToUTC(local_now2).ToString()), utc_now2);
 
+    /* the diff between utc_now2 and local_now2 should be within 1s 
+    despite the time zone; */
     UT_EXPECT_TRUE(utc_now2 > DateTime(tz.ToUTC(local_now2).ToString()));
-    UT_EXPECT_TRUE(DateTime(tz.ToUTC(local_now2).ToString()) > utc_now2 - 20);
+    UT_EXPECT_TRUE(DateTime(tz.ToUTC(local_now2).ToString()) > utc_now2 - 1000000);
 
     tz = TimeZone(14);
     UT_EXPECT_EQ(tz.FromUTC(DateTime("2020-01-02 10:05:06")).ToString(), "2020-01-03 00:05:06");

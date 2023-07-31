@@ -108,12 +108,12 @@ void CheckDaysOverflow(int32_t days) {
     }
 }
 
-void CheckDateTimeOverflow(int64_t seconds_since_epoch) {
-    if (seconds_since_epoch < MinMicroSecondsSinceEpochForDateTime() ||
-        seconds_since_epoch > MaxMicroSecondsSinceEpochForDateTime()) {
+void CheckDateTimeOverflow(int64_t microseconds_since_epoch) {
+    if (microseconds_since_epoch < MinMicroSecondsSinceEpochForDateTime() ||
+        microseconds_since_epoch > MaxMicroSecondsSinceEpochForDateTime()) {
         throw OutOfRangeError(
             std::string("Failed to represent value with DateTime: out-of-bound.") +
-                         "Value=" + std::to_string(seconds_since_epoch));
+                         "Value=" + std::to_string(microseconds_since_epoch));
     }
 }
 
