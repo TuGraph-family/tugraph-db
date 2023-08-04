@@ -329,7 +329,7 @@ class DateTime {
      *
      * @exception   OutOfRangeError Thrown if the time point is out of range.
      *
-     * @param   microseconds_since_epoch Number of seconds since epoch.
+     * @param   microseconds_since_epoch Number of microseconds since epoch.
      */
     explicit DateTime(int64_t microseconds_since_epoch);
 
@@ -403,7 +403,7 @@ class DateTime {
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_microseconds   Number of seconds to add.
+     * @param   n_microseconds   Number of microseconds to add.
      *
      * @returns A reference to current object.
      */
@@ -414,7 +414,7 @@ class DateTime {
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_microseconds   Number of seconds to subtract.
+     * @param   n_microseconds   Number of microseconds to subtract.
      *
      * @returns The resulting DateTime.
      */
@@ -426,7 +426,7 @@ class DateTime {
      *
      * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
      *
-     * @param   n_microseconds   Number of seconds to subtract.
+     * @param   n_microseconds   Number of microseconds to subtract.
      *
      * @returns A reference to current object.
      */
@@ -485,7 +485,7 @@ static inline constexpr int64_t MinMicroSecondsSinceEpochForDateTime() {
     return -62167219200000000LL;
 }
 
-/** @brief   Maximum seconds since epoch for date time */
+/** @brief   Maximum microseconds since epoch for date time */
 static inline constexpr int64_t MaxMicroSecondsSinceEpochForDateTime() {
     return 253402300799999999LL;
 }
