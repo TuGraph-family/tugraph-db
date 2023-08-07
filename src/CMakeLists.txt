@@ -76,6 +76,11 @@ add_custom_command(TARGET lgraph_server
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_LIST_DIR}/server/lgraph_standalone.json
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/lgraph_standalone.json)
+add_custom_command(TARGET lgraph_server
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_LIST_DIR}/server/lgraph_ha.json
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/lgraph_ha.json)
 
 add_custom_command(TARGET lgraph_server
         POST_BUILD

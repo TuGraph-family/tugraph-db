@@ -62,7 +62,7 @@ class RPCService : public lgraph::LGraphRPCService {
 
     void HandleRequest(::google::protobuf::RpcController *controller,
                        const ::lgraph::LGraphRequest *request, ::lgraph::LGraphResponse *response,
-                       ::google::protobuf::Closure *done) {
+                       ::google::protobuf::Closure *done) override {
         sm_->HandleRequest(controller, request, response, done);
     }
 
@@ -104,17 +104,5 @@ class LGraphServer {
 
     // stop all services
     int Stop(bool force_exit = false);
-
-    virtual void AdjustConfig();
-
-    virtual int MakeStateMachine();
-
-    virtual int StartRpcService();
-
-    virtual int StartHttpService();
-
-    virtual void KillServer();
-
-    virtual void WaitSignal();
 };
 }  // namespace lgraph

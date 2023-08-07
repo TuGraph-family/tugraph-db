@@ -37,7 +37,9 @@ DEFINE_int32(timeout_ms, 60 * 60 * 1000, "RPC timeout in milliseconds");
 DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 
-RpcClient::RpcClient(const std::string& url, const std::string& user, const std::string& pass)
+RpcClient::RpcSingleClient::RpcSingleClient(const std::string& url,
+                                            const std::string& user,
+                                            const std::string& pass)
     : url(url),
       user(user),
       password(pass),
@@ -64,7 +66,7 @@ RpcClient::RpcClient(const std::string& url, const std::string& user, const std:
     FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient succeeded";
 }
 
-int64_t RpcClient::Restore(const std::vector<lgraph::BackupLogEntry>& requests) {
+int64_t RpcClient::RpcSingleClient::Restore(const std::vector<lgraph::BackupLogEntry>& requests) {
     LGraphRequest lreq;
     lreq.set_is_write_op(true);
     auto req = lreq.mutable_restore_request();
@@ -72,7 +74,7 @@ int64_t RpcClient::Restore(const std::vector<lgraph::BackupLogEntry>& requests) 
     return HandleRequest(&lreq).restore_response().last_success_idx();
 }
 
-LGraphResponse RpcClient::HandleRequest(LGraphRequest* req) {
+LGraphResponse RpcClient::RpcSingleClient::HandleRequest(LGraphRequest* req) {
     cntl->Reset();
     cntl->request_attachment().append(FLAGS_attachment);
     req->set_client_version(server_version);
@@ -86,8 +88,9 @@ LGraphResponse RpcClient::HandleRequest(LGraphRequest* req) {
     return resp;
 }
 
-bool RpcClient::HandleCypherRequest(LGraphResponse* res, const std::string& query,
-                                    const std::string& graph, bool json_format, double timeout) {
+bool RpcClient::RpcSingleClient::HandleCypherRequest(LGraphResponse* res, const std::string& query,
+                                                     const std::string& graph, bool json_format,
+                                                     double timeout) {
     assert(res);
     cntl->Reset();
     cntl->request_attachment().append(FLAGS_attachment);
@@ -114,8 +117,9 @@ bool RpcClient::HandleCypherRequest(LGraphResponse* res, const std::string& quer
     return true;
 }
 
-bool RpcClient::CallCypher(std::string& result, const std::string& cypher, const std::string& graph,
-                           bool json_format, double timeout) {
+bool RpcClient::RpcSingleClient::CallCypher(std::string& result, const std::string& cypher,
+                                            const std::string& graph, bool json_format,
+                                            double timeout) {
     LGraphResponse res;
     if (!HandleCypherRequest(&res, cypher, graph, json_format, timeout)) {
         result = res.error();
@@ -127,7 +131,7 @@ bool RpcClient::CallCypher(std::string& result, const std::string& cypher, const
 }
 
 #ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
-std::string RpcClient::SingleElementExtractor(const CypherResult cypher) {
+std::string RpcClient::RpcSingleClient::SingleElementExtractor(const CypherResult cypher) {
     nlohmann::json arr;
     int rsize = cypher.result_size();
     for (int i = 0; i < rsize; ++i) {
@@ -178,7 +182,7 @@ std::string RpcClient::SingleElementExtractor(const CypherResult cypher) {
     return nlohmann::to_string(arr);
 }
 
-std::string RpcClient::MultElementExtractor(const CypherResult cypher) {
+std::string RpcClient::RpcSingleClient::MultElementExtractor(const CypherResult cypher) {
     nlohmann::json arr;
     int hsize = cypher.header_size();
     int rsize = cypher.result_size();
@@ -233,14 +237,14 @@ std::string RpcClient::MultElementExtractor(const CypherResult cypher) {
     return nlohmann::to_string(arr);
 }
 
-std::string RpcClient::CypherResultExtractor(const CypherResult cypher) {
+std::string RpcClient::RpcSingleClient::CypherResultExtractor(const CypherResult cypher) {
     int hsize = cypher.header_size();
     if (hsize == 1) return SingleElementExtractor(cypher);
     return MultElementExtractor(cypher);
 }
 #endif
 
-std::string RpcClient::CypherResponseExtractor(const CypherResponse cypher) {
+std::string RpcClient::RpcSingleClient::CypherResponseExtractor(const CypherResponse& cypher) {
     switch (cypher.Result_case()) {
     case CypherResponse::kJsonResult:
         {
@@ -260,11 +264,13 @@ std::string RpcClient::CypherResponseExtractor(const CypherResponse cypher) {
     return "";
 }
 
-bool RpcClient::LoadProcedure(std::string& result, const std::string& source_file,
-                              const std::string& procedure_type, const std::string& procedure_name,
-                              const std::string& code_type,
-                              const std::string& procedure_description, bool read_only,
-                              const std::string& version, const std::string& graph) {
+bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result, const std::string& source_file,
+                                               const std::string& procedure_type,
+                                               const std::string& procedure_name,
+                                               const std::string& code_type,
+                                               const std::string& procedure_description,
+                                               bool read_only, const std::string& version,
+                                               const std::string& graph) {
     try {
         std::string content;
         if (!FieldSpecSerializer::FileReader(source_file, content)) {
@@ -302,10 +308,12 @@ bool RpcClient::LoadProcedure(std::string& result, const std::string& source_fil
     return true;
 }
 
-bool RpcClient::CallProcedure(std::string& result, const std::string& procedure_type,
-                              const std::string& procedure_name, const std::string& param,
-                              double procedure_time_out, bool in_process, const std::string& graph,
-                              bool json_format) {
+bool RpcClient::RpcSingleClient::CallProcedure(std::string& result,
+                                               const std::string& procedure_type,
+                                               const std::string& procedure_name,
+                                               const std::string& param,
+                                               double procedure_time_out, bool in_process,
+                                               const std::string& graph, bool json_format) {
     try {
         LGraphRequest req;
         lgraph::PluginRequest* pluginRequest = req.mutable_plugin_request();
@@ -331,8 +339,10 @@ bool RpcClient::CallProcedure(std::string& result, const std::string& procedure_
     return true;
 }
 
-bool RpcClient::ListProcedures(std::string& result, const std::string& procedure_type,
-                               const std::string& version, const std::string& graph) {
+bool RpcClient::RpcSingleClient::ListProcedures(std::string& result,
+                                                const std::string& procedure_type,
+                                                const std::string& version,
+                                                const std::string& graph) {
     try {
         LGraphRequest req;
         req.set_is_write_op(false);
@@ -351,8 +361,10 @@ bool RpcClient::ListProcedures(std::string& result, const std::string& procedure
     return true;
 }
 
-bool RpcClient::DeleteProcedure(std::string& result, const std::string& procedure_type,
-                                const std::string& procedure_name, const std::string& graph) {
+bool RpcClient::RpcSingleClient::DeleteProcedure(std::string& result,
+                                                 const std::string& procedure_type,
+                                                 const std::string& procedure_name,
+                                                 const std::string& graph) {
     try {
         LGraphRequest req;
         req.set_is_write_op(true);
@@ -370,8 +382,10 @@ bool RpcClient::DeleteProcedure(std::string& result, const std::string& procedur
     return true;
 }
 
-bool RpcClient::ImportSchemaFromFile(std::string& result, const std::string& schema_file,
-                                     const std::string& graph, bool json_format, double timeout) {
+bool RpcClient::RpcSingleClient::ImportSchemaFromFile(std::string& result,
+                                                      const std::string& schema_file,
+                                                      const std::string& graph, bool json_format,
+                                                      double timeout) {
     try {
         std::ifstream ifs(schema_file);
         nlohmann::json conf;
@@ -393,10 +407,12 @@ bool RpcClient::ImportSchemaFromFile(std::string& result, const std::string& sch
     return true;
 }
 
-bool RpcClient::ImportDataFromFile(std::string& result, const std::string& conf_file,
-                                   const std::string& delimiter, bool continue_on_error,
-                                   int thread_nums, int skip_packages, const std::string& graph,
-                                   bool json_format, double timeout) {
+bool RpcClient::RpcSingleClient::ImportDataFromFile(std::string& result,
+                                                    const std::string& conf_file,
+                                                    const std::string& delimiter,
+                                                    bool continue_on_error, int thread_nums,
+                                                    int skip_packages, const std::string& graph,
+                                                    bool json_format, double timeout) {
     std::ifstream ifs(conf_file);
     nlohmann::json conf;
     ifs >> conf;
@@ -409,8 +425,6 @@ bool RpcClient::ImportDataFromFile(std::string& result, const std::string& conf_
                          [](const import_v2::CsvDesc& a, const import_v2::CsvDesc& b) {
                              return a.is_vertex_file > b.is_vertex_file;
                          });
-        size_t bytes_total = 0;
-        for (const import_v2::CsvDesc& fd : data_files) bytes_total += fd.size;
 
         for (import_v2::CsvDesc& fd : data_files) {
             const auto& filename = fd.path;
@@ -454,7 +468,8 @@ bool RpcClient::ImportDataFromFile(std::string& result, const std::string& conf_
     return finished;
 }
 
-bool RpcClient::ImportSchemaFromContent(std::string& result, const std::string& schema,
+bool RpcClient::RpcSingleClient::ImportSchemaFromContent(std::string& result,
+                                        const std::string& schema,
                                         const std::string& graph, bool json_format,
                                         double timeout) {
     try {
@@ -471,7 +486,7 @@ bool RpcClient::ImportSchemaFromContent(std::string& result, const std::string& 
     return true;
 }
 
-bool RpcClient::ImportDataFromContent(std::string& result, const std::string& desc,
+bool RpcClient::RpcSingleClient::ImportDataFromContent(std::string& result, const std::string& desc,
                                       const std::string& data, const std::string& delimiter,
                                       bool continue_on_error, int thread_nums,
                                       const std::string& graph, bool json_format, double timeout) {
@@ -493,24 +508,349 @@ bool RpcClient::ImportDataFromContent(std::string& result, const std::string& de
     return true;
 }
 
-std::string RpcClient::GetUrl() { return url; }
+std::string RpcClient::RpcSingleClient::GetUrl() {
+    return url;
+}
 
-void RpcClient::Logout() {
+void RpcClient::RpcSingleClient::Logout() {
     LGraphRequest request;
     request.set_is_write_op(false);
     auto* req = request.mutable_acl_request();
     auto* auth = req->mutable_auth_request()->mutable_logout();
     auth->set_token(token);
     HandleRequest(&request);
-    FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient logout succeeded";
+    FMA_DBG_STREAM(logger_) << "[RpcSingleClient] RpcSingleClient logout succeeded";
+}
+
+RpcClient::RpcSingleClient::~RpcSingleClient() {
+    try {
+        Logout();
+    } catch (const RpcConnectionException& e) {
+        FMA_DBG_STREAM(logger_) << "[RpcSingleClient] RpcSingleClient Connection Exception";
+    }
+}
+
+RpcClient::RpcClient(const std::string &url, const std::string &user,
+                         const std::string &password)
+    : logger_(fma_common::Logger::Get("lgraph.RpcClient")),
+      user(user),
+      password(password),
+      base_client(std::make_shared<RpcSingleClient>(url, user, password)) {
+    std::string result;
+    bool ret = base_client->CallCypher(result, "CALL dbms.ha.clusterInfo()");
+    if (ret) {
+        client_type = DIRECT_HA_CONNECTION;
+        cypher_constant = {"create ", "set ", "delete ", "remove ", "merge ", "CALL "};
+        RefreshConnection();
+    } else {
+        client_type = SINGLE_CONNECTION;
+    }
+}
+
+RpcClient::RpcClient(std::vector<std::string> &urls, std::string user,
+                         std::string password)
+    : logger_(fma_common::Logger::Get("lgraph.RpcClient")),
+      user(std::move(user)),
+      password(std::move(password)),
+      urls(urls) {
+    client_type = INDIRECT_HA_CONNECTION;
+    cypher_constant = {"create ", "set ", "delete ", "remove ", "merge ", "CALL "};
+    RefreshConnection();
 }
 
 RpcClient::~RpcClient() {
     try {
         Logout();
     } catch (const RpcConnectionException& e) {
-        FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient Commection Exception";
+        FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient Connection Exception";
     }
 }
 
+bool RpcClient::CallCypher(std::string &result, const std::string &cypher,
+                             const std::string &graph, bool json_format,
+                             double timeout, const std::string& url) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->CallCypher(result, cypher, graph, json_format, timeout);
+    }
+    auto fun = [&]{
+        if (!url.empty())
+            return GetClientByNode(url)->CallCypher(result, cypher, graph, json_format, timeout);
+        return GetClient(cypher, graph)->CallCypher(result, cypher, graph, json_format, timeout);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::CallProcedure(std::string &result, const std::string &procedure_type,
+                             const std::string &procedure_name, const std::string &param,
+                             double procedure_time_out, bool in_process, const std::string &graph,
+                             bool json_format, const std::string& url) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->CallProcedure(result, procedure_type, procedure_name, param,
+                                          procedure_time_out, in_process, graph, json_format);
+    }
+    bool is_read_procedure = false;
+    for (auto &op : user_defined_procedures) {
+        if (op["plugins"]["name"] == procedure_name) {
+            is_read_procedure = op["plugins"]["read_only"];
+        }
+    }
+    auto fun = [&]{
+        if (!url.empty())
+            return GetClientByNode(url)->
+                CallProcedure(result, procedure_type, procedure_name, param,
+                              procedure_time_out, in_process, graph, json_format);
+        return GetClient(is_read_procedure)
+            ->CallProcedure(result, procedure_type, procedure_name, param,
+                            procedure_time_out, in_process, graph, json_format);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::LoadProcedure(std::string &result, const std::string &source_file,
+                              const std::string &procedure_type, const std::string &procedure_name,
+                              const std::string &code_type,
+                              const std::string &procedure_description,
+                              bool read_only,
+                              const std::string& version,
+                              const std::string &graph) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->LoadProcedure(result, source_file, procedure_type, procedure_name,
+                                          code_type, procedure_description, read_only,
+                                          version, graph);
+    }
+    auto fun = [&]{
+        bool succeed = GetClient(false)->
+                       LoadProcedure(result, source_file, procedure_type, procedure_name,
+                                     code_type, procedure_description, read_only, version, graph);
+        if (succeed) {
+            RefreshUserDefinedProcedure();
+        }
+        return succeed;
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::ListProcedures(std::string &result, const std::string &procedure_type,
+                               const std::string& version,
+                               const std::string &graph, const std::string &url) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->ListProcedures(result, procedure_type, version, graph);
+    }
+    auto fun = [&]{
+        if (!url.empty()) {
+            return GetClientByNode(url)->ListProcedures(result, procedure_type, version, graph);
+        }
+        return GetClient(true)->ListProcedures(result, procedure_type, version, graph);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::DeleteProcedure(std::string &result, const std::string &procedure_type,
+                                  const std::string &procedure_name, const std::string &graph) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->DeleteProcedure(result, procedure_type, procedure_name, graph);
+    }
+    auto fun = [&]{
+        return GetClient(false)->DeleteProcedure(result, procedure_type, procedure_name, graph);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::ImportSchemaFromContent(std::string &result, const std::string &schema,
+                                          const std::string &graph, bool json_format,
+                                          double timeout) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->ImportSchemaFromContent(result, schema, graph, json_format, timeout);
+    }
+    auto fun = [&]{
+        return GetClient(false)
+            ->ImportSchemaFromContent(result, schema, graph, json_format, timeout);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::ImportDataFromContent(std::string &result, const std::string &desc,
+                                        const std::string &data, const std::string &delimiter,
+                                        bool continue_on_error, int thread_nums,
+                                        const std::string &graph, bool json_format,
+                                        double timeout) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->ImportDataFromContent(result, desc, data, delimiter, continue_on_error,
+                                                  thread_nums, graph, json_format, timeout);
+    }
+    auto fun = [&]{
+        return GetClient(false)
+            ->ImportDataFromContent(result, desc, data, delimiter, continue_on_error,
+                                    thread_nums, graph, json_format, timeout);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::ImportSchemaFromFile(std::string &result, const std::string &schema_file,
+                                       const std::string &graph, bool json_format, double timeout) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->ImportSchemaFromFile(result, schema_file, graph, json_format, timeout);
+    }
+    auto fun = [&]{
+        return GetClient(false)
+            ->ImportSchemaFromFile(result, schema_file, graph, json_format, timeout);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::ImportDataFromFile(std::string &result, const std::string &conf_file,
+                                     const std::string &delimiter, bool continue_on_error,
+                                     int thread_nums, int skip_packages, const std::string &graph,
+                                     bool json_format, double timeout) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->ImportDataFromFile(result, conf_file, delimiter, continue_on_error,
+                            thread_nums, skip_packages, graph, json_format, timeout);
+    }
+    auto fun = [&]{
+        return GetClient(false)
+            ->ImportDataFromFile(result, conf_file, delimiter, continue_on_error, thread_nums,
+                                 skip_packages, graph, json_format, timeout);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+void RpcClient::Logout() {
+    if (client_type != INDIRECT_HA_CONNECTION)
+        base_client->Logout();
+    for (auto &c : client_pool) {
+        c->Logout();
+    }
+}
+
+void RpcClient::RefreshUserDefinedProcedure() {
+    std::string result;
+    GetClient(true)->
+        CallCypher(result, "CALL db.plugin.listUserPlugins()", "default", true, 10);
+    user_defined_procedures = nlohmann::json::parse(result.c_str());
+}
+
+void RpcClient::RefreshBuiltInProcedure() {
+    std::string result;
+    GetClient(true)->CallCypher(result, "CALL dbms.procedures()", "default", true, 10);
+    built_in_procedures = nlohmann::json::parse(result.c_str());
+}
+
+void RpcClient::RefreshClientPool() {
+    client_pool.clear();
+    if (client_type == DIRECT_HA_CONNECTION) {
+        std::string result;
+        base_client->CallCypher(result, "CALL dbms.ha.clusterInfo()", "default", true, 10);
+        nlohmann::json cluster_info = nlohmann::json::parse(result.c_str());
+        for (auto &node : cluster_info[0]["cluster_info"]) {
+            auto c = std::make_shared<RpcSingleClient>(node["rpc_address"], user, password);
+            if (node["state"] == "MASTER") {
+                leader_client = c;
+            }
+            client_pool.push_back(c);
+        }
+    } else if (client_type == INDIRECT_HA_CONNECTION) {
+        for (auto &url : urls) {
+            auto c = std::make_shared<RpcSingleClient>(url, user, password);
+            std::string result;
+            c->CallCypher(result, "CALL dbms.ha.clusterInfo()", "default", true, 10);
+            nlohmann::json cluster_info = nlohmann::json::parse(result.c_str());
+            if (cluster_info[0]["is_master"])
+                leader_client = c;
+            client_pool.push_back(c);
+        }
+    }
+}
+
+bool RpcClient::IsReadCypher(const std::string &cypher, const std::string &graph) {
+    if (cypher.find(cypher_constant.at(5)) != std::string::npos) {
+        for (auto &op : user_defined_procedures) {
+            if (op["graph"] == graph &&
+                cypher.find(op["plugins"]["name"]) != std::string::npos) {
+                return op["plugins"]["read_only"];
+            }
+        }
+        for (auto &procedure : built_in_procedures) {
+            if (cypher.find(procedure["name"]) != std::string::npos) {
+                return procedure["read_only"];
+            }
+        }
+    }
+    std::string tmp = cypher;
+    std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
+    for (int i = 0; i < 5; i++) {
+        if (tmp.find(cypher_constant[i]) != std::string::npos) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::shared_ptr<lgraph::RpcClient::RpcSingleClient> RpcClient::GetClient(const std::string &cypher,
+                                                          const std::string &graph) {
+    return GetClient(IsReadCypher(cypher, graph));
+}
+
+std::shared_ptr<lgraph::RpcClient::RpcSingleClient> RpcClient::GetClient(bool isReadQuery) {
+    if (isReadQuery) {
+        LoadBalanceClientPool();
+        if (client_pool.empty())
+            throw RpcException("all instance is down, refuse req!");
+        return *client_pool.rbegin();
+    } else {
+        if (leader_client == nullptr)
+            throw RpcException("master instance is down, refuse req!");
+        return leader_client;
+    }
+}
+
+std::shared_ptr<lgraph::RpcClient::RpcSingleClient> RpcClient::GetClientByNode(
+    const std::string &url) {
+    for (auto &c : client_pool) {
+        if (c->GetUrl() == url)
+            return c;
+    }
+    throw RpcException("do not exit " + url +" client");
+}
+
+void RpcClient::RefreshConnection() {
+    try {
+        RefreshClientPool();
+        RefreshUserDefinedProcedure();
+        RefreshBuiltInProcedure();
+    } catch (std::exception &e) {
+        FMA_ERR_STREAM(logger_) << "[RpcClient] RpcClient Connection Exception, "
+                                   "please connect again!";
+    }
+}
+
+void RpcClient::LoadBalanceClientPool() {
+    client_pool.push_back(client_pool.front());
+    client_pool.pop_front();
+}
+
+int64_t RpcClient::Restore(const std::vector<BackupLogEntry>& requests) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->Restore(requests);
+    } else {
+        auto fun = [&]{
+            return GetClient(false)->Restore(requests);
+        };
+        return DoubleCheckQuery(fun);
+    }
+}
+
+template<typename F>
+bool RpcClient::DoubleCheckQuery(const F &f) {
+    try {
+        return f();
+    } catch (std::exception &e) {
+        try {
+            RefreshConnection();
+            return f();
+        } catch (std::exception &e) {
+            FMA_ERR_STREAM(logger_) << e.what();
+            return false;
+        }
+    }
+}
 }  // end of namespace lgraph

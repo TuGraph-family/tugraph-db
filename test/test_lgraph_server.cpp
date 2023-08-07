@@ -52,6 +52,9 @@ TEST_F(TestLGraphServer, LGraphServer) {
     conf.http_port = 7774;
     conf.rpc_port = 9394;
     conf.bind_host = "127.0.0.1";
+#ifdef __SANITIZE_ADDRESS__
+    conf.use_pthread = true;
+#endif
     auto ListGraphs = [](RpcClient& client) {
         std::string graphs;
         bool succeed = client.CallCypher(graphs, "call dbms.graph.listGraphs()");

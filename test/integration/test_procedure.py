@@ -784,6 +784,9 @@ class TestProcedure:
         assert ret[0]
         values = json.loads(ret[1])
         assert len(values) == 21
+        test_client.logout()
+        test_client2.logout()
+        test_client3.logout()
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)

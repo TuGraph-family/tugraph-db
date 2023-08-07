@@ -330,10 +330,18 @@ TEST_F(TestImportOnline, ImportOnline) {
         std::string e2 = dir + "/edge2.csv";
 
         auto StartServer = [&]() {
+#ifndef __SANITIZE_ADDRESS__
             std::string server_cmd = UT_FMT(
                 "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
                 " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}" ,
                 port, rpc_port, db_dir);
+#else
+            std::string server_cmd = UT_FMT(
+                "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
+                " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}"
+                " --use_pthread true" ,
+                port, rpc_port, db_dir);
+#endif
             UT_LOG() << "cmd: " << server_cmd;
             auto server = std::unique_ptr<SubProcess>(new SubProcess(server_cmd));
             if (!server->ExpectOutput("Server started.")) {
@@ -1399,10 +1407,18 @@ Liam Neeson,Batman Begins,Henri Ducard, 298
 )"}};
         AutoCleanDir db_cleaner(db_dir);
         db_cleaner.Clean();
+#ifndef __SANITIZE_ADDRESS__
         std::string server_cmd = UT_FMT(
                 "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
                 " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}" ,
                 port, rpc_port, db_dir);
+#else
+        std::string server_cmd = UT_FMT(
+            "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
+            " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}"
+            " --use_pthread true" ,
+            port, rpc_port, db_dir);
+#endif
         UT_LOG() << "cmd: " << server_cmd;
         auto server = std::unique_ptr<SubProcess>(new SubProcess(server_cmd));
         if (!server->ExpectOutput("Server started.")) {

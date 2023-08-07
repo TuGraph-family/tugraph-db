@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     std::string skip_list;  // indexes to skip, separated with comma
 
     std::string action = "print";
-    std::string host = "";
+    std::string host;
     uint16_t port = 7071;
     std::string dir;
     std::string user;
@@ -119,8 +119,8 @@ int main(int argc, char** argv) {
         if (input_paths.size() == 1) {
             // could be dir/*
             if (input_paths[0].back() == '*') {
-                std::string dir = fma_common::FilePath(input_paths[0]).Dir();
-                input_paths = fma_common::file_system::ListFiles(dir, nullptr, true);
+                std::string tmp_dir = fma_common::FilePath(input_paths[0]).Dir();
+                input_paths = fma_common::file_system::ListFiles(tmp_dir, nullptr, true);
             }
         }
         std::vector<std::string> input_files = lgraph::BackupLog::SortLogFiles(input_paths);

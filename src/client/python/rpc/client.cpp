@@ -22,14 +22,23 @@ void register_liblgraph_client_python(pybind11::module& m) {
     // define lgraph::RpcClient class
     py::class_<LGraphPythonClient> c(m, "client", "this is a python rpc client");
     // define the constructor
-    c.def(pybind11::init<const std::string &, const std::string &, const std::string &>(),
-            "Client Login\n"
-            "url        Login address.\n"
-            "user       The username.\n"
-            "password   The password.\n",
-            pybind11::arg("url"),
-            pybind11::arg("user"),
-            pybind11::arg("password"));
+    c.def(pybind11::init<const std::string &, const std::string &,
+          const std::string &>(),
+          "Client Login\n"
+          "url        Login address.\n"
+          "user       The username.\n"
+          "password   The password.\n",
+          pybind11::arg("url"), pybind11::arg("user"),
+          pybind11::arg("password"));
+
+    c.def(pybind11::init<std::vector<std::string> &, const std::string &,
+                  const std::string &>(),
+          "Client Login\n"
+          "urls       Login address.\n"
+          "user       The username.\n"
+          "password   The password.\n",
+          pybind11::arg("urls"), pybind11::arg("user"),
+          pybind11::arg("password"));
 
     // define other function
     c.def("callCypher", &LGraphPythonClient::CallCypher,
@@ -37,70 +46,65 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "cypher          [in] inquire statement.\n"
           "graph           [in] the graph to query.\n"
           "json_format     [in] Returns the format， true is json，Otherwise, binary format\n"
-          "timeout         [in] Maximum execution time, overruns will be interrupted\n",
-          pybind11::arg("cypher"),
-          pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
+          "timeout         [in] Maximum execution time, overruns will be interrupted\n"
+          "url             [in] server address.\n",
+          pybind11::arg("cypher"), pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
+          pybind11::arg("url") = "",
           pybind11::return_value_policy::move);
 
     c.def("loadProcedure", &LGraphPythonClient::LoadProcedure,
-          "Load a built-in procedure\n"
-          "source_file              [in] the source_file contain procedure code\n"
-          "procedure_type           [in] the procedure type, currently supported CPP and PY\n"
-          "procedure_name           [in] procedure name\n"
-          "code_type                [in] code type, currently supported PY, SO, CPP, ZIP\n"
-          "procedure_description    [in] procedure description\n"
-          "read_only                [in] procedure is read only or not\n"
-          "version                  [in] procedure version, currently v1 or v2"
-          "graph                    [in] the graph to query.\n",
-          pybind11::arg("source_file"),
-          pybind11::arg("procedure_type"),
+          "Load a user-defined procedure\n"
+          "source_file            [in] the source_file contain procedure code\n"
+          "procedure_type         [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name         [in] procedure name\n"
+          "code_type              [in] code type, currently supported PY, SO, CPP, ZIP\n"
+          "procedure_description  [in] procedure description\n"
+          "read_only              [in] procedure is read only or not\n"
+          "version                [in] procedure version, currently v1 or v2"
+          "graph                  [in] the graph to query.\n",
+          pybind11::arg("source_file"), pybind11::arg("procedure_type"),
           pybind11::arg("procedure_name"),
-          pybind11::arg("code_type"),
-          pybind11::arg("procedure_description"),
+          pybind11::arg("code_type"), pybind11::arg("procedure_description"),
           pybind11::arg("read_only"),
-          pybind11::arg("version"),
+          pybind11::arg("version") = "v1",
           pybind11::arg("graph") = "default",
           pybind11::return_value_policy::move);
 
     c.def("callProcedure", &LGraphPythonClient::CallProcedure,
-          "Execute a built-in procedure\n"
-          "procedure_type       [in] the procedure type, currently supported CPP and PY\n"
-          "procedure_name       [in] procedure name\n"
-          "param                [in] the execution parameters\n"
-          "procedure_time_out   [in] Maximum execution time, overruns will be interrupted\n"
-          "in_process           [in] support in future\n"
-          "graph                [in] the graph to query.\n"
-          "json_format         [in] Returns the format， true is json，Otherwise, binary format\n",
-          pybind11::arg("procedure_type"),
-          pybind11::arg("procedure_name"),
-          pybind11::arg("param"),
-          pybind11::arg("procedure_time_out") = 0.0,
-          pybind11::arg("in_process") = false,
-          pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::return_value_policy::move);
+          "Execute a user-defined procedure\n"
+          "procedure_type         [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name         [in] procedure name\n"
+          "param                  [in] the execution parameters\n"
+          "procedure_time_out     [in] Maximum execution time, overruns will be interrupted\n"
+          "in_process             [in] support in future\n"
+          "graph                  [in] the graph to query.\n"
+          "json_format            [in] Returns the format， true is json，Otherwise, "
+          "                            binary format\n"
+          "url                    [in] server address.\n",
+          pybind11::arg("procedure_type"), pybind11::arg("procedure_name"), pybind11::arg("param"),
+          pybind11::arg("procedure_time_out") = 0.0, pybind11::arg("in_process") = false,
+          pybind11::arg("graph") = "default", pybind11::arg("json_format") = true,
+          pybind11::arg("url") = "", pybind11::return_value_policy::move);
 
     c.def("listProcedures", &LGraphPythonClient::ListProcedures,
-          "Execute a built-in procedure\n"
-          "procedure_type     [in] the procedure type, currently supported CPP and PY\n"
-          "version                  [in] procedure version, currently v1 or v2 or any"
-          "graph              [in] the graph to query.\n",
+          "Execute built-in procedures\n"
+          "procedure_type      [in] the procedure type, currently supported CPP and PY\n"
+          "version             [in] procedure version, currently v1 or v2 or any"
+          "graph               [in] the graph to query.\n"
+          "url                 [in] server address.\n",
           pybind11::arg("procedure_type"),
-          pybind11::arg("version"),
+          pybind11::arg("version") = "any",
           pybind11::arg("graph") = "default",
-          pybind11::return_value_policy::move);
+          pybind11::arg("url") = "", pybind11::return_value_policy::move);
 
     c.def("deleteProcedure", &LGraphPythonClient::DeleteProcedure,
-          "Execute a built-in procedure\n"
-          "procedure_type       [in] the procedure type, currently supported CPP and PY\n"
-          "procedure_name       [in] procedure name\n"
-          "graph                [in] the graph to query.\n",
-          pybind11::arg("procedure_type"),
-          pybind11::arg("procedure_name"),
-          pybind11::arg("graph") = "default",
-          pybind11::return_value_policy::move);
+          "Delete built-in procedure\n"
+          "procedure_type      [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name      [in] procedure name\n"
+          "graph               [in] the graph to query.\n",
+          pybind11::arg("procedure_type"), pybind11::arg("procedure_name"),
+          pybind11::arg("graph") = "default", pybind11::return_value_policy::move);
 
     c.def("importSchemaFromFile", &LGraphPythonClient::ImportSchemaFromFile,
           "import vertex or edge schema from file\n"
@@ -108,10 +112,8 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "graph               [in] the graph to query\n"
           "json_format         [in] Returns the format， true is json，Otherwise, binary format\n"
           "timeout             [in] Maximum execution time, overruns will be interrupted\n",
-          pybind11::arg("schema_file"),
-          pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
+          pybind11::arg("schema_file"), pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
     c.def("importDataFromFile", &LGraphPythonClient::ImportDataFromFile,
@@ -124,14 +126,10 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "graph               [in] the graph to query\n"
           "json_format         [in] Returns the format， true is json，Otherwise, binary format\n"
           "timeout             [in] Maximum execution time, overruns will be interrupted\n",
-          pybind11::arg("conf_file"),
-          pybind11::arg("delimiter"),
-          pybind11::arg("continue_on_error") = false,
-          pybind11::arg("thread_nums") = 8,
-          pybind11::arg("skip_packages") = 0,
-          pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
+          pybind11::arg("conf_file"), pybind11::arg("delimiter"),
+          pybind11::arg("continue_on_error") = false, pybind11::arg("thread_nums") = 8,
+          pybind11::arg("skip_packages") = 0, pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
     c.def("importSchemaFromContent", &LGraphPythonClient::ImportSchemaFromContent,
@@ -140,10 +138,8 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "graph               [in] the graph to query\n"
           "json_format         [in] Returns the format， true is json，Otherwise, binary format\n"
           "timeout             [in] Maximum execution time, overruns will be interrupted\n",
-          pybind11::arg("schema"),
-          pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
+          pybind11::arg("schema"), pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
     c.def("importDataFromContent", &LGraphPythonClient::ImportDataFromContent,
@@ -156,22 +152,12 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "graph               [in] the graph to query\n"
           "json_format         [in] Returns the format， true is json，Otherwise, binary format\n"
           "timeout             [in] Maximum execution time, overruns will be interrupted\n",
-          pybind11::arg("desc"),
-          pybind11::arg("data"),
-          pybind11::arg("delimiter"),
-          pybind11::arg("continue_on_error") = false,
-          pybind11::arg("thread_nums") = 8,
-          pybind11::arg("graph") = "default",
-          pybind11::arg("json_format") = true,
-          pybind11::arg("timeout") = 0,
-          pybind11::return_value_policy::move);
+          pybind11::arg("desc"), pybind11::arg("data"), pybind11::arg("delimiter"),
+          pybind11::arg("continue_on_error") = false, pybind11::arg("thread_nums") = 8,
+          pybind11::arg("graph") = "default", pybind11::arg("json_format") = true,
+          pybind11::arg("timeout") = 0, pybind11::return_value_policy::move);
 
-    c.def("logout", &LGraphPythonClient::Logout,
-          "Execute unbind token\n");
-
-
-    c.def("close", &LGraphPythonClient::Close,
-          "close the channel \n");
+    c.def("logout", &LGraphPythonClient::Logout, "Execute unbind token\n");
 }
 
 PYBIND11_MODULE(liblgraph_client_python, m) {
