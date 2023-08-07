@@ -156,6 +156,7 @@ static const utility::string_t RPC_ADDR = _TU("rpc_address");
 static const utility::string_t SCHEMA = _TU("schema");
 static const utility::string_t SCHEMA_TEXT = _TU("text");
 static const utility::string_t SCRIPT = _TU("script");
+static const utility::string_t SIGNATURE = _TU("signature");
 static const utility::string_t SRC = _TU("source");
 static const utility::string_t STATE = _TU("state");
 static const utility::string_t STATISTICS = _TU("statistics");
@@ -611,6 +612,9 @@ inline web::json::value ValueToJson(const lgraph::PluginDesc& desc) {
     js[RestStrings::NAME] = web::json::value::string(_TU(desc.name));
     js[RestStrings::DESC] = web::json::value::string(_TU(desc.desc));
     js[RestStrings::READONLY] = web::json::value::boolean(desc.read_only);
+    js[RestStrings::CODE_TYPE] = web::json::value::string(_TU(desc.code_type));
+    js[RestStrings::SIGNATURE] = web::json::value::string(_TU(desc.signature));
+    js[RestStrings::VERSION] = web::json::value::string(_TU(desc.version));
     return js;
 }
 
@@ -621,6 +625,7 @@ inline web::json::value ValueToJson(const PluginCode& co) {
     v[RestStrings::READONLY] = ValueToJson(co.read_only);
     v[RestStrings::CODE] = ValueToJson(co.code);
     v[RestStrings::CODE_TYPE] = ValueToJson(co.code_type);
+    v[RestStrings::VERSION] = ValueToJson(co.version);
     return v;
 }
 
