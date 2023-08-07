@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <fstream>
 #include <string>
+#include <shared_mutex>
 
 #include "fma-common/pipeline.h"
 #include "fma-common/stream_base.h"
@@ -241,35 +242,39 @@ class OutputFileStream : public OutputStreamBase {
 class OutputMemoryFileStream : public OutputStreamBase {
     std::string path_;
     std::string buffer_;
-    std::mutex mutex_;
+    mutable std::shared_mutex mutex_;
 
  public:
     virtual ~OutputMemoryFileStream() {}
 
     virtual void Open(const std::string& path, size_t buf_size, std::ofstream::openmode) {
-        std::lock_guard<std::mutex> l(mutex_);
+        std::unique_lock<std::shared_mutex> lock(mutex_);  // write lock
         path_ = path;
         buffer_.clear();
     }
 
     virtual void Write(const void* buffer, size_t size) {
-        std::lock_guard<std::mutex> l(mutex_);
+        std::unique_lock<std::shared_mutex> lock(mutex_);  // write lock
         buffer_.append((const char*)buffer, size);
     }
 
     virtual bool Good() const { return true; }
 
     virtual void Close() {
-        std::lock_guard<std::mutex> l(mutex_);
+        std::unique_lock<std::shared_mutex> lock(mutex_);  // write lock
         buffer_.clear();
     }
 
-    virtual size_t Size() const { return buffer_.size(); }
+    virtual size_t Size() const {
+        std::shared_lock<std::shared_mutex> lock(mutex_);  // read lock
+        return buffer_.size();
+    }
 
     virtual const std::string& Path() const { return path_; }
 
+    std::shared_mutex& GetMutex() { return mutex_; }
+
     std::string& GetBuf() {
-        std::lock_guard<std::mutex> l(mutex_);
         return buffer_;
     }
 };

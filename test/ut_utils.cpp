@@ -28,7 +28,10 @@ class MemoryBufferDevice : public fma_common::LogDevice {
         buf_.Open("", 0, std::ofstream::app);
     }
 
-    void Print() const { std::cerr << buf_.GetBuf(); }
+    void Print() const {
+        std::shared_lock<std::shared_mutex> lock(buf_.GetMutex());
+        std::cerr << buf_.GetBuf();
+    }
 };
 
 void TuGraphTest::setup() {
