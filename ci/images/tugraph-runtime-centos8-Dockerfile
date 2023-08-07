@@ -42,7 +42,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
     && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
 
 # install cmake
@@ -57,7 +57,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
 # https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
     && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
-    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace \
+    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
     && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
 
 #install maven
