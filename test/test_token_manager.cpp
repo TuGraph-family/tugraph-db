@@ -39,4 +39,16 @@ TEST_F(TestTokenManager, TokenManager) {
     UT_EXPECT_EQ(m.JudgeRefreshTime(tok1), true);
     std::string tok2 = m.UpdateToken(tok1);
     UT_EXPECT_EQ(m.JudgeRefreshTime(tok2), true);
+    m.SetTokenTimeUnlimited();
+    UT_EXPECT_EQ(m.GetTokenTime(tok2).first, std::numeric_limits<int>::max());
+    UT_EXPECT_EQ(m.GetTokenTime(tok2).second, std::numeric_limits<int>::max());
+    m.ModifyRefreshTime(tok2, 1);
+    fma_common::SleepS(1);
+    UT_EXPECT_EQ(m.JudgeRefreshTime(tok2), false);
+    m.ModifyRefreshTime(tok2, 600);
+    m.ModifyExpireTime(tok2, 3600);
+    UT_EXPECT_EQ(m.GetTokenTime(tok2).first, 600);
+    UT_EXPECT_EQ(m.GetTokenTime(tok2).second, 3600);
+    auto new_token = m.UpdateToken(tok2);
+    UT_EXPECT_EQ(m.JudgeRefreshTime(new_token), true);
 }

@@ -309,26 +309,27 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         json::value body;
         body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
         body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
-        Galaxy galaxy("./testdb");
         auto re = client1->request(methods::POST, _TU("/login"), body).get();
         auto token = _TS(re.extract_json().get().at(_TU("jwt")).as_string());
-        galaxy.SetTokenTimeUnlimited();
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, std::numeric_limits<int>::max());
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, std::numeric_limits<int>::max());
-        galaxy.ModifyTokenTime(token, 1, 3600 * 24);
-        fma_common::SleepS(1);
-        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);
-        galaxy.ModifyTokenTime(token, 600, 3600);
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, 600);
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, 3600);
         auto new_token = client.Refresh(token);
         UT_EXPECT_EQ(new_token != token, true);
-        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), true);
-        galaxy.ModifyTokenTime(new_token, 1, 3600 * 24);
-        fma_common::SleepS(1);
-        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), false);
     }
     UT_LOG() << "Testing refresh succeeded";
+
+    // test update_token_time and get_token_time
+    {
+        auto* client1 = static_cast<http_client*>(client.GetClient());
+        json::value body;
+        body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
+        body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
+        auto re = client1->request(methods::POST, _TU("/login"), body).get();
+        auto token = _TS(re.extract_json().get().at(_TU("jwt")).as_string());
+        UT_EXPECT_EQ(client.GetTokenTime(token).first, 3600 * 24);
+        UT_EXPECT_EQ(client.GetTokenTime(token).second, 3600 * 24);
+        client.UpdateTokenTime(token, 200, 400);
+        UT_EXPECT_EQ(client.GetTokenTime(token).first, 200);
+        UT_EXPECT_EQ(client.GetTokenTime(token).second, 400);
+    }
 
     // test logout
     UT_LOG() << "Testing logout";

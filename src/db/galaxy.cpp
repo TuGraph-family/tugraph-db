@@ -19,23 +19,21 @@
 #include "db/galaxy.h"
 #include "db/token_manager.h"
 
-std::string lgraph::Galaxy::GenerateRandomString() const {
-// TODO(lmy): error in ci
-//    std::random_device rd;
-//    std::mt19937 mt(rd());
-//    const std::string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//
-//    std::uniform_int_distribution<int> dist(0, charset.size() - 1);
-//    std::string result;
-//    for (int i = 0; i < 26; ++i) {
-//        result += charset[dist(mt)];
-//    }
-//    return result;
-    return "";
+std::string lgraph::Galaxy::GenerateRandomString() {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    const std::string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    std::uniform_int_distribution<int> dist(0, charset.size() - 1);
+    std::string result;
+    for (int i = 0; i < 26; ++i) {
+       result += charset[dist(mt)];
+    }
+    return result;
 }
 
 lgraph::Galaxy::Galaxy(const std::string& dir, bool create_if_not_exist)
-    : Galaxy(Config{dir, false, true, "fma.ai" + GenerateRandomString()},
+    : Galaxy(Config{dir, false, true},
     create_if_not_exist, nullptr) {}
 
 static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
@@ -111,8 +109,8 @@ std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) cons
 std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
                                         const std::string& user) const {
     std::string new_token = token_manager_.UpdateToken(token);
+    _HoldWriteLock(acl_lock_);
     if (new_token != "") {
-        _HoldWriteLock(acl_lock_);
         acl_->BindTokenUser(token, new_token, user);
     } else {
         acl_->UnBindTokenUser(token);
@@ -124,6 +122,11 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
 bool lgraph::Galaxy::UnBindTokenUser(const std::string& token) {
     _HoldWriteLock(acl_lock_);
     return acl_->UnBindTokenUser(token);
+}
+
+bool lgraph::Galaxy::UnBindUserAllToken(const std::string& user) {
+    _HoldWriteLock(acl_lock_);
+    return acl_->UnBindUserAllToken(user);
 }
 
 bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {

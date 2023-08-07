@@ -51,7 +51,7 @@ class Galaxy {
         std::string dir = "./TuGraph";
         bool durable = false;
         bool optimistic_txn = false;
-        std::string jwt_secret = "fma.ai";
+        std::string jwt_secret = "fma.ai" + GenerateRandomString();
         bool load_plugins = true;
     };
 
@@ -97,13 +97,16 @@ class Galaxy {
     std::string ParseAndValidateToken(const std::string& token) const;
 
     // generate random string
-    std::string GenerateRandomString() const;
+    static std::string GenerateRandomString();
 
     // refresh token
     std::string RefreshUserToken(const std::string& token, const std::string& user) const;
 
     // unbind token and user
     bool UnBindTokenUser(const std::string& token);
+
+    // unbind user all token
+    bool UnBindUserAllToken(const std::string& user);
 
     // judge token
     bool JudgeRefreshTime(const std::string& token);

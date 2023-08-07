@@ -264,6 +264,7 @@ bool RestClient::Login(const std::string& username, const std::string& password)
 
 std::string RestClient::Refresh(const std::string& token) {
     json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
     auto response = DoPost("/refresh", body, true);
     auto new_token = response.at(_TU("jwt")).as_string();
     std::string auth_value = std::string("Bearer ") + ToStdString(new_token);
@@ -272,8 +273,28 @@ std::string RestClient::Refresh(const std::string& token) {
     return _TS(new_token);
 }
 
+bool RestClient::UpdateTokenTime(const std::string& token, int refresh_time, int expire_time) {
+    json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
+    body[_TU("refresh_time")] = json::value::number(refresh_time);
+    body[_TU("expire_time")] = json::value::number(expire_time);
+    auto response = DoPost("/update_token_time", body, false);
+    if (response.is_null()) return false;
+    return true;
+}
+
+std::pair<int, int> RestClient::GetTokenTime(const std::string& token) {
+    json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
+    auto response = DoPost("/get_token_time", body, true);
+    auto refresh_time = response.at(_TU("refresh_time")).as_integer();
+    auto expire_time = response.at(_TU("expire_time")).as_integer();
+    return std::make_pair(refresh_time, expire_time);
+}
+
 bool RestClient::Logout(const std::string& token) {
     json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
     auto response = DoPost("/logout", body, true);
     if (response.is_null()) return false;
     return true;

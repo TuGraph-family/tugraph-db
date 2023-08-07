@@ -369,7 +369,7 @@ class AclManager {
 
     bool UnBindTokenUser(const std::string& token);
 
-    bool UnBindAllToken(const std::string& user);
+    bool UnBindUserAllToken(const std::string& user);
 
     int GetUserTokenNum(const std::string& user);
 };
