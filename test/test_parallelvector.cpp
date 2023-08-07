@@ -23,6 +23,7 @@ class TestParallelVector : public TuGraphTest {};
 
 TEST_F(TestParallelVector, ParallelVector) {
     ParallelVector<int> v(100, 10);
+    UT_EXPECT_EQ(v.Capacity(), 100);
     UT_EXPECT_EQ(v.Size(), 10);
     v.Fill(1);
     for (auto iter = v.begin(); iter != v.end(); iter++) {
@@ -53,6 +54,7 @@ TEST_F(TestParallelVector, ParallelVector) {
     UT_EXPECT_EQ(0, v.Size());
 
     v.ReAlloc(200);
+    UT_EXPECT_EQ(v.Capacity(), 200);
     UT_EXPECT_THROW_MSG(v.ReAlloc(0), "The new capacity is smaller than the current one.");
     v.Resize(10, 1);
     UT_EXPECT_EQ(v.Size(), 10);
@@ -117,6 +119,7 @@ TEST_F(TestParallelVector, ParallelVector) {
     }
 
     ParallelVector<int> v_swap(1);
+    UT_EXPECT_EQ(v_swap.Capacity(), 1);
     UT_EXPECT_EQ(v_swap.Size(), 0);
     v.Swap(v_swap);
     UT_EXPECT_EQ(v_swap.Size(), v_copy.Size());

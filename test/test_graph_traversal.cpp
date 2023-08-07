@@ -110,7 +110,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     UT_EXPECT_EQ(ver_id_5, 4);
 
     PathTraversal path_traver_test(db, txn_write, true, 1ul << 22);
-    UT_EXPECT_EQ(path_traver_test.GetFrontier().Size(), 1ul << 22);
+    UT_EXPECT_EQ(path_traver_test.GetFrontier().Capacity(), 1ul << 22);
 
     UT_LOG() << "now add five vertexes! test is ok!";
     std::vector<std::string> edge_name = {"type", "weight"};
@@ -214,7 +214,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     FrontierTraversal front_traver_write(db, txn_write, 1);
 
     FrontierTraversal front_traver_test(db, txn_write, 1 , 1ul << 20);
-    UT_EXPECT_EQ(front_traver_test.GetFrontier().Size(), 1ul << 20);
+    UT_EXPECT_EQ(front_traver_test.GetFrontier().Capacity(), 1ul << 20);
 
     front_traver_write.SetFrontier([&](VertexIterator &vit) {
         UT_LOG() << "read txn set write vertext iterator";
