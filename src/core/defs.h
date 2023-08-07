@@ -154,7 +154,18 @@ static const size_t DEFAULT_MEM_LIMIT = (size_t)2 << 40;
 }  // namespace _detail
 
 namespace plugin {
-enum class Type { CPP = 1, PYTHON = 2 };
+enum class Type { CPP = 1, PYTHON = 2, JAVA = 3, ANY = 4 };
+static const char* const PLUGIN_VERSION_1 = "v1";
+static const char* const PLUGIN_VERSION_2 = "v2";
+static const char* const PLUGIN_VERSION_ANY = "any";
+static const char* const PLUGIN_LANG_TYPE_CPP = "cpp";
+static const char* const PLUGIN_LANG_TYPE_PYTHON = "python";
+static const char* const PLUGIN_LANG_TYPE_JAVA = "java";
+static const char* const PLUGIN_LANG_TYPE_ANY = "any";
+static const char* const PLUGIN_CODE_TYPE_CPP = "cpp";
+static const char* const PLUGIN_CODE_TYPE_SO = "so";
+static const char* const PLUGIN_CODE_TYPE_ZIP = "zip";
+static const char* const PLUGIN_CODE_TYPE_PY = "py";
 
 typedef ::lgraph_api::PluginCodeType CodeType;
 }  // namespace plugin

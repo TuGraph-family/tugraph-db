@@ -51,7 +51,7 @@ class AccessControlledDB {
 
     bool LoadPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name,
                     const std::string& code, plugin::CodeType code_type, const std::string& desc,
-                    bool is_read_only);
+                    bool is_read_only, const std::string& version);
 
     bool DelPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name);
 

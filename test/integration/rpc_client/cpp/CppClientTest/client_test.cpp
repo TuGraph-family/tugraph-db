@@ -570,20 +570,20 @@ void test_plugin(lgraph::RpcClient& client) {
 
     std::string code_so_path = "./sortstr.so";
     bool ret = client.LoadProcedure(str, code_so_path, "CPP", "test_plugin1", "SO",
-                                 "this is a test plugin", true);
+                                 "this is a test plugin", true, "v1");
     assert(ret);
 
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_plugin1",
-                               "SO", "this is a test plugin", true);
+                               "SO", "this is a test plugin", true, "v1");
     assert(ret == false);
 
     std::string code_scan_graph_path = "./scan_graph.so";
     ret = client.LoadProcedure(str, code_scan_graph_path, "CPP", "test_plugin2", "SO",
-                            "this is a test plugin", true);
+                            "this is a test plugin", true, "v1");
     assert(ret);
     std::string code_add_label_path = "./add_label.so";
 
-    ret = client.ListProcedures(str, "CPP");
+    ret = client.ListProcedures(str, "CPP", "any");
     assert(ret);
     nlohmann::json json_val = nlohmann::json::parse(str);
     assert(json_val.size()== 2);

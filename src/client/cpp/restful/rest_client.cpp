@@ -1046,6 +1046,7 @@ bool RestClient::LoadPlugin(const std::string& db, lgraph_api::PluginCodeType ty
     body[RestStrings::NAME] = json::value::string(_TU(plugin_info.name));
     body[RestStrings::READONLY] = json::value::boolean(plugin_info.read_only);
     body[RestStrings::DESC] = json::value::string(_TU(plugin_info.desc));
+    body[RestStrings::VERSION] = json::value::string(_TU(plugin_info.version));
     body[RestStrings::CODE] = json::value::string(_TU(lgraph_api::base64::Encode(code)));
     body[RestStrings::CODE_TYPE] = json::value::string(_TU(lgraph_api::PluginCodeTypeStr(type)));
     DoGraphPost(db,

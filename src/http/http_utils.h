@@ -1,15 +1,15 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * Copyright 2023 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
 #pragma once
@@ -24,10 +24,29 @@ namespace http {
 
 typedef std::string string_t;  // add by cpplint
 
+// methods in url
+static const string_t HTTP_CYPHER_METHOD = "cypher";
+static const string_t HTTP_REFRESH_METHOD = "refresh";
+static const string_t HTTP_LOGIN_METHOD = "login";
+static const string_t HTTP_LOGOUT_METHOD = "logout";
+static const string_t HTTP_UPLOAD_METHOD = "upload_files";
+static const string_t HTTP_CLEAR_CACHE_METHOD = "clear_cache";
+static const string_t HTTP_CHECK_FILE_METHOD = "check_file";
+static const string_t HTTP_IMPORT_METHOD = "import_data";
+static const string_t HTTP_IMPORT_PROGRESS_METHOD = "import_progress";
+static const string_t HTTP_IMPORT_SCHEMA_METHOD = "import_schema";
+static const string_t HTTP_UPLOAD_PROCEDURE_METHOD = "upload_procedure";
+static const string_t HTTP_LIST_PROCEDURE_METHOD = "list_procedures";
+static const string_t HTTP_GET_PROCEDURE_METHOD = "get_procedure";
+static const string_t HTTP_GET_PROCEDURE_DEMO_METHOD = "get_procedure_demo";
+static const string_t HTTP_DELETE_PROCEDURE_METHOD = "delete_procedure";
+static const string_t HTTP_CALL_PROCEDURE_METHOD = "call_procedure";
+
 static const string_t HTTP_USER_NAME = "userName";
 static const string_t HTTP_PASSWORD = "password";
 static const string_t HTTP_AUTHORIZATION = "authorization";
 static const string_t HTTP_GRAPH = "graph";
+static const string_t HTTP_GRAPH_NAME = "graphName";
 static const string_t HTTP_SCRIPT = "script";
 static const string_t HTTP_TIMEOUT = "timeout";
 static const string_t HTTP_JSON_FORMAT = "jsonFormat";
@@ -58,14 +77,23 @@ static const string_t HTTP_PROGRESS_STATE = "state";
 static const string_t HTTP_HEADER_FILE_NAME = "File-Name";
 static const string_t HTTP_HEADER_BEGIN_POS = "Begin-Pos";
 static const string_t HTTP_HEADER_SIZE = "Size";
+static const string_t HTTP_PROCEDURE_DEMO_PATH_DIRECTORY = "/procedure_demo/";
+static const string_t HTTP_PROCEDURE_DEMO_PATH_CPP_V1 = "scan_graph.cpp";
+static const string_t HTTP_PROCEDURE_DEMO_PATH_CPP_V2 = "custom_pagerank.cpp";
+static const string_t HTTP_PROCEDURE_DEMO_PATH_PYTHON = "scan_graph.py";
 static const uint32_t HTTP_SPECIFIED_FILE = 0;
 static const uint32_t HTTP_SPECIFIED_USER = 1;
 static const uint32_t HTTP_ALL_USER = 2;
 
+#define GET_FIELD_OR_THROW_BAD_REQUEST(req, type, field, value)                              \
+    do {                                                                                     \
+        if (!ExtractTypedField<type>(req, field, value)) {                                   \
+            throw lgraph_api::BadRequestException(FMA_FMT("`{}` is not specified.", field)); \
+        }                                                                                    \
+    } while (0)
+
 template <typename Type>
-inline bool ExtractTypedField(const std::string& input,
-                              const string_t& field,
-                              Type& value) {
+inline bool ExtractTypedField(const std::string& input, const string_t& field, Type& value) {
     try {
         nlohmann::json js = nlohmann::json::parse(input);
         if (!js.contains(field)) return false;

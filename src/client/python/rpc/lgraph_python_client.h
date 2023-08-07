@@ -24,46 +24,42 @@ class LGraphPythonClient {
     ~LGraphPythonClient() {}
 
     std::pair<bool, std::string> LoadProcedure(const std::string& source_file,
-                                            const std::string& procedure_type,
-                                            const std::string& procedure_name,
-                                            const std::string& code_type,
-                                            const std::string& procedure_description,
-                                            bool read_only,
-                                            const std::string& graph = "default") {
+                                               const std::string& procedure_type,
+                                               const std::string& procedure_name,
+                                               const std::string& code_type,
+                                               const std::string& procedure_description,
+                                               bool read_only, const std::string& version,
+                                               const std::string& graph = "default") {
         std::string result;
-        bool ret = client->LoadProcedure(result, source_file, procedure_type,
-                                         procedure_name, code_type, procedure_description,
-                                         read_only, graph);
+        bool ret =
+            client->LoadProcedure(result, source_file, procedure_type, procedure_name, code_type,
+                                  procedure_description, read_only, version, graph);
         return {ret, result};
     }
 
-    std::pair<bool, std::string> CallProcedure(const std::string& procedure_type,
-                                            const std::string& procedure_name,
-                                            const std::string& param,
-                                            double procedure_time_out = 0.0,
-                                            bool in_process = false,
-                                            const std::string& graph = "default",
-                                            bool json_format = true) {
+    std::pair<bool, std::string> CallProcedure(
+        const std::string& procedure_type, const std::string& procedure_name,
+        const std::string& param, double procedure_time_out = 0.0, bool in_process = false,
+        const std::string& graph = "default", bool json_format = true) {
         std::string result;
-        bool ret = client->CallProcedure(result, procedure_type, procedure_name,
-                                         param, procedure_time_out, in_process, graph,
-                                         json_format);
+        bool ret = client->CallProcedure(result, procedure_type, procedure_name, param,
+                                         procedure_time_out, in_process, graph, json_format);
         return {ret, result};
     }
 
     std::pair<bool, std::string> ListProcedures(const std::string& procedure_type,
-                                               const std::string& graph = "default") {
+                                                const std::string& version,
+                                                const std::string& graph = "default") {
         std::string result;
-        bool ret = client->ListProcedures(result, procedure_type, graph);
+        bool ret = client->ListProcedures(result, procedure_type, version, graph);
         return {ret, result};
     }
 
     std::pair<bool, std::string> DeleteProcedure(const std::string& procedure_type,
-                                                  const std::string& procedure_name,
-                                                  const std::string& graph = "default") {
+                                                 const std::string& procedure_name,
+                                                 const std::string& graph = "default") {
         std::string result;
-        bool ret = client->DeleteProcedure(result, procedure_type, procedure_name,
-                                           graph);
+        bool ret = client->DeleteProcedure(result, procedure_type, procedure_name, graph);
         return {ret, result};
     }
 
@@ -84,7 +80,7 @@ class LGraphPythonClient {
         std::string result;
         bool ret =
             client->ImportDataFromFile(result, conf_file, delimiter, continue_on_error, thread_nums,
-                                      skip_packages, graph, json_format, timeout);
+                                       skip_packages, graph, json_format, timeout);
         return {ret, result};
     }
 
@@ -103,7 +99,7 @@ class LGraphPythonClient {
         bool json_format = true, double timeout = 0) {
         std::string result;
         bool ret = client->ImportDataFromContent(result, desc, data, delimiter, continue_on_error,
-                                                thread_nums, graph, json_format, timeout);
+                                                 thread_nums, graph, json_format, timeout);
         return {ret, result};
     }
 
@@ -115,13 +111,9 @@ class LGraphPythonClient {
         return {ret, result};
     }
 
-    void Logout() {
-        client->Logout();
-    }
+    void Logout() { client->Logout(); }
 
-    void Close() {
-        client.reset();
-    }
+    void Close() { client.reset(); }
 
  private:
     std::shared_ptr<lgraph::RpcClient> client;

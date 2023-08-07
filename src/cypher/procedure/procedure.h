@@ -858,7 +858,8 @@ static std::vector<Procedure> global_procedures = {
                                   {"plugin_content", {2, lgraph_api::LGraphType::STRING}},
                                   {"code_type", {3, lgraph_api::LGraphType::STRING}},
                                   {"plugin_description", {4, lgraph_api::LGraphType::STRING}},
-                                  {"read_only", {5, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"read_only", {5, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"version", {6, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.plugin.deletePlugin", BuiltinProcedure::DbPluginDeletePlugin,
@@ -873,7 +874,8 @@ static std::vector<Procedure> global_procedures = {
               true),
 
     Procedure("db.plugin.listPlugin", BuiltinProcedure::DbPluginListPlugin,
-              Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}},
+                                  {"plugin_version", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, false,
               true),
 

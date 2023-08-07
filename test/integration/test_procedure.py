@@ -712,12 +712,12 @@ class TestProcedure:
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_plugin(self, build_so, importor, server, client):
         sort_so = BUILDOPT.get("so_name")[1]
-        ret = client.loadProcedure(sort_so, "CPP", "sorter", "SO", "test plugin", True)
+        ret = client.loadProcedure(sort_so, "CPP", "sorter", "SO", "test plugin", True, "v1")
         assert ret[0]
         scan_so = BUILDOPT.get("so_name")[0]
-        ret = client.loadProcedure(scan_so, "CPP", "scan", "SO", "test plugin", True)
+        ret = client.loadProcedure(scan_so, "CPP", "scan", "SO", "test plugin", True, "v1")
         assert ret[0]
-        ret = client.listProcedures("CPP")
+        ret = client.listProcedures("CPP", "any")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 2
@@ -741,7 +741,7 @@ class TestProcedure:
 
         ret = client.deleteProcedure("CPP", "scan")
         assert ret[0]
-        ret = client.listProcedures("CPP")
+        ret = client.listProcedures("CPP", "any")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 1

@@ -26,9 +26,9 @@ BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++17 -I ../../include -I
 @pytest.fixture(scope="function")
 def load_plugin(server, client):
     sort_so = BUILDOPT.get("so_name")[0]
-    ret = client.loadProcedure(sort_so, "CPP", "sorter", "SO", "test plugin", True)
+    ret = client.loadProcedure(sort_so, "CPP", "sorter", "SO", "test plugin", True, "v1")
     assert ret[0]
-    ret = client.listProcedures("CPP")
+    ret = client.listProcedures("CPP", "any")
     assert ret[0]
     plugins = json.loads(ret[1])
     assert len(plugins) == 1
@@ -66,7 +66,7 @@ class TestBackup:
     @pytest.mark.parametrize("server_1", [SERVEROPT_1], indirect=True)
     @pytest.mark.parametrize("client_1", [CLIENTOPT_1], indirect=True)
     def test_backup_plugin(self, build_so, server, client, load_plugin, backup_copy_dir, server_1, client_1):
-        ret = client_1.listProcedures("CPP")
+        ret = client_1.listProcedures("CPP", "any")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins[0]) == 1
@@ -78,7 +78,7 @@ class TestBackup:
     @pytest.mark.parametrize("server_1", [SERVEROPT_1], indirect=True)
     @pytest.mark.parametrize("client_1", [CLIENTOPT_1], indirect=True)
     def test_unbackup_plugin(self, build_so, server, client, load_plugin, server_1, client_1):
-        ret = client_1.listProcedures("CPP")
+        ret = client_1.listProcedures("CPP", "any")
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 0

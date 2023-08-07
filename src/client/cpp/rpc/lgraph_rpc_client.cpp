@@ -264,7 +264,7 @@ bool RpcClient::LoadProcedure(std::string& result, const std::string& source_fil
                               const std::string& procedure_type, const std::string& procedure_name,
                               const std::string& code_type,
                               const std::string& procedure_description, bool read_only,
-                              const std::string& graph) {
+                              const std::string& version, const std::string& graph) {
     try {
         std::string content;
         if (!FieldSpecSerializer::FileReader(source_file, content)) {
@@ -277,6 +277,10 @@ bool RpcClient::LoadProcedure(std::string& result, const std::string& source_fil
         pluginRequest->set_graph(graph);
         pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
                                                         : lgraph::PluginRequest::PYTHON);
+        if (version != lgraph::plugin::PLUGIN_VERSION_1 &&
+            version != lgraph::plugin::PLUGIN_VERSION_2)
+            throw RpcException("Invalid plugin version");
+        pluginRequest->set_version(version);
         lgraph::LoadPluginRequest* loadPluginRequest = pluginRequest->mutable_load_plugin_request();
         loadPluginRequest->set_code_type([](const std::string& type) {
             std::unordered_map<std::string, lgraph::LoadPluginRequest_CodeType> um{
@@ -300,15 +304,15 @@ bool RpcClient::LoadProcedure(std::string& result, const std::string& source_fil
 
 bool RpcClient::CallProcedure(std::string& result, const std::string& procedure_type,
                               const std::string& procedure_name, const std::string& param,
-                              double procedure_time_out, bool in_process,
-                              const std::string& graph, bool json_format) {
+                              double procedure_time_out, bool in_process, const std::string& graph,
+                              bool json_format) {
     try {
         LGraphRequest req;
         lgraph::PluginRequest* pluginRequest = req.mutable_plugin_request();
         pluginRequest->set_graph(graph);
         pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
                                                         : lgraph::PluginRequest::PYTHON);
-        lgraph::CallPluginRequest *cpRequest = pluginRequest->mutable_call_plugin_request();
+        lgraph::CallPluginRequest* cpRequest = pluginRequest->mutable_call_plugin_request();
         cpRequest->set_name(procedure_name);
         cpRequest->set_in_process(in_process);
         cpRequest->set_param(param);
@@ -328,7 +332,7 @@ bool RpcClient::CallProcedure(std::string& result, const std::string& procedure_
 }
 
 bool RpcClient::ListProcedures(std::string& result, const std::string& procedure_type,
-                               const std::string& graph) {
+                               const std::string& version, const std::string& graph) {
     try {
         LGraphRequest req;
         req.set_is_write_op(false);
@@ -336,6 +340,7 @@ bool RpcClient::ListProcedures(std::string& result, const std::string& procedure
         pluginRequest->set_graph(graph);
         pluginRequest->set_type(procedure_type == "CPP" ? lgraph::PluginRequest::CPP
                                                         : lgraph::PluginRequest::PYTHON);
+        pluginRequest->set_version(version);
         pluginRequest->mutable_list_plugin_request();
         LGraphResponse res = HandleRequest(&req);
         result = res.mutable_plugin_response()->mutable_list_plugin_response()->reply();
@@ -488,9 +493,7 @@ bool RpcClient::ImportDataFromContent(std::string& result, const std::string& de
     return true;
 }
 
-std::string RpcClient::GetUrl() {
-    return url;
-}
+std::string RpcClient::GetUrl() { return url; }
 
 void RpcClient::Logout() {
     LGraphRequest request;

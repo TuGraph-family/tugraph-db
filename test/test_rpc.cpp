@@ -1249,10 +1249,10 @@ void test_procedure_privilege(lgraph::RpcClient& client) {
     std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
     // non-admin is not allowed to upload procedure
     ret = client_non_admin.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure_1", "CPP",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_FALSE(ret);
     ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure_1", "CPP",
-                             "this is a test procedure", true);
+                             "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
     // non-admin is not allowed to delete procedure
     ret = client_non_admin.CallCypher(str,
@@ -1587,30 +1587,30 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
 
     std::string code_so_path = "./sortstr.so";
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
-                               "SO", "this is a test procedure", true);
+                               "SO", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
-                               "SO", "this is a test procedure", true);
+                               "SO", "this is a test procedure", true, "v1");
     UT_EXPECT_FALSE(ret);
 
     std::string code_scan_graph_path = "./scan_graph.so";
     ret = client.LoadProcedure(str, code_scan_graph_path, "CPP", "test_procedure2", "SO",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
     std::string code_add_label_path = "./add_label.so";
     ret = client.LoadProcedure(str, code_add_label_path, "CPP", "test_procedure3", "SO",
-                            "this is a test procedure", false);
+                            "this is a test procedure", false, "v1");
     UT_EXPECT_TRUE(ret);
 
     std::string code_zip_path = "../../test/test_procedures/sortstr.zip";
     ret = client.LoadProcedure(str, code_zip_path, "CPP", "test_procedure4", "ZIP",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
     ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure5", "CPP",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.plugin.getPluginInfo('PY','countPersons')");
@@ -1619,7 +1619,7 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.plugin.listUserPlugins()");
     UT_EXPECT_TRUE(ret);
 
-    ret = client.ListProcedures(str, "CPP");
+    ret = client.ListProcedures(str, "CPP", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 5);
@@ -1683,14 +1683,14 @@ void test_python_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(json_val.size() == 0, true);
 
     ret = client.LoadProcedure(str, code_sleep, "PY", "python_procedure1",
-                               "PY", "this is a test procedure", true);
+                               "PY", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     ret = client.LoadProcedure(str, code_read, "PY", "python_procedure2",
-                               "PY", "this is a test procedure", true);
+                               "PY", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
-    ret = client.ListProcedures(str, "PY");
+    ret = client.ListProcedures(str, "PY", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 2);
@@ -1702,7 +1702,7 @@ void test_python_procedure(lgraph::RpcClient& client) {
     ret = client.DeleteProcedure(str, "PY", "python_procedure2");
     UT_EXPECT_FALSE(ret);
 
-    ret = client.ListProcedures(str, "PY");
+    ret = client.ListProcedures(str, "PY", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);

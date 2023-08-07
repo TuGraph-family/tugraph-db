@@ -242,6 +242,37 @@ inline auto LGraphTypeIsAny(LGraphType type) -> bool {
     return type == LGraphType::ANY;
 }
 
+inline const std::string to_string(LGraphType type) {
+    switch (type) {
+    case LGraphType::NUL:
+        return "NUL";
+    case LGraphType::INTEGER:
+        return "INTEGER";
+    case LGraphType::FLOAT:
+        return "FLOAT";
+    case LGraphType::DOUBLE:
+        return "DOUBLE";
+    case LGraphType::BOOLEAN:
+        return "BOOLEAN";
+    case LGraphType::STRING:
+        return "STRING";
+    case LGraphType::NODE:
+        return "NODE";
+    case LGraphType::RELATIONSHIP:
+        return "RELATIONSHIP";
+    case LGraphType::PATH:
+        return "PATH";
+    case LGraphType::LIST:
+        return "LIST";
+    case LGraphType::MAP:
+        return "MAP";
+    case LGraphType::ANY:
+        return "ANY";
+    default:
+        throw std::runtime_error("Unknown LGraph Type");
+    }
+}
+
 
 /**
  * @brief The parameter of procedure/plugin

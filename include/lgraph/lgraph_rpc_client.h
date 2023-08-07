@@ -58,14 +58,16 @@ class RpcClient {
      * @param [in]  code_type               code type, currently supported PY, SO, CPP, ZIP.
      * @param [in]  procedure_description   procedure description.
      * @param [in]  read_only               procedure is read only or not.
+     * @param [in]  version                 (Optional) the version of procedure.
      * @param [in]  graph                   (Optional) the graph to query.
      *
      * @returns True if it succeeds, false if it fails.
      */
     bool LoadProcedure(std::string& result, const std::string& source_file,
-                    const std::string& procedure_type, const std::string& procedure_name,
-                    const std::string& code_type, const std::string& procedure_description,
-                    bool read_only, const std::string& graph = "default");
+                       const std::string& procedure_type, const std::string& procedure_name,
+                       const std::string& code_type, const std::string& procedure_description,
+                       bool read_only, const std::string& version = "v1",
+                       const std::string& graph = "default");
 
     /**
      * @brief   Execute a user-defined procedure
@@ -83,9 +85,9 @@ class RpcClient {
      * @returns True if it succeeds, false if it fails.
      */
     bool CallProcedure(std::string& result, const std::string& procedure_type,
-                    const std::string& procedure_name, const std::string& param,
-                    double procedure_time_out = 0.0, bool in_process = false,
-                    const std::string& graph = "default", bool json_format = true);
+                       const std::string& procedure_name, const std::string& param,
+                       double procedure_time_out = 0.0, bool in_process = false,
+                       const std::string& graph = "default", bool json_format = true);
 
     /**
      * @brief   List user-defined procedures
@@ -93,12 +95,13 @@ class RpcClient {
      * @param [out] result          The result.
      * @param [in]  procedure_type  (Optional) the procedure type, "" for all procedures,
      *                              CPP and PY for special type.
+     * @param [in]  version         (Optional) the version of procedure.
      * @param [in]  graph           (Optional) the graph to query.
      *
      * @returns True if it succeeds, false if it fails.
      */
     bool ListProcedures(std::string& result, const std::string& procedure_type,
-                       const std::string& graph = "default");
+                        const std::string& version = "any", const std::string& graph = "default");
 
     /**
      * @brief   Execute a user-defined procedure
@@ -111,8 +114,7 @@ class RpcClient {
      * @returns True if it succeeds, false if it fails.
      */
     bool DeleteProcedure(std::string& result, const std::string& procedure_type,
-                       const std::string& procedure_name,
-                       const std::string& graph = "default");
+                         const std::string& procedure_name, const std::string& graph = "default");
 
     /**
      * @brief   Import vertex or edge schema from file
@@ -213,7 +215,7 @@ class RpcClient {
      *
      * @returns the url of client.
      */
-     std::string GetUrl();
+    std::string GetUrl();
 
     void Logout();
 

@@ -1961,14 +1961,16 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
 
         LoadPluginRequest* req = preq->mutable_load_plugin_request();
         bool read_only = false;
-        std::string code;
+        std::string code, version;
         if (!ExtractStringField(body, RestStrings::NAME, *req->mutable_name()) ||
             !ExtractBoolField(body, RestStrings::READONLY, read_only) ||
-            !ExtractStringField(body, RestStrings::CODE, code)) {
+            !ExtractStringField(body, RestStrings::CODE, code) ||
+            !ExtractStringField(body, RestStrings::VERSION, version)) {
             BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::Plugin, true,
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
         }
+        preq->set_version(version);
         req->set_read_only(read_only);
         {
             std::vector<unsigned char> decoded = utility::conversions::from_base64(_TU(code));

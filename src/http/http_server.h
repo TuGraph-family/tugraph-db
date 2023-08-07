@@ -1,16 +1,16 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*/
+ * Copyright 2023 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 #pragma once
 
@@ -26,32 +26,12 @@
 namespace lgraph {
 namespace http {
 
-typedef std::string string_t;
+// functions for each url
+typedef const std::function<void(const brpc::Controller*, std::string&)> bindingFunction;
 
 class HttpService : public LGraphHttpService {
  public:
     friend class ImportTask;
-
-    static const string_t HTTP_CYPHER_METHOD;
-    static const uint16_t HTTP_CYPHER_METHOD_IDX;
-    static const string_t HTTP_REFRESH_METHOD;
-    static const uint16_t HTTP_REFRESH_METHOD_IDX;
-    static const string_t HTTP_LOGIN_METHOD;
-    static const uint16_t HTTP_LOGIN_METHOD_IDX;
-    static const string_t HTTP_LOGOUT_METHOD;
-    static const uint16_t HTTP_LOGOUT_METHOD_IDX;
-    static const string_t HTTP_UPLOAD_METHOD;
-    static const uint16_t HTTP_UPLOAD_METHOD_IDX;
-    static const string_t HTTP_CLEAR_CACHE_METHOD;
-    static const uint16_t HTTP_CLEAR_CACHE_METHOD_IDX;
-    static const string_t HTTP_CHECK_FILE_METHOD;
-    static const uint16_t HTTP_CHECK_FILE_METHOD_IDX;
-    static const string_t HTTP_IMPORT_METHOD;
-    static const uint16_t HTTP_IMPORT_METHOD_IDX;
-    static const string_t HTTP_IMPORT_PROGRESS_METHOD;
-    static const uint16_t HTTP_IMPORT_PROGRESS_METHOD_IDX;
-    static const string_t HTTP_IMPORT_SCHEMA_METHOD;
-    static const uint16_t HTTP_IMPORT_SCHEMA_METHOD_IDX;
 
     struct DoneClosure : public google::protobuf::Closure {
         std::mutex mu_;
@@ -79,15 +59,11 @@ class HttpService : public LGraphHttpService {
 
     void Start(lgraph::GlobalConfig* config);
 
-    void Query(google::protobuf::RpcController* cntl_base,
-               const HttpRequest*,
-               HttpResponse*,
+    void Query(google::protobuf::RpcController* cntl_base, const HttpRequest*, HttpResponse*,
                google::protobuf::Closure* done);
 
  private:
     void InitFuncMap();
-
-    void DispatchRequest(const std::string& method, brpc::Controller* cntl, std::string& res);
 
     void DoCypherRequest(const brpc::Controller* cntl, std::string& res);
 
@@ -95,34 +71,49 @@ class HttpService : public LGraphHttpService {
 
     void DoRefreshRequest(const brpc::Controller* cntl, std::string& res);
 
-    void DoLogoutRequest(const brpc::Controller* cntl);
+    void DoLogoutRequest(const brpc::Controller* cntl, std::string& res);
 
-    void DoUploadRequest(brpc::Controller* cntl);
+    void DoUploadRequest(const brpc::Controller* cntl, std::string& res);
 
-    void DoClearCache(brpc::Controller* cntl);
+    void DoClearCache(const brpc::Controller* cntl, std::string& res);
 
-    void DoCheckFile(brpc::Controller* cntl, std::string& res);
+    void DoCheckFile(const brpc::Controller* cntl, std::string& res);
 
-    void DoImportFile(brpc::Controller* cntl, std::string& res);
+    void DoImportFile(const brpc::Controller* cntl, std::string& res);
 
-    void DoImportSchema(brpc::Controller* cntl, std::string& res);
+    void DoImportSchema(const brpc::Controller* cntl, std::string& res);
 
-    void DoImportProgress(brpc::Controller* cntl, std::string& res);
+    void DoImportProgress(const brpc::Controller* cntl, std::string& res);
 
-    void BuildPbCypherRequest(const brpc::Controller* cntl,
-                              const std::string& token,
+    void DoUploadProcedure(const brpc::Controller* cntl, std::string& res);
+
+    void DoListProcedures(const brpc::Controller* cntl, std::string& res);
+
+    void DoGetProcedure(const brpc::Controller* cntl, std::string& res);
+
+    void DoGetProcedureDemo(const brpc::Controller* cntl, std::string& res);
+
+    void DoDeleteProcedure(const brpc::Controller* cntl, std::string& res);
+
+    void DoCallProcedure(const brpc::Controller* cntl, std::string& res);
+
+    void BuildPbCypherRequest(const brpc::Controller* cntl, const std::string& token,
                               LGraphRequest& pb);
 
     void BuildJsonCypherResponse(LGraphResponse& res, std::string& json);
+
+    void BuildrocedureV1Request(const brpc::Controller* cntl, const std::string& token,
+                                LGraphRequest& pb);
+
+    void BuildrocedureV2Request(const brpc::Controller* cntl, const std::string& token,
+                                LGraphRequest& pb);
 
     void ProcessSchemaRequest(const std::string& graph, const std::string& desc,
                               const std::string& token, LGraphRequest& req);
 
     int OpenUserFile(const std::string& token, std::string file_name);
 
-    uint64_t GetSerialNumber() {
-        return serial_number_.fetch_add(1);
-    }
+    uint64_t GetSerialNumber() { return serial_number_.fetch_add(1); }
 
     void DeleteSpecifiedFile(const std::string& token, const std::string& file_name);
 
@@ -146,12 +137,15 @@ class HttpService : public LGraphHttpService {
 
     off_t GetFileSize(const std::string& file_name);
 
+    std::string CheckTokenOrThrowException(const brpc::Controller* cntl) const;
+
     StateMachine* sm_;
     lgraph::Galaxy* galaxy_;
+    std::string resource_dir_;
     ImportManager import_manager_;
     fma_common::ThreadPool pool_;
     std::atomic<uint64_t> serial_number_;
-    std::unordered_map<std::string, uint16_t> functions_map_;
+    std::unordered_map<std::string, bindingFunction> functions_map_;
 };
 
 }  // end of namespace http

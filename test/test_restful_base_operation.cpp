@@ -343,8 +343,8 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         UT_EXPECT_EQ(client.Logout(token), true);
         UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: Authentication failed.");
         UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: Authentication failed.");
-        UT_EXPECT_THROW_MSG(client.EvalCypher(db_name,
-            "CALL db.addIndex('person', 'age', false)"), "Unauthorized: Authentication failed.");
+        UT_EXPECT_THROW_MSG(client.EvalCypher(db_name, "CALL db.addIndex('person', 'age', false)"),
+                            "Unauthorized: Authentication failed.");
     }
     UT_LOG() << "Testing logout succeeded";
 
@@ -591,8 +591,8 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         // set parameters online
         script_str.assign(
             UT_FMT("call dbms.config.update(\\{{}:true, {}:false, {}:true, {}:true\\})",
-                    lgraph::_detail::OPT_IP_CHECK_ENABLE, lgraph::_detail::OPT_DB_DURABLE,
-                    lgraph::_detail::OPT_TXN_OPTIMISTIC, lgraph::_detail::OPT_AUDIT_LOG_ENABLE));
+                   lgraph::_detail::OPT_IP_CHECK_ENABLE, lgraph::_detail::OPT_DB_DURABLE,
+                   lgraph::_detail::OPT_TXN_OPTIMISTIC, lgraph::_detail::OPT_AUDIT_LOG_ENABLE));
         ret = client.EvalCypher(db_name, script_str);
         RestClient::CPURate cpuRate;
         RestClient::MemoryInfo memInfo;
@@ -717,19 +717,25 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
             "oKICAgIHJldHVybiAoVHJ1ZSwgaW5wdXQpCg==");
 
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
+        UT_EXPECT_EQ(client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
+                                       PluginDesc("py_test", lgraph::plugin::PLUGIN_CODE_TYPE_PY,
+                                                  "test python plugin ECHO",
+                                                  lgraph::plugin::PLUGIN_VERSION_1, true, ""),
+                                       code),
+                     true);
         UT_EXPECT_EQ(
             client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
-                              PluginDesc("py_test", "test python plugin ECHO", true), code),
+                              PluginDesc("py_test_input", lgraph::plugin::PLUGIN_CODE_TYPE_PY,
+                                         "test python plugin ECHO with input",
+                                         lgraph::plugin::PLUGIN_VERSION_1, false, ""),
+                              codeNeedInput),
             true);
-        UT_EXPECT_EQ(client.LoadPlugin(
-                         db_name, lgraph_api::PluginCodeType::PY,
-                         PluginDesc("py_test_input", "test python plugin ECHO with input", false),
-                         codeNeedInput),
-                     true);
 
-        UT_EXPECT_ANY_THROW(
-            client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
-                              PluginDesc("py_test", "test python plugin ECHO", true), code));
+        UT_EXPECT_ANY_THROW(client.LoadPlugin(
+            db_name, lgraph_api::PluginCodeType::PY,
+            PluginDesc("py_test", lgraph::plugin::PLUGIN_CODE_TYPE_PY, "test python plugin ECHO",
+                       lgraph::plugin::PLUGIN_VERSION_1, true, ""),
+            code));
         // cpp
         auto plugins = client.GetPlugin(db_name, true);
         UT_EXPECT_EQ(plugins.size(), 0);

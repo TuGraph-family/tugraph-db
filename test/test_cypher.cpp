@@ -1132,7 +1132,7 @@ int test_procedure(cypher::RTContext *ctx) {
         encode = lgraph_api::encode_base64(text);
         plugin_scripts.push_back(
             "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
-            "','CPP','" + i.first + "', true)");
+            "','CPP','" + i.first + "', true, 'v1')");
     }
     eval_scripts(ctx, plugin_scripts);
 
@@ -1223,18 +1223,17 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL dbms.security.listUsers()",
         "CALL dbms.security.deleteRole('test_role')",
         "CALL dbms.security.deleteUser('guest1')",
-        "CALL db.plugin.listPlugin('CPP')",
-        // add by glc
+        "CALL db.plugin.listPlugin('CPP', 'any')",
         "CALL db.listLabelIndexes('Person')",
         "CALL dbms.security.getUserPermissions('admin')",
         "CALL dbms.graph.getGraphInfo('default')",
-        "CALL db.plugin.listPlugin('PY')",
+        "CALL db.plugin.listPlugin('PY', 'any')",
         "CALL db.plugin.loadPlugin('PY','countPerson','ZGVmIFByb2Nlc3MoZGIsIGlucHV0KToKIC"
         "AgIHR4biA9IGRiLkNyZWF0ZVJlYWRUeG4oKQogICAgaXQgPSB0eG4uR2V0VmVydGV4SXRlcmF0b3IoKQogICAgbiA"
         "9IDAKICAgIHdoaWxlIGl0LklzVmFsaWQoKToKICAgICAgICBpZiBpdC5HZXRMYWJlbCgpID09ICdQZXJzb24nOgog"
         "ICAgICAgICAgICBuID0gbiArIDEKICAgICAgICBpdC5OZXh0KCkKICAgIHJldHVybiAoVHJ1ZSwgc3RyKG4pKQ=='"
-        ",'PY','count person',true)",
-        "CALL db.plugin.listPlugin('PY')",
+        ",'PY','count person',true, 'v1')",
+        "CALL db.plugin.listPlugin('PY', 'any')",
         "CALL db.plugin.getPluginInfo('PY','countPerson')",
         "CALL db.plugin.getPluginInfo('PY','countPerson',true)",
         "CALL dbms.task.listTasks()",
@@ -1310,7 +1309,7 @@ int test_procedure(cypher::RTContext *ctx) {
         f.close();
         std::string encoded = lgraph_api::encode_base64(text);
         call_signatured_plugins_scripts.emplace_back(
-            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true)",
+            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true, 'v2')",
                     name, encoded, name));
     };
 

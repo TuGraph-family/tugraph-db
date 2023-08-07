@@ -52,6 +52,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "code_type                [in] code type, currently supported PY, SO, CPP, ZIP\n"
           "procedure_description    [in] procedure description\n"
           "read_only                [in] procedure is read only or not\n"
+          "version                  [in] procedure version, currently v1 or v2"
           "graph                    [in] the graph to query.\n",
           pybind11::arg("source_file"),
           pybind11::arg("procedure_type"),
@@ -59,6 +60,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("code_type"),
           pybind11::arg("procedure_description"),
           pybind11::arg("read_only"),
+          pybind11::arg("version"),
           pybind11::arg("graph") = "default",
           pybind11::return_value_policy::move);
 
@@ -83,8 +85,10 @@ void register_liblgraph_client_python(pybind11::module& m) {
     c.def("listProcedures", &LGraphPythonClient::ListProcedures,
           "Execute a built-in procedure\n"
           "procedure_type     [in] the procedure type, currently supported CPP and PY\n"
+          "version                  [in] procedure version, currently v1 or v2 or any"
           "graph              [in] the graph to query.\n",
           pybind11::arg("procedure_type"),
+          pybind11::arg("version"),
           pybind11::arg("graph") = "default",
           pybind11::return_value_policy::move);
 

@@ -842,8 +842,7 @@ void BuiltinProcedure::DbmsSecurityChangeUserPassword(RTContext *ctx, const cyph
     CYPHER_ARG_CHECK(
         args.size() == 2,
         "need 2 parameters, e.g. dbms.security.changeUserPassword(user_name, new_password)")
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
-                     "user_name type should be string")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
                      "new_password type should be string")
 
@@ -1556,9 +1555,10 @@ void BuiltinProcedure::DbmsSecurityAddUserRoles(RTContext *ctx, const Record *re
 void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
                                           const VEC_EXPR &args, const VEC_STR &yield_items,
                                           std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 6,
-                     "need six parameters, e.g. db.plugin.loadPlugin(plugin_type,"
-                     "plugin_name, plugin_content, code_type, plugin_description, read_only)")
+    CYPHER_ARG_CHECK(
+        args.size() == 7,
+        "need seven parameters, e.g. db.plugin.loadPlugin(plugin_type,"
+        "plugin_name, plugin_content, code_type, plugin_description, read_only, version)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      "plugin_type type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
@@ -1569,6 +1569,7 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::STRING,
                      "plugin_description type should be string")
     CYPHER_ARG_CHECK(args[5].type == parser::Expression::BOOL, "read_only type should be boolean")
+    CYPHER_ARG_CHECK(args[6].type == parser::Expression::STRING, "version type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
@@ -1580,8 +1581,9 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
                      "unknown plugin_type, one of ('PY', 'SO', 'CPP', 'ZIP')");
     fma_common::encrypt::Base64 base64;
     std::string content = base64.Decode(args[2].String());
-    bool success = db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), content,
-                                 code_type_it->second, args[4].String(), args[5].Bool());
+    bool success =
+        db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), content,
+                      code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
     if (!success) {
         throw lgraph::PluginExistException(args[1].String());
     }
@@ -1649,8 +1651,8 @@ void BuiltinProcedure::DbPluginGetPluginInfo(RTContext *ctx, const Record *recor
 void BuiltinProcedure::DbPluginListPlugin(RTContext *ctx, const Record *record,
                                           const VEC_EXPR &args, const VEC_STR &yield_items,
                                           std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 1,
-                     "need one parameters, e.g. db.plugin.listPlugin(plugin_type)")
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "need 2 parameters, e.g. db.plugin.listPlugin(plugin_type, plugin_version)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      "plugin_type type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -1658,8 +1660,18 @@ void BuiltinProcedure::DbPluginListPlugin(RTContext *ctx, const Record *record,
     auto plugin_type_it = ValidPluginType.find(args[0].String());
     CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
                      "unknown plugin_type, one of ('CPP', 'PY')")
+
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+    "plugin_version type should be string")
+    std::string version = args[1].String();
+    CYPHER_ARG_CHECK(version == lgraph::plugin::PLUGIN_VERSION_1 ||
+                    version == lgraph::plugin::PLUGIN_VERSION_2 ||
+                    version == lgraph::plugin::PLUGIN_VERSION_ANY,
+                    "unknown plugin_version, one of ('V1', 'V2', 'Any')")
+
     std::vector<lgraph::PluginDesc> descs = db.ListPlugins(plugin_type_it->second, ctx->user_);
     for (auto &d : descs) {
+        if (version != lgraph::plugin::PLUGIN_VERSION_ANY && d.version != version) continue;
         Record r;
         r.AddConstant(lgraph::FieldData(ValueToJson(d).serialize()));
         records->emplace_back(r.Snapshot());
@@ -1694,7 +1706,7 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
                                           std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 5,
                      "need five parameters, e.g. "
-                     "db.plugin.loadPlugin(plugin_type, plugin_name, param, timeout, in_process)")
+                     "db.plugin.callPlugin(plugin_type, plugin_name, param, timeout, in_process)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      "plugin_type type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
@@ -2428,7 +2440,7 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
         }
     }
     std::unordered_map<std::string,
-                       std::function<void(const cypher::FieldData &, Record &)>> lmap = {
+                      std::function<void(const cypher::FieldData &, Record &)>> lmap = {
         {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
     };
     Record r;

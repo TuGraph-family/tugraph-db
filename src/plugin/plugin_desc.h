@@ -20,22 +20,27 @@ namespace lgraph {
 
 struct PluginDesc {
     PluginDesc() {}
-    PluginDesc(const std::string& n, const std::string d, bool ro)
-        : name(n), desc(d), read_only(ro) {}
+    PluginDesc(const std::string& n, const std::string co, const std::string d, const std::string v,
+               bool ro, const std::string& s)
+        : name(n), code_type(co), desc(d), version(v), read_only(ro), signature(s) {}
 
     std::string name;
+    std::string code_type;
     std::string desc;
+    std::string version;
     bool read_only;
+    std::string signature;
 };
 
 struct PluginCode {
     PluginCode() {}
-    PluginCode(const std::string& n, const std::string d, bool ro, const std::string c,
-               const std::string ct)
-        : name(n), desc(d), read_only(ro), code(c), code_type(ct) {}
+    PluginCode(const std::string& n, const std::string d, const std::string v, bool ro,
+               const std::string c, const std::string ct)
+        : name(n), desc(d), version(v), read_only(ro), code(c), code_type(ct) {}
 
     std::string name;
     std::string desc;
+    std::string version;
     bool read_only;
     std::string code;
     std::string code_type;
