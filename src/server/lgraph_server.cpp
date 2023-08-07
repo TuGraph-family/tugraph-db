@@ -227,6 +227,10 @@ void LGraphServer::KillServer() {
 #endif
     if (state_machine_) state_machine_->Stop();
     state_machine_.reset();
+#ifdef __SANITIZE_ADDRESS__
+    // For address sanitizer: wait gc thread to release memory object
+    fma_common::SleepS(2);
+#endif
     FMA_LOG() << "Server shutdown.";
     server_exit_.Notify();
 }

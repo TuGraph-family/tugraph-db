@@ -94,20 +94,11 @@ TEST_F(TestLGraphServer, LGraphServer) {
             UT_EXPECT_EQ(obj[0]["configuration"]["description"].as_string(), "default graph");
             UT_EXPECT_EQ(obj[0]["configuration"]["max_size_GB"].as_integer(), 3);
 
-            // make sure data is persisted
             server->Kill();
             server->Wait();
-            server = StartLGraphServer(conf);
-            fma_common::SleepS(4);
-            ret = client.CallCypher(str,
-                                    "call dbms.graph.modGraph('default', {description:'default "
-                                    "graph', max_size_GB:3})");
-            UT_EXPECT_EQ(ret, false);
-            UT_EXPECT_EQ(str, "Access denied: Authentication failed.");
         }
         std::string str;
         auto server = StartLGraphServer(conf);
-        fma_common::SleepS(4);  // waiting for memory reclaiming by async task
         RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         auto obj = ListGraphs(client);

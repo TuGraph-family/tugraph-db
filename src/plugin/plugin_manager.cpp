@@ -58,6 +58,7 @@ void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& us
         std::string error;
         impl_->UnloadPlugin(user, kv.first, kv.second);
         fs.Remove(impl_->GetPluginPath(kv.first));
+        delete kv.second;
     }
     procedures_.clear();
     table_.Drop(txn);
@@ -354,9 +355,16 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     std::string CFLAGS = FMA_FMT("-I{}/../../include -I/usr/local/include", exec_dir);
     std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/", exec_dir);
 #ifndef __clang__
+#ifdef __SANITIZE_ADDRESS__
+    std::string cmd = FMA_FMT(
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -Wl,-z,nodelete "
+        " -rdynamic -O3 -fopenmp -o {} {} {} -shared ",
+        CFLAGS, plugin_path, file_path, LDFLAGS);
+#else
     std::string cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
+#endif
 #elif __APPLE__
     std::string cmd = FMA_FMT(
         "clang++ -stdlib=libc++ -fPIC -g --std=c++17 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "

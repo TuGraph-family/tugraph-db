@@ -54,5 +54,10 @@ int main(int argc, char** argv) {
     fma_common::Logger::Get().SetFormatter(std::make_shared<fma_common::TimedLogFormatter>());
     _ut_argc = argc;
     _ut_argv = argv;
-    return RUN_ALL_TESTS();
+    auto ret = RUN_ALL_TESTS();
+#ifdef __SANITIZE_ADDRESS__
+    // For address sanitizer: wait gc thread to release memory object
+    fma_common::SleepS(2);
+#endif
+    return ret;
 }

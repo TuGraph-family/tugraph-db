@@ -1227,6 +1227,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL db.listLabelIndexes('Person')",
         "CALL dbms.security.getUserPermissions('admin')",
         "CALL dbms.graph.getGraphInfo('default')",
+#ifndef __SANITIZE_ADDRESS__
         "CALL db.plugin.listPlugin('PY', 'any')",
         "CALL db.plugin.loadPlugin('PY','countPerson','ZGVmIFByb2Nlc3MoZGIsIGlucHV0KToKIC"
         "AgIHR4biA9IGRiLkNyZWF0ZVJlYWRUeG4oKQogICAgaXQgPSB0eG4uR2V0VmVydGV4SXRlcmF0b3IoKQogICAgbiA"
@@ -1236,6 +1237,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL db.plugin.listPlugin('PY', 'any')",
         "CALL db.plugin.getPluginInfo('PY','countPerson')",
         "CALL db.plugin.getPluginInfo('PY','countPerson',true)",
+#endif
         "CALL dbms.task.listTasks()",
         "CALL plugin.cpp.scan_graph({scan_edges:true,times:2})",
         "CALL plugin.cpp.standard({})",

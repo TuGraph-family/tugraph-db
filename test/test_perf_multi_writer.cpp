@@ -158,6 +158,5 @@ void TestLGraphApiMultiWriter() {
 
 TEST_F(TestPerfMultiWriter, PerfMultiWriter) {
     TestKvMultiWriter();
-
     TestLGraphApiMultiWriter();
 }

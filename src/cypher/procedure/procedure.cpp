@@ -2500,8 +2500,8 @@ void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record, const cyph
                    [](const std::string &title) { return std::make_pair(title, true); });
     for (auto &node_pr : node_prs_curr) {
         cypher::Record r;
+        cypher::Node n;
         if (title_exsited.find("node") != title_exsited.end()) {
-            cypher::Node n;
             n.SetVid(node_pr.first);
             r.AddNode(&n);
         }

@@ -61,6 +61,7 @@ class RPCService : public lgraph::LGraphRPCService {
  private:
     lgraph::StateMachine* sm_;
 };
+RPCService* ptr_rpc_service;
 
 void on_initialize_rpc_server() {
     using namespace fma_common;
@@ -84,7 +85,7 @@ void on_initialize_rpc_server() {
 
     gconfig->ft_index_options.enable_fulltext_index = true;
     ptr_state_machine = new lgraph::StateMachine(sm_config, gconfig);
-    RPCService* ptr_rpc_service = new RPCService(ptr_state_machine);
+    ptr_rpc_service = new RPCService(ptr_state_machine);
 
     rpc_server_.AddService(ptr_rpc_service, brpc::SERVER_DOESNT_OWN_SERVICE);
     rpc_server_.Start(sm_config.rpc_port, NULL);
@@ -99,6 +100,7 @@ void on_shutdown_rpc_server() {
     } catch (std::exception& e) {
         FMA_ERR() << "Rest server shutdown failed: " << e.what();
     }
+    rpc_server_.Stop(0);
     return;
 }
 
@@ -114,6 +116,7 @@ void* test_rpc_server(void*) {
     on_shutdown_rpc_server();
     UT_LOG() << __func__ << " thread exit";
     delete ptr_state_machine;
+    delete ptr_rpc_service;
     return nullptr;
 }
 
@@ -1584,8 +1587,8 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);
-
     std::string code_so_path = "./sortstr.so";
+
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
                                "SO", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
@@ -1612,13 +1615,12 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure5", "CPP",
                             "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
-
+#ifndef __SANITIZE_ADDRESS__
     ret = client.CallCypher(str, "CALL db.plugin.getPluginInfo('PY','countPersons')");
     UT_EXPECT_FALSE(ret);
-
     ret = client.CallCypher(str, "CALL db.plugin.listUserPlugins()");
     UT_EXPECT_TRUE(ret);
-
+#endif
     ret = client.ListProcedures(str, "CPP", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
@@ -1638,7 +1640,6 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(
         CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure5",
                                 "STRING"), true);
-
     ret = client.CallProcedure(str, "CPP", "test_procedure1", "bcefg");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
@@ -1656,7 +1657,6 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "vertex1", "label"), true);
-
     ret = client.CallProcedure(str, "CPP", "test_procedure4", "9876543210", 10);
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
@@ -1915,25 +1915,15 @@ void* test_rpc_client(void*) {
     UT_LOG() << "admin user login";
     {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
-
         test_cypher(client3);
-
         test_label(client3);
-
         test_relationshipTypes(client3);
-
         test_index(client3);
-
         test_warmup(client3);
-
         test_createlabel(client3);
-
         test_label_field(client3);
-
         test_procedure(client3);
-
         test_graph(client3);
-
         test_allow_host(client3);
         test_info(client3);
         test_configration(client3);
@@ -1942,21 +1932,15 @@ void* test_rpc_client(void*) {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
         test_configration_valid(client3);
         test_role(client3);
-
         test_user(client3);
-
         test_flushDb(client3);
-
         test_password(client3);
-
         test_cpp_procedure(client3);
-
+#ifndef __SANITIZE_ADDRESS__
         test_python_procedure(client3);
-
+#endif
         test_import_file(client3);
-
         test_import_content(client3);
-
         test_procedure_privilege(client3);
     }
 

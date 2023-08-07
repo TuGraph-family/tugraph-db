@@ -3,15 +3,10 @@
 # Standard Github-hosted runner is 2core currently.
 # Larger runner will support soon(current in Beta).
 
+set -ex
+
 BUILD_OUTPUT_TAR_URL=$1
 ASAN=$2
-
-if [[ "$ASAN" == "asan" ]]; then
-echo 'run ut with asan ...'
-set +e
-else
-set -e
-fi
 
 # mv code to my workspace
 MY_WORKSPACE='/workspace/code-repo'
@@ -36,9 +31,15 @@ tar -zxvf output.tar.gz
 # unittest
 cd build/output
 OMP_NUM_THREADS=8 ./fma_unit_test -t all
+if [[ "$ASAN" == "asan" ]]; then
+    export LSAN_OPTIONS=suppressions=../../test/asan.suppress
+fi
 OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$MY_WORKSPACE/testresult/gtest/
 rm -rf testdb* .import_tmp
 
+if [[ "$ASAN" == "asan" ]]; then
+  exit 0
+fi
 # codecov
 cd $MY_WORKSPACE
 bash $MY_WORKSPACE/ci/codecov.sh $MY_WORKSPACE/build $MY_WORKSPACE/testresult

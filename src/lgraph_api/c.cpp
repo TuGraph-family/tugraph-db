@@ -374,7 +374,7 @@ size_t lgraph_api_user_info_get_roles(lgraph_api_user_info_t* ui, char*** roles)
 }
 void lgraph_api_user_info_destroy_roles(char** roles, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        delete roles[i];
+        free(roles[i]);
     }
     delete[] roles;
 }
@@ -435,7 +435,7 @@ size_t lgraph_api_role_info_get_graph_access(lgraph_api_role_info_t* ri, char***
 }
 void lgraph_api_role_info_destroy_graph_access(char** graph_names, int* access_levels, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        delete graph_names[i];
+        free(graph_names[i]);
     }
     delete[] graph_names;
     delete[] access_levels;

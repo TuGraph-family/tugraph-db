@@ -29,6 +29,8 @@ struct RemoveDirGuard {
     ~RemoveDirGuard() { fma_common::file_system::RemoveDir(dir_); }
 };
 
+#define CHECK_AND_FREESTR(func, res) {auto p = func; ASSERT_STREQ(p, res); free((void*)p);}
+
 TEST_F(TestC, LGraphTypes) {
     lgraph_api_date_time_t* dt = lgraph_api_create_date_time();
     ASSERT_NE(dt, nullptr);
@@ -88,6 +90,11 @@ TEST_F(TestC, EdgeUid) {
     ASSERT_TRUE(lgraph_api_edge_euid_in_less(euid4, euid3));
     char* euid1_str = lgraph_api_edge_euid_to_string(euid1);
     ASSERT_STREQ(euid1_str, "2_1_3_4_5");
+    lgraph_api_edge_euid_destroy(euid1);
+    lgraph_api_edge_euid_destroy(euid2);
+    lgraph_api_edge_euid_destroy(euid3);
+    lgraph_api_edge_euid_destroy(euid4);
+    free(euid1_str);
 }
 
 TEST_F(TestC, FieldData) {
@@ -154,6 +161,7 @@ TEST_F(TestC, FieldData) {
     ASSERT_EQ(lgraph_api_date_days_since_epoch(date), lgraph_api_date_days_since_epoch(as_date));
     lgraph_api_date_destroy(date);
     lgraph_api_date_destroy(as_date);
+    lgraph_api_field_data_destroy(date_fd);
 
     lgraph_api_date_time_t* date_time = lgraph_api_create_date_time_ymdhms(2020, 1, 1, 0, 0, 0);
     lgraph_api_field_data_t* date_time_fd = lgraph_api_create_field_data_date_time(date_time);
@@ -165,13 +173,15 @@ TEST_F(TestC, FieldData) {
               lgraph_api_date_time_seconds_since_epoch(as_date_time));
     lgraph_api_date_time_destroy(date_time);
     lgraph_api_date_time_destroy(as_date_time);
+    lgraph_api_field_data_destroy(date_time_fd);
 
     lgraph_api_field_data_t* string_fd = lgraph_api_create_field_data_str("hello");
     ASSERT_NE(string_fd, nullptr);
     ASSERT_EQ(lgraph_api_field_data_get_type(string_fd), lgraph_api_field_type_string);
     ASSERT_FALSE(lgraph_api_field_data_is_null(string_fd));
     ASSERT_TRUE(lgraph_api_field_data_is_buf(string_fd));
-    ASSERT_STREQ(lgraph_api_field_data_as_str(string_fd), "hello");
+    CHECK_AND_FREESTR(lgraph_api_field_data_as_str(string_fd), "hello");
+
     lgraph_api_field_data_destroy(string_fd);
 
     lgraph_api_field_data_t* bool_fd = lgraph_api_create_field_data_bool(true);
@@ -210,10 +220,11 @@ TEST_F(TestC, FieldData) {
     ASSERT_NE(cloned_fd, nullptr);
     ASSERT_EQ(lgraph_api_field_data_get_type(cloned_fd), lgraph_api_field_type_string);
     ASSERT_FALSE(lgraph_api_field_data_is_null(cloned_fd));
-    ASSERT_STREQ(lgraph_api_field_data_as_str(cloned_fd), "hello");
+    CHECK_AND_FREESTR(lgraph_api_field_data_as_str(cloned_fd), "hello");
     lgraph_api_field_data_t* new_fd = lgraph_api_create_field_data_str("world");
     lgraph_api_create_field_data_clone_from(cloned_fd, new_fd);
-    ASSERT_STREQ(lgraph_api_field_data_as_str(cloned_fd), "world");
+    CHECK_AND_FREESTR(lgraph_api_field_data_as_str(cloned_fd), "world");
+
     lgraph_api_field_data_destroy(origin_fd);
     lgraph_api_field_data_destroy(cloned_fd);
     lgraph_api_field_data_destroy(new_fd);
@@ -222,17 +233,18 @@ TEST_F(TestC, FieldData) {
 TEST_F(TestC, FieldSpec) {
     lgraph_api_field_spec_t* fs = lgraph_api_create_field_spec();
     ASSERT_NE(fs, nullptr);
-    ASSERT_STREQ(lgraph_api_field_spec_get_name(fs), "");
+    CHECK_AND_FREESTR(lgraph_api_field_spec_get_name(fs), "");
     ASSERT_EQ(lgraph_api_field_spec_get_type(fs), lgraph_api_field_type_null);
     ASSERT_FALSE(lgraph_api_field_spec_get_optional(fs));
     lgraph_api_field_spec_set_name(fs, "hello");
-    ASSERT_STREQ(lgraph_api_field_spec_get_name(fs), "hello");
+    CHECK_AND_FREESTR(lgraph_api_field_spec_get_name(fs), "hello");
     lgraph_api_field_spec_set_type(fs, lgraph_api_field_type_bool);
     ASSERT_EQ(lgraph_api_field_spec_get_type(fs), lgraph_api_field_type_bool);
     lgraph_api_field_spec_set_optional(fs, true);
     ASSERT_TRUE(lgraph_api_field_spec_get_optional(fs));
-    ASSERT_STREQ(lgraph_api_field_spec_to_string(fs),
-                 "lgraph_api::FieldSpec(name=[hello],type=BOOL),optional=1");
+    CHECK_AND_FREESTR(lgraph_api_field_spec_to_string(fs),
+                      "lgraph_api::FieldSpec(name=[hello],type=BOOL),optional=1");
+
     lgraph_api_field_spec_t* fs2 =
         lgraph_api_create_field_spec_name_type_optional("hello", lgraph_api_field_type_bool, true);
     ASSERT_TRUE(lgraph_api_field_spec_eq(fs, fs2));
@@ -243,13 +255,15 @@ TEST_F(TestC, FieldSpec) {
 TEST_F(TestC, IndexSpec) {
     lgraph_api_index_spec_t* is = lgraph_api_create_index_spec();
     ASSERT_NE(is, nullptr);
-    ASSERT_STREQ(lgraph_api_index_spec_get_label(is), "");
-    ASSERT_STREQ(lgraph_api_index_spec_get_field(is), "");
+    CHECK_AND_FREESTR(lgraph_api_index_spec_get_label(is), "");
+    CHECK_AND_FREESTR(lgraph_api_index_spec_get_field(is), "");
+
     ASSERT_FALSE(lgraph_api_index_spec_get_unique(is));
     lgraph_api_index_spec_set_label(is, "hello");
-    ASSERT_STREQ(lgraph_api_index_spec_get_label(is), "hello");
+    CHECK_AND_FREESTR(lgraph_api_index_spec_get_label(is), "hello");
+
     lgraph_api_index_spec_set_field(is, "world");
-    ASSERT_STREQ(lgraph_api_index_spec_get_field(is), "world");
+    CHECK_AND_FREESTR(lgraph_api_index_spec_get_field(is), "world");
     lgraph_api_index_spec_set_unique(is, true);
     ASSERT_TRUE(lgraph_api_index_spec_get_unique(is));
     lgraph_api_index_spec_destroy(is);
@@ -258,12 +272,12 @@ TEST_F(TestC, IndexSpec) {
 TEST_F(TestC, UserInfo) {
     lgraph_api_user_info_t* ui = lgraph_api_create_user_info();
     ASSERT_NE(ui, nullptr);
-    ASSERT_STREQ(lgraph_api_user_info_get_desc(ui), "");
+    CHECK_AND_FREESTR(lgraph_api_user_info_get_desc(ui), "");
     ASSERT_EQ(lgraph_api_user_info_get_roles(ui, nullptr), 0);
     ASSERT_FALSE(lgraph_api_user_info_get_disable(ui));
     ASSERT_EQ(lgraph_api_user_info_get_memory_limit(ui), 0);
     lgraph_api_user_info_set_desc(ui, "hello");
-    ASSERT_STREQ(lgraph_api_user_info_get_desc(ui), "hello");
+    CHECK_AND_FREESTR(lgraph_api_user_info_get_desc(ui), "hello");
     lgraph_api_user_info_set_disable(ui, true);
     ASSERT_TRUE(lgraph_api_user_info_get_disable(ui));
     lgraph_api_user_info_set_memory_limit(ui, 1024);
@@ -283,12 +297,12 @@ TEST_F(TestC, RoleInfo) {
     bool ret = true;
     lgraph_api_role_info_t* ri = lgraph_api_create_role_info();
     ASSERT_NE(ri, nullptr);
-    ASSERT_STREQ(lgraph_api_role_info_get_desc(ri), "");
+    CHECK_AND_FREESTR(lgraph_api_role_info_get_desc(ri), "");
     ASSERT_EQ(lgraph_api_role_info_get_access_level(ri, "hello"), -1);
     ASSERT_EQ(lgraph_api_role_info_get_graph_access(ri, nullptr, nullptr), 0);
     ASSERT_FALSE(lgraph_api_role_info_get_disabled(ri));
     lgraph_api_role_info_set_desc(ri, "hello");
-    ASSERT_STREQ(lgraph_api_role_info_get_desc(ri), "hello");
+    CHECK_AND_FREESTR(lgraph_api_role_info_get_desc(ri), "hello");
     lgraph_api_role_info_add_access_level(ri, "hello", lgraph_api_access_level_read);
     ASSERT_EQ(lgraph_api_role_info_get_access_level(ri, "hello"), lgraph_api_access_level_read);
     lgraph_api_role_info_add_access_level(ri, "world", lgraph_api_access_level_write);
@@ -306,13 +320,14 @@ TEST_F(TestC, RoleInfo) {
     ASSERT_EQ(access_levels[1], lgraph_api_access_level_write);
     lgraph_api_role_info_destroy_graph_access(graph_names, access_levels, n);
     // create new graph access
-    graph_names = (char**)malloc(sizeof(char*) * 2);
+    graph_names = new char*[2];
     graph_names[0] = strdup("nice");
     graph_names[1] = strdup("world");
-    access_levels = (int*)malloc(sizeof(int) * 2);
+    access_levels = new int[2];
     access_levels[0] = lgraph_api_access_level_read;
     access_levels[1] = lgraph_api_access_level_full;
     lgraph_api_role_info_set_graph_access(ri, graph_names, access_levels, n);
+    lgraph_api_role_info_destroy_graph_access(graph_names, access_levels, n);
     // check new graph access
     n = lgraph_api_role_info_get_graph_access(ri, &graph_names, &access_levels);
     ASSERT_EQ(n, 2);
@@ -380,10 +395,17 @@ TEST_F(TestC, Galaxy) {
     ASSERT_EQ(num_users, 3);
     ASSERT_STREQ(user_names[1], "user1");
     ASSERT_STREQ(user_names[2], "user2");
-    ASSERT_STREQ(lgraph_api_user_info_get_desc(user_infos[1]), "desc1_changed");
-    ASSERT_STREQ(lgraph_api_user_info_get_desc(user_infos[2]), "desc2");
+    CHECK_AND_FREESTR(lgraph_api_user_info_get_desc(user_infos[1]), "desc1_changed");
+    CHECK_AND_FREESTR(lgraph_api_user_info_get_desc(user_infos[2]), "desc2");
+
     ASSERT_EQ(lgraph_api_user_info_get_disable(user_infos[1]), false);
     ASSERT_EQ(lgraph_api_user_info_get_disable(user_infos[2]), true);
+    for (auto i = 0; i < num_users; i++) {
+        lgraph_api_user_info_destroy(user_infos[i]);
+        free(user_names[i]);
+    }
+    delete[] user_infos;
+    delete[] user_names;
     // delete all users
     ret = lgraph_api_galaxy_delete_user(galaxy, "user1", &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
@@ -416,6 +438,9 @@ TEST_F(TestC, Galaxy) {
         free(graph_names[i]);
         free(graph_descs[i]);
     }
+    free(graph_names);
+    free(graph_descs);
+    free(graph_sizes);
 
     // modify graph
     lgraph_api_galaxy_mod_graph(galaxy, "graph1", true, "desc1_changed", true, 2 << 20, &errptr);
@@ -432,6 +457,9 @@ TEST_F(TestC, Galaxy) {
         free(graph_names[i]);
         free(graph_descs[i]);
     }
+    free(graph_names);
+    free(graph_descs);
+    free(graph_sizes);
 
     // open graph and destroy it
     lgraph_api_graph_db_t* graph = lgraph_api_galaxy_open_graph(galaxy, "graph1", true, &errptr);
@@ -454,6 +482,9 @@ TEST_F(TestC, Galaxy) {
         free(graph_names[i]);
         free(graph_descs[i]);
     }
+    free(graph_names);
+    free(graph_descs);
+    free(graph_sizes);
     // destroy graph
     lgraph_api_graph_db_destroy(graph);
 
@@ -511,6 +542,8 @@ TEST_F(TestC, Galaxy) {
         lgraph_api_role_info_destroy(role_infos[i]);
         free(role_names[i]);
     }
+    delete[] role_infos;
+    delete[] role_names;
     // delete role2
     ret = lgraph_api_galaxy_delete_role(galaxy, "role2", &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
@@ -529,6 +562,8 @@ TEST_F(TestC, Galaxy) {
         lgraph_api_role_info_destroy(role_infos[i]);
         free(role_names[i]);
     }
+    delete[] role_infos;
+    delete[] role_names;
 
     // =========================
     // test user roles functions
@@ -556,14 +591,14 @@ TEST_F(TestC, Galaxy) {
     ASSERT_STREQ(roles[0], "role1");
     ASSERT_STREQ(roles[1], "user1");
     // free roles
-    for (size_t i = 0; i < num_roles; ++i) {
-        free(roles[i]);
-    }
+    lgraph_api_user_info_destroy_roles(roles, num_roles);
     // destroy user_infos
     for (size_t i = 0; i < num_users; ++i) {
         lgraph_api_user_info_destroy(user_infos[i]);
         free(user_names[i]);
     }
+    delete[] user_names;
+    delete[] user_infos;
 
     // =========================
     // close galaxy
@@ -616,6 +651,8 @@ TEST_F(TestC, Graph) {
     ret = lgraph_api_graph_db_add_vertex_label(graphdb, "Person", fields, 2, "name", &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     ASSERT_TRUE(ret);
+    lgraph_api_field_spec_destroy(fields[0]);
+    lgraph_api_field_spec_destroy(fields[1]);
 
     // Secondly, add a edge label "knows" with 1 field
     lgraph_api_field_spec_t* fields2[1];
@@ -628,6 +665,7 @@ TEST_F(TestC, Graph) {
                                              first_constraints, second_contraints, 1, &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     ASSERT_TRUE(ret);
+    lgraph_api_field_spec_destroy(fields2[0]);
 
     // create write transaction
     lgraph_api_transaction_t* wtxn = lgraph_api_graph_db_create_write_txn(graphdb, true, &errptr);
@@ -783,6 +821,7 @@ TEST_F(TestC, Graph) {
         euid = lgraph_api_edge_index_iterator_get_uid(eit, &errptr);
         ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
         ASSERT_TRUE(lgraph_api_edge_euid_eq(euid, expected_euid[i++]));
+        lgraph_api_edge_euid_destroy(euid);
         lgraph_api_edge_index_iterator_next(eit, &errptr);
     }
     // destroy eit
@@ -808,4 +847,6 @@ TEST_F(TestC, Graph) {
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     // destroy graphdb
     lgraph_api_graph_db_destroy(graphdb);
+    // destroy galaxy
+    lgraph_api_galaxy_destroy(galaxy);
 }

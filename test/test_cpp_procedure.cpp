@@ -51,9 +51,16 @@ void build_so() {
     const std::string LIBLGRAPH = "./liblgraph.so";
     int rt;
 #ifndef __clang__
+#ifdef __SANITIZE_ADDRESS__
+    std::string cmd_f =
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17  -Wl,-z,nodelete "
+        " -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
+        " -o {} {} {} -shared ";
+#else
     std::string cmd_f =
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
         "-o {} {} {} -shared";
+#endif
 #elif __APPLE__
     std::string cmd_f =
         "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -Xpreprocessor "

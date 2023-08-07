@@ -19,9 +19,9 @@ mkdir build && cd build
 # build cpp
 if [[ "$ASAN" == "asan" ]]; then
 echo 'build with asan ...'
-cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1  -DENABLE_Address_Sanitizer=1
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON
 else
-cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
+cmake .. -DCMAKE_BUILD_TYPE=Coverage
 fi
 
 make package -j6

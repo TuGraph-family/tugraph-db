@@ -236,5 +236,9 @@ int main(int argc, char** argv) {
         FMA_LOG() << "An error occurred:\n" << lgraph::PrintNestedException(e, 1);
         return 1;
     }
+#ifdef __SANITIZE_ADDRESS__
+    // For address sanitizer: wait gc thread to release memory object
+    fma_common::SleepS(2);
+#endif
     return 0;
 }
