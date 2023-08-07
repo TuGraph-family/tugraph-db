@@ -22,6 +22,11 @@ sh local_build.sh
 cp rpc-client-test/target/tugraph-db-java-rpc-client-test-*.jar $WORKSPACE/build/output/
 cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
 
+# build cpp client test
+cd $WORKSPACE/test/test_rpc_client
+sh ./cpp/CppClientTest/compile.sh
+cp -r ./cpp/CppClientTest/build/clienttest $WORKSPACE/build/output/
+
 # unittest
 mkdir -p $WORKSPACE/testresult/gtest/
 cd $WORKSPACE/build/output
