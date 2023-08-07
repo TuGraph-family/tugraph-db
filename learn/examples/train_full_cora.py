@@ -35,7 +35,7 @@ def remap(src, dst, nodes_idx):
 def get_graph(args):
     galaxy = PyGalaxy(args.db_path)
     galaxy.SetCurrentUser(args.username, args.password)
-    db = galaxy.OpenGraph('default', False)
+    db = galaxy.OpenGraph(args.graph_name, False)
     txn = db.CreateReadTxn()
     olapondb = PyOlapOnDB('Empty', db, txn)
     del txn
@@ -85,7 +85,7 @@ def build_model():
     return model
 
 loss_fcn = nn.CrossEntropyLoss()
-def train(graph, model):
+def train(graph, model, model_save_path):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2, weight_decay=5e-4)
     model.train()
     s = time.time()
@@ -97,8 +97,16 @@ def train(graph, model):
     loss.backward()
     optimizer.step()
     train_time = time.time()
-    print('load time', load_time - s, 'train_time', train_time - load_time)
-    return float(loss)
+    # print('load time', load_time - s, 'train_time', train_time - load_time)
+    current_loss = float(loss)
+    if model_save_path != "":
+        if 'min_loss' not in train.__dict__:
+            train.min_loss = current_loss
+        elif current_loss < train.min_loss:
+            train.min_loss = current_loss
+            model_save_path = 'best_model.pth'
+        torch.save(model.state_dict(), model_save_path)
+    return current_loss
 
 
 def run(proc_id, n_gpus, args, devices):
@@ -129,7 +137,7 @@ def run(proc_id, n_gpus, args, devices):
         print('training')
         model.train()
         total_loss = 0
-        loss = train(g, model)
+        loss = train(g, model, args.model_save_path)
         print('loss', loss)
         if epoch == 19 and loss <= 0.9:
             print("The loss value is less than 0.9")
@@ -152,20 +160,10 @@ if __name__ == '__main__':
                         help="database username")
     parser.add_argument("--password", type=str, default="73@TuGraph",
                         help="database password")
-    parser.add_argument("--graph_name", type=str, default="coradb",
+    parser.add_argument("--graph_name", type=str, default="default",
                         help="import graph name")
-    parser.add_argument("--sample_rate", type=float, default="0.0000001",
-                        help="the rate of sample edge")
-    parser.add_argument("--output_dir", type=str, default="./sample_info.txt",
-                        help="the path to store vertex info")
-    parser.add_argument('--sample_method', type=str, default='randomwalk',
-                        help='sample method:\
-                        randomwalk, negative, neighbor')
-    parser.add_argument('--nbor_sample_num', type=int, default=20,
-                        help='neighbor sampling number.')
-    parser.add_argument('--randomwalk_length', type=int, default=20,
-                        help='randomwalk length.')
-
+    parser.add_argument("--model_save_path", type=str, default = "",
+                        help="model path")
     args = parser.parse_args()
     print(args)
     main(args)

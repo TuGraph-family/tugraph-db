@@ -6,4 +6,4 @@ TuGraph DB Best Practices
    :caption: Contents:
    :glob:
 
-   1.rdbms-to-tugraph.md
+   *
