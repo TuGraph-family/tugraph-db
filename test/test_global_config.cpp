@@ -20,6 +20,7 @@
 class TestGlobalConfig : public TuGraphTest {
  protected:
     void SetUp() {
+        // should use TuGraphTest::SetUp()
         conf.enable_audit_log = true;
         conf.enable_rpc = true;
         conf.enable_ssl = true;

@@ -371,6 +371,7 @@ class TestPerfKvImpl : public testing::Test {
     }
 
     void SetUp() {
+        // should use TuGraphTest::SetUp()
         if (!_ut_run_benchmarks)
             GTEST_SKIP() << "--run_benchmarks not set, skipping benchmarks.";
         total_time = 0;

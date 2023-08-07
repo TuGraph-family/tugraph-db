@@ -16,6 +16,7 @@
 #include <boost/interprocess/ipc/message_queue.hpp>
 
 #include "fma-common/file_system.h"
+#include "tools/lgraph_log.h"
 
 #include "core/data_type.h"
 #include "core/lightning_graph.h"
@@ -202,7 +203,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
 }
 
 void PythonPluginManagerImpl::KillAllProcesses() {
-    FMA_DBG() << "Killing all python processes";
+    GENERAL_LOG(DEBUG) << "Killing all python processes";
     std::lock_guard<std::mutex> l(_mtx);
     for (auto& p : _free_processes) {
         p->Kill();

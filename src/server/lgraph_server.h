@@ -21,6 +21,7 @@
 #include "server/state_machine.h"
 #include "restful/server/rest_server.h"
 #include "http/http_server.h"
+#include "tools/lgraph_log.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"
@@ -75,7 +76,7 @@ class LGraphServer {
      public:
         bool OnLogMessage(int severity, const char *file, int line,
                           const butil::StringPiece &log_content) override {
-            FMA_LOG() << "[StateMachine] " << log_content.as_string();
+            GENERAL_LOG(INFO) << "[StateMachine] " << log_content.as_string();
             return true;
         }
     };

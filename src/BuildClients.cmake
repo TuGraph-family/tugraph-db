@@ -3,7 +3,7 @@ set(BRPC_LIB libbrpc.a)
 
 # boost
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
 if (ENABLE_FULLTEXT_INDEX)
     # jni
@@ -46,6 +46,7 @@ target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_link_libraries(${TARGET_CPP_CLIENT_RPC}
             PUBLIC
+            ${Boost_LIBRARIES}
             # begin static linking
             -Wl,-Bstatic
             ${BRPC_LIB}
@@ -57,7 +58,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             gflags
             snappy
             -Wl,-Bstatic
-            ${Boost_LIBRARIES}
             -static-libstdc++
             -static-libgcc
             libstdc++fs.a

@@ -29,6 +29,7 @@ using namespace lgraph::graph;
 class TestGraph : public TuGraphTest {
  protected:
     void SetUp() {
+        // should use TuGraphTest::SetUp()
         vsize = 1;
         esize = 1;
         number_vertex = 10;

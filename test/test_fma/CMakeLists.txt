@@ -23,7 +23,6 @@ add_executable(fma_unit_test
         test_multi_disk_stream.cpp
         test_piped_hdfs_stream.cpp
         test_pipeline.cpp
-        test_rotating_file_log_device.cpp
         test_rotating_files.cpp
         test_rw_lock.cpp
         test_snappy_stream.cpp

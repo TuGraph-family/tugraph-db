@@ -44,7 +44,7 @@ namespace lgraph {
 static Signal _kill_signal_;
 
 void int_handler(int x) {
-    FMA_LOG() << "!!!!! Received signal " << x << ", exiting... !!!!!";
+    GENERAL_LOG(INFO) << "!!!!! Received signal " << x << ", exiting... !!!!!";
     _kill_signal_.Notify();
 }
 
@@ -59,11 +59,11 @@ static void SetupSignalHandler() {
     sa.sa_flags = 0;
     int r = sigaction(SIGINT, &sa, nullptr);
     if (r != 0) {
-        FMA_ERR() << "Error setting up SIGINT signal handler: " << strerror(errno);
+        GENERAL_LOG(ERROR) << "Error setting up SIGINT signal handler: " << strerror(errno);
     }
     r = sigaction(SIGQUIT, &sa, nullptr);
     if (r != 0) {
-        FMA_ERR() << "Error setting up SIGQUIT signal handler: " << strerror(errno);
+        GENERAL_LOG(ERROR) << "Error setting up SIGQUIT signal handler: " << strerror(errno);
     }
 }
 
@@ -79,7 +79,7 @@ LGraphServer::LGraphServer(std::shared_ptr<lgraph::GlobalConfig> config) : confi
     auto &fs = fma_common::FileSystem::GetFileSystem(config_->db_dir);
     if (!fs.IsDir(config_->db_dir)) {
         if (!fs.Mkdir(config_->db_dir)) {
-            FMA_ERR() << "Failed to create the data dir [" << config_->db_dir << "]";
+            GENERAL_LOG(ERROR) << "Failed to create the data dir [" << config_->db_dir << "]";
         }
     }
 }
@@ -94,40 +94,24 @@ void LGraphServer::AdjustConfig() {
         config_->snapshot_dir = config_->db_dir + "/snapshot";
     }
 
-    // setup logger
-    fma_common::LogLevel level;
+    if (config_->rpc_port == 0) config_->rpc_port = config_->http_port + 1;
+
+    // Setup lgraph log
+    lgraph_log::severity_level verbose_level;
     switch (config_->verbose) {
     case 0:
-        level = fma_common::LL_ERROR;
+        verbose_level = lgraph_log::ERROR;
         break;
     case 1:
-        level = fma_common::LL_INFO;
+        verbose_level = lgraph_log::INFO;
         break;
     case 2:
     default:
-        level = fma_common::LL_DEBUG;
+        verbose_level = lgraph_log::DEBUG;
         break;
     }
-    fma_common::Logger::Get().SetLevel(level);
-    if (!config_->log_dir.empty()) {
-        size_t max_log_size = config_->max_log_file_size_mb << 20;
-        fma_common::file_system::MkDir(config_->log_dir);
-        std::map<fma_common::LogLevel, std::shared_ptr<fma_common::LogDevice>> devices = {
-            {fma_common::LogLevel::LL_INFO,
-             std::shared_ptr<fma_common::LogDevice>(new fma_common::RotatingFileLogDevice(
-                 config_->log_dir, "lgraph.log", max_log_size))},
-            {fma_common::LogLevel::LL_WARNING,
-             std::shared_ptr<fma_common::LogDevice>(new fma_common::RotatingFileLogDevice(
-                 config_->log_dir, "lgraph.err", max_log_size))},
-        };
-        std::shared_ptr<fma_common::LogDevice> log_device(
-            new fma_common::LeveledLogDevice(devices));
-        fma_common::Logger::Get().SetDevice(log_device);
-    }
-    fma_common::Logger::Get().SetFormatter(
-        std::shared_ptr<fma_common::LogFormatter>(new fma_common::TimedModuleLogFormatter()));
-
-    if (config_->rpc_port == 0) config_->rpc_port = config_->http_port + 1;
+    size_t max_log_size = config_->max_log_file_size_mb << 20;
+    lgraph_log::LoggerManager::GetInstance().Init(config_->log_dir, verbose_level, max_log_size);
 
 #ifndef _WIN32
     // setup brpc logger
@@ -183,7 +167,7 @@ int LGraphServer::MakeStateMachine() {
         << "**********************************************************************" << "\n"
         << "Server is configured with the following parameters:\n"
         << config_->FormatAsString();
-    FMA_LOG() << header.str();
+    GENERAL_LOG(INFO) << header.str();
     lgraph::StateMachine::Config config(*config_);
     state_machine_.reset(new lgraph::StateMachine(config, config_));
     return 0;
@@ -194,7 +178,7 @@ int LGraphServer::StartRpcService() {
     rpc_service_.reset(new RPCService(state_machine_.get()));
     rpc_server_.reset(new brpc::Server());
     if (rpc_server_->AddService(rpc_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-        FMA_WARN() << "Failed to add service to RPC server";
+        GENERAL_LOG(WARNING) << "Failed to add service to RPC server";
         return -1;
     }
     return 0;
@@ -207,7 +191,7 @@ int LGraphServer::StartHttpService() {
 #ifndef _WIN32
     http_service_.reset(new http::HttpService(state_machine_.get()));
     if (rpc_server_->AddService(http_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-        FMA_WARN() << "Failed to add http service to http server";
+        GENERAL_LOG(WARNING) << "Failed to add http service to http server";
         return -1;
     }
     return 0;
@@ -227,11 +211,12 @@ void LGraphServer::KillServer() {
 #endif
     if (state_machine_) state_machine_->Stop();
     state_machine_.reset();
+
 #ifdef __SANITIZE_ADDRESS__
     // For address sanitizer: wait gc thread to release memory object
     fma_common::SleepS(2);
 #endif
-    FMA_LOG() << "Server shutdown.";
+    GENERAL_LOG(INFO) << "Server shutdown.";
     server_exit_.Notify();
 }
 
@@ -273,10 +258,10 @@ int LGraphServer::Start() {
             }
 
             if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
-                FMA_WARN() << "Failed to start RPC server";
+                GENERAL_LOG(WARNING) << "Failed to start RPC server";
                 return -1;
             }
-            FMA_LOG() << "Listening for RPC on port " << config_->rpc_port;
+            GENERAL_LOG(INFO) << "Listening for RPC on port " << config_->rpc_port;
         }
 #endif
         state_machine_->Start();
@@ -289,10 +274,10 @@ int LGraphServer::Start() {
         if (config_->enable_rpc) {
             http_service_->Start(config_.get());
         }
-        FMA_LOG() << "Server started.";
+        GENERAL_LOG(INFO) << "Server started.";
     } catch (std::exception &e) {
         _kill_signal_.Notify();
-        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
+        GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
         ret = -2;
     }
     return ret;
@@ -305,7 +290,7 @@ int LGraphServer::WaitTillKilled() {
             WaitSignal();
         }
     } catch (std::exception &e) {
-        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
+        GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
     return Stop(true);
@@ -316,7 +301,7 @@ int LGraphServer::Stop(bool force_exit) {
     if (!state_machine_) return 0;
     // otherwise, try to stop the services, exit forcefully if necessary
     try {
-        FMA_LOG() << "Stopping TuGraph...";
+        GENERAL_LOG(INFO) << "Stopping TuGraph...";
         // the kaishaku watches the server, if exit flag is set and the server cannot be shutdown
         // normally after three seconds, it kills the process
         std::thread kaishaku;
@@ -324,7 +309,7 @@ int LGraphServer::Stop(bool force_exit) {
             kaishaku = std::thread([&]() {
                 _kill_signal_.Wait(-1);
                 if (!server_exit_.Wait(3)) {
-                    FMA_LOG() << "Killing server...";
+                    GENERAL_LOG(INFO) << "Killing server...";
 #ifdef _WIN32
                     exit(1);
 #else
@@ -339,7 +324,7 @@ int LGraphServer::Stop(bool force_exit) {
         if (kaishaku.joinable()) kaishaku.join();
         return 0;
     } catch (std::exception &e) {
-        FMA_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
+        GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
 }

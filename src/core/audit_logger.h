@@ -26,6 +26,7 @@
 #include "fma-common/type_traits.h"
 #include "lgraph/lgraph_types.h"
 #include "protobuf/ha.pb.h"
+#include "tools/lgraph_log.h"
 
 #ifdef _WIN32
 #include <time.h>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,5 +68,6 @@ int main(int argc, char **argv) {
     config.Add(test, "t").Comment("Select a test to run").SetPossibleValues(test_strs);
     config.ParseAndRemove(&argc, &argv);
     config.Finalize();
+    lgraph_log::LoggerManager::GetInstance().Init("");
     return tests[test].func(argc, argv);
 }

@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
         level = fma_common::LogLevel::LL_DEBUG;
     fma_common::Logger::Get().SetLevel(level);
     fma_common::Logger::Get().SetFormatter(std::make_shared<fma_common::TimedLogFormatter>());
+    lgraph_log::LoggerManager::GetInstance().Init("", lgraph_log::severity_level::INFO);
     _ut_argc = argc;
     _ut_argv = argv;
     auto ret = RUN_ALL_TESTS();

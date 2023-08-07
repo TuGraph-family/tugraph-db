@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+// fma_log is no longer used after the implementation of lgraph_log
+// this test is no longer useful since it's for fma_log's file rotation
+// lgraph_log's file rotation test is in test_lgraph_log.cpp
+
 #include "fma-common/configuration.h"
 #include "fma-common/fma_stream.h"
 #include "fma-common/file_system.h"

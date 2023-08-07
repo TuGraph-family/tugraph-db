@@ -27,6 +27,7 @@
 #endif
 
 #include "fma-common/env.h"
+#include "tools/lgraph_log.h"
 
 namespace fma_common {
 enum LogLevel {
@@ -445,37 +446,37 @@ _FMA_DEF_CHECK_FUNC__(CheckGe, _FMA_CHECK_GE_FUNC);
 #define FMA_LOG_STREAM_WITH_LEVEL(logger, LEVEL) \
     logger.GetLevel() < LEVEL ? true : ::fma_common::LoggerStream(logger, LEVEL)
 
-#define FMA_DBG_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_DEBUG)
-#define FMA_INFO_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_INFO)
-#define FMA_WARN_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_WARNING)
-#define FMA_ERR_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_ERROR)
-#define FMA_FATAL_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_FATAL)
+#define FMA_DBG_STREAM(logger) DEBUG_LOG_STREAM(DEBUG, logger.GetName())
+#define FMA_INFO_STREAM(logger) DEBUG_LOG_STREAM(INFO, logger.GetName())
+#define FMA_WARN_STREAM(logger) DEBUG_LOG_STREAM(WARNING, logger.GetName())
+#define FMA_ERR_STREAM(logger) DEBUG_LOG_STREAM(ERROR, logger.GetName())
+#define FMA_FATAL_STREAM(logger) DEBUG_LOG_STREAM(FATAL, logger.GetName())
 
 #ifndef DISABLE_DBG_LOG
-#define FMA_DBG() FMA_GET_LOG_STREAM(LL_DEBUG)
+#define FMA_DBG() DEBUG_LOG(DEBUG)
 #else
 #define FMA_DBG() true || ::fma_common::NullStream()
 #endif
 
 #ifndef DISABLE_INFO_LOG
-#define FMA_LOG() FMA_GET_LOG_STREAM(LL_INFO)
+#define FMA_LOG() DEBUG_LOG(INFO)
 #else
 #define FMA_LOG() true || ::fma_common::NullStream()
 #endif
 
 #ifndef DISABLE_WARN_LOG
-#define FMA_WARN() FMA_GET_LOG_STREAM(LL_WARNING)
+#define FMA_WARN() DEBUG_LOG(WARNING)
 #else
 #define FMA_WARN() true || ::fma_common::NullStream()
 #endif
 
 #ifndef DISABLE_ERR_LOG
-#define FMA_ERR() FMA_GET_LOG_STREAM(LL_FATAL)
+#define FMA_ERR() DEBUG_LOG(ERROR)
 #else
 #define FMA_ERR() true || ::fma_common::NullStream()
 #endif
 
-#define FMA_FATAL() FMA_GET_LOG_STREAM(LL_FATAL)
+#define FMA_FATAL() DEBUG_LOG(FATAL)
 
 #define FMA_CHECK(pred) \
     if (!(pred)) FMA_ERR() << __FILE__ << ":" << __LINE__ << "\n\tCHECK(" #pred ") failed\n"

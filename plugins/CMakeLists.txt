@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.2)
 project(TuGraph C CXX)
 
+# boost
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
+
 set(LGRAPH_API_SRC 
         ${CMAKE_SOURCE_DIR}/src/lgraph_api/olap_base.cpp
         ${CMAKE_SOURCE_DIR}/src/lgraph_api/lgraph_utils.cpp
@@ -8,7 +12,7 @@ set(LGRAPH_API_SRC
 
 function(add_standalone APP)
     add_executable(${APP}_standalone cpp/${APP}_core.cpp cpp/${APP}_standalone.cpp ${LGRAPH_API_SRC})
-    target_link_libraries(${APP}_standalone libstdc++fs.a libgomp.a dl)
+    target_link_libraries(${APP}_standalone ${Boost_LIBRARIES} libstdc++fs.a libgomp.a dl)
     set_target_properties( ${APP}_standalone PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
     target_include_directories(${APP}_standalone PUBLIC ${CMAKE_SOURCE_DIR}/include
@@ -17,14 +21,14 @@ endfunction()
 
 function(add_embed APP)
     add_executable(${APP}_embed cpp/${APP}_core.cpp cpp/${APP}_procedure.cpp embed_main.cpp)
-    target_link_libraries(${APP}_embed lgraph libgomp.a crypto dl)
+    target_link_libraries(${APP}_embed ${Boost_LIBRARIES} lgraph libgomp.a crypto dl)
     set_target_properties( ${APP}_embed PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
 endfunction()
 
 function(add_embed2 APP)
     add_executable(${APP}_embed cpp/${APP}.cpp embed_main.cpp)
-    target_link_libraries(${APP}_embed lgraph libgomp.a crypto dl)
+    target_link_libraries(${APP}_embed ${Boost_LIBRARIES} lgraph libgomp.a crypto dl)
     set_target_properties( ${APP}_embed PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
     target_include_directories(${APP}_embed PUBLIC ${CMAKE_SOURCE_DIR}/include)
@@ -34,7 +38,7 @@ function(add_extension APP)
     add_cython_target(${APP} cython/${APP}.py CXX)
     add_library(${APP} MODULE ${APP})
     python_extension_module(${APP})
-    target_link_libraries(${APP} lgraph libgomp.a dl)
+    target_link_libraries(${APP} ${Boost_LIBRARIES} lgraph libgomp.a dl)
     set_target_properties( ${APP} PROPERTIES
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
 endfunction()

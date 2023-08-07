@@ -18,6 +18,7 @@
 #include "core/killable_rw_lock.h"
 #include "db/galaxy.h"
 #include "db/token_manager.h"
+#include "tools/lgraph_log.h"
 
 std::string lgraph::Galaxy::GenerateRandomString() {
     std::random_device rd;
@@ -498,7 +499,7 @@ bool lgraph::Galaxy::IsAdmin(const std::string& user) const {
 lgraph::KillableRWLock& lgraph::Galaxy::GetReloadLock() { return reload_lock_; }
 
 void lgraph::Galaxy::ReloadFromDisk(bool create_if_not_exist) {
-    FMA_DBG_STREAM(logger_) << "Loading DB state from disk";
+    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Loading DB state from disk";
     _HoldWriteLock(reload_lock_);
     // now we can do anything we want on the galaxy
     // states: meta_, token_manager_ and raft_log_index_
