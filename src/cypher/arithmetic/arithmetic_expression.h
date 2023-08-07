@@ -121,8 +121,8 @@ struct BuiltinFunction {
 
     /* temporal functions - instant types */
     static cypher::FieldData Date(RTContext *ctx, const Record &record,
-                                  const std::vector<ArithExprNode> &args);  
-    
+                                  const std::vector<ArithExprNode> &args);
+
     static cypher::FieldData DateComponent(RTContext *ctx, const Record &record,
                                            const std::vector<ArithExprNode> &args);
 
