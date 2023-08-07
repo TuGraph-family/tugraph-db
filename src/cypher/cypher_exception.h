@@ -69,7 +69,7 @@ namespace lgraph {
 
 class CypherException : public InputError {
  public:
-    CypherException() = default;
+    CypherException() = delete;
 
     explicit CypherException(const std::string& err)
         : InputError(std::string("CypherException: ") + err) {}

@@ -1,6 +1,3 @@
-[submodule "deps/fma-common"]
-	path = deps/fma-common
-	url = https://github.com/TuGraph-family/fma-common.git
 [submodule "deps/tugraph-web"]
 	path = deps/tugraph-web
 	url = https://github.com/TuGraph-family/tugraph-web.git

@@ -34,6 +34,7 @@ include_directories(${DEPS_INCLUDE_DIR})
 
 # brpc
 set(BRPC_LIB libbrpc.a)
+set(BRAFT_LIB libbraft.a)
 
 ############### liblgraph_server_lib ######################
 
@@ -45,6 +46,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         plugin/cpp_plugin.cpp
         server/lgraph_server.cpp
         server/state_machine.cpp
+        server/ha_state_machine.cpp
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
@@ -58,7 +60,6 @@ target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}
         -D__const__=
         -pipe
-        #-W -Wall -Wno-unused-parameter
         -fPIC -fno-omit-frame-pointer)
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
@@ -69,6 +70,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             # begin static linking
             -Wl,-Bstatic
             cpprest
+            ${BRAFT_LIB}
             ${BRPC_LIB}
             ${PROTOBUF_LIBRARY}
             ${GFLAGS_LIBRARY}
@@ -87,6 +89,7 @@ else ()
             PUBLIC
             lgraph
             lgraph_cypher_lib
+            ${BRAFT_LIB}
             ${BRPC_LIB}
             ${LEVELDB_LIB}
             ${PROTOBUF_LIBRARY}

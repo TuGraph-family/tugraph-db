@@ -18,7 +18,7 @@
 #pragma once
 
 #include "parser/clause.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -100,12 +100,11 @@ class OpCreate : public OpBase {
         }
         auto &edge_variable = std::get<0>(relationship_detail);
         auto &relationship_types = std::get<1>(relationship_detail);
-        auto &range_literal = std::get<2>(relationship_detail);
         auto &properties = std::get<3>(relationship_detail);
         // add edge
         if (relationship_types.empty())
             throw lgraph::CypherException("Edge label missing in create");
-        // todo: use children's record instead?
+        // TODO(anyone) use children's record instead?
         auto &src_node = pattern_graph_->GetNode(src_node_var);
         auto &dst_node = pattern_graph_->GetNode(dst_node_var);
         auto &label = relationship_types[0];
@@ -264,6 +263,5 @@ class OpCreate : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

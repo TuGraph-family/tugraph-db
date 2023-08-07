@@ -42,35 +42,6 @@ static void DumpTable(KvTable& tab, KvTransaction& txn,
     }
 }
 
-static void DumpTable(KvTable& tab, KvTransaction& txn, fma_common::OutputFmaStream& out,
-                      const std::function<std::string(const Value&)>& print_key,
-                      const std::function<std::string(const Value&)>& print_value) {
-    auto it = tab.GetIterator(txn);
-    while (it.IsValid()) {
-        std::string line;
-        line = line + "[" + print_key(it.GetKey()) + "]: {" + print_value(it.GetValue());
-        line += "}\n";
-        fma_common::BinaryWrite(out, line);
-        it.Next();
-    }
-}
-
-static void DumpKv(const std::string& kv_path, const std::string& dump_dir) {
-    KvStore store(kv_path);
-    auto txn = store.CreateWriteTxn();
-    auto tables = store.ListAllTables(txn);
-    fma_common::OutputFmaStream out;
-    for (auto& table : tables) {
-        out.Open(dump_dir + "/" + table, 1 << 16);
-        auto tbl = store.OpenTable(txn, table, true, ComparatorDesc::DefaultComparator());
-        DumpTable(
-            tbl, txn, out, [](const Value& v) { return v.DebugString(1000); },
-            [](const Value& v) { return v.DebugString(1000); });
-        out.Close();
-    }
-    txn.Abort();
-}
-
 static void InsertNameAge(const std::string& name, int age, KvTable& tab, KvTransaction& txn) {
     tab.SetValue(txn, Value::ConstRef(name), Value::ConstRef(age));
 }
@@ -147,7 +118,6 @@ TEST_F(TestKvStore, KvStore) {
             cleaners.emplace_back(dir);
             kvs.emplace_back(new KvStore(dir, (size_t)1 << db_size));
         }
-        size_t s = 0;
         std::vector<KvTransaction> txns;
         for (auto& s : kvs) {
             txns.emplace_back(s->CreateWriteTxn());

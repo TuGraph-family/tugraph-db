@@ -368,5 +368,9 @@ class AclManager {
     bool DecipherToken(const std::string& token, std::string& user, std::string& pwd);
 
     bool UnBindTokenUser(const std::string& token);
+
+    bool UnBindUserAllToken(const std::string& user);
+
+    int GetUserTokenNum(const std::string& user);
 };
 }  // namespace lgraph

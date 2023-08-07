@@ -66,3 +66,21 @@ class TestCypher:
                dict['durable'] == False and
                dict['optimistic_txn'] == True and
                dict['enable_audit_log'] == False)
+
+    @pytest.mark.parametrize("server", [SERVEROPT_1], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_issue406(self, server, client):
+        client.callCypher("CALL db.createVertexLabel('person', 'id', 'id', INT64, false, 'name', STRING, true, 'born', INT32, true, 'poster_image', STRING, true)")
+        client.callCypher("CREATE (n:person {id:1, name:'Tom Hanks', born:1956, poster_image:'http://image.com'})")
+        client.callCypher("CREATE (n:person {id:2, name:'2', born:1962, poster_image:'http://image.com'})")
+        client.callCypher("CREATE (n:person {id:3, name:'309485009821345068724781056', born:1962, poster_image:'http://image.com'})")
+        ret = client.callCypher("CREATE (n:person {id:1125899906842624, name:'0023', born:1962})")
+        ret = client.callCypher("MATCH (n) RETURN n", "default")
+        items = json.loads(ret[1])
+        assert(len(items) == 4 and
+               items[0]["n"]["properties"]["name"] == "Tom Hanks" and
+               items[1]["n"]["properties"]["name"] == "2" and
+               items[2]["n"]["properties"]["name"] == "309485009821345068724781056" and
+               items[3]["n"]["properties"]["name"] == "0023")
+        assert(items[3]["n"]["properties"]["id"] == 1125899906842624 and
+               items[3]["n"]["properties"]["poster_image"] == None)

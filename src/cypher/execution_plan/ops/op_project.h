@@ -19,7 +19,7 @@
 
 #include "parser/clause.h"
 #include "arithmetic/arithmetic_expression.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -34,7 +34,7 @@ class Project : public OpBase {
         RefreshAfterPass,
         Resetted,
         Consuming,
-    } state_;  // TODO: use OpBase state // NOLINT
+    } state_;  // TODO(anyone) use OpBase state
 
     /* Construct arithmetic expressions from return clause. */
     void _BuildArithmeticExpressions(const parser::QueryPart *stmt) {
@@ -90,7 +90,7 @@ class Project : public OpBase {
         for (auto &re : return_elements_) {
             auto v = re.Evaluate(ctx, *r);
             record->values[re_idx++] = v;
-            // todo: handle alias
+            // TODO(anyone) handle alias
         }
         return OP_OK;
     }
@@ -122,6 +122,5 @@ class Project : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

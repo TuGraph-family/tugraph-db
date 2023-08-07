@@ -1,3 +1,4 @@
+﻿
 //  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -164,7 +165,8 @@ class FrontierTraversal {
      * @param [in,out]  txn     The transaction.
      * @param           flags   (Optional) The options used during traversals.
      */
-    FrontierTraversal(GraphDB &db, Transaction &txn, size_t flags = 0);
+    FrontierTraversal(GraphDB &db, Transaction &txn, size_t flags = 0,
+        size_t capacity = MAX_RESULT_SIZE);
 
     /**
      * @brief   Retrieve the current (i.e. latest) frontier.
@@ -279,8 +281,8 @@ class Edge {
     size_t start_;
     size_t end_;
     size_t eid_;
-    int64_t tid_;
     uint16_t lid_;
+    int64_t tid_;
     bool forward_;
 
  public:
@@ -502,7 +504,7 @@ class PathTraversal {
      * @param [in,out]  txn     The transaction.
      * @param           flags   The options used during traversals.
      */
-    PathTraversal(GraphDB &db, Transaction &txn, size_t flags);
+    PathTraversal(GraphDB &db, Transaction &txn, size_t flags, size_t capacity = MAX_RESULT_SIZE);
 
     /**
      * @brief   Retrieve the current (i.e. latest) frontier.

@@ -16,4 +16,4 @@
 // Created by wt on 6/13/18.
 //
 
-#include "op_node_by_label_scan.h"
+#include "cypher/execution_plan/ops/op_node_by_label_scan.h"

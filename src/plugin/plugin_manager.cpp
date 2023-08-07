@@ -15,9 +15,11 @@
 #include "plugin/plugin_manager.h"
 
 lgraph::SingleLanguagePluginManager::SingleLanguagePluginManager(
-    const std::string& graph_name, const std::string& plugin_dir, const std::string& table_name,
-    KvTransaction& txn, KvStore& store, std::unique_ptr<PluginManagerImplBase>&& impl) {
+    const std::string& language, const std::string& graph_name, const std::string& plugin_dir,
+    const std::string& table_name, KvTransaction& txn, KvStore& store,
+    std::unique_ptr<PluginManagerImplBase>&& impl) {
     impl_ = std::move(impl);
+    language_ = language;
     graph_name_ = graph_name;
     plugin_dir_ = plugin_dir;
     auto& fs = fma_common::FileSystem::GetFileSystem(plugin_dir);
@@ -29,10 +31,12 @@ lgraph::SingleLanguagePluginManager::SingleLanguagePluginManager(
 }
 
 lgraph::SingleLanguagePluginManager::SingleLanguagePluginManager(
-    LightningGraph* db, const std::string& graph_name, const std::string& plugin_dir,
-    const std::string& table_name, std::unique_ptr<PluginManagerImplBase>&& impl)
+    const std::string& language, LightningGraph* db, const std::string& graph_name,
+    const std::string& plugin_dir, const std::string& table_name,
+    std::unique_ptr<PluginManagerImplBase>&& impl)
     : db_(db), graph_name_(graph_name) {
     impl_ = std::move(impl);
+    language_ = language;
     plugin_dir_ = plugin_dir;
     auto& fs = fma_common::FileSystem::GetFileSystem(plugin_dir);
     if (!fs.IsDir(plugin_dir) && !fs.Mkdir(plugin_dir)) {
@@ -54,6 +58,7 @@ void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& us
         std::string error;
         impl_->UnloadPlugin(user, kv.first, kv.second);
         fs.Remove(impl_->GetPluginPath(kv.first));
+        delete kv.second;
     }
     procedures_.clear();
     table_.Drop(txn);
@@ -65,12 +70,35 @@ void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& us
     txn.Commit();
 }
 
+std::string lgraph::SingleLanguagePluginManager::SignatureToJsonString(
+    const lgraph_api::SigSpec& spec) {
+    nlohmann::json body, input, output;
+    for (auto& param : spec.input_list) {
+        input.push_back({{"name", param.name}, {"type", to_string(param.type)}});
+    }
+    for (auto& param : spec.result_list) {
+        output.push_back({{"name", param.name}, {"type", to_string(param.type)}});
+    }
+    body["input"] = input;
+    body["output"] = output;
+
+    return body.dump();
+}
+
 std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins(
     const std::string& user) {
     AutoReadLock lock(lock_, GetMyThreadId());
     std::vector<PluginDesc> plugins;
     for (auto it = procedures_.begin(); it != procedures_.end(); it++) {
-        plugins.emplace_back(FromInternalName(it->first), it->second->desc, it->second->read_only);
+        std::string signature;
+        auto& spec = it->second->sig_spec;
+        if (spec) {
+            signature = std::move(SignatureToJsonString(*spec));
+        } else {
+            signature = "";
+        }
+        plugins.emplace_back(FromInternalName(it->first), it->second->language, it->second->desc,
+                             it->second->version, it->second->read_only, signature);
     }
     return plugins;
 }
@@ -181,11 +209,10 @@ static void ExecuteCommand(const std::string& cmd, size_t timeout_ms,
     lgraph::SubProcess proc(cmd, false);
     if (!proc.Wait(lgraph::_detail::MAX_UNZIP_TIME_MS))
         throw lgraph::InputError(FMA_FMT("{} \nStdout:----\n{}\nStderr:----\n{}", msg_timeout,
-                                 proc.Stdout(), proc.Stderr()));
+                                         proc.Stdout(), proc.Stderr()));
     if (proc.GetExitCode())
-        throw lgraph::InputError(
-            FMA_FMT("{} \nStdout:----\n{}\nStderr:----\n{}",
-                    msg_fail, proc.Stdout(), proc.Stderr()));
+        throw lgraph::InputError(FMA_FMT("{} \nStdout:----\n{}\nStderr:----\n{}", msg_fail,
+                                         proc.Stdout(), proc.Stderr()));
 }
 
 static inline std::string GenUniqueTempDir(const std::string& base, const std::string& name) {
@@ -230,23 +257,27 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
 
     // cython
     std::string exec_dir = fma_common::FileSystem::GetExecutablePath().Dir();
-    std::string cmd = FMA_FMT("cython {} -+ -3 -I{}/../../include/cython/ "
-                              " -I/usr/local/include/cython/ "
-                              " -o {} --module-name {} ",
-                              cython_file_path, exec_dir, cpp_file_path, name);
+    std::string cmd = FMA_FMT(
+        "cython {} -+ -3 -I{}/../../include/cython/ "
+        " -I/usr/local/include/cython/ "
+        " -o {} --module-name {} ",
+        cython_file_path, exec_dir, cpp_file_path, name);
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while translate cython to c++.",
                    "Failed to translated cython. cmd: " + cmd);
 
     // compile
-    std::string CFLAGS = FMA_FMT(" -I/usr/local/include "
-                                 " -I{}/../../include "
-                                 " -I/usr/include/python3.6m "
-                                 " -I/usr/local/include/python3.6m ",
-                                 exec_dir);
-//    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
-//                                  "-L/usr/lib64/ -lpython3.6m", exec_dir);
-    std::string LDFLAGS = FMA_FMT(" -llgraph -L{} -L/usr/local/lib64/ "
-                                  " -L/usr/lib64/ ", exec_dir);
+    std::string CFLAGS = FMA_FMT(
+        " -I/usr/local/include "
+        " -I{}/../../include "
+        " -I/usr/include/python3.6m "
+        " -I/usr/local/include/python3.6m ",
+        exec_dir);
+    //    std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/ "
+    //                                  "-L/usr/lib64/ -lpython3.6m", exec_dir);
+    std::string LDFLAGS = FMA_FMT(
+        " -llgraph -L{} -L/usr/local/lib64/ "
+        " -L/usr/lib64/ ",
+        exec_dir);
 #ifndef __clang__
     cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
@@ -324,9 +355,16 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     std::string CFLAGS = FMA_FMT("-I{}/../../include -I/usr/local/include", exec_dir);
     std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/", exec_dir);
 #ifndef __clang__
+#ifdef __SANITIZE_ADDRESS__
+    std::string cmd = FMA_FMT(
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -Wl,-z,nodelete "
+        " -rdynamic -O3 -fopenmp -o {} {} {} -shared ",
+        CFLAGS, plugin_path, file_path, LDFLAGS);
+#else
     std::string cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
+#endif
 #elif __APPLE__
     std::string cmd = FMA_FMT(
         "clang++ -stdlib=libc++ -fPIC -g --std=c++17 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
@@ -344,9 +382,11 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     return ReadWholeFile(plugin_path, "plugin binary file");
 }
 
-void lgraph::SingleLanguagePluginManager::LoadPlugin(
-    const std::string& user, KvTransaction& txn, const std::string& name, const std::string& exe,
-    const std::string& desc, bool read_only) {
+void lgraph::SingleLanguagePluginManager::LoadPlugin(const std::string& user, KvTransaction& txn,
+                                                     const std::string& name,
+                                                     const std::string& exe,
+                                                     const std::string& desc, bool read_only,
+                                                     const std::string& version) {
     std::string plugin_path = impl_->GetPluginPath(name);
     // write so
     WriteWholeFile(plugin_path, exe, "plugin binary file");
@@ -354,8 +394,10 @@ void lgraph::SingleLanguagePluginManager::LoadPlugin(
     // load dll
     std::unique_ptr<PluginInfoBase> pinfo_(impl_->CreatePluginInfo());
     PluginInfoBase* pinfo = pinfo_.get();
+    pinfo->language = language_;
     pinfo->desc = desc;
     pinfo->read_only = read_only;
+    pinfo->version = version;
     impl_->LoadPlugin(user, name, pinfo);
     procedures_.emplace(name, pinfo_.release());
 
@@ -368,10 +410,14 @@ void lgraph::SingleLanguagePluginManager::LoadPlugin(
 
 bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     const std::string& user, const std::string& name_, const std::string& code,
-    plugin::CodeType code_type, const std::string& desc, bool read_only) {
+    plugin::CodeType code_type, const std::string& desc, bool read_only,
+    const std::string& version) {
     // check input
     if (code.empty()) throw InputError("Code cannot be empty.");
     if (!IsValidPluginName(name_)) throw InvalidPluginNameException(name_);
+    if (version != plugin::PLUGIN_VERSION_1 && version != plugin::PLUGIN_VERSION_2) {
+        throw InvalidPluginVersionException(version);
+    }
 
     std::string name = ToInternalName(name_);
     // check if plugin already exist, remove if overwrite
@@ -422,18 +468,18 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     auto txn = db_->CreateWriteTxn();
     switch (code_type) {
     case plugin::CodeType::PY:
-        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only);
+        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only, version);
         UpdateCythonToKvStore(txn.GetTxn(), name, code);
         break;
     case plugin::CodeType::SO:
-        LoadPlugin(user, txn.GetTxn(), name, code, desc, read_only);
+        LoadPlugin(user, txn.GetTxn(), name, code, desc, read_only, version);
         break;
     case plugin::CodeType::CPP:
-        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only);
+        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only, version);
         UpdateCppToKvStore(txn.GetTxn(), name, code);
         break;
     case plugin::CodeType::ZIP:
-        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only);
+        LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only, version);
         UpdateZipToKvStore(txn.GetTxn(), name, code);
         break;
     default:
@@ -485,7 +531,7 @@ bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& user,
 }
 
 bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& user,
-                                                          const std::string& name_) {
+                                                           const std::string& name_) {
     if (!IsValidPluginName(name_)) {
         throw InvalidPluginNameException(name_);
     }
@@ -493,16 +539,14 @@ bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& us
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
     if (it == procedures_.end()) throw InputError("Plugin [{}] does not exist.", name);
-    return  it->second->read_only;
+    return it->second->read_only;
 }
 
 bool lgraph::SingleLanguagePluginManager::Call(lgraph_api::Transaction* txn,
                                                const std::string& user,
                                                AccessControlledDB* db_with_access_control,
-                                               const std::string& name_,
-                                               const std::string& request,
-                                               double timeout,
-                                               bool in_process,
+                                               const std::string& name_, const std::string& request,
+                                               double timeout, bool in_process,
                                                std::string& output) {
     std::string name = ToInternalName(name_);
     AutoReadLock lock(lock_, GetMyThreadId());
@@ -589,8 +633,8 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
             procedures_.emplace(std::make_pair(name, pinfo.release()));
             FMA_DBG() << "Loaded plugin " << name;
         } catch (const std::exception& e) {
-            std::throw_with_nested(InternalError(
-                "Failed to load plugin [{}], err: {}", name, e.what()));
+            std::throw_with_nested(
+                InternalError("Failed to load plugin [{}], err: {}", name, e.what()));
         }
     }
 }
@@ -612,13 +656,15 @@ lgraph::PluginManager::PluginManager(LightningGraph* db, const std::string& grap
                                      int subprocess_max_idle_seconds) {
     std::unique_ptr<CppPluginManagerImpl> cpp_impl(
         new CppPluginManagerImpl(db, graph_name, cpp_plugin_dir));
-    cpp_manager_.reset(new SingleLanguagePluginManager(db, graph_name, cpp_plugin_dir,
-                                                       cpp_table_name, std::move(cpp_impl)));
+    cpp_manager_.reset(new SingleLanguagePluginManager(plugin::PLUGIN_LANG_TYPE_CPP, db, graph_name,
+                                                       cpp_plugin_dir, cpp_table_name,
+                                                       std::move(cpp_impl)));
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
     std::unique_ptr<PythonPluginManagerImpl> python_impl(new PythonPluginManagerImpl(
         db, graph_name, python_plugin_dir, subprocess_max_idle_seconds));
     python_manager_.reset(new SingleLanguagePluginManager(
-        db, graph_name, python_plugin_dir, python_table_name, std::move(python_impl)));
+        plugin::PLUGIN_LANG_TYPE_PYTHON, db, graph_name, python_plugin_dir, python_table_name,
+        std::move(python_impl)));
 #endif
 }
 
@@ -626,11 +672,13 @@ lgraph::PluginManager::~PluginManager() {}
 
 std::vector<lgraph::PluginDesc> lgraph::PluginManager::ListPlugins(PluginType type,
                                                                    const std::string& user) {
-    return SelectManager(type)->ListPlugins(user);
+    auto & sm = SelectManager(type);
+    if (sm) return sm->ListPlugins(user);
+    return {};
 }
 
 bool lgraph::PluginManager::GetPluginSignature(lgraph::PluginManager::PluginType type,
-                                              const std::string& user, const std::string& name,
+                                               const std::string& user, const std::string& name,
                                                lgraph_api::SigSpec** sig_spec) {
     return SelectManager(type)->GetPluginSigSpec(user, name, sig_spec);
 }
@@ -647,8 +695,9 @@ bool lgraph::PluginManager::GetPluginCode(PluginType type, const std::string& us
 bool lgraph::PluginManager::LoadPluginFromCode(PluginType type, const std::string& user,
                                                const std::string& name, const std::string& code,
                                                plugin::CodeType code_type, const std::string& desc,
-                                               bool read_only) {
-    return SelectManager(type)->LoadPluginFromCode(user, name, code, code_type, desc, read_only);
+                                               bool read_only, const std::string& version) {
+    return SelectManager(type)->LoadPluginFromCode(user, name, code, code_type, desc, read_only,
+                                                   version);
 }
 
 bool lgraph::PluginManager::DelPlugin(PluginType type, const std::string& user,
@@ -657,19 +706,15 @@ bool lgraph::PluginManager::DelPlugin(PluginType type, const std::string& user,
 }
 
 bool lgraph::PluginManager::IsReadOnlyPlugin(PluginType type, const std::string& user,
-                                            const std::string& name_) {
+                                             const std::string& name_) {
     return SelectManager(type)->IsReadOnlyPlugin(user, name_);
 }
 
-bool lgraph::PluginManager::Call(lgraph_api::Transaction* txn,
-                                 PluginType type,
+bool lgraph::PluginManager::Call(lgraph_api::Transaction* txn, PluginType type,
                                  const std::string& user,
                                  AccessControlledDB* db_with_access_control,
-                                 const std::string& name_,
-                                 const std::string& request,
-                                 double timeout,
-                                 bool in_process,
-                                 std::string& output) {
+                                 const std::string& name_, const std::string& request,
+                                 double timeout, bool in_process, std::string& output) {
     return SelectManager(type)->Call(txn, user, db_with_access_control, name_, request, timeout,
                                      in_process, output);
 }

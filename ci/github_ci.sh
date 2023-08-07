@@ -2,8 +2,6 @@
 set -e
 
 cd $WORKSPACE
-pwd
-ls -al
 
 # cpplint check
 bash ./cpplint/check_all.sh
@@ -19,12 +17,15 @@ cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
 make -j2
 
 # build java
-JAVA_CLIENT_VERSION=1.2.1
-
 cd $WORKSPACE/deps/tugraph-db-client-java/
 sh local_build.sh
-cp rpc-client-test/target/tugraph-db-java-rpc-client-test-${JAVA_CLIENT_VERSION}.jar $WORKSPACE/build/output/
-cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-${JAVA_CLIENT_VERSION}.jar $WORKSPACE/build/output/
+cp rpc-client-test/target/tugraph-db-java-rpc-client-test-*.jar $WORKSPACE/build/output/
+cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
+
+# build cpp client test
+cd $WORKSPACE/test/test_rpc_client
+sh ./cpp/CppClientTest/compile.sh
+cp -r ./cpp/CppClientTest/build/clienttest $WORKSPACE/build/output/
 
 # unittest
 mkdir -p $WORKSPACE/testresult/gtest/
@@ -43,6 +44,7 @@ cd $WORKSPACE/build/output
 cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
 cp ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
 cp -r ../../test/integration/* ./
+cp -r ../../learn/examples/* ./
 cp -r ../../demo/movie .
 pytest ./
 

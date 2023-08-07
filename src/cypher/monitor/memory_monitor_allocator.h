@@ -13,7 +13,7 @@
  */
 
 #pragma once
-#include "monitor_manager.h"
+#include "cypher/monitor/monitor_manager.h"
 
 template <class T>
 class MemoryMonitorAllocator {

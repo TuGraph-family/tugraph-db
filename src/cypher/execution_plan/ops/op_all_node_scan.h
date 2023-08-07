@@ -17,14 +17,14 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
 class AllNodeScan : public OpBase {
     /* NOTE: Nodes in pattern graph are stored in std::vector, whose reference
      * will become INVALID after reallocation.
-     * TODO: Make sure not add nodes to the pattern graph, otherwise use NodeId instead.  */
+     * TODO(anyone) Make sure not add nodes to the pattern graph, otherwise use NodeId instead.  */
     friend class LocateNodeByVid;
     friend class LocateNodeByIndexedProp;
 
@@ -59,7 +59,7 @@ class AllNodeScan : public OpBase {
         record->values[node_rec_idx_].node = node_;
         record->SetParameter(ctx->param_tab_);
         // transaction allocated before in plan:execute
-        // todo: remove patternGraph's state (ctx)
+        // TODO(anyone) remove patternGraph's state (ctx)
         node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER);
         return OP_OK;
     }
@@ -86,7 +86,7 @@ class AllNodeScan : public OpBase {
         if (complete) {
             // undo method initialize()
             record = nullptr;
-            // todo: cleaned in ExecutionPlan::Execute
+            // TODO(anyone) cleaned in ExecutionPlan::Execute
             if (it_ && it_->Initialized()) it_->FreeIter();
         } else {
             if (it_ && it_->Initialized()) it_->Reset();
@@ -102,9 +102,10 @@ class AllNodeScan : public OpBase {
 
     Node *GetNode() const { return node_; }
 
+    const SymbolTable *SymTab() const { return sym_tab_; }
+
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

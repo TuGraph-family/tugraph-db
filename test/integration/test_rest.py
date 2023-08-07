@@ -34,11 +34,13 @@ class TestRest:
         rest.load_plugin(name='echo', desc='an echo plugin',
                             file_type='py', file_path=path,
                             read_only=True,
+                            version="v1",
                             raw_output=False)
         # loading an existing plugin, expect 400
         r = rest.load_plugin(name='echo', desc='an echo plugin',
                                 file_type='py', file_path=path,
                                 read_only=True,
+                                version="v1",
                                 raw_output=True)
         assert(r[0] == 400)
         # now try calling the plugin

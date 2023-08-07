@@ -60,7 +60,7 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
 
     double t0, t1, t2;
     t0 = fma_common::GetTime();
-    execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
+    execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
     execution_plan.DumpGraph();
     std::string res_plan = execution_plan.DumpPlan(0, false);
 
@@ -83,7 +83,7 @@ int test_cypher_plan(const nlohmann::json &conf) {
         dataset = el["dataset"];
         if (dataset == "yago") {
             UT_LOG() << "test on dataset:" << dataset;
-            GraphFactory::create_yago("./testdb");
+            GraphFactory::create_yago_with_constraints("./testdb");
             lgraph::Galaxy::Config gconf;
             gconf.dir = "./testdb";
             lgraph::Galaxy galaxy(gconf, true, nullptr);

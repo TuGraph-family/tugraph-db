@@ -24,6 +24,7 @@
 
 #include "fma-common/thread_pool.h"
 #include "fma-common/rw_lock.h"
+#include "fma-common/utils.h"
 
 #include "core/global_config.h"
 #include "core/killable_rw_lock.h"
@@ -36,6 +37,10 @@
 #include "db/token_manager.h"
 #include "protobuf/ha.pb.h"
 
+#define MAX_TOKEN_NUM_PER_USER 100
+#define RETRY_WAIT_TIME 60
+#define MAX_LOGIN_FAILED_TIMES 5
+
 namespace lgraph {
 class HaStateMachine;
 class Galaxy {
@@ -46,9 +51,12 @@ class Galaxy {
         std::string dir = "./TuGraph";
         bool durable = false;
         bool optimistic_txn = false;
-        std::string jwt_secret = "fma.ai";
+        std::string jwt_secret = "fma.ai" + GenerateRandomString();
         bool load_plugins = true;
     };
+
+    std::unordered_map<std::string, int> login_failed_times_;
+    double retry_login_time = 0.0;
 
  private:
     fma_common::Logger& logger_ = fma_common::Logger::Get("Galaxy");
@@ -88,11 +96,17 @@ class Galaxy {
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;
 
+    // generate random string
+    static std::string GenerateRandomString();
+
     // refresh token
     std::string RefreshUserToken(const std::string& token, const std::string& user) const;
 
     // unbind token and user
     bool UnBindTokenUser(const std::string& token);
+
+    // unbind user all token
+    bool UnBindUserAllToken(const std::string& user);
 
     // judge token
     bool JudgeRefreshTime(const std::string& token);

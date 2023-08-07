@@ -29,6 +29,7 @@ using namespace lgraph::graph;
 class TestGraph : public TuGraphTest {
  protected:
     void SetUp() {
+        // should use TuGraphTest::SetUp()
         vsize = 1;
         esize = 1;
         number_vertex = 10;
@@ -48,12 +49,6 @@ static Value GenProp(size_t s, size_t seed) {
         str[i] = '0' + (char)(i + seed % 10);
     }
     return v;
-}
-
-static void DumpTable(KvTransaction& txn, KvTable& t, bool track_incoming) {
-    t.Print(
-        txn, [](const Value& k) -> std::string { return k.AsString(); },
-        [track_incoming](const Value& v) -> std::string { return v.AsString(); });
 }
 
 TEST_F(TestGraph, Graph) {

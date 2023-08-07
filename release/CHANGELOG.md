@@ -1,10 +1,30 @@
 # Change Log for TuGraph
 
+# 3.5.1 (2023-7-14)
+
+**Breaking Changes:**
+
+1. Learn engine added
+
+2. Ability to store property in detach mode
+
+3. Rust procedure API
+
+**Improvements And Bug Fixes:**
+
+1. Move fma-common from submodule to include
+
+2. Integrate procedure api doc in readthedocs
+
+3. Add real time count of vertex and edge
+
+4. Other bug fix
+
 # 3.5.0 (2023-6-5)
 
 **Breaking Changes:**
 
-1. TPOG (aka APOC) support
+1. POG (aka APOC) support
 
 2. New TuGraph Browser
 

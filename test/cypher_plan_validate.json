@@ -94,6 +94,23 @@
             "plan": "Execution Plan:\nProduce Results\n    Project [a,k]\n        Apply\n            Unwind [([b],a,+),k]\n                Argument [a]\n            Project [a]\n",
             "res": 2
           }
+        ],
+        "schema_rewrite": [
+          {
+            "query": "MATCH p=(n1)-[r1]->(n2)-[r2]->(m:Person) return count(p)",
+            "plan": "Execution Plan:\nProduce Results\n    Aggregate [count(p)]\n        Expand(All) [n2 --> m ]\n            Expand(All) [n1 --> n2 ]\n                Node By Label Scan [n1:Person]\n",
+            "res": 1
+          },
+          {
+            "query": "MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City),p2=(n3)-[r3]->(m2:Film) return count(p1)",
+            "plan": "Execution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Cartesian Product\n            Expand(All) [n2 --> m1 ]\n                Expand(All) [n1 --> n2 ]\n                    Node By Label Scan [n1:Person]\n            Expand(All) [n3 --> m2 ]\n                Node By Label Scan [n3:Person]\n",
+            "res": 1
+          },
+          {
+            "query": "MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City) with count(p1) as cp match p1=(n1)-[r1]->(m1:Film) return count(p1)",
+            "plan": "Execution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Apply\n            Expand(All) [n1 --> m1 ]\n                Node By Label Scan Dynamic [n1:Person]\n                    Argument [cp]\n            Aggregate [cp]\n                Expand(All) [n2 --> m1 ]\n                    Expand(All) [n1 --> n2 ]\n                        Node By Label Scan [n1:Person]\n",
+            "res": 1
+          }
         ]
       }
     }

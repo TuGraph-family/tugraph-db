@@ -24,7 +24,7 @@
 #include "graph/graph.h"
 #include "parser/data_typedef.h"
 #include "execution_plan/runtime_context.h"
-#include "cypher_types.h"
+#include "cypher/cypher_types.h"
 #include "execution_plan/visitor/visitor.h"
 #include "monitor/memory_monitor_allocator.h"
 
@@ -81,7 +81,7 @@ struct OpBase {
     std::vector<OpBase *> children;     // Child operations.
     OpBase *parent;                     // Parent operations.
     enum StreamState { StreamUnInitialized, StreamConsuming, StreamDepleted } state;
-    /* Stream state. */              // TODO: remove // NOLINT
+    /* Stream state. */              // TODO(anyone) remove
     std::shared_ptr<Record> record;  // Result of consume.
     OpStats stats;                   // Profiling statistics.
     enum OpResult {
@@ -121,7 +121,7 @@ struct OpBase {
 
     // non-virtual methods
     bool ContainChild(OpBase *node) const {
-        // todo: optimize
+        // TODO(anyone) optimize
         for (auto c : children) {
             if (c == node) return true;
         }
@@ -201,7 +201,7 @@ struct OpBase {
     bool IsStreamRoot() const {
         return type == OpType::PROJECT ||
                type == OpType::AGGREGATE
-               // todo: replace create/delete/set with 'empty project'
+               // TODO(anyone) replace create/delete/set with 'empty project'
                || type == OpType::CREATE || type == OpType::DELETE_ || type == OpType::UPDATE;
     }
 

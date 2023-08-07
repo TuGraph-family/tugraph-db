@@ -15,7 +15,6 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
 
 #include "gtest/gtest.h"
 #include "lgraph/lgraph.h"
@@ -38,7 +37,7 @@ TEST_F(TestMaxDbSize, LargerThanMaxSize) {
     auto graph = galaxy.OpenGraph("test");
     FieldSpec f1("id", FieldType::INT64, false);
     FieldSpec f2("desc", FieldType::STRING, false);
-    graph.AddVertexLabel("v", {f1, f2}, f1.name);
+    graph.AddVertexLabel("v", {f1, f2}, VertexOptions(f1.name));
     auto txn = graph.CreateWriteTxn();
     try {
         // insert 1MB data

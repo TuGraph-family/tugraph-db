@@ -92,6 +92,10 @@ class RestClient {
 
     std::string Refresh(const std::string& token);
 
+    bool UpdateTokenTime(const std::string& token, int refresh_time, int expire_time);
+
+    std::pair<int, int> GetTokenTime(const std::string& token);
+
     bool Logout(const std::string& token);
 
     void* GetClient() const;

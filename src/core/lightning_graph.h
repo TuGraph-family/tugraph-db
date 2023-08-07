@@ -132,7 +132,7 @@ class LightningGraph {
      * \return  True if it succeeds, false if the label already exists. Throws exception on error.
      */
     bool AddLabel(const std::string& label, size_t n_fields, const FieldSpec* fds, bool is_vertex,
-                  const std::string& primary_field, const EdgeConstraints& edge_constraints);
+                  const LabelOptions& options);
 
     /**
      * Adds a label
@@ -149,7 +149,7 @@ class LightningGraph {
      * \return  True if it succeeds, false if the label already exists. Throws exception on error.
      */
     bool AddLabel(const std::string& label, const std::vector<FieldSpec>& fds, bool is_vertex,
-                  const std::string& primary_field, const EdgeConstraints& edge_constraints);
+                  const LabelOptions& options);
 
     // delete a label
     bool DelLabel(const std::string& label, bool is_vertex, size_t* n_modified);

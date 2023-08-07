@@ -83,6 +83,7 @@ void lgraph::SyncFile::Write(const void *buf, size_t s) {
 
 void lgraph::SyncFile::Sync() {
     // write buffer
+    std::unique_lock<std::shared_mutex> lock(buffer_.GetMutex());
     auto& buf = buffer_.GetBuf();
     ssize_t r = write(file_, buf.data(), buf.size());
     if (r == -1)

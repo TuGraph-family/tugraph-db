@@ -65,7 +65,6 @@ bool SubProcess::ExpectOutput(const std::string& pattern, size_t n_milliseconds)
     size_t err_offset = 0;
     auto start = std::chrono::system_clock::now();
     std::unique_lock<std::mutex> l(out_mtx_);
-    bool found = true;
     bool process_dead = false;
     while (stdout_.find(pattern, out_offset) == stdout_.npos &&
            stderr_.find(pattern, err_offset) == stderr_.npos) {

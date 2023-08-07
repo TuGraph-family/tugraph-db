@@ -71,6 +71,8 @@ class AccessControlledDB;
 struct PluginInfoBase {
     std::string desc;
     bool read_only;
+    std::string language;
+    std::string version;
     /// SigSpec is an optional field.
     /// It is nullptr if the plugin doesn't have `GetSignature` function
     /// Plugins whose SigSpec is nullptr are not guaranteed to call safely
@@ -81,7 +83,9 @@ struct PluginInfoBase {
 
     virtual size_t Serialize(fma_common::BinaryBuffer& stream) const {
         size_t s = fma_common::BinaryWrite(stream, desc)
-                   + fma_common::BinaryWrite(stream, read_only);
+                   + fma_common::BinaryWrite(stream, read_only)
+                   + fma_common::BinaryWrite(stream, language)
+                   + fma_common::BinaryWrite(stream, version);
         if (sig_spec) {
             s += fma_common::BinaryWrite(stream, *sig_spec);
         }
@@ -89,16 +93,20 @@ struct PluginInfoBase {
     }
 
     virtual size_t Deserialize(fma_common::BinaryBuffer& stream) {
-        size_t s, t, u;
+        size_t s, t, u, v, w;
         if ((s = fma_common::BinaryRead(stream, desc)) != 0) {
             if ((t = fma_common::BinaryRead(stream, read_only)) != 0) {
-                if (stream.GetSize() <= 0) {
-                    return s + t;
-                }
-                auto _sig_spec = std::make_unique<lgraph_api::SigSpec>();
-                if ((u = fma_common::BinaryRead(stream, *_sig_spec)) != 0) {
-                    sig_spec = std::move(_sig_spec);
-                    return s + t + u;
+                if ((u = fma_common::BinaryRead(stream, language)) != 0) {
+                    if ((v = fma_common::BinaryRead(stream, version)) != 0) {
+                        if (stream.GetSize() <= 0) {
+                            return s + t + u + v;
+                        }
+                        auto _sig_spec = std::make_unique<lgraph_api::SigSpec>();
+                        if ((w = fma_common::BinaryRead(stream, *_sig_spec)) != 0) {
+                            sig_spec = std::move(_sig_spec);
+                            return s + t + u + v + w;
+                        }
+                    }
                 }
             }
         }

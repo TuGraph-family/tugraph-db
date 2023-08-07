@@ -32,12 +32,6 @@ using namespace concurrency::streams;  // Asynchronous streams
 
 void test_client_other_branch(RestClient& client);
 
-static void SetAuth(std::string header, http_request& request) {
-    request.headers().clear();
-    request.headers().add(_TU("Authorization"), _TU(header));
-    request.headers().add(_TU("Content-Type"), _TU("application/json"));
-}
-
 inline void WriteFiles(const std::map<std::string, std::string>& name_contents) {
     for (auto& kv : name_contents) {
         fma_common::OutputFmaStream stream(kv.first);

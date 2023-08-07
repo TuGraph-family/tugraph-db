@@ -21,6 +21,7 @@
 #include "server/state_machine.h"
 #include "restful/server/rest_server.h"
 #include "http/http_server.h"
+#include "tools/lgraph_log.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"
@@ -42,8 +43,8 @@ class Signal {
             cv.wait(l, [this]() { return signal; });
             return true;
         } else {
-            bool success = cv.wait_for(l, std::chrono::milliseconds((size_t)(timeout_s * 1000)),
-                                       [this]() { return signal; });
+            cv.wait_for(l, std::chrono::milliseconds((size_t)(timeout_s * 1000)),
+                        [this]() { return signal; });
             return signal;
         }
     }
@@ -61,7 +62,7 @@ class RPCService : public lgraph::LGraphRPCService {
 
     void HandleRequest(::google::protobuf::RpcController *controller,
                        const ::lgraph::LGraphRequest *request, ::lgraph::LGraphResponse *response,
-                       ::google::protobuf::Closure *done) {
+                       ::google::protobuf::Closure *done) override {
         sm_->HandleRequest(controller, request, response, done);
     }
 
@@ -75,7 +76,7 @@ class LGraphServer {
      public:
         bool OnLogMessage(int severity, const char *file, int line,
                           const butil::StringPiece &log_content) override {
-            FMA_LOG() << "[StateMachine] " << log_content.as_string();
+            GENERAL_LOG(INFO) << "[StateMachine] " << log_content.as_string();
             return true;
         }
     };
@@ -103,17 +104,5 @@ class LGraphServer {
 
     // stop all services
     int Stop(bool force_exit = false);
-
-    virtual void AdjustConfig();
-
-    virtual int MakeStateMachine();
-
-    virtual int StartRpcService();
-
-    virtual int StartHttpService();
-
-    virtual void KillServer();
-
-    virtual void WaitSignal();
 };
 }  // namespace lgraph

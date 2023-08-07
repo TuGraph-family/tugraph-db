@@ -51,7 +51,7 @@ class AccessControlledDB {
 
     bool LoadPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name,
                     const std::string& code, plugin::CodeType code_type, const std::string& desc,
-                    bool is_read_only);
+                    bool is_read_only, const std::string& version);
 
     bool DelPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name);
 
@@ -76,7 +76,7 @@ class AccessControlledDB {
     size_t EstimateNumVertices();
 
     bool AddLabel(bool is_vertex, const std::string& label, const std::vector<FieldSpec>& fds,
-                  const std::string& primary_field, const EdgeConstraints& edge_constraints);
+                  const LabelOptions& options);
 
     bool DeleteLabel(bool is_vertex, const std::string& label, size_t* n_modified);
 

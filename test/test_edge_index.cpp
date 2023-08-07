@@ -171,7 +171,6 @@ int TestEdgeIndexImpl() {
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("amazon story"),
                                                Value::ConstRef("a"));
             int64_t local_vid = 1;
-            int64_t local_eid = 1;
             while (it.IsValid()) {
                 UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
                 local_vid += 2;
@@ -221,7 +220,6 @@ int TestEdgeIndexImpl() {
         {
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef("a"), Value::ConstRef("a"));
             int64_t local_vid = 1;
-            int64_t local_eid = 1;
             while (it.IsValid()) {
                 UT_EXPECT_EQ(it.GetSrcVid(), local_vid);
                 local_vid += 2;
@@ -356,8 +354,8 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                     {"comments", FieldType::STRING, true},
                                     {"weight", FieldType::FLOAT, false}};
-    UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
-    UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+    UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, VertexOptions("name")));
+    UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, EdgeOptions()));
     // add edge index
     UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", false, false));
     UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", false, false));
@@ -382,26 +380,18 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     // add edge
     txn = db.CreateWriteTxn();
     std::vector<std::string> e1_properties = {"name", "comments", "weight"};
-    EdgeUid e_id1 =
-        txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name1", "comments1", "10"});
-    EdgeUid e_id2 =
-        txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name2", "comments2", "12"});
-    EdgeUid e_id3 =
-        txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name3", "comments3", "14"});
-    EdgeUid e_id4 =
-        txn.AddEdge(v_id4, v_id3, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name4", "comments4", "15"});
-
-    EdgeUid e_id5 =
-        txn.AddEdge(v_id1, v_id1, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name5", "comments5", "20"});
-
-    EdgeUid e_id6 =
-        txn.AddEdge(v_id2, v_id2, std::string("e1"), e1_properties,
-                    std::vector<std::string>{"name6", "comments6", "20"});
+    txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name1", "comments1", "10"});
+    txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name2", "comments2", "12"});
+    txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name3", "comments3", "14"});
+    txn.AddEdge(v_id4, v_id3, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name4", "comments4", "15"});
+    txn.AddEdge(v_id1, v_id1, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name5", "comments5", "20"});
+    txn.AddEdge(v_id2, v_id2, std::string("e1"), e1_properties,
+                std::vector<std::string>{"name6", "comments6", "20"});
     txn.Commit();
 
     txn = db.CreateReadTxn();

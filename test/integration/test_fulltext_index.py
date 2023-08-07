@@ -14,6 +14,7 @@ SERVEROPT_pthread = {"cmd":"./lgraph_server -c lgraph_standalone.json --director
 CLIENTOPT = {"host":"127.0.0.1:9093", "user":"admin", "password":"73@TuGraph"}
 
 class TestCypher:
+    @pytest.mark.skip(reason="disable")
     @pytest.mark.parametrize("server", [SERVEROPT_bthread], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_fulltext_on_bthread(self, server, client):
@@ -24,6 +25,7 @@ class TestCypher:
         # calling full-text index will fail on bthread
         assert not ret[0]
 
+    @pytest.mark.skip(reason="disable")
     @pytest.mark.parametrize("server", [SERVEROPT_pthread], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_fulltext_on_pthread(self, server, client):

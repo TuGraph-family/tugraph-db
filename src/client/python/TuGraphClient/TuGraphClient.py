@@ -208,7 +208,7 @@ class AsyncTuGraphClient:
             r = await self.__post_with_retry__('cypher', data)
         return r
 
-    async def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
+    async def load_plugin(self, name, desc, file_type, file_path, read_only, version, raw_output=False):
         '''
         Load a plugin from local file.
         mode: can be 'zip', 'cpp', 'so', 'py'
@@ -223,6 +223,7 @@ class AsyncTuGraphClient:
         data['description'] = desc
         data['read_only'] = read_only
         data['code_type'] = file_type
+        data['version'] = version
         if file_type == 'cpp' or file_type == 'zip' or file_type == 'so':
             url = 'cpp_plugin'
         elif file_type == 'py':
@@ -326,8 +327,8 @@ class TuGraphClient(AsyncTuGraphClient):
     def call_cypher(self, cypher, raw_output=False, timeout=0):
         return self._sync(partial(AsyncTuGraphClient.call_cypher, self, cypher, raw_output=raw_output, timeout=timeout))
 
-    def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
-        return self._sync(partial(AsyncTuGraphClient.load_plugin, self, name, desc, file_type, file_path, read_only, raw_output=raw_output))
+    def load_plugin(self, name, desc, file_type, file_path, read_only, version, raw_output=False):
+        return self._sync(partial(AsyncTuGraphClient.load_plugin, self, name, desc, file_type, file_path, read_only, version, raw_output=raw_output))
 
     def call_plugin(self, plugin_type, plugin_name, input, raw_output=False, timeout=0):
         return self._sync(partial(AsyncTuGraphClient.call_plugin, self, plugin_type, plugin_name, input, raw_output=raw_output, timeout=timeout))

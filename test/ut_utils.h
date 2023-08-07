@@ -16,6 +16,7 @@
 #include <exception>
 #include <regex>
 #include <string>
+#include "tools/lgraph_log.h"
 #include "gtest/gtest.h"
 
 extern int _ut_argc;    // left-over arguments after parsing gtest flags, set in main()

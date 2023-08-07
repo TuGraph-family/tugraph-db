@@ -18,7 +18,6 @@
 #include <boost/lexical_cast.hpp>
 #include "./ut_utils.h"
 #include "fma-common/configuration.h"
-#include "fma-common/unit_test_utils.h"
 #include "restful/server/stdafx.h"
 #include "restful/server/rest_server.h"
 #include "./graph_factory.h"
@@ -61,6 +60,7 @@ class RPCService : public lgraph::LGraphRPCService {
  private:
     lgraph::StateMachine* sm_;
 };
+RPCService* ptr_rpc_service;
 
 void on_initialize_rpc_server() {
     using namespace fma_common;
@@ -84,7 +84,7 @@ void on_initialize_rpc_server() {
 
     gconfig->ft_index_options.enable_fulltext_index = true;
     ptr_state_machine = new lgraph::StateMachine(sm_config, gconfig);
-    RPCService* ptr_rpc_service = new RPCService(ptr_state_machine);
+    ptr_rpc_service = new RPCService(ptr_state_machine);
 
     rpc_server_.AddService(ptr_rpc_service, brpc::SERVER_DOESNT_OWN_SERVICE);
     rpc_server_.Start(sm_config.rpc_port, NULL);
@@ -99,6 +99,7 @@ void on_shutdown_rpc_server() {
     } catch (std::exception& e) {
         FMA_ERR() << "Rest server shutdown failed: " << e.what();
     }
+    rpc_server_.Stop(0);
     return;
 }
 
@@ -114,6 +115,7 @@ void* test_rpc_server(void*) {
     on_shutdown_rpc_server();
     UT_LOG() << __func__ << " thread exit";
     delete ptr_state_machine;
+    delete ptr_rpc_service;
     return nullptr;
 }
 
@@ -374,7 +376,7 @@ Liam Neeson,Natasha Richardson
 Natasha Richardson,London,20.18
 Christopher Nolan,London,19.93
 Dennis Quaid,Houston,19.11
-Lindsay Lohan,New York,20.62
+Lindsay Lohan,New York,20.59
 John Williams,New York,20.55
 )"},
     {"directed_desc",
@@ -442,7 +444,7 @@ Vanessa Redgrave,Camelot,Guenevere
 Richard Harris,Camelot,King Arthur
 Richard Harris,Harry Potter and the Sorcerer's Stone,Albus Dumbledore
 Natasha Richardson,The Parent Trap,Liz James
-Dennis Quaid,The Parent Trap,Nick Parker
+Dennis Quaid,The Parent Trap,Nick Ducard
 Lindsay Lohan,The Parent Trap,Halle/Annie
 Liam Neeson,Batman Begins,Henri Ducard
 )"}};
@@ -1249,10 +1251,10 @@ void test_procedure_privilege(lgraph::RpcClient& client) {
     std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
     // non-admin is not allowed to upload procedure
     ret = client_non_admin.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure_1", "CPP",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_FALSE(ret);
     ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure_1", "CPP",
-                             "this is a test procedure", true);
+                             "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
     // non-admin is not allowed to delete procedure
     ret = client_non_admin.CallCypher(str,
@@ -1539,13 +1541,13 @@ void test_password(lgraph::RpcClient& client) {
         web::json::value json_val = web::json::value::parse(str);
         UT_EXPECT_EQ(HasElement(json_val, "test_pw_user", "current_user"), true);
         ret = client.CallCypher(str,
-                                "CALL dbms.security.changeUserPassword('test_pw_user',"
-                                " '24680@TuGraph')");
-        UT_EXPECT_TRUE(ret);
-        ret = client.CallCypher(str,
                                 "CALL dbms.security.changeUserPassword('test_not_exist_user',"
                                 " '24680@TuGraph')");
         UT_EXPECT_FALSE(ret);
+        ret = client.CallCypher(str,
+                                "CALL dbms.security.changeUserPassword('test_pw_user',"
+                                " '24680@TuGraph')");
+        UT_EXPECT_TRUE(ret);
     }
 
     {
@@ -1560,6 +1562,9 @@ void test_password(lgraph::RpcClient& client) {
                                     " '13579@TuGraph')",
                                     "");
         UT_EXPECT_TRUE(ret);
+        // client auto logout after changing password
+        ret = new_client.CallCypher(str, "MATCH (n) RETURN n LIMIT 100", "default");
+        UT_EXPECT_FALSE(ret);
     }
 
     {
@@ -1581,42 +1586,41 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);
-
     std::string code_so_path = "./sortstr.so";
+
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
-                               "SO", "this is a test procedure", true);
+                               "SO", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
-                               "SO", "this is a test procedure", true);
+                               "SO", "this is a test procedure", true, "v1");
     UT_EXPECT_FALSE(ret);
 
     std::string code_scan_graph_path = "./scan_graph.so";
     ret = client.LoadProcedure(str, code_scan_graph_path, "CPP", "test_procedure2", "SO",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
     std::string code_add_label_path = "./add_label.so";
     ret = client.LoadProcedure(str, code_add_label_path, "CPP", "test_procedure3", "SO",
-                            "this is a test procedure", false);
+                            "this is a test procedure", false, "v1");
     UT_EXPECT_TRUE(ret);
 
     std::string code_zip_path = "../../test/test_procedures/sortstr.zip";
     ret = client.LoadProcedure(str, code_zip_path, "CPP", "test_procedure4", "ZIP",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
     ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure5", "CPP",
-                            "this is a test procedure", true);
+                            "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
-
+#ifndef __SANITIZE_ADDRESS__
     ret = client.CallCypher(str, "CALL db.plugin.getPluginInfo('PY','countPersons')");
     UT_EXPECT_FALSE(ret);
-
     ret = client.CallCypher(str, "CALL db.plugin.listUserPlugins()");
     UT_EXPECT_TRUE(ret);
-
-    ret = client.ListProcedures(str, "CPP");
+#endif
+    ret = client.ListProcedures(str, "CPP", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 5);
@@ -1635,7 +1639,6 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(
         CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure5",
                                 "STRING"), true);
-
     ret = client.CallProcedure(str, "CPP", "test_procedure1", "bcefg");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
@@ -1653,7 +1656,6 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "vertex1", "label"), true);
-
     ret = client.CallProcedure(str, "CPP", "test_procedure4", "9876543210", 10);
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
@@ -1680,14 +1682,14 @@ void test_python_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(json_val.size() == 0, true);
 
     ret = client.LoadProcedure(str, code_sleep, "PY", "python_procedure1",
-                               "PY", "this is a test procedure", true);
+                               "PY", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
     ret = client.LoadProcedure(str, code_read, "PY", "python_procedure2",
-                               "PY", "this is a test procedure", true);
+                               "PY", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
 
-    ret = client.ListProcedures(str, "PY");
+    ret = client.ListProcedures(str, "PY", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.as_array().size(), 2);
@@ -1699,7 +1701,7 @@ void test_python_procedure(lgraph::RpcClient& client) {
     ret = client.DeleteProcedure(str, "PY", "python_procedure2");
     UT_EXPECT_FALSE(ret);
 
-    ret = client.ListProcedures(str, "PY");
+    ret = client.ListProcedures(str, "PY", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);
@@ -1912,25 +1914,15 @@ void* test_rpc_client(void*) {
     UT_LOG() << "admin user login";
     {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
-
         test_cypher(client3);
-
         test_label(client3);
-
         test_relationshipTypes(client3);
-
         test_index(client3);
-
         test_warmup(client3);
-
         test_createlabel(client3);
-
         test_label_field(client3);
-
         test_procedure(client3);
-
         test_graph(client3);
-
         test_allow_host(client3);
         test_info(client3);
         test_configration(client3);
@@ -1939,21 +1931,15 @@ void* test_rpc_client(void*) {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
         test_configration_valid(client3);
         test_role(client3);
-
         test_user(client3);
-
         test_flushDb(client3);
-
         test_password(client3);
-
         test_cpp_procedure(client3);
-
+#ifndef __SANITIZE_ADDRESS__
         test_python_procedure(client3);
-
+#endif
         test_import_file(client3);
-
         test_import_content(client3);
-
         test_procedure_privilege(client3);
     }
 

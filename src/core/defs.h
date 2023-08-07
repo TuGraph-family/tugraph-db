@@ -121,6 +121,10 @@ static const char* const NEXT_VID_KEY = "_next_vid_";    // key to store next vi
 static const char* const VERTEX_COUNT_PREFIX = "_vertex_count_";
 static const char* const EDGE_COUNT_PREFIX = "_edge_count_";
 
+// store property data in a separate kv table
+static const char* const VERTEX_PROPERTY_TABLE_PREFIX = "_vertex_property_";
+static const char* const EDGE_PROPERTY_TABLE_PREFIX = "_edge_property_";
+
 // version info
 static const int VER_MAJOR = LGRAPH_VERSION_MAJOR;
 static const int VER_MINOR = LGRAPH_VERSION_MINOR;
@@ -150,7 +154,18 @@ static const size_t DEFAULT_MEM_LIMIT = (size_t)2 << 40;
 }  // namespace _detail
 
 namespace plugin {
-enum class Type { CPP = 1, PYTHON = 2 };
+enum class Type { CPP = 1, PYTHON = 2, JAVA = 3, ANY = 4 };
+static const char* const PLUGIN_VERSION_1 = "v1";
+static const char* const PLUGIN_VERSION_2 = "v2";
+static const char* const PLUGIN_VERSION_ANY = "any";
+static const char* const PLUGIN_LANG_TYPE_CPP = "cpp";
+static const char* const PLUGIN_LANG_TYPE_PYTHON = "python";
+static const char* const PLUGIN_LANG_TYPE_JAVA = "java";
+static const char* const PLUGIN_LANG_TYPE_ANY = "any";
+static const char* const PLUGIN_CODE_TYPE_CPP = "cpp";
+static const char* const PLUGIN_CODE_TYPE_SO = "so";
+static const char* const PLUGIN_CODE_TYPE_ZIP = "zip";
+static const char* const PLUGIN_CODE_TYPE_PY = "py";
 
 typedef ::lgraph_api::PluginCodeType CodeType;
 }  // namespace plugin

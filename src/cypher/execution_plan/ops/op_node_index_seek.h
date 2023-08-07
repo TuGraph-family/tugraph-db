@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -70,7 +70,7 @@ class NodeIndexSeek : public OpBase {
         record->SetParameter(ctx->param_tab_);
 
         auto &pf = node_->Prop();
-        field_ = pf.type != Property::NUL ? pf.field : field_;  //优先用prop形式指定的field
+        field_ = pf.type != Property::NUL ? pf.field : field_;  // 优先用prop形式指定的field
         if (pf.type == Property::VALUE) {
             target_values_.emplace_back(pf.value);
         } else if (pf.type == Property::PARAMETER) {
@@ -87,8 +87,8 @@ class NodeIndexSeek : public OpBase {
         CYPHER_THROW_ASSERT(!target_values_.empty());
         auto value = target_values_[0];
         if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
-            it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(), field_,
-                            value, value);
+            it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(),
+                            field_, value, value);
         } else {
             // Weak index iterator
             it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
@@ -112,8 +112,8 @@ class NodeIndexSeek : public OpBase {
             value_rec_idx_++;
             auto value = target_values_[value_rec_idx_];
             if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
-                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(), field_,
-                                value, value);
+                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
+                                node_->Label(), field_, value, value);
             } else {
                 // Weak index iterator
                 it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
@@ -153,6 +153,5 @@ class NodeIndexSeek : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

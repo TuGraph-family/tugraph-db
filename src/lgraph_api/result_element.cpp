@@ -227,6 +227,7 @@ ResultElement &ResultElement::operator=(const ResultElement &value) {
         type_ = LGraphType::NUL;
         break;
     }
+    return *this;
 }
 
 ResultElement &ResultElement::operator=(const ResultElement &&value) {

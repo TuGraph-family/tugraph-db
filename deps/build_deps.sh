@@ -6,6 +6,7 @@ echo "Building tugraph-web"
 echo "======================================"
 cd ${SCRIPT_DIR}/tugraph-web
 npm i
+npm run lint -- --fix
 npm run build
 RESOURCE_DIR=${SCRIPT_DIR}/../src/restful/server/resource/
 rm -rf ${RESOURCE_DIR}

@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(LightningGraphTests C CXX)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-message(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_path(GTEST_HEADER NAMES gtest/gtest.h)
 set(GTEST_LIB libgtest.a)
@@ -15,6 +14,7 @@ add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)
 
+add_subdirectory(test_fma)
 
 add_executable(unit_test
         main.cpp
@@ -110,6 +110,11 @@ add_executable(unit_test
         test_vid_table.cpp
         test_edge_constraint.cpp
         test_olap_vertex_traversal.cpp
+        test_lgraph_log.cpp
+        test_detach_property.cpp
+        test_ha.cpp
+        test_global_ha_config.cpp
+        test_ha_consistency.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
 )

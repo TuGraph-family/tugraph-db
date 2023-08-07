@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "execution_plan/execution_plan.h"
+#include "cypher/execution_plan/execution_plan.h"
 
 namespace cypher {
 

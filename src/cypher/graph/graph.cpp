@@ -20,7 +20,7 @@
 #include <stack>
 #include "fma-common/utils.h"
 #include "parser/clause.h"
-#include "graph.h"
+#include "cypher/graph/graph.h"
 
 namespace cypher {
 
@@ -44,7 +44,7 @@ void PatternGraph::_CollectExpandStepsByDFS(NodeID start, bool ignore_created,
             auto &r = GetRelationship(rr);
             auto &nbr = GetNode(r.Rhs());
             if (nbr.ID() == curr.ID()) CYPHER_TODO();  // self-loop!
-            // todo: think about this again
+            // TODO(anyone) think about this again
             if (!nbr.Visited() && (!ignore_created || (nbr.derivation_ != Node::CREATED &&
                                                        nbr.derivation_ != Node::MERGED))) {
                 relp = r.ID();

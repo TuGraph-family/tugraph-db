@@ -305,6 +305,12 @@ class Value {
         return rv;
     }
 
+    static Value MakeCopy(const char* buf, size_t s) {
+        Value rv(s);
+        memcpy(rv.Data(), buf, s);
+        return rv;
+    }
+
     // make a copy of current data
     Value MakeCopy() const {
         Value v;
@@ -381,6 +387,15 @@ class Value {
         v.mv_data = data_;
         v.mv_size = size_;
         return v;
+    }
+
+    /**
+     * Means only hold the data ptr and size, not the memory block.
+     *
+     * \return  true or false.
+     */
+    bool IsSlice() const {
+        return !need_delete_;
     }
 
     /**

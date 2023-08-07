@@ -21,7 +21,7 @@
 #include "cypher/filter/iterator.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/execution_plan/runtime_context.h"
-#include "agg_funcs.h"
+#include "cypher/arithmetic/agg_funcs.h"
 
 namespace lgraph {
 class Filter;
@@ -43,7 +43,7 @@ struct BuiltinFunction {
                                 const std::vector<ArithExprNode> &args);
 
     static cypher::FieldData EUid(RTContext *ctx, const Record &record,
-                                const std::vector<ArithExprNode> &args);
+                                  const std::vector<ArithExprNode> &args);
 
     static cypher::FieldData Label(RTContext *ctx, const Record &record,
                                    const std::vector<ArithExprNode> &args);
@@ -189,7 +189,7 @@ struct ArithOperandNode {
         constant = data;
     }
 
-    // todo: remove
+    // TODO(anyone) remove
     void SetVariadic(const std::string &alias) {
         type = AR_OPERAND_VARIADIC;
         variadic.alias = alias;
@@ -276,7 +276,7 @@ struct ArithOpNode {
     enum ArithOpType {
         AR_OP_FUNC,
         AR_OP_AGGREGATE,
-        // TODO: construct internal functions like _to_path // NOLINT
+        // TODO(anyone) construct internal functions like _to_path
         AR_OP_CASE,
         AR_OP_FILTER,
         AR_OP_MATH,
@@ -287,7 +287,7 @@ struct ArithOpNode {
         std::unordered_map<std::string, BuiltinFunction::FUNC> ae_registered_funcs;
         /* functions & extension in OpenCypher 9 */
         ae_registered_funcs.emplace("id", BuiltinFunction::Id);
-        ae_registered_funcs.emplace("euid",BuiltinFunction::EUid);
+        ae_registered_funcs.emplace("euid", BuiltinFunction::EUid);
         ae_registered_funcs.emplace("label", BuiltinFunction::Label);
         ae_registered_funcs.emplace("type", BuiltinFunction::Type);
         ae_registered_funcs.emplace("endnode", BuiltinFunction::EndNode);

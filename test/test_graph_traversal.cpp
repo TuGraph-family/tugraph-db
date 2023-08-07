@@ -40,8 +40,6 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
                               lgraph::_detail::DEFAULT_ADMIN_PASS,
                               false, true);
     lgraph_api::GraphDB db = galaxy.OpenGraph("default");
-    size_t msize;
-    size_t next_vid;
     // database add/delete data vertex must be no tranaction declear
     db.DropAllData();
     db.DropAllVertex();
@@ -49,7 +47,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
         "vertex",
         std::vector<FieldSpec>(
             {{"id", STRING, false}, {"type", FieldType::INT8, false}, {"content", STRING, true}}),
-        "id"));
+        VertexOptions("id")));
     db.Flush();
     UT_EXPECT_EQ(db.AddVertexIndex("vertex", "id", false), false);
     UT_EXPECT_ANY_THROW(db.DeleteVertexIndex("vertex", "id"));
@@ -68,16 +66,17 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     UT_EXPECT_TRUE(db.AddEdgeLabel(
         "edge", std::vector<FieldSpec>({{"type", STRING, false}, {"weight", STRING, false}}), {}));
     UT_EXPECT_TRUE(!db.AddEdgeLabel(
-        "edge", std::vector<FieldSpec>({{"type", STRING, false}, {"height", STRING, false}})));
+        "edge", std::vector<FieldSpec>({{"type", STRING, false}, {"height", STRING, false}}), {}));
     UT_EXPECT_TRUE(db.AddEdgeLabel(
-        "edge_B", std::vector<FieldSpec>({{"type", STRING, false}, {"height", STRING, false}})));
+        "edge_B", std::vector<FieldSpec>({{"type", STRING, false},
+                                          {"height", STRING, false}}), {}));
 
     lgraph_api::Transaction txn_write = db.CreateWriteTxn();
     size_t vlid = txn_write.GetVertexLabelId("vertex");
     size_t elid = txn_write.GetEdgeLabelId("edge");
     size_t v_id_fid = txn_write.GetVertexFieldId(vlid, "id");
     size_t v_type_fid = txn_write.GetVertexFieldId(vlid, "type");
-    size_t v_content_fid = txn_write.GetVertexFieldId(vlid, "content");
+    txn_write.GetVertexFieldId(vlid, "content");
     size_t e_type_fid = txn_write.GetEdgeFieldId(elid, "type");
     size_t e_weight_fid = txn_write.GetEdgeFieldId(elid, "weight");
     // construct condition of database
@@ -109,6 +108,10 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
                                                  FieldData("233")};
     auto ver_id_5 = txn_write.AddVertex(vertex_label, vertex_field, vertex_field_value);
     UT_EXPECT_EQ(ver_id_5, 4);
+
+    PathTraversal path_traver_test(db, txn_write, true, 1ul << 22);
+    UT_EXPECT_EQ(path_traver_test.GetFrontier().Capacity(), 1ul << 22);
+
     UT_LOG() << "now add five vertexes! test is ok!";
     std::vector<std::string> edge_name = {"type", "weight"};
     std::vector<std::string> edge_name_B = {"type", "height"};
@@ -210,6 +213,9 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
 
     FrontierTraversal front_traver_write(db, txn_write, 1);
 
+    FrontierTraversal front_traver_test(db, txn_write, 1 , 1ul << 20);
+    UT_EXPECT_EQ(front_traver_test.GetFrontier().Capacity(), 1ul << 20);
+
     front_traver_write.SetFrontier([&](VertexIterator &vit) {
         UT_LOG() << "read txn set write vertext iterator";
         return true;
@@ -238,7 +244,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     for (int i = 0; i < 1019; i++) {
         std::vector<std::string> v = {std::to_string(i), "8", "content"};
         auto ver_id_get = txn_write.AddVertex(vertex_label, vertex_feild_name, v);
-        auto edge_id_get = txn_write.AddEdge(ver_id_tmp, ver_id_get, "edge", edge_name, edge_value);
+        txn_write.AddEdge(ver_id_tmp, ver_id_get, "edge", edge_name, edge_value);
         ver_id_tmp = ver_id_get;
     }
 

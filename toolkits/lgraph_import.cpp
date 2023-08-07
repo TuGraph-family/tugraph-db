@@ -181,26 +181,21 @@ int main(int argc, char** argv) {
         config.ParseAndFinalize(argc, argv);
     }
 
-    // setup logging
-    fma_common::LogLevel llevel;
+    // Setup lgraph log
+    lgraph_log::severity_level vlevel;
     switch (verbose_level) {
     case 0:
-        llevel = fma_common::LogLevel::LL_ERROR;
+        vlevel = lgraph_log::ERROR;
         break;
     case 1:
-        llevel = fma_common::LogLevel::LL_INFO;
+        vlevel = lgraph_log::INFO;
         break;
+    case 2:
     default:
-        memory_profile = true;
-        llevel = fma_common::LogLevel::LL_DEBUG;
+        vlevel = lgraph_log::DEBUG;
+        break;
     }
-    fma_common::Logger::Get().SetLevel(llevel);
-    if (!log_file.empty()) {
-        fma_common::Logger::Get().SetDevice(
-            std::shared_ptr<fma_common::LogDevice>(new fma_common::FileLogDevice(log_file)));
-    }
-    fma_common::Logger::Get().SetFormatter(
-        std::shared_ptr<fma_common::LogFormatter>(new fma_common::TimedModuleLogFormatter()));
+    lgraph_log::LoggerManager::GetInstance().Init("", vlevel);
 
     try {
         if (online) {

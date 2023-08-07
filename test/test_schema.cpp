@@ -187,12 +187,12 @@ TEST_F(TestSchema, DumpRecord) {
     std::vector<std::string> value{"peter", "101", "65.25", "49", "fifth avenue"};
     Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
     // UT_LOG() << "record: " << schema.DumpRecord(record);
-    auto field_id = schema.GetFieldId("float");
-    const _detail::FieldExtractor* fe_0 = schema.GetFieldExtractor("name");
-    const _detail::FieldExtractor* fe_1 = schema.GetFieldExtractor("uid");
-    const _detail::FieldExtractor* fe_2 = schema.GetFieldExtractor("weight");
-    const _detail::FieldExtractor* fe_3 = schema.GetFieldExtractor("age");
-    const _detail::FieldExtractor* fe_4 = schema.GetFieldExtractor("addr");
+    schema.GetFieldId("float");
+    schema.GetFieldExtractor("name");
+    schema.GetFieldExtractor("uid");
+    schema.GetFieldExtractor("weight");
+    schema.GetFieldExtractor("age");
+    schema.GetFieldExtractor("addr");
     UT_EXPECT_THROW(schema.GetFieldExtractor("hash"), FieldNotFoundException);
     UT_EXPECT_THROW(schema.GetFieldExtractor(1024), FieldNotFoundException);
     const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));

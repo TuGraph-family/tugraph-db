@@ -62,13 +62,13 @@ TEST_F(TestUnaligned, Unaligned) {
     double t1;
     t1 = fma_common::GetTime();
     for (int i = 0; i < loops; i++) {
-        lgraph::_detail::SetOffset(value_data + 1, i % count, i);
+        lgraph::_detail::SetOffset(value_data, i % count, i);
     }
     double t_set_off = fma_common::GetTime() - t1;
 
     t1 = fma_common::GetTime();
     for (int i = 0; i < loops; i++) {
-        off += lgraph::_detail::GetOffset(value_data + 1, i % count);
+        off += lgraph::_detail::GetOffset(value_data, i % count);
     }
     double t_get_off = fma_common::GetTime() - t1;
 

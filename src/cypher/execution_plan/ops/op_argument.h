@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -39,7 +39,8 @@ class Argument : public OpBase {
     PatternGraph *pattern_graph_ = nullptr;
 
  public:
-    Argument(const SymbolTable *sym_tab) : OpBase(OpType::ARGUMENT, "Argument"), sym_tab_(sym_tab) {
+    explicit Argument(const SymbolTable *sym_tab)
+        : OpBase(OpType::ARGUMENT, "Argument"), sym_tab_(sym_tab) {
         std::map<size_t, std::pair<std::string, SymbolNode::Type>> ordered_alias;
         for (auto &a : sym_tab->symbols) {
             if (a.second.scope == SymbolNode::ARGUMENT) {
@@ -86,7 +87,6 @@ class Argument : public OpBase {
         if (state == StreamDepleted) return OP_DEPLETED;
         for (auto &a : args_) {
             auto &input = (*input_record_)->values[a.rec_idx];
-            auto &value = record->values[a.rec_idx];
             int64_t vid = -1;
             switch (input.type) {
             case Entry::CONSTANT:
@@ -99,7 +99,7 @@ class Argument : public OpBase {
                 break;
             case Entry::NODE_SNAPSHOT:
                 if (vid < 0) {
-                    // TODO: use integer directly // NOLINT
+                    // TODO(anyone) use integer directly
                     // extract vid from snapshot, "V[2020]"
                     CYPHER_THROW_ASSERT(input.constant.IsString());
                     const auto &str = input.constant.scalar.string();
@@ -143,6 +143,5 @@ class Argument : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

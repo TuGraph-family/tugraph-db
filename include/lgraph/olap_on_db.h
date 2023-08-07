@@ -1014,6 +1014,8 @@ class OlapOnDB : public OlapBase<EdgeData> {
         return *this;
     }
 
+    virtual ~OlapOnDB() {}
+
     /**
      * @brief    Extract a vertex array from the graph.
      *

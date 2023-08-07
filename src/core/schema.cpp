@@ -60,18 +60,14 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
     }
 }
 
-void Schema::DeletePartialVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VertexIndex* index = fe.GetVertexIndex();
         FMA_ASSERT(index);
-        /* the aim of this method is delete the residual indexes, so do not delete
-         * the unique index.
-         **/
-        if (!index->IsUnique()) {
-            index->Delete(txn, fe.GetConstRef(record), vid);
-        }
+        // the aim of this method is delete the index that has been created
+        index->Delete(txn, fe.GetConstRef(record), vid);
     }
 }
 
@@ -312,6 +308,59 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
         }
     }
     return v;
+}
+
+Value Schema::CreateRecordWithLabelId() const {
+    Value v(sizeof(LabelId));
+    ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
+    return v;
+}
+
+void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
+    property_table_.AppendKv(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
+}
+
+Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
+    return property_table_.GetValue(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+}
+
+void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
+    auto ret = property_table_.SetValue(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
+    FMA_ASSERT(ret);
+}
+
+void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
+    auto ret = property_table_.DeleteKey(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    FMA_ASSERT(ret);
+}
+
+Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
+    return property_table_.GetValue(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+}
+
+void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
+                                     const Value& property) {
+    auto ret = property_table_.SetValue(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
+    FMA_ASSERT(ret);
+}
+
+void Schema::AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
+                                     const Value& property) {
+    auto ret = property_table_.AddKV(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
+    FMA_ASSERT(ret);
+}
+
+void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
+    auto ret = property_table_.DeleteKey(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    FMA_ASSERT(ret);
 }
 
 // clear fields, other contents are kept untouched

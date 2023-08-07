@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
-#include "fma-common/unit_test_utils.h"
 
 #include "tiny-process-library/process.hpp"
 #include "./ut_utils.h"
@@ -40,10 +39,18 @@ TEST_F(TestBackupRestore, BackupRestore) {
     AutoCleanDir d1(db_dir);
     AutoCleanDir d2(new_db_dir);
     auto StartServer = [&](const std::string& dir) -> std::unique_ptr<SubProcess> {
+#ifndef __SANITIZE_ADDRESS__
         std::string server_cmd = FMA_FMT(
             "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
             " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}",
             port, rpc_port, dir);
+#else
+        std::string server_cmd = FMA_FMT(
+            "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
+            " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {} "
+            "--use_pthread true",
+            port, rpc_port, dir);
+#endif
         auto server = std::unique_ptr<SubProcess>(new SubProcess(server_cmd));
         if (!server->ExpectOutput("Server started.")) {
             UT_WARN() << "Server failed to start, stderr:\n" << server->Stderr();

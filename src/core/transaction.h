@@ -514,6 +514,22 @@ class Transaction {
         if (!schema)
             throw InputError(
                 fma_common::StringFormatter::Format("Vertex label \"{}\" does not exist.", label));
+        return schema->GetPrimaryField();
+    }
+
+    bool HasTemporalField(const std::string& label) {
+        Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
+        if (!schema)
+            throw InputError(
+                fma_common::StringFormatter::Format("Edge label \"{}\" does not exist.", label));
+        return schema->HasTemporalField();
+    }
+
+    const std::string& GetEdgeTemporalField(const std::string& label) {
+        Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
+        if (!schema)
+            throw InputError(
+                fma_common::StringFormatter::Format("Edge label \"{}\" does not exist.", label));
         return schema->GetTemporalField();
     }
 
@@ -935,9 +951,14 @@ class Transaction {
 
     ENABLE_IF_EIT(EIT, std::string)
     EdgeToString(const EIT& eit) {
+        Value prop = eit.GetProperty();
+        auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
+        if (schema->DetachProperty()) {
+            prop = schema->GetDetachedEdgeProperty(txn_, eit.GetUid());
+        }
         return fma_common::StringFormatter::Format(
             "E[{}]: DST = {}, EP = {}", eit.GetEdgeId(), eit.GetDst(),
-            curr_schema_->e_schema_manager.DumpRecord(eit.GetProperty(), eit.GetLabelId()));
+            curr_schema_->e_schema_manager.DumpRecord(prop, eit.GetLabelId()));
     }
 
 #ifdef _USELESS_CODE
@@ -990,8 +1011,8 @@ class Transaction {
 
     struct EdgeDataForTheSameVertex {
         VertexId vid;
-        std::vector<std::tuple<LabelId, VertexId, Value>> outs;
-        std::vector<std::tuple<LabelId, VertexId, Value>> ins;
+        std::vector<std::tuple<LabelId, VertexId, TemporalId, Value>> outs;
+        std::vector<std::tuple<LabelId, VertexId, TemporalId, Value>> ins;
     };
 
     std::string _OnlineImportBatchAddEdges(

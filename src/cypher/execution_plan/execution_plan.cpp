@@ -22,13 +22,13 @@
 
 #include "execution_plan/ops/op.h"
 #include "graph/graph.h"
-#include "cypher_exception.h"
-#include "execution_plan.h"
+#include "cypher/cypher_exception.h"
 #include "ops/ops.h"
 #include "monitor/memory_monitor_allocator.h"
 #include "optimization/pass_manager.h"
 #include "procedure/procedure.h"
 #include "validation/check_graph.h"
+#include "cypher/execution_plan/execution_plan.h"
 
 namespace cypher {
 using namespace parser;
@@ -38,7 +38,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
     if (part.match_clause) {
         auto &pattern = std::get<0>(*part.match_clause);
         for (auto &pattern_part : pattern) {
-            auto &pp_variable = std::get<0>(pattern_part);
             auto &pattern_element = std::get<1>(pattern_part);
             auto &node_pattern = std::get<0>(pattern_element);
             auto &pattern_element_chains = std::get<1>(pattern_element);
@@ -54,13 +53,12 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
         }
     }
     /* Introduce argument nodes & relationships */
-    // todo: revisit when arguments also in MATCH
+    // TODO(anyone) revisit when arguments also in MATCH
     int invisible_node_idx = 0;
     for (auto &a : graph.symbol_table.symbols) {
         if (a.second.scope == SymbolNode::ARGUMENT) {
             if (a.second.type == SymbolNode::NODE && graph.GetNode(a.first).Empty()) {
-                auto nid = graph.AddNode("", a.first, Node::ARGUMENT);
-                auto &node = graph.GetNode(nid);
+                graph.AddNode("", a.first, Node::ARGUMENT);
             } else if (a.second.type == SymbolNode::RELATIONSHIP &&
                        graph.GetRelationship(a.first).Empty()) {
                 auto src_alias = std::string(INVISIBLE).append("NODE_").append(
@@ -79,12 +77,11 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
             }
         }
     }
-    // TODO: only build named entities // NOLINT
+    // TODO(anyone) only build named entities
     /* Introduce nodes & relationships from CREATE/MERGE pattern. */
     for (auto &c : part.clauses) {
         if (c.type == Clause::CREATE) {
             for (auto &pattern_part : c.GetCreate()) {
-                auto &pp_variable = std::get<0>(pattern_part);
                 auto &pattern_element = std::get<1>(pattern_part);
                 auto &node_pattern = std::get<0>(pattern_element);
                 auto &pattern_element_chains = std::get<1>(pattern_element);
@@ -98,7 +95,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 for (auto &chain : pattern_element_chains) {
                     auto &relp_patn = std::get<0>(chain);
                     auto &node_patn = std::get<1>(chain);
-                    auto &rhs_var = std::get<0>(node_patn);
                     curr = graph.BuildNode(node_patn, Node::CREATED);
                     graph.BuildRelationship(relp_patn, prev, curr, Relationship::CREATED);
                     prev = curr;
@@ -106,7 +102,6 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
             }
         } else if (c.type == Clause::MERGE) {
             auto &pattern_part = std::get<0>(c.GetMerge());
-            auto &pp_variable = std::get<0>(pattern_part);
             auto &pattern_element = std::get<1>(pattern_part);
             auto &node_pattern = std::get<0>(pattern_element);
             auto &pattern_element_chains = std::get<1>(pattern_element);
@@ -120,22 +115,21 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
             for (auto &chain : pattern_element_chains) {
                 auto &relp_patn = std::get<0>(chain);
                 auto &node_patn = std::get<1>(chain);
-                auto &rhs_var = std::get<0>(node_patn);
                 curr = graph.BuildNode(node_patn, Node::MERGED);
                 graph.BuildRelationship(relp_patn, prev, curr, Relationship::MERGED);
                 prev = curr;
             }
         } else if (c.type == Clause::INQUERYCALL) {
-            const auto& call = c.GetCall();
-            const auto& yield_items = std::get<2>(call);
-            for (const auto& item : yield_items) {
-                const auto& name = item.first;
-                const auto& type = item.second;
+            const auto &call = c.GetCall();
+            const auto &yield_items = std::get<2>(call);
+            for (const auto &item : yield_items) {
+                const auto &name = item.first;
+                const auto &type = item.second;
                 if (type == lgraph_api::LGraphType::NODE) {
                     TUP_PROPERTIES props = {Expression(), ""};
                     VEC_STR labels = {};
                     TUP_NODE_PATTERN node_pattern = {name, labels, props};
-                    NodeID node = graph.BuildNode(node_pattern, Node::YIELD);
+                    graph.BuildNode(node_pattern, Node::YIELD);
                 }
             }
         }
@@ -231,15 +225,15 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             auto &yield_items = std::get<2>(*stmt.sa_call_clause);
             auto &result = p->signature.result_list;
             if (yield_items.empty()) {
-                for (auto &r: result) {
+                for (auto &r : result) {
                     result_info.header.colums.emplace_back(r.name, r.name, false, r.type);
                 }
             } else {
                 for (auto &yield_item : yield_items) {
                     for (auto &r : result) {
                         if (yield_item.first == r.name) {
-                            result_info.header.colums.emplace_back(
-                                yield_item.first, yield_item.first, false, r.type);
+                            result_info.header.colums.emplace_back(yield_item.first,
+                                                                   yield_item.first, false, r.type);
                             break;
                         }
                     }
@@ -294,7 +288,7 @@ static void _UpdateStreamRoot(OpBase *new_root, OpBase *&root) {
         CYPHER_THROW_ASSERT(!root->parent && !new_root->parent);
         /* Find the deepest child of the new root operation.
          * Currently, we can only follow the first child.
-         * todo: This may be inadequate later. */
+         * TODO(anyone) This may be inadequate later. */
         OpBase *tail = new_root;
         while (!tail->children.empty()) {
             if (tail->children.size() > 1 || tail->type == OpType::CARTESIAN_PRODUCT ||
@@ -405,8 +399,7 @@ void ExecutionPlan::_AddScanOp(const parser::QueryPart &part, const SymbolTable 
             if (node.Empty()) continue;
             if (node.InDegree() == 2 && node.OutDegree() == 0) {
                 _MergeNodes(&node);
-            }
-            else if (node.InDegree() == 1 && node.OutDegree() == 1) {
+            } else if (node.InDegree() == 1 && node.OutDegree() == 1) {
                 OpBase *in = nullptr;
                 OpBase *out = nullptr;
                 std::vector<OpBase *> nodes_to_visit;
@@ -418,8 +411,7 @@ void ExecutionPlan::_AddScanOp(const parser::QueryPart &part, const SymbolTable 
                         auto op = std::static_pointer_cast<ExpandAll>(current->operation);
                         if (op->_dst == &node) in = current;
                         if (op->_src == &node) out = current;
-                    }
-                    else if (current->operation->type == OpType::REVERSED_EXPAND_ALL) {
+                    } else if (current->operation->type == OpType::REVERSED_EXPAND_ALL) {
                         auto op = std::static_pointer_cast<ReversedExpandAll>(current->operation);
                         if (op->_dst == &node) in = current;
                         if (op->_src == &node) out = current;
@@ -444,11 +436,9 @@ void ExecutionPlan::_AddScanOp(const parser::QueryPart &part, const SymbolTable 
                     if (!parent->ContainChild(expand_into)) parent->AddChild(expand_into);
                     parent->RemoveChild(out);
                 }
-            }
-            else if (node.InDegree() == 0 && node.OutDegree() == 2) {
+            } else if (node.InDegree() == 0 && node.OutDegree() == 2) {
                 // just ignore
-            }
-            else {
+            } else {
                 CYPHER_TODO();
             }
         }
@@ -586,7 +576,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                 ae1.SetOperand(ArithOperandNode::AR_OPERAND_VARIADIC, neighbor.Alias(), pf.field,
                                pattern_graph.symbol_table);
                 if (pf.type == Property::PARAMETER) {
-                    // todo: use record
+                    // TODO(anyone) use record
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
                                    cypher::FieldData(lgraph::FieldData(pf.value_alias)));
                 } else {
@@ -648,7 +638,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
         }
         if (!has_arg) CYPHER_TODO();
         // 2. 判断是否都是悬挂点
-        bool hanging = true;  // 所有stream都是悬挂点
+        // 所有stream都是悬挂点
         for (auto &stream : expand_streams) {
             if (stream.size() != 1 ||
                 !pattern_graph.GetRelationship(std::get<1>(stream[0])).Empty()) {
@@ -822,7 +812,7 @@ void ExecutionPlan::_BuildReturnOps(const parser::QueryPart &part,
 void ExecutionPlan::_BuildWithOps(const parser::QueryPart &part,
                                   const cypher::PatternGraph &pattern_graph,
                                   cypher::OpBase *&root) {
-    // TODO: same as return op // NOLINT
+    // TODO(anyone) same as return op
     std::vector<OpBase *> ops;
     if (_result_info.limit >= 0) {
         auto limit = new Limit(_result_info.limit);
@@ -950,7 +940,7 @@ void ExecutionPlan::_MergeFilter(OpBase *&root) {
     }
 }
 
-// TODO: filter simplification // NOLINT
+// TODO(anyone) filter simplification
 void ExecutionPlan::_PlaceFilter(std::shared_ptr<lgraph::Filter> f, OpBase *&root) {
     if (f == nullptr) return;
     /* if filter contains no alias, do filter as soon as possible.
@@ -1257,8 +1247,8 @@ static bool CheckReturnElements(const std::vector<parser::SglQuery> &stmt) {
     return true;
 }
 
-void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt,
-                          parser::CmdType cmd) {
+void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
+                          cypher::RTContext *ctx) {
     // check return elements first
     if (!CheckReturnElements(stmt)) {
         throw lgraph::CypherException(
@@ -1287,11 +1277,12 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt,
         // NOTE: handle plan's destructor with care!
     }
     // Optimize the operations in the ExecutionPlan.
-    PassManager pass_manager(this);
+    // TODO(seijiang): split context-free optimizations & context-dependent ones
+    PassManager pass_manager(this, ctx);
     pass_manager.ExecutePasses();
 }
 
-void ExecutionPlan::Validate(cypher::RTContext* ctx_) {
+void ExecutionPlan::Validate(cypher::RTContext *ctx_) {
     CheckGraphVisitor check_graph(ctx_);
     check_graph.Visit(*_root);
 }
@@ -1305,7 +1296,7 @@ void ExecutionPlan::Reset() {
     // reset the operation tree completely
     OpBase::ResetStream(_root, true);
     // clean plan's state (iterators, etc.)
-    // TODO: remove state from plan // NOLINT
+    // TODO(anyone) remove state from plan
     for (auto &g : _pattern_graphs) {
         auto &nodes = g.GetNodes();
         for (auto &n : nodes) {
@@ -1321,7 +1312,9 @@ void ExecutionPlan::Reset() {
 int ExecutionPlan::Execute(RTContext *ctx) {
     // check input
     std::string msg;
+#ifndef NDEBUG
     std::thread::id entry_id = std::this_thread::get_id();  // check if tid changes in this function
+#endif
     if (!ctx->Check(msg)) throw lgraph::CypherException(msg);
     // instantiate db, transaction
 
@@ -1332,13 +1325,17 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     if (ctx->graph_.empty()) {
         ctx->ac_db_.reset(nullptr);
     } else {
-        ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-            ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        // We have already created ctx->ac_db_ in opt_rewrite_with_schema_inference.h
+        if (!ctx->ac_db_) {
+            ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
+                ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_));
+        }
         lgraph_api::GraphDB db(ctx->ac_db_.get(), ReadOnly());
         if (ReadOnly()) {
             ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
         } else {
-            ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateWriteTxn(ctx->optimistic_));
+            ctx->txn_ =
+                std::make_unique<lgraph_api::Transaction>(db.CreateWriteTxn(ctx->optimistic_));
         }
     }
 
@@ -1387,10 +1384,9 @@ int ExecutionPlan::Execute(RTContext *ctx) {
 
     ctx->txn_.reset(nullptr);
     ctx->ac_db_.reset(nullptr);
-    std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
 #ifndef NDEBUG
-    if (entry_id != out_id)
-        FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
+    std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
+    if (entry_id != out_id) FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
 #endif
     return 0;
 }

@@ -1,3 +1,4 @@
+﻿
 //  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -87,6 +88,11 @@ class Worker {
      *                  Note that Delegate cannot be nested.
      */
     void Delegate(const std::function<void()> &work);
+
+    template <typename Compute>
+    void DelegateCompute(const std::function<void(Compute &)> &work, Compute &compute) {
+        Worker::Delegate([& work, &compute]() { work(compute); });
+    }
 };
 
 /**
@@ -317,6 +323,8 @@ class ParallelVector {
     T *Data() { return data_; }
 
     size_t Size() { return size_; }
+
+    size_t Capacity() { return capacity_; }
 
     /**
      * @brief   Change ParallelVector size.

@@ -43,7 +43,7 @@ def client(request):
             continue
             raise Exception("client create failed")
     yield c
-    c.close()
+    c.logout()
     log.info("Client stoped")
 
 client_1 = client

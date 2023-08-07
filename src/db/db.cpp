@@ -60,10 +60,10 @@ lgraph::Transaction lgraph::AccessControlledDB::ForkTxn(Transaction& txn) {
 bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std::string& user,
                                             const std::string& name, const std::string& code,
                                             plugin::CodeType code_type, const std::string& desc,
-                                            bool is_read_only) {
+                                            bool is_read_only, const std::string& version) {
     CheckAdmin();
     return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, code_type,
-                                                          desc, is_read_only);
+                                                          desc, is_read_only, version);
 }
 
 bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& user,
@@ -129,10 +129,9 @@ size_t lgraph::AccessControlledDB::EstimateNumVertices() {
 
 bool lgraph::AccessControlledDB::AddLabel(bool is_vertex, const std::string& label,
                                           const std::vector<FieldSpec>& fds,
-                                          const std::string& primary_field,
-                                          const EdgeConstraints& edge_constraints) {
+                                          const LabelOptions& options) {
     CheckFullAccess();
-    return graph_->AddLabel(label, fds, is_vertex, primary_field, edge_constraints);
+    return graph_->AddLabel(label, fds, is_vertex, options);
 }
 
 bool lgraph::AccessControlledDB::DeleteLabel(bool is_vertex, const std::string& label,

@@ -106,10 +106,10 @@ size_t GraphDB::EstimateNumVertices() {
 }
 
 bool GraphDB::AddVertexLabel(const std::string& label, const std::vector<FieldSpec>& fds,
-                             const std::string& primary_field) {
+                             const VertexOptions& options) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddLabel(true, label, fds, primary_field, {});
+    return db_->AddLabel(true, label, fds, options);
 }
 
 bool GraphDB::DeleteVertexLabel(const std::string& label, size_t* n_modified) {
@@ -151,11 +151,10 @@ bool GraphDB::AlterVertexLabelModFields(const std::string& label,
 }
 
 bool GraphDB::AddEdgeLabel(const std::string& label, const std::vector<FieldSpec>& fds,
-                           const std::string& temporal_field,
-                           const lgraph::EdgeConstraints& edge_constraints) {
+                           const EdgeOptions& options) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddLabel(false, label, fds, temporal_field, edge_constraints);
+    return db_->AddLabel(false, label, fds, options);
 }
 
 bool GraphDB::DeleteEdgeLabel(const std::string& label, size_t* n_modified) {

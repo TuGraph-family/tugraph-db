@@ -3,7 +3,7 @@
 //MATCH (na)-[]->(nb)-[]->(nc) RETURN na,nb,nc
 //MATCH (na:Person)-[]->(nb)-[]->(nc) RETURN na,nb,nc
 //MATCH (na:Person)-[]->(nb)-[:FOLLOWS]->(nc) RETURN na,nb,nc
-/* todo: user specified entry node by START clause */
+/* TODO(anyone) user specified entry node by START clause */
 //MATCH (cloudAtlas {title: "Cloud Atlas"})<-[:DIRECTED]-(directors) RETURN directors.name
 //MATCH (na)<-[]-(nb {name: "Angela Scope"})<-[]-(nc) RETURN na,nb,nc
 //MATCH (tom:Person {name:"Tom Hanks"})-[:ACTED_IN]->(m)<-[:ACTED_IN]-(coActors) RETURN coActors.name
@@ -16,6 +16,6 @@
 //MATCH (people:Person)-[relatedTo]-(:Movie {title: "Cloud Atlas"}) RETURN people.name
 //MATCH (people:Person)-[relatedTo]-(:Movie {title: "Cloud Atlas"}) RETURN people.name, relatedTo
 
-//TODO:
+//TODO(anyone)
 //MATCH (n:Person {name:'Vanessa Redgrave'})-[:ACTED_IN|:BORN_IN]->(m) RETURN m
 //MATCH (people:Person)-[relatedTo]-(:Movie {title: "Cloud Atlas"}) RETURN people.name, Type(relatedTo), relatedTo

@@ -18,7 +18,7 @@
 #pragma once
 
 #include <string>
-#include "common.h"
+#include "cypher/graph/common.h"
 #include "parser/data_typedef.h"
 
 namespace cypher {
@@ -59,6 +59,8 @@ class Relationship {
     RelpID ID() const;
 
     const std::set<std::string> &Types() const;
+
+    void SetTypes(const std::set<std::string> &types) { types_ = types; }
 
     NodeID Lhs() const { return lhs_; }
 

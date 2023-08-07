@@ -26,6 +26,7 @@
 #include "fma-common/type_traits.h"
 #include "lgraph/lgraph_types.h"
 #include "protobuf/ha.pb.h"
+#include "tools/lgraph_log.h"
 
 #ifdef _WIN32
 #include <time.h>
@@ -286,7 +287,6 @@ class AuditLogger {
         AutoWriteLock<RWLock> lock(lock_);
         int64_t log_time = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
 
-        auto& fs = fma_common::FileSystem::GetFileSystem(dir_);
         if ((file_.Size() >= file_size_limit_) && (last_log_time_ < log_time)) {
             file_.Close();
             if (!SetLogFileName(log_time))

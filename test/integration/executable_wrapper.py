@@ -1,5 +1,4 @@
 import os
-import shlex
 import subprocess
 import string
 import random
@@ -10,12 +9,12 @@ log = logging.getLogger(__name__)
 class ExecutableWrapper:
     def __init__(self, cmd):
         log.info("cmd : %s", cmd)
-        self.cmd = shlex.split(cmd)
+        self.cmd = cmd
         self.log_file = "".join(random.sample(string.ascii_letters + string.digits, 8)) + ".log"
 
     def run(self):
         with open(self.log_file, 'w+') as file:
-            self.process = subprocess.Popen(self.cmd, stdout=file, stderr=file, close_fds=True)
+            self.process = subprocess.Popen(self.cmd, shell=True, stdout=file, stderr=file, close_fds=True)
             self.process.wait()
 
 

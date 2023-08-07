@@ -17,7 +17,6 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
 
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
@@ -27,9 +26,11 @@
 using namespace lgraph;
 using namespace fma_common;
 
-class TestFullIndex : public TuGraphTest {};
+class TestFullTextIndex : public TuGraphTestWithParam<bool> {};
 
-TEST_F(TestFullIndex, FullIndex) {
+INSTANTIATE_TEST_CASE_P(TestFullTextIndex, TestFullTextIndex, testing::Values(false, true));
+
+TEST_P(TestFullTextIndex, basic) {
     {
         DBConfig config;
         config.dir = "./testdb";
@@ -38,6 +39,11 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 1;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
+        EdgeOptions eo;
+        eo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"title", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
@@ -45,8 +51,8 @@ TEST_F(TestFullIndex, FullIndex) {
         std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                         {"comments", FieldType::STRING, true},
                                         {"weight", FieldType::FLOAT, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
-        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
+        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, eo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "name"));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "title"));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
@@ -91,19 +97,15 @@ TEST_F(TestFullIndex, FullIndex) {
         // add edge
         txn = db.CreateWriteTxn();
         std::vector<std::string> e1_properties = {"name", "comments", "weight"};
-        EdgeUid e_id1 =
-            txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
-                        std::vector<std::string>{"name1", "comments comments1 comments2", "10"});
-        EdgeUid e_id2 =
-            txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
-                        std::vector<std::string>{"name2", "comments comments3 comments4", "11"});
+        txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name1", "comments comments1 comments2", "10"});
+        txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name2", "comments comments3 comments4", "11"});
         EdgeUid e_id3 =
             txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
                         std::vector<std::string>{"name3", "comments comments5 comments6", "12"});
-        EdgeUid e_id4 =
-            txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
-                        std::vector<std::string>{"name4", "comments comments7 comments8", "13"});
-
+        txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name4", "comments comments7 comments8", "13"});
         EdgeUid e_id5 =
             txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
                         std::vector<std::string>{"name5", "comments comments7 comments8", "14"});
@@ -172,10 +174,9 @@ TEST_F(TestFullIndex, FullIndex) {
             std::lock_guard<std::mutex> guard(mutex);
             Transaction txn = db.CreateWriteTxn();
             std::vector<std::string> v1_properties = {"name", "title", "description", "type"};
-            VertexId v_id1 = txn.AddVertex(
-                std::string("v1"), v1_properties,
-                std::vector<std::string>{"thread_name" + std::to_string(num),
-                                         "thread thread1 thread2", "desc1 desc2", "1"});
+            txn.AddVertex(std::string("v1"), v1_properties,
+                          std::vector<std::string>{"thread_name" + std::to_string(num),
+                                                   "thread thread1 thread2", "desc1 desc2", "1"});
             txn.Commit();
         };
         for (int i = 0; i < 10; i++) {
@@ -229,6 +230,11 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 1;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
+        EdgeOptions eo;
+        eo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"title", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
@@ -236,8 +242,8 @@ TEST_F(TestFullIndex, FullIndex) {
         std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                         {"comments", FieldType::STRING, true},
                                         {"weight", FieldType::FLOAT, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
-        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, {}, {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
+        UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, eo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "name"));
         UT_EXPECT_TRUE(db.AddFullTextIndex(false, "e1", "name"));
 
@@ -257,15 +263,12 @@ TEST_F(TestFullIndex, FullIndex) {
             std::vector<std::string>{"name name4", "title title7 title8", "desc7 desc8", "1"});
 
         std::vector<std::string> e1_properties = {"name", "comments", "weight"};
-        EdgeUid e_id1 = txn.AddEdge(
-            v_id1, v_id2, std::string("e1"), e1_properties,
-            std::vector<std::string>{"name name1", "comments comments1 comments2", "10"});
-        EdgeUid e_id2 = txn.AddEdge(
-            v_id2, v_id1, std::string("e1"), e1_properties,
-            std::vector<std::string>{"name name2", "comments comments3 comments4", "11"});
-        EdgeUid e_id3 = txn.AddEdge(
-            v_id3, v_id4, std::string("e1"), e1_properties,
-            std::vector<std::string>{"name name3", "comments comments5 comments6", "10"});
+        txn.AddEdge(v_id1, v_id2, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name name1", "comments comments1 comments2", "10"});
+        txn.AddEdge(v_id2, v_id1, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name name2", "comments comments3 comments4", "11"});
+        txn.AddEdge(v_id3, v_id4, std::string("e1"), e1_properties,
+                    std::vector<std::string>{"name name3", "comments comments5 comments6", "10"});
         EdgeUid e_id4 = txn.AddEdge(
             v_id4, v_id3, std::string("e1"), e1_properties,
             std::vector<std::string>{"name name4", "comments comments7 comments8", "11"});
@@ -328,43 +331,43 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 1;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
                                         {"type", FieldType::INT8, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
         Transaction txn = db.CreateWriteTxn();
         std::vector<std::string> v1_properties = {"name", "description", "type"};
-        VertexId v_id1 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name1",
-                              "党的十八大提出，倡导富强、民主、文明、和谐，倡导自由、平等、公正、法"
-                              "治，倡导爱国、敬业、诚信、友善，积极培育和践行社会主义核心价值观。",
-                              "1"});
-        VertexId v_id2 = txn.AddVertex(
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name1",
+                          "党的十八大提出，倡导富强、民主、文明、和谐，倡导自由、平等、公正、法"
+                          "治，倡导爱国、敬业、诚信、友善，积极培育和践行社会主义核心价值观。",
+                          "1"});
+        txn.AddVertex(
             std::string("v1"), v1_properties,
             std::vector<std::string>{
                 "name2", "“富强、民主、文明、和谐”，是我国社会主义现代化国家的建设目标", "1"});
-        VertexId v_id3 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name3", "“自由、平等、公正、法治”，是对美好社会的生动表述", "1"});
-        VertexId v_id4 = txn.AddVertex(
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name3", "“自由、平等、公正、法治”，是对美好社会的生动表述", "1"});
+        txn.AddVertex(
             std::string("v1"), v1_properties,
             std::vector<std::string>{"name4", "“爱国、敬业、诚信、友善”，是公民基本道德规范", "1"});
-        VertexId v_id5 = txn.AddVertex(
+        txn.AddVertex(
             std::string("v1"), v1_properties,
             std::vector<std::string>{
                 "name5", "Apache Lucene is an open source project available for free download",
                 "1"});
-        VertexId v_id6 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name6",
-                              "HUAWEI/华为 P50 "
-                              "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
-                              "1"});
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name6",
+                          "HUAWEI/华为 P50 "
+                          "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
+                          "1"});
         txn.Commit();
         db.FullTextIndexRefresh();
         auto vids = db.QueryVertexByFullTextIndex("v1", "description:富强", 10);
@@ -385,20 +388,22 @@ TEST_F(TestFullIndex, FullIndex) {
         config.ft_index_options.fulltext_refresh_interval = 0;
         LightningGraph db(config);
         db.DropAllData();
+        VertexOptions vo;
+        vo.primary_field = "name";
+        vo.detach_property = GetParam();
         std::vector<FieldSpec> v_fds = {{"name", FieldType::STRING, false},
                                         {"description", FieldType::STRING, true},
                                         {"type", FieldType::INT8, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, "name", {}));
+        UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, vo));
         UT_EXPECT_TRUE(db.AddFullTextIndex(true, "v1", "description"));
         Transaction txn = db.CreateWriteTxn();
         std::vector<std::string> v1_properties = {"name", "description", "type"};
-        VertexId v_id1 =
-            txn.AddVertex(std::string("v1"), v1_properties,
-                          std::vector<std::string>{
-                              "name1",
-                              "HUAWEI/华为 P50 "
-                              "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
-                              "1"});
+        txn.AddVertex(std::string("v1"), v1_properties,
+                      std::vector<std::string>{
+                          "name1",
+                          "HUAWEI/华为 P50 "
+                          "HarmonyOS2原色双影像单元新款华为智能手机新款华为官方旗舰店p50pro",
+                          "1"});
         txn.Commit();
         auto vids = db.QueryVertexByFullTextIndex("v1", "description:HUAWEI", 10);
         UT_EXPECT_EQ(vids.size(), 1);

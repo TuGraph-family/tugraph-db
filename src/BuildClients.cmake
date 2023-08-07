@@ -3,7 +3,7 @@ set(BRPC_LIB libbrpc.a)
 
 # boost
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
 if (ENABLE_FULLTEXT_INDEX)
     # jni
@@ -25,7 +25,8 @@ endif ()
 
 find_library(SNAPPY NAMES snappy)
 
-find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp 3)
+find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 
 ############### liblgraph_client_cpp_rpc ######################
 
@@ -45,8 +46,8 @@ target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_link_libraries(${TARGET_CPP_CLIENT_RPC}
             PUBLIC
+            ${Boost_LIBRARIES}
             # begin static linking
-            fma-common
             -Wl,-Bstatic
             ${BRPC_LIB}
             ${GFLAGS_LIBRARY}
@@ -57,7 +58,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             gflags
             snappy
             -Wl,-Bstatic
-            ${Boost_LIBRARIES}
             -static-libstdc++
             -static-libgcc
             libstdc++fs.a
@@ -112,9 +112,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         boost_system
         boost_filesystem
         ${JAVA_JVM_LIBRARY})
-else()
-    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
-        fma-common)
 endif()
 
 target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE

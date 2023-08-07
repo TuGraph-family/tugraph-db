@@ -74,6 +74,8 @@ TEST_F(TestMDB, MdbTool) {
         MDB_val key, value;
         int r = mdb_cursor_get(cursor, &key, &value, MDB_FIRST);
         UT_EXPECT_TRUE(r == MDB_SUCCESS || r == MDB_NOTFOUND);
+        mdb_txn_abort(txn);
+        mdb_env_close(env);
     }
     lgraph::AutoCleanDir cleaner(path);
     for (auto act : src) {
@@ -133,6 +135,7 @@ TEST_F(TestMDB, MdbTool) {
             }
             mdb_cursor_close(cursor);
             CHECK_MDB(mdb_txn_commit(txn));
+            mdb_env_close(env);
         } else if (strcmp(act, "replace") == 0) {
             MDB_env *env;
             CHECK_MDB(mdb_env_create(&env));
@@ -175,6 +178,7 @@ TEST_F(TestMDB, MdbTool) {
                 }
             }
             CHECK_MDB(mdb_txn_commit(txn));
+            mdb_env_close(env);
         } else if (strcmp(act, "delete") == 0) {
             MDB_env *env;
             CHECK_MDB(mdb_env_create(&env));
@@ -216,6 +220,7 @@ TEST_F(TestMDB, MdbTool) {
                 }
             }
             CHECK_MDB(mdb_txn_commit(txn));
+            mdb_env_close(env);
         } else if (strcmp(act, "stat") == 0) {
             MDB_env *env;
             CHECK_MDB(mdb_env_create(&env));
@@ -249,6 +254,9 @@ TEST_F(TestMDB, MdbTool) {
                 total_pages += stat.ms_leaf_pages;
                 if (mdb_cursor_get(cursor, &key, &value, MDB_NEXT) != MDB_SUCCESS) break;
             }
+            mdb_cursor_close(cursor);
+            mdb_txn_abort(txn);
+            mdb_env_close(env);
             UT_LOG() << "Number of pages: " << total_pages;
         }
     }

@@ -18,7 +18,7 @@
 #pragma once
 
 #include <map>
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 namespace cypher {
 
 class TopN : public OpBase {
@@ -33,7 +33,7 @@ class TopN : public OpBase {
 
     void _GetSortElements() {
         // get corresponding order
-        // TODO: process sort_elements_alias_
+        // TODO(anyone): process sort_elements_alias_
         int id = 0;
         for (auto &item : sort_items_) {
             int idx = item.first;
@@ -99,7 +99,7 @@ class TopN : public OpBase {
             for (auto &re : sort_elements_) {
                 auto v = re.Evaluate(ctx, *r);
                 rec->values[re_idx++] = v;
-                // todo: handle alias
+                // TODO(anyone) handle alias
             }
             // sort and limit part
             int changed = 0;
@@ -146,6 +146,5 @@ class TopN : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

@@ -12,14 +12,30 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <random>
 #include "core/audit_logger.h"
 #include "core/defs.h"
 #include "core/killable_rw_lock.h"
 #include "db/galaxy.h"
 #include "db/token_manager.h"
+#include "tools/lgraph_log.h"
+
+std::string lgraph::Galaxy::GenerateRandomString() {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    const std::string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    std::uniform_int_distribution<int> dist(0, charset.size() - 1);
+    std::string result;
+    for (int i = 0; i < 26; ++i) {
+       result += charset[dist(mt)];
+    }
+    return result;
+}
 
 lgraph::Galaxy::Galaxy(const std::string& dir, bool create_if_not_exist)
-    : Galaxy(Config{dir, false, true, "fma.ai"}, create_if_not_exist, nullptr) {}
+    : Galaxy(Config{dir, false, true},
+    create_if_not_exist, nullptr) {}
 
 static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
     return parent_dir + "/.meta";
@@ -27,7 +43,8 @@ static inline std::string GetMetaStoreDir(const std::string& parent_dir) {
 
 lgraph::Galaxy::Galaxy(const lgraph::Galaxy::Config& config, bool create_if_not_exist,
                        std::shared_ptr<GlobalConfig> global_config)
-    : config_(config), global_config_(global_config), token_manager_(config.jwt_secret) {
+    : config_(config), global_config_(global_config),
+        token_manager_(config.jwt_secret) {
     if (!global_config_) {
         dummy_global_config_.reset(new GlobalConfig);
         global_config_ = dummy_global_config_;
@@ -74,6 +91,10 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user,
     _HoldWriteLock(acl_lock_);
     bool r = acl_->ValidateUser(user, password);
     if (!r) return "";
+    auto user_token_num = acl_->GetUserTokenNum(user);
+    if (user_token_num >= MAX_TOKEN_NUM_PER_USER)
+        throw AuthError("User has reached the maximum number of tokens.");
+
     std::string jwt = token_manager_.IssueFirstToken();
     acl_->BindTokenUser("", jwt, user);
     return jwt;
@@ -89,10 +110,11 @@ std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) cons
 std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
                                         const std::string& user) const {
     std::string new_token = token_manager_.UpdateToken(token);
+    _HoldWriteLock(acl_lock_);
     if (new_token != "") {
-        _HoldWriteLock(acl_lock_);
         acl_->BindTokenUser(token, new_token, user);
     } else {
+        acl_->UnBindTokenUser(token);
         throw InputError("token has timeout.");
     }
     return new_token;
@@ -101,6 +123,11 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
 bool lgraph::Galaxy::UnBindTokenUser(const std::string& token) {
     _HoldWriteLock(acl_lock_);
     return acl_->UnBindTokenUser(token);
+}
+
+bool lgraph::Galaxy::UnBindUserAllToken(const std::string& user) {
+    _HoldWriteLock(acl_lock_);
+    return acl_->UnBindUserAllToken(user);
 }
 
 bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {
@@ -472,7 +499,7 @@ bool lgraph::Galaxy::IsAdmin(const std::string& user) const {
 lgraph::KillableRWLock& lgraph::Galaxy::GetReloadLock() { return reload_lock_; }
 
 void lgraph::Galaxy::ReloadFromDisk(bool create_if_not_exist) {
-    FMA_DBG_STREAM(logger_) << "Loading DB state from disk";
+    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Loading DB state from disk";
     _HoldWriteLock(reload_lock_);
     // now we can do anything we want on the galaxy
     // states: meta_, token_manager_ and raft_log_index_
@@ -703,7 +730,6 @@ void lgraph::Galaxy::CheckTuGraphVersion(KvTransaction& txn) {
     auto ver = GetAndSetTuGraphVersionIfNecessary(txn);
     int major = std::get<0>(ver);
     int minor = std::get<1>(ver);
-    int patch = std::get<2>(ver);
     if (major != _detail::VER_MAJOR) {
         FMA_WARN_STREAM(logger_) << "Mismatching major version: DB is created with ver " << major
                                  << ", while current TuGraph is ver " << _detail::VER_MAJOR;

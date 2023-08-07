@@ -184,8 +184,8 @@ class MonkeyTest {
                   const std::vector<FieldSpec>& fds, const std::string& primary,
                   const lgraph::EdgeConstraints& constraints) {
         txn_.reset();
-        bool r = is_vertex ? db_.AddVertexLabel(label, fds, primary)
-                           : db_.AddEdgeLabel(label, fds, "", constraints);
+        bool r = is_vertex ? db_.AddVertexLabel(label, fds, VertexOptions(primary))
+                           : db_.AddEdgeLabel(label, fds, EdgeOptions(constraints));
         auto vgit = schema.find(label);
         UT_EXPECT_EQ(r, vgit == schema.end());
         if (!r) return r;
@@ -438,7 +438,6 @@ class MonkeyTest {
         auto vgit = vgraph_.begin();
         for (auto dbit = txn_->GetVertexIterator(); dbit.IsValid(); dbit.Next(), vgit++) {
             UT_EXPECT_TRUE(vgit != vgraph_.end());
-            auto vid = vgit->first;
             UT_EXPECT_EQ(dbit.GetId(), vgit->first);
             UT_EXPECT_EQ(dbit.GetLabel(), vgit->second.label);
             auto fvs = dbit.GetAllFields();
@@ -586,7 +585,7 @@ TEST_P(TestLGraphMonkey, LGraphMonkey) {
                 test.BeginWriteTxn();
                 for (int i = 0; i < 10; i++) {
                     size_t psize = lgraph::_detail::MAX_PROP_SIZE + 1;
-                    auto euid = test.AddEdge(0, 0, elabels[myrand() % nelabel], psize);
+                    test.AddEdge(0, 0, elabels[myrand() % nelabel], psize);
                 }
                 test.CommitTxn();
             });

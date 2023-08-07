@@ -767,6 +767,7 @@ bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::st
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
     StoreUserInfoToKv(txn, user, uinfo);
+    UnBindUserAllToken(user);
     return true;
 }
 
@@ -784,6 +785,7 @@ bool lgraph::AclManager::ChangeUserPassword(KvTransaction& txn, const std::strin
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
     StoreUserInfoToKv(txn, user, uinfo);
+    UnBindUserAllToken(user);
     return true;
 }
 
@@ -814,7 +816,6 @@ bool lgraph::AclManager::DeleteUserRoles(KvTransaction& txn, const std::string& 
     if (ait == user_cache_.end()) return false;
     bool need_refresh_acl_table = false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
-    size_t old_size = uinfo.roles.size();
     CheckRolesExist(txn, roles);
     for (auto& role : roles) {
         if (role == user) throw InputError("Cannnot delete primary role from user.");
@@ -924,6 +925,16 @@ bool lgraph::AclManager::DecipherToken(const std::string& token,
     }
 }
 
+int lgraph::AclManager::GetUserTokenNum(const std::string& user) {
+    int num = 0;
+    for (auto& kv : token_mapping_) {
+        if (kv.second == user) {
+            num++;
+        }
+    }
+    return num;
+}
+
 bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {
     if (token_mapping_.find(token) != token_mapping_.end()) {
         token_mapping_.erase(token);
@@ -931,4 +942,20 @@ bool lgraph::AclManager::UnBindTokenUser(const std::string& token) {
     } else {
         return false;
     }
+}
+
+bool lgraph::AclManager::UnBindUserAllToken(const std::string& user) {
+    std::vector<std::string> tokenToDel;
+    for (const auto& pair : token_mapping_) {
+        if (pair.second == user) {
+            tokenToDel.push_back(pair.first);
+        }
+    }
+    if (tokenToDel.empty()) {
+        return false;
+    }
+    for (const auto& token : tokenToDel) {
+        token_mapping_.erase(token);
+    }
+    return true;
 }

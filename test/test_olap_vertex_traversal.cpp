@@ -17,6 +17,7 @@
 #include "fma-common/utils.h"
 #include "lgraph/olap_base.h"
 #include "import/import_v2.h"
+#include "import/import_v3.h"
 #include "lgraph/lgraph.h"
 
 const std::vector<std::pair<std::string, std::string>> snb_comment = {
@@ -194,12 +195,12 @@ class TestOlapVertexTraversal : public TuGraphTest {};
 TEST_F(TestOlapVertexTraversal, OlapVertexTraversal) {
     using namespace lgraph_api;
     CreateCsvFiles(snb_comment);
-    lgraph::import_v2::Importer::Config config;
+    lgraph::import_v3::Importer::Config config;
     config.delete_if_exists = true;
     config.continue_on_error = true;
     config.db_dir = "./lgraph_db.olap";
     config.config_file = snb_comment[0].first;
-    lgraph::import_v2::Importer import1(config);
+    lgraph::import_v3::Importer import1(config);
     import1.DoImportOffline();
 
     std::string db_path(config.db_dir);

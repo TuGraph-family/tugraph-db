@@ -206,4 +206,12 @@ TEST_F(TestValue, ValueCopy) {
         Value v(s);
         UT_EXPECT_EQ(Value::ConstRef(v).AsString(), s);
     }
+    {
+        std::string s("hello, world");
+        auto v = Value::MakeCopy(s.data(), s.size());
+        UT_EXPECT_TRUE(v.IsSlice());
+        std::string b(100, 'a');
+        v = Value::MakeCopy(b.data(), b.size());
+        UT_EXPECT_FALSE(v.IsSlice());
+    }
 }

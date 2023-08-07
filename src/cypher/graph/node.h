@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include "common.h"
+#include "cypher/graph/common.h"
 
 namespace cypher {
 struct RTContext;
@@ -56,6 +56,8 @@ class Node {
     NodeID ID() const;
 
     const std::string &Label() const;
+
+    void SetLabel(const std::string &label) { label_ = label; }
 
     const std::string &Alias() const;
 

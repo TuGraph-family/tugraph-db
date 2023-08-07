@@ -238,6 +238,7 @@ struct LabelDesc {
     std::vector<ColumnSpec> columns;
     EdgeConstraints edge_constraints;
     bool is_vertex;
+    bool detach_property{false};
     LabelDesc() {}
     std::string ToString() const {
         std::string prefix = is_vertex ? "vertex" : "edge";
@@ -287,20 +288,40 @@ struct LabelDesc {
             FMA_FMT("field name [{}] not found in label [{}]", field_name, name));
     }
 
-    ColumnSpec GetPrimaryColumn() const {
+    ColumnSpec GetPrimaryField() const {
+        if (!is_vertex) throw std::runtime_error("No primary column found");
         for (auto it = columns.begin(); it != columns.end(); ++it) {
             if (it->primary) return *it;
         }
         throw std::runtime_error("No primary column found");
     }
 
-    bool HasPrimaryColumn() const {
+    bool HasPrimaryField() const {
+        if (!is_vertex) return false;
         bool ret = false;
         for (auto it = columns.begin(); it != columns.end(); ++it) {
             if (it->primary) return true;
         }
         return ret;
     }
+
+    ColumnSpec GetTemporalField() const {
+        if (is_vertex) throw std::runtime_error("No primary column found");
+        for (auto it = columns.begin(); it != columns.end(); ++it) {
+            if (it->primary) return *it;
+        }
+        throw std::runtime_error("No primary column found");
+    }
+
+    bool HasTemporalField() const {
+        if (is_vertex) return false;
+        bool ret = false;
+        for (auto it = columns.begin(); it != columns.end(); ++it) {
+            if (it->primary) return true;
+        }
+        return ret;
+    }
+
 
     std::vector<FieldSpec> GetFieldSpecs(std::vector<std::string>& names) const {
         std::vector<FieldSpec> fs;
@@ -781,6 +802,13 @@ class ImportConfParser {
 
                     ld.columns.push_back(cs);
                 }
+            }
+            if (s.contains("detach_property")) {
+                if (!s["detach_property"].is_boolean()) {
+                    throw InputError(FMA_FMT(
+                        "Label[{}]: \"detach_property\" is not boolean", ld.name));
+                }
+                ld.detach_property = s["detach_property"];
             }
             sd.label_desc.push_back(ld);
         }

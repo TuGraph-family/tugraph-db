@@ -30,12 +30,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 
 # target
-add_subdirectory(deps/fma-common)
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(toolkits)
 add_subdirectory(plugins)
 add_subdirectory(release)
+add_subdirectory(learn)
 
 # fix dependency
 set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog)

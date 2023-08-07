@@ -48,9 +48,8 @@ TEST_F(TestLGraphBackupTool, LGraphBackupTool) {
     server_->Start();
 
     // client
-    rest_ =
-        std::make_unique<RestClient>(UT_FMT("http://{}:{}",
-                                            config_->bind_host, config_->http_port));
+    rest_ = std::make_unique<RestClient>(
+        UT_FMT("http://{}:{}", config_->bind_host, config_->http_port));
     rest_->Login(username, password);
     // install
     auto ReadCode = [](const std::string& path) {
@@ -61,9 +60,11 @@ TEST_F(TestLGraphBackupTool, LGraphBackupTool) {
         return ret;
     };
     build_so();
-    rest_->LoadPlugin("default", lgraph_api::PluginCodeType::SO,
-                      lgraph::PluginDesc(plugin_name, plugin_name, read_only_plugin),
-                      ReadCode(plugin_path));
+    rest_->LoadPlugin(
+        "default", lgraph_api::PluginCodeType::SO,
+        lgraph::PluginDesc(plugin_name, lgraph::plugin::PLUGIN_CODE_TYPE_CPP, plugin_name,
+                           lgraph::plugin::PLUGIN_VERSION_1, read_only_plugin, ""),
+        ReadCode(plugin_path));
     // backup
     lgraph::SubProcess dumper(
         UT_FMT("./lgraph_backup --src {} --dst {}", config_->db_dir, backup_path));
@@ -74,9 +75,8 @@ TEST_F(TestLGraphBackupTool, LGraphBackupTool) {
     server_ = std::make_unique<lgraph::LGraphServer>(config_);
     server_->Start();
     // call plugin
-    rest_ =
-        std::make_unique<RestClient>(UT_FMT("http://{}:{}",
-                                            config_->bind_host, config_->http_port));
+    rest_ = std::make_unique<RestClient>(
+        UT_FMT("http://{}:{}", config_->bind_host, config_->http_port));
     rest_->Login(username, password);
     UT_LOG() << rest_->ExecutePlugin("default", true, plugin_name, plugin_param);
     server_->Stop();

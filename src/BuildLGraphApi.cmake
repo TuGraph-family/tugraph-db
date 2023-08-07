@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 # boost
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
 # threads
 find_package(Threads REQUIRED)
@@ -104,7 +104,6 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC
-            fma-common
             libgomp.a
             -static-libstdc++
             -static-libgcc
@@ -123,8 +122,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
-                boost_system
-                boost_filesystem
+                ${Boost_LIBRARIES}
                 omp
                 pthread
                 crypto

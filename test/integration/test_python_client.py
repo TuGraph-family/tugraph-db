@@ -55,16 +55,16 @@ class TestAsyncTuGraphClient:
 
     @async_test
     async def test_async_list_plugins(self):
-        cpp_plugins = await self.aclient.list_plugins('cpp')
-        py_plugins = await self.aclient.list_plugins('py')
-        assert [] == cpp_plugins
-        assert [] == py_plugins
+        cpp_plugins = await self.aclient.list_plugins('cpp', "any")
+        py_plugins = await self.aclient.list_plugins('py', "any")
+        assert (200,[]) == cpp_plugins
+        assert (200,[]) == py_plugins
 
     def test_list_plugins(self):
-        cpp_plugins = self.client.list_plugins('cpp')
-        py_plugins = self.client.list_plugins('py')
-        assert [] == cpp_plugins
-        assert [] == py_plugins
+        cpp_plugins = self.client.list_plugins('cpp', "any")
+        py_plugins = self.client.list_plugins('py', "any")
+        assert (200,[]) == cpp_plugins
+        assert (200,[]) == py_plugins
 
     @async_test
     async def test_async_get_server_info(self):
