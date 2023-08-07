@@ -44,6 +44,7 @@ class TestHAConsistency : public testing::Test {
         }
         host = std::string(buf);
         host = host.substr(0, host.size() - 2);
+#ifndef __SANITIZE_ADDRESS__
         std::string cmd_f =
             "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
             "./lgraph_server ./resource {} "
@@ -52,6 +53,16 @@ class TestHAConsistency : public testing::Test {
             "--ha_node_remove_ms 10000 "
             "--rpc_port {} --directory ./db --log_dir "
             "./log  --ha_conf {} -c lgraph_ha.json -d start";
+#else
+        std::string cmd_f =
+            "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
+            "./lgraph_server ./resource {} "
+            "&& cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+            "true --enable_ha true --ha_node_offline_ms 5000 "
+            "--ha_node_remove_ms 10000 "
+            "--rpc_port {} --directory ./db --log_dir "
+            "./log  --ha_conf {} --use_pthread 1 -c lgraph_ha.json -d start";
+#endif
 
         int rt;
         std::string cmd = FMA_FMT(cmd_f.c_str(), "ha1", "ha1", "ha1", host, "27072", "29092",
@@ -90,7 +101,6 @@ class TestHAConsistency : public testing::Test {
 };
 
 TEST_F(TestHAConsistency, HAConsistency) {
-#ifndef __SANITIZE_ADDRESS__
     std::thread thread = std::thread([this]{
         lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
         std::string result;
@@ -105,10 +115,17 @@ TEST_F(TestHAConsistency, HAConsistency) {
     int rt = system(cmd.c_str());
     FMA_CHECK_EQ(rt, 0);
     fma_common::SleepS(5);
+#ifndef __SANITIZE_ADDRESS__
     cmd_f = "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
         "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
         "--rpc_port {} --directory ./db --log_dir "
         "./log  --ha_conf {} -c lgraph_ha.json -d start";
+#else
+    cmd_f = "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+        "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
+        "--rpc_port {} --directory ./db --log_dir "
+        "./log  --ha_conf {} --use_pthread 1 -c lgraph_ha.json -d start";
+#endif
     cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
                   host + ":29092," + host + ":29093," + host + ":29094");
     rt = system(cmd.c_str());
@@ -123,5 +140,4 @@ TEST_F(TestHAConsistency, HAConsistency) {
                            host + ":29094");
     nlohmann::json res = nlohmann::json::parse(result);
     FMA_CHECK_EQ(res[0]["COUNT(n)"], 3000000);
-#endif
 }

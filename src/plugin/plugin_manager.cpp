@@ -672,7 +672,9 @@ lgraph::PluginManager::~PluginManager() {}
 
 std::vector<lgraph::PluginDesc> lgraph::PluginManager::ListPlugins(PluginType type,
                                                                    const std::string& user) {
-    return SelectManager(type)->ListPlugins(user);
+    auto & sm = SelectManager(type);
+    if (sm) return sm->ListPlugins(user);
+    return {};
 }
 
 bool lgraph::PluginManager::GetPluginSignature(lgraph::PluginManager::PluginType type,

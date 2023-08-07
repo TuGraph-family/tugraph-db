@@ -25,6 +25,14 @@ class TestJavaClientAndOGM:
     def test_java_client(self, bash, build_so, server, exec):
         pass
 
+    EXECHACLIENTOPT = {
+        "cmd" : "ls | grep jar | grep rpc-client-test | egrep -v 'javadoc|sources' | xargs -I{} java -jar -ea {}"
+    }
+    @pytest.mark.parametrize("bash", [BASHOPT], indirect=True)
+    @pytest.mark.parametrize("exec", [EXECHACLIENTOPT], indirect=True)
+    def test_ha_java_client(self, bash, exec):
+        pass
+
     EXECOGMOPT = {
         "cmd" : "ls | grep jar | grep ogm-test | egrep -v 'javadoc|sources' | xargs -I{} java -jar {} 127.0.0.1:9092 admin 73@TuGraph"
     }

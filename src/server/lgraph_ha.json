@@ -6,7 +6,7 @@
   "enable_rpc": true,
   "rpc_port": 9092,
   "enable_ha": true,
-  "conf": "127.0.0.1:9092",
+  "ha_conf": "127.0.0.1:9092",
   "verbose": 1,
   "log_dir": "",
   "ssl_auth": false,
