@@ -26,7 +26,7 @@ mkdir -p testresult/gtest
 # download build.output
 echo $BUILD_OUTPUT_TAR_URL
 wget -q -t 3 $BUILD_OUTPUT_TAR_URL -O output.tar.gz
-tar -zxvf output.tar.gz
+tar -zxmf output.tar.gz
 
 # unittest
 cd build/output

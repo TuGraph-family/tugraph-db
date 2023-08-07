@@ -8,10 +8,9 @@ ASAN=$1
 set -e
 
 # set $WORKSPACE to root dir
-cd ${ACB_BUILD_DIR}/code-repo
 pwd
 ls -al
-cd deps
+cd ${ACB_BUILD_DIR}/code-repo/deps
 bash ./build_deps.sh -j6
 cd ${ACB_BUILD_DIR}/code-repo
 mkdir build && cd build
@@ -34,6 +33,5 @@ cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar ${ACB_BUILD_DIR}/cod
 
 # package
 cd ${ACB_BUILD_DIR}/code-repo
-
-tar -czvf output.tar.gz ./build
+tar -czf output.tar.gz ./build
 cp output.tar.gz $ACB_BUILD_DIR

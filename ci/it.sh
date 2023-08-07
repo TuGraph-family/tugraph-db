@@ -25,7 +25,7 @@ cd $MY_WORKSPACE
 
 # download build.output
 wget -q -t 3 ${BUILD_OUTPUT_TAR_URL} -O output.tar.gz
-tar -zxvf output.tar.gz
+tar -zxmf output.tar.gz
 
 # set $MY_WORKSPACE to root dir
 cd $MY_WORKSPACE

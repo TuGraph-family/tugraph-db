@@ -2,8 +2,6 @@
 set -e
 
 cd $WORKSPACE
-pwd
-ls -al
 
 # cpplint check
 bash ./cpplint/check_all.sh

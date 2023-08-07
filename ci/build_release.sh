@@ -8,10 +8,9 @@ ASAN=$1
 set -e
 
 # set $WORKSPACE to root dir
-cd ${ACB_BUILD_DIR}/code-repo
 pwd
 ls -al
-cd deps
+cd ${ACB_BUILD_DIR}/code-repo/deps
 bash ./build_deps.sh -j6
 cd ${ACB_BUILD_DIR}/code-repo
 mkdir build && cd build
