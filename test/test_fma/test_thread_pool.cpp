@@ -20,7 +20,7 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
 #include "fma-common/thread_pool.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -29,6 +29,8 @@ FMA_SET_TEST_PARAMS(ThreadPool, "", "--nTasks 10 --nThreads 12 --nIter 100",
                     "--nTasks 100 --nThreads 7 --sleepTime 0.01 --nIter 30");
 
 FMA_UNIT_TEST(ThreadPool) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     int n_tasks = 10;
     int n_threads = 3;
     double sleep_time = 0.2;
@@ -60,7 +62,7 @@ FMA_UNIT_TEST(ThreadPool) {
     }
     double t2 = GetTime();
     double et = t2 - t1;
-    FMA_ASSERT(et < 1.0  // if time is very small, then timer can be off
+    FMA_UT_ASSERT(et < 1.0  // if time is very small, then timer can be off
                || (et < (n_tasks / n_threads + 2) * sleep_time * 1.1 &&
                    et > (n_tasks / n_threads) * sleep_time * 0.9))
         << "Time used to execute is siganificantly off: " << et;
@@ -89,5 +91,7 @@ FMA_UNIT_TEST(ThreadPool) {
     t2 = GetTime();
     FMA_LOG() << "Processed " << total_tasks << " tasks at " << (double)total_tasks / (t2 - t1)
               << "tps";
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

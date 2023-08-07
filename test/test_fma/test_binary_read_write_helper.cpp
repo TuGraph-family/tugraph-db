@@ -17,7 +17,7 @@
 #include "fma-common/local_file_stream.h"
 #include "fma-common/logging.h"
 #include "fma-common/snappy_stream.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -55,6 +55,8 @@ class Serializable {
 FMA_SET_TEST_PARAMS(BinaryReadWriteHelper, "");
 
 FMA_UNIT_TEST(BinaryReadWriteHelper) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     OutputFmaStream outfile("test.stream");
     // test premitive types
     BinaryWrite(outfile, (int)1);
@@ -90,22 +92,22 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     InputFmaStream infile("test.stream");
     int one;
     BinaryRead(infile, one);
-    CHECK_EQ(one, 1);
+    FMA_UT_CHECK_EQ(one, 1);
     char a;
     BinaryRead(infile, a);
-    CHECK_EQ(a, 'a');
+    FMA_UT_CHECK_EQ(a, 'a');
     SomePod p2;
     BinaryRead(infile, p2);
     CHECK(p2 == p);
     std::vector<int> v2;
     BinaryRead(infile, v2);
-    CHECK_EQ(v2.size(), v.size());
+    FMA_UT_CHECK_EQ(v2.size(), v.size());
     for (size_t i = 0; i < v2.size(); i++) {
         CHECK(v[i] == v2[i]);
     }
     std::map<int, std::vector<int>> m2;
     BinaryRead(infile, m2);
-    CHECK_EQ(m2.size(), m.size());
+    FMA_UT_CHECK_EQ(m2.size(), m.size());
     for (auto &kv : m2) {
         CHECK(m[kv.first].size() == v.size());
     }
@@ -117,12 +119,14 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     for (const auto &kv : m2) {
         for (const auto &i : kv.second) sum2 += i;
     }
-    CHECK_EQ(sum, sum2);
+    FMA_UT_CHECK_EQ(sum, sum2);
     // the following should fail compiling
     // BinaryRead(infile, non_pod);
 
     serializable.x = 0;
     BinaryRead(infile, serializable);
-    CHECK_EQ(serializable.x, 111);
+    FMA_UT_CHECK_EQ(serializable.x, 111);
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

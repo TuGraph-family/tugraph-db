@@ -17,12 +17,14 @@
 #include "fma-common/configuration.h"
 #include "fma-common/hard_container.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
 
 FMA_UNIT_TEST(HardContainer) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     ArgParser parser;
     parser.Add<std::string>("input,i").Comment("Input file path");
     parser.Parse(argc, argv);
@@ -42,5 +44,6 @@ FMA_UNIT_TEST(HardContainer) {
     double MB = (double)container.Size() * sizeof(int64_t) / 1024 / 1024;
     LOG() << "Read " << MB << " MB, at " << MB / (t2 - t1) << " MB/s";
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

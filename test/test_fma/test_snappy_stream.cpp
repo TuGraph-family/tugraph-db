@@ -18,13 +18,15 @@
 #include "fma-common/local_file_stream.h"
 #include "fma-common/logging.h"
 #include "fma-common/snappy_stream.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 #include "./rand_r.h"
 
 using namespace fma_common;
 
 FMA_UNIT_TEST(SnappyStream) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     ArgParser parser;
     parser.Add<int>("blockSize,b")
         .Comment("snappy block size to use")
@@ -80,8 +82,10 @@ FMA_UNIT_TEST(SnappyStream) {
             sum2 += p[i];
         }
     }
-    CHECK_EQ(sum, sum2);
+    FMA_UT_CHECK_EQ(sum, sum2);
     t2 = GetTime();
     LOG() << "read: " << (double)n_blocks * block_size / 1024 / 1024 / (t2 - t1) << "MB/s";
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

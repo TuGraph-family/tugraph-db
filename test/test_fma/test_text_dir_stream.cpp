@@ -16,7 +16,7 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/text_dir_stream.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -49,6 +49,8 @@ FMA_SET_TEST_PARAMS(TextDirStream, "--dir ../../include/fma-common",
 #endif
 
 FMA_UNIT_TEST(TextDirStream) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     std::string dir;
     size_t buf_size = 64 << 20;
     size_t n_parallel = 1;
@@ -79,5 +81,7 @@ FMA_UNIT_TEST(TextDirStream) {
     LOG() << "Read " << total_bytes << " bytes at " << (double)total_bytes / 1024 / 1024 / (t2 - t1)
           << "MB/s";
     LOG() << "Number of lines: " << total_lines;
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

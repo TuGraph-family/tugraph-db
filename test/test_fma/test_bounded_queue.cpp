@@ -17,12 +17,14 @@
 #include "fma-common/bounded_queue.h"
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 FMA_SET_TEST_PARAMS(BoundedQueue, "");
 
 FMA_UNIT_TEST(BoundedQueue) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     using namespace std;
     using namespace fma_common;
     double sleep_time = 0.1;
@@ -38,7 +40,7 @@ FMA_UNIT_TEST(BoundedQueue) {
             queue.Push(std::move(i));
             double t2 = GetTime();
             if (i >= 4) {
-                ASSERT(t2 - t1 > 0.8 * sleep_time && t2 - t1 < 2 * sleep_time)
+                FMA_UT_ASSERT(t2 - t1 > 0.8 * sleep_time && t2 - t1 < 2 * sleep_time)
                     << "Queue didn't block properly";
                 LOG() << "Blocked for " << t2 - t1 << " seconds";
             }
@@ -50,7 +52,7 @@ FMA_UNIT_TEST(BoundedQueue) {
         int d = 0;
         int i = 0;
         while (queue.PopFront(d)) {
-            ASSERT(d == i++) << "Pop sequence is wrong, expecting " << i << " but got " << d;
+            FMA_UT_ASSERT(d == i++) << "Pop sequence is wrong, expecting " << i << " but got " << d;
             LOG() << "popped " << d;
             LOG() << "pop sleeping for " << sleep_time << "s";
             SleepS(sleep_time);
@@ -61,5 +63,7 @@ FMA_UNIT_TEST(BoundedQueue) {
     queue.WaitEmpty();
     queue.EndQueue();
     pop.join();
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

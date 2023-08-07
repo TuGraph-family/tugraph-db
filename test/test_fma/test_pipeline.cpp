@@ -20,7 +20,7 @@
 #include "fma-common/logging.h"
 #include "fma-common/pipeline.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "./rand_r.h"
 
 using namespace fma_common;
@@ -48,6 +48,8 @@ std::pair<int, int> SqrtMinusOne(const std::pair<int, double> &d) {
 FMA_SET_TEST_PARAMS(Pipeline, "", "--nTasks 100 --sleepTime 0.05");
 
 FMA_UNIT_TEST(Pipeline) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     Logger::Get().SetFormatter(std::make_shared<TimedLogFormatter>());
     Logger::Get().SetLevel(LogLevel::LL_DEBUG);
 
@@ -77,7 +79,7 @@ FMA_UNIT_TEST(Pipeline) {
     for (int i = 0; i < n_tasks; i++) {
         std::pair<int, int> r;
         bool s = results.Pop(r);
-        FMA_ASSERT(s && r.second == i)
+        FMA_UT_ASSERT(s && r.second == i)
             << "Error poping the " << i << "th result: returned" << s << " and popped " << r.second;
     }
 
@@ -87,11 +89,13 @@ FMA_UNIT_TEST(Pipeline) {
     double t2 = GetTime();
     double et = t2 - t1;
     FMA_LOG() << "cost: " << et;
-    // FMA_ASSERT(et >= sleep_time * ((double)((n_tasks + 4) / 5) * 2 +
+    // FMA_UT_ASSERT(et >= sleep_time * ((double)((n_tasks + 4) / 5) * 2 +
     //    (double)0.2 * (n_tasks + 2)/ 3))
     //    << "Total time is too small: " << et;
-    // FMA_ASSERT(et <= sleep_time * ((double)((n_tasks + 4) / 5) * 2 +
+    // FMA_UT_ASSERT(et <= sleep_time * ((double)((n_tasks + 4) / 5) * 2 +
     //    (double)(n_tasks + 2) / 3) + sleep_time)
     //    << "Total time is too small: " << et;
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

@@ -15,11 +15,13 @@
 #include <ctime>
 #include "tools/date.h"
 #include "fma-common/logger.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(Date, "");
 
 FMA_UNIT_TEST(Date) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     // using namespace date;
     // year_month_day tp{year(2019), month(2), day(29)};
     // auto sd = sys_days(tp);
@@ -30,5 +32,6 @@ FMA_UNIT_TEST(Date) {
     t.tm_mday = 29;
     FMA_LOG() << t.tm_year << t.tm_mon << t.tm_mday;
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

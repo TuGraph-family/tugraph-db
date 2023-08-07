@@ -16,12 +16,14 @@
 
 #include "fma-common/logger.h"
 #include "fma-common/timed_task.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 FMA_SET_TEST_PARAMS(TimedTask, "");
 
 FMA_UNIT_TEST(TimedTask) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     using namespace fma_common;
 
     {
@@ -58,7 +60,7 @@ FMA_UNIT_TEST(TimedTask) {
         for (auto &thr : thrs) thr.join();
         scheduler.WaitTillClear();
         for (size_t i = 1; i <= 10; i++) {
-            FMA_CHECK_GT(times[i], times[i - 1]);
+            FMA_UT_CHECK_GT(times[i], times[i - 1]);
         }
 
         std::atomic<int> n(0);
@@ -69,7 +71,9 @@ FMA_UNIT_TEST(TimedTask) {
             }));
             fma_common::SleepS(1);
         }
-        FMA_ASSERT(n >= 9 && n <= 11);
+        FMA_UT_ASSERT(n >= 9 && n <= 11);
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

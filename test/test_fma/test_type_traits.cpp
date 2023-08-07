@@ -15,7 +15,7 @@
 #include <functional>
 
 #include "fma-common/type_traits.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(TypeTraits, "");
 
@@ -27,9 +27,12 @@ class Foo {
 };
 
 FMA_UNIT_TEST(TypeTraits) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     Foo f;
     _detail::ApplyTuple(std::bind(&Foo::Bar, &f, std::placeholders::_1, std::placeholders::_2),
                         std::make_tuple<int, double>(1, 2.3));
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

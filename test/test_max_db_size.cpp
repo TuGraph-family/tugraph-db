@@ -15,7 +15,6 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
 
 #include "gtest/gtest.h"
 #include "lgraph/lgraph.h"

@@ -17,7 +17,7 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/rw_lock.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "./rand_r.h"
 
 using namespace fma_common;
@@ -56,7 +56,7 @@ void TestWithThreads(size_t nr, size_t nw, size_t nl, size_t nsleep, bool test_u
                 FMA_DBG() << "reader " << i << " getting read lock";
                 try {
                     AutoRL l(lock);
-                    FMA_CHECK_EQ(AtomicLoad(nwriters), 0);
+                    FMA_UT_CHECK_EQ(AtomicLoad(nwriters), 0);
                     AutoApplyAndRollbackActions a([&]() { AtomicFetchInc(nreaders); },
                                                     [&]() { AtomicFetchDec(nreaders); });
                     std::this_thread::sleep_for(std::chrono::microseconds(nsleep));
@@ -75,7 +75,7 @@ void TestWithThreads(size_t nr, size_t nw, size_t nl, size_t nsleep, bool test_u
                     if (test_upgrade) {
                         FMA_DBG() << "writer " << i << " getting read lock";
                         AutoRL lr(lock);
-                        FMA_CHECK_EQ(AtomicLoad(nwriters), 0);
+                        FMA_UT_CHECK_EQ(AtomicLoad(nwriters), 0);
                         AutoApplyAndRollbackActions a([&]() { AtomicFetchInc(nreaders); },
                                                         [&]() { AtomicFetchDec(nreaders); });
                         FMA_DBG() << "writer " << i << " has read lock";
@@ -84,15 +84,15 @@ void TestWithThreads(size_t nr, size_t nw, size_t nl, size_t nsleep, bool test_u
                         FMA_DBG() << "writer " << i << " upgrade to write lock";
                         AutoApplyAndRollbackActions b([&]() { AtomicFetchInc(nwriters); },
                                                         [&]() { AtomicFetchDec(nwriters); });
-                        FMA_CHECK_EQ(AtomicLoad(nreaders), 1);  // only me
-                        FMA_CHECK_EQ(AtomicLoad(nwriters), 1);
+                        FMA_UT_CHECK_EQ(AtomicLoad(nreaders), 1);  // only me
+                        FMA_UT_CHECK_EQ(AtomicLoad(nwriters), 1);
                         std::this_thread::sleep_for(std::chrono::microseconds(nsleep));
                     } else {
                         AutoWL lw(lock);
                         FMA_DBG() << "writer " << i << " getting write lock";
                         AutoApplyAndRollbackActions b([&]() { AtomicFetchInc(nwriters); },
                                                       [&]() { AtomicFetchDec(nwriters); });
-                        FMA_CHECK_EQ(AtomicLoad(nwriters), 1);
+                        FMA_UT_CHECK_EQ(AtomicLoad(nwriters), 1);
                         std::this_thread::sleep_for(std::chrono::microseconds(nsleep));
                     }
                     FMA_DBG() << "writer " << i << " release read/write lock";
@@ -127,6 +127,8 @@ std::atomic<bool> Interrupt::flag_{false};
 FMA_SET_TEST_PARAMS(RWLock, "");
 
 FMA_UNIT_TEST(RWLock) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     size_t nr = 10;
     size_t nw = 10;
     size_t nl = 100;
@@ -162,5 +164,7 @@ FMA_UNIT_TEST(RWLock) {
     TestWithThreads<TLSLock, TLSAutoReadLock<TLSLock>, TLSAutoWriteLock<TLSLock>>(
         nr, nw, nl, nsleep, true);
     interrupt.join();
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

@@ -18,7 +18,7 @@
 #include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/string_util.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 inline size_t unsigned_to_decimal(uint64_t number, char *buffer) {
@@ -156,6 +156,8 @@ using namespace fma_common;
 FMA_SET_TEST_PARAMS(StringUtil, "--nIter 100000", "--nIter 10");
 
 FMA_UNIT_TEST(StringUtil) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     // LOG() << _detail::PrintFloat(-1.000233);
     // LOG() << _detail::PrintFloat(100.000233);
     // LOG() << _detail::PrintFloat(0.000233);
@@ -234,5 +236,6 @@ FMA_UNIT_TEST(StringUtil) {
     LOG() << ToString(DerivedWithToString());
     LOG() << ToString(Type1());
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

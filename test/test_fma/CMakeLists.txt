@@ -1,6 +1,11 @@
 # unit test cmake
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DFMA_IN_UNIT_TEST -DNO_STACKTRACE")
+
+# boost
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
+
+include_directories(${LGRAPH_INCLUDE_DIR})
 
 add_executable(fma_unit_test
         main.cpp
@@ -38,5 +43,6 @@ add_executable(fma_unit_test
         test_utils.cpp
         test_level_log.cpp)
 
-target_link_libraries(fma_unit_test
-        lgraph_server_lib)
+target_link_libraries (fma_unit_test
+        libstdc++fs.a
+        ${Boost_LIBRARIES})

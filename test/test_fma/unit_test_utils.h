@@ -17,8 +17,59 @@
 #include <vector>
 
 #include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 namespace fma_common {
+class UtLogger {
+ private:
+    std::ostringstream ut_stream_;
+    lgraph_log::severity_level level_;
+
+ public:
+    explicit UtLogger(lgraph_log::severity_level level) : level_(level) {}
+
+    ~UtLogger() {
+        FMA_UT_LOG(level_) << ut_stream_.str();
+        if (level_ >= lgraph_log::severity_level::ERROR) {
+            lgraph_log::LoggerManager::GetInstance().FlushBufferLog();
+            EXIT_ON_FATAL(0);
+        }
+    }
+
+    template <typename T>
+    UtLogger & operator<<(const T& d) {
+        ut_stream_ << d;
+        return *this;
+    }
+};
+
+#define FMA_UT_ERROR() ::fma_common::UtLogger(::lgraph_log::severity_level::ERROR)
+
+#define FMA_UT_CHECK_EQ(a, b) \
+    if (!::fma_common::_detail::CheckEq((a), (b), "CHECK_EQ", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_CHECK_EQ(a, b) \
+    if (!::fma_common::_detail::CheckEq((a), (b), "CHECK_EQ", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_CHECK_NEQ(a, b)                                                                  \
+    if (!::fma_common::_detail::CheckNeq((a), (b), "CHECK_NEQ", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_CHECK_LT(a, b) \
+    if (!::fma_common::_detail::CheckLt((a), (b), "CHECK_LT", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_CHECK_LE(a, b) \
+    if (!::fma_common::_detail::CheckLe((a), (b), "CHECK_LE", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_CHECK_GT(a, b) \
+    if (!::fma_common::_detail::CheckGt((a), (b), "CHECK_GT", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_CHECK_GE(a, b) \
+    if (!::fma_common::_detail::CheckGe((a), (b), "CHECK_GE", #a, #b, __FILE__, __LINE__)) \
+    FMA_UT_ERROR()
+#define FMA_UT_ASSERT(pred) \
+    if (!(pred)) FMA_UT_ERROR() \
+    << __FILE__ << ":" << __LINE__ << "\n\tASSERT(" #pred ") failed\n"
+
 struct UnitTest {
     std::string name;
     std::vector<std::string> params;
@@ -35,7 +86,7 @@ inline void ValidateUnitTestSettings() {
     auto& tests = GetUnitTests();
     for (auto& kv : tests) {
         if (kv.second.func == nullptr) {
-            FMA_ERR() << "Test [" << kv.first
+            FMA_UT_ERROR() << "Test [" << kv.first
                       << "] was registered but the test function was not defined. "
                       << "Did you misspelled the function?";
         }
@@ -46,7 +97,7 @@ namespace _detail {
 inline size_t RegisterUnitTest(const char* test_name, const std::function<int(int, char**)>& func) {
     auto& m = GetUnitTests();
     auto it = m.find(test_name);
-    FMA_ASSERT(it == m.end() || it->second.func == nullptr)
+    FMA_UT_ASSERT(it == m.end() || it->second.func == nullptr)
         << "Unit test " << test_name << " already registered";
     if (it == m.end()) {
         it = m.emplace_hint(it, test_name, UnitTest());
@@ -104,7 +155,7 @@ inline void PrintExpectedException(const std::exception& e) {
     do {                                                      \
         try {                                                 \
             { stmt; }                                         \
-            FMA_ASSERT(false);                                \
+            FMA_UT_ASSERT(false);                                \
         } catch (std::exception & e) {                        \
             ::fma_common::_detail::PrintExpectedException(e); \
         }                                                     \
@@ -114,11 +165,11 @@ inline void PrintExpectedException(const std::exception& e) {
     do {                                                                           \
         try {                                                                      \
             { stmt; }                                                              \
-            FMA_ASSERT(false);                                                     \
+            FMA_UT_ASSERT(false);                                                     \
         } catch (std::exception & e) {                                             \
             ::fma_common::_detail::PrintExpectedException(e);                      \
             std::string err = ::fma_common::_detail::PrintNestedException(e);      \
-            FMA_ASSERT(std::regex_search(err, std::regex(msg)))                    \
+            FMA_UT_ASSERT(std::regex_search(err, std::regex(msg)))                    \
                 << "Expecting msg=[" << (msg) << "], but got err=[" << err << "]"; \
         }                                                                          \
     } while (0)
@@ -127,11 +178,11 @@ inline void PrintExpectedException(const std::exception& e) {
     do {                                                                                     \
         try {                                                                                \
             { stmt; }                                                                        \
-            FMA_ASSERT(false);                                                               \
+            FMA_UT_ASSERT(false);                                                               \
         } catch (ExceptionType & e) {                                                        \
             ::fma_common::_detail::PrintExpectedException(e);                                \
         } catch (std::exception & e) {                                                       \
-            FMA_ASSERT(false) << "Expecting " << #ExceptionType << ", but instead got "      \
+            FMA_UT_ASSERT(false) << "Expecting " << #ExceptionType << ", but instead got "      \
                               << typeid(e).name() << "\n\t Exception message: " << e.what(); \
         }                                                                                    \
     } while (0)

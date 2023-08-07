@@ -20,7 +20,7 @@
 #include "fma-common/file_stream.h"
 #include "fma-common/file_system.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -28,6 +28,8 @@ using namespace fma_common;
 FMA_SET_TEST_PARAMS(FileStream, "-f tmpfile");
 
 FMA_UNIT_TEST(FileStream) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     std::string path;
     size_t buffer_size = 16384;
     size_t block_size = 4 << 20;
@@ -64,7 +66,8 @@ FMA_UNIT_TEST(FileStream) {
     t1 = GetTime();
     {
         InputLocalFileStream in(path, buffer_size);
-        CHECK_EQ(in.Size(), block_size * n_blocks) << "Written bytes does not equal file size";
+        FMA_UT_CHECK_EQ(in.Size(), block_size * n_blocks)
+            << "Written bytes does not equal file size";
         uint64_t total_bytes = 0;
         while (true) {
             uint64_t bytes = in.Read(&block[0], block_size);
@@ -76,11 +79,13 @@ FMA_UNIT_TEST(FileStream) {
             double tt2 = GetTime();
             compute_time += tt2 - tt1;
         }
-        CHECK_EQ(total_bytes, in.Size()) << "Read bytes does not equal file size";
+        FMA_UT_CHECK_EQ(total_bytes, in.Size()) << "Read bytes does not equal file size";
     }
     t2 = GetTime();
     LOG() << "Read " << mb << "MB, at " << mb / (t2 - t1 - compute_time) << "MB/s";
-    CHECK_EQ(sum, (double)n_blocks * block_size) << "Data is probably corruptted";
+    FMA_UT_CHECK_EQ(sum, (double)n_blocks * block_size) << "Data is probably corruptted";
     file_system::RemoveFile(path);
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

@@ -21,7 +21,7 @@
 #include "fma-common/multi_disk_stream.h"
 #include "fma-common/string_util.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 using namespace fma_common;
 
@@ -29,6 +29,8 @@ FMA_SET_TEST_PARAMS(MultiDiskStream, "-f tmpfile -p a,b,c -s 1023",
                     "-f tmpfile -p a,b,c,d,e -s 1027 -u 1025");
 
 FMA_UNIT_TEST(MultiDiskStream) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     typedef size_t T;
     Configuration parser;
     parser.Add<std::string>("file,f").Comment("File to write to");
@@ -79,11 +81,12 @@ FMA_UNIT_TEST(MultiDiskStream) {
             t += (t2 - t1);
             uint64_t s = 0;
             for (auto d : v) s += d;
-            CHECK_EQ(s, sum) << "inconsistent content";
+            FMA_UT_CHECK_EQ(s, sum) << "inconsistent content";
         }
         LOG() << "Read completed at "
               << (double)vector_size * sizeof(T) * n_vectors / 1024 / 1024 / t << "MB/s";
     }
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

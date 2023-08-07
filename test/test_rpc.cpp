@@ -18,7 +18,6 @@
 #include <boost/lexical_cast.hpp>
 #include "./ut_utils.h"
 #include "fma-common/configuration.h"
-#include "fma-common/unit_test_utils.h"
 #include "restful/server/stdafx.h"
 #include "restful/server/rest_server.h"
 #include "./graph_factory.h"

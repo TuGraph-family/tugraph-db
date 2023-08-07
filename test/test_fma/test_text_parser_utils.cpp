@@ -18,13 +18,15 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/text_parser.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 using namespace fma_common;
 
 FMA_SET_TEST_PARAMS(TextParserUtils, "", "--nIter 1", "--nIter 2", "--nIter 10");
 
 FMA_UNIT_TEST(TextParserUtils) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     int n_iter = 10000000;
     bool performance = false;
     Configuration config;
@@ -51,56 +53,57 @@ FMA_UNIT_TEST(TextParserUtils) {
         double t3 = GetTime();
         LOG() << "method1: " << t2 - t1;
         LOG() << "method2: " << t3 - t2;
-        CHECK_EQ(sum1, sum2);
+        FMA_UT_CHECK_EQ(sum1, sum2);
         return 0;
     }
 
     {
         for (int i = 0; i < 256; i++) {
-            CHECK_EQ(TextParserUtils::IsControl(i), (bool)std::iscntrl(i));
-            CHECK_EQ(TextParserUtils::IsDigits(i), (bool)std::isdigit(i));
-            CHECK_EQ(TextParserUtils::IsDigital(i), ((bool)std::isdigit(i) || i == '-' ||
+            FMA_UT_CHECK_EQ(TextParserUtils::IsControl(i), (bool)std::iscntrl(i));
+            FMA_UT_CHECK_EQ(TextParserUtils::IsDigits(i), (bool)std::isdigit(i));
+            FMA_UT_CHECK_EQ(TextParserUtils::IsDigital(i), ((bool)std::isdigit(i) || i == '-' ||
                                                      i == '.' || i == '-' || i == 'e' || i == 'E'));
-            CHECK_EQ(TextParserUtils::IsGraphical(i), (bool)std::isgraph(i));
-            CHECK_EQ(TextParserUtils::IsNewLine(i), (i == '\r' || i == '\n'));
-            CHECK_EQ(TextParserUtils::IsAlphabetNumberic(i), (bool)std::isalnum(i));
-            CHECK_EQ(TextParserUtils::IsBlank(i), (bool)std::isblank(i));
-            CHECK_EQ(TextParserUtils::IsValidNameCharacter(i), (bool)std::isalnum(i) || i == '_');
+            FMA_UT_CHECK_EQ(TextParserUtils::IsGraphical(i), (bool)std::isgraph(i));
+            FMA_UT_CHECK_EQ(TextParserUtils::IsNewLine(i), (i == '\r' || i == '\n'));
+            FMA_UT_CHECK_EQ(TextParserUtils::IsAlphabetNumberic(i), (bool)std::isalnum(i));
+            FMA_UT_CHECK_EQ(TextParserUtils::IsBlank(i), (bool)std::isblank(i));
+            FMA_UT_CHECK_EQ(TextParserUtils::IsValidNameCharacter(i),
+                            (bool)std::isalnum(i) || i == '_');
         }
     }
 
     {
         bool b = false;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("True", b), 4);
-        ASSERT(b);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("True", b), 4);
+        FMA_UT_ASSERT(b);
         b = false;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("t", b), 0);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("t", b), 0);
         b = false;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("1", b), 1);
-        ASSERT(b);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("1", b), 1);
+        FMA_UT_ASSERT(b);
         b = true;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("fAlse", b), 5);
-        ASSERT(!b);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("fAlse", b), 5);
+        FMA_UT_ASSERT(!b);
         b = true;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("F", b), 0);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("F", b), 0);
         b = true;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("0", b), 1);
-        ASSERT(!b);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("0", b), 1);
+        FMA_UT_ASSERT(!b);
         b = false;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("100", b), 3);
-        ASSERT(b);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("100", b), 3);
+        FMA_UT_ASSERT(b);
         b = false;
-        FMA_CHECK_EQ(TextParserUtils::ParseT("-100", b), 4);
-        ASSERT(b);
+        FMA_UT_CHECK_EQ(TextParserUtils::ParseT("-100", b), 4);
+        FMA_UT_ASSERT(b);
     }
 
     std::string num = "+30.1223E+3";
     double truev = +30.1223E+3;
     double dou = 0;
-    // CHECK_EQ(TextParserUtils::ParseDigit(num.data(), &num[num.size()], dou), num.size());
-    CHECK_EQ(TextParserUtils::ParseDouble(num.data(), &num[num.size()], dou), num.size());
+    // FMA_UT_CHECK_EQ(TextParserUtils::ParseDigit(num.data(), &num[num.size()], dou), num.size());
+    FMA_UT_CHECK_EQ(TextParserUtils::ParseDouble(num.data(), &num[num.size()], dou), num.size());
     double delta = (dou - truev) / truev;
-    ASSERT(delta >= -1e-6 && delta <= 1e-6);
+    FMA_UT_ASSERT(delta >= -1e-6 && delta <= 1e-6);
     LOG() << dou;
 
     double t1 = GetTime();
@@ -128,19 +131,21 @@ FMA_UNIT_TEST(TextParserUtils) {
         const char *b = str.data();
         const char *e = str.data() + str.size();
         const char *p = TextParserUtils::FindNextLine(b, e);
-        FMA_CHECK_EQ(*p, '2');
+        FMA_UT_CHECK_EQ(*p, '2');
         p = TextParserUtils::FindNextLine(p, e);
-        FMA_CHECK_EQ(*p, '3');
+        FMA_UT_CHECK_EQ(*p, '3');
         p = TextParserUtils::FindNextLine(p, e);
-        FMA_CHECK_EQ(*p, '4');
+        FMA_UT_CHECK_EQ(*p, '4');
         p = TextParserUtils::FindNextLine(p, e);
-        FMA_CHECK_EQ(*p, '5');
+        FMA_UT_CHECK_EQ(*p, '5');
         p = TextParserUtils::FindNextLine(p, e);
-        FMA_CHECK_EQ(*p, '\n');
+        FMA_UT_CHECK_EQ(*p, '\n');
         p = TextParserUtils::FindNextLine(p, e);
-        FMA_CHECK_EQ(*p, '7');
+        FMA_UT_CHECK_EQ(*p, '7');
         p = TextParserUtils::FindNextLine(p, e);
-        FMA_CHECK_EQ(p, e);
+        FMA_UT_CHECK_EQ(p, e);
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

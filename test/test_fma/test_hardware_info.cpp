@@ -15,11 +15,13 @@
 #include "fma-common/configuration.h"
 #include "fma-common/hardware_info.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(HardwareInfo, "-n 4 -r 1000");
 
 FMA_UNIT_TEST(HardwareInfo) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     using namespace fma_common;
     size_t n_cpu = 10;
     size_t n_rand = 100000000;
@@ -63,5 +65,7 @@ FMA_UNIT_TEST(HardwareInfo) {
               << "\tWRITE " << diskStat.writeRate / 1024 / 1024 << " MB/s";
         SleepS(1);
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

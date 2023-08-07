@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 #include "core/lightning_graph.h"

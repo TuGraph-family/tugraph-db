@@ -21,7 +21,7 @@
 #include "fma-common/logging.h"
 #include "fma-common/type_traits.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 using namespace fma_common;
 
@@ -46,7 +46,7 @@ int TestAll(int argc, char **argv) {
             FMA_LOG() << "Testing " << test.first << " " << params;
             std::string cmd = argv[0];
             cmd.append(" -t ").append(test.first);
-            FMA_CHECK_EQ(RunTest(cmd.c_str(), params.c_str()), 0);
+            FMA_UT_CHECK_EQ(RunTest(cmd.c_str(), params.c_str()), 0);
             FMA_LOG() << "TEST PASSED";
         }
     }

@@ -22,7 +22,7 @@
 #include "fma-common/fma_stream.h"
 #include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -31,6 +31,8 @@ FMA_SET_TEST_PARAMS(FmaStream, "-f tmpfile -s 67", "-f tmpfile -s 65536 -n 13 -b
                     "-f tmpfile -s 65536 -u 0");
 
 FMA_UNIT_TEST(FmaStream) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     typedef size_t T;
     ArgParser parser;
     parser.Add<std::string>("file,f").Comment("File to write to").SetDefault("./tmpfile");
@@ -65,7 +67,7 @@ FMA_UNIT_TEST(FmaStream) {
             auto &f = outs[i];
             f.Open(StringFormatter::Format("{}/{}", dir, i), bsize, std::iostream::trunc,
                    std::make_tuple(), std::make_tuple(&pool));
-            FMA_ASSERT(f.Good());
+            FMA_UT_ASSERT(f.Good());
         }
         size_t size = 0;
         for (size_t i = 0; i < bsize * 3; i++) {
@@ -79,13 +81,13 @@ FMA_UNIT_TEST(FmaStream) {
         // validate content
         for (size_t i = 0; i < nf; i++) {
             InputFmaStream in(StringFormatter::Format("{}/{}", dir, i));
-            FMA_ASSERT(in.Good());
-            FMA_CHECK_EQ(in.Size(), size);
+            FMA_UT_ASSERT(in.Good());
+            FMA_UT_CHECK_EQ(in.Size(), size);
             std::string buf(bsize * 3, 0);
             for (size_t i = 0; i < bsize * 3; i++) {
                 size_t r = in.Read(&buf[0], i);
-                FMA_CHECK_EQ(r, i);
-                for (size_t j = 0; j < r; j++) FMA_CHECK_EQ(buf[j], i % 128);
+                FMA_UT_CHECK_EQ(r, i);
+                for (size_t j = 0; j < r; j++) FMA_UT_CHECK_EQ(buf[j], i % 128);
             }
         }
     }
@@ -110,7 +112,7 @@ FMA_UNIT_TEST(FmaStream) {
     for (size_t r = 0; r < n_read; r++) {
         double t = 0;
         InputFmaStream in(path, buf_size, compress);
-        ASSERT(in.Seek(v.size() * sizeof(T) + sizeof(size_t)));
+        FMA_UT_ASSERT(in.Seek(v.size() * sizeof(T) + sizeof(size_t)));
         for (size_t i = 0; i < n_vectors - 1; i++) {
             std::fill(v.begin(), v.end(), 0);
             t1 = GetTime();
@@ -119,11 +121,12 @@ FMA_UNIT_TEST(FmaStream) {
             t += (t2 - t1);
             uint64_t s = 0;
             for (auto d : v) s += d;
-            CHECK_EQ(s, sum) << "inconsistent content";
+            FMA_UT_CHECK_EQ(s, sum) << "inconsistent content";
         }
         LOG() << "Read completed at "
               << (double)vector_size * sizeof(T) * n_vectors / 1024 / 1024 / t << "MB/s";
     }
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

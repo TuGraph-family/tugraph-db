@@ -15,12 +15,14 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/piped_hdfs_stream.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
 
 FMA_UNIT_TEST(PipedHdfsStream) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
 #if (!HAS_LIBHDFS)
     std::string path;
     int v_size = 1024;
@@ -52,7 +54,7 @@ FMA_UNIT_TEST(PipedHdfsStream) {
     InputHdfsStream in(path);
     for (int i = 0; i < nv; i++) {
         size_t r = in.Read(&v[0], sizeof(int) * v_size);
-        CHECK_EQ(r, sizeof(int) * v_size) << "Error reading file: got size " << r;
+        FMA_UT_CHECK_EQ(r, sizeof(int) * v_size) << "Error reading file: got size " << r;
         double tt1 = GetTime();
         for (int j = 0; j < v_size; j++) {
             sum += v[j];
@@ -62,8 +64,10 @@ FMA_UNIT_TEST(PipedHdfsStream) {
     }
     in.Close();
     t2 = GetTime();
-    CHECK_EQ(sum, (double)v_size * nv) << "Data is corrupted";
+    FMA_UT_CHECK_EQ(sum, (double)v_size * nv) << "Data is corrupted";
     LOG() << "Read finished at " << mb / 1024 / 1024 / (t2 - t1 - t_compute) << "MB/s";
 #endif
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

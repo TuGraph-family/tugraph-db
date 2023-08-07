@@ -20,7 +20,7 @@
 #include "fma-common/fma_stream.h"
 #include "fma-common/logger.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 using namespace fma_common;
 using std::string;
@@ -33,7 +33,7 @@ int TestArg() {
     char **my_argv = args.data();
 
 #if 0
-    // This should fail with assert,
+    // This should fail with FMA_UT_ASSERT,
     // since Arg1 cannot have default: it is not the last positional
     ArgParser parser;
     parser.AddPositional<std::string>()
@@ -83,13 +83,13 @@ int TestArg() {
     parser.ParseAndRemove(&my_argc, &my_argv);
     parser.Finalize();
     std::string test = parser.GetValue(1);
-    CHECK_EQ(test, "all");
+    FMA_UT_CHECK_EQ(test, "all");
     int number = parser.GetValue<int>(2);
-    CHECK_EQ(number, 12);
+    FMA_UT_CHECK_EQ(number, 12);
     int n_round = parser.GetValue<int>("round");
-    CHECK_EQ(n_round, 14);
+    FMA_UT_CHECK_EQ(n_round, 14);
     bool verbose = parser.GetValue<bool>("verbose");
-    CHECK_EQ(verbose, false);
+    FMA_UT_CHECK_EQ(verbose, false);
 
     ArgParser parser2;
     parser2.Add<std::string>().Comment("Test to perform");
@@ -100,9 +100,9 @@ int TestArg() {
     parser2.Parse(my_argc, my_argv);
     parser2.Finalize();
     std::string test2 = parser2.GetValue(1);
-    CHECK_EQ(test2, "all");
+    FMA_UT_CHECK_EQ(test2, "all");
     int size = parser2.GetValue<int>("size");
-    CHECK_EQ(size, 13);
+    FMA_UT_CHECK_EQ(size, 13);
     return 0;
 }
 
@@ -129,6 +129,8 @@ struct ConfFather : public Configuration {
 FMA_SET_TEST_PARAMS(Configuration, "");
 
 FMA_UNIT_TEST(Configuration) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     Configuration c;
     std::string path;
     c.Add(path, "path", true)
@@ -168,13 +170,13 @@ FMA_UNIT_TEST(Configuration) {
         conf.Add(b, "b", true);
         conf.ParseJsonFile(json_path);
         conf.Finalize();
-        FMA_CHECK_EQ(a, 1);
-        FMA_CHECK_EQ(b, "this is b");
+        FMA_UT_CHECK_EQ(a, 1);
+        FMA_UT_CHECK_EQ(b, "this is b");
     }
 
     if (!path.empty()) {
         InputFmaStream in(path);
-        ASSERT(in.Good());
+        FMA_UT_ASSERT(in.Good());
         std::string json, buf;
         buf.reserve(1024);
         while (true) {
@@ -253,12 +255,12 @@ FMA_UNIT_TEST(Configuration) {
         //    fa.ParseAndRemove(&argc, &argv);
         fa.ParseJson(str);
         fa.Finalize();
-        CHECK_EQ(fa.a, 2);
-        CHECK_EQ(fa.GetValue<int>("b"), 3);
-        CHECK_EQ(fa.GetValue<int>("bro"), 3);
-        FMA_CHECK_EQ(str_opt, "some_string");
-        CHECK_EQ(fa.child.b, "4");  // not a bug. parse integer 4 as a string
-        CHECK_EQ(fa.child.f, true);
+        FMA_UT_CHECK_EQ(fa.a, 2);
+        FMA_UT_CHECK_EQ(fa.GetValue<int>("b"), 3);
+        FMA_UT_CHECK_EQ(fa.GetValue<int>("bro"), 3);
+        FMA_UT_CHECK_EQ(str_opt, "some_string");
+        FMA_UT_CHECK_EQ(fa.child.b, "4");  // not a bug. parse integer 4 as a string
+        FMA_UT_CHECK_EQ(fa.child.f, true);
     }
 #endif
     {
@@ -274,8 +276,8 @@ FMA_UNIT_TEST(Configuration) {
             config.Add(bool_opt, "b,bool", true).Comment("Bool option");
             config.Add(int_opt, "i,int", true).Comment("IntOption");
             config.ParseAndFinalize(argc, (char **)argv);
-            FMA_CHECK_EQ(bool_opt, expected_bool);
-            FMA_CHECK_EQ(int_opt, expected_int);
+            FMA_UT_CHECK_EQ(bool_opt, expected_bool);
+            FMA_UT_CHECK_EQ(int_opt, expected_int);
         };
         parse_and_check("-b true -i 200", true, 200);
         parse_and_check("--bool true --int 200", true, 200);
@@ -288,5 +290,7 @@ FMA_UNIT_TEST(Configuration) {
         // fail to parse value
         FMA_EXPECT_EXCEPTION(parse_and_check("-i a", true, 100));
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

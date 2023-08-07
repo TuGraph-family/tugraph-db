@@ -27,7 +27,10 @@
 #endif
 
 #include "fma-common/env.h"
+
+#if LGRAPH_ENABLE_LGRAPH_LOG
 #include "tools/lgraph_log.h"
+#endif
 
 namespace fma_common {
 enum LogLevel {
@@ -439,13 +442,7 @@ _FMA_DEF_CHECK_FUNC__(CheckGt, _FMA_CHECK_GT_FUNC);
 _FMA_DEF_CHECK_FUNC__(CheckGe, _FMA_CHECK_GE_FUNC);
 }  // namespace _detail
 
-#define FMA_GET_LOG_STREAM(LEVEL) \
-    ::fma_common::LoggerStream(::fma_common::Logger::Get(), __FILE__, __FUNCTION__, __LINE__, \
-    ::fma_common::LEVEL)
-
-#define FMA_LOG_STREAM_WITH_LEVEL(logger, LEVEL) \
-    logger.GetLevel() < LEVEL ? true : ::fma_common::LoggerStream(logger, LEVEL)
-
+#if LGRAPH_ENABLE_LGRAPH_LOG
 #define FMA_DBG_STREAM(logger) DEBUG_LOG_STREAM(DEBUG, logger.GetName())
 #define FMA_INFO_STREAM(logger) DEBUG_LOG_STREAM(INFO, logger.GetName())
 #define FMA_WARN_STREAM(logger) DEBUG_LOG_STREAM(WARNING, logger.GetName())
@@ -477,6 +474,46 @@ _FMA_DEF_CHECK_FUNC__(CheckGe, _FMA_CHECK_GE_FUNC);
 #endif
 
 #define FMA_FATAL() DEBUG_LOG(FATAL)
+#else
+#define FMA_GET_LOG_STREAM(LEVEL) \
+    ::fma_common::LoggerStream(::fma_common::Logger::Get(), __FILE__, __FUNCTION__, __LINE__, \
+    ::fma_common::LEVEL)
+
+#define FMA_LOG_STREAM_WITH_LEVEL(logger, LEVEL) \
+    logger.GetLevel() < LEVEL ? true : ::fma_common::LoggerStream(logger, LEVEL)
+
+#define FMA_DBG_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_DEBUG)
+#define FMA_INFO_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_INFO)
+#define FMA_WARN_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_WARNING)
+#define FMA_ERR_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_ERROR)
+#define FMA_FATAL_STREAM(logger) FMA_LOG_STREAM_WITH_LEVEL(logger, ::fma_common::LL_FATAL)
+
+#ifndef DISABLE_DBG_LOG
+#define FMA_DBG() FMA_GET_LOG_STREAM(LL_DEBUG)
+#else
+#define FMA_DBG() true || ::fma_common::NullStream()
+#endif
+
+#ifndef DISABLE_INFO_LOG
+#define FMA_LOG() FMA_GET_LOG_STREAM(LL_INFO)
+#else
+#define FMA_LOG() true || ::fma_common::NullStream()
+#endif
+
+#ifndef DISABLE_WARN_LOG
+#define FMA_WARN() FMA_GET_LOG_STREAM(LL_WARNING)
+#else
+#define FMA_WARN() true || ::fma_common::NullStream()
+#endif
+
+#ifndef DISABLE_ERR_LOG
+#define FMA_ERR() FMA_GET_LOG_STREAM(LL_FATAL)
+#else
+#define FMA_ERR() true || ::fma_common::NullStream()
+#endif
+
+#define FMA_FATAL() FMA_GET_LOG_STREAM(LL_FATAL)
+#endif
 
 #define FMA_CHECK(pred) \
     if (!(pred)) FMA_ERR() << __FILE__ << ":" << __LINE__ << "\n\tCHECK(" #pred ") failed\n"

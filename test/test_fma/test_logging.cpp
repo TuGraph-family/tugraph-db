@@ -14,7 +14,7 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 void Bar(int y) {
     int *p = nullptr;
@@ -39,6 +39,8 @@ class MyFormatter : public fma_common::LogFormatter {
 };
 
 FMA_UNIT_TEST(Logging) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     LOG() << "This is log without any header";
 
     FMA_CHECK_NEQ(0, 1);
@@ -62,8 +64,8 @@ FMA_UNIT_TEST(Logging) {
     LoggerStream(grandson, LL_DEBUG) << "Now this is visible, and has no header\n";
     grandson.SetFormatter(std::make_shared<MyFormatter>("[Grandson]: "));
     LoggerStream(grandson, LL_DEBUG) << "Now we have customed header";
-    // this should trigger the assert failure and print stacktrace
-    // CHECK_EQ(1, 2) << "Impossible!";
+    // this should trigger the FMA_UT_ASSERT failure and print stacktrace
+    // FMA_UT_CHECK_EQ(1, 2) << "Impossible!";
 
     // this should trigger seg fault and print stacktrace
     /*LOG() << "Testing seg fault handler";
@@ -89,5 +91,7 @@ FMA_UNIT_TEST(Logging) {
     for (auto& t : threads) {
         t.join();
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

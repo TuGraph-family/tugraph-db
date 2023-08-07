@@ -20,7 +20,7 @@
 #include "fma-common/logging.h"
 #include "fma-common/text_writer.h"
 #include "fma-common/text_parser.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -47,6 +47,8 @@ size_t ParseOneEdge(const char *beg, const char *end, Edge &e) {
 FMA_SET_TEST_PARAMS(TextParser, "--create true");
 
 FMA_UNIT_TEST(TextParser) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     // the following should generate an out-of-range error
     /*
     char small;
@@ -78,9 +80,9 @@ FMA_UNIT_TEST(TextParser) {
         size_t rn = 0;
         while (parser->Read(data)) {
             rn++;
-            FMA_CHECK_EQ(data, "fullline");
+            FMA_UT_CHECK_EQ(data, "fullline");
         }
-        FMA_CHECK_EQ(rn, n - 1);
+        FMA_UT_CHECK_EQ(rn, n - 1);
     }
 
     /* The following code shows how to parse a string into multiple fields */
@@ -91,9 +93,9 @@ FMA_UNIT_TEST(TextParser) {
     std::string fpath;
 
     TextParserUtils::ParseAsTuple(&line[0], &line[line.size()], _, c, _, _, fsize, _, _, fpath);
-    CHECK_EQ(c, '1');
-    CHECK_EQ(fsize, 15429);
-    CHECK_EQ(fpath, "/LICENSE.txt");
+    FMA_UT_CHECK_EQ(c, '1');
+    FMA_UT_CHECK_EQ(fsize, 15429);
+    FMA_UT_CHECK_EQ(fpath, "/LICENSE.txt");
 
     /* The following code shows how to parse a Csv file */
     bool use_created_file = false;
@@ -146,8 +148,8 @@ FMA_UNIT_TEST(TextParser) {
                 if (use_created_file) {
                     int64_t ve1 = std::get<0>(buf[2]);
                     int64_t ve2 = std::get<1>(buf[2]);
-                    CHECK_EQ(ve1, 3) << "check ";
-                    CHECK_EQ(ve2, 5);
+                    FMA_UT_CHECK_EQ(ve1, 3) << "check ";
+                    FMA_UT_CHECK_EQ(ve2, 5);
                 }
             }
         } catch (std::exception &e) {
@@ -174,8 +176,8 @@ FMA_UNIT_TEST(TextParser) {
                 if (use_created_file) {
                     int64_t ve1 = std::get<0>(buf[2]);
                     int64_t ve2 = std::get<1>(buf[2]);
-                    CHECK_EQ(ve1, 3) << "check ";
-                    CHECK_EQ(ve2, 5);
+                    FMA_UT_CHECK_EQ(ve1, 3) << "check ";
+                    FMA_UT_CHECK_EQ(ve2, 5);
                 }
             }
         } catch (std::exception &e) {
@@ -188,5 +190,6 @@ FMA_UNIT_TEST(TextParser) {
               << (double)stream.Size() / 1024 / 1024 / t_parse << "MB/s";
     }
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

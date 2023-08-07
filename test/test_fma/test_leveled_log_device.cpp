@@ -17,9 +17,11 @@
 #include "fma-common/fma_stream.h"
 #include "fma-common/leveled_log_device.h"
 #include "fma-common/logger.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 FMA_UNIT_TEST(LeveledLogDevice) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     using namespace fma_common;
     const std::string info_path = "./_info_log_file";
     const std::string warn_path = "./_warn_log_file";
@@ -51,13 +53,14 @@ FMA_UNIT_TEST(LeveledLogDevice) {
         };
 
         std::vector<std::string> l1 = ReadAllLinesFromFile(info_path);
-        FMA_CHECK_EQ(l1.size(), 1);
-        FMA_CHECK_EQ(l1[0], info + debug);
+        FMA_UT_CHECK_EQ(l1.size(), 1);
+        FMA_UT_CHECK_EQ(l1[0], info + debug);
 
         std::vector<std::string> l2 = ReadAllLinesFromFile(warn_path);
-        FMA_CHECK_EQ(l2.size(), 1);
-        FMA_CHECK_EQ(l2[0], fatal + error + warn);
+        FMA_UT_CHECK_EQ(l2.size(), 1);
+        FMA_UT_CHECK_EQ(l2[0], fatal + error + warn);
     }
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

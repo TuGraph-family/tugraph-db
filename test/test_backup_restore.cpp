@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
-#include "fma-common/unit_test_utils.h"
 
 #include "tiny-process-library/process.hpp"
 #include "./ut_utils.h"

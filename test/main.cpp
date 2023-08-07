@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
+#include "./ut_utils.h"
 #include "gtest/gtest.h"
 #include "gflags/gflags.h"
 

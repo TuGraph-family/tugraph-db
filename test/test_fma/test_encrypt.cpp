@@ -16,11 +16,13 @@
 
 #include "fma-common/encrypt.h"
 #include "fma-common/logger.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(Encrypt, "");
 
 FMA_UNIT_TEST(Encrypt) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     using namespace fma_common;
     size_t n = 1024;
     size_t max_size = 1024;
@@ -36,7 +38,7 @@ FMA_UNIT_TEST(Encrypt) {
         for (auto &c : orig) c = gen(eng) % 256;
         std::string encrypted = enc.Encrypt(orig);
         std::string decrypted = enc.Decrypt(encrypted);
-        FMA_CHECK_EQ(decrypted, orig);
+        FMA_UT_CHECK_EQ(decrypted, orig);
         if (i == 0) {
             encrypt::Encryptor<encrypt::Blowfish> wrong_pass("wrong_pass");
             try {
@@ -49,9 +51,9 @@ FMA_UNIT_TEST(Encrypt) {
     }
 
     FMA_LOG() << "Testing md5";
-    FMA_CHECK_EQ(encrypt::MD5::Encrypt("hello, world"),
+    FMA_UT_CHECK_EQ(encrypt::MD5::Encrypt("hello, world"),
                  encrypt::Base16::Decode("e4d7f1b4ed2e42d15898f4b27b019da4"));
-    FMA_CHECK_EQ(encrypt::MD5::Encrypt("What does MD5 mean?"),
+    FMA_UT_CHECK_EQ(encrypt::MD5::Encrypt("What does MD5 mean?"),
                  encrypt::Base16::Decode("99a5a46cee444fafac4a8f03c3aab8d8"));
     FMA_CHECK_NEQ(encrypt::MD5::Encrypt("What does MD5 mean?", "salt"),
                   encrypt::Base16::Decode("99a5a46cee444fafac4a8f03c3aab8d8"));
@@ -64,14 +66,16 @@ FMA_UNIT_TEST(Encrypt) {
 
     FMA_EXPECT_EXCEPTION(encrypt::Base16::Decode("kkk"));
 
-    FMA_CHECK_EQ(orig, decrypted);
+    FMA_UT_CHECK_EQ(orig, decrypted);
     for (size_t i = 0; i < n; i++) {
         size_t s = gen(eng);
         std::string orig(s, 0);
         for (auto &c : orig) c = gen(eng) % 256;
         std::string encrypted = encrypt::Base16::Encode(orig);
         std::string decrypted = encrypt::Base16::Decode(encrypted);
-        FMA_CHECK_EQ(orig, decrypted);
+        FMA_UT_CHECK_EQ(orig, decrypted);
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

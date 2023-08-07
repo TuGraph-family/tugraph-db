@@ -14,7 +14,7 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -22,6 +22,8 @@ using namespace fma_common;
 FMA_SET_TEST_PARAMS(ArgParser, "");
 
 FMA_UNIT_TEST(ArgParser) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     std::vector<char *> args = {(char *)"test.exe", (char *)"all",       (char *)"12",
                                 (char *)"--size",   (char *)"13",        (char *)"--round",
                                 (char *)"14",       (char *)"--verbose", (char *)"false"};
@@ -29,7 +31,7 @@ FMA_UNIT_TEST(ArgParser) {
     char **my_argv = args.data();
 
 #if 0
-    // This should fail with assert,
+    // This should fail with FMA_UT_ASSERT,
     // since Arg1 cannot have default: it is not the last positional
     ArgParser parser;
     parser.AddPositional<std::string>()
@@ -79,13 +81,13 @@ FMA_UNIT_TEST(ArgParser) {
     parser.Finalize();
 
     std::string test = parser.GetValue(1);
-    CHECK_EQ(test, "all");
+    FMA_UT_CHECK_EQ(test, "all");
     int number = parser.GetValue<int>(2);
-    CHECK_EQ(number, 12);
+    FMA_UT_CHECK_EQ(number, 12);
     int n_round = parser.GetValue<int>("round");
-    CHECK_EQ(n_round, 14);
+    FMA_UT_CHECK_EQ(n_round, 14);
     bool verbose = parser.GetValue<bool>("verbose");
-    CHECK_EQ(verbose, false);
+    FMA_UT_CHECK_EQ(verbose, false);
 
     ArgParser parser2;
     parser2.Add<std::string>().Comment("Test to perform");
@@ -96,8 +98,10 @@ FMA_UNIT_TEST(ArgParser) {
     parser2.Parse(my_argc, my_argv);
     parser2.Finalize();
     std::string test2 = parser2.GetValue(1);
-    CHECK_EQ(test2, "all");
+    FMA_UT_CHECK_EQ(test2, "all");
     int size = parser2.GetValue<int>("size");
-    CHECK_EQ(size, 13);
+    FMA_UT_CHECK_EQ(size, 13);
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

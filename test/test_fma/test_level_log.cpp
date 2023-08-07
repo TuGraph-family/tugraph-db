@@ -13,12 +13,14 @@
  */
 
 #include "fma-common/logger.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/logging.h"
 
 FMA_SET_TEST_PARAMS(LevelLog, "");
 
 FMA_UNIT_TEST(LevelLog) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     // test err info in different log level
 
     using namespace fma_common;
@@ -48,5 +50,6 @@ FMA_UNIT_TEST(LevelLog) {
         << "Server is configured with the following parameters:\n";
     FMA_LOG() << header.str();
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

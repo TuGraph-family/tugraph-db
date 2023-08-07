@@ -22,7 +22,7 @@
 #include "fma-common/local_file_stream.h"
 #include "fma-common/logging.h"
 #include "fma-common/text_writer.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -50,6 +50,8 @@ FMA_SET_TEST_PARAMS(TextWriter, "-f tmpfile --type int -m csvWriter -s 15 -n 102
                     "-f tmpfile --type int -m formatter -s 15 -n 1025 -w 4 -c 1023");
 
 FMA_UNIT_TEST(TextWriter) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     ArgParser parser;
     parser.Add<std::string>("file,f").Comment("Output file path");
     parser.Add<std::string>("type,t")
@@ -141,5 +143,7 @@ FMA_UNIT_TEST(TextWriter) {
     t2 = GetTime();
     double MB = (double)total_bytes / 1024 / 1024;
     LOG() << "Wrote " << MB << " MB, at " << MB / (t2 - t1) << " MB/s";
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

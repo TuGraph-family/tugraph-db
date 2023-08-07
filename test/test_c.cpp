@@ -16,7 +16,6 @@
 #include <cstring>
 #include "lgraph/c.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
 #include "fma-common/file_system.h"
 #include "./ut_utils.h"
 

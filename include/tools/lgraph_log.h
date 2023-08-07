@@ -51,6 +51,12 @@ namespace lgraph_log {
   << ::lgraph_log::logging::add_value("Function", __FUNCTION__) \
   << ::lgraph_log::logging::add_value("Class", CLASS)
 
+#define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
+  LEVEL) \
+  << ::lgraph_log::logging::add_value("Line", __LINE__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__)       \
+  << ::lgraph_log::logging::add_value("Function", __FUNCTION__) \
+
 #define EXIT_ON_FATAL(SIGNAL) ::fma_common::_detail::PrintBacktraceAndExit(SIGNAL)
 
 namespace logging = boost::log;

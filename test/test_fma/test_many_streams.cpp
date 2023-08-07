@@ -17,11 +17,13 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/fma_stream.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 using namespace fma_common;
 
 FMA_UNIT_TEST(DD) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     Configuration config;
     int loop = 1;
     int nf = 16;
@@ -39,5 +41,6 @@ FMA_UNIT_TEST(DD) {
         }
     }
 
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

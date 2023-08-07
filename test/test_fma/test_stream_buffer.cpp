@@ -15,7 +15,7 @@
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/stream_buffer.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
 using namespace fma_common;
@@ -76,6 +76,8 @@ class MockOutputStream : public OutputStreamBase {
 FMA_SET_TEST_PARAMS(StreamBuffer, "--mode read", "--mode write");
 
 FMA_UNIT_TEST(StreamBuffer) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     size_t size = 4 << 20;
     size_t buf_size = 4 << 20;
     double mbps = 10.0;
@@ -108,7 +110,7 @@ FMA_UNIT_TEST(StreamBuffer) {
                 // mimic process
                 SleepS((double)r / 1024 / 1024 / process_mbps);
             }
-            CHECK_EQ(total, size);
+            FMA_UT_CHECK_EQ(total, size);
         }
         tt2 = GetTime();
         LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
@@ -126,7 +128,7 @@ FMA_UNIT_TEST(StreamBuffer) {
                 // mimic process
                 SleepS((double)r / 1024 / 1024 / process_mbps);
             }
-            CHECK_EQ(total, size);
+            FMA_UT_CHECK_EQ(total, size);
         }
         tt2 = GetTime();
         LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
@@ -163,5 +165,7 @@ FMA_UNIT_TEST(StreamBuffer) {
         tt2 = GetTime();
         LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

@@ -20,20 +20,22 @@
 #include "fma-common/fma_stream.h"
 #include "fma-common/file_system.h"
 #include "fma-common/rotating_file_log_device.h"
-#include "fma-common/unit_test_utils.h"
+#include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(RotatingFileLogDevice, "");
 
 FMA_UNIT_TEST(RotatingFileLogDevice) {
+    lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
+
     using namespace fma_common;
     const std::string dir = "./tmp";
     const std::string prefix = "log_file";
     auto check_files = [&](int n, int last_idx) {
         auto files = RotatingFileLogDevice::ListLogFiles(dir, prefix);
         if (n != -1) {
-            FMA_CHECK_EQ(files.size(), (size_t)n);
+            FMA_UT_CHECK_EQ(files.size(), (size_t)n);
         }
-        FMA_CHECK_EQ(files.back(),
+        FMA_UT_CHECK_EQ(files.back(),
                      (_STD_FS::path(dir) / (FMA_FMT("log_file.{}", last_idx))).string());
     };
     fma_common::file_system::RemoveDir(dir);
@@ -93,8 +95,10 @@ FMA_UNIT_TEST(RotatingFileLogDevice) {
         fma_common::InputFmaStream in((_STD_FS::path(dir) / ("log_file.7")).string());
         fma_common::StreamLineReader reader(in);
         std::vector<std::string> content = reader.ReadAllLines(true);
-        FMA_CHECK_EQ(content.size(), 1);
-        FMA_CHECK_EQ(content.back(), "012345678");
+        FMA_UT_CHECK_EQ(content.size(), 1);
+        FMA_UT_CHECK_EQ(content.back(), "012345678");
     }
+
+    lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

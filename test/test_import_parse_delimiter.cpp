@@ -14,7 +14,6 @@
 
 #include "fma-common/logger.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 #include "import/parse_delimiter.h"
