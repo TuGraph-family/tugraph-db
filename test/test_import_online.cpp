@@ -22,6 +22,7 @@
 #include "client/cpp/restful/rest_client.h"
 #include "fma-common/string_formatter.h"
 #include "import/import_online.h"
+#include "lgraph/lgraph_rpc_client.h"
 #include "./graph_factory.h"
 
 #include "./test_tools.h"
@@ -71,7 +72,7 @@ class TestImportOnline : public TuGraphTest {
 
     void SetUp() {
         TuGraphTest::SetUp();
-        host = "127.0.0.1";
+        host = "0.0.0.0";
         port = 6464;
         rpc_port = 16464;
         db_dir = "./lgraph_db";
@@ -1103,5 +1104,411 @@ TEST_F(TestImportOnline, ImportOnline) {
             WriteFile(e1, R"(["1","3",1.1])");
             TryImport("Does not meet the edge constraints", 1, config_file);
         }
+    }
+}
+
+TEST_F(TestImportOnline, HasTid) {
+    {
+        static std::map<std::string, std::string> sImportContent = {
+            {"schema",
+             R"(
+{"schema" : [
+        {
+            "label" : "Person",
+            "type" : "VERTEX",
+            "primary" : "name",
+            "properties" : [
+                {"name" : "name", "type":"STRING"},
+                {"name" : "birthyear", "type":"INT16", "optional":true},
+                {"name" : "phone", "type":"INT16","unique":true, "index":true}
+            ]
+        },
+        {
+            "label" : "City",
+            "type" : "VERTEX",
+            "primary" : "name",
+            "properties" : [
+                {"name" : "name", "type":"STRING"}
+            ]
+        },
+        {
+            "label" : "Film",
+            "type" : "VERTEX",
+            "primary" : "title",
+            "properties" : [
+                {"name" : "title", "type":"STRING"}
+            ]
+        },
+        {"label" : "HAS_CHILD", "type" : "EDGE"},
+        {"label" : "MARRIED", "type" : "EDGE"},
+        {
+            "label" : "BORN_IN",
+            "type" : "EDGE",
+            "primary" : "tid",
+            "properties" : [
+                {"name" : "weight", "type":"FLOAT", "optional":true},
+                {"name" : "tid", "type":"INT64"}
+            ]
+        },
+        {"label" : "DIRECTED", "type" : "EDGE"},
+        {"label" : "WROTE_MUSIC_FOR", "type" : "EDGE"},
+        {
+            "label" : "ACTED_IN",
+            "type" : "EDGE",
+            "primary" : "tid",
+            "properties" : [
+                {"name" : "charactername", "type":"STRING"},
+                {"name" : "tid", "type" : "INT64"}
+            ]
+        },
+    {
+	    "label": "PLAY_IN",
+	    "type": "EDGE",
+	    "properties": [{
+		    "name": "role",
+		    "type": "STRING",
+		    "optional": true
+	    }],
+	    "constraints": [
+		    ["Person", "Film"]
+	    ]
+    }
+    ]})"},
+            {"person_desc",
+             R"(
+{"files": [
+    {
+        "columns": [
+            "name",
+            "birthyear",
+            "phone"
+        ],
+        "format": "CSV",
+        "header": 0,
+        "label": "Person"
+        }
+    ]
+})"},
+            {"person",
+             R"(Rachel Kempson,1910,10086
+Michael Redgrave,1908,10087
+Vanessa Redgrave,1937,10088
+Corin Redgrave,1939,10089
+Liam Neeson,1952,10090
+Natasha Richardson,1963,10091
+Richard Harris,1930,10092
+Dennis Quaid,1954,10093
+Lindsay Lohan,1986,10094
+Jemma Redgrave,1965,10095
+Roy Redgrave,1873,10096
+John Williams,1932,10097
+Christopher Nolan,1970,10098
+)"},
+            {"city_desc",
+             R"(
+{
+    "files": [
+        {
+            "columns": [
+                "name"
+            ],
+            "format": "CSV",
+            "header": 1,
+            "label": "City"
+        }
+    ]
+})"},
+            {"city",
+             R"(Header Line
+New York
+London
+Houston
+)"},
+            {"film_desc",
+             R"(
+{
+    "files": [
+        {
+            "columns": [
+                "title"
+            ],
+            "format": "CSV",
+            "header": 0,
+            "label": "Film"
+        }
+    ]
+})"},
+            {"film",
+             R"("Goodbye, Mr. Chips"
+Batman Begins
+Harry Potter and the Sorcerer's Stone
+The Parent Trap
+Camelot
+)"},
+            {"has_child_desc",
+             R"(
+{
+    "files": [
+        {
+            "DST_ID": "Person",
+            "SRC_ID": "Person",
+            "columns": [
+                "SRC_ID",
+                "DST_ID"
+            ],
+            "format": "CSV",
+            "header": 0,
+            "label": "HAS_CHILD"
+        }
+    ]
+})"},
+            {"has_child",
+             R"(Rachel Kempson,Vanessa Redgrave
+Rachel Kempson,Corin Redgrave
+Michael Redgrave,Vanessa Redgrave
+Michael Redgrave,Corin Redgrave
+Corin Redgrave,Jemma Redgrave
+Vanessa Redgrave,Natasha Richardson
+Roy Redgrave,Michael Redgrave
+)"},
+            {"married_desc",
+             R"(
+{
+    "files": [
+        {
+            "DST_ID": "Person",
+            "SRC_ID": "Person",
+            "columns": [
+                "SRC_ID",
+                "DST_ID"
+            ],
+            "format": "CSV",
+            "header": 0,
+            "label": "MARRIED"
+        }
+    ]
+})"},
+            {"married",
+             R"(Rachel Kempson,Michael Redgrave
+Michael Redgrave,Rachel Kempson
+Natasha Richardson,Liam Neeson
+Liam Neeson,Natasha Richardson
+)"},
+            {"born_in_desc",
+             R"(
+{
+    "files": [
+        {
+            "DST_ID": "City",
+            "SRC_ID": "Person",
+            "columns": [
+                "SRC_ID",
+                "DST_ID",
+                "weight",
+                "tid"
+            ],
+            "format": "CSV",
+            "header": 0,
+            "label": "BORN_IN"
+        }
+    ]
+})"},
+            {"born_in",
+             R"(Vanessa Redgrave,London,20.21,7
+Natasha Richardson,London,20.18,89
+Christopher Nolan,London,19.93,32
+Dennis Quaid,Houston,19.11,13
+Lindsay Lohan,New York,20.59,64
+John Williams,New York,20.59,231
+John Williams,New York,20.59,39084
+John Williams,New York,20.59,432890
+John Williams,New York,20.59,33
+John Williams,New York,20.59,1
+)"},
+            {"directed_desc",
+             R"(
+{
+    "files": [
+        {
+            "DST_ID": "Film",
+            "SRC_ID": "Person",
+            "columns": [
+                "SRC_ID",
+                "DST_ID"
+            ],
+            "format": "CSV",
+            "header": 0,
+            "label": "DIRECTED"
+        }
+    ]
+})"},
+            {"directed",
+             R"(Christopher Nolan,Batman Begins
+)"},
+            {"wrote_desc",
+             R"(
+{
+"files": [
+    {
+        "DST_ID": "Film",
+        "SRC_ID": "Person",
+        "columns": [
+            "SRC_ID",
+            "DST_ID"
+        ],
+        "format": "CSV",
+        "header": 0,
+        "label": "WROTE_MUSIC_FOR"
+    }
+]
+})"},
+            {"wrote",
+             R"(John Williams,Harry Potter and the Sorcerer's Stone
+John Williams,"Goodbye, Mr. Chips"
+)"},
+            {"acted_in_desc",
+             R"(
+{
+    "files": [
+        {
+            "DST_ID": "Film",
+            "SRC_ID": "Person",
+            "columns": [
+                "SRC_ID",
+                "DST_ID",
+                "charactername",
+                "tid"
+            ],
+            "format": "CSV",
+            "header": 0,
+            "label": "ACTED_IN"
+        }
+    ]
+})"},
+            {"acted_in",
+             R"(Michael Redgrave,"Goodbye, Mr. Chips",The Headmaster, 1000
+Vanessa Redgrave,Camelot,Guenevere, 499
+Richard Harris,Camelot,King Arthur, 798
+Richard Harris,Harry Potter and the Sorcerer's Stone,Albus Dumbledore, 2
+Natasha Richardson,The Parent Trap,Liz James, 1001
+Dennis Quaid,The Parent Trap,Nick Ducard, 3
+Lindsay Lohan,The Parent Trap,Halle/Annie, 512
+Liam Neeson,Batman Begins,Henri Ducard, 300
+Liam Neeson,Batman Begins,Henri Ducard, 299
+Liam Neeson,Batman Begins,Henri Ducard, 298
+)"}};
+        AutoCleanDir db_cleaner(db_dir);
+        db_cleaner.Clean();
+        std::string server_cmd = UT_FMT(
+                "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
+                " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}" ,
+                port, rpc_port, db_dir);
+        UT_LOG() << "cmd: " << server_cmd;
+        auto server = std::unique_ptr<SubProcess>(new SubProcess(server_cmd));
+        if (!server->ExpectOutput("Server started.")) {
+            UT_WARN() << "Server failed to start, stderr:\n" << server->Stderr();
+        }
+        RpcClient client("0.0.0.0:16464", "admin", "73@TuGraph");
+        std::string str;
+        bool ret = client.CallCypher(str, "CALL db.dropDB()");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "CALL db.vertexLabels()");
+        UT_EXPECT_TRUE(ret);
+        web::json::value json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val.size() == 0, true);
+        ret = client.ImportSchemaFromContent(str, sImportContent["schema"]);
+        UT_EXPECT_TRUE(ret);
+        ret = client.ImportDataFromContent(str, sImportContent["person_desc"],
+                                           sImportContent["person"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (m:Person) return count(m)");
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 13);
+
+        ret =
+            client.ImportDataFromContent(str, sImportContent["city_desc"],
+                                         sImportContent["city"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (m:City) return count(m)");
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 3);
+
+        ret =
+            client.ImportDataFromContent(str, sImportContent["film_desc"],
+                                         sImportContent["film"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (m:Film) return count(m)");
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(m)"].as_integer(), 5);
+
+        ret = client.ImportDataFromContent(str, sImportContent["has_child_desc"],
+                                           sImportContent["has_child"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (n)-[r:HAS_CHILD]->(m) return count(r)");
+        UT_EXPECT_TRUE(ret);
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 7);
+
+        ret = client.ImportDataFromContent(str, sImportContent["married_desc"],
+                                           sImportContent["married"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (n)-[r:MARRIED]->(m) return count(r)");
+        UT_EXPECT_TRUE(ret);
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 4);
+
+        ret = client.ImportDataFromContent(str, sImportContent["born_in_desc"],
+                                           sImportContent["born_in"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (n)-[r:BORN_IN]->(m) return count(r)");
+        UT_EXPECT_TRUE(ret);
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 10);
+
+        ret = client.ImportDataFromContent(str, sImportContent["directed_desc"],
+                                           sImportContent["directed"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (n)-[r:DIRECTED]->(m) return count(r)");
+        UT_EXPECT_TRUE(ret);
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 1);
+
+        ret = client.ImportDataFromContent(str, sImportContent["wrote_desc"],
+                                           sImportContent["wrote"],
+                                           ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str,
+                                "match (n)-[r:WROTE_MUSIC_FOR]->(m) return count(r)");
+        UT_EXPECT_TRUE(ret);
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 2);
+
+        ret = client.ImportDataFromContent(str, sImportContent["acted_in_desc"],
+                                           sImportContent["acted_in"], ",");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "match (n)-[r:ACTED_IN]->(m) return count(r)");
+        UT_EXPECT_TRUE(ret);
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 10);
+
+
+        ret = client.CallCypher(str,
+                                "MATCH (n:Person{name:'John Williams'})-[e:BORN_IN]->(m)"
+                                " RETURN type(e) ,e.tid, euid(e) LIMIT 10");
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val.size(), 5);
+        UT_EXPECT_EQ(json_val[0]["e.tid"], 1);
+        UT_EXPECT_EQ(json_val[1]["e.tid"], 33);
+        UT_EXPECT_EQ(json_val[2]["e.tid"], 231);
+        UT_EXPECT_EQ(json_val[3]["e.tid"], 39084);
+        UT_EXPECT_EQ(json_val[4]["e.tid"], 432890);
+        ret = client.CallCypher(str,
+                                "MATCH (n:Person{name:'Liam Neeson'})-[e:ACTED_IN]->(m)"
+                                " RETURN type(e) ,e.tid, euid(e) LIMIT 10");
+        json_val = web::json::value::parse(str);
+        UT_EXPECT_EQ(json_val.size(), 3);
+        UT_EXPECT_EQ(json_val[0]["e.tid"], 298);
+        UT_EXPECT_EQ(json_val[1]["e.tid"], 299);
+        UT_EXPECT_EQ(json_val[2]["e.tid"], 300);
     }
 }

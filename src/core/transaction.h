@@ -514,6 +514,22 @@ class Transaction {
         if (!schema)
             throw InputError(
                 fma_common::StringFormatter::Format("Vertex label \"{}\" does not exist.", label));
+        return schema->GetPrimaryField();
+    }
+
+    bool HasTemporalField(const std::string& label) {
+        Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
+        if (!schema)
+            throw InputError(
+                fma_common::StringFormatter::Format("Edge label \"{}\" does not exist.", label));
+        return schema->HasTemporalField();
+    }
+
+    const std::string& GetEdgeTemporalField(const std::string& label) {
+        Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
+        if (!schema)
+            throw InputError(
+                fma_common::StringFormatter::Format("Edge label \"{}\" does not exist.", label));
         return schema->GetTemporalField();
     }
 
@@ -995,8 +1011,8 @@ class Transaction {
 
     struct EdgeDataForTheSameVertex {
         VertexId vid;
-        std::vector<std::tuple<LabelId, VertexId, Value>> outs;
-        std::vector<std::tuple<LabelId, VertexId, Value>> ins;
+        std::vector<std::tuple<LabelId, VertexId, TemporalId, Value>> outs;
+        std::vector<std::tuple<LabelId, VertexId, TemporalId, Value>> ins;
     };
 
     std::string _OnlineImportBatchAddEdges(

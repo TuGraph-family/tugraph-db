@@ -88,8 +88,8 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                      .MeetEdgeConstraints(file.edge_src.label, file.edge_dst.label)) {
                 throw std::runtime_error(FMA_FMT("{} not meet the edge constraints", file.path));
             }
-            file.edge_src.id = schema.FindVertexLabel(file.edge_src.label).GetPrimaryColumn().name;
-            file.edge_dst.id = schema.FindVertexLabel(file.edge_dst.label).GetPrimaryColumn().name;
+            file.edge_src.id = schema.FindVertexLabel(file.edge_src.label).GetPrimaryField().name;
+            file.edge_dst.id = schema.FindVertexLabel(file.edge_dst.label).GetPrimaryField().name;
         }
         ImportConfParser::CheckConsistent(schema, file);
     }
@@ -102,10 +102,12 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             std::unique_ptr<LabelOptions> options;
             if (v.is_vertex) {
                 auto vo = std::make_unique<VertexOptions>();
-                vo->primary_field = v.GetPrimaryColumn().name;
+                vo->primary_field = v.GetPrimaryField().name;
                 options = std::move(vo);
             } else {
                 auto eo = std::make_unique<EdgeOptions>();
+                if (v.HasTemporalField())
+                    eo->temporal_field = v.GetTemporalField().name;
                 eo->edge_constraints = v.edge_constraints;
                 options = std::move(eo);
             }
@@ -238,7 +240,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             {
                 const std::string& vlabel = vid_label[act.vid];
                 FMA_LOG() << "Write vertex label " << vlabel;
-                const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryColumn();
+                const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryField();
                 if (!config_.dry_run) {
                     WriteVertex(db.GetLightningGraph(), vlabel, key_spec.name, key_spec.type);
                 }
@@ -274,7 +276,7 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                                                   const LabelDesc& ld) {
     FMA_ASSERT(!files.empty());
     const std::string& label = ld.name;
-    FieldType type = ld.GetPrimaryColumn().type;
+    FieldType type = ld.GetPrimaryField().type;
     // the whole process is organized as a pipeline of multiple stages
     //   ColumnParser -> [std::pair<VidType,
     //   std::vector<std::vector<FieldData>>>]
@@ -319,8 +321,8 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
             1);       // buffer size
         // stitch the FieldData into a binary block and get vid, then pass to file
         // writer
-        size_t key_col_id = desc->FindIdxExcludeSkip(ld.GetPrimaryColumn().name);
-        bool id_is_string = ld.GetPrimaryColumn().type == FieldType::STRING;
+        size_t key_col_id = desc->FindIdxExcludeSkip(ld.GetPrimaryField().name);
+        bool id_is_string = ld.GetPrimaryField().type == FieldType::STRING;
 
         Schema schema;
         std::vector<size_t> field_ids;
@@ -515,10 +517,10 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
         size_t first_id_pos = std::min(src_id_pos, dst_id_pos);
         size_t second_id_pos = std::max(src_id_pos, dst_id_pos);
         size_t label_id;
-        bool has_tid = ld.HasPrimaryColumn();
+        bool has_tid = ld.HasTemporalField();
         int primary_id_pos = -1;
         if (has_tid) {
-            primary_id_pos = (int)fd.FindIdxExcludeSkip(ld.GetPrimaryColumn().name);
+            primary_id_pos = (int)fd.FindIdxExcludeSkip(ld.GetTemporalField().name);
         }
         std::vector<size_t> field_ids;
         Schema schema;

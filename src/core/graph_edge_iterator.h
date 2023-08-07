@@ -386,10 +386,11 @@ class EdgeIteratorImpl {
         // @TODO: optimize
         for (InputIt i = begin; i != end; ++i) {
             auto eid =
-                InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), 0),
-                           detach_property ? Value() : std::get<2>(*i), it);
+                InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), std::get<2>(*i)),
+                           detach_property ? Value() : std::get<3>(*i), it);
             if (ET == PackType::OUT_EDGE) {
-                extra_work({vid1, std::get<1>(*i), std::get<0>(*i), 0, eid}, std::get<2>(*i));
+                extra_work({vid1, std::get<1>(*i), std::get<0>(*i), std::get<2>(*i), eid},
+                           std::get<3>(*i));
             }
         }
     }

@@ -144,9 +144,9 @@ void Importer::DoImportOffline() {
                 throw std::runtime_error(FMA_FMT("{} not meet the edge constraints", file.path));
             }
             file.edge_src.id = schemaDesc_.FindVertexLabel(
-                                              file.edge_src.label).GetPrimaryColumn().name;
+                                              file.edge_src.label).GetPrimaryField().name;
             file.edge_dst.id = schemaDesc_.FindVertexLabel(
-                                              file.edge_dst.label).GetPrimaryColumn().name;
+                                              file.edge_dst.label).GetPrimaryField().name;
         }
         import_v2::ImportConfParser::CheckConsistent(schemaDesc_, file);
     }
@@ -158,10 +158,12 @@ void Importer::DoImportOffline() {
         std::unique_ptr<LabelOptions> options;
         if (v.is_vertex) {
             auto vo = std::make_unique<VertexOptions>();
-            vo->primary_field = v.GetPrimaryColumn().name;
+            vo->primary_field = v.GetPrimaryField().name;
             options = std::move(vo);
         } else {
             auto eo = std::make_unique<EdgeOptions>();
+            if (v.HasTemporalField())
+                eo->temporal_field = v.GetTemporalField().name;
             eo->edge_constraints = v.edge_constraints;
             options = std::move(eo);
         }
@@ -312,7 +314,7 @@ void Importer::VertexDataToSST() {
                     txn.Abort();
                 }
                 uint16_t key_col_id = file.FindIdxExcludeSkip(
-                    schemaDesc_.FindVertexLabel(file.label).GetPrimaryColumn().name);
+                    schemaDesc_.FindVertexLabel(file.label).GetPrimaryField().name);
                 std::unique_ptr<import_v2::BlockParser> parser;
                 if (file.data_format == "CSV") {
                     parser.reset(new import_v2::ColumnParser(
@@ -586,10 +588,10 @@ void Importer::EdgeDataToSST() {
                     edgeDataBlock->src_id_pos = src_id_pos;
                     edgeDataBlock->dst_id_pos = dst_id_pos;
                     edgeDataBlock->label_id = boost::endian::native_to_big(label_id);
-                    if (schemaDesc_.FindEdgeLabel(file.label).HasPrimaryColumn()) {
+                    if (schemaDesc_.FindEdgeLabel(file.label).HasTemporalField()) {
                         edgeDataBlock->has_tid = true;
                         edgeDataBlock->tid_pos = (int)file.FindIdxExcludeSkip(
-                            schemaDesc_.FindEdgeLabel(file.label).GetPrimaryColumn().name);
+                            schemaDesc_.FindEdgeLabel(file.label).GetTemporalField().name);
                     }
                     edgeDataBlock->src_label_id = boost::endian::native_to_big(src_label_id);
                     edgeDataBlock->dst_label_id = boost::endian::native_to_big(dst_label_id);

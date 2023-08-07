@@ -42,13 +42,17 @@ struct OnlineImportEdge {
     VertexId vid1;
     LabelId lid;
     VertexId vid2;
+    TemporalId tid;
     Value prop;
     bool is_out_edge;
-    OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, Value&& prop, bool is_out)
-        : vid1(vid1_), lid(lid_), vid2(vid2_), prop(std::move(prop)), is_out_edge(is_out) {}
+    OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, TemporalId tid_,
+                     Value&& prop, bool is_out)
+        : vid1(vid1_), lid(lid_), vid2(vid2_), tid(tid_), prop(std::move(prop))
+          , is_out_edge(is_out) {}
 
-    OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, const Value& prop, bool is_out)
-        : vid1(vid1_), lid(lid_), vid2(vid2_), prop(prop), is_out_edge(is_out) {}
+    OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, TemporalId tid_,
+                     const Value& prop, bool is_out)
+        : vid1(vid1_), lid(lid_), vid2(vid2_), tid(tid_), prop(prop), is_out_edge(is_out) {}
 
     bool operator<(const OnlineImportEdge& rhs) const {
         return vid1 < rhs.vid1 || (vid1 == rhs.vid1 && lid < rhs.lid);
@@ -184,6 +188,13 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     size_t first_id_pos = std::min(src_id_pos_in_parsed_fds, dst_id_pos_in_parsed_fds);
     size_t second_id_pos = std::max(src_id_pos_in_parsed_fds, dst_id_pos_in_parsed_fds);
 
+    size_t temporal_id_pos;
+    bool has_temporal_field = txn.HasTemporalField(label);
+    if (has_temporal_field) {
+        const std::string& temporal = txn.GetEdgeTemporalField(label);
+        temporal_id_pos = fd.FindIdxExcludeSkip(temporal);
+    }
+
     size_t label_id = txn.GetLabelId(false, label);
     std::vector<size_t> field_ids = txn.GetFieldIds(false, label_id, field_names);
 
@@ -263,6 +274,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
             auto& field_values = data[i];
             int64_t src_vid = src_vids[i];
             int64_t dst_vid = dst_vids[i];
+            TemporalId tid = has_temporal_field ? field_values[temporal_id_pos].AsInt64() : 0;
             if (src_vid == -1 || dst_vid == -1) continue;
             for (size_t i = first_id_pos; i < second_id_pos - 1; i++) {
                 field_values[i] = std::move(field_values[i + 1]);
@@ -289,9 +301,10 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
                 error.append(msg);
             }
             std::lock_guard<std::mutex> l(edges_mtx);
-            edges.emplace_back(src_vid, static_cast<LabelId>(label_id), dst_vid, prop, true);
-            edges.emplace_back(dst_vid, static_cast<LabelId>(label_id), src_vid, std::move(prop),
-                               false);
+            edges.emplace_back(src_vid, static_cast<LabelId>(label_id), dst_vid,
+                               tid, prop, true);
+            edges.emplace_back(dst_vid, static_cast<LabelId>(label_id), src_vid,
+                               tid, std::move(prop), false);
         }
     };
     DoMultiThreadWork(n, prepare_records, config.n_threads);
@@ -309,9 +322,11 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
         oiv.vid = edges[L].vid1;
         for (size_t i = L; i < R; i++) {
             if (edges[i].is_out_edge) {
-                oiv.outs.emplace_back(edges[i].lid, edges[i].vid2, std::move(edges[i].prop));
+                oiv.outs.emplace_back(edges[i].lid, edges[i].vid2, edges[i].tid,
+                                      std::move(edges[i].prop));
             } else {
-                oiv.ins.emplace_back(edges[i].lid, edges[i].vid2, std::move(edges[i].prop));
+                oiv.ins.emplace_back(edges[i].lid, edges[i].vid2, edges[i].tid,
+                                     std::move(edges[i].prop));
             }
         }
         edges_of_vertex.emplace_back(std::move(oiv));
@@ -340,8 +355,8 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
         SchemaDesc schema;
         schema.ConstructFromDB(txn);
         txn.Abort();
-        fd.edge_src.id = schema.FindVertexLabel(fd.edge_src.label).GetPrimaryColumn().name;
-        fd.edge_dst.id = schema.FindVertexLabel(fd.edge_dst.label).GetPrimaryColumn().name;
+        fd.edge_src.id = schema.FindVertexLabel(fd.edge_src.label).GetPrimaryField().name;
+        fd.edge_dst.id = schema.FindVertexLabel(fd.edge_dst.label).GetPrimaryField().name;
     }
 
     // create txn early, to block other write during preparation
@@ -402,11 +417,13 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
         std::unique_ptr<LabelOptions> options;
         if (v.is_vertex) {
             auto vo = std::make_unique<VertexOptions>();
-            vo->primary_field = v.GetPrimaryColumn().name;
+            vo->primary_field = v.GetPrimaryField().name;
             options = std::move(vo);
         } else {
             auto eo = std::make_unique<EdgeOptions>();
             eo->edge_constraints = v.edge_constraints;
+            if (v.HasTemporalField())
+                eo->temporal_field = v.GetTemporalField().name;
             options = std::move(eo);
         }
 

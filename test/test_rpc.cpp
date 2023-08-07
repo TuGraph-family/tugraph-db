@@ -376,7 +376,7 @@ Liam Neeson,Natasha Richardson
 Natasha Richardson,London,20.18
 Christopher Nolan,London,19.93
 Dennis Quaid,Houston,19.11
-Lindsay Lohan,New York,20.62
+Lindsay Lohan,New York,20.59
 John Williams,New York,20.55
 )"},
     {"directed_desc",
@@ -444,7 +444,7 @@ Vanessa Redgrave,Camelot,Guenevere
 Richard Harris,Camelot,King Arthur
 Richard Harris,Harry Potter and the Sorcerer's Stone,Albus Dumbledore
 Natasha Richardson,The Parent Trap,Liz James
-Dennis Quaid,The Parent Trap,Nick Parker
+Dennis Quaid,The Parent Trap,Nick Ducard
 Lindsay Lohan,The Parent Trap,Halle/Annie
 Liam Neeson,Batman Begins,Henri Ducard
 )"}};
