@@ -66,13 +66,13 @@ ParallelVector<size_t> FindVertices(GraphDB &db, Transaction &txn,
     return frontier;
 }
 
-FrontierTraversal::FrontierTraversal(GraphDB &db, Transaction &txn, size_t flags)
+FrontierTraversal::FrontierTraversal(GraphDB &db, Transaction &txn, size_t flags, size_t capacity)
     : db_(db),
       txn_(txn),
       flags_(flags),
       num_vertices_(txn.GetNumVertices()),
-      curr_frontier_(MAX_RESULT_SIZE),
-      next_frontier_(MAX_RESULT_SIZE),
+      curr_frontier_(capacity),
+      next_frontier_(capacity),
       visited_(num_vertices_) {}
 
 void FrontierTraversal::Reset() {
@@ -644,13 +644,13 @@ OutEdgeIterator IteratorHelper::Cast(const Edge &edge) {
     }
 }
 
-PathTraversal::PathTraversal(GraphDB &db, Transaction &txn, size_t flags)
+PathTraversal::PathTraversal(GraphDB &db, Transaction &txn, size_t flags, size_t capacity)
     : db_(db),
       txn_(txn),
       flags_(flags),
       num_vertices_(txn.GetNumVertices()),
-      curr_frontier_(MAX_RESULT_SIZE),
-      next_frontier_(MAX_RESULT_SIZE) {}
+      curr_frontier_(capacity),
+      next_frontier_(capacity) {}
 
 void PathTraversal::Reset() { curr_frontier_.Clear(); }
 

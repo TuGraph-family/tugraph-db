@@ -108,6 +108,10 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
                                                  FieldData("233")};
     auto ver_id_5 = txn_write.AddVertex(vertex_label, vertex_field, vertex_field_value);
     UT_EXPECT_EQ(ver_id_5, 4);
+
+    PathTraversal path_traver_test(db, txn_write, true, 1ul << 22);
+    UT_EXPECT_EQ(path_traver_test.GetFrontier().Size(), 1ul << 22);
+
     UT_LOG() << "now add five vertexes! test is ok!";
     std::vector<std::string> edge_name = {"type", "weight"};
     std::vector<std::string> edge_name_B = {"type", "height"};
@@ -208,6 +212,9 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
     txn_write.GetVertexByUniqueIndex(vertex_label, "id", field_3);
 
     FrontierTraversal front_traver_write(db, txn_write, 1);
+
+    FrontierTraversal front_traver_test(db, txn_write, 1 , 1ul << 20);
+    UT_EXPECT_EQ(front_traver_test.GetFrontier().Size(), 1ul << 20);
 
     front_traver_write.SetFrontier([&](VertexIterator &vit) {
         UT_LOG() << "read txn set write vertext iterator";
