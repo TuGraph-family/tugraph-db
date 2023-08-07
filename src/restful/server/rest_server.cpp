@@ -1964,11 +1964,14 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
         std::string code, version;
         if (!ExtractStringField(body, RestStrings::NAME, *req->mutable_name()) ||
             !ExtractBoolField(body, RestStrings::READONLY, read_only) ||
-            !ExtractStringField(body, RestStrings::CODE, code) ||
-            !ExtractStringField(body, RestStrings::VERSION, version)) {
+            !ExtractStringField(body, RestStrings::CODE, code)) {
             BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::Plugin, true,
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
+        }
+        // use v1 by default for compatibility
+        if (!ExtractStringField(body, RestStrings::VERSION, version)) {
+            version = "v1";
         }
         preq->set_version(version);
         req->set_read_only(read_only);
