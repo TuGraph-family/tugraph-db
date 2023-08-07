@@ -740,7 +740,7 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
              * (3) online import vertex with duplicated age(NON-UNIQUE INDEX),
              *     failed incorrectly.
              **/
-            schema->DeletePartialVertexIndex(txn_, newvid, v);
+            schema->DeleteCreatedVertexIndex(txn_, newvid, v);
             std::string msg =
                 FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
             if (!continue_on_error) {

@@ -428,7 +428,7 @@ class Schema {
      * Note: Currently this function is only used to delete and clean up residual indexes
      * after AddVertexToIndex fails.
      */
-    void DeletePartialVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
+    void DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeletePartialEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
                                 EdgeId eid, const Value& record);

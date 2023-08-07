@@ -60,18 +60,14 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
     }
 }
 
-void Schema::DeletePartialVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VertexIndex* index = fe.GetVertexIndex();
         FMA_ASSERT(index);
-        /* the aim of this method is delete the residual indexes, so do not delete
-         * the unique index.
-         **/
-        if (!index->IsUnique()) {
-            index->Delete(txn, fe.GetConstRef(record), vid);
-        }
+        // the aim of this method is delete the index that has been created
+        index->Delete(txn, fe.GetConstRef(record), vid);
     }
 }
 

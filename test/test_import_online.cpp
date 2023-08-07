@@ -73,8 +73,8 @@ class TestImportOnline : public TuGraphTest {
     void SetUp() {
         TuGraphTest::SetUp();
         host = "0.0.0.0";
-        port = 6464;
-        rpc_port = 16464;
+        port = 36464;
+        rpc_port = 46464;
         db_dir = "./lgraph_db";
         db_name = "default";
     }
@@ -1408,7 +1408,8 @@ Liam Neeson,Batman Begins,Henri Ducard, 298
         if (!server->ExpectOutput("Server started.")) {
             UT_WARN() << "Server failed to start, stderr:\n" << server->Stderr();
         }
-        RpcClient client("0.0.0.0:16464", "admin", "73@TuGraph");
+        RpcClient client("0.0.0.0:46464", lgraph::_detail::DEFAULT_ADMIN_NAME,
+                  lgraph::_detail::DEFAULT_ADMIN_PASS);
         std::string str;
         bool ret = client.CallCypher(str, "CALL db.dropDB()");
         UT_EXPECT_TRUE(ret);
@@ -1510,5 +1511,259 @@ Liam Neeson,Batman Begins,Henri Ducard, 298
         UT_EXPECT_EQ(json_val[0]["e.tid"], 298);
         UT_EXPECT_EQ(json_val[1]["e.tid"], 299);
         UT_EXPECT_EQ(json_val[2]["e.tid"], 300);
+    }
+}
+
+TEST_F(TestImportOnline, UniqueIndexCollision) {
+    {
+        auto StartServer = [&]() {
+            std::string server_cmd = UT_FMT(
+                "./lgraph_server -c lgraph_standalone.json --port {} --rpc_port {}"
+                " --enable_backup_log true --host 127.0.0.1 --verbose 1 --directory {}" ,
+                port, rpc_port, db_dir);
+            UT_LOG() << "cmd: " << server_cmd;
+            auto server = std::unique_ptr<SubProcess>(new SubProcess(server_cmd));
+            if (!server->ExpectOutput("Server started.")) {
+                UT_WARN() << "Server failed to start, stderr:\n" << server->Stderr();
+            }
+            return server;
+        };
+
+        auto TryImport = [&](const std::string &expect_output, int expect_ec,
+                             std::string config_file_, bool continue_on_error = false) {
+            std::string import_cmd = UT_FMT(
+                "./lgraph_import --online true --config_file \"{}\" -r http://127.0.0.1:{} "
+                "--continue_on_error {} -u {} -p {}",
+                config_file_, port, continue_on_error, lgraph::_detail::DEFAULT_ADMIN_NAME,
+                lgraph::_detail::DEFAULT_ADMIN_PASS);
+
+            UT_LOG() << "cmd: " << import_cmd;
+            SubProcess proc(import_cmd);
+            UT_EXPECT_TRUE(proc.ExpectOutput(expect_output, 10 * 1000));
+            proc.Wait();
+            UT_EXPECT_EQ(expect_ec, proc.GetExitCode());
+        };
+
+        std::string config_content = R"(
+            {
+"schema": [
+{
+"label" : "Person",
+"type" : "VERTEX",
+"primary" : "name",
+"properties" : [
+    {"name" : "name", "type":"STRING"},
+    {"name" : "birthyear", "type":"INT16", "optional":true},
+    {"name" : "phone1", "type":"INT16","unique":true, "index":true},
+    {"name" : "phone2", "type":"INT16","unique":true, "index":true}
+]
+},
+{
+"label" : "City",
+"type" : "VERTEX",
+"primary" : "name",
+"properties" : [
+    {"name" : "name", "type":"STRING"}
+]
+},
+{
+"label" : "Film",
+"type" : "VERTEX",
+"primary" : "title",
+"properties" : [
+    {"name" : "title", "type":"STRING"}
+]
+},
+{"label" : "HAS_CHILD", "type" : "EDGE"},
+{"label" : "MARRIED", "type" : "EDGE"},
+{
+"label" : "BORN_IN",
+"type" : "EDGE",
+"properties" : [
+    {"name" : "weight", "type":"FLOAT", "optional":true}
+]
+},
+{"label" : "DIRECTED", "type" : "EDGE"},
+{"label" : "WROTE_MUSIC_FOR", "type" : "EDGE"},
+{
+"label" : "ACTED_IN",
+"type" : "EDGE",
+"properties" : [
+    {"name" : "charactername", "type":"STRING"}
+]
+}
+],
+"files" : [
+{
+"path" : "./person.csv",
+"format" : "CSV",
+"label" : "Person",
+"columns" : ["name","birthyear","phone1","phone2"]
+},
+{
+"path" : "./city.csv",
+"format" : "CSV",
+"header" : 1,
+"label" : "City",
+"columns" : ["name"]
+},
+{
+"path" : "./film.csv",
+"format" : "CSV",
+"label" : "Film",
+"columns" : ["title"]
+},
+{
+"path" : "./has_child.csv",
+"format" : "CSV",
+"label" : "HAS_CHILD",
+"SRC_ID" : "Person",
+"DST_ID" : "Person",
+"columns" : ["SRC_ID","DST_ID"]
+},
+{
+"path" : "./married.csv",
+"format" : "CSV",
+"label" : "MARRIED",
+"SRC_ID" : "Person",
+"DST_ID" : "Person",
+"columns" : ["SRC_ID","DST_ID"]
+},
+{
+"path" : "./born_in.csv",
+"format" : "CSV",
+"label" : "BORN_IN",
+"SRC_ID" : "Person",
+"DST_ID" : "City",
+"columns" : ["SRC_ID","DST_ID","weight"]
+},
+{
+"path" : "./directed.csv",
+"format" : "CSV",
+"label" : "DIRECTED",
+"SRC_ID" : "Person",
+"DST_ID" : "Film",
+"columns" : ["SRC_ID","DST_ID"]
+},
+{
+"path" : "./wrote.csv",
+"format" : "CSV",
+"label" : "WROTE_MUSIC_FOR",
+"SRC_ID" : "Person",
+"DST_ID" : "Film",
+"columns" : ["SRC_ID","DST_ID"]
+},
+{
+"path" : "./acted_in.csv",
+"format" : "CSV",
+"label" : "ACTED_IN",
+"SRC_ID" : "Person",
+"DST_ID" : "Film",
+"columns" : ["SRC_ID","DST_ID","charactername"]
+}
+]
+}
+)";
+        WriteFile("import.conf", config_content);
+
+        std::string person_content = R"(
+Rachel Kempson,1910,10086,10010
+Michael Redgrave,1908,10087,10010
+Vanessa Redgrave,1937,10088,10011
+Corin Redgrave,1939,10089,10012
+Liam Neeson,1952,10090,10013
+Natasha Richardson,1963,10091,10014
+Richard Harris,1930,10092,10015
+Dennis Quaid,1954,10093,10016
+Lindsay Lohan,1986,10094,100116
+Jemma Redgrave,1965,10087,10017
+Roy Redgrave,1873,10096,10018
+John Williams,1932,10094,10019
+Christopher Nolan,1970,10098,10020
+)";
+        WriteFile("person.csv", person_content);
+
+        std::string film_content = R"(
+"Goodbye, Mr. Chips"
+Batman Begins
+Harry Potter and the Sorcerer's Stone
+The Parent Trap
+Camelot
+)";
+        WriteFile("film.csv", film_content);
+
+        std::string city_content = R"(
+Header Line
+New York
+London
+Houston
+)";
+        WriteFile("city.csv", city_content);
+
+        std::string acted_in_content = R"(
+Michael Redgrave,"Goodbye, Mr. Chips",The Headmaster
+Vanessa Redgrave,Camelot,Guenevere
+Richard Harris,Camelot,King Arthur
+Richard Harris,Harry Potter and the Sorcerer's Stone,Albus Dumbledore
+Natasha Richardson,The Parent Trap,Liz James
+Dennis Quaid,The Parent Trap,Nick Parker
+Lindsay Lohan,The Parent Trap,Halle/Annie
+Liam Neeson,Batman Begins,Henri Ducard
+)";
+        WriteFile("acted_in.csv", acted_in_content);
+
+        std::string born_in_content = R"(
+Vanessa Redgrave,London,20.21
+Natasha Richardson,London,20.18
+Christopher Nolan,London,19.93
+Dennis Quaid,Houston,19.11
+Lindsay Lohan,New York,20.62
+John Williams,New York,20.55
+)";
+        WriteFile("born_in.csv", born_in_content);
+
+        std::string directed_content = R"(
+Christopher Nolan,Batman Begins
+)";
+        WriteFile("directed.csv", directed_content);
+
+        std::string has_child_content = R"(
+Rachel Kempson,Vanessa Redgrave
+Rachel Kempson,Corin Redgrave
+Michael Redgrave,Vanessa Redgrave
+Michael Redgrave,Corin Redgrave
+Corin Redgrave,Jemma Redgrave
+Vanessa Redgrave,Natasha Richardson
+Roy Redgrave,Michael Redgrave
+)";
+        WriteFile("has_child.csv", has_child_content);
+
+        std::string married_content = R"(
+Rachel Kempson,Michael Redgrave
+Michael Redgrave,Rachel Kempson
+Natasha Richardson,Liam Neeson
+Liam Neeson,Natasha Richardson
+)";
+        WriteFile("married.csv", married_content);
+
+        std::string wrote_content = R"(
+John Williams,Harry Potter and the Sorcerer's Stone
+John Williams,"Goodbye, Mr. Chips"
+)";
+        WriteFile("wrote.csv", wrote_content);
+
+        AutoCleanDir db_cleaner(db_dir);
+        db_cleaner.Clean();
+
+        auto server = StartServer();
+        TryImport("Import finished", 0, "import.conf", true);
+        RpcClient client("0.0.0.0:46464", lgraph::_detail::DEFAULT_ADMIN_NAME,
+                  lgraph::_detail::DEFAULT_ADMIN_PASS);
+        std::string str;
+        bool ret = client.CallCypher(str, "MATCH (n:Person) RETURN Count(n)");
+        UT_EXPECT_TRUE(ret);
+        web::json::value json_val = web::json::value::parse(str);
+        FMA_LOG() << "MATCH (n:Person) RETURN Count(n) " << str;
+        UT_EXPECT_EQ(json_val[0]["Count(n)"], 11);
     }
 }
