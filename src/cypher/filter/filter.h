@@ -54,7 +54,7 @@ struct FieldDataHash {
         case FieldType::DATE:
             return std::hash<int32_t>()(fd.AsDate().DaysSinceEpoch());
         case FieldType::DATETIME:
-            return std::hash<int64_t>()(fd.AsDateTime().SecondsSinceEpoch());
+            return std::hash<int64_t>()(fd.AsDateTime().MicroSecondsSinceEpoch());
         case FieldType::STRING:
             return std::hash<std::string>()(fd.AsString());
         case FieldType::BLOB:

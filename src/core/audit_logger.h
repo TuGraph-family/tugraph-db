@@ -98,7 +98,7 @@ class AuditLogger {
         if (s.size() != 15) return false;
 
 #ifdef _WIN32
-        lgraph_api::DateTime::YMDHMS ymdhms;
+        lgraph_api::DateTime::YMDHMSF ymdhms;
         const char* p = s.c_str();
         size_t r = fma_common::TextParserUtils::ParseT(p, p + 4, ymdhms.year) +
                    fma_common::TextParserUtils::ParseT(p + 4, p + 6, ymdhms.month) +
@@ -107,7 +107,7 @@ class AuditLogger {
                    fma_common::TextParserUtils::ParseT(p + 11, p + 13, ymdhms.minute) +
                    fma_common::TextParserUtils::ParseT(p + 13, p + 15, ymdhms.second);
         if (r != 14) return false;
-        t = lgraph_api::DateTime(ymdhms).SecondsSinceEpoch();
+        t = lgraph_api::DateTime(ymdhms).MicroSecondsSinceEpoch();
         return true;
 #else
         struct tm timeinfo;
@@ -117,7 +117,7 @@ class AuditLogger {
         time_t tmp = mktime(&timeinfo);
         t = lgraph_api::DateTime(std::chrono::system_clock::from_time_t(tmp))
                 .ConvertToLocal()
-                .SecondsSinceEpoch();
+                .MicroSecondsSinceEpoch();
         return true;
 #endif
     }
@@ -125,10 +125,10 @@ class AuditLogger {
     // take second (int64_t) of local time, then convert it to string
     static inline bool TimeToString(std::string& ret, int64_t rt = 0) {
         if (rt < 0) return false;
-        lgraph_api::DateTime::YMDHMS t =
+        lgraph_api::DateTime::YMDHMSF t =
             (rt == 0)
-            ? lgraph_api::DateTime::LocalNow().GetYMDHMS()
-            : lgraph_api::DateTime(rt).GetYMDHMS();
+            ? lgraph_api::DateTime::LocalNow().GetYMDHMSF()
+            : lgraph_api::DateTime(rt).GetYMDHMSF();
         ret.resize(16);
         int i = snprintf(&ret[0], ret.size(), "%4d%02d%02d_%02d%02d%02d",
             t.year, t.month, t.day, t.hour, t.minute, t.second);
@@ -216,7 +216,7 @@ class AuditLogger {
                         std::chrono::steady_clock::now() + std::chrono::seconds(3600);  // 1 hour
                     {
                         AutoWriteLock<RWLock> lock(lock_);
-                        int64_t tnow = lgraph_api::DateTime::LocalNow().SecondsSinceEpoch();
+                        int64_t tnow = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
                         auto& fs = fma_common::FileSystem::GetFileSystem(dir_);
                         auto files = fs.ListFiles(dir_, nullptr);
                         FMA_DBG_STREAM(logger_)
@@ -285,7 +285,7 @@ class AuditLogger {
                      const lgraph::LogApiType type, const bool read_write, const bool success,
                      const std::string& content, int64_t idx = 0) {
         AutoWriteLock<RWLock> lock(lock_);
-        int64_t log_time = lgraph_api::DateTime::LocalNow().SecondsSinceEpoch();
+        int64_t log_time = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
 
         if ((file_.Size() >= file_size_limit_) && (last_log_time_ < log_time)) {
             file_.Close();
@@ -326,16 +326,16 @@ class AuditLogger {
                                          const std::string& user = "", int limit = 100,
                                          bool descending_order = true) {
         int64_t begin_time, end_time, now;
-        now = lgraph_api::DateTime::LocalNow().SecondsSinceEpoch();
+        now = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
         lgraph_api::DateTime bt;
         if (!lgraph_api::DateTime::Parse(begin, bt))
             throw InputError(FMA_FMT("Failed to parse begin time [{}].", begin));
-        begin_time = bt.SecondsSinceEpoch();
+        begin_time = bt.MicroSecondsSinceEpoch();
         if (!end.empty()) {
             lgraph_api::DateTime et;
             if (!lgraph_api::DateTime::Parse(end, et))
                 throw InputError(FMA_FMT("Failed to parse begin time [{}].", end));
-            end_time = et.SecondsSinceEpoch();
+            end_time = et.MicroSecondsSinceEpoch();
             if (end_time > now) end_time = now;
         } else {
             end_time = now;

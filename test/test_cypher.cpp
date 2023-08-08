@@ -787,10 +787,19 @@ int test_expression(cypher::RTContext *ctx) {
         /* list test */
         {"UNWIND [2, 3, 4, 5] AS number WITH number WHERE number IN [2, 3, 8] RETURN number", 2},
         /* datetime, bool, binary */
+        {"RETURN date() AS d", 1},
+        {"RETURN date('2017-05-03')", 1},
+        {"RETURN date('2017-05-01')", 1},
+        {"RETURN date('2017-05-01') < date('2017-05-03')", 1},
+        {"RETURN date('2017-05-03') > date('2017-05-01')", 1},
+        {"RETURN date('2017-05-01') = date('2017-05-01')", 1},
         {"RETURN datetime() AS timePoint", 1},
         {"RETURN datetime('2017-05-03 10:40:32') AS timePoint", 1},
         {"RETURN datetime('2017-05-01 10:00:00') > datetime('2017-05-03 08:00:00')", 1},
         {"RETURN datetime('2017-05-01 10:00:00') < datetime('2017-05-03 08:00:00')", 1},
+        {"RETURN datetime('2017-05-01 10:00:00.000001') > datetime('2017-05-01 10:00:00')", 1},
+        {"RETURN datetime('2017-05-01 10:00:00.000002') > datetime('2017-05-01 10:00:00.000001')",
+        1},
         {"WITH datetime('2017-05-01 10:00:00') AS t1, datetime('2017-05-03 08:00:00') AS t2 RETURN "
          "t1>t2,t1<t2",
          1},
@@ -800,14 +809,18 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN bin('MjAyMAo=') = bin('MjAyMAo=')", 1},
         {"WITH bin('MjAyMAo=') AS bin1, bin('MjAxOQo=') AS bin2 RETURN bin1>bin2,bin1<bin2", 1},
         /* datetime components */
+        {"RETURN dateComponent(12345, 'year'), datetimeComponent(12345, 'month'), "
+        "datetimeComponent(12345, 'day')",
+        1},
         {"RETURN datetimeComponent(1582705717, 'year'),datetimeComponent(1582705717, "
          "'month'),datetimeComponent(1582705717, 'day')",
          1},
         {"RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, "
-         "'minute'),datetimeComponent(1582705717, 'second')",
+         "'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717,"
+         " 'microsecond')",
          1},
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
-         "'second')",
+         "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
     };
     std::vector<std::string> scripts;
@@ -1393,10 +1406,10 @@ int test_add(cypher::RTContext *ctx) {
 int test_set(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts = {
         "CALL db.createVertexLabel('Person', 'name', 'name', STRING, false, 'age', INT16, true, "
-        "'eyes', STRING, true)",
+        "'eyes', STRING, true, 'date', DATE, true)",
         "CALL db.createEdgeLabel('KNOWS', '[]', 'weight', INT16, true)",
         R"(
-CREATE (a:Person {name:'A', age:13})
+CREATE (a:Person {name:'A', age:13, date:DATE('2023-07-23')})
 CREATE (b:Person {name:'B', age:33, eyes:'blue'})
 CREATE (c:Person {name:'C', age:44, eyes:'blue'})
 CREATE (d:Person {name:'D', eyes:'brown'})
