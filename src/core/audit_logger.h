@@ -217,6 +217,7 @@ class AuditLogger {
                     {
                         AutoWriteLock<RWLock> lock(lock_);
                         int64_t tnow = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
+                        tnow = tnow / 1000000;
                         auto& fs = fma_common::FileSystem::GetFileSystem(dir_);
                         auto files = fs.ListFiles(dir_, nullptr);
                         FMA_DBG_STREAM(logger_)
@@ -230,6 +231,7 @@ class AuditLogger {
                                     FMA_WARN() << "Failed to get time from audit log file name ["
                                                << f2 << "]";
                                 } else {
+                                    t2 = t2 / 1000000;
                                     if (tnow - t2 > static_cast<int64_t>(expire_second_)) {
                                         if (!fs.Remove(files[f_i]))
                                             FMA_WARN_STREAM(logger_) << "Clear audit log file "
