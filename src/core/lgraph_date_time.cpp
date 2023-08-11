@@ -44,7 +44,7 @@ TimeZone TimeZone::GetLocalTZ() {
     if (s != 19) throw InputError("failed to convert from DateTime to Local DateTime");
     DateTime local(buf);
     int64_t microtime_diff_seconds = static_cast<int64_t>(local.MicroSecondsSinceEpoch()
-    - utc.MicroSecondsSinceEpoch());
+    - (utc.MicroSecondsSinceEpoch() / 1000000 * 1000000));
     FMA_DBG_CHECK_EQ((microtime_diff_seconds / 1000000) % 3600, 0);
     return TimeZone((microtime_diff_seconds / 1000000) / 3600);
 #endif
@@ -303,7 +303,8 @@ DateTime DateTime::Now() noexcept { return DateTime(std::chrono::system_clock::n
 
 DateTime DateTime::LocalNow() noexcept {
     return DateTime(std::chrono::system_clock::now() +
-                    std::chrono::microseconds(TimeZone::LocalTimeZone().UTCDiffSeconds()));
+                    std::chrono::microseconds(TimeZone::LocalTimeZone().UTCDiffSeconds()
+                    * 1000000));
 }
 
 DateTime::YMDHMSF DateTime::GetYMDHMSF() const noexcept {
