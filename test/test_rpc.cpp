@@ -905,8 +905,8 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(HasElement(json_val, "followed", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "married", "edgeLabels"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "followed", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "married", "label"), true);
 
     ret = client.CallCypher(str, "CALL db.deleteLabel('edge', 'followed')");
     UT_EXPECT_TRUE(ret);
@@ -916,8 +916,8 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(HasElement(json_val, "followed", "edgeLabels"), false);
-    UT_EXPECT_EQ(HasElement(json_val, "married", "edgeLabels"), false);
+    UT_EXPECT_EQ(HasElement(json_val, "followed", "label"), false);
+    UT_EXPECT_EQ(HasElement(json_val, "married", "label"), false);
     ret = client.CallCypher(
         str,
         "CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)");
@@ -1740,12 +1740,12 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 6);
-    UT_EXPECT_EQ(HasElement(json_val, "HAS_CHILD", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "MARRIED", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "BORN_IN", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "DIRECTED", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "WROTE_MUSIC_FOR", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "ACTED_IN", "edgeLabels"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "HAS_CHILD", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "MARRIED", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "BORN_IN", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "DIRECTED", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "WROTE_MUSIC_FOR", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "ACTED_IN", "label"), true);
     ret = client.ImportDataFromFile(str, conf_file, ",");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
@@ -1813,12 +1813,12 @@ void test_import_content(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 7);
-    UT_EXPECT_EQ(HasElement(json_val, "HAS_CHILD", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "MARRIED", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "BORN_IN", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "DIRECTED", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "WROTE_MUSIC_FOR", "edgeLabels"), true);
-    UT_EXPECT_EQ(HasElement(json_val, "ACTED_IN", "edgeLabels"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "HAS_CHILD", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "MARRIED", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "BORN_IN", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "DIRECTED", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "WROTE_MUSIC_FOR", "label"), true);
+    UT_EXPECT_EQ(HasElement(json_val, "ACTED_IN", "label"), true);
 
     ret = client.ImportDataFromContent(str, sImportContent["person_desc"], sImportContent["person"],
                                        ",");

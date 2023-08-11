@@ -4,6 +4,7 @@
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_rpc_client.h"
 #include "fma-common/configuration.h"
+#include <boost/algorithm/string.hpp>
 
 void build_add_vertex_so() {
     const std::string INCLUDE_DIR = "../../include";
@@ -43,7 +44,11 @@ class TestHAConsistency : public testing::Test {
             pclose(fp);
         }
         host = std::string(buf);
-        host = host.substr(0, host.size() - 2);
+        boost::trim(host);
+        int len = host.find(' ');
+        if (len != std::string::npos) {
+            host = host.substr(0, len);
+        }
 #ifndef __SANITIZE_ADDRESS__
         std::string cmd_f =
             "mkdir {} && cp -r ../../src/server/lgraph_ha.json "

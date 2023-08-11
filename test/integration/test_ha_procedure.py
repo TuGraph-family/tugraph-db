@@ -312,7 +312,10 @@ Liam Neeson,Batman Begins,Henri Ducard'''
 class TestHAProcedure:
 
     def setup_class(self):
-        self.host = str(os.popen("hostname -I").read()[:-2])
+        self.host = str(os.popen("hostname -I").read()).strip()
+        l = self.host.find(' ')
+        if l != -1:
+            self.host = self.host[:l]
         global host
         host = self.host
         start_ha_server(self.host, "./db")
@@ -378,14 +381,14 @@ class TestHAProcedure:
         assert ret[0]
         labels = json.loads(ret[1])
         for label in labels:
-            assert label.get("edgeLabels") == "followed" or label.get("edgeLabels") == "married"
+            assert label.get("label") == "followed" or label.get("label") == "married"
         ret = ha_client.callCypher("CALL db.deleteLabel('edge', 'followed')", "default")
         assert ret[0]
         time.sleep(3)
         ret = ha_client.callCypher("CALL db.edgeLabels()", "default")
         assert ret[0]
         label = json.loads(ret[1])[0]
-        assert label.get("edgeLabels") == "married"
+        assert label.get("label") == "married"
         ha_client.logout()
 
 

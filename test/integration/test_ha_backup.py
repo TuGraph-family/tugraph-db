@@ -61,7 +61,10 @@ def procedure_check(host):
 
 class TestHAImport:
     def setup_class(self):
-        self.host = str(os.popen("hostname -I").read()[:-2])
+        self.host = str(os.popen("hostname -I").read()).strip()
+        l = self.host.find(' ')
+        if l != -1:
+            self.host = self.host[:l]
 
     def teardown(self):
         stop_server()

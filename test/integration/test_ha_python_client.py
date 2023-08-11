@@ -10,7 +10,10 @@ ha_client_python_util.log = log
 class TestHAPythonClient:
 
     def setup_class(self):
-        self.host = str(os.popen("hostname -I").read()[:-2])
+        self.host = str(os.popen("hostname -I").read()).strip()
+        l = self.host.find(' ')
+        if l != -1:
+            self.host = self.host[:l]
         start_ha_server(self.host, "./db")
         self.client = start_ha_client(self.host, "29092")
         print("---------client start success!--------")
@@ -38,8 +41,8 @@ class TestHAPythonClient:
         def edge_result_check(res):
             log.info("db.edgeLabels() : " + res)
             json_object = json.loads(res)[0]
-            assert "edgeLabels" in json_object.keys()
-            assert "PLAY_IN" == json_object["edgeLabels"]
+            assert "label" in json_object.keys()
+            assert "PLAY_IN" == json_object["label"]
         log.info("----------------testImportSchemaFromContent--------------------")
         self.client.callCypher("CALL db.dropDB()", "default", timeout=10)
         schema = '''{"schema" :
@@ -199,9 +202,9 @@ class TestHAPythonClient:
             array = json.loads(res)
             assert len(array) == 6
             for o in array:
-                assert "HAS_CHILD" == o["edgeLabels"] or "MARRIED" == o["edgeLabels"] or "BORN_IN" == o["edgeLabels"] \
-                       or "DIRECTED" == o["edgeLabels"] or "WROTE_MUSIC_FOR" == o["edgeLabels"] \
-                       or "ACTED_IN" == o["edgeLabels"]
+                assert "HAS_CHILD" == o["label"] or "MARRIED" == o["label"] or "BORN_IN" == o["label"] \
+                       or "DIRECTED" == o["label"] or "WROTE_MUSIC_FOR" == o["label"] \
+                       or "ACTED_IN" == o["label"]
         log.info("----------------test_import_schema_from_file--------------------")
         self.client.callCypher("CALL db.dropDB()", "default", 10)
         ret, result = self.client.importSchemaFromFile("./data/yago/yago.conf", "default", timeout=1000)
