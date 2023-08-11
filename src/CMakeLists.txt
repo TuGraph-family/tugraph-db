@@ -27,6 +27,10 @@ install(FILES
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/python/FMA_shell
         DESTINATION share/)
+# install python restful client
+install(DIRECTORY
+        ${CMAKE_CURRENT_LIST_DIR}/client/python/TuGraphClient
+        DESTINATION share/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
         ${CMAKE_CURRENT_LIST_DIR}/../plugins/lgraph_plugin.py
@@ -53,17 +57,17 @@ add_custom_command(TARGET lgraph_server
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/scan_graph.cpp
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/scan_graph.cpp)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/custom_pagerank.cpp
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/custom_pagerank.cpp)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_LIST_DIR}/../plugins/python/scan_graph.py
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/scan_graph.py)
 add_custom_command(TARGET lgraph_server
