@@ -28,7 +28,7 @@ void build_add_vertex_so() {
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./add_vertex_v.so",
                   "../../test/test_procedures/add_vertex_v.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
 }
 
 class TestHAConsistency : public testing::Test {
@@ -52,7 +52,7 @@ class TestHAConsistency : public testing::Test {
             "true --enable_ha true --ha_node_offline_ms 5000 "
             "--ha_node_remove_ms 10000 "
             "--rpc_port {} --directory ./db --log_dir "
-            "./log  --ha_conf {} -c lgraph_ha.json -d start";
+            "./log  --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
 #else
         std::string cmd_f =
             "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
@@ -61,24 +61,24 @@ class TestHAConsistency : public testing::Test {
             "true --enable_ha true --ha_node_offline_ms 5000 "
             "--ha_node_remove_ms 10000 "
             "--rpc_port {} --directory ./db --log_dir "
-            "./log  --ha_conf {} --use_pthread 1 -c lgraph_ha.json -d start";
+            "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
 #endif
 
         int rt;
         std::string cmd = FMA_FMT(cmd_f.c_str(), "ha1", "ha1", "ha1", host, "27072", "29092",
                                   host + ":29092," + host + ":29093," + host + ":29094");
         rt = system(cmd.c_str());
-        FMA_CHECK_EQ(rt, 0);
+        UT_EXPECT_EQ(rt, 0);
         fma_common::SleepS(5);
         cmd = FMA_FMT(cmd_f.c_str(), "ha2", "ha2", "ha2", host, "27073", "29093",
                                   host + ":29092," + host + ":29093," + host + ":29094");
         rt = system(cmd.c_str());
-        FMA_CHECK_EQ(rt, 0);
+        UT_EXPECT_EQ(rt, 0);
         fma_common::SleepS(5);
         cmd = FMA_FMT(cmd_f.c_str(), "ha3", "ha3", "ha3", host, "27074", "29094",
                       host + ":29092," + host + ":29093," + host + ":29094");
         rt = system(cmd.c_str());
-        FMA_CHECK_EQ(rt, 0);
+        UT_EXPECT_EQ(rt, 0);
         fma_common::SleepS(5);
     }
     void TearDown() override {
@@ -87,13 +87,13 @@ class TestHAConsistency : public testing::Test {
             std::string dir = "ha" + std::to_string(i);
             std::string cmd = FMA_FMT(cmd_f.c_str(), dir);
             int rt = system(cmd.c_str());
-            FMA_CHECK_EQ(rt, 0);
+            UT_EXPECT_EQ(rt, 0);
             cmd = FMA_FMT("rm -rf {}", dir);
             rt = system(cmd.c_str());
-            FMA_CHECK_EQ(rt, 0);
+            UT_EXPECT_EQ(rt, 0);
         }
         int rt = system("rm -rf add_vertex_v.so");
-        FMA_CHECK_EQ(rt, 0);
+        UT_EXPECT_EQ(rt, 0);
     }
 
  public:
@@ -113,7 +113,7 @@ TEST_F(TestHAConsistency, HAConsistency) {
     std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
     std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
     int rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
     fma_common::SleepS(5);
 #ifndef __SANITIZE_ADDRESS__
     cmd_f = "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
@@ -124,12 +124,12 @@ TEST_F(TestHAConsistency, HAConsistency) {
     cmd_f = "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
         "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
         "--rpc_port {} --directory ./db --log_dir "
-        "./log  --ha_conf {} --use_pthread 1 -c lgraph_ha.json -d start";
+        "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
 #endif
     cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
                   host + ":29092," + host + ":29093," + host + ":29094");
     rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
     fma_common::SleepS(10);
     if (thread.joinable())
         thread.join();
@@ -139,5 +139,5 @@ TEST_F(TestHAConsistency, HAConsistency) {
     rpcClient.CallCypher(result, "MATCH (n) RETURN COUNT(n)", "default", true, 0,
                            host + ":29094");
     nlohmann::json res = nlohmann::json::parse(result);
-    FMA_CHECK_EQ(res[0]["COUNT(n)"], 3000000);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 3000000);
 }
