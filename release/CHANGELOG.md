@@ -1,5 +1,23 @@
 # Change Log for TuGraph
 
+# 3.6.0 (2023-8-11)
+
+**Breaking Changes:**
+
+1. High availability support
+
+2. Log system upgrade
+
+**Improvements And Bug Fixes:**
+
+1. Token fix
+
+2. Friendly ci log
+
+3. Mircosecond support for Datatime
+
+4. Other bug fix
+
 # 3.5.1 (2023-7-14)
 
 **Breaking Changes:**
