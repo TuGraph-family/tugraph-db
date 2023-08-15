@@ -291,6 +291,9 @@ void Importer::VertexDataToSST() {
         if (!file.is_vertex_file) {
             continue;
         }
+        if (file.data_format == "GraphAr") {
+            parse_file_threads_.reset(new boost::asio::thread_pool(1));
+        }
         boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, file](){
             try {
                 std::vector<FieldSpec> fts;
@@ -321,10 +324,12 @@ void Importer::VertexDataToSST() {
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.delimiter,
                         config_.quiet ? 0 : 100));
-                } else {
+                } else if (file.data_format == "JSON") {
                     parser.reset(new import_v2::JsonLinesParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.quiet ? 0 : 100));
+                } else {
+                    parser.reset(new import_v2::GraphArParser(file));
                 }
                 std::vector<std::vector<FieldData>> block;
                 while (parser->ReadBlock(block)) {

@@ -24,6 +24,10 @@
 
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/device/array.hpp>
+#include "gar/graph.h"
+#include "gar/graph_info.h"
+#include "gar/reader/arrow_chunk_reader.h"
+#include "gar/writer/arrow_chunk_writer.h"
 
 namespace lgraph {
 namespace import_v2 {
@@ -31,7 +35,7 @@ namespace import_v2 {
 class BlockParser {
  public:
     virtual bool ReadBlock(std::vector<std::vector<FieldData>>& buf) = 0;
-    virtual ~BlockParser(){}
+    virtual ~BlockParser() {}
 };
 
 /** Parse each line of a csv into a vector of FieldData, excluding SKIP columns.
@@ -629,6 +633,71 @@ class JsonLinesParser : public BlockParser {
     int64_t errors_ = 0;
     int64_t max_errors_ = 100;
 #undef SKIP_OR_THROW
+};
+
+class GraphArParser : public BlockParser {
+ protected:
+    CsvDesc cd_;
+    bool label_read = false;
+ public:
+    GraphArParser(CsvDesc cd) : cd_(cd) {}
+    bool ReadBlock(std::vector<std::vector<FieldData>>& buf) {
+        if (label_read) return false;
+        label_read = true;
+        if (cd_.is_vertex_file) {
+            auto graph_info = GAR_NAMESPACE::GraphInfo::Load(cd_.path).value();
+            auto vertices =
+                GAR_NAMESPACE::ConstructVerticesCollection(graph_info, cd_.label).value();
+            auto ver_info = graph_info.GetVertexInfo(cd_.label).value();
+            std::vector<FieldData> temp_vf;
+            for (auto it = vertices.begin(); it != vertices.end(); ++it) {
+                auto vertex = *it;
+                temp_vf.clear();
+                for (auto prop : cd_.columns) {
+                    auto data_type = ver_info.GetPropertyType(prop).value();
+                    auto fd = std::make_unique<FieldData>();
+                    switch (data_type.id()) {
+                    case GAR_NAMESPACE::Type::STRING:
+                        fd.reset(new FieldData(vertex.property<std::string>(prop).value()));
+                        temp_vf.push_back(*fd);
+                        break;
+                    case GAR_NAMESPACE::Type::BOOL:
+                        fd.reset(new FieldData(vertex.property<bool>(prop).value()));
+                        temp_vf.push_back(*fd);
+                        break;
+                    case GAR_NAMESPACE::Type::INT32:
+                        fd.reset(new FieldData(vertex.property<int32_t>(prop).value()));
+                        temp_vf.push_back(*fd);
+                        break;
+                    case GAR_NAMESPACE::Type::INT64:
+                        fd.reset(new FieldData(vertex.property<int64_t>(prop).value()));
+                        temp_vf.push_back(*fd);
+                        break;
+                    case GAR_NAMESPACE::Type::FLOAT:
+                        fd.reset(new FieldData(vertex.property<float>(prop).value()));
+                        temp_vf.push_back(*fd);
+                        break;
+                    case GAR_NAMESPACE::Type::DOUBLE:
+                        fd.reset(new FieldData(vertex.property<double>(prop).value()));
+                        temp_vf.push_back(*fd);
+                        break;
+                    case GAR_NAMESPACE::Type::USER_DEFINED:
+                        // todo
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                buf.push_back(temp_vf);
+            }
+            return true;
+        } else {
+            auto graph_info = GAR_NAMESPACE::GraphInfo::Load(cd_.path).value();
+        }
+        return false;
+    }
+
+    ~GraphArParser() {}
 };
 
 }  // namespace import_v2
