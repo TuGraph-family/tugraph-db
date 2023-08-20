@@ -30,9 +30,30 @@ Spatial<SRID_Type>::Spatial(SRID srid, SpatialType type, int construct_type, std
     }
 }
 
+// TODO!
+template<typename SRID_Type>
+Spatial<SRID_Type>::Spatial(std::string EWKB) {
+    type_ = ExtractType(EWKB);
+    SRID srid = ExtractSRID(EWKB);
+    std::string WKB = EWKB.substr(0, 10) + EWKB.substr(18);
+    WKB[8] = '0';
+
+    switch(type_) {
+        case SpatialType::NUL:
+            throw InputError("invalid spatial type");
+        case SpatialType::POINT:
+            point_.reset(new point<SRID_Type>(srid, type_, 0, WKB));
+            break;
+        case SpatialType::LINESTRING:
+            line_.reset(new linestring<SRID_Type>(srid, type_, 0, WKB));
+            break;
+        case SpatialType::POLYGON:
+            polygon_.reset(new polygon<SRID_Type>(srid, type_, 0, WKB));
+    }
+}
 
 template<typename SRID_Type>
-std::string Spatial<SRID_Type>::AsEWKB() {
+std::string Spatial<SRID_Type>::AsEWKB() const {
     switch(type_) {
         case SpatialType::NUL:
             return "NUL";
@@ -48,7 +69,7 @@ std::string Spatial<SRID_Type>::AsEWKB() {
 }
 
 template<typename SRID_Type>
-std::string Spatial<SRID_Type>::AsEWKT() {
+std::string Spatial<SRID_Type>::AsEWKT() const {
     switch(type_) {
         case SpatialType::NUL:
             return "NUL";
@@ -61,6 +82,11 @@ std::string Spatial<SRID_Type>::AsEWKT() {
         default:
             throw std::runtime_error("Unknown SRID Type");
     }
+}
+
+template<typename SRID_Type>
+bool Spatial<SRID_Type>::operator==(const Spatial<SRID_Type> &other) {
+    return AsEWKB() == other.AsEWKB();
 }
 
 template<typename SRID_Type>
@@ -94,6 +120,8 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), EWKB);
         EWKB = set_extension(EWKB, GetSrid()); 
     }
+
+    transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
 }
 
 template<typename SRID_Type>
@@ -139,6 +167,7 @@ linestring<SRID_Type>::linestring(SRID srid, SpatialType type, int construct_typ
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), EWKB);
         EWKB = set_extension(EWKB, GetSrid()); 
     }
+    transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
 }
 
 template<typename SRID_Type>
@@ -188,6 +217,7 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), EWKB);
         EWKB = set_extension(EWKB, GetSrid()); 
     }
+    transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
 }
 
 template<typename SRID_Type>

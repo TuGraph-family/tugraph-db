@@ -1,12 +1,18 @@
 #pragma once
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/multi/io/wkt/wkt.hpp> 
-#include <boost/geometry/extensions/gis/io/wkb/write_wkb.hpp>
-#include <boost/geometry/extensions/gis/io/wkb/read_wkb.hpp>
-#include <boost/geometry/extensions/gis/io/wkb/utility.hpp>
-#include <iostream>
+#include <string>
 #include <vector>
+
+#include <iostream>
+
+#include <boost/geometry/algorithms/equals.hpp>
+#include <boost/geometry/geometries/geometries.hpp>
+#include <boost/geometry/io/wkt/read.hpp>
+#include <boost/geometry/extensions/gis/io/wkb/write_wkb.hpp>
+#include <boost/geometry/extensions/gis/io/wkb/utility.hpp>
+
+#include <boost/geometry/io/wkt/wkt.hpp>
+#include <boost/geometry/extensions/gis/io/wkb/read_wkb.hpp>
 
 namespace lgraph_api {
 
@@ -38,7 +44,7 @@ class linestring;
 template<typename SRID_Type>
 class polygon;
 
-std::string dec2hex(SRID srid_type, size_t width) {
+static inline std::string dec2hex(SRID srid_type, size_t width) {
     int srid = static_cast<int>(srid_type);
     std::stringstream ioss; 
     std::string s_hex; 
@@ -63,7 +69,7 @@ std::string dec2hex(SRID srid_type, size_t width) {
     return s_hex_;
 }
 
-std::string set_extension(std::string EWKB, SRID srid_type) {
+static inline std::string set_extension(std::string EWKB, SRID srid_type) {
     EWKB[8] = '2';
     std::string s_hex = dec2hex(srid_type, 8);
 
@@ -71,14 +77,77 @@ std::string set_extension(std::string EWKB, SRID srid_type) {
     return EWKB;
 }
 
+// return true if big endian;
+static inline bool Endian(std::string EWKB) {
+    std::string endian = EWKB.substr(0, 2);
+    if(endian == "01") return true;  
+    return false;
+}
+
+// transform the little endian to big endian;
+static inline void little2big(const std::string& little, std::string& big) {
+    size_t size = little.size();
+    int i = size -2;
+    while(i >= 0) {
+        big += little.substr(i, 2);
+        i -= 2;
+    } 
+}
+
+static inline SRID ExtractSRID(std::string EWKB) {
+    std::string srid = EWKB.substr(10, 8);
+    if(Endian(EWKB)) {
+        std::string rsrid;
+        little2big(srid, rsrid);
+        srid = rsrid;
+    }
+
+    std::stringstream ioss(srid); 
+    int Srid;
+    ioss >> std::hex >> Srid;
+    switch(Srid) {
+        case 0:
+            return SRID::NUL;
+        case 4326:
+            return SRID::WSG84;
+        case 7203:
+            return SRID::CARTESIAN;
+        default:
+            throw std::runtime_error("wrong srid!");
+    }
+}
+
+static inline SpatialType ExtractType(std::string EWKB) {
+    std::string type = EWKB.substr(2, 4);
+    if(Endian(EWKB)) {
+        std::string rtype;
+        little2big(type, rtype);
+        type = rtype;
+    }
+
+    int Type = 0;
+    std::stringstream ioss(type);
+    ioss >> Type;
+
+    switch(Type) {
+        case 0:
+            return SpatialType::NUL;
+        case 1:
+            return SpatialType::POINT;
+        case 2:
+            return SpatialType::LINESTRING;
+        case 3:
+            return SpatialType::POLYGON;
+        default:
+            throw std::runtime_error("wrong SpatialType!");
+    }
+}
 
 template<typename SRID_Type>
 class Spatial {
-    // std::unique_ptr<GeoBase> geo_;
     std::unique_ptr<point<SRID_Type>> point_;
     std::unique_ptr<linestring<SRID_Type>> line_;
     std::unique_ptr<polygon<SRID_Type>> polygon_;
-    // std::unique_ptr<point_impl<bg::cs::cartesian>> point_impl_;
     
     SpatialType type_;
 
@@ -92,12 +161,16 @@ class Spatial {
      * 
      */
     Spatial(SRID srid, SpatialType type, int construct_type, std::string content);
+
+    // construct from EWKB
+    Spatial(std::string EWKB);
+    
     ~Spatial() {}
 
     // std::vector<std::string> ListTypes();
     // std::vector<int> ListSrids();
-    std::string AsEWKB();
-    std::string AsEWKT(); 
+    std::string AsEWKB() const;
+    std::string AsEWKT() const;  
     std::unique_ptr<point<SRID_Type>>& GetPoint() {
         return point_;
     }
@@ -113,6 +186,8 @@ class Spatial {
     SpatialType GetType() {
         return type_;
     }
+
+    bool operator==(const Spatial<SRID_Type>& other);
     
     // std::unique_ptr<GeoBase>& SelectGeo();
     // double Distance(geography<T>& other);

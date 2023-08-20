@@ -397,6 +397,8 @@ inline web::json::value ValueToJson(const FieldData& fd) {
         return web::json::value::string(_TU(*fd.data.buf));
     case FieldType::BLOB:
         return web::json::value::string(_TU(::lgraph_api::base64::Encode(*fd.data.buf)));
+    case FieldType::SPATIAL:
+        throw std::runtime_error("do not support spatial type now!");
     }
     FMA_DBG_ASSERT(false);  // unhandled FieldData type
     return web::json::value::null();

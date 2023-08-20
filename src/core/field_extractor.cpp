@@ -87,6 +87,8 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
         FMA_ERR() << "ParseAndSet(Value, std::string) is not supposed to"
                      " be called directly. We should first parse blobs "
                      "into BlobValue and use SetBlobField(Value, FieldData)";
+    case FieldType::SPATIAL:
+        FMA_ERR() << "do not support spatial now!";
     case FieldType::NUL:
         FMA_ERR() << "NUL FieldType";
     }
@@ -210,6 +212,13 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
             // GetCopyRaw(record, &ret[0], ret.size());
             // return ::lgraph_api::base64::Encode(ret.substr(2));
             return fma_common::StringFormatter::Format("[BLOB]");
+        }
+    case FieldType::SPATIAL:
+        {
+            /*std::string ret(GetDataSize(record), 0);
+            GetCopyRaw(record, &ret[0], ret.size());
+            return ret;*/
+            throw std::runtime_error("do not support spatial now!");
         }
     case lgraph_api::NUL:
         break;

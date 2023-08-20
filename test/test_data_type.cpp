@@ -35,6 +35,7 @@ TEST_F(TestDataType, DataType) {
     using namespace fma_common;
     using namespace lgraph;
     using namespace lgraph::_detail;
+    using namespace lgraph_api;
     UT_LOG() << "Testing FieldData";
     {
         // is_null and is_buf
@@ -43,6 +44,9 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_TRUE(!FieldData().is_buf());
         UT_EXPECT_TRUE(FieldData("str").is_buf());
         UT_EXPECT_TRUE(FieldData::Blob("str").is_buf());
+        UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, 
+        "0101000000000000000000f03f0000000000000040")).is_buf());
+
         // Constructor and AsXXX()
         UT_EXPECT_EQ(FieldData(true).AsBool(), true);
         UT_EXPECT_EQ(FieldData(false).AsBool(), false);
@@ -72,6 +76,12 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_ANY_THROW(FieldData::Blob(std::string(12, -1)).AsDate());
         std::string orig = "orig string";
         UT_EXPECT_EQ(FieldData::BlobFromBase64(::lgraph_api::base64::Encode(orig)).AsBlob(), orig);
+        std::string WKB = "0101000000000000000000f03f0000000000000040";
+        std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
+        UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, 
+        WKB)).AsWsgSpatial() == Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, 
+        WKB)); 
+
         // ToString
         UT_EXPECT_EQ(FieldData::Bool(true).ToString(), "true");
         UT_EXPECT_EQ(FieldData::Bool(false).ToString(), "false");
@@ -86,6 +96,9 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_EQ(FieldData::String("str").ToString(), "str");
         UT_EXPECT_EQ(FieldData::Blob(std::string(12, -11)).ToString(),
                      ::lgraph_api::base64::Encode(std::string(12, -11)));
+        UT_EXPECT_EQ(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, 
+        WKB)).ToString(), EWKB);
+
         // compare operators
         UT_EXPECT_ANY_THROW(FieldData::Int8(1) == FieldData::Bool(false));
         UT_EXPECT_TRUE(FieldData() == FieldData());
@@ -113,6 +126,8 @@ TEST_F(TestDataType, DataType) {
                        FieldData::DateTime("2222-12-12 11:22:34"));
         UT_EXPECT_TRUE(FieldData::String("123") == FieldData::String("123"));
         UT_EXPECT_TRUE(FieldData::Blob("123") == FieldData::Blob("123"));
+        UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, 
+        WKB)) == FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, WKB)));
 
         UT_EXPECT_ANY_THROW(FieldData::Int8(1) > FieldData::Bool(false));
         UT_EXPECT_TRUE(FieldData::Int8(1) > FieldData::Int8(-10));
@@ -126,6 +141,9 @@ TEST_F(TestDataType, DataType) {
                        FieldData::DateTime("2222-12-12 11:22:30"));
         UT_EXPECT_TRUE(FieldData::String("123") > FieldData::String("12"));
         UT_EXPECT_TRUE(FieldData::Blob("123") > FieldData::Blob("12"));
+        UT_EXPECT_ANY_THROW(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, 
+        WKB)) > FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, WKB)));
+
         // test operator on date
         Date date1 = Date::Now();
         std::string date_t = date1.ToString();

@@ -189,6 +189,8 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     case FieldType::BLOB:
         FMA_ERR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
                      "Extractor, GetBlobKeyFunc)";
+    case FieldType::SPATIAL:
+        FMA_ERR() << "Do not support spatial type now!";
     case FieldType::NUL:
         FMA_ERR() << "FieldType NUL";
     }

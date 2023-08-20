@@ -21,6 +21,7 @@
 
 #include "lgraph/base64_encode.h"
 #include "lgraph/lgraph_date_time.h"
+#include "lgraph/lgraph_spatial.h"
 
 namespace lgraph_api {
 
@@ -150,9 +151,10 @@ enum FieldType {
     FLOAT = 6,      // 32-bit IEEE 754 floating point number
     DOUBLE = 7,     // 64-bit IEEE 754 floating point number
     DATE = 8,       // Date ranging from 0/1/1 to 9999/12/31
-    DATETIME = 9,   // DateTime ranging from 0000-01-01 00:00:00 to 9999-12-31 23:59:59
+    DATETIME = 9,   // DateTime ranging from 0000-01-01 00:00:00.000000 to 9999-12-31 23:59:59.999999
     STRING = 10,    // string type, in unicode encoding
-    BLOB = 11       // binary byte array
+    BLOB = 11,      // binary byte array
+    SPATIAL = 12    // spatial data
 };
 
 /**
@@ -190,6 +192,8 @@ inline const std::string to_string(FieldType v) {
         return "STRING";
     case BLOB:
         return "BLOB";
+    case SPATIAL:
+        return "SPATIAL";
     default:
         throw std::runtime_error("Unknown Field Type");
     }
@@ -392,6 +396,16 @@ struct FieldData {
         data.buf = new std::string(buf, buf + s);
     }
 
+    explicit FieldData(const Spatial<Cartesian>& s) {
+        type = FieldType::SPATIAL;
+        data.buf = new std::string(s.AsEWKB());
+    }
+
+    explicit FieldData(const Spatial<Wsg84>& s) {
+        type = FieldType::SPATIAL;
+        data.buf = new std::string(s.AsEWKB());
+    }
+
     ~FieldData() {
         if (IsBufType(type)) delete data.buf;
     }
@@ -458,6 +472,8 @@ struct FieldData {
     static inline FieldData String(std::string&& str) { return FieldData(std::move(str)); }
     static inline FieldData String(const char* str) { return FieldData(str); }
     static inline FieldData String(const char* p, size_t s) { return FieldData(p, s); }
+    static inline FieldData Spatial(const ::lgraph_api::Spatial<Cartesian>& s) {return FieldData(s); }
+    static inline FieldData Spatial(const ::lgraph_api::Spatial<Wsg84>& s) {return FieldData(s); }
 
     //-------------------------
     // Constructs blobs.
@@ -520,6 +536,7 @@ struct FieldData {
         case FieldType::DATETIME:
         case FieldType::STRING:
         case FieldType::BLOB:
+        case FieldType::SPATIAL:
             throw std::bad_cast();
         }
         return 0;
@@ -549,13 +566,14 @@ struct FieldData {
         case FieldType::DATETIME:
         case FieldType::STRING:
         case FieldType::BLOB:
+        case FieldType::SPATIAL:
             throw std::bad_cast();
         }
         return 0.;
     }
 
     /**
-     * @brief   Access the FieldData as std::string. Valid only for STRING and BLOB. BLOB data is
+     * @brief   Access the FieldData as std::string. Valid only for STRING, BLOB and SPATIAL. BLOB data is
      *          returned as-is, since std::string can also hold byte array.
      *
      * @exception   std::bad_cast   Thrown when a bad cast error condition occurs.
@@ -566,6 +584,7 @@ struct FieldData {
         switch (type) {
         case FieldType::STRING:
         case FieldType::BLOB:
+        case FieldType::SPATIAL:
             return *data.buf;
         default:
             {
@@ -641,6 +660,16 @@ struct FieldData {
         throw std::bad_cast();
     }
 
+    inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial() const {
+        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial<::lgraph_api::Wsg84>(*data.buf);
+        throw std::bad_cast();
+    }
+
+    inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial() const {
+        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial<::lgraph_api::Cartesian>(*data.buf);
+        throw std::bad_cast();
+    }
+
     /** @brief   Get string representation of this FieldData. */
     inline std::string ToString(const std::string& null_value = "NUL") const {
         switch (type) {
@@ -668,6 +697,8 @@ struct FieldData {
             return *data.buf;
         case FieldType::BLOB:
             return ::lgraph_api::base64::Encode(*data.buf);
+        case FieldType::SPATIAL:
+            return *data.buf;
         }
         throw std::runtime_error("Unhandled data type, probably corrupted data.");
         return "";
@@ -709,6 +740,7 @@ struct FieldData {
                 return data.int64 == rhs.data.int64;
             case FieldType::STRING:
             case FieldType::BLOB:
+            case FieldType::SPATIAL:
                 return *data.buf == *rhs.data.buf;
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
@@ -757,6 +789,8 @@ struct FieldData {
             case FieldType::STRING:
             case FieldType::BLOB:
                 return *data.buf > *rhs.data.buf;
+            case FieldType::SPATIAL:
+                throw std::runtime_error("Spatial data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -802,6 +836,8 @@ struct FieldData {
             case FieldType::STRING:
             case FieldType::BLOB:
                 return *data.buf >= *rhs.data.buf;
+            case FieldType::SPATIAL:
+                throw std::runtime_error("Spatial data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -885,6 +921,9 @@ struct FieldData {
 
     /** @brief   Query if this object is date time */
     bool IsDateTime() const { return type == FieldType::DATETIME; }
+
+    /** @brief   Query if this object is spatial*/
+    bool IsSpatial() const { return type == FieldType::SPATIAL; }
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */

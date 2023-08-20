@@ -121,6 +121,8 @@ struct FieldDataConvert {
             return ret->set_str(std::move(*fd.data.buf));
         case FieldType::BLOB:
             return ret->set_blob(std::move(*fd.data.buf));
+        case FieldType::SPATIAL:
+            return;
         }
         FMA_ASSERT(false);
     }
@@ -151,6 +153,8 @@ struct FieldDataConvert {
             return ret->set_str(*fd.data.buf);
         case FieldType::BLOB:
             return ret->set_blob(*fd.data.buf);
+        case FieldType::SPATIAL:
+            return;
         }
         FMA_ASSERT(false);
     }

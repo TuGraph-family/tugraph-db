@@ -29,6 +29,7 @@
 #include "core/task_tracker.h"
 #include "core/value.h"
 #include "lgraph/lgraph_date_time.h"
+// #include "lgraph/lgraph_spatial.h"
 #include "lgraph/lgraph_types.h"
 #include "lgraph/lgraph_result.h"
 

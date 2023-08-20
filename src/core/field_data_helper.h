@@ -391,6 +391,7 @@ inline Value GetConstRefOfFieldDataContent(const FieldData& fd) {
         return Value::ConstRef(fd.data.int64);
     case FieldType::STRING:
     case FieldType::BLOB:
+    case FieldType::SPATIAL:
         return Value::ConstRef(*fd.data.buf);
     }
     FMA_ASSERT(false);
@@ -615,10 +616,13 @@ struct FieldDataTypeConvert {
             // datetime can only be converted to date
             return CopyFdIntoDstStorageType<DstType>(fd, s);
         case FieldType::STRING:
-            // can be converted to date, datetime, or bin
+            // can be converted to date, datetime, bin or spatial;
             return ParseStringIntoStorageType<DstType>(*fd.data.buf, s);
         case FieldType::BLOB:
             // nothing can be converted from bin
+            break;
+        case FieldType::SPATIAL:
+            // nothing can be converted from spatial
             break;
         }
         return false;
@@ -681,6 +685,8 @@ inline size_t ParseStringIntoFieldData(FieldType ft, const char* b, const char* 
             fd = FieldData::Blob(std::move(decoded));
             return s;
         }
+    case FieldType::SPATIAL:
+        throw std::runtime_error("do not support spatial now!");
     }  // switch
     FMA_ASSERT(false);
     return 0;
@@ -735,7 +741,12 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
             v.Copy(decoded);
             return true;
         }
+    case FieldType::SPATIAL:   
+        // can only convert string to spatial
+        // 暂时没实现, 逻辑没理清;
+        return false;
     }
+    
     FMA_ASSERT(false);
     return false;
 }
@@ -792,7 +803,11 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
             v.Copy(decoded);
             return v;
         }
+        case FieldType::SPATIAL:
+        // 暂时不处理
+            return Value::ConstRef(str);
     }
+    
     FMA_ASSERT(false);
     return Value();
 }
@@ -826,6 +841,18 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         return FieldData(v.AsString());
     case FieldType::BLOB:
         return FieldData::Blob(v.AsString());
+    case FieldType::SPATIAL:
+        // 暂时这么实现;
+        std::string ewkb = v.AsString();
+        ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
+        switch(s) {     // 这里是否要加ewkb, 写法有待确认;
+            case ::lgraph_api::SRID::NUL:
+                throw std::runtime_error("cannot convert to spatial data!");
+            case ::lgraph_api::SRID::WSG84:
+                return FieldData(::lgraph_api::Spatial<::lgraph_api::Wsg84>(ewkb));
+            case ::lgraph_api::SRID::CARTESIAN:
+                return FieldData(::lgraph_api::Spatial<::lgraph_api::Cartesian>(ewkb));
+        }
     }
     FMA_ASSERT(false);
     return FieldData();
