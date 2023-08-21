@@ -1,8 +1,21 @@
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+/**
+ * @file lgraph_spatial.h
+ * @brief Implemnets the Spatial, SpatialBase and SpatialDerive classes.
+ */
+
 #pragma once
 
 #include <string>
 #include <vector>
-
 #include <iostream>
 
 #include <boost/geometry/algorithms/equals.hpp>
@@ -19,7 +32,7 @@ namespace lgraph_api {
 namespace bg = boost::geometry;
 
 typedef bg::cs::cartesian Cartesian;
-typedef bg::cs::geographic<bg::degree> Wsg84; 
+typedef bg::cs::geographic<bg::degree> Wsg84;
 typedef std::vector<boost::uint8_t> byte_vector;
 
 enum class SpatialType {
@@ -44,168 +57,135 @@ class linestring;
 template<typename SRID_Type>
 class polygon;
 
-static inline std::string dec2hex(SRID srid_type, size_t width) {
-    int srid = static_cast<int>(srid_type);
-    std::stringstream ioss; 
-    std::string s_hex; 
-    ioss << std::hex << srid;  
-    ioss >> s_hex; 
-    if (width > s_hex.size()) {
-        std::string s_0(width - s_hex.size(), '0');
-        s_hex = s_0 + s_hex;
-    }
+// true if little endian, false if big endian;
+bool Endian(std::string EWKB);
 
-    s_hex = s_hex.substr(s_hex.length() - width, s_hex.length());
+// transfer endian between little and big;
+void EndianTansfer(std::string& input);
 
-    std::string s_hex_;
-    int i = 6;
-    while(i >= 0) {
-        s_hex_ += s_hex.substr(i, 2);
-        i -= 2;
-    }
+/**
+* @brief  transform the srid_type into hex format;
+* 
+* @param srid_type      Spatial Reference System Identifier;
+* @param width          the length of hex format to transform;   
+* @param ebdian         true little endian, false big endian;
+* 
+* @returns the hex format srid_type;
+*/
+std::string srid2hex(SRID srid_type, size_t width, bool endian);
 
-    transform(s_hex_.begin(), s_hex_.end(), s_hex_.begin(), ::toupper);
+/**
+* @brief  set the wkb format string to EWKB format string;
+* 
+* @param content        
+* @param width          the length of hex format to transform;   
+* @param ebdian         true little endian, false big endian;
+* 
+* @returns the hex format srid_type;
+*/
+std::string set_extension(const std::string& WKB, SRID srid_type);
 
-    return s_hex_;
-}
+// extract the srid from EWKB format;
+SRID ExtractSRID(std::string EWKB);
 
-static inline std::string set_extension(std::string EWKB, SRID srid_type) {
-    EWKB[8] = '2';
-    std::string s_hex = dec2hex(srid_type, 8);
+// extract the spatial type from EWKB format;
+SpatialType ExtractType(std::string EWKB);
 
-    EWKB.insert(10, s_hex);
-    return EWKB;
-}
-
-// return true if big endian;
-static inline bool Endian(std::string EWKB) {
-    std::string endian = EWKB.substr(0, 2);
-    if(endian == "01") return true;  
-    return false;
-}
-
-// transform the little endian to big endian;
-static inline void little2big(const std::string& little, std::string& big) {
-    size_t size = little.size();
-    int i = size -2;
-    while(i >= 0) {
-        big += little.substr(i, 2);
-        i -= 2;
-    } 
-}
-
-static inline SRID ExtractSRID(std::string EWKB) {
-    std::string srid = EWKB.substr(10, 8);
-    if(Endian(EWKB)) {
-        std::string rsrid;
-        little2big(srid, rsrid);
-        srid = rsrid;
-    }
-
-    std::stringstream ioss(srid); 
-    int Srid;
-    ioss >> std::hex >> Srid;
-    switch(Srid) {
-        case 0:
-            return SRID::NUL;
-        case 4326:
-            return SRID::WSG84;
-        case 7203:
-            return SRID::CARTESIAN;
-        default:
-            throw std::runtime_error("wrong srid!");
-    }
-}
-
-static inline SpatialType ExtractType(std::string EWKB) {
-    std::string type = EWKB.substr(2, 4);
-    if(Endian(EWKB)) {
-        std::string rtype;
-        little2big(type, rtype);
-        type = rtype;
-    }
-
-    int Type = 0;
-    std::stringstream ioss(type);
-    ioss >> Type;
-
-    switch(Type) {
-        case 0:
-            return SpatialType::NUL;
-        case 1:
-            return SpatialType::POINT;
-        case 2:
-            return SpatialType::LINESTRING;
-        case 3:
-            return SpatialType::POLYGON;
-        default:
-            throw std::runtime_error("wrong SpatialType!");
-    }
-}
-
+/** @brief   Implements the Spatial template class. Spatial class now can hold one of
+ *  point, linestring or polygon pointer;
+ */
 template<typename SRID_Type>
 class Spatial {
     std::unique_ptr<point<SRID_Type>> point_;
     std::unique_ptr<linestring<SRID_Type>> line_;
     std::unique_ptr<polygon<SRID_Type>> polygon_;
-    
+
     SpatialType type_;
 
  public:
     /**
-     * @brief   
-     *
-     * @param       srid 
-     * @param [out] type   
-     *
+     * @brief  construct spatial type by four parameters;
      * 
+     * @exception   runtime error thrown if the Spatial Type is NUL;
+     * 
+     * @param srid           Spatial Reference System Identifier
+     * @param type           a specific Spatial Type 
+     * @param construct_type 0: construct from WKB type, 1: construct from wkt type;
+     * @param content        WKB format or WKT format;
      */
+
     Spatial(SRID srid, SpatialType type, int construct_type, std::string content);
 
-    // construct from EWKB
-    Spatial(std::string EWKB);
-    
+    /**
+     * @brief  construct spatial type from EWKB format;
+     * 
+     * @exception   runtime error thrown if the Spatial Type is NUL;
+     * 
+     * @param EWKB  the EWKB format string;
+     */
+    explicit Spatial(std::string EWKB);
+
     ~Spatial() {}
 
-    // std::vector<std::string> ListTypes();
-    // std::vector<int> ListSrids();
+    /**
+     * @brief   get EWKB format string of spatial type;
+     *
+     * @returns EWKB format string of spatial type(in capital);
+     */
     std::string AsEWKB() const;
-    std::string AsEWKT() const;  
+
+    /**
+     * @brief   get EWKT format string of spatial type;
+     *
+     * @returns EWKT format string of spatial type(in capital);
+     */
+    std::string AsEWKT() const;
+
+    /** @brief  return the point type pointer */
     std::unique_ptr<point<SRID_Type>>& GetPoint() {
         return point_;
     }
 
+    /** @brief return the line type pointer */
     std::unique_ptr<linestring<SRID_Type>>& GetLine() {
         return line_;
     }
 
+    /** @brief return the polygon type pointer */
     std::unique_ptr<polygon<SRID_Type>>& GetPolygon() {
         return polygon_;
     }
 
+    /** @brief return the type of spatial*/
     SpatialType GetType() {
         return type_;
     }
 
     bool operator==(const Spatial<SRID_Type>& other);
-    
-    // std::unique_ptr<GeoBase>& SelectGeo();
-    // double Distance(geography<T>& other);
-}; 
 
+    // double Distance(geography<T>& other);
+};
+
+/**
+ * @brief   Implements a SpatialBase class which specific spatial type class 
+ *          derive from;            
+ */
 class SpatialBase {
     SRID srid_;
     SpatialType type_;
 
  public:
+    /**
+     * @brief the constructor function of spatial base;
+     */
     SpatialBase(SRID srid, SpatialType type) : srid_(srid), type_(type) {}
 
     // virtual ~SpatialBase();
 
     virtual std::string AsEWKB() = 0;
-    
+
     virtual std::string AsEWKT() = 0;
-    
+
     SpatialType GetType() {
         return type_;
     }
@@ -215,6 +195,9 @@ class SpatialBase {
     }
 };
 
+/**
+ * @brief implements a point spatial class which spatial data is point; 
+ */
 template<typename SRID_Type>
 class point : public SpatialBase {
     bg::model::point<double, 2, SRID_Type> point_;
@@ -222,27 +205,32 @@ class point : public SpatialBase {
 
  public:
     point(SRID srid, SpatialType type, int construct_type, std::string content);
-    
+
     std::string AsEWKB() override {
         return EWKB;
     }
 
     std::string AsEWKT() override;
-
+    /**
+     *  @brief return point type data;
+    */
     bg::model::point<double, 2, SRID_Type> GetSpatialData() {
         return point_;
     }
 };
 
+/**
+ * @brief implements a linestring spatial class which spatial data is point; 
+ */
 template<typename SRID_Type>
 class linestring : public SpatialBase {
     typedef bg::model::point<double, 2, SRID_Type> point_;
     bg::model::linestring<point_> line_;
     std::string EWKB;
-    
+
  public:
     linestring(SRID srid, SpatialType type, int construct_type, std::string content);
-    
+
     std::string AsEWKB() override {
         return EWKB;
     }
@@ -252,19 +240,20 @@ class linestring : public SpatialBase {
     bg::model::linestring<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return line_;
     }
-
-    // double Distance(std::unique_ptr<point<T>>& other);
 };
 
+/**
+ * @brief implements a polygon spatial class which spatial data is point; 
+ */
 template<typename SRID_Type>
 class polygon : public SpatialBase {
     typedef bg::model::point<double, 2, SRID_Type> point;
     bg::model::polygon<point> polygon_;
     std::string EWKB;
-    
+
  public:
     polygon(SRID srid, SpatialType type, int construct_type, std::string content);
-    
+
     std::string AsEWKB() override {
         return EWKB;
     }
@@ -273,6 +262,6 @@ class polygon : public SpatialBase {
 
     bg::model::polygon<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return polygon_;
-    } 
+    }
 };
-}
+}  //  namespace lgraph_api

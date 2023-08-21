@@ -151,7 +151,8 @@ enum FieldType {
     FLOAT = 6,      // 32-bit IEEE 754 floating point number
     DOUBLE = 7,     // 64-bit IEEE 754 floating point number
     DATE = 8,       // Date ranging from 0/1/1 to 9999/12/31
-    DATETIME = 9,   // DateTime ranging from 0000-01-01 00:00:00.000000 to 9999-12-31 23:59:59.999999
+    DATETIME = 9,   // DateTime ranging from 0000-01-01 00:00:00.000000 to
+                    // 9999-12-31 23:59:59.999999
     STRING = 10,    // string type, in unicode encoding
     BLOB = 11,      // binary byte array
     SPATIAL = 12    // spatial data
@@ -472,7 +473,8 @@ struct FieldData {
     static inline FieldData String(std::string&& str) { return FieldData(std::move(str)); }
     static inline FieldData String(const char* str) { return FieldData(str); }
     static inline FieldData String(const char* p, size_t s) { return FieldData(p, s); }
-    static inline FieldData Spatial(const ::lgraph_api::Spatial<Cartesian>& s) {return FieldData(s); }
+    static inline FieldData Spatial(const ::lgraph_api::Spatial<Cartesian>& s) {
+    return FieldData(s); }
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Wsg84>& s) {return FieldData(s); }
 
     //-------------------------
@@ -660,13 +662,17 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial() const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial<::lgraph_api::Wsg84>(*data.buf);
+    inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial()
+    const {
+        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        <::lgraph_api::Wsg84>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial() const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial<::lgraph_api::Cartesian>(*data.buf);
+    inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial()
+    const {
+        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 

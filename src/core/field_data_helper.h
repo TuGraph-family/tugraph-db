@@ -741,12 +741,12 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
             v.Copy(decoded);
             return true;
         }
-    case FieldType::SPATIAL:   
+    case FieldType::SPATIAL:
         // can only convert string to spatial
         // 暂时没实现, 逻辑没理清;
         return false;
     }
-    
+
     FMA_ASSERT(false);
     return false;
 }
@@ -807,7 +807,7 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
         // 暂时不处理
             return Value::ConstRef(str);
     }
-    
+
     FMA_ASSERT(false);
     return Value();
 }
@@ -845,7 +845,7 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         // 暂时这么实现;
         std::string ewkb = v.AsString();
         ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
-        switch(s) {     // 这里是否要加ewkb, 写法有待确认;
+        switch (s) {     // 这里是否要加ewkb, 写法有待确认;
             case ::lgraph_api::SRID::NUL:
                 throw std::runtime_error("cannot convert to spatial data!");
             case ::lgraph_api::SRID::WSG84:
