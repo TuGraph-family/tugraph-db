@@ -4,6 +4,7 @@ project(TuGraphSrc C CXX)
 set(LGRAPH_SRC_DIR ${PROJECT_SOURCE_DIR})
 
 include(BuildLGraphApi.cmake)
+include(BuildLGraphApiForJNI.cmake)
 include(BuildPythonApi.cmake)
 include(BuildLGraphServer.cmake)
 include(BuildCypherLib.cmake)
