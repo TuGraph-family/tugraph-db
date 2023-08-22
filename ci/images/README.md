@@ -74,4 +74,8 @@ docker save ${image_name}:${image_tag} | gzip > lgraph_latest.tar.gz
 docker load --input lgraph_latest.tar.gz
 ```
 
+# 4 关于Dockerfile中使用到的资源包
+
+细节请查看`NOTES.md`
+
 其他Docker操作请参考[官方文档](https://docs.docker.com/engine/reference/commandline/cli )
