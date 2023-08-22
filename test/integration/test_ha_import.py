@@ -1,18 +1,23 @@
 import logging
-import time
 import ha_client_python_util
 from ha_client_python_util import *
 
 log = logging.getLogger(__name__)
 ha_client_python_util.log = log
-import_host = str(os.popen("hostname -I").read()[:-2])
+import_host = str(os.popen("hostname -I").read()).strip()
+l = import_host.find(' ')
+if l != -1:
+    import_host = import_host[:l]
 
 IMPORTOPT = {"cmd":"./lgraph_import --online true -c ./data/yago/yago.conf -r http://{} -u admin -p 73@TuGraph",
              "cleanup_dir":["./.import_tmp"]}
 
 class TestHAImport:
     def setup_class(self):
-        self.host = str(os.popen("hostname -I").read()[:-2])
+        self.host = str(os.popen("hostname -I").read()).strip()
+        ll = self.host.find(' ')
+        if ll != -1:
+            self.host = self.host[:ll]
         start_ha_server(self.host, "./db")
 
     def teardown_class(self):

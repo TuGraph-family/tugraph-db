@@ -399,12 +399,12 @@ void test_import_file(lgraph::RpcClient& client) {
     assert(ret);
     json_val = nlohmann::json::parse(str);
     assert(json_val.size() == 6);
-    assert(HasElement(json_val, "HAS_CHILD", "edgeLabels") == true);
-    assert(HasElement(json_val, "MARRIED", "edgeLabels") == true);
-    assert(HasElement(json_val, "BORN_IN", "edgeLabels") == true);
-    assert(HasElement(json_val, "DIRECTED", "edgeLabels") == true);
-    assert(HasElement(json_val, "WROTE_MUSIC_FOR", "edgeLabels") == true);
-    assert(HasElement(json_val, "ACTED_IN", "edgeLabels") == true);
+    assert(HasElement(json_val, "HAS_CHILD", "label") == true);
+    assert(HasElement(json_val, "MARRIED", "label") == true);
+    assert(HasElement(json_val, "BORN_IN", "label") == true);
+    assert(HasElement(json_val, "DIRECTED", "label") == true);
+    assert(HasElement(json_val, "WROTE_MUSIC_FOR", "label") == true);
+    assert(HasElement(json_val, "ACTED_IN", "label") == true);
     ret = client.ImportDataFromFile(str, conf_file, ",");
     assert(ret);
     ret = client.CallCypher(str, "match (m:Person) return count(m)");
@@ -472,12 +472,12 @@ void test_import_content(lgraph::RpcClient& client) {
     assert(ret);
     json_val = nlohmann::json::parse(str);
     assert(json_val.size() == 7);
-    assert(HasElement(json_val, "HAS_CHILD", "edgeLabels") == true);
-    assert(HasElement(json_val, "MARRIED", "edgeLabels") == true);
-    assert(HasElement(json_val, "BORN_IN", "edgeLabels") == true);
-    assert(HasElement(json_val, "DIRECTED", "edgeLabels") == true);
-    assert(HasElement(json_val, "WROTE_MUSIC_FOR", "edgeLabels") == true);
-    assert(HasElement(json_val, "ACTED_IN", "edgeLabels") == true);
+    assert(HasElement(json_val, "HAS_CHILD", "label") == true);
+    assert(HasElement(json_val, "MARRIED", "label") == true);
+    assert(HasElement(json_val, "BORN_IN", "label") == true);
+    assert(HasElement(json_val, "DIRECTED", "label") == true);
+    assert(HasElement(json_val, "WROTE_MUSIC_FOR", "label") == true);
+    assert(HasElement(json_val, "ACTED_IN", "label") == true);
 
     ret = client.ImportDataFromContent(str, sImportContent["person_desc"], sImportContent["person"],
                                        ",");

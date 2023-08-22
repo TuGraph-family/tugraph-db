@@ -350,13 +350,13 @@ class TestProcedure:
         assert ret[0]
         labels = json.loads(ret[1])
         for label in labels:
-            assert label.get("edgeLabels") == "followed" or label.get("edgeLabels") == "married"
+            assert label.get("label") == "followed" or label.get("label") == "married"
         ret = client.callCypher("CALL db.deleteLabel('edge', 'followed')", "default")
         assert ret[0]
         ret = client.callCypher("CALL db.edgeLabels()", "default")
         assert ret[0]
         label = json.loads(ret[1])[0]
-        assert label.get("edgeLabels") == "married"
+        assert label.get("label") == "married"
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
