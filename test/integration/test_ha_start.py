@@ -41,7 +41,10 @@ class TestHAStart:
         time.sleep(3)
 
     def setup_class(self):
-        self.host = str(os.popen("hostname -I").read()[:-2])
+        self.host = str(os.popen("hostname -I").read()).strip()
+        l = self.host.find(' ')
+        if l != -1:
+            self.host = self.host[:l]
 
     def teardown(self):
         for i in range(27072, 27075):

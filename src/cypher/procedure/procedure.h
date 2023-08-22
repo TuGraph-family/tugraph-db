@@ -455,7 +455,7 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"label", {0, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.edgeLabels", BuiltinProcedure::DbEdgeLabels, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"edgeLabels", {0, lgraph_api::LGraphType::STRING}}}),
+              Procedure::SIG_SPEC{{"label", {0, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.indexes", BuiltinProcedure::DbIndexes, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{

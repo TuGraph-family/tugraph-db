@@ -38,19 +38,19 @@ void build_ha_so() {
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./sortstr.so",
                  "../../test/test_procedures/sortstr.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./scan_graph.so",
                  "../../test/test_procedures/scan_graph.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./echo_binary.so",
                  "../../plugins/cpp/echo_binary.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./add_label.so",
                  "../../test/test_procedures/add_label_v.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
-    FMA_CHECK_EQ(rt, 0);
+    UT_EXPECT_EQ(rt, 0);
 }
 
 class UnitTestBase {
@@ -77,7 +77,7 @@ class UnitTestBase {
         }
         for (auto& t : tests) {
             auto it = tests_.find(t);
-            if (it == tests_.end()) FMA_ERR() << "Test [" << t << "] is not a valid test name.";
+            UT_EXPECT_TRUE(it != tests_.end());
             // run test
             UT_LOG() << "\n------------------";
             UT_LOG() << "Testing " << t;
@@ -95,7 +95,7 @@ class UnitTestBase {
  protected:
     void RegisterTest(const std::string& name, const std::function<int()>& func) {
         auto it = tests_.find(name);
-        if (it != tests_.end()) FMA_ERR() << "Test [" << name << "] is already registered.";
+        UT_EXPECT_TRUE(it == tests_.end());
         tests_.emplace_hint(it, name, func);
     }
 };
@@ -124,7 +124,7 @@ class HaUnitTest : public UnitTestBase {
     }
 
     int AddLabel() {
-        FMA_ASSERT(rests_[0]->AddVertexLabel(
+        UT_EXPECT_TRUE(rests_[0]->AddVertexLabel(
             "default", "v",
             std::vector<lgraph_api::FieldSpec>{{"id", lgraph_api::FieldType::STRING, false}},
             "id"));
@@ -136,7 +136,7 @@ class HaUnitTest : public UnitTestBase {
                 "default", "v", std::vector<std::string>{"id"}, std::vector<std::string>{"001"});
         }
         auto fields = rests_[0]->GetVertexFields("default", vid);
-        FMA_CHECK_EQ(fields["id"].AsString(), "001");
+        UT_EXPECT_EQ(fields["id"].AsString(), "001");
         return 0;
     }
 
@@ -151,7 +151,7 @@ class HaUnitTest : public UnitTestBase {
         body[_TU("user")] = web::json::value::string(_TU("admin"));
         body[_TU("password")] = web::json::value::string(_TU("73@TuGraph"));
         auto response = hclient->request(methods::POST, _TU("/login"), body).get();
-        FMA_CHECK_EQ(response.status_code(), status_codes::OK);
+        UT_EXPECT_EQ(response.status_code(), status_codes::OK);
         auto token = response.extract_json().get().at(_TU("jwt")).as_string();
         std::string author;
         author = "Bearer " + ToStdString(token);
@@ -165,7 +165,7 @@ class HaUnitTest : public UnitTestBase {
         response = hclient->request(request).get();
         UT_LOG() << _TS(response.to_string());
         UT_LOG() << "+++++++++++++++++++++++++++++++++++++";
-        FMA_CHECK_EQ(response.status_code(), status_codes::OK);
+        UT_EXPECT_EQ(response.status_code(), status_codes::OK);
 
         request.headers().clear();
         request.headers().add(_TU("Authorization"), _TU(author));
@@ -175,7 +175,7 @@ class HaUnitTest : public UnitTestBase {
         response = hclient->request(request).get();
         UT_LOG() << _TS(response.to_string());
         UT_LOG() << "--------------------------------------";
-        FMA_CHECK_EQ(response.status_code(), status_codes::OK);
+        UT_EXPECT_EQ(response.status_code(), status_codes::OK);
         return 0;
     }
 
@@ -254,7 +254,7 @@ class TestHA : public testing::Test {
         config->http_port = http_port;
         config->rpc_port = rpc_port;
         config->enable_ha = true;
-        config->verbose = 2;
+        config->verbose = 1;
         t.reset(new HaUnitTest(config, n_clients));
 
         fma_common::file_system::RemoveDir(t->config_->db_dir);
