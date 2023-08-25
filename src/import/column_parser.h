@@ -26,8 +26,6 @@
 #include <boost/iostreams/device/array.hpp>
 #include "gar/graph.h"
 #include "gar/graph_info.h"
-#include "gar/reader/arrow_chunk_reader.h"
-#include "gar/writer/arrow_chunk_writer.h"
 
 namespace lgraph {
 namespace import_v2 {
@@ -639,13 +637,92 @@ class GraphArParser : public BlockParser {
  protected:
     CsvDesc cd_;
     bool label_read = false;
+
+    GAR_NAMESPACE::Property get_primary_key(const GraphArchive::VertexInfo& ver_info) {
+        auto ver_groups = ver_info.GetPropertyGroups();
+        for (auto ver_props : ver_groups)
+            for (auto prop : ver_props.GetProperties())
+                if (prop.is_primary) return prop;
+        return GAR_NAMESPACE::Property();
+    }
+
+    FieldData ParseVertexData(GAR_NAMESPACE::Vertex& vertex, const std::string& prop,
+                              const GAR_NAMESPACE::DataType& data_type) {
+        switch (data_type.id()) {
+        case GAR_NAMESPACE::Type::STRING:
+            return FieldData(vertex.property<std::string>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::BOOL:
+            return FieldData(vertex.property<bool>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::INT32:
+            return FieldData(vertex.property<int32_t>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::INT64:
+            return FieldData(vertex.property<int64_t>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::FLOAT:
+            return FieldData(vertex.property<float>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::DOUBLE:
+            return FieldData(vertex.property<double>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::USER_DEFINED:
+            // todo
+            break;
+        default:
+            break;
+        }
+        return FieldData();
+    }
+
+    FieldData ParseEdgeData(GAR_NAMESPACE::Edge edge, const std::string& prop,
+                            const GAR_NAMESPACE::DataType& data_type) {
+        switch (data_type.id()) {
+        case GAR_NAMESPACE::Type::STRING:
+            return FieldData(edge.property<std::string>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::BOOL:
+            return FieldData(edge.property<bool>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::INT32:
+            return FieldData(edge.property<int32_t>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::INT64:
+            return FieldData(edge.property<int64_t>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::FLOAT:
+            return FieldData(edge.property<float>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::DOUBLE:
+            return FieldData(edge.property<double>(prop).value());
+            break;
+        case GAR_NAMESPACE::Type::USER_DEFINED:
+            // todo
+            break;
+        default:
+            break;
+        }
+        return FieldData();
+    }
+
+    void MapIdPrimary(std::unordered_map<GAR_NAMESPACE::IdType, FieldData>& primary_map,
+                      const GAR_NAMESPACE::GraphInfo& graph_info, const std::string& ver_label) {
+        auto ver_info = graph_info.GetVertexInfo(ver_label).value();
+        auto ver_prop = get_primary_key(ver_info);
+        auto vertices = GAR_NAMESPACE::ConstructVerticesCollection(graph_info, ver_label).value();
+        for (auto vertex : vertices) {
+            primary_map[vertex.id()] = ParseVertexData(vertex, ver_prop.name, ver_prop.type);
+        }
+    }
+
  public:
     GraphArParser(CsvDesc cd) : cd_(cd) {}
     bool ReadBlock(std::vector<std::vector<FieldData>>& buf) {
         if (label_read) return false;
         label_read = true;
+        auto graph_info = GAR_NAMESPACE::GraphInfo::Load(cd_.path).value();
         if (cd_.is_vertex_file) {
-            auto graph_info = GAR_NAMESPACE::GraphInfo::Load(cd_.path).value();
             auto vertices =
                 GAR_NAMESPACE::ConstructVerticesCollection(graph_info, cd_.label).value();
             auto ver_info = graph_info.GetVertexInfo(cd_.label).value();
@@ -655,44 +732,50 @@ class GraphArParser : public BlockParser {
                 temp_vf.clear();
                 for (auto prop : cd_.columns) {
                     auto data_type = ver_info.GetPropertyType(prop).value();
-                    auto fd = std::make_unique<FieldData>();
-                    switch (data_type.id()) {
-                    case GAR_NAMESPACE::Type::STRING:
-                        fd.reset(new FieldData(vertex.property<std::string>(prop).value()));
-                        temp_vf.push_back(*fd);
-                        break;
-                    case GAR_NAMESPACE::Type::BOOL:
-                        fd.reset(new FieldData(vertex.property<bool>(prop).value()));
-                        temp_vf.push_back(*fd);
-                        break;
-                    case GAR_NAMESPACE::Type::INT32:
-                        fd.reset(new FieldData(vertex.property<int32_t>(prop).value()));
-                        temp_vf.push_back(*fd);
-                        break;
-                    case GAR_NAMESPACE::Type::INT64:
-                        fd.reset(new FieldData(vertex.property<int64_t>(prop).value()));
-                        temp_vf.push_back(*fd);
-                        break;
-                    case GAR_NAMESPACE::Type::FLOAT:
-                        fd.reset(new FieldData(vertex.property<float>(prop).value()));
-                        temp_vf.push_back(*fd);
-                        break;
-                    case GAR_NAMESPACE::Type::DOUBLE:
-                        fd.reset(new FieldData(vertex.property<double>(prop).value()));
-                        temp_vf.push_back(*fd);
-                        break;
-                    case GAR_NAMESPACE::Type::USER_DEFINED:
-                        // todo
-                        break;
-                    default:
-                        break;
-                    }
+                    FieldData fd = ParseVertexData(vertex, prop, data_type);
+                    temp_vf.emplace_back(fd);
                 }
-                buf.push_back(temp_vf);
+                buf.emplace_back(temp_vf);
             }
             return true;
         } else {
-            auto graph_info = GAR_NAMESPACE::GraphInfo::Load(cd_.path).value();
+            auto edges_ = GAR_NAMESPACE::ConstructEdgesCollection(
+                              graph_info, cd_.edge_src.label, cd_.label, cd_.edge_dst.label,
+                              GraphArchive::AdjListType::ordered_by_source)
+                              .value();
+            auto edges = std::get<
+                GAR_NAMESPACE::EdgesCollection<GAR_NAMESPACE::AdjListType::ordered_by_source>>(
+                edges_);
+            auto edge_info =
+                graph_info.GetEdgeInfo(cd_.edge_src.label, cd_.label, cd_.edge_dst.label).value();
+
+            std::unordered_map<GAR_NAMESPACE::IdType, FieldData> src_id_primary;
+            std::unordered_map<GAR_NAMESPACE::IdType, FieldData> dst_id_primary;
+            MapIdPrimary(src_id_primary, graph_info, cd_.edge_src.label);
+            MapIdPrimary(dst_id_primary, graph_info, cd_.edge_dst.label);
+
+            size_t edge_num = edges.size();
+            buf.reserve(edge_num);
+            std::vector<FieldData> temp_vf;
+            for (auto it = edges.begin(); it != edges.end(); ++it) {
+                auto edge = *it;
+                temp_vf.clear();
+                for (auto prop : cd_.columns) {
+                    if (prop == "SRC_ID") {
+                        auto src_data = src_id_primary[edge.source()];
+                        temp_vf.emplace_back(src_data);
+                    } else if (prop == "DST_ID") {
+                        auto dst_data = dst_id_primary[edge.destination()];
+                        temp_vf.emplace_back(dst_data);
+                    } else {
+                        auto data_type = edge_info.GetPropertyType(prop).value();
+                        FieldData edge_data = ParseEdgeData(edge, prop, data_type);
+                        temp_vf.emplace_back(edge_data);
+                    }
+                }
+                buf.emplace_back(temp_vf);
+            }
+            return true;
         }
         return false;
     }

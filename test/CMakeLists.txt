@@ -121,7 +121,8 @@ add_executable(unit_test
 
 target_link_libraries(unit_test
         lgraph_server_lib
-        librocksdb.a)
+        librocksdb.a
+        gar)
 
 target_link_libraries(unit_test
         ${GTEST_MAIN_LIB}

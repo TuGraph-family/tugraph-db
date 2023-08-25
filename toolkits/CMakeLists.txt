@@ -16,7 +16,6 @@ add_executable(${TARGET_LGRAPH_IMPORT}
         ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp)
 
 # TODO: break circular dependency between cypher and state machine
-
 target_link_libraries(${TARGET_LGRAPH_IMPORT}
         lgraph_server_lib
         lgraph_cypher_lib

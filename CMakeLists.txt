@@ -16,9 +16,10 @@ set(CMAKEFILES_COMPILER_DIR ${PROJECT_BINARY_DIR})
 set(DEPS_LOCAL_INCLUDE_DIR /usr/local/include)
 set(DEPS_LOCAL_LIBRARY_DIR /usr/local/lib)
 
-include_directories(SYSTEM ${DEPS_INCLUDE_DIR} ${DEPS_LOCAL_INCLUDE_DIR}) # just for IDE
 include_directories(/root/GraphAr/cpp/build/arrow_ep-prefix/include)
 add_definitions(-DGAR_NAMESPACE=GraphArchive)
+
+include_directories(SYSTEM ${DEPS_INCLUDE_DIR} ${DEPS_LOCAL_INCLUDE_DIR}) # just for IDE
 link_directories(${DEPS_LIBRARY_DIR} ${DEPS_LIBRARY64_DIR})
 if (OURSYSTEM STREQUAL "centos")
     link_directories(${DEPS_LIBRARY64_DIR})

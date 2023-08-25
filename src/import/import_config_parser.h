@@ -406,7 +406,7 @@ struct LabelDesc {
                     FMA_FMT("vertex label [{}]'s BLOB field is indexed, which should not", name));
             if (it->fulltext && it->type != FieldType::STRING) {
                 throw InputError(
-                    FMA_FMT("label [{}] ：fulltext index only supports STRING type", name));
+                    FMA_FMT("label [{}]: fulltext index only supports STRING type", name));
             }
         }
         if (is_vertex && !find_primary) {
