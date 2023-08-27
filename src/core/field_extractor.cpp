@@ -43,6 +43,37 @@ void FieldExtractor::_ParseStringAndSet<FieldType::STRING>(Value& record,
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 
+template <>
+void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
+                                                          const std::string& data) const {
+    // return _SetFixedSizeValue()
+    FMA_DBG_ASSERT(!is_vfield_);
+    FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+    size_t Size = record.Size();
+    record.Resize(Size);
+    char* ptr = (char*)record.Data();
+    ptr += offset_.data_off;
+    memcpy(ptr, data.data(), 50);
+}
+
+template <>
+void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
+                                                          const std::string& data) const {
+    // 检查data是否合规!
+    return _SetVariableLengthValue(record, Value::ConstRef(data));
+}
+
+template <>
+void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
+                                                          const std::string& data) const {
+    return _SetVariableLengthValue(record, Value::ConstRef(data));
+}
+
+template <>
+void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
+                                                          const std::string& data) const {
+    return _SetVariableLengthValue(record, Value::ConstRef(data));
+}
 /**
  * Parse the string data and set the field
  *
@@ -87,6 +118,12 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
         FMA_ERR() << "ParseAndSet(Value, std::string) is not supposed to"
                      " be called directly. We should first parse blobs "
                      "into BlobValue and use SetBlobField(Value, FieldData)";
+    case FieldType::POINT:
+        return _ParseStringAndSet<FieldType::POINT>(record, data);
+    case FieldType::LINESTRING:
+        return _ParseStringAndSet<FieldType::LINESTRING>(record, data);
+    case FieldType::POLYGON:
+        return _ParseStringAndSet<FieldType::POLYGON>(record, data);
     case FieldType::SPATIAL:
         FMA_ERR() << "do not support spatial now!";
     case FieldType::NUL:
@@ -147,6 +184,25 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                 throw ParseIncompatibleTypeException(Name(), data.type, FieldType::BLOB);
             return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
+    case FieldType::POINT:
+        {
+            if (data.type != FieldType::POINT)
+            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POINT);
+            FMA_DBG_ASSERT(!is_vfield_);
+            record.Resize(record.Size());
+            char* ptr = (char*)record.Data() + offset_.data_off;
+            memcpy(ptr, data.data.buf, 50);
+            return;
+        }
+    case FieldType::LINESTRING:
+        if(data.type != FieldType::LINESTRING)
+            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::LINESTRING);
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+    case FieldType::POLYGON:
+        if(data.type != FieldType::POLYGON)
+            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POLYGON);
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+
     default:
         FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
     }
@@ -213,12 +269,18 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
             // return ::lgraph_api::base64::Encode(ret.substr(2));
             return fma_common::StringFormatter::Format("[BLOB]");
         }
+    case FieldType::POINT:
+
+    case FieldType::LINESTRING:
+
+    case FieldType::POLYGON:
+    
     case FieldType::SPATIAL:
         {
-            /*std::string ret(GetDataSize(record), 0);
+            std::string ret(GetDataSize(record), 0);
             GetCopyRaw(record, &ret[0], ret.size());
-            return ret;*/
-            throw std::runtime_error("do not support spatial now!");
+            return ret;
+            //throw std::runtime_error("do not support spatial now!");
         }
     case lgraph_api::NUL:
         break;

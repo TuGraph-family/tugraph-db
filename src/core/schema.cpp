@@ -189,6 +189,54 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     case FieldType::BLOB:
         FMA_ERR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
                      "Extractor, GetBlobKeyFunc)";
+    case FieldType::POINT:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch(srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WSG84:
+                return FieldData(point_Wsg84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(point_Cartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
+        
+    case FieldType::LINESTRING:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch(srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WSG84:
+                return FieldData(linestring_Wsg84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(linestring_Cartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
+        
+    case FieldType::POLYGON:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch(srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WSG84:
+                return FieldData(polygon_Wsg84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(polygon_Cartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
+        
     case FieldType::SPATIAL:
         FMA_ERR() << "Do not support spatial type now!";
     case FieldType::NUL:

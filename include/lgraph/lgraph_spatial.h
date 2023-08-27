@@ -91,6 +91,13 @@ SRID ExtractSRID(std::string EWKB);
 // extract the spatial type from EWKB format;
 SpatialType ExtractType(std::string EWKB);
 
+// return whether a WKB format is valid;
+template<typename SRID_Type>
+bool TryDecodeWKB(const std::string& EWKB, SpatialType type);
+
+// return whether a EWKB format is valid;
+bool TryDecodeEWKB(const std::string& EWKB);
+
 /** @brief   Implements the Spatial template class. Spatial class now can hold one of
  *  point, linestring or polygon pointer;
  */
@@ -123,7 +130,7 @@ class Spatial {
      * 
      * @param EWKB  the EWKB format string;
      */
-    explicit Spatial(std::string EWKB);
+    explicit Spatial(const std::string& EWKB);
 
     ~Spatial() {}
 
@@ -182,15 +189,15 @@ class SpatialBase {
 
     // virtual ~SpatialBase();
 
-    virtual std::string AsEWKB() = 0;
+    virtual std::string AsEWKB() const = 0;
 
-    virtual std::string AsEWKT() = 0;
+    virtual std::string AsEWKT() const = 0;
 
-    SpatialType GetType() {
+    SpatialType GetType() const {
         return type_;
     }
 
-    SRID GetSrid() {
+    SRID GetSrid() const {
         return srid_;
     }
 };
@@ -206,11 +213,13 @@ class point : public SpatialBase {
  public:
     point(SRID srid, SpatialType type, int construct_type, std::string content);
 
-    std::string AsEWKB() override {
+    point(const std::string& EWKB);
+
+    std::string AsEWKB() const override {
         return EWKB;
     }
 
-    std::string AsEWKT() override;
+    std::string AsEWKT() const override;
     /**
      *  @brief return point type data;
     */
@@ -231,11 +240,13 @@ class linestring : public SpatialBase {
  public:
     linestring(SRID srid, SpatialType type, int construct_type, std::string content);
 
-    std::string AsEWKB() override {
+    linestring(const std::string& EWKB);
+
+    std::string AsEWKB() const override {
         return EWKB;
     }
 
-    std::string AsEWKT() override;
+    std::string AsEWKT() const override;
 
     bg::model::linestring<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return line_;
@@ -254,11 +265,13 @@ class polygon : public SpatialBase {
  public:
     polygon(SRID srid, SpatialType type, int construct_type, std::string content);
 
-    std::string AsEWKB() override {
+    polygon(const std::string& EWKB);
+
+    std::string AsEWKB() const override {
         return EWKB;
     }
 
-    std::string AsEWKT() override;
+    std::string AsEWKT() const override;
 
     bg::model::polygon<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return polygon_;

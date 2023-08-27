@@ -608,6 +608,12 @@ class JsonLinesParser : public BlockParser {
                 case FieldType::BLOB:
                     fd = FieldData::Blob(ToStdString(json_obj.at(column).as_string()));
                     break;
+                case FieldType::POINT:
+
+                case FieldType::LINESTRING:
+
+                case FieldType::POLYGON:
+
                 case FieldType::SPATIAL:
                     throw std::runtime_error("do not support spatial type now!");
                 }
