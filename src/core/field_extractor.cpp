@@ -186,20 +186,21 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         }
     case FieldType::POINT:
         {
-            if (data.type != FieldType::POINT)
-            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POINT);
+            // point type can only be converted from point and string;
+            if (data.type != FieldType::POINT && data.type != FieldType::STRING)
+                throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POINT);
             FMA_DBG_ASSERT(!is_vfield_);
             record.Resize(record.Size());
             char* ptr = (char*)record.Data() + offset_.data_off;
-            memcpy(ptr, data.data.buf, 50);
+            memcpy(ptr, (*data.data.buf).data(), 50);
             return;
         }
     case FieldType::LINESTRING:
-        if(data.type != FieldType::LINESTRING)
+        if(data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
             throw ParseIncompatibleTypeException(Name(), data.type, FieldType::LINESTRING);
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
     case FieldType::POLYGON:
-        if(data.type != FieldType::POLYGON)
+        if(data.type != FieldType::POLYGON && data.type != FieldType::STRING)
             throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POLYGON);
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
 
