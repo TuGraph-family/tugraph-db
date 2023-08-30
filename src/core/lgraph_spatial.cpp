@@ -17,7 +17,7 @@
 
 namespace lgraph_api {
 
-bool Endian(std::string EWKB) {
+bool Endian(const std::string& EWKB) {
     std::string endian = EWKB.substr(0, 2);
     if (endian == "01") {
         return true;
@@ -66,7 +66,7 @@ std::string set_extension(const std::string& WKB, SRID srid_type) {
     return EWKB;
 }
 
-SRID ExtractSRID(std::string EWKB) {
+SRID ExtractSRID(const std::string& EWKB) {
     std::string srid = EWKB.substr(10, 8);
     if (Endian(EWKB)) {
         EndianTansfer(srid);
@@ -87,7 +87,7 @@ SRID ExtractSRID(std::string EWKB) {
     }
 }
 
-SpatialType ExtractType(std::string EWKB) {
+SpatialType ExtractType(const std::string& EWKB) {
     std::string type = EWKB.substr(2, 4);
     if (Endian(EWKB)) {
         EndianTansfer(type);
@@ -114,7 +114,7 @@ SpatialType ExtractType(std::string EWKB) {
 template<typename SRID_Type>
 bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
     typedef bg::model::point<double, 2, SRID_Type> point;
-    switch(type) {
+    switch (type) {
         case SpatialType::NUL:
             return false;
         case SpatialType::POINT: {
@@ -127,7 +127,7 @@ bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
             }
             return true;
         }
-            
+
         case SpatialType::LINESTRING: {
             bg::model::linestring<point> line_;
             byte_vector wkb_;
@@ -138,7 +138,7 @@ bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
             }
             return true;
         }
-            
+
         case SpatialType::POLYGON: {
             bg::model::polygon<point> polygon_;
             byte_vector wkb_;
@@ -157,7 +157,7 @@ bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
 
 bool TryDecodeEWKB(const std::string& EWKB) {
     char dim = EWKB[8] > EWKB[9] ? EWKB[8] : EWKB[9];
-    if(dim != '2')
+    if (dim != '2')
         return false;
     SRID s = ExtractSRID(EWKB);
     SpatialType t = ExtractType(EWKB);
@@ -165,7 +165,7 @@ bool TryDecodeEWKB(const std::string& EWKB) {
     WKB[8] = '0';
     WKB[9] = '0';
 
-    switch(s) {
+    switch (s) {
         case SRID::NUL:
             return false;
         case SRID::WSG84:
@@ -290,7 +290,8 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
 }
 
 template<typename SRID_Type>
-point<SRID_Type>::point(const std::string& EWKB_) : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
+point<SRID_Type>::point(const std::string& EWKB_)
+: SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     std::string WKB = EWKB_.substr(0, 10) + EWKB_.substr(18);
     EWKB = EWKB_;
     WKB[8] = WKB[9] = '0';
@@ -317,6 +318,16 @@ std::string point<SRID_Type>::AsEWKT() const {
     EWKT.pop_back();
 
     return EWKT;
+}
+
+template<typename SRID_Type>
+std::string point<SRID_Type>::ToString() const {
+    return AsEWKB();
+}
+
+template<typename SRID_Type>
+bool point<SRID_Type>::operator==(const point<SRID_Type> &other) {
+    return AsEWKB() == other.AsEWKB();
 }
 
 template<typename SRID_Type>
@@ -350,7 +361,8 @@ int construct_type, std::string content)
 }
 
 template<typename SRID_Type>
-linestring<SRID_Type>::linestring(const std::string& EWKB_) : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
+linestring<SRID_Type>::linestring(const std::string& EWKB_)
+: SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     std::string WKB = EWKB_.substr(0, 10) + EWKB_.substr(18);
     EWKB = EWKB_;
     WKB[8] = WKB[9] = '0';
@@ -378,6 +390,16 @@ std::string linestring<SRID_Type>::AsEWKT() const {
     EWKT.pop_back();
 
     return EWKT;
+}
+
+template<typename SRID_Type>
+std::string linestring<SRID_Type>::ToString() const {
+    return AsEWKB();
+}
+
+template<typename SRID_Type>
+bool linestring<SRID_Type>::operator==(const linestring<SRID_Type> &other) {
+    return AsEWKB() == other.AsEWKB();
 }
 
 template<typename SRID_Type>
@@ -414,7 +436,8 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
 }
 
 template<typename SRID_Type>
-polygon<SRID_Type>::polygon(const std::string& EWKB_) : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
+polygon<SRID_Type>::polygon(const std::string& EWKB_)
+: SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     std::string WKB = EWKB_.substr(0, 10) + EWKB_.substr(18);
     EWKB = EWKB_;
     WKB[8] = WKB[9] = '0';
@@ -442,6 +465,16 @@ std::string polygon<SRID_Type>::AsEWKT() const {
     EWKT.pop_back();
 
     return EWKT;
+}
+
+template<typename SRID_Type>
+std::string polygon<SRID_Type>::ToString() const {
+    return AsEWKB();
+}
+
+template<typename SRID_Type>
+bool polygon<SRID_Type>::operator==(const polygon<SRID_Type> &other) {
+    return AsEWKB() == other.AsEWKB();
 }
 
 template class point<Wsg84>;

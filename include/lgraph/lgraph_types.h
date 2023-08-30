@@ -517,7 +517,7 @@ struct FieldData {
     return FieldData(p); }
     static inline FieldData Point(const ::lgraph_api::point<Wsg84>& p) {return FieldData(p); }
     static inline FieldData Point(const std::string& str) {
-        switch(::lgraph_api::ExtractSRID(str)) {
+        switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
                 throw InputError("Wrong SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
@@ -530,10 +530,11 @@ struct FieldData {
     }
 
     static inline FieldData LineString(const ::lgraph_api::linestring<Cartesian>& l) {
-    return FieldData(l); }
-    static inline FieldData LineString(const ::lgraph_api::linestring<Wsg84>& l) {return FieldData(l); }
+        return FieldData(l); }
+    static inline FieldData LineString(const ::lgraph_api::linestring<Wsg84>& l) {
+        return FieldData(l); }
     static inline FieldData LineString(const std::string& str) {
-        switch(::lgraph_api::ExtractSRID(str)) {
+        switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
                 throw InputError("Wrong SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
@@ -549,7 +550,7 @@ struct FieldData {
     return FieldData(p); }
     static inline FieldData Polygon(const ::lgraph_api::polygon<Wsg84>& p) {return FieldData(p); }
     static inline FieldData Polygon(const std::string& str) {
-        switch(::lgraph_api::ExtractSRID(str)) {
+        switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
                 throw InputError("Wrong SRID!");
             case ::lgraph_api::SRID::CARTESIAN:

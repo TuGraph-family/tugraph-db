@@ -48,11 +48,12 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
                                                           const std::string& data) const {
     // return _SetFixedSizeValue()
     FMA_DBG_ASSERT(!is_vfield_);
-    FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+    if (!::lgraph_api::TryDecodeEWKB(data))
+        throw ParseStringException(Name(), data, FieldType::POINT);
+    // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
     size_t Size = record.Size();
     record.Resize(Size);
-    char* ptr = (char*)record.Data();
-    ptr += offset_.data_off;
+    char* ptr = (char*)record.Data() + offset_.data_off;
     memcpy(ptr, data.data(), 50);
 }
 
@@ -60,12 +61,16 @@ template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
                                                           const std::string& data) const {
     // 检查data是否合规!
+    if (!::lgraph_api::TryDecodeEWKB(data))
+        throw ParseStringException(Name(), data, FieldType::LINESTRING);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
                                                           const std::string& data) const {
+    if (!::lgraph_api::TryDecodeEWKB(data))
+        throw ParseStringException(Name(), data, FieldType::POLYGON);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 
@@ -87,7 +92,8 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
  *          FIELD_PARSE_FAILED.
  */
 void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
-    if (data.empty() && field_data_helper::IsFixedLengthFieldType(def_.type)) {
+    if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type)
+        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON)) {
         SetIsNull(record, true);
         return;
     }
@@ -188,20 +194,29 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         {
             // point type can only be converted from point and string;
             if (data.type != FieldType::POINT && data.type != FieldType::STRING)
-                throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POINT);
+                throw ParseFieldDataException(Name(), data, Type());
             FMA_DBG_ASSERT(!is_vfield_);
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::POINT);
+
             record.Resize(record.Size());
             char* ptr = (char*)record.Data() + offset_.data_off;
             memcpy(ptr, (*data.data.buf).data(), 50);
             return;
         }
     case FieldType::LINESTRING:
-        if(data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
-            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::LINESTRING);
+        if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
+            throw ParseFieldDataException(Name(), data, Type());
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::LINESTRING);
+
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
     case FieldType::POLYGON:
-        if(data.type != FieldType::POLYGON && data.type != FieldType::STRING)
-            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::POLYGON);
+        if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
+            throw ParseFieldDataException(Name(), data, Type());
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
+
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
 
     default:
@@ -275,13 +290,13 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
     case FieldType::LINESTRING:
 
     case FieldType::POLYGON:
-    
+
     case FieldType::SPATIAL:
         {
             std::string ret(GetDataSize(record), 0);
             GetCopyRaw(record, &ret[0], ret.size());
             return ret;
-            //throw std::runtime_error("do not support spatial now!");
+            // throw std::runtime_error("do not support spatial now!");
         }
     case lgraph_api::NUL:
         break;

@@ -60,7 +60,7 @@ namespace field_data_helper {
 namespace _detail {
 static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   "INT16",
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
-                                                 "DATE",  "DATETIME", "STRING", "BLOB", 
+                                                 "DATE",  "DATETIME", "STRING", "BLOB",
                                                  "POINT", "LINESTRING", "POLYGON"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
@@ -231,6 +231,12 @@ struct FieldType2CType<FieldType::DATE> {
 template <>
 struct FieldType2CType<FieldType::DATETIME> {
     typedef DateTime type;
+};
+
+// 这里有template的问题;
+template <>
+struct FieldType2CType<FieldType::POINT> {
+
 };
 
 template <FieldType FT>
@@ -788,12 +794,12 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
     case FieldType::SPATIAL:
         {
             // can only convert string to spatial
-            if(fd.type != FieldType::STRING) return false;
+            if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
-            if(!::lgraph_api::TryDecodeEWKB(EWKB)) return false;
+            if (!::lgraph_api::TryDecodeEWKB(EWKB)) return false;
             v.Copy(EWKB);
             return true;
-        }    
+        }
     }
 
     FMA_ASSERT(false);
@@ -855,8 +861,8 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
     case FieldType::POINT:
     case FieldType::LINESTRING:
     case FieldType::POLYGON:
-    case FieldType::SPATIAL:       
-        if(!::lgraph_api::TryDecodeEWKB(str))
+    case FieldType::SPATIAL:
+        if (!::lgraph_api::TryDecodeEWKB(str))
             ThrowParseError(str, FieldType::SPATIAL);
         Value v;
         v.Copy(str);
@@ -948,7 +954,7 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return FieldData(::lgraph_api::Spatial<::lgraph_api::Cartesian>(ewkb));
                 }
-        }    
+        }
     }
     FMA_ASSERT(false);
     return FieldData();

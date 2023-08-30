@@ -50,8 +50,8 @@ TEST_F(TestTypeConvert, TypeConvert) {
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(blobs), FieldType::STRING).AsString(), blobs);
     std::string s = "to lbr data";
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(s), FieldType::STRING).AsString(), s);
-    std::string EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
-    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(EWKB), FieldType::SPATIAL).AsWsgSpatial() ==
-    ::lgraph_api::Spatial<::lgraph_api::Wsg84>(EWKB));
-    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(EWKB), FieldType::SPATIAL).ToString(), EWKB);
+    std::string point = "0101000020E6100000000000000000F03F000000000000F03F";
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point), FieldType::POINT).AsWsgPoint() ==
+    ::lgraph_api::point<::lgraph_api::Wsg84>(point));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point), FieldType::POINT).ToString(), point);
 }

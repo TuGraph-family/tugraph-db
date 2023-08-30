@@ -76,8 +76,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
 
 # install geometry/extensions
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extension.tar.gz \
-    && tar xf geometry-extension.tar.gz && cp -r extesions/ /usr/local/include/boost/geometry \
-    && rm -rf geometry-extension.tar.gz extesions
+    && tar xf geometry-extension.tar.gz && cp -r extensions/ /usr/local/include/boost/geometry \
+    && rm -rf geometry-extension.tar.gz extensions
 
 
 # install protobuf

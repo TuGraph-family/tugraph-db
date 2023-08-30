@@ -193,7 +193,7 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     {
         std::string EWKB = extractor->GetConstRef(record).AsString();
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch(srid) {
+        switch (srid) {
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
             case lgraph_api::SRID::WSG84:
@@ -204,12 +204,12 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 throw InputError("invalid srid!\n");
         }
     }
-        
+
     case FieldType::LINESTRING:
     {
         std::string EWKB = extractor->GetConstRef(record).AsString();
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch(srid) {
+        switch (srid) {
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
             case lgraph_api::SRID::WSG84:
@@ -220,12 +220,12 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 throw InputError("invalid srid!\n");
         }
     }
-        
+
     case FieldType::POLYGON:
     {
         std::string EWKB = extractor->GetConstRef(record).AsString();
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch(srid) {
+        switch (srid) {
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
             case lgraph_api::SRID::WSG84:
@@ -236,7 +236,7 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 throw InputError("invalid srid!\n");
         }
     }
-        
+
     case FieldType::SPATIAL:
         FMA_ERR() << "Do not support spatial type now!";
     case FieldType::NUL:

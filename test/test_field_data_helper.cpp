@@ -43,7 +43,7 @@ void CheckFieldTypeSizeNameIsFixed(::lgraph::FieldType ft, const std::string& na
 
 TEST_F(TestFieldDataHelper, FieldTypeSize) {
     UT_LOG() << "Testing FieldTypeSize, FieldTypeName and IsFixedLengthFieldType";
-    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::BLOB; ft++) {
+    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::POLYGON; ft++) {
         FieldType parsed;
         UT_EXPECT_TRUE(TryGetFieldType(FieldTypeName((FieldType)ft), parsed));
         UT_EXPECT_EQ((int)parsed, ft);
@@ -64,6 +64,10 @@ TEST_F(TestFieldDataHelper, FieldTypeSize) {
     CheckFieldTypeSizeNameIsFixed(FieldType::DATETIME, "DATETIME", 8, true);
     CheckFieldTypeSizeNameIsFixed(FieldType::STRING, "STRING", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::BLOB, "BLOB", 0, false);
+    CheckFieldTypeSizeNameIsFixed(FieldType::POINT, "POINT", 50, true);
+    CheckFieldTypeSizeNameIsFixed(FieldType::LINESTRING, "LINESTRING", 0, false);
+    CheckFieldTypeSizeNameIsFixed(FieldType::POLYGON, "POLYGON", 0, false);
+    
 }
 
 TEST_F(TestFieldDataHelper, FieldTypeStorageType) {
