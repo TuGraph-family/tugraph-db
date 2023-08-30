@@ -48,7 +48,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
                                                           const std::string& data) const {
     // return _SetFixedSizeValue()
     FMA_DBG_ASSERT(!is_vfield_);
-    if (!::lgraph_api::TryDecodeEWKB(data))
+    if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POINT))
         throw ParseStringException(Name(), data, FieldType::POINT);
     // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
     size_t Size = record.Size();
@@ -61,7 +61,7 @@ template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
                                                           const std::string& data) const {
     // 检查data是否合规!
-    if (!::lgraph_api::TryDecodeEWKB(data))
+    if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::LINESTRING))
         throw ParseStringException(Name(), data, FieldType::LINESTRING);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
@@ -69,7 +69,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
                                                           const std::string& data) const {
-    if (!::lgraph_api::TryDecodeEWKB(data))
+    if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POLYGON))
         throw ParseStringException(Name(), data, FieldType::POLYGON);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
@@ -196,7 +196,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
             if (data.type != FieldType::POINT && data.type != FieldType::STRING)
                 throw ParseFieldDataException(Name(), data, Type());
             FMA_DBG_ASSERT(!is_vfield_);
-            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf))
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POINT))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POINT);
 
             record.Resize(record.Size());
@@ -207,14 +207,14 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
     case FieldType::LINESTRING:
         if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
             throw ParseFieldDataException(Name(), data, Type());
-        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf))
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::LINESTRING);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
     case FieldType::POLYGON:
         if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
             throw ParseFieldDataException(Name(), data, Type());
-        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf))
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));

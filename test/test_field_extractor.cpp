@@ -169,29 +169,6 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
     }
 }
 
-/*
-static void CheckSpatial(FieldType ft, Value& v, const std::string& str_ok,
-                                    const FieldData& fd_ok, const std::string& str_fail,
-                                    const FieldData& fd_fail) {
-    _detail::FieldExtractor fe_nul(FieldSpec("f", ft, true));
-
-    fe_nul.ParseAndSet(v, FieldData());
-    UT_EXPECT_TRUE(fe_nul.GetIsNull(v));
-    fe_nul.ParseAndSet(v, "");
-    UT_EXPECT_TRUE(!fe_nul.GetIsNull(v));
-    UT_EXPECT_TRUE(fe_nul.GetConstRef(v).Empty());
-    FieldSpec fs("fs", ft, false);
-    _detail::FieldExtractor fe(fs);
-    UT_EXPECT_THROW(fe.ParseAndSet(v, FieldData()), lgraph::FieldCannotBeSetNullException);
-    fe.ParseAndSet(v, str_ok);
-    UT_EXPECT_EQ(fe.GetConstRef(v).AsType<std::string>(), str_ok);
-    fe.ParseAndSet(v, fd_ok);
-    UT_EXPECT_TRUE(fe.GetConstRef(v).AsType<std::string>() == fd_ok.AsString());
-    UT_EXPECT_THROW(fe.ParseAndSet(v, str_fail), lgraph::DataSizeTooLargeException);
-    UT_EXPECT_THROW(fe.ParseAndSet(v, fd_fail), lgraph::ParseIncompatibleTypeException);
-}
-*/
-
 TEST_F(TestFieldExtractor, FieldExtractor) {
     UT_LOG() << "Testing FieldExtractor";
     {
@@ -222,22 +199,24 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         CheckParseDataType<lgraph::DateTime>(FieldType::DATETIME, value_tmp, "2019-09-08 00:15:14",
                                              FieldData::DateTime("2020-05-04 20:24:34"),
                                              "not valid date", FieldData(123), true, "10240-09-01");
-        CheckParseDataType<lgraph::point_Wsg84>(FieldType::POINT, value_tmp, 
+        CheckParseDataType<lgraph::point_Wsg84>(FieldType::POINT, value_tmp,
                            "0101000020E6100000000000000000F03F0000000000000040",
                            FieldData::Point("0101000020E6100000000000000000F03F0000000000000040"),
                            "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::linestring_Cartesian>(FieldType::LINESTRING, value_tmp, 
+        CheckParseDataType<lgraph::linestring_Cartesian>(FieldType::LINESTRING, value_tmp,
                            "0102000020231C00000300000000000000000000000000000000000000000"
                            "000000000004000000000000000400000000000000840000000000000F03F",
-                           FieldData::LineString("0102000020231C0000030000000000000000000000000000000"
-                           "0000000000000000000004000000000000000400000000000000840000000000000F03F"),
+                           FieldData::LineString("0102000020231C000003000000000000"
+                           "0000000000000000000000000000000000000000400000000"
+                           "0000000400000000000000840000000000000F03F"),
                            "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::polygon_Wsg84>(FieldType::POLYGON, value_tmp, 
+        CheckParseDataType<lgraph::polygon_Wsg84>(FieldType::POLYGON, value_tmp,
                            "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000",
-                           FieldData::Polygon("0103000020E6100000010000000500000000000000000000000000"
-                           "00000000000000000000000000000000000000001C400000000000001040000000000000"
+                           FieldData::Polygon("0103000020E61000000100000005000000"
+                           "000000000000000000000000000000000000000"
+                           "0000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000"),
                            "aasd332423d", FieldData(3215), false);
         CheckParseStringAndBlob(FieldType::STRING, value_tmp, "this is a string",

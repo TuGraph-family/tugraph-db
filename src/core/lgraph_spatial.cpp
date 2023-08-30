@@ -155,12 +155,19 @@ bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
     }
 }
 
-bool TryDecodeEWKB(const std::string& EWKB) {
+bool TryDecodeEWKB(const std::string& EWKB, SpatialType type) {
+    // the EWKB format's is at least 50;
+    if (EWKB.size() < 50)
+        return false;
+
     char dim = EWKB[8] > EWKB[9] ? EWKB[8] : EWKB[9];
     if (dim != '2')
         return false;
     SRID s = ExtractSRID(EWKB);
     SpatialType t = ExtractType(EWKB);
+    if (t != type)
+        return false;
+
     std::string WKB = EWKB.substr(0, 10) + EWKB.substr(18);
     WKB[8] = '0';
     WKB[9] = '0';
@@ -176,6 +183,7 @@ bool TryDecodeEWKB(const std::string& EWKB) {
             return false;
     }
 }
+
 
 template<typename SRID_Type>
 Spatial<SRID_Type>::Spatial(SRID srid, SpatialType type, int construct_type, std::string content) {

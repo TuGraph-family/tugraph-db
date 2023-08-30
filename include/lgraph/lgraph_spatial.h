@@ -96,7 +96,7 @@ template<typename SRID_Type>
 bool TryDecodeWKB(const std::string& EWKB, SpatialType type);
 
 // return whether a EWKB format is valid;
-bool TryDecodeEWKB(const std::string& EWKB);
+bool TryDecodeEWKB(const std::string& EWKB, SpatialType type);
 
 /** @brief   Implements the Spatial template class. Spatial class now can hold one of
  *  point, linestring or polygon pointer;
@@ -293,7 +293,7 @@ class polygon : public SpatialBase {
      * @brief return EWKB format in default;
     */
     std::string ToString() const;
-    
+
     bg::model::polygon<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return polygon_;
     }

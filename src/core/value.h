@@ -59,42 +59,42 @@ struct TypeCast<std::string> {
 template <>
 struct TypeCast<lgraph_api::point<lgraph_api::Wsg84>> {
     static lgraph_api::point<lgraph_api::Wsg84> AsType(void* p, size_t s) {
-        return lgraph_api::point<lgraph_api::Wsg84>(std::string((char*)p, s)); 
+        return lgraph_api::point<lgraph_api::Wsg84>(std::string((char*)p, s));
     }
 };
 
 template <>
 struct TypeCast<lgraph_api::point<lgraph_api::Cartesian>> {
     static lgraph_api::point<lgraph_api::Cartesian> AsType(void* p, size_t s) {
-        return lgraph_api::point<lgraph_api::Cartesian>(std::string((char*)p, s)); 
+        return lgraph_api::point<lgraph_api::Cartesian>(std::string((char*)p, s));
     }
 };
 
 template <>
 struct TypeCast<lgraph_api::linestring<lgraph_api::Wsg84>> {
     static lgraph_api::linestring<lgraph_api::Wsg84> AsType(void* p, size_t s) {
-        return lgraph_api::linestring<lgraph_api::Wsg84>(std::string((char*)p, s)); 
+        return lgraph_api::linestring<lgraph_api::Wsg84>(std::string((char*)p, s));
     }
 };
 
 template <>
 struct TypeCast<lgraph_api::linestring<lgraph_api::Cartesian>> {
     static lgraph_api::linestring<lgraph_api::Cartesian> AsType(void* p, size_t s) {
-        return lgraph_api::linestring<lgraph_api::Cartesian>(std::string((char*)p, s)); 
+        return lgraph_api::linestring<lgraph_api::Cartesian>(std::string((char*)p, s));
     }
 };
 
 template <>
 struct TypeCast<lgraph_api::polygon<lgraph_api::Wsg84>> {
     static lgraph_api::polygon<lgraph_api::Wsg84> AsType(void* p, size_t s) {
-        return lgraph_api::polygon<lgraph_api::Wsg84>(std::string((char*)p, s)); 
+        return lgraph_api::polygon<lgraph_api::Wsg84>(std::string((char*)p, s));
     }
 };
 
 template <>
 struct TypeCast<lgraph_api::polygon<lgraph_api::Cartesian>> {
     static lgraph_api::polygon<lgraph_api::Cartesian> AsType(void* p, size_t s) {
-        return lgraph_api::polygon<lgraph_api::Cartesian>(std::string((char*)p, s)); 
+        return lgraph_api::polygon<lgraph_api::Cartesian>(std::string((char*)p, s));
     }
 };
 
