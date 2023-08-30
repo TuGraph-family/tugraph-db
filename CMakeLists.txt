@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 project(TuGraph C CXX)
 
 message("Community version.")
@@ -16,7 +16,6 @@ set(CMAKEFILES_COMPILER_DIR ${PROJECT_BINARY_DIR})
 set(DEPS_LOCAL_INCLUDE_DIR /usr/local/include)
 set(DEPS_LOCAL_LIBRARY_DIR /usr/local/lib)
 
-include_directories(/root/GraphAr/cpp/build/arrow_ep-prefix/include)
 add_definitions(-DGAR_NAMESPACE=GraphArchive)
 
 include_directories(SYSTEM ${DEPS_INCLUDE_DIR} ${DEPS_LOCAL_INCLUDE_DIR}) # just for IDE
