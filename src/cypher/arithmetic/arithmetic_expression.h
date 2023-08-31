@@ -132,6 +132,16 @@ struct BuiltinFunction {
     static cypher::FieldData DateTimeComponent(RTContext *ctx, const Record &record,
                                                const std::vector<ArithExprNode> &args);
 
+    /* spatial functions */
+    static cypher::FieldData Point(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData LineString(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Polygon(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -316,6 +326,9 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("datecomponent", BuiltinFunction::DateComponent);
         ae_registered_funcs.emplace("datetime", BuiltinFunction::DateTime);
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
+        ae_registered_funcs.emplace("point", BuiltinFunction::Point);
+        ae_registered_funcs.emplace("linestring", BuiltinFunction::LineString);
+        ae_registered_funcs.emplace("polygon", BuiltinFunction::Polygon);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
         /* native API-like functions */

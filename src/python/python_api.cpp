@@ -98,6 +98,11 @@ inline pybind11::object FieldDataToPyObj(const FieldData& data) {
         return pybind11::str(*data.data.buf);
     case FieldType::BLOB:
         return pybind11::bytes(*data.data.buf);
+    case FieldType::POINT:
+    case FieldType::LINESTRING:
+    case FieldType::POLYGON:
+    case FieldType::SPATIAL:
+        return pybind11::str(*data.data.buf);
     }
     FMA_ASSERT(false);
     return pybind11::none();

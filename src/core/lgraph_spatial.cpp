@@ -67,6 +67,9 @@ std::string set_extension(const std::string& WKB, SRID srid_type) {
 }
 
 SRID ExtractSRID(const std::string& EWKB) {
+    if (EWKB.size() < 50)
+        throw InputError("wrong EWKB type");
+
     std::string srid = EWKB.substr(10, 8);
     if (Endian(EWKB)) {
         EndianTansfer(srid);
@@ -88,6 +91,9 @@ SRID ExtractSRID(const std::string& EWKB) {
 }
 
 SpatialType ExtractType(const std::string& EWKB) {
+    if (EWKB.size() < 50)
+        throw InputError("wrong EWKB type");
+
     std::string type = EWKB.substr(2, 4);
     if (Endian(EWKB)) {
         EndianTansfer(type);

@@ -760,6 +760,12 @@ struct FieldData {
         throw std::bad_cast();
     }
 
+    inline ::lgraph_api::SRID GetSRID() const {
+        if (type >= FieldType::POINT && type <= FieldType::SPATIAL)
+            return ::lgraph_api::ExtractSRID(*data.buf);
+        throw std::bad_cast();
+    }
+
     inline ::lgraph_api::point<::lgraph_api::Wsg84> AsWsgPoint() const {
         if (type == FieldType::POINT) return ::lgraph_api::point
         <::lgraph_api::Wsg84>(*data.buf);

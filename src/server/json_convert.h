@@ -77,6 +77,42 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         {
             return json(data.AsBase64Blob());
         }
+    case lgraph_api::FieldType::POINT:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WSG84:
+                    return json(data.AsWsgPoint().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianPoint().AsEWKB());
+                default:
+                    throw lgraph::InputError("wrong spatial srid");
+            }
+        }
+    case lgraph_api::FieldType::LINESTRING:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WSG84:
+                    return json(data.AsWsgLineString().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianLineString().AsEWKB());
+                default:
+                    throw lgraph::InputError("wrong spatial srid");
+            }
+        }
+    case lgraph_api::FieldType::POLYGON:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WSG84:
+                    return json(data.AsWsgPolygon().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianPolygon().AsEWKB());
+                default:
+                    throw lgraph::InputError("wrong spatial srid");
+            }
+        }
     default:
         throw lgraph::InputError(fma_common::StringFormatter::Format(
             "FieldDataToJson: unsupported field type: {}", data.type));

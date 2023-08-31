@@ -19,6 +19,7 @@
 #include "fma-common/logger.h"
 #include "core/lmdb/lmdb.h"
 #include "core/mem_profiler.h"
+#include "lgraph/lgraph_types.h"
 
 namespace lgraph {
 namespace _detail {
