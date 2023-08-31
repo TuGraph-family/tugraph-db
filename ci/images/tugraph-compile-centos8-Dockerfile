@@ -71,7 +71,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
 # https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
     && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
-    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log,geometry \
+    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
     && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
 
 # install boost/geometry (including extensions)
