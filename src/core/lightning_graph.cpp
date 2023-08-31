@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-
+#include <boost/algorithm/string.hpp>
 #include "db/galaxy.h"
 #include "core/index_manager.h"
 #include "core/lightning_graph.h"
@@ -1401,6 +1401,10 @@ void LightningGraph::RebuildFullTextIndex(const std::set<std::string>& v_labels,
     if (!fulltext_index_) {
         return;
     }
+    FMA_INFO_STREAM(logger_) <<
+        FMA_FMT("start rebuilding fulltext index, v_labels:[{}], e_labels:[{}]",
+                boost::algorithm::join(v_labels, ","),
+                boost::algorithm::join(e_labels, ","));
     std::set<LabelId> v_lids, e_lids;
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     const auto& all_vertex_labels = curr_schema_info->v_schema_manager.GetAllLabels();
@@ -1430,6 +1434,10 @@ void LightningGraph::RebuildFullTextIndex(const std::set<std::string>& v_labels,
         e_lids.emplace(schema->GetLabelId());
     }
     RebuildFullTextIndex(v_lids, e_lids);
+    FMA_INFO_STREAM(logger_) <<
+        FMA_FMT("end rebuilding fulltext index, v_labels:[{}], e_labels:[{}]",
+                boost::algorithm::join(v_labels, ","),
+                boost::algorithm::join(e_labels, ","));
 }
 
 void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
@@ -1445,6 +1453,7 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
     for (auto id : e_lids) {
         fulltext_index_->DeleteLabel(false, id);
     }
+    uint64_t count = 0;
     for (LabelId id : v_lids) {
         Schema* schema = curr_schema_info->v_schema_manager.GetSchema(id);
         const auto& fulltext_filelds = schema->GetFullTextFields();
@@ -1465,8 +1474,14 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
                 kvs.emplace_back(fe->Name(), fe->FieldToString(properties));
             }
             fulltext_index_->AddVertex(vid, lid, kvs);
+            if (++count % 100000 == 0) {
+                FMA_LOG() << std::to_string(count) +
+                                 " vertex FT index entries have been added" << count;
+            }
         }
     }
+    FMA_LOG() << std::to_string(count) + " vertex FT index entries have been added" << count;
+    count = 0;
     if (!e_lids.empty()) {
         for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
             for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
@@ -1489,10 +1504,15 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
                     }
                     fulltext_index_->AddEdge({euid.src, euid.dst, euid.lid, euid.tid, euid.eid},
                                              kvs);
+                    if (++count % 100000 == 0) {
+                        FMA_LOG() << std::to_string(count) +
+                                         " edge FT index entries have been added" << count;
+                    }
                 }
             }
         }
     }
+    FMA_LOG() << std::to_string(count) + " edge FT index entries have been added" << count;
     fulltext_index_->Commit();
 }
 

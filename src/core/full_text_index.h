@@ -44,25 +44,8 @@ struct LuceneJNIEnv {
     static std::once_flag once_flag;
     JNIEnv* env = nullptr;
     bool need_detach = false;
-    jmethodID lucene_constructor;
-    jmethodID add_vertex;
-    jmethodID add_edge;
-    jmethodID delete_vertex;
-    jmethodID delete_edge;
-    jmethodID delete_label;
-    jmethodID query_vertex;
-    jmethodID query_edge;
-    jmethodID close;
-    jmethodID clear;
-    jmethodID commit;
-    jmethodID refresh;
-    jmethodID backup;
-    jclass luceneClass;
-    jclass stringClass;
-    jclass ScoreVidClass;
     jfieldID vid;
     jfieldID vertexScore;
-    jclass ScoreEdgeUidClass;
     jfieldID srcId;
     jfieldID destId;
     jfieldID edgeId;
@@ -105,7 +88,7 @@ class FullTextIndex {
     std::string path_;
     int commit_interval_;
     int refresh_interval_;
-    jobject lucene_;
+    jobject g_lucene_;
 };
 #else
 class FullTextIndex {
