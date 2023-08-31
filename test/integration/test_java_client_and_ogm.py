@@ -41,3 +41,11 @@ class TestJavaClientAndOGM:
     @pytest.mark.parametrize("exec", [EXECOGMOPT], indirect=True)
     def test_java_ogm(self, bash, server, exec):
         pass
+
+    EXECHAOGMOPT = {
+        "cmd" : "ls | grep jar | grep ogm-test | egrep -v 'javadoc|sources' | xargs -I{} java -jar {}"
+    }
+    @pytest.mark.parametrize("bash", [BASHOPT], indirect=True)
+    @pytest.mark.parametrize("exec", [EXECHAOGMOPT], indirect=True)
+    def test_ha_java_ogm(self, bash, exec):
+        pass
