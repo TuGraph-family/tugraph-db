@@ -95,12 +95,11 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-db
     && mkdir -p /var/lib/web \
     && mv tugraph-db-browser.tar.gz /var/lib/web \
     && cd /var/lib/web \
-    && tar xf tugraph-db-browser.tar.gz \
+    && tar xf tugraph-db-browser.tar.gz --no-same-owner \
     && rm tugraph-db-browser.tar.gz \
-    && cd tugraph-db-browser/server \
-    && chown root:root . && cd .. \
+    && cd tugraph-db-browser \
     && yarn run bootstrap \
-    && yarn run server-build
+    && yarn run build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
