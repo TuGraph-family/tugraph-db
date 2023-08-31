@@ -380,6 +380,33 @@ struct FieldDataRangeCheck<FieldType::BLOB> {
     }
 };
 
+template <>
+struct FieldDataRangeCheck<FieldType::POINT> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
+template <>
+struct FieldDataRangeCheck<FieldType::LINESTRING> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
+template <>
+struct FieldDataRangeCheck<FieldType::POLYGON> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
 template <FieldType DstType>
 inline bool CopyFdIntoDstStorageType(const FieldData& fd,
                                      typename FieldType2StorageType<DstType>::type& dst) {
@@ -685,7 +712,7 @@ inline bool ParseStringIntoStorageType<FieldType::POLYGON>
 // handled there, so here we just assume they are not the same type
 template <FieldType DstType>
 struct FieldDataTypeConvert {
-    typedef typename FieldType2CType<DstType>::type CT;  // 这里的CT一直没用到，可以注释?
+    // typedef typename FieldType2CType<DstType>::type CT;  // 这里的CT一直没用到，可以注释?
     typedef typename FieldType2StorageType<DstType>::type ST;
     static inline bool Convert(const FieldData& fd, ST& s) {
         FMA_DBG_CHECK_NEQ(DstType, fd.type);

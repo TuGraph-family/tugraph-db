@@ -822,6 +822,9 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
          "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
+        // {"RETURN point_ewkb("") as p1", 1},
+        // {"RETURN point_ewkt("") as p2", 1},
+        // {"return point() as p3", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;

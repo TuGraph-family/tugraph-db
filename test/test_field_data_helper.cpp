@@ -286,11 +286,12 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     _TEST_FD_CONVERT(STRING, "2019-01-02", DATE, (int32_t)Date("2019-01-02"), true);
     _TEST_FD_CONVERT(STRING, "2019-01-02 00:09:33", DATETIME,
                      (int64_t)DateTime("2019-01-02 00:09:33"), true);
-    /*std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
+    // testing spatial data;
+    std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
     _TEST_FD_CONVERT(STRING, EWKB, POINT,
                      ::lgraph_api::point<::lgraph_api::Wsg84>(EWKB).AsEWKB(), true);
     EWKB = "0102000020231C00000300000000000000000000000000000000000000000"
-                         "000000000004000000000000000400000000000000840000000000000F03F";
+           "000000000004000000000000000400000000000000840000000000000F03F";
     _TEST_FD_CONVERT(STRING, EWKB, LINESTRING,
                      ::lgraph_api::linestring<::lgraph_api::Cartesian>(EWKB).AsEWKB(),
                      true);
@@ -299,7 +300,7 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
            "00400000000000000040000000000000000000000000000000000000000000000000";
     _TEST_FD_CONVERT(STRING, EWKB, POLYGON,
                      ::lgraph_api::polygon<::lgraph_api::Wsg84>(EWKB).AsEWKB(),
-                     true); */
+                     true);
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
     _TEST_FD_CONVERT(INT64, 127, STRING, "", false);
