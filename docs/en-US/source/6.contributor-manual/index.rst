@@ -1,4 +1,4 @@
-TuGraph DB Community Manual
+TuGraph DB Contributor Manual
 ==========================================
 
 .. toctree::
