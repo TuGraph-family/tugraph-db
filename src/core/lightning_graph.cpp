@@ -1610,12 +1610,42 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
         throw InputError(
             FMA_FMT("Unique index cannot be added to an optional field [{}:{}]", label, field));
     }
+    if (extractor->Type() == FieldType::BLOB) {
+        throw InputError("Field with type BLOB cannot be indexed");
+    }
     if (is_vertex) {
-        std::unique_ptr<VertexIndex> index;
+        std::unique_ptr<VertexIndex> vertex_index;
         index_manager_->AddVertexIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
-                                       index);
-        index->SetReady();
-        schema->MarkVertexIndexed(extractor->GetFieldId(), index.release());
+                                       vertex_index);
+        vertex_index->SetReady();
+        schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
+        if (schema->DetachProperty()) {
+            FMA_INFO_STREAM(logger_) <<
+                FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
+            VertexIndex* index = extractor->GetVertexIndex();
+            uint64_t count = 0;
+            for (auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+                 kv_iter.IsValid(); kv_iter.Next()) {
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter.GetKey());
+                auto prop = kv_iter.GetValue();
+                if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
+                    throw InternalError(FMA_FMT(
+                        "Failed to index vertex [{}] with field value [{}:{}]",
+                        vid, extractor->Name(), extractor->FieldToString(prop)));
+                }
+                count++;
+                if (count % 100000 == 0) {
+                    FMA_LOG() << "index count: " << count;
+                }
+            }
+            FMA_LOG() << "index count: " << count;
+            txn.Commit();
+            schema_.Assign(new_schema.release());
+            FMA_INFO_STREAM(logger_) <<
+                FMA_FMT("end building vertex index for {}:{} in detached model", label, field);
+            return true;
+        }
+
         // now build index
         if (!known_vid_range) {
             start_vid = 0;
@@ -1644,6 +1674,34 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                                      edge_index);
         edge_index->SetReady();
         schema->MarkEdgeIndexed(extractor->GetFieldId(), edge_index.release());
+        if (schema->DetachProperty()) {
+            FMA_INFO_STREAM(logger_) <<
+                FMA_FMT("start building edge index for {}:{} in detached model", label, field);
+            uint64_t count = 0;
+            EdgeIndex* index = extractor->GetEdgeIndex();
+            for (auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+                 kv_iter.IsValid(); kv_iter.Next()) {
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter.GetKey());
+                euid.lid = schema->GetLabelId();
+                auto prop = kv_iter.GetValue();
+                if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop),
+                                euid.src, euid.dst, euid.lid, euid.tid, euid.eid)) {
+                    throw InternalError(FMA_FMT(
+                        "Failed to index edge [{}] with field value [{}:{}]",
+                        euid.ToString(), extractor->Name(), extractor->FieldToString(prop)));
+                }
+                count++;
+                if (count % 100000 == 0) {
+                    FMA_LOG() << "index count: " << count;
+                }
+            }
+            FMA_LOG() << "index count: " << count;
+            txn.Commit();
+            schema_.Assign(new_schema.release());
+            FMA_INFO_STREAM(logger_) <<
+                FMA_FMT("start building edge index for {}:{} in detached model", label, field);
+            return true;
+        }
         // now build index
         if (!known_vid_range) {
             start_vid = 0;
