@@ -16,21 +16,44 @@
 #include "core/transaction.h"
 
 namespace lgraph {
+
+KvIterator InitEdgeIndexIterator(KvTransaction& txn, KvTable& table, const Value& key, VertexId vid,
+                                 VertexId vid2, LabelId lid, TemporalId tid, EdgeId eid,
+                                 bool unique, bool global) {
+    if (global) {
+        return KvIterator(txn, table, unique ? key
+                 : _detail::PatchNonUniqueKey(key, vid, vid2, lid, tid, eid), true);
+    } else {
+        return KvIterator(txn, table, unique
+                 ? _detail::PatchNonGlobalUniqueKey(key, vid, vid2)
+                 : _detail::PatchNonUniqueKey(key, vid, vid2, lid, tid, eid), true);
+    }
+}
+
+Value InitKeyEndValue(const Value& key, VertexId vid, VertexId vid2, bool unique, bool global) {
+    if (global) {
+        return unique ? Value::MakeCopy(key)
+                          : _detail::PatchNonUniqueKey(key, -1, -1, -1, -1, -1);
+    } else {
+        return unique ? _detail::PatchNonGlobalUniqueKey(key, vid, vid2)
+                          : _detail::PatchNonUniqueKey(key, -1, -1, -1, -1, -1);
+    }
+}
+
 EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& table,
                                      const Value& key_start, const Value& key_end, VertexId vid,
                                      VertexId vid2, LabelId lid, TemporalId tid, EdgeId eid,
-                                     bool unique)
+                                     bool unique, bool global)
     : IteratorBase(txn),
       index_(idx),
-      it_(txn->GetTxn(), table,
-          unique ? key_start : _detail::PatchKeyWithEUid(key_start, vid, vid2, lid, tid, eid),
-          true),
-      key_end_(unique ? Value::MakeCopy(key_end)
-                      : _detail::PatchKeyWithEUid(key_end, -1, -1, -1, -1, -1)),
+      it_(InitEdgeIndexIterator(txn->GetTxn(), table, key_start,
+                                vid, vid2, lid, tid, eid, unique, global)),
+      key_end_(InitKeyEndValue(key_end, vid, vid2, unique, global)),
       iv_(),
       valid_(false),
       pos_(0),
-      unique_(unique) {
+      unique_(unique),
+      global_(global) {
     if (!it_.IsValid() || KeyOutOfRange()) {
         return;
     }
@@ -40,18 +63,16 @@ EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& 
 EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, KvTransaction* txn, KvTable& table,
                                      const Value& key_start, const Value& key_end, VertexId vid,
                                      VertexId vid2, LabelId lid, TemporalId tid, EdgeId eid,
-                                     bool unique)
+                                     bool unique, bool global)
     : IteratorBase(nullptr),
       index_(idx),
-      it_(*txn, table,
-          unique ? key_start : _detail::PatchKeyWithEUid(key_start, vid, vid2, lid, tid, eid),
-          true),
-      key_end_(unique ? Value::MakeCopy(key_end)
-                      : _detail::PatchKeyWithEUid(key_end, -1, -1, -1, -1, -1)),
+      it_(InitEdgeIndexIterator(*txn, table, key_start, vid, vid2, lid, tid, eid, unique, global)),
+      key_end_(InitKeyEndValue(key_end, vid, vid2, unique, global)),
       iv_(),
       valid_(false),
       pos_(0),
-      unique_(unique) {
+      unique_(unique),
+      global_(global) {
     if (!it_.IsValid() || KeyOutOfRange()) {
         return;
     }
@@ -72,7 +93,8 @@ EdgeIndexIterator::EdgeIndexIterator(EdgeIndexIterator&& rhs)
       lid_(rhs.lid_),
       tid_(rhs.tid_),
       eid_(rhs.eid_),
-      unique_(rhs.unique_) {
+      unique_(rhs.unique_),
+      global_(rhs.global_) {
     rhs.valid_ = false;
 }
 

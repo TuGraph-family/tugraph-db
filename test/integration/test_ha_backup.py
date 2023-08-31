@@ -59,7 +59,7 @@ def procedure_check(host):
     assert result.get("num_edges") == 28 and result.get("num_vertices") == 21
     client.logout()
 
-class TestHAImport:
+class TestHABackup:
     def setup_class(self):
         self.host = str(os.popen("hostname -I").read()).strip()
         l = self.host.find(' ')

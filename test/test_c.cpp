@@ -763,7 +763,7 @@ TEST_F(TestC, Graph) {
     ASSERT_TRUE(ret);
 
     // build a index of "years" for "knows" edge
-    ret = lgraph_api_graph_db_add_edge_index(graphdb, "knows", "years", false, &errptr);
+    ret = lgraph_api_graph_db_add_edge_index(graphdb, "knows", "years", false, true, &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     ASSERT_TRUE(ret);
     // test "years" field is indexed

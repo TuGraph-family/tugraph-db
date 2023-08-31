@@ -1,0 +1,106 @@
+# Docker hub image
+FROM arm64v8/centos:7
+
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
+
+RUN yum update -y && yum install -y \
+    git \
+    gcc \
+    gcc-c++ \
+    unzip \
+    make \
+    wget \
+    bzip2 \
+    openssl-static \
+    java-1.8.0-openjdk* \
+    libcurl-devel \
+    centos-release-scl-rh
+
+# install g++ 8.4.0
+# if it is not accessible, replace it with the link below
+# http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.tar.gz \
+    && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
+    && ./contrib/download_prerequisites && mkdir build && cd build \
+    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
+    && make -j4 && make install \
+    && cp  ./aarch64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
+    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
+    && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
+
+# install python3
+# if it is not accessible, replace it with the link below
+# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
+    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+    && make -j4 && make install \
+    && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && rm -rf /Python*
+    # dgl==1.0.0
+
+# install cmake
+# if it is not accessible, replace it with the link below
+# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
+    && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
+    && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
+
+# install boost-1.68
+# if it is not accessible, replace it with the link below
+# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
+    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
+    && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
+
+#install maven
+# if it is not accessible, replace it with the link below
+# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
+RUN cd opt \
+    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
+    && tar xf apache-maven-3.8.7-bin.tar.gz \
+    && rm apache-maven-*.tar.gz
+
+# install tugraph
+RUN wget ${FILEPATH}/${FILENAME}
+RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
+
+# install tugraph demo
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
+    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph/data/upload_files/admin \
+    && cp -r tugraph-demo/movie /var/lib/lgraph/data/upload_files/admin/movie \
+    && cp -r tugraph-demo/the_three_body /var/lib/lgraph/data/upload_files/admin/the_three_body \
+    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph/data/upload_files/admin/three_kingdoms \
+    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph/data/upload_files/admin/wandering_earth \
+    && cp tugraph-demo/setup.sh /setup.sh
+
+# install node.js, yarn
+RUN yum install -y rh-nodejs14-nodejs \
+    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/node /usr/local/bin/ \
+    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/npm /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com \
+    && npm install --global yarn \
+    && ln -s /opt/rh/rh-nodejs14/root/usr/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
+    && yarn config set registry https://registry.npmmirror.com
+
+
+# install tugraph-db-web dependencies
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-db-browser.tar.gz \
+    && mkdir -p /var/lib/web \
+    && mv tugraph-db-browser.tar.gz /var/lib/web \
+    && cd /var/lib/web \
+    && tar xf tugraph-db-browser.tar.gz \
+    && rm tugraph-db-browser.tar.gz \
+    && cd tugraph-db-browser/server \
+    && chown root:root . && cd .. \
+    && yarn run bootstrap \
+    && yarn run server-build
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/aarch64/server:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
+    PATH=/opt/apache-maven-3.8.7/bin:$PATH

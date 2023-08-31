@@ -177,6 +177,9 @@ class LoggerManager {
         log_dir_ = log_dir;
         level_ = level;
         if (log_dir_ != "") {
+            if (log_dir_.back() != '/') {
+               log_dir_ += '/';
+            }
             rotation_size_ = rotation_size;
             rotation_target_dir_ = log_dir_ + "history_logs/";
             history_general_log_dir_ = rotation_target_dir_ + "general_logs/";

@@ -11,7 +11,7 @@ TuGraph高性能图数据库
    3.quick-start/index.rst
    4.user-guide/index.rst
    5.developer-manual/index.rst
-   6.community-manual/index.rst
+   6.contributor-manual/index.rst
    7.best-practices/index.rst
    8.faq.md
    9.contacts.md

@@ -416,8 +416,9 @@ class Schema {
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                         TemporalId tid, EdgeId eid, const Value& record);
+    void DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
+
+    void DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
 
     void DeleteVertexFullTextIndex(VertexId vid, std::vector<FTIndexEntry>& buffers);
 
@@ -430,13 +431,9 @@ class Schema {
      */
     void DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void DeletePartialEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                                EdgeId eid, const Value& record);
-
     void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                        TemporalId tid, EdgeId eid, const Value& record);
+    void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);

@@ -1,6 +1,5 @@
 {
     "directory" : "/var/lib/lgraph/movie_db",
-    "license" : "/mnt/fma.lic",
 
     "host" : "0.0.0.0",
     "port" : 7090,
