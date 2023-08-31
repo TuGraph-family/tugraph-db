@@ -945,6 +945,13 @@ struct IndexSpec {
     std::string field;
     /** @brief   is this a unique index? */
     bool unique;
+    /** @brief is this a global edge index?
+     *  key of global edge index is (index field value)
+     *  key of non-global edge index is one of the follow case :
+     *  if src_vid < dst_vid ,key is (index field value + src_vid + dst_vid)
+     *  if src_vid > dst_vid ,key is (index field value + dst_vid + src_vid)
+     * */
+    bool global;
 };
 
 struct EdgeUid {

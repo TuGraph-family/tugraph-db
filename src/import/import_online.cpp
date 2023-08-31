@@ -449,7 +449,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                                 v.name, spec.name));
                 }
             } else if (!v.is_vertex && spec.index) {
-                if (db.AddEdgeIndex(v.name, spec.name, spec.unique)) {
+                if (db.AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
                     FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
                                          v.name, spec.name, spec.unique);
                 } else {

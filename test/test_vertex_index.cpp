@@ -320,9 +320,9 @@ TEST_F(TestVertexIndex, addIndexDetach) {
     {
         int32_t i = 0;
         for (auto iter = txn.GetEdgeIndexIterator("e1", "int32"); iter.IsValid(); iter.Next()) {
-            UT_EXPECT_TRUE(iter.GetKeyData() == FieldData::Int32(i));
-            UT_EXPECT_TRUE(iter.GetSrcVid() == i);
-            UT_EXPECT_TRUE(iter.GetDstVid() == (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetKeyData(), FieldData::Int32(i));
+            UT_EXPECT_EQ(iter.GetSrcVid(), i < (i+1)%100000 ? i : (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetDstVid(), i > (i+1)%100000 ? i : (i+1)%100000);
             i++;
         }
     }
@@ -331,18 +331,18 @@ TEST_F(TestVertexIndex, addIndexDetach) {
         for (auto iter = txn.GetEdgeIndexIterator("e1", "string"); iter.IsValid(); iter.Next()) {
             auto str_fd = std::to_string(i);
             str_fd = std::string(5 - str_fd.size(), '0') + str_fd;
-            UT_EXPECT_TRUE(iter.GetKeyData() == FieldData::String(str_fd));
-            UT_EXPECT_TRUE(iter.GetSrcVid() == i);
-            UT_EXPECT_TRUE(iter.GetDstVid() == (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetKeyData(), FieldData::String(str_fd));
+            UT_EXPECT_EQ(iter.GetSrcVid(), i < (i+1)%100000 ? i : (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetDstVid(), i > (i+1)%100000 ? i : (i+1)%100000);
             i++;
         }
     }
     {
         int32_t i = 0;
         for (auto iter = txn.GetEdgeIndexIterator("e1", "float"); iter.IsValid(); iter.Next()) {
-            UT_EXPECT_TRUE(iter.GetKeyData() == FieldData::Float(i));
-            UT_EXPECT_TRUE(iter.GetSrcVid() == i);
-            UT_EXPECT_TRUE(iter.GetDstVid() == (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetKeyData(), FieldData::Float(i));
+            UT_EXPECT_EQ(iter.GetSrcVid(), i < (i+1)%100000 ? i : (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetDstVid(), i > (i+1)%100000 ? i : (i+1)%100000);
             i++;
         }
     }

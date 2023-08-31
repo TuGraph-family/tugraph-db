@@ -556,7 +556,8 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.addEdgeIndex", BuiltinProcedure::DbAddEdgeIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                                  {"is_unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"is_unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"is_global", {3, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.addFullTextIndex", BuiltinProcedure::DbAddFullTextIndex,
