@@ -804,7 +804,7 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial()
+    /* inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial()
     const {
         if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
         <::lgraph_api::Wsg84>(*data.buf);
@@ -816,7 +816,7 @@ struct FieldData {
         if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
-    }
+    } */
 
     /** @brief   Get string representation of this FieldData. */
     inline std::string ToString(const std::string& null_value = "NUL") const {

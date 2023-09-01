@@ -78,9 +78,9 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_EQ(FieldData::BlobFromBase64(::lgraph_api::base64::Encode(orig)).AsBlob(), orig);
         std::string WKB = "0101000000000000000000f03f0000000000000040";
         std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
-        UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0,
-        WKB)).AsWsgSpatial() == Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0,
-        WKB));
+        // UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0,
+        // WKB)).AsWsgSpatial() == Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0,
+        // WKB));
 
         // ToString
         UT_EXPECT_EQ(FieldData::Bool(true).ToString(), "true");
