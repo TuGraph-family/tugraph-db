@@ -82,7 +82,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
     && cd boost_1_68_0 && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
     && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
     && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
-    && cp -r extensions /usr/local/include/boost/geometry/ \
+    && cp -r /extensions /usr/local/include/boost/geometry/ \
     && rm -rf /boost_* /extensions
 
 # install protobuf
