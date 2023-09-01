@@ -19,6 +19,7 @@
 #include "import/dense_string.h"
 #include "import/import_config_parser.h"
 #include "import/blob_writer.h"
+#include "import/graphar_config.h"
 #include "db/galaxy.h"
 
 namespace lgraph {
@@ -131,9 +132,13 @@ void Importer::DoImportOffline() {
     Galaxy galaxy(Galaxy::Config{config_.db_dir, false, true, "fma.ai"}, true, gc);
     auto db = OpenGraph(galaxy, empty_db);
     db_ = &db;
-    std::ifstream ifs(config_.config_file);
     nlohmann::json conf;
-    ifs >> conf;
+    if (config_.is_graphar) {
+        ParserGraphArConf(conf, config_.config_file);
+    } else {
+        std::ifstream ifs(config_.config_file);
+        ifs >> conf;
+    }
 
     schemaDesc_ = import_v2::ImportConfParser::ParseSchema(conf);
     data_files_ = import_v2::ImportConfParser::ParseFiles(conf);
