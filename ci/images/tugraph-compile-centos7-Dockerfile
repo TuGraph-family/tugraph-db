@@ -69,12 +69,13 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
     && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
     && ./bootstrap && make ${JFLAG} && make install && rm -rf /cmake-3.*
 
-# Install boost-1.68 and the geometry extensions
+# 1. Install boost-1.68 and the geometry extensions
+# 2. Revise the macro INVALID_INDEX in geometry module to avoid macro conflict error with Antlr4
+# 3. Copy the boost geometry extensions to the boost-1.68 include directory(headers only)
 # if boost-1.68 is not accessible, replace it with the link below
-# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+# - https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
 # Geometry extensions is the `extensions` directory in the repository and commit id below.
-# - Repository: https://github.com/boostorg/geometry.git
-# - Commit id: 5fbd2a11027f658decda5e43af73935e98a84ee5
+# - Commit 5fbd2a11027f658decda5e43af73935e98a84ee5 @ https://github.com/boostorg/geometry.git
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
     && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
     && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
@@ -82,7 +83,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
     && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
     && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
     && cp -r extensions /usr/local/include/boost/geometry/ \
-    && rm -rf /boost_* && rm -rf /extensions
+    && rm -rf /boost_* /extensions
 
 # install protobuf
 # if it is not accessible, replace it with the link below
@@ -270,7 +271,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/glog-0.3.5
     && make ${JFLAG} && make install \
     && rm -rf /glog-0.3.5*
 
-# Apache arrow
+# Using 3rd-party package stored in oss to accelerate Apache arrow building
 ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/absl-20211102.0.tar.gz \
     ARROW_AWSSDK_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-sdk-cpp-1.8.133.tar.gz \
     ARROW_AWS_CHECKSUMS_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-checksums-v0.1.12.tar.gz \
@@ -305,12 +306,13 @@ ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/
     ARROW_ZLIB_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zlib-1.2.13.tar.gz \
     ARROW_ZSTD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zstd-1.5.5.tar.gz
 
+# install Apache arrow
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/apache-arrow-13.0.0.tar.gz \
   && tar xf apache-arrow-13.0.0.tar.gz && cd apache-arrow-13.0.0/cpp && mkdir build && cd build \
   && cmake .. -DARROW_DATASET=ON -DARROW_PARQUET=ON -DARROW_ORC=ON -DARROW_CSV=ON && make ${JFLAG} \
   && make install && rm -rf /apache-arrow-*
 
-# GraphAr
+# install GraphAr
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/GraphAr-0.8.0.tar.gz \
   && tar xf GraphAr-0.8.0.tar.gz && cd GraphAr-0.8.0/cpp && mkdir build && cd build \
   && cmake .. && make ${JFLAG} && make install && rm -rf /GraphAr-*
