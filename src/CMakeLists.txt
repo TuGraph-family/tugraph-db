@@ -4,7 +4,12 @@ project(TuGraphSrc C CXX)
 set(LGRAPH_SRC_DIR ${PROJECT_SOURCE_DIR})
 
 include(BuildLGraphApi.cmake)
-include(BuildLGraphApiForJNI.cmake)
+
+option(BUILD_JAVASDK "build lgraph4jni.so for javasdk" OFF)
+if(BUILD_JAVASDK)
+        include(BuildLGraphApiForJNI.cmake)
+endif()
+
 include(BuildPythonApi.cmake)
 include(BuildLGraphServer.cmake)
 include(BuildCypherLib.cmake)
