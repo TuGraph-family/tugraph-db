@@ -66,6 +66,19 @@ inline static std::string to_string(const FieldAccessLevel& v) {
     }
 }
 
+enum class GraphQueryType {
+    CYPHER = 0,
+    GQL = 1
+};
+
+inline static std::string to_string(const GraphQueryType& v) {
+    switch (v) {
+        case GraphQueryType::CYPHER:    return "CYPHER";
+        case GraphQueryType::GQL:       return "GQL";
+        default:   throw std::runtime_error("Unknown GraphQueryType");
+    }
+}
+
 /**
  * @brief  Edge constraints type define
  */

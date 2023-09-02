@@ -21,7 +21,9 @@
 #include "cypher/filter/iterator.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/execution_plan/runtime_context.h"
+#include "cypher/arithmetic/ast_expr_evaluator.h"
 #include "cypher/arithmetic/agg_funcs.h"
+#include "cypher/utils/geax_expr_util.h"
 
 namespace lgraph {
 class Filter;
@@ -32,6 +34,135 @@ namespace cypher {
 struct ArithOperandNode;
 struct ArithExprNode;
 struct SymbolTable;
+
+
+static inline bool IsNumeric(const cypher::FieldData &x) { return x.IsInteger() || x.IsReal(); }
+
+static inline void AddList(cypher::FieldData &ret, const cypher::FieldData &x) {
+    if (x.type == cypher::FieldData::ARRAY)
+        ret.array->insert(ret.array->end(), x.array->begin(), x.array->end());
+    else
+        ret.array->emplace_back(x.scalar);
+}
+
+static inline void AddString(cypher::FieldData &ret, const cypher::FieldData &x) {
+    if (x.IsBool()) throw lgraph::CypherException("Type mismatch: cannot add BOOL with STRING");
+    CYPHER_THROW_ASSERT(x.type != cypher::FieldData::ARRAY);
+    ret.scalar.data.buf->append(x.scalar.ToString());
+}
+
+[[maybe_unused]]
+static cypher::FieldData Add(const cypher::FieldData &x, const cypher::FieldData &y) {
+    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
+    cypher::FieldData ret;
+    if (x.type == cypher::FieldData::ARRAY || y.type == cypher::FieldData::ARRAY) {
+        ret.array = new std::vector<::lgraph::FieldData>();
+        ret.type = cypher::FieldData::ARRAY;
+        AddList(ret, x);
+        AddList(ret, y);
+    } else if (x.IsString() || y.IsString()) {
+        ret.scalar = ::lgraph::FieldData("");
+        AddString(ret, x);
+        AddString(ret, y);
+    } else if (IsNumeric(x) && IsNumeric(y)) {
+        if (x.IsInteger() && y.IsInteger()) {
+            ret.scalar = ::lgraph::FieldData(x.scalar.integer() + y.scalar.integer());
+        } else {
+            double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
+            double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
+            ret.scalar = ::lgraph::FieldData(x_n + y_n);
+        }
+    }
+    return ret;
+}
+
+[[maybe_unused]]
+static cypher::FieldData Sub(const cypher::FieldData &x, const cypher::FieldData &y) {
+    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
+        throw lgraph::CypherException("Type mismatch: expect Integer or Float in sub expr");
+    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
+    cypher::FieldData ret;
+    if (x.IsInteger() && y.IsInteger()) {
+        ret.scalar = ::lgraph::FieldData(x.scalar.integer() - y.scalar.integer());
+    } else {
+        double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
+        double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
+        ret.scalar = ::lgraph::FieldData(x_n - y_n);
+    }
+    return ret;
+}
+
+[[maybe_unused]]
+static cypher::FieldData Mul(const cypher::FieldData &x, const cypher::FieldData &y) {
+    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
+        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
+    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
+    cypher::FieldData ret;
+    if (x.IsInteger() && y.IsInteger()) {
+        ret.scalar = ::lgraph::FieldData(x.scalar.integer() * y.scalar.integer());
+    } else {
+        double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
+        double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
+        ret.scalar = ::lgraph::FieldData(x_n * y_n);
+    }
+    return ret;
+}
+
+[[maybe_unused]]
+static cypher::FieldData Div(const cypher::FieldData &x, const cypher::FieldData &y) {
+    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
+        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
+    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
+    cypher::FieldData ret;
+    if (x.IsInteger() && y.IsInteger()) {
+        int64_t x_n = x.scalar.integer();
+        int64_t y_n = y.scalar.integer();
+        if (y_n == 0) throw lgraph::CypherException("Divided by zero");
+        ret.scalar = ::lgraph::FieldData(x_n / y_n);
+    } else {
+        double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
+        double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
+        if (y_n == 0)
+            // In neo4j:
+            // 0.0 / 0.0 = null
+            // 1.0 / 0.0 = ifinity.0
+            // -1.0 / 0.0 = -ifinity.0
+            CYPHER_TODO();
+        else
+            ret.scalar = ::lgraph::FieldData(x_n / y_n);
+    }
+    return ret;
+}
+
+[[maybe_unused]]
+static cypher::FieldData Mod(const cypher::FieldData &x, const cypher::FieldData &y) {
+    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
+        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
+    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
+    cypher::FieldData ret;
+    if (x.IsInteger() && y.IsInteger()) {
+        int64_t x_n = x.scalar.integer();
+        int64_t y_n = y.scalar.integer();
+        if (y_n == 0) throw lgraph::CypherException("Divided by zero");
+        ret.scalar = ::lgraph::FieldData(x_n % y_n);
+    } else {
+        // Float mod
+        CYPHER_TODO();
+    }
+    return ret;
+}
+
+[[maybe_unused]]
+static cypher::FieldData Pow(const cypher::FieldData &x, const cypher::FieldData &y) {
+    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
+        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
+    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
+    cypher::FieldData ret;
+    double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
+    double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
+    ret.scalar = ::lgraph::FieldData(pow(x_n, y_n));
+    return ret;
+}
 
 struct BuiltinFunction {
     typedef std::function<cypher::FieldData(RTContext *, const Record &,
@@ -400,12 +531,17 @@ struct ArithExprNode {
     // note: avoid put non-primitive data into union
     ArithOperandNode operand;
     ArithOpNode op;
+    geax::frontend::Expr *expr_;
+    std::shared_ptr<AstExprEvaluator> evaluator;
 
     /* AR_ExpNodeType lists the type of nodes within
      * an arithmetic expression tree. */
     enum ArithExprType {
         AR_EXP_OPERAND,
         AR_EXP_OP,
+        // todo (kehuang): AstExpr is currently temporarily used as a type of ArithExpr, and will be
+        // replaced with AstExpr in the future.
+        AR_AST_EXP,
     } type;
 
     // The string representation of the node
@@ -414,6 +550,16 @@ struct ArithExprNode {
     ArithExprNode() = default;
 
     ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab);
+
+    ArithExprNode(geax::frontend::Expr *expr, const SymbolTable &sym_tab) {
+        SetAstExp(expr, sym_tab);
+    }
+
+    void SetAstExp(geax::frontend::Expr *expr, const SymbolTable &sym_tab) {
+        expr_ = expr;
+        evaluator = std::make_shared<AstExprEvaluator>(expr, &sym_tab);
+        type = AR_AST_EXP;
+    }
 
     void SetOperand(ArithOperandNode::ArithOperandType operand_type, const std::string &opd,
                     const SymbolTable &sym_tab);
@@ -443,9 +589,15 @@ struct ArithExprNode {
     Entry Evaluate(RTContext *ctx, const Record &record) const {
         if (type == AR_EXP_OPERAND) {
             return operand.Evaluate(ctx, record);
-        } else {
+        } else if (type == AR_EXP_OP) {
             return op.Evaluate(ctx, record);
+        } else {
+            return EvaluateAstExpr(ctx, record);
         }
+    }
+
+    Entry EvaluateAstExpr(RTContext *ctx, const Record &record) const {
+        return evaluator->Evaluate(ctx, &record);
     }
 
     void Aggregate(RTContext *ctx, const Record &record) {
@@ -455,7 +607,11 @@ struct ArithExprNode {
                 std::vector<Entry> args;
                 for (auto &c : op.children) args.emplace_back(c.Evaluate(ctx, record));
                 /* Aggregate */
-                if (typeid(*op.agg_func) == typeid(CountAggCtx) && args.empty()) {
+                // see https://stackoverflow.com/questions/74425128
+                // Trying to understand: clang's side-effect warnings for typeid on a polymorphic
+                // object
+                auto &agg_ctx = *op.agg_func;
+                if (typeid(agg_ctx) == typeid(CountAggCtx) && args.empty()) {
                     /* count(*), only count in when record is not null */
                     Entry count_in = record.Null()
                                          ? Entry(cypher::FieldData())
@@ -469,6 +625,8 @@ struct ArithExprNode {
                     child.Aggregate(ctx, record);
                 }
             }
+        } else if (type == AR_AST_EXP) {
+            evaluator->Aggregate(ctx, &record);
         }
     }
 
@@ -483,6 +641,8 @@ struct ArithExprNode {
                     child.Reduce();
                 }
             }
+        } else if (type == AR_AST_EXP) {
+            evaluator->Reduce();
         }
     }
 
@@ -492,6 +652,9 @@ struct ArithExprNode {
             for (auto &child : op.children) {
                 if (child.ContainsAggregation()) return true;
             }
+        } else if (type == AR_AST_EXP) {
+            AstAggExprDetector agg_expr_detector(expr_);
+            return agg_expr_detector.Validate() && agg_expr_detector.HasValidAggFunc();
         }
         return false;
     }
@@ -499,8 +662,10 @@ struct ArithExprNode {
     std::string ToString() const {
         if (type == AR_EXP_OPERAND) {
             return operand.ToString();
-        } else {
+        } else if (type == AR_EXP_OP) {
             return op.ToString();
+        } else {
+            return cypher::ToString(expr_);
         }
     }
 };

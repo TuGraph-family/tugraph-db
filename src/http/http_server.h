@@ -67,6 +67,8 @@ class HttpService : public LGraphHttpService {
 
     void DoCypherRequest(const brpc::Controller* cntl, std::string& res);
 
+    void DoGqlRequest(const brpc::Controller* cntl, std::string& res);
+
     void DoLoginRequest(const brpc::Controller* cntl, std::string& res);
 
     void DoRefreshRequest(const brpc::Controller* cntl, std::string& res);
@@ -97,10 +99,11 @@ class HttpService : public LGraphHttpService {
 
     void DoCallProcedure(const brpc::Controller* cntl, std::string& res);
 
-    void BuildPbCypherRequest(const brpc::Controller* cntl, const std::string& token,
-                              LGraphRequest& pb);
+    void BuildPbGraphQueryRequest(const brpc::Controller* cntl,
+                                  const lgraph_api::GraphQueryType& query_type,
+                                  const std::string& token, LGraphRequest& pb);
 
-    void BuildJsonCypherResponse(LGraphResponse& res, std::string& json);
+    void BuildJsonGraphQueryResponse(LGraphResponse& res, std::string& json);
 
     void BuildrocedureV1Request(const brpc::Controller* cntl, const std::string& token,
                                 LGraphRequest& pb);

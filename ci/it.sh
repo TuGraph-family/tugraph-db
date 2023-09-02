@@ -32,11 +32,11 @@ cd $MY_WORKSPACE
 
 # integrate tests 
 cd build/output
-cp ../../src/client/python/TuGraphClient/TuGraphClient.py .
-cp ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
-cp -r ../../test/integration/* ./
-cp -r ../../learn/examples/* ./
-cp -r ../../demo/movie .
+ln -s ../../src/client/python/TuGraphClient/TuGraphClient.py .
+ln -s ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
+ln -s ../../test/integration/* ./
+ln -s ../../learn/examples/* ./
+ln -s ../../demo/movie .
 pytest ./
 
 # codecov

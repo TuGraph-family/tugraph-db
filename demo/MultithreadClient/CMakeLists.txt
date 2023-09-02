@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 PROJECT(CLIENTDEMO)
 
 SET(SRC_LIST multi_thread_client.cpp

@@ -14,12 +14,16 @@
 
 #pragma once
 #include <map>
+#include <string>
+#include <vector>
 
 #include "fma-common/logger.h"
+#include "fma-common/string_util.h"
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
+#include "import/import_v2.h"
 #include "import/import_v3.h"
 
 #include "lgraph/lgraph.h"
@@ -536,4 +540,105 @@ R"(
         import_v3::Importer importer(config);
         importer.DoImportOffline();
     }
+
+    static void create_mini_finbench(const std::string& dir = "./lgraph_db") {
+        lgraph::import_v2::Importer::Config config;
+        config.config_file = "../../test/resource/data/mini_finbench/mini_finbench.json";
+        config.db_dir = dir;
+        config.delete_if_exists = true;
+        config.graph = "default";
+        config.delimiter = "|";
+        lgraph::import_v2::Importer importer(config);
+        importer.DoImportOffline();
+    }
+
+    enum class GRAPH_DATASET_TYPE {
+        CURRENT = 0,
+        EMPTY = 1,
+        YAGO = 2,
+        MINI_FINBENCH = 3,
+    };
+
+    static std::string ToString(GRAPH_DATASET_TYPE dataset_type) {
+        static const std::unordered_map<GRAPH_DATASET_TYPE, std::string> dataset_type_to_string = {
+            {GRAPH_DATASET_TYPE::CURRENT, "CURRENT"},
+            {GRAPH_DATASET_TYPE::EMPTY, "EMPTY"},
+            {GRAPH_DATASET_TYPE::YAGO, "YAGO"},
+            {GRAPH_DATASET_TYPE::MINI_FINBENCH, "MINI_FINBENCH"},
+        };
+        auto it = dataset_type_to_string.find(dataset_type);
+        if (it == dataset_type_to_string.end()) {
+            return "UNKNOWN";
+        } else {
+            return it->second;
+        }
+    }
+
+    static bool ToType(const std::string& str, GRAPH_DATASET_TYPE& dataset_type) {
+        static const std::unordered_map<std::string, GRAPH_DATASET_TYPE> string_to_dataset_type = {
+            {"CURRENT", GRAPH_DATASET_TYPE::CURRENT},
+            {"EMPTY", GRAPH_DATASET_TYPE::EMPTY},
+            {"YAGO", GRAPH_DATASET_TYPE::YAGO},
+            {"MINI_FINBENCH", GRAPH_DATASET_TYPE::MINI_FINBENCH},
+        };
+        auto it = string_to_dataset_type.find(str);
+        if (it == string_to_dataset_type.end()) {
+            return false;
+        } else {
+            dataset_type = it->second;
+            return true;
+        }
+    }
+
+    static std::string get_graph_dataset_types() {
+        std::string ret;
+        std::vector<GRAPH_DATASET_TYPE> all_types = {
+            GRAPH_DATASET_TYPE::CURRENT, GRAPH_DATASET_TYPE::EMPTY, GRAPH_DATASET_TYPE::YAGO,
+            GRAPH_DATASET_TYPE::MINI_FINBENCH};
+        for (auto& it : all_types) {
+            ret += ToString(it);
+            if (it != all_types.back()) {
+                ret += ", ";
+            }
+        }
+        return ret;
+    }
+
+    static void create_graph(GRAPH_DATASET_TYPE dataset_type,
+                             const std::string& dir = "./lgraph_db") {
+        switch (dataset_type) {
+        case GRAPH_DATASET_TYPE::CURRENT:
+            return;
+        case GRAPH_DATASET_TYPE::EMPTY:
+            fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
+            return;
+        case GRAPH_DATASET_TYPE::YAGO:
+            fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
+            create_yago(dir);
+            return;
+        case GRAPH_DATASET_TYPE::MINI_FINBENCH:
+            fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
+            create_mini_finbench(dir);
+            return;
+        }
+    }
 };
+
+namespace fma_common::_detail {
+template <>
+class String2Type<GraphFactory::GRAPH_DATASET_TYPE> {
+ public:
+    static bool Get(const std::string& str, GraphFactory::GRAPH_DATASET_TYPE& n) {
+        return GraphFactory::ToType(fma_common::ToUpper(str), n);
+    }
+};
+
+template <>
+class Type2String<GraphFactory::GRAPH_DATASET_TYPE> {
+ public:
+    static std::string Get(const GraphFactory::GRAPH_DATASET_TYPE& n) {
+        return GraphFactory::ToString(n);
+    }
+};
+
+}  // namespace fma_common::_detail

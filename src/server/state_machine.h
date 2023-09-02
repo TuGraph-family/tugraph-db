@@ -19,6 +19,11 @@
 
 #include "fma-common/rotating_files.h"
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/json.h"
 
 #include "core/backup_log.h"
@@ -247,9 +252,6 @@ class StateMachine {
 
     std::string GetCurrUser(const LGraphRequest* lgraph_req, bool* is_admin);
 
-//    bool ApplyUserAuthRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp,
-//                              bool is_rest_request);
-
     bool ApplyConfigRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
     bool ApplyRestoreRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
@@ -260,7 +262,7 @@ class StateMachine {
 
     bool ApplyGraphApiRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
-    bool ApplyCypherRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
+    bool ApplyGraphQueryRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 
     bool ApplyPluginRequest(const LGraphRequest* lgraph_req, LGraphResponse* resp);
 

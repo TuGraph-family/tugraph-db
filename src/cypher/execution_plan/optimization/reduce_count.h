@@ -18,6 +18,10 @@
 #pragma once
 
 #include "cypher/execution_plan/optimization/opt_pass.h"
+#include "cypher/execution_plan/ops/op_produce_results.h"
+#include "cypher/execution_plan/ops/op_aggregate.h"
+#include "cypher/execution_plan/ops/op_expand_all.h"
+#include "cypher/execution_plan/ops/op_relationship_count.h"
 
 namespace cypher {
 
@@ -55,7 +59,7 @@ class PassReduceCount : public OptPass {
             return 1;
         }
         // Make sure aggregation performs counting.
-        auto &exp = op_aggregate->aggregated_expressions_[0];
+        auto &exp = op_aggregate->aggregated_parser_expressions_[0];
         ArithExprNode ae(exp, op_aggregate->sym_tab_);
         CYPHER_THROW_ASSERT(ae.type == ArithExprNode::AR_EXP_OP);
         /* consider: RETURN count(*)+1 */
@@ -90,12 +94,12 @@ class PassReduceCount : public OptPass {
         return 0;
     }
 
-    void _DoReduceEdgeCount(ExecutionPlan &plan) {
+    void _DoReduceEdgeCount(OpBase *root) {
         ProduceResults *op_result = nullptr;
         Aggregate *op_aggregate = nullptr;
         ExpandAll *op_expand = nullptr;
         OpBase *op_scan = nullptr;
-        if (_IdentifyEdgeCount(plan.Root(), op_result, op_aggregate, op_expand, op_scan) != 0) {
+        if (_IdentifyEdgeCount(root, op_result, op_aggregate, op_expand, op_scan) != 0) {
             return;
         }
         auto op_count =
@@ -114,8 +118,8 @@ class PassReduceCount : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _DoReduceEdgeCount(*plan);
+    int Execute(OpBase *root) override {
+        _DoReduceEdgeCount(root);
         return 0;
     }
 };

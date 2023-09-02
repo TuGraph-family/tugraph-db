@@ -1,9 +1,5 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.13)
 project(TuGraph C CXX)
-
-# boost
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
 set(LGRAPH_API_SRC 
         ${CMAKE_SOURCE_DIR}/src/lgraph_api/olap_base.cpp

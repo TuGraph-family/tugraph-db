@@ -331,5 +331,19 @@ static inline ProtoUserInfo FromLGraphT(const AclManager::UserInfo& info) {
     for (auto& r : info.roles) pui.mutable_roles()->Add()->assign(r);
     return pui;
 }
+
+static_assert((int)lgraph_api::GraphQueryType::CYPHER == (int)ProtoGraphQueryType::CYPHER,
+              "GraphQueryType must have the same value as ProtoGraphQueryType");
+static_assert((int)lgraph_api::GraphQueryType::GQL == (int)ProtoGraphQueryType::GQL,
+              "GraphQueryType must have the same value as ProtoGraphQueryType");
+
+static inline lgraph_api::GraphQueryType ToLGraphT(const ProtoGraphQueryType& al) {
+    return lgraph_api::GraphQueryType(al);
+}
+
+static inline ProtoGraphQueryType FromLGraphT(const lgraph_api::GraphQueryType& al) {
+    return ProtoGraphQueryType(al);
+}
+
 }  // namespace convert
 }  // namespace lgraph

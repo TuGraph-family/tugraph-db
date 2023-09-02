@@ -229,7 +229,7 @@ class OptRewriteWithSchemaInference : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
+    int Execute(OpBase *root) override {
         const lgraph::SchemaInfo *schema_info;
         if (_ctx->graph_.empty()) {
             _ctx->ac_db_.reset(nullptr);
@@ -243,7 +243,7 @@ class OptRewriteWithSchemaInference : public OptPass {
         }
         _ctx->txn_.reset(nullptr);
         // _ctx->ac_db_.reset(nullptr);
-        _RewriteWithSchemaInference(plan->Root(), schema_info);
+        _RewriteWithSchemaInference(root, schema_info);
         return 0;
     }
 };

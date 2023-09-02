@@ -16,6 +16,11 @@
 
 #include "fma-common/logger.h"
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/json.h"
 #include "lgraph/lgraph.h"
 #include "plugin/plugin_desc.h"

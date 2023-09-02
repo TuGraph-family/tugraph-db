@@ -97,6 +97,7 @@ logs/
 *artifacts
 .DS_Store
 .cache
+*.real
 
 # docs
 doc/en-US/build
