@@ -2292,6 +2292,7 @@ void TestCypherDetermineReadonly() {
     UT_EXPECT_EQ(
         cypher::Scheduler::DetermineReadOnly(
             nullptr,
+            lgraph_api::GraphQueryType::CYPHER,
             "match (n) return n limit 100",
             dummy,
             dummy),
@@ -2299,6 +2300,7 @@ void TestCypherDetermineReadonly() {
     UT_EXPECT_EQ(
         cypher::Scheduler::DetermineReadOnly(
             nullptr,
+            lgraph_api::GraphQueryType::CYPHER,
             "CALL dbms.listGraphs()",
             dummy,
             dummy),

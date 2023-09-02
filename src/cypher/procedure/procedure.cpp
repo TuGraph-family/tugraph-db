@@ -616,19 +616,21 @@ void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, co
 
 void BuiltinProcedure::DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 3,
+    CYPHER_ARG_CHECK(args.size() == 4,
                      "need 3 parameters, e.g. db.addIndex(label_name, field_name, is_unique)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string")
     CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "is_unique type should be boolean")
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::BOOL, "is_global type should be boolean")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     auto label = args[0].String();
     auto field = args[1].String();
     auto unique = args[2].Bool();
+    auto global = args[3].Bool();
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    bool success = ac_db.AddEdgeIndex(label, field, unique);
+    bool success = ac_db.AddEdgeIndex(label, field, unique, global);
     if (!success) {
         throw lgraph::IndexExistException(label, field);
     }

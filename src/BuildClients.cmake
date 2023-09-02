@@ -1,10 +1,6 @@
 # brpc
 set(BRPC_LIB libbrpc.a)
 
-# boost
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
-
 if (ENABLE_FULLTEXT_INDEX)
     # jni
     find_package(JNI REQUIRED)
@@ -61,9 +57,9 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             -static-libstdc++
             -static-libgcc
             libstdc++fs.a
+            OpenSSL::ssl
+            OpenSSL::crypto
             -Wl,-Bdynamic
-            ssl
-            crypto
             rt
             dl
             z
@@ -92,7 +88,7 @@ else ()
             profiler
             snappy
             pthread
-            ssl
+            OpenSSL::ssl
             z
             )
 endif ()
@@ -112,6 +108,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         boost_system
         boost_filesystem
         ${JAVA_JVM_LIBRARY})
+else()
+    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
+        geax_isogql)
 endif()
 
 target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE

@@ -250,10 +250,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                             {});
             db.AddEdgeLabel("unique", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
-            db.AddEdgeIndex("esw", "weight", false);
+            db.AddEdgeIndex("esw", "weight", false, true);
             db.AddVertexIndex("esk", "fs", false);
-            db.AddEdgeIndex("esp", "weight", false);
-            db.AddEdgeIndex("unique", "weight", true);
+            db.AddEdgeIndex("esp", "weight", false, true);
+            db.AddEdgeIndex("unique", "weight", true, true);
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esw", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esp", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("unique", "weight"));
@@ -264,9 +264,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 txn1.GetEdgeFieldIds(1, std::vector<std::string>{"weight"});
             UT_EXPECT_EQ(edge_field_ids[0], 0);
             for (int i = 0; i < 4; i++) {
-                UT_EXPECT_TRUE(
-                    txn1.AddEdge(i, (i + 1) % 4, "esw", {"weight"}, {FieldData(int64_t(i))}) ==
-                    EdgeUid(i, (i + 1) % 4, 1, 0, 0));
+                EdgeUid e = txn1.AddEdge(i, (i + 1) % 4, "esw",
+                                         {"weight"}, {FieldData(int64_t(i))});
+                EdgeUid expect(i, (i + 1) % 4, 1, 0, 0);
+                UT_EXPECT_TRUE(e == expect);
             }
             for (int i = 0; i < 4; i++) {
                 UT_EXPECT_TRUE(
@@ -279,7 +280,6 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 UT_EXPECT_TRUE(s == EdgeUid(i, (i + 1) % 4, 3, 0, 0));
             }
             auto uet = txn1.GetEdgeByUniqueIndex("unique", "weight", "1");
-
             UT_EXPECT_TRUE(uet.IsValid());
             UT_EXPECT_EQ(uet.GetSrc(), 1);
             UT_EXPECT_EQ(uet.GetDst(), 2);
@@ -303,10 +303,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
             auto in_eit = txn1.GetInEdgeIterator(0, 1, 1);
             UT_EXPECT_EQ(in_eit.GetFields(std::vector<std::string>{"weight"})[0].AsInt64(), 0);
             UT_EXPECT_EQ(in_eit.GetFields(std::vector<std::size_t>{0})[0].AsInt64(), 0);
-
-            EdgeIndexIterator test_eit1(txn1.GetEdgeIndexIterator("esw", "weight", "1", "2"));
-            test_eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
+            EdgeIndexIterator test_eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
+            UT_EXPECT_TRUE(test_eit1.IsValid());
             auto test_eit2 = txn1.GetEdgeIndexIterator("esw", "weight", "2", "3");
+            UT_EXPECT_TRUE(test_eit2.IsValid());
             test_eit2.Next();
             UT_EXPECT_TRUE(test_eit2.IsValid());
             test_eit2.Close();
@@ -419,8 +419,8 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_EQ(oeit.GetField("weight").AsFloat(), 1);
         }
     } catch (std::exception& e) {
+        UT_LOG() << "An error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
-        ERR() << "An error occurred: " << e.what();
     }
     {
         lgraph::AutoCleanDir cleaner(path);
@@ -777,5 +777,5 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_THROW((FieldData::String("2") > FieldData::Float(1.2)), std::runtime_error);
         }
     }
-    // #endif
+//     #endif
 }

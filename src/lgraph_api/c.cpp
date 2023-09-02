@@ -2278,9 +2278,10 @@ bool lgraph_api_graph_db_add_vertex_index(lgraph_api_graph_db_t* graphdb, const 
 }
 
 bool lgraph_api_graph_db_add_edge_index(lgraph_api_graph_db_t* graphdb, const char* label,
-                                        const char* field, bool is_unique, char** errptr) {
+                                        const char* field, bool is_unique, bool is_global,
+                                        char** errptr) {
     try {
-        graphdb->repr.AddEdgeIndex(label, field, is_unique);
+        graphdb->repr.AddEdgeIndex(label, field, is_unique, is_global);
         return true;
     } catch (const std::exception& e) {
         *errptr = strdup(e.what());

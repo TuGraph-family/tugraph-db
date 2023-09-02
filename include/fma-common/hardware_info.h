@@ -199,6 +199,19 @@ inline void GetMemoryInfo(struct MemoryInfo& memoryInfo) {
 }
 #else
 inline std::string GetCpuId() {
+#ifdef __aarch64__
+    std::ifstream cpuinfo("/proc/cpuinfo");
+    std::string line;
+    while (cpuinfo.good()) {
+        std::getline(cpuinfo, line);
+        if (StartsWith(line, "vendor_id")) {
+            break;
+        }
+    }
+    auto parts = Split(line, ":");
+    if (parts.size() != 2) return "";
+    return Strip(parts[1], " \t");
+#else
     unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
     eax = 0;
     asm volatile("cpuid"
@@ -210,6 +223,7 @@ inline std::string GetCpuId() {
     memcpy(&vendor[4], &edx, 4);
     memcpy(&vendor[8], &ecx, 4);
     return vendor;
+#endif
 }
 
 inline std::string GetCpuModel() {

@@ -31,41 +31,78 @@ FullTextIndex::FullTextIndex(const std::string &path, const std::string &analyze
     jni_env_.CheckException("NewStringUTF");
     jstring analyzer_name = jni_env_.env->NewStringUTF(analyzer.c_str());
     jni_env_.CheckException("NewStringUTF");
-    lucene_ = jni_env_.env->NewObject(jni_env_.luceneClass, jni_env_.lucene_constructor, index_path,
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto lucene_constructor =
+        jni_env_.env->GetMethodID(luceneClass, "<init>",
+                                  "(Ljava/lang/String;Ljava/lang/String;II)V");
+    auto lucene = jni_env_.env->NewObject(luceneClass, lucene_constructor, index_path,
                                       analyzer_name, commit_interval, refresh_interval);
+    g_lucene_ = jni_env_.env->NewGlobalRef(lucene);
+
     jni_env_.CheckException("lucene_constructor");
+
+    jni_env_.env->DeleteLocalRef(index_path);
+    jni_env_.env->DeleteLocalRef(analyzer_name);
+    jni_env_.env->DeleteLocalRef(luceneClass);
+    jni_env_.env->DeleteLocalRef(lucene);
 }
 
 FullTextIndex::~FullTextIndex() {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.close);
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto close = jni_env_.env->GetMethodID(luceneClass, "close", "()V");
+    jni_env_.env->CallVoidMethod(g_lucene_, close);
     jni_env_.CheckException("close");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 void FullTextIndex::Clear() {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.clear);
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto clear = jni_env_.env->GetMethodID(luceneClass, "clear", "()V");
+    jni_env_.env->CallVoidMethod(g_lucene_, clear);
     jni_env_.CheckException("clear");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 void FullTextIndex::Refresh() {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.refresh);
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto refresh = jni_env_.env->GetMethodID(luceneClass, "maybeRefresh", "()V");
+    jni_env_.env->CallVoidMethod(g_lucene_, refresh);
     jni_env_.CheckException("refresh");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 void FullTextIndex::Commit() {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.commit);
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto commit = jni_env_.env->GetMethodID(luceneClass, "commit", "()V");
+    jni_env_.env->CallVoidMethod(g_lucene_, commit);
     jni_env_.CheckException("commit");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 void FullTextIndex::Backup(const std::string &backup_dir) {
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto backup = jni_env_.env->GetMethodID(luceneClass, "backup", "(Ljava/lang/String;)V");
+
     jstring path = jni_env_.env->NewStringUTF(backup_dir.c_str());
     jni_env_.CheckException("NewStringUTF");
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.backup, path);
+    jni_env_.env->CallVoidMethod(g_lucene_, backup, path);
     jni_env_.CheckException("backup");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
+    jni_env_.env->DeleteLocalRef(path);
 }
 
 void FullTextIndex::DeleteLabel(bool is_vertex, LabelId labelId) {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.delete_label, is_vertex, labelId);
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto delete_label = jni_env_.env->GetMethodID(luceneClass, "deleteLabel", "(ZI)V");
+    jni_env_.env->CallVoidMethod(g_lucene_, delete_label, is_vertex, labelId);
     jni_env_.CheckException("delete_label");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 void FullTextIndex::AddVertex(int64_t vid, LabelId labelId,
@@ -73,20 +110,33 @@ void FullTextIndex::AddVertex(int64_t vid, LabelId labelId,
     if (kvs.empty()) {
         return;
     }
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto add_vertex = jni_env_.env->GetMethodID(luceneClass, "addVertex",
+                                                "(JI[Ljava/lang/String;[Ljava/lang/String;)V");
+
+    auto stringClass = jni_env_.env->FindClass("java/lang/String");
     int len = kvs.size();
-    jobjectArray jobjectKeys = jni_env_.env->NewObjectArray(len, jni_env_.stringClass, nullptr);
+    jobjectArray jobjectKeys = jni_env_.env->NewObjectArray(len, stringClass, nullptr);
     jni_env_.CheckException("NewObjectArray");
-    jobjectArray jobjectValues = jni_env_.env->NewObjectArray(len, jni_env_.stringClass, nullptr);
+    jobjectArray jobjectValues = jni_env_.env->NewObjectArray(len, stringClass, nullptr);
     jni_env_.CheckException("NewObjectArray");
     for (int i = 0; i < len; i++) {
-        jni_env_.env->SetObjectArrayElement(jobjectKeys, i,
-                                            jni_env_.env->NewStringUTF(kvs[i].first.c_str()));
-        jni_env_.env->SetObjectArrayElement(jobjectValues, i,
-                                            jni_env_.env->NewStringUTF(kvs[i].second.c_str()));
+        auto key = jni_env_.env->NewStringUTF(kvs[i].first.c_str());
+        jni_env_.env->SetObjectArrayElement(jobjectKeys, i, key);
+        auto val = jni_env_.env->NewStringUTF(kvs[i].second.c_str());
+        jni_env_.env->SetObjectArrayElement(jobjectValues, i, val);
+
+        jni_env_.env->DeleteLocalRef(key);
+        jni_env_.env->DeleteLocalRef(val);
     }
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.add_vertex, vid, labelId, jobjectKeys,
+    jni_env_.env->CallVoidMethod(g_lucene_, add_vertex, vid, labelId, jobjectKeys,
                                  jobjectValues);
     jni_env_.CheckException("add_vertex");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
+    jni_env_.env->DeleteLocalRef(stringClass);
+    jni_env_.env->DeleteLocalRef(jobjectKeys);
+    jni_env_.env->DeleteLocalRef(jobjectValues);
 }
 
 void FullTextIndex::AddEdge(const EdgeUid &euid,
@@ -94,39 +144,66 @@ void FullTextIndex::AddEdge(const EdgeUid &euid,
     if (kvs.empty()) {
         return;
     }
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto add_edge = jni_env_.env->GetMethodID(luceneClass, "addEdge",
+                                              "(JJII[Ljava/lang/String;[Ljava/lang/String;)V");
+
+    auto stringClass = jni_env_.env->FindClass("java/lang/String");
     int len = kvs.size();
-    jobjectArray jobjectKeys = jni_env_.env->NewObjectArray(len, jni_env_.stringClass, nullptr);
+    jobjectArray jobjectKeys = jni_env_.env->NewObjectArray(len, stringClass, nullptr);
     jni_env_.CheckException("NewObjectArray");
-    jobjectArray jobjectValues = jni_env_.env->NewObjectArray(len, jni_env_.stringClass, nullptr);
+    jobjectArray jobjectValues = jni_env_.env->NewObjectArray(len, stringClass, nullptr);
     jni_env_.CheckException("NewObjectArray");
     for (int i = 0; i < len; i++) {
-        jni_env_.env->SetObjectArrayElement(jobjectKeys, i,
-                                            jni_env_.env->NewStringUTF(kvs[i].first.c_str()));
-        jni_env_.env->SetObjectArrayElement(jobjectValues, i,
-                                            jni_env_.env->NewStringUTF(kvs[i].second.c_str()));
+        auto key = jni_env_.env->NewStringUTF(kvs[i].first.c_str());
+        jni_env_.env->SetObjectArrayElement(jobjectKeys, i, key);
+        auto val = jni_env_.env->NewStringUTF(kvs[i].second.c_str());
+        jni_env_.env->SetObjectArrayElement(jobjectValues, i, val);
+        jni_env_.env->DeleteLocalRef(key);
+        jni_env_.env->DeleteLocalRef(val);
     }
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.add_edge, euid.src, euid.dst, euid.lid, euid.eid,
+    jni_env_.env->CallVoidMethod(g_lucene_, add_edge, euid.src, euid.dst, euid.lid, euid.eid,
                                  jobjectKeys, jobjectValues);
     jni_env_.CheckException("add_edge");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
+    jni_env_.env->DeleteLocalRef(stringClass);
+    jni_env_.env->DeleteLocalRef(jobjectKeys);
+    jni_env_.env->DeleteLocalRef(jobjectValues);
 }
 
 void FullTextIndex::DeleteVertex(int64_t vid) {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.delete_vertex, vid);
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto delete_vertex = jni_env_.env->GetMethodID(luceneClass, "deleteVertex", "(J)V");
+
+    jni_env_.env->CallVoidMethod(g_lucene_, delete_vertex, vid);
     jni_env_.CheckException("delete_vertex");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 void FullTextIndex::DeleteEdge(const EdgeUid &euid) {
-    jni_env_.env->CallVoidMethod(lucene_, jni_env_.delete_edge, euid.src, euid.dst, euid.lid,
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto delete_edge = jni_env_.env->GetMethodID(luceneClass, "deleteEdge", "(JJII)V");
+
+    jni_env_.env->CallVoidMethod(g_lucene_, delete_edge, euid.src, euid.dst, euid.lid,
                                  euid.eid);
     jni_env_.CheckException("delete_edge");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
 }
 
 std::vector<std::pair<int64_t, float>> FullTextIndex::QueryVertex(LabelId lid,
                                                                   const std::string &query,
                                                                   int top_n) {
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto query_vertex = jni_env_.env->GetMethodID(luceneClass, "queryVertex",
+                                                  "(ILjava/lang/String;I)[LScoreVid;");
+
     std::vector<std::pair<int64_t, float>> ret;
+    auto query_str = jni_env_.env->NewStringUTF(query.c_str());
     auto ids = (jobjectArray)jni_env_.env->CallObjectMethod(
-        lucene_, jni_env_.query_vertex, lid, jni_env_.env->NewStringUTF(query.c_str()), top_n);
+        g_lucene_, query_vertex, lid, query_str, top_n);
     jni_env_.CheckException("query_vertex");
     jsize len = jni_env_.env->GetArrayLength(ids);
     for (int i = 0; i < len; i++) {
@@ -136,15 +213,24 @@ std::vector<std::pair<int64_t, float>> FullTextIndex::QueryVertex(LabelId lid,
         ret.emplace_back(vid, score);
     }
     jni_env_.CheckException("ScoreVid GetField");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
+    jni_env_.env->DeleteLocalRef(query_str);
+
     return ret;
 }
 
 std::vector<std::pair<EdgeUid, float>> FullTextIndex::QueryEdge(LabelId lid,
                                                                 const std::string &query,
                                                                 int top_n) {
+    auto luceneClass = jni_env_.env->FindClass("Lucene");
+    auto query_edge = jni_env_.env->GetMethodID(luceneClass, "queryEdge",
+                                                "(ILjava/lang/String;I)[LScoreEdgeUid;");
+
     std::vector<std::pair<EdgeUid, float>> ret;
+    auto query_str = jni_env_.env->NewStringUTF(query.c_str());
     auto ids = (jobjectArray)jni_env_.env->CallObjectMethod(
-        lucene_, jni_env_.query_edge, lid, jni_env_.env->NewStringUTF(query.c_str()), top_n);
+        g_lucene_, query_edge, lid, query_str, top_n);
     jni_env_.CheckException("query_edge");
     jsize len = jni_env_.env->GetArrayLength(ids);
     for (int i = 0; i < len; i++) {
@@ -158,6 +244,9 @@ std::vector<std::pair<EdgeUid, float>> FullTextIndex::QueryEdge(LabelId lid,
                          score);  // TODO(heng):
     }
     jni_env_.CheckException("ScoreEdgeUid GetField");
+
+    jni_env_.env->DeleteLocalRef(luceneClass);
+    jni_env_.env->DeleteLocalRef(query_str);
     return ret;
 }
 
@@ -176,6 +265,7 @@ void LuceneJNIEnv::InitJniEnv() {
     if (res != JNI_OK) {
         throw FTIndexException("Failed to create jvm, ret: " + std::to_string(res));
     }
+    delete[] options;
 }
 
 void LuceneJNIEnv::CheckException(const std::string &call_method) {
@@ -202,50 +292,15 @@ LuceneJNIEnv::LuceneJNIEnv() {
         }
         need_detach = true;
     }
-    luceneClass = env->FindClass("Lucene");
-    CheckException("FindClass Lucene");
-    lucene_constructor =
-        env->GetMethodID(luceneClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;II)V");
-    CheckException("GetMethodID init");
-    add_vertex =
-        env->GetMethodID(luceneClass, "addVertex", "(JI[Ljava/lang/String;[Ljava/lang/String;)V");
-    CheckException("GetMethodID addVertex");
-    add_edge =
-        env->GetMethodID(luceneClass, "addEdge", "(JJII[Ljava/lang/String;[Ljava/lang/String;)V");
-    CheckException("GetMethodID addEdge");
-    delete_vertex = env->GetMethodID(luceneClass, "deleteVertex", "(J)V");
-    CheckException("GetMethodID deleteVertex");
-    delete_edge = env->GetMethodID(luceneClass, "deleteEdge", "(JJII)V");
-    CheckException("GetMethodID deleteEdge");
-    delete_label = env->GetMethodID(luceneClass, "deleteLabel", "(ZI)V");
-    CheckException("GetMethodID deleteLabel");
-    query_vertex =
-        env->GetMethodID(luceneClass, "queryVertex", "(ILjava/lang/String;I)[LScoreVid;");
-    CheckException("GetMethodID queryVertex");
-    query_edge =
-        env->GetMethodID(luceneClass, "queryEdge", "(ILjava/lang/String;I)[LScoreEdgeUid;");
-    CheckException("GetMethodID queryEdge");
-    close = env->GetMethodID(luceneClass, "close", "()V");
-    CheckException("GetMethodID close");
-    clear = env->GetMethodID(luceneClass, "clear", "()V");
-    CheckException("GetMethodID clear");
-    refresh = env->GetMethodID(luceneClass, "maybeRefresh", "()V");
-    CheckException("GetMethodID maybeRefresh");
-    backup = env->GetMethodID(luceneClass, "backup", "(Ljava/lang/String;)V");
-    CheckException("GetMethodID backup");
-    commit = env->GetMethodID(luceneClass, "commit", "()V");
-    CheckException("GetMethodID commit");
-    stringClass = env->FindClass("java/lang/String");
-    CheckException("FindClass String");
 
-    ScoreVidClass = env->FindClass("ScoreVid");
+    auto ScoreVidClass = env->FindClass("ScoreVid");
     CheckException("FindClass ScoreVid");
     vid = env->GetFieldID(ScoreVidClass, "vid", "J");
     CheckException("GetFieldID vid");
     vertexScore = env->GetFieldID(ScoreVidClass, "score", "F");
     CheckException("GetFieldID score");
 
-    ScoreEdgeUidClass = env->FindClass("ScoreEdgeUid");
+    auto ScoreEdgeUidClass = env->FindClass("ScoreEdgeUid");
     CheckException("FindClass ScoreEdgeUid");
     srcId = env->GetFieldID(ScoreEdgeUidClass, "srcId", "J");
     CheckException("GetFieldID srcId");
@@ -257,6 +312,9 @@ LuceneJNIEnv::LuceneJNIEnv() {
     CheckException("GetFieldID edgeId");
     edgeScore = env->GetFieldID(ScoreEdgeUidClass, "score", "F");
     CheckException("GetFieldID score");
+
+    env->DeleteLocalRef(ScoreVidClass);
+    env->DeleteLocalRef(ScoreEdgeUidClass);
 }
 
 LuceneJNIEnv::~LuceneJNIEnv() {

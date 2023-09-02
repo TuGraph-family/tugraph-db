@@ -50,8 +50,9 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(fe);
             KvTable tbl =
-                EdgeIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.is_unique);
-            EdgeIndex* index = new EdgeIndex(tbl, fe->Type(), idx.is_unique);
+                EdgeIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(),
+                                     idx.is_unique, idx.is_global);
+            EdgeIndex* index = new EdgeIndex(tbl, fe->Type(), idx.is_unique, idx.is_global);
             index->SetReady();
             schema->MarkEdgeIndexed(fe->GetFieldId(), index);
         } else if (index_name.size() > v_ft_index_len &&
@@ -120,13 +121,14 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 
 bool IndexManager::AddEdgeIndex(KvTransaction& txn, const std::string& label,
                                 const std::string& field, FieldType dt, bool is_unique,
-                                std::unique_ptr<EdgeIndex>& index) {
+                                bool is_global, std::unique_ptr<EdgeIndex>& index) {
     if (dt == FieldType::BLOB) throw InputError("BLOB fields cannot be indexed.");
     _detail::IndexEntry idx;
     idx.label = label;
     idx.field = field;
     idx.table_name = GetEdgeIndexTableName(label, field);
     idx.is_unique = is_unique;
+    idx.is_global = is_global;
 
     auto it = index_list_table_.GetIterator(txn, Value::ConstRef(idx.table_name));
     if (it.IsValid()) return false;  // already exist
@@ -134,8 +136,9 @@ bool IndexManager::AddEdgeIndex(KvTransaction& txn, const std::string& label,
     StoreIndex(idx, idxv);
     it.AddKeyValue(Value::ConstRef(idx.table_name), idxv);
 
-    KvTable tbl = EdgeIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt, is_unique);
-    index.reset(new EdgeIndex(tbl, dt, is_unique));  // creates index table
+    KvTable tbl = EdgeIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt,
+                                       is_unique, is_global);
+    index.reset(new EdgeIndex(tbl, dt, is_unique, is_global));  // creates index table
     return true;
 }
 
