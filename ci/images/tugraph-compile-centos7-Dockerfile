@@ -74,7 +74,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
 # 3. Copy the boost geometry extensions to the boost-1.68 include directory(headers only)
 # if boost-1.68 is not accessible, replace it with the link below
 # - https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
-# Geometry extensions is the `extensions` directory in the repository and commit id below.
+# Geometry extensions is the `include/boost/geometry/extensions` directory in the repository and commit id below.
 # - Commit 5fbd2a11027f658decda5e43af73935e98a84ee5 @ https://github.com/boostorg/geometry.git
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
     && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
