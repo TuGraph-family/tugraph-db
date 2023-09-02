@@ -26,6 +26,7 @@ typedef std::string string_t;  // add by cpplint
 
 // methods in url
 static const string_t HTTP_CYPHER_METHOD = "cypher";
+static const string_t HTTP_GQL_METHOD = "gql";
 static const string_t HTTP_REFRESH_METHOD = "refresh";
 static const string_t HTTP_LOGIN_METHOD = "login";
 static const string_t HTTP_LOGOUT_METHOD = "logout";

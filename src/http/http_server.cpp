@@ -19,6 +19,7 @@
 #include "http/http_server.h"
 #include "http/http_utils.h"
 #include "http/import_task.h"
+#include "protobuf/ha.pb.h"
 #include "server/json_convert.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/file_system.h"
@@ -129,6 +130,9 @@ void HttpService::InitFuncMap() {
     functions_map_.clear();
     functions_map_.emplace(HTTP_CYPHER_METHOD,
                            std::bind(&HttpService::DoCypherRequest, this, std::placeholders::_1,
+                                     std::placeholders::_2));
+    functions_map_.emplace(HTTP_GQL_METHOD,
+                           std::bind(&HttpService::DoGqlRequest, this, std::placeholders::_1,
                                      std::placeholders::_2));
     functions_map_.emplace(HTTP_REFRESH_METHOD,
                            std::bind(&HttpService::DoRefreshRequest, this, std::placeholders::_1,
@@ -434,10 +438,19 @@ void HttpService::DoImportProgress(const brpc::Controller* cntl, std::string& re
 void HttpService::DoCypherRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
     LGraphRequest pb_req;
-    BuildPbCypherRequest(cntl, token, pb_req);
+    BuildPbGraphQueryRequest(cntl, lgraph_api::GraphQueryType::CYPHER, token, pb_req);
     LGraphResponse pb_res;
     ApplyToStateMachine(pb_req, pb_res);
-    BuildJsonCypherResponse(pb_res, res);
+    BuildJsonGraphQueryResponse(pb_res, res);
+}
+
+void HttpService::DoGqlRequest(const brpc::Controller* cntl, std::string& res) {
+    const std::string token = CheckTokenOrThrowException(cntl);
+    LGraphRequest pb_req;
+    BuildPbGraphQueryRequest(cntl, lgraph_api::GraphQueryType::GQL, token, pb_req);
+    LGraphResponse pb_res;
+    ApplyToStateMachine(pb_req, pb_res);
+    BuildJsonGraphQueryResponse(pb_res, res);
 }
 
 void HttpService::DoLoginRequest(const brpc::Controller* cntl, std::string& res) {
@@ -493,8 +506,9 @@ void HttpService::DoRefreshRequest(const brpc::Controller* cntl, std::string& re
     res = js.dump();
 }
 
-void HttpService::BuildPbCypherRequest(const brpc::Controller* cntl, const std::string& token,
-                                       LGraphRequest& pb) {
+void HttpService::BuildPbGraphQueryRequest(const brpc::Controller* cntl,
+                                           const lgraph_api::GraphQueryType& query_type,
+                                           const std::string& token, LGraphRequest& pb) {
     std::string req = cntl->request_attachment().to_string();
     std::string graph;
     std::string query;
@@ -510,7 +524,8 @@ void HttpService::BuildPbCypherRequest(const brpc::Controller* cntl, const std::
     cypher::RTContext ctx(sm_, galaxy_, token, user, graph, field_access);
     std::string name;
     std::string type;
-    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query, name, type);
+    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query,
+                                                    name, type);
     if (name.empty() || type.empty()) {
         pb.set_is_write_op(!ret);
     } else {
@@ -522,7 +537,8 @@ void HttpService::BuildPbCypherRequest(const brpc::Controller* cntl, const std::
             token, name);
         pb.set_is_write_op(!ret);
     }
-    CypherRequest* creq = pb.mutable_cypher_request();
+    GraphQueryRequest* creq = pb.mutable_graph_query_request();
+    creq->set_type(convert::FromLGraphT(query_type));
     creq->set_result_in_json_format(false);
     creq->set_query(query);
     creq->set_graph(graph);
@@ -530,17 +546,17 @@ void HttpService::BuildPbCypherRequest(const brpc::Controller* cntl, const std::
     creq->set_result_in_json_format(json_format);
 }
 
-void HttpService::BuildJsonCypherResponse(LGraphResponse& res, std::string& json) {
+void HttpService::BuildJsonGraphQueryResponse(LGraphResponse& res, std::string& json) {
     if (res.error_code() != LGraphResponse::SUCCESS) {
         _HANDLE_LGRAPH_RESPONSE_ERROR(res);
     } else {
-        const auto& resp = res.cypher_response();
-        if (resp.Result_case() == CypherResponse::kJsonResult) {
+        const auto& resp = res.graph_query_response();
+        if (resp.Result_case() == GraphQueryResponse::kJsonResult) {
             nlohmann::json response;
             response[HTTP_RESULT] = nlohmann::json::parse(resp.json_result());
             json = response.dump();
             return;
-        } else if (resp.Result_case() == CypherResponse::kBinaryResult) {
+        } else if (resp.Result_case() == GraphQueryResponse::kBinaryResult) {
             std::vector<nlohmann::json> vec_header;
             for (auto& c : resp.binary_result().header()) {
                 nlohmann::json col;
@@ -817,7 +833,7 @@ void HttpService::DoGetProcedure(const brpc::Controller* cntl, std::string& res)
     js["read_only"] = co.read_only;
     js["content"] = encoded;
     js["code_type"] = co.code_type;
-    res = std::move(js.dump());
+    res = js.dump();
 }
 
 void HttpService::DoGetProcedureDemo(const brpc::Controller* cntl, std::string& res) {
@@ -852,7 +868,7 @@ void HttpService::DoGetProcedureDemo(const brpc::Controller* cntl, std::string& 
     js["type"] = type;
     js["filename"] = filename;
     js["content"] = encoded;
-    res = std::move(js.dump());
+    res = js.dump();
 }
 
 void HttpService::DoDeleteProcedure(const brpc::Controller* cntl, std::string& res) {
@@ -925,7 +941,8 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
         auto field_access = galaxy_->GetRoleFieldAccessLevel(user, graphName);
         cypher::RTContext ctx(sm_, galaxy_, token, user, graphName, field_access);
         std::string name, type;
-        bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, procedureParam, name, type);
+        bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, lgraph_api::GraphQueryType::CYPHER,
+                                                        procedureParam, name, type);
         if (name.empty() || type.empty()) {
             is_write_op = !ret;
         } else {
@@ -941,7 +958,8 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
         LGraphRequest lgraph_req;
         lgraph_req.set_token(token);
         lgraph_req.set_is_write_op(is_write_op);
-        CypherRequest* creq = lgraph_req.mutable_cypher_request();
+        GraphQueryRequest* creq = lgraph_req.mutable_graph_query_request();
+        creq->set_type(lgraph::ProtoGraphQueryType::CYPHER);
         creq->set_query(procedureParam);
         creq->set_graph(graphName);
         creq->set_timeout(timeout);
@@ -949,7 +967,7 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
 
         LGraphResponse lgraph_res;
         ApplyToStateMachine(lgraph_req, lgraph_res);
-        BuildJsonCypherResponse(lgraph_res, res);
+        BuildJsonGraphQueryResponse(lgraph_res, res);
     } else {
         throw lgraph_api::BadRequestException(FMA_FMT(
             "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1, plugin::PLUGIN_VERSION_2));

@@ -143,8 +143,9 @@ TEST_P(TestRestClient, RestClient) {
         std::map<std::string, FieldData> configs;
         configs.insert(std::make_pair("durable", FieldData(false)));
         client->SetConfig(configs);
-        UT_EXPECT_THROW_MSG(client->SetMisc(),
-                            "is_write_op must be set for non-Cypher and non-plugin request.");
+        UT_EXPECT_THROW_MSG(
+            client->SetMisc(),
+            "is_write_op must be set for non-Cypher/non-Gql and non-plugin request.");
         client->GetLabelNum("default");
         client->ListUserLabel("default");
         client->ListUserGraph("admin");

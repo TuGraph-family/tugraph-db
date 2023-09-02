@@ -17,6 +17,8 @@
  */
 #pragma once
 
+#include "cypher/execution_plan/ops/op_filter.h"
+#include "cypher/execution_plan/ops/op_expand_all.h"
 #include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
@@ -123,11 +125,11 @@ class EdgeFilterPushdownExpand : public OptPass {
         return false;
     }
 
-    void _AdjustFilter(ExecutionPlan &plan) {
+    void _AdjustFilter(OpBase *root) {
         ExpandAll *op_expandall = nullptr;
         OpFilter *op_filter = nullptr;
         // traverse the query execution plan to judge whether edge_filter exists
-        while (_FindEdgeFilter(plan.Root(), op_filter, op_expandall)) {
+        while (_FindEdgeFilter(root, op_filter, op_expandall)) {
             _AddEdgeFilterOp(op_filter, op_expandall);
         }
     }
@@ -137,8 +139,8 @@ class EdgeFilterPushdownExpand : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _AdjustFilter(*plan);
+    int Execute(OpBase *root) override {
+        _AdjustFilter(root);
         return 0;
     }
 };

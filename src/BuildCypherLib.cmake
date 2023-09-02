@@ -4,7 +4,6 @@ find_package(PythonInterp 3)
 find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 #antlr4-runtime
 find_package(antlr4-runtime REQUIRED)
-include_directories( ${ANTLR4_INCLUDE_DIR} )
 set(ANTRL4_LIBRARY antlr4-runtime.a)
 
 set(TARGET_LGRAPH_CYPHER_LIB lgraph_cypher_lib)
@@ -12,7 +11,12 @@ set(TARGET_LGRAPH_CYPHER_LIB lgraph_cypher_lib)
 set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/arithmetic/agg_funcs.cpp
         cypher/arithmetic/arithmetic_expression.cpp
+        cypher/arithmetic/ast_agg_expr_detector.cpp
+        cypher/arithmetic/ast_expr_evaluator.cpp
         cypher/execution_plan/execution_plan.cpp
+        cypher/execution_plan/execution_plan_v2.cpp
+        cypher/execution_plan/execution_plan_maker.cpp
+        cypher/execution_plan/pattern_graph_maker.cpp
         cypher/execution_plan/ops/op_aggregate.cpp
         cypher/execution_plan/ops/op_all_node_scan.cpp
         cypher/execution_plan/ops/op_apply.cpp
@@ -72,8 +76,10 @@ add_library(${TARGET_LGRAPH_CYPHER_LIB} STATIC
 set_target_properties(${TARGET_LGRAPH_CYPHER_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
+        ${ANTLR4_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher)
 
 target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${ANTRL4_LIBRARY}
+        geax_isogql
         lgraph)

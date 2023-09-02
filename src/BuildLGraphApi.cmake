@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
 
-# boost
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
-
 # threads
 find_package(Threads REQUIRED)
 
@@ -114,7 +110,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             ${PROTOBUF_LIBRARY}
             -Wl,--no-whole-archive
             ${JAVA_JVM_LIBRARY}
-            crypto
+            OpenSSL::crypto
             pthread
             rt
             z
@@ -125,7 +121,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 ${Boost_LIBRARIES}
                 omp
                 pthread
-                crypto
+                OpenSSL::crypto
                 ${PROTOBUF_LIBRARY}
                 ${JAVA_JVM_LIBRARY})
     else ()
@@ -138,7 +134,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 -Wl,-Bdynamic
                 c++experimental
                 c++fs
-                crypto
+                OpenSSL::crypto
                 -Wl,--whole-archive
                 ${PROTOBUF_LIBRARY}
                 -Wl,--no-whole-archive

@@ -18,6 +18,7 @@
 #include "core/killable_rw_lock.h"
 #include "db/galaxy.h"
 #include "import/import_online.h"
+#include "lgraph/lgraph_types.h"
 #include "protobuf/ha.pb.h"
 #include "server/proto_convert.h"
 #include "server/state_machine.h"
@@ -68,17 +69,18 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
         return req->is_write_op();
     } else {
         // determine if this is a write op
-        if (req->Req_case() != LGraphRequest::kCypherRequest &&
+        if (req->Req_case() != LGraphRequest::kGraphQueryRequest &&
             req->Req_case() != LGraphRequest::kPluginRequest) {
-            throw InputError("is_write_op must be set for non-Cypher and non-plugin request.");
+            throw InputError(
+                "is_write_op must be set for non-Cypher/non-Gql and non-plugin request.");
         }
         _HoldReadLock(galaxy_->GetReloadLock());
-        if (req->Req_case() == LGraphRequest::kCypherRequest) {
+        if (req->Req_case() == LGraphRequest::kGraphQueryRequest) {
 #ifdef _WIN32
             throw InternalError("Cypher is not supported on Windows yet.");
 #else
             // determine if this is a write op
-            const CypherRequest& cypher_req = req->cypher_request();
+            const GraphQueryRequest& cypher_req = req->graph_query_request();
             // const std::string& user = GetCurrUser(lgraph_req);
             std::string user = req->has_user() ? req->user() : GetCurrUser(req);
             auto field_access = galaxy_->GetRoleFieldAccessLevel(user, cypher_req.graph());
@@ -86,12 +88,13 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
                                   field_access);
             std::string name;
             std::string type;
-            bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, req->cypher_request().query(),
-                                                            name, type);
+            bool ret = cypher::Scheduler::DetermineReadOnly(
+                &ctx, convert::ToLGraphT(req->graph_query_request().type()),
+                req->graph_query_request().query(), name, type);
             if (name.empty() || type.empty()) {
                 return !ret;
             } else {
-                const CypherRequest& creq = req->cypher_request();
+                const GraphQueryRequest& creq = req->graph_query_request();
                 const std::string& user = GetCurrUser(req);
                 AccessControlledDB db = galaxy_->OpenGraph(user, creq.graph());
                 type.erase(remove(type.begin(), type.end(), '\"'), type.end());
@@ -231,10 +234,13 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
                     ApplyGraphApiRequest(req, resp);
                     break;
                 }
-            case LGraphRequest::kCypherRequest:
+            case LGraphRequest::kGraphQueryRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Apply a cypher request.";
-                    ApplyCypherRequest(req, resp);
+                    FMA_DBG_STREAM(logger_) << "Apply a "
+                                            << lgraph_api::to_string(convert::ToLGraphT(
+                                                   req->graph_query_request().type()))
+                                            << " request.";
+                    ApplyGraphQueryRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kPluginRequest:
@@ -320,12 +326,13 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
         FMA_DBG_STREAM(logger_) << fma_common::StringFormatter::Format(
             "[Calling Plugin] plugin_name={}, elapsed={}, res={}, param=[{}]", preq.name(),
             end_time - start_time, LGraphResponse_ErrorCode_Name(resp->error_code()), param);
-    } else if (req->Req_case() == LGraphRequest::kCypherRequest) {
-        auto query = req->cypher_request().query();
+    } else if (req->Req_case() == LGraphRequest::kGraphQueryRequest) {
+        auto query = req->graph_query_request().query();
         boost::replace_all(query, "\n", "");
         FMA_DBG_STREAM(logger_) << fma_common::StringFormatter::Format(
-            "[Calling Cypher] elapsed={}, res={}, cypher=[{}]", end_time - start_time,
-            LGraphResponse_ErrorCode_Name(resp->error_code()), query);
+            "[Calling {}] elapsed={}, res={}, query=[{}]",
+            lgraph_api::to_string(convert::ToLGraphT(req->graph_query_request().type())),
+            end_time - start_time, LGraphResponse_ErrorCode_Name(resp->error_code()), query);
     }
     if (resp->error_code() == LGraphResponse::SUCCESS)
         AUDIT_LOG_SUCC();
@@ -903,16 +910,15 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
     }
 }
 
-bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
-                                              LGraphResponse* resp) {
+bool lgraph::StateMachine::ApplyGraphQueryRequest(const LGraphRequest* lgraph_req,
+                                                  LGraphResponse* resp) {
 #ifdef _WIN32
-    return RespondException(resp, "Cypher is not supported on windows servers.");
+    return RespondException(resp, "Cypher/Gql is not supported on windows servers.");
 #else
     bool is_write;
     using namespace web;
-    const CypherRequest& req = lgraph_req->cypher_request();
-    CypherResponse* cresp = resp->mutable_cypher_response();
-    // const std::string& user = GetCurrUser(lgraph_req);
+    const GraphQueryRequest& req = lgraph_req->graph_query_request();
+    GraphQueryResponse* cresp = resp->mutable_graph_query_response();
     std::string user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
     auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
     cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
@@ -922,12 +928,13 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
     } else {
         std::string name;
         std::string type;
-        bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, lgraph_req->cypher_request().query(),
-                                                        name, type);
+        bool ret = cypher::Scheduler::DetermineReadOnly(
+            &ctx, convert::ToLGraphT(lgraph_req->graph_query_request().type()),
+            lgraph_req->graph_query_request().query(), name, type);
         if (name.empty() || type.empty()) {
             is_write = !ret;
         } else {
-            const CypherRequest& creq = lgraph_req->cypher_request();
+            const GraphQueryRequest& creq = lgraph_req->graph_query_request();
             std::string user =
                 lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
             AccessControlledDB db = galaxy_->OpenGraph(user, creq.graph());
@@ -938,10 +945,14 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
                 user, name);
         }
     }
-    AutoTaskTracker task_tracker("[CYPHER] " + lgraph_req->cypher_request().query(), true,
-                                 is_write);
-    BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Cypher, is_write,
-                  "[CYPHER] " + req.query());
+    AutoTaskTracker task_tracker(
+        "[" + lgraph_api::to_string(convert::ToLGraphT(lgraph_req->graph_query_request().type())) +
+            "] " + lgraph_req->graph_query_request().query(),
+        true, is_write);
+    BEG_AUDIT_LOG(
+        user, req.graph(), lgraph::LogApiType::Cypher, is_write,
+        "[" + lgraph_api::to_string(convert::ToLGraphT(lgraph_req->graph_query_request().type())) +
+            "] " + req.query());
     TimeoutTaskKiller timeout_killer;
     if (req.has_timeout() && req.timeout() > 0) {
         timeout_killer.SetTimeout(req.timeout());
@@ -951,7 +962,9 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
         const auto& pnames = req.param_names();
         const auto& pvalues = req.param_values().values();
         if (pnames.size() != pvalues.size())
-            return RespondBadInput(resp, "Cypher arguments does not match number of parameters.");
+            return RespondBadInput(resp, lgraph_api::to_string(convert::ToLGraphT(
+                                             lgraph_req->graph_query_request().type())) +
+                                             " arguments does not match number of parameters.");
         for (size_t i = 0; i < (size_t)pnames.size(); i++) {
             ctx.param_tab_.emplace(pnames.Get(i),
                                    cypher::FieldData(FieldDataConvert::ToLGraphT(pvalues.Get(i))));
@@ -959,14 +972,14 @@ bool lgraph::StateMachine::ApplyCypherRequest(const LGraphRequest* lgraph_req,
     }
 
     ctx.optimistic_ = config_.optimistic_txn;
-    cypher_scheduler_.Eval(&ctx, req.query(), elapsed);
+    cypher_scheduler_.Eval(&ctx, convert::ToLGraphT(req.type()), req.query(), elapsed);
     elapsed.t_total = elapsed.t_compile + elapsed.t_exec;
     if (req.result_in_json_format()) {
         auto result = ctx.result_->Dump(false);
         cresp->set_json_result(std::move(result));
         return RespondSuccess(resp);
     } else {
-        CypherResult* cypher_result = cresp->mutable_binary_result();
+        GraphQueryResult* cypher_result = cresp->mutable_binary_result();
         for (auto& h : ctx.result_->Header()) {
             Header* header = cypher_result->add_header();
             header->set_name(h.first);
@@ -1077,7 +1090,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             std::vector<lgraph::PluginDesc> r;
             if (type == PluginManager::PluginType::CPP ||
                 type == PluginManager::PluginType::PYTHON) {
-                r = std::move(db->ListPlugins(type, user));
+                r = db->ListPlugins(type, user);
             } else if (type == PluginManager::PluginType::ANY) {
                 std::vector<lgraph::PluginDesc> cpp =
                     db->ListPlugins(PluginManager::PluginType::CPP, user);

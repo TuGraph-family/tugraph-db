@@ -223,10 +223,10 @@ RelpID PatternGraph::BuildRelationship(const parser::TUP_RELATIONSHIP_PATTERN &r
 std::string PatternGraph::DumpGraph() const {
     std::string line = "Current Pattern Graph:\n";
     for (auto &n : _nodes) {
-        auto derivation = n.derivation_ == Node::CREATED    ? "(C)"
-                          : n.derivation_ == Node::MERGED   ? "(U)"
-                          : n.derivation_ == Node::ARGUMENT ? "(A)"
-                                                            : "(M)";
+        auto derivation = n.derivation_ == Node::CREATED    ? "(CREATED)"
+                          : n.derivation_ == Node::MERGED   ? "(MERGED)"
+                          : n.derivation_ == Node::ARGUMENT ? "(ARGUMENT)"
+                                                            : "(MATCHED)";
         line.append(fma_common::StringFormatter::Format("N[{}] {}:{} {}\n", std::to_string(n.ID()),
                                                         n.Alias(), n.Label(), derivation));
     }
@@ -235,13 +235,19 @@ std::string PatternGraph::DumpGraph() const {
                          : r.direction_ == parser::RIGHT_TO_LEFT ? "<--"
                                                                  : "--";
         auto types = fma_common::ToString(r.Types());
-        auto derivation = r.derivation_ == Relationship::CREATED    ? "(C)"
-                          : r.derivation_ == Relationship::MERGED   ? "(U)"
-                          : r.derivation_ == Relationship::ARGUMENT ? "(A)"
-                                                                    : "(M)";
+        auto derivation = r.derivation_ == Relationship::CREATED    ? "(CREATED)"
+                          : r.derivation_ == Relationship::MERGED   ? "(MERGED)"
+                          : r.derivation_ == Relationship::ARGUMENT ? "(ARGUMENT)"
+                                                                    : "(MATCHED)";
         line.append(fma_common::StringFormatter::Format(
             "R[{} {} {}] {}:{} {}\n", std::to_string(r.Lhs()), direction, std::to_string(r.Rhs()),
             r.Alias(), types, derivation));
+    }
+    for (auto &[symbol, symbol_node] : symbol_table.symbols) {
+        line.append(fma_common::StringFormatter::Format(
+            "Symbol: [{}] type({}), scope({}), symbol_id({})\n", symbol,
+            cypher::SymbolNode::to_string(symbol_node.type),
+            cypher::SymbolNode::to_string(symbol_node.scope), symbol_node.id));
     }
     if (_nodes.empty() && _relationships.empty()) line.append("(EMPTY GRAPH)\n");
     return line;

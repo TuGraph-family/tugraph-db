@@ -84,6 +84,22 @@ class Relationship {
 
     int MaxHop() const;
 
+    void AddType(const std::string &type) {
+        types_.emplace(type);
+    }
+
+    void SetLhs(NodeID lhs) {
+        lhs_ = lhs;
+    }
+
+    void SetRhs(NodeID rhs) {
+        rhs_ = rhs;
+    }
+
+    void SetAlias(const std::string &alias) {
+        alias_ = alias;
+    }
+
     static bool CheckVarLen(int min_hop, int max_hop);
 };
 }  // namespace cypher
