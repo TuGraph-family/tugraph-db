@@ -3030,8 +3030,9 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
             && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime
             && !galaxy_->JudgeRefreshTime(token)) {
-            throw AuthError("The token is unvalid.");
-            exit(-1);
+            galaxy_->UnBindTokenUser(token);
+            FMA_WARN() << "The token is invalid.";
+            throw AuthError("The token is invalid.");
         }
         FMA_DBG_STREAM(logger_) << "\n----------------"
                                 << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"
