@@ -1,0 +1,48 @@
+# 1 base
+# 1 delete_single_node
+# 2 delete_multi_node
+# 3 delete_single_edge
+# 4 delete_multi_edge
+# 5 delete_path
+# 6 hybrid
+# 7 delete_and_where
+# 8 delete_and_orderby_and_limit
+
+## delete_single_node
+match (n:person {@id:1}) delete n
+MATCH (n:node1{@id:1}) delete n
+
+## delete_multi_node
+# match (n:person where @id in (1,2,3)) delete n
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) delete n1, n2
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) delete n1, n2
+match (n:person{@id:10})-[e:relation{@timestamp:0}]->(m:company) delete n, m
+
+## delete_single_edge
+MATCH ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]->() delete e
+MATCH ()<-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]-() delete e
+MATCH ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]-() delete e
+
+## delete_multi_edge
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) delete n1, e, n2
+MATCH (n1:node1{@id:1})-[e1:n1_2_n2]->(n2)-[e2:n2_2_n3]->(n3) delete n1, e1, n2, e2, n3
+MATCH (n1:node1{@id:1})-[e1:n1_2_n2]->(n2)<-[e2:n3_2_n2]-(n3) delete n1, e1, n2, e2, n3
+
+## delete_path
+MATCH p = (n:node1{@id:1}) delete p
+MATCH p = (n1:node1{@id:1})-[e:n1_2_n2]->(n2) delete p
+MATCH p = ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]->() delete p
+MATCH p = (n1:node1{@id:1})-[e1:n1_2_n2]->(n2)-[e2:n2_2_n3]->(n3) delete p
+
+## hybrid
+match (n:person{@id:10})-[e:relation]->(m:company) delete n, e, m
+
+## delete_and_where
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) WHERE e.salary = 0 delete n1
+--error
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) delete n1 WHERE e.salary = 0
+
+## delete_and_orderby_and_limit
+MATCH (c:company{@id:1})-[r:relation]->(p:person) LIMIT 10 delete p
+MATCH (c:company{@id:1})-[r:relation]->(p:person) ORDER BY e.salary delete p
+MATCH (c:company{@id:1})-[r:relation]->(p:person) ORDER BY e.salary DESC LIMIT 10 delete p;

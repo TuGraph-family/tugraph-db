@@ -1,0 +1,563 @@
+# 1 base
+# 2 as
+# 3 agg
+# 4 rowCmpExpr
+# 5 path_mode
+# 6 inner_table
+# 7 list
+# 8 exp
+# 9 clause
+# 10 comparison
+# 11 logical
+# 12 bit
+# 13 priority
+# 14 func
+# 15 null
+# 16 star
+# 17 where
+# 18 in
+# 19 between
+# 20 like
+# 21 hint
+# 22 orderby
+# 23 label_ref
+# 24 label_ref
+# 25 graphpattern
+# 26 rowkey
+
+## base
+select 1;
+select 1
+select 1;
+# select 1;select 1;
+# select 1;select 1
+# select 1;select 1;select 1;
+# select 1;select 1;select 1
+select 1
+select -1
+select 9223372036854775807
+select -9223372036854775807
+select +1
+select +-1
+select 1.1
+select "1"
+select '1'
+select "a"
+select 'a'
+select true
+select false
+select a
+select a.b
+select max( 1 )
+select min(1)
+select avg(1 )
+select count( 1)
+select (1)
+select count(DISTINCT 1)
+select count(distinct 1)
+select sum(distinct 1)
+select avg(distinct 1)
+select max(distinct 1)
+select min(distinct 1)
+select 1 + 1
+select 1 - 1
+select 1 * 1
+select 1 / 1
+select 1 % 1
+# select 1 from __node1
+select 1 where 1 + 1
+select 1 group by 1
+select 1 order by 1
+select 1 having 1 - 1
+select 1 limit 1
+# select 1 limit 1,1
+select 1 + 2 + 3 + 4
+select 1 - 2 - 3 - 4
+select 1 * 2 * 3 * 4
+select 1 / 2 / 3 / 4
+select 1 * 2 + 3 + 4
+select 1 + 2 * 3 + 4
+select 1 + 2 + 3 * 4
+select 1 + 2 / 3 * 4
+select 1 * 2 + 3 * 4 - 5/6
+select 1 - -1
+select 1 + -1
+select 1 * -1
+select 1 / -1
+select 1 - +1
+select 1 + +1
+select 1 * +1
+select 1 / +1
+select -1 * +2 + -3 * 4 - 5/+6 - -1
+select 1 + 2 + (3 + 4)
+select 1 + 2 * (3 + 4)
+select 1 + 2 * -(3 + 4)
+select (1 + 3) * +2 + -(3 + 4)
+select 'abcd'
+select 'ab cd'
+select 'ab', 'cd'
+select "abcd"
+select "ab cd"
+select "ab \"cd"
+select "a'bc'd"
+select 'a\"bc\"d'
+select 'ab\\ncd'
+select 'ab\\tcd'
+select 'ab\\rcd'
+select 'ab\\bcd'
+select 'ab\\fcd'
+select 'ab\\01cd'
+select 'ab\\cd'
+
+## as
+select 1 as A
+select 9223372036854775807 as A
+select +1 as A
+select 1.1 as A
+select "1" as A
+select '1' as A
+select "a" as A
+select 'a' as a
+select true as A
+select false as A
+select a as A
+select a.b as A
+select max( 1 ) as A
+select min(1) as A
+select avg(1 ) as A
+select count( 1) AS A
+select max(DISTINCT 1 ) as A
+select min(DISTINCT 1) as A
+select avg(DISTINCT 1 ) as A
+select count(DISTINCT  1) AS A
+select (1) as A
+select 1 + 2 + 3 + 4 as A
+select 1 - 2 - 3 - 4 as A
+select 1 * 2 * 3 * 4 as A
+select 1 / 2 / 3 / 4 as A
+
+## agg
+#
+select count(distinct 1)
+select sum(distinct 1)
+select avg(distinct 1)
+select max(distinct 1)
+select min(distinct 1)
+select count(distinct1)
+select sum(distinct1)
+select avg(distinct1)
+select max(distinct1)
+select min(distinct1)
+select count(distinct 1, 2)
+# select sum(distinct 1, 2)
+# select avg(distinct 1, 2)
+# select max(distinct 1, 2)
+# select min(distinct 1, 2)
+select count(distinct A)
+select sum(distinct A)
+select avg(distinct A)
+select max(distinct A)
+select min(distinct A)
+select count(distinctA)
+select sum(distinctA)
+select avg(distinctA)
+select max(distinctA)
+select min(distinctA)
+select count(distinct A, B)
+# select sum(distinct A, B)
+# select avg(distinct A, B)
+# select max(distinct A, B)
+# select min(distinct A, B)
+select count(distinct A.B)
+select sum(distinct A.B)
+select avg(distinct A.B)
+select max(distinct A.B)
+select min(distinct A.B)
+select count(distinctA.B)
+select sum(distinctA.B)
+select avg(distinctA.B)
+select max(distinctA.B)
+select min(distinctA.B)
+select count(distinct A.B, C.D)
+# select sum(distinct A.B, C.D)
+# select avg(distinct A.B, C.D)
+# select max(distinct A.B, C.D)
+# select min(distinct A.B, C.D)
+
+## rowCmpExpr
+select ROW(1, 2) > ROW(2, 2)
+select ROW(1) > ROW(2)
+
+
+## path_mode
+# select n.* match WALK (n)-[r]->(m)
+# select n.* match TRAIL (n)-[r]->(m)
+# select n.* match SIMPLE (n)-[r]->(m)
+# select n.* match ACYCLIC (n)-[r]->(m)
+# select n.* match ACYCLIC (n)-[r]-(m)
+# select n.* match ACYCLIC (m)
+# select n.* match ACYCLIC ()-[r]-()
+# select n.@id match WALK (n)-[r]->(m)
+# select n.@id match TRAIL (n)-[r]->(m)
+# select n.@id match SIMPLE (n)-[r]->(m)
+# select n.@id match ACYCLIC (n)-[r]->(m)
+# select n.@id match ACYCLIC (n)-[r]-(m)
+# select n.@id match ACYCLIC (m)
+# select n.@id match ACYCLIC ()-[r]-()
+
+## inner_table
+# select * from __all_gql_statistic_info
+
+## list
+select [1]
+select [1,2,3]
+select [a,b,c]
+select [1.1, 1.2, 1.3]
+select [1+1, 1+2, 1+3]
+select [true, false, true]
+# select [1,2,3][1..3]
+# select [1,2,3][..3]
+# select [1,2,3][1..]
+select [ [1,2,3] ]
+select [ [1,2,3], 1 ]
+select [x in [1,2,3]]
+select [x in [1,2,3] ]
+# select n.@id match (n where @id in (1,2,3))
+# select n.@id match (n where @id in [1,2,3])
+# select 1 match (n:node1|node2 {@id:10})
+# select range(0, 10)[3]
+# select range(0, 10)[-3]
+# select range(0, 10)[0..3]
+# select range(0, 10)[0..-5]
+# select range(0, 10)[-5..]
+# select range(0, 10)[..4]
+# select range(0, 10)[15]
+# select range(0, 10)[5..15]
+
+## exp
+select 01
+select -01
+select 001
+select -001
+# double
+select 0.00000001
+select 1.00000000
+select 0.00000001
+select 000000.00000001
+select 1.
+# string
+select 'ab\t\t\t\tcd'
+select 'ab\r\r\r\rcd'
+select 'ab\b\b\b\bcd'
+select 'ab\f\f\f\fcd'
+select ''
+select ""
+# bool
+select true, true
+select true, false
+select false, true
+select false, false
+# column
+select AAAA
+select AAAA_
+select AAAA1
+select AAAA#
+select AAAA_BBBB
+select AAAA#BBBB
+select AAAA.BBBB
+# negative
+select ++--+-1
+select -(+(-(-(+(-1)))))
+select -A
+select -1.1
+select -A.B
+select -false
+select -true
+# agg_func
+select max(((1)))
+select max(DISTINCT ((1)))
+select max(count(avg(min(1))))
+select max(DISTINCT count(avg(min(1))))
+select max(DISTINCT count(DISTINCT avg(min(1))))
+select max(DISTINCT count(DISTINCT avg(DISTINCT min(1))))
+select max(DISTINCT count(DISTINCT avg(DISTINCT min(DISTINCT 1))))
+select max(1) + min(1) * count(1) / avg(1)
+select max(DISTINCT 1) + min(1) * count(1) / avg(1)
+select max(DISTINCT 1) + min(DISTINCT 1) * count(1) / avg(1)
+select max(DISTINCT 1) + min(DISTINCT 1) * count(DISTINCT 1) / avg(1)
+select max(DISTINCT 1) + min(DISTINCT 1) * count(DISTINCT 1) / avg(DISTINCT 1)
+select max(max(1) + min(1) * count(1) / avg(1))
+select max(DISTINCT max(1) + min(1) * count(1) / avg(1))
+select max(DISTINCT max(DISTINCT 1) + min(1) * count(1) / avg(1))
+select max(DISTINCT max(DISTINCT 1) + min(DISTINCT 1) * count(1) / avg(1))
+select max(DISTINCT max(DISTINCT 1) + min(DISTINCT 1) * count(DISTINCT 1) / avg(1))
+select max(DISTINCT max(DISTINCT 1) + min(DISTINCT 1) * count(DISTINCT 1) / avg(DISTINCT 1))
+select max(1 + 1 - 1 * 1 / 1)
+select max(DISTINCT 1 + 1 - 1 * 1 / 1)
+select max(((A)))
+select max(DISTINCT ((A)))
+select max(count(avg(min(A))))
+select max(DISTINCT count(avg(min(A))))
+select max(DISTINCT count(DISTINCT avg(min(A))))
+select max(DISTINCT count(DISTINCT avg(DISTINCT min(A))))
+select max(DISTINCT count(DISTINCT avg(DISTINCT min(DISTINCT A))))
+select max(A) + min(A) * count(A) / avg(A)
+select max(DISTINCT A) + min(A) * count(A) / avg(A)
+select max(DISTINCT A) + min(DISTINCT A) * count(A) / avg(A)
+select max(DISTINCT A) + min(DISTINCT A) * count(DISTINCT A) / avg(A)
+select max(DISTINCT A) + min(DISTINCT A) * count(DISTINCT A) / avg(DISTINCT A)
+select max(max(A) + min(A) * count(A) / avg(A))
+select max(DISTINCT max(A) + min(A) * count(A) / avg(A))
+select max(DISTINCT max(DISTINCT A) + min(A) * count(A) / avg(A))
+select max(DISTINCT max(DISTINCT A) + min(DISTINCT A) * count(A) / avg(A))
+select max(DISTINCT max(DISTINCT A) + min(DISTINCT A) * count(DISTINCT A) / avg(A))
+select max(DISTINCT max(DISTINCT A) + min(DISTINCT A) * count(DISTINCT A) / avg(DISTINCT A))
+select max(A + A - A * A / A)
+select max(DISTINCT A + A - A * A / A)
+select max(((A.B)))
+select max(DISTINCT ((A.B)))
+select max(count(avg(min(A.B))))
+select max(DISTINCT count(avg(min(A.B))))
+select max(DISTINCT count(DISTINCT avg(min(A.B))))
+select max(DISTINCT count(DISTINCT avg(DISTINCT min(A.B))))
+select max(DISTINCT count(DISTINCT avg(DISTINCT min(DISTINCT A.B))))
+select max(A.B) + min(A.B) * count(A.B) / avg(A.B)
+select max(DISTINCT A.B) + min(A.B) * count(A.B) / avg(A.B)
+select max(DISTINCT A.B) + min(DISTINCT A.B) * count(A.B) / avg(A.B)
+select max(DISTINCT A.B) + min(DISTINCT A.B) * count(DISTINCT A.B) / avg(A.B)
+select max(DISTINCT A.B) + min(DISTINCT A.B) * count(DISTINCT A.B) / avg(DISTINCT A.B)
+select max(max(A.B) + min(A.B) * count(A.B) / avg(A.B))
+select max(DISTINCT max(A.B) + min(A.B) * count(A.B) / avg(A.B))
+select max(DISTINCT max(DISTINCT A.B) + min(A.B) * count(A.B) / avg(A.B))
+select max(DISTINCT max(DISTINCT A.B) + min(DISTINCT A.B) * count(A.B) / avg(A.B))
+select max(DISTINCT max(DISTINCT A.B) + min(DISTINCT A.B) * count(DISTINCT A.B) / avg(A.B))
+select max(DISTINCT max(DISTINCT A.B) + min(DISTINCT A.B) * count(DISTINCT A.B) / avg(DISTINCT A.B))
+select max(A.B + A.B - A.B * A.B / A.B)
+select max(DISTINCT A.B + A.B - A.B * A.B / A.B)
+# arithmetic
+select 1 + 1
+select 1 + 0.1
+select 1 + A
+select 1 + A.B
+select 1 + false
+select 1 + +1
+select 1 + +0.1
+select 1 + +A
+select 1 + +A.B
+select 1 + +false
+select 1 - 1
+select 1 - 0.1
+select 1 - A
+select 1 - A.B
+select 1 - false
+select 1 - - 1
+select 1 - - 0.1
+select 1 - - A
+select 1 - - A.B
+select 1 - - false
+
+## clause
+select 1, 0.1, a, a.b, max(1), false
+# select 1 from __table
+select 1 group by 1, 0.1, a, a.b, max(1), false
+select 1 order by 1, 0.1, a, a.b, max(1), false
+select 1 having 1+0.1
+select 1 limit 1
+# select 1 limit 1,1
+# select 1, 0.1, 'aa', aa, aa.b, avg(1) from __A where c-1*0.3/b.b group by aa having xxx order by 1 limit 1, 3
+
+## comparison
+select 1 <=> 1
+select 1 != 1
+select 1 <> 1
+select 1 > 1
+select 1 >= 1
+select 1 < 1
+select 1 <= 1
+# <=>
+select (1 <=> 1) <=> 1
+select 1 <=> (1 <=> 1)
+select (1 <=> 1) <=> (1 <=> 1)
+# !=
+select (1 != 1) != 1
+select 1 != (1 != 1)
+select (1 != 1) != (1 != 1)
+select 1 != !1
+select !1 != !1
+# <>
+select (1 <> 1) <> 1
+select 1 <> (1 <> 1)
+select (1 <> 1) <> (1 <> 1)
+# >
+select (1 > 1) > 1
+select 1 > (1 > 1)
+select (1 > 1) > (1 > 1)
+# >=
+select (1 >= 1) >= 1
+select 1 >= (1 >= 1)
+select (1 >= 1) >= (1 >= 1)
+# <
+select (1 < 1) < 1
+select 1 < (1 < 1)
+select (1 < 1) < (1 < 1)
+# <=
+select (1 <= 1) <= 1
+select 1 <= (1 <= 1)
+select (1 <= 1) <= (1 <= 1)
+
+## logical
+select 1 or 1
+# select 1 || 1
+select 1 and 1
+# select 1 && 1
+select not 1
+select ! 1
+select 1 xor 1
+select 1 or 2 or 3
+# select 1 || 2 || 3
+select 1 and 2 and 3
+# select 1 && 2 && 3
+select 1 xor 2 xor 3
+select not 1
+select not not 1
+select ! 1
+select !! 1
+# select not 10 xor !11 and 12 || 21 && 22 or 30
+select 1 or 1;
+select 1 and 1;
+select 1 xor 1;
+select 1  or  1;
+select 1  and  1;
+select 1  xor  1;
+# select 1 || 1;
+# select 1 && 1;
+# select 1||1;
+# select 1&&1;
+
+## bit
+select 1 | 1
+select 1 & 1
+select 1 ^ 1
+select 1 << 1
+select 1 >> 1
+select ~1
+select ~~1
+
+## priority
+# select e1 << f0^f1*f2 + !f3 * -f4  | d2 > d3 & d4 and c3 <  c4 and b3 or a2 or a3
+
+## func
+# select func()
+# select func(1 + 1)
+# select func(1, 1)
+# select func(1, 1, 1)
+# select func(func2())
+# select func(func2(func3()))
+
+## null
+select 1 is null
+select not 1 is null
+# select X(1) is null
+select 1 + 1 is null
+select (1 + 1) is null
+select 1 is not null
+select not 1 is not null
+# select X(1) is not null
+select 1 + 1 is not null
+select (1 + 1) is not null
+
+## star
+# select *,*
+# select *,1
+# select 1,*
+
+## where
+select 1 where 1 = 1
+select 1 where A = 1
+select 1 where A.a = 1
+select 1 where A = 1 and B=2
+
+## in
+select A.a in (1)
+select A.a in (1, 1.1, true, '1111')
+select A.a not in (1)
+select A.a not in (1, 1.1, true, '1111')
+select 1 where b in (1)
+select 1 where b in (1, 1.1, true, '1111')
+select 1 where b not in (1)
+select 1 where b not in (1, 1.1, true, '1111')
+select 1 in (1)
+select A.a in [1, 2, 3]
+select A.a in (1, 2, 3)
+
+## between
+select A.a between 1 and 2
+select A.a between 1 + 1 and false
+select A.a not between 1 and 2
+select A.a not between 1 + 1 and false
+select 1 where b between 1 and 2
+
+## like
+# select A.a like 'BBB'
+# select A.a not like 'A'
+
+## hint
+select /*+ READ_CONSISTENCY( STRONG ) */ 1
+select /*+READ_CONSISTENCY(NONE)*/ 1
+select /*+READ_CONSISTENCY(xxx), READ_CONSISTENCY(bbb) */ 1
+select /*+READ_CONSISTENCY(xxx), READ_CONSISTENCY(bbb), READ_CONSISTENCY(ccc) */ 1
+# select /*+OP_CONCURRENT(3)*/ 1
+# select /*+ ALLOW_ANONYMOUS_TABLE( true ) */ 1
+# select /*+ allow_anonymous_table( false ) */ 1
+# select /*+ READ_CONSISTENCY( xxx ), allow_anonymous_table( false ) */ 1
+# select /*+ ALLOW_anonYMOUS_TABLE( true ), READ_CONSISTENCY( xxx ) */ 1
+# select /*+ ALLOW_anonYMOUS_TABLE( true ), READ_CONSISTENCY( xxx ), OP_CONCURRENT(3) */ 1
+
+## orderby
+select 1 order by a;
+select 1 order by a desc;
+select 1 order by a asc;
+select 1 order by a, b desc;
+select 1 order by a, b asc;
+select 1 order by a desc, b desc;
+select 1 order by a asc, b asc;
+select 1 order by a asc, b desc;
+
+## label_ref
+# select 1 match (NODE_TYPE_REF:NODE_TYPE {k1:'v1'})
+# select 1 match (:NODE_TYPE {k1:'v1'})
+# select 1 match (NODE_TYPE_REF {k1:'v1'})
+# select 1 match (:NODE_TYPE1)->(:NODE_TYPE2)
+# select 1 match (NODE_TYPE_REF1)->(NODE_TYPE_REF2)
+# select 1 match (NODE_TYPE_REF)->(:NODE_TYPE)
+# select 1 match (:NODE_TYPE)->(NODE_TYPE_REF)
+# select 1 match (NODE_TYPE_REF1)-[NODE_TYPE_REF2]-(NODE_TYPE_REF3)
+# select 1 match (:NODE_TYPE1)-[:NODE_TYPE2]-(:NODE_TYPE3)
+# select 1 match (NODE_TYPE_REF1:NODE_TYPE1)-[NODE_TYPE_REF2:NODE_TYPE2]-(NODE_TYPE_REF3:NODE_TYPE3)
+
+## graphpattern
+# # vertex
+# select n match (n where id = 1)
+# # path
+# select p match p = (n where id = 1)-[r]->(m)
+# # hybrid
+# select p match p = (n where id = 1)-[r]->(m) order by m.id
+# select p, n, r, m match p = (n where id = 1)-[r]->(m) order by m.id
+
+## rowkey
+select @id
+# select @id match (n) where @b > 1
+# select @id match (n) group by @b
+# select @id match (n) order by @b
+# select @id match (n) having @b > 1
+# select @id match (n {@b:1})
+# select @id match (n where @b > 1)
+
+## comment
+```
+select 1
+/*
+multiple
+lines
+*/
+```

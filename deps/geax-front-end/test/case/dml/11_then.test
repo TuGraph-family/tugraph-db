@@ -1,0 +1,56 @@
+MATCH p=(a:node1 where @id = 1)-[b]->(c)-[d:edge_n2_n3]->(e) return p
+
+```
+MATCH (a:node1 where @id = 1)-[b]->(c)
+RETURN c
+THEN
+MATCH (c)-[d:edge_n2_n3]->(e)
+RETURN id(c), id(e)
+```
+
+MATCH (a:node1 where @id = 1)-[b]->(c) RETURN c THEN FILTER c.@id = 10 RETURN c;
+MATCH (a where @id=1)->(b)->(c) RETURN b,c then MATCH (c)->(d) RETURN b,c,d THEN FILTER b.vp_long>0 RETURN b,c,d;
+MATCH (a {@id:1})-[r1]->(b)-[r2]->(c)-[r3]->(d)-[r4]->(e)-[r5]->(f)-[r6]->(g) RETURN sum(g.@id) AS sm,avg(g.@id) AS av,f,g GROUP BY f.@id,g.@id THEN FILTER sm=av RETURN sm,av,f,g order by f;
+MATCH (a where @id = 1)-[]->(n)-[]->(m) return distinct n.@id as n_id, m.p_long as m_long then FILTER n_id > 10 return distinct n_id;
+MATCH (a where @id = 1)-[r1]->(n)-[r2]->(m) return distinct n.@id as n_id, m.p_long as m_long then FILTER n_id > 10 return distinct n_id, m_long;
+MATCH (a where @id = 1)-[r1]->(n)-[r2]->(m) return distinct n.@id as n_id, m.p_long as m_long, r1.p_string as r1_string, r2.p_string as r2_string then FILTER n_id > 10 return distinct n_id, m_long, r1_string, r2_string;
+MATCH (a where @id = 1)-[b]->(c) return c.@id as c_id, c.p_long as c_long, b.p_string as b_string then FILTER c_id > 10 return distinct b_string;
+MATCH (a where @id = 1)-[b]->(c) return a.@id as a_id, a.p_string as a_string, c.@id as c_id, c.p_long as c_long, c.p_string as c_string, b.p_string as b_string then FILTER c_id > 10 return distinct a_string, b_string;
+match (n:node1 where @id = 1)-[]->(m) return sum(m.p_long) as sum_long, n.@id as id group by id then filter sum_long > 1 return sum_long, id
+match (n:node1 where @id = 1)-[]->(m) return m then match p = (n)-[]->(m) return n, m, p;
+match (n:node1 where @id = 1)-[]->(m) return m then match p = (n)-[]->(m) return p;
+match (n:node1 where @id = 1)-[]->(m) return m then match (n)-[]->(m) return m;
+MATCH (n where @id=1)-[]->(m) RETURN m as a THEN MATCH (m)-[]->(b) RETURN b;
+MATCH (a where @id=1)-[r]->(b) RETURN r then MATCH (b)->(c) RETURN r,b,c;
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH ()-[]->(c) RETURN c;
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH ()-[]->(c) RETURN b;
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH ()-[]->(c) RETURN b,c;
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH (c)-[]->(d) RETURN c,d;
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH (c)-[]->(d) RETURN d;
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH ()-[]->(m) RETURN m;
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH (n)-[]->(m) RETURN m;
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH (n)-[]->(m) RETURN m,n;
+MATCH (n where @id=1)-[]->(m) RETURN m as a THEN MATCH (a)-[]->(b) RETURN b;
+MATCH p=(a where @id=1)-[r]->(b) RETURN p,b then MATCH (b)->(c) RETURN p,b,c;
+MATCH p=(a where @id=1)-[r]->(b) RETURN p as p1,b then MATCH p=(b)->(c) RETURN p,p1,b,c;
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH (m)-[]->(n) RETURN m,n;
+MATCH (a where @id=1)-[]->(b) RETURN b,b.@id as id THEN MATCH (b)-[r]-(c) RETURN r,id;
+MATCH (a where @id=1)-[r1]-(b) return a,b then MATCH (b)-[r2]-(c) return a,b,c then MATCH (c)-[r3]-(d) return a,b,c,d;
+MATCH (a where @id=1)-[]->(b) RETURN a,b THEN MATCH (b)-(a) RETURN DISTINCT a,b;
+MATCH (a where @id=1)-[r1]->(b) return a,b then MATCH (b)-[r2]->(c) return a,b,c then MATCH (c)-[r3]->(d) return a,b,c,d;
+MATCH (a where @id=1)-[r]->(b) RETURN r,b then MATCH (b)-[r]->(c) RETURN r,b,c;
+MATCH (a where @id=1)-[r]->(b) RETURN r then MATCH (r)-(c) RETURN r,c;
+MATCH (a where @id=1)->(b)->(c) RETURN b.@id as id,c THEN MATCH (c)-[r]-(d) return b,c,d,id;
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH (b)-[]->(c) RETURN count(c);
+MATCH (a where @id=1)-[]->(b) RETURN b group by a THEN MATCH (b)-[]->(c) RETURN b, c;
+MATCH (a where @id=1)-[]->(b) RETURN b group by a THEN MATCH (b)-[]->(c) RETURN count(c);
+MATCH (n where @id=1)-[]->(m) RETURN m AS n;
+MATCH (n where @id=1)-[]->(m) RETURN m AS n THEN MATCH (n)-[]->(b) RETURN n,b;
+MATCH (a where @id=1)->(b)->(c) RETURN c THEN MATCH p=(c)-()-() RETURN length(p);
+MATCH (a where @id=1)->(b)->(c) RETURN c THEN MATCH p=(c)-[]-() RETURN length(p);
+MATCH (a where @id=1)->(b)->(c) RETURN c THEN MATCH p=(c)-[]-{,1}(d) RETURN p,length(p);
+MATCH (a:node1 where @id=1)->(b) RETURN b.@id as b_id THEN MATCH (c:node2 where @id = b_id)->(d) RETURN c, d;
+MATCH (a:node1 where @id=1)->(b) RETURN b.@id as b_id THEN MATCH (a:node2 where @id = b_id)->(b) RETURN a, b;
+MATCH (a:node1 where a.@id=1)-[e1:edge_n1_n2 where e1.@timestamp >= 0 PER_NODE_LIMIT(100)]->(c:node2) RETURN c.p_long AS c_node_id, a.@id AS a_id THEN MATCH (a:node1|node2 WHERE a.@id = a_id)-[e2:edge_n1_n2 where e2.@timestamp >= 0 PER_NODE_LIMIT(100)]->(c:node2) RETURN DISTINCT a_id, c_node_id, c.p_long as c_c_node_id;
+MATCH (a:node1 where @id=1)->(b) RETURN b.@id as b_id THEN MATCH (c:node2 where @id = b_id and p_long > 10)->(d) RETURN c, c.p_long, d;
+MATCH (a:node1 where @id=1)->(b) RETURN b.@id as b_id THEN MATCH (c:node2 where @id = b_id and p_long > 10 and p_string != "11")->(d) RETURN c, c.p_long, c.p_string, d;
