@@ -18,7 +18,7 @@ install(DIRECTORY
         DESTINATION share/lgraph)
 # install procedure demos
 install(DIRECTORY
-        DESTINATION share/lgraph//)
+        DESTINATION share/lgraph/resource/procedure_demo/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/scan_graph.cpp
         ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/custom_pagerank.cpp
