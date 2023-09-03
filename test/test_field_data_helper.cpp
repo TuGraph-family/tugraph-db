@@ -503,4 +503,21 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
     _TEST_VALUE_COMPARE(BLOB, std::string(3, 'a'), std::string(4, 'a'), -1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
+    // testing point(compare string);
+    {
+        std::string EWKB1 = "0101000020E6100000000000000000F03F0000000000000040";
+        std::string EWKB2 = "0101000020231C0000000000000000F03F000000000000F03F";
+
+        FieldData a = FieldData::Point(point_Wsg84(EWKB1));
+        FieldData b = FieldData::Point(point_Wsg84(EWKB1));
+        FieldData c = FieldData::Point(point_Cartesian(EWKB2));
+
+        Value va = Value::ConstRef(GetStoredValue<FieldType::POINT>(a));
+        Value vb = Value::ConstRef(GetStoredValue<FieldType::POINT>(b));
+        Value vc = Value::ConstRef(GetStoredValue<FieldType::POINT>(c));
+
+        UT_EXPECT_EQ(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vb.Data(), vb.Size()), 0);
+        UT_EXPECT_GT(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vc.Data(), vc.Size()), 0);
+        UT_EXPECT_LT(ValueCompare<FieldType::POINT>(vc.Data(), vc.Size(), va.Data(), va.Size()), 0);
+    }
 }

@@ -10,7 +10,13 @@
 /**
  * @file lgraph_spatial.h
  * @brief Implemnets the Spatial, SpatialBase and SpatialDerive classes.
- */
+ * 
+ * TODO:
+ *   1. 进一步通过测试样例检查ParseStringToValueOfFieldType与TryFieldDataToValueOfFieldType
+ *      实现的正确性(空间数据与string数据的转换);
+ *   2. FieldType2CType无法实现空间数据相关功能, 目前绕开实现。
+ *   3. 确认line与polygon调用_SetVariableLengthValue实现正确。
+ */  
 
 #pragma once
 
