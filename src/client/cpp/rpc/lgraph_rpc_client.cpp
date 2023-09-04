@@ -97,7 +97,8 @@ bool RpcClient::RpcSingleClient::HandleCypherRequest(LGraphResponse* res, const 
     LGraphRequest req;
     req.set_client_version(server_version);
     req.set_token(token);
-    lgraph::CypherRequest* cypher_req = req.mutable_cypher_request();
+    lgraph::GraphQueryRequest* cypher_req = req.mutable_graph_query_request();
+    cypher_req->set_type(lgraph::ProtoGraphQueryType::CYPHER);
     cypher_req->set_graph(graph);
     cypher_req->set_query(query);
     cypher_req->set_timeout(timeout);
@@ -125,7 +126,7 @@ bool RpcClient::RpcSingleClient::CallCypher(std::string& result, const std::stri
         result = res.error();
         return false;
     }
-    CypherResponse cypher_res = res.cypher_response();
+    GraphQueryResponse cypher_res = res.graph_query_response();
     result = CypherResponseExtractor(cypher_res);
     return true;
 }
@@ -244,20 +245,20 @@ std::string RpcClient::RpcSingleClient::CypherResultExtractor(const CypherResult
 }
 #endif
 
-std::string RpcClient::RpcSingleClient::CypherResponseExtractor(const CypherResponse& cypher) {
+std::string RpcClient::RpcSingleClient::CypherResponseExtractor(const GraphQueryResponse& cypher) {
     switch (cypher.Result_case()) {
-    case CypherResponse::kJsonResult:
+    case GraphQueryResponse::kJsonResult:
         {
             return cypher.json_result();
         }
-    case CypherResponse::kBinaryResult:
+    case GraphQueryResponse::kBinaryResult:
         {
 #ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
             return CypherResultExtractor(cypher.binary_result());
 #endif
         }
-    case CypherResponse::RESULT_NOT_SET:
-        FMA_ERR() << "CypherResponse::RESULT_NOT_SET";
+    case GraphQueryResponse::RESULT_NOT_SET:
+        FMA_ERR() << "GraphQueryResponse::RESULT_NOT_SET";
         break;
     }
     //  Just to pass the compilation

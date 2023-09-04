@@ -185,6 +185,7 @@ struct ColumnSpec {
     bool optional = false;
     bool index = false;
     bool unique = false;
+    bool global = false;
     bool primary = false;
     bool fulltext = false;
 
@@ -200,20 +201,26 @@ struct ColumnSpec {
           optional(false),
           index(false),
           unique(false),
-          primary(false) {}
+          global(false),
+          primary(false),
+          fulltext(false) {}
     ColumnSpec(std::string name_, FieldType type_, bool is_id_, bool optional_ = false,
-               bool index_ = false, bool unique_ = false)
+               bool index_ = false, bool unique_ = false, bool global_ = false,
+               bool fulltext_ = false)
         : name(std::move(name_)),
           type(type_),
           optional(optional_),
           index(index_),
           unique(unique_),
-          primary(is_id_) {}
+          global(global_),
+          primary(is_id_),
+          fulltext(fulltext_) {}
 
     bool operator==(const ColumnSpec& rhs) const {
         // do not compare is_id/skip
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
-               index == rhs.index && unique == rhs.unique;
+               index == rhs.index && unique == rhs.unique && global == rhs.global &&
+               fulltext == rhs.fulltext;
     }
 
     bool operator<(const ColumnSpec& rhs) const { return name < rhs.name; }
@@ -229,6 +236,7 @@ struct ColumnSpec {
         conf["primary"] = this->primary;
         conf["index"] = this->index;
         conf["unique"] = this->unique;
+        conf["global"] = this->global;
         conf["optional"] = this->optional;
         return conf.dump(4);
     }
@@ -753,6 +761,12 @@ class ImportConfParser {
                     throw InputError(FMA_FMT(
                         R"(Label[{}]: Missing "primary" or "properties" definition)", ld.name));
                 }
+                for (auto & p : s["properties"]) {
+                    if (p.contains("global")) {
+                        throw InputError(FMA_FMT(
+                            R"(global indexe is not supported in Vertex [{}])", ld.name));
+                    }
+                }
             } else {
                 if (s.contains("constraints")) {
                     if (!s["constraints"].is_array())
@@ -798,6 +812,9 @@ class ImportConfParser {
                     }
                     if (p.contains("unique")) {
                         cs.unique = p["unique"];
+                    }
+                    if (p.contains("global")) {
+                        cs.global = p["global"];
                     }
                     if (p.contains("optional")) {
                         cs.optional = p["optional"];

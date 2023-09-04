@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "cypher/execution_plan/execution_plan.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -35,7 +35,7 @@ class OptPass {
 
     /* This is the code to run.  If this is not overridden, then there should
      * be sub-passes otherwise this pass does nothing.   */
-    virtual int Execute(ExecutionPlan *plan) = 0;
+    virtual int Execute(OpBase *root) = 0;
 };
 
 }  // namespace cypher

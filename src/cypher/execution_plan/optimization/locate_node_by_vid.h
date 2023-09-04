@@ -10,9 +10,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
-
-/*
+ *
  * @Author: gelincheng
  * @Date: 2022-01-11
  * @LastEditors: gelincheng
@@ -21,6 +19,10 @@
 
 #pragma once
 
+#include "cypher/execution_plan/ops/op_filter.h"
+#include "cypher/execution_plan/ops/op_all_node_scan.h"
+#include "cypher/execution_plan/ops/op_node_by_id_seek.h"
+#include "cypher/execution_plan/ops/op_node_by_label_scan.h"
 #include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
@@ -43,11 +45,11 @@ namespace cypher {
  */
 
 class LocateNodeByVid : public OptPass {
-    void _AdjustNodeVidFilter(ExecutionPlan &plan) {
+    void _AdjustNodeVidFilter(OpBase *root) {
         OpFilter *op_filter = nullptr;
         ArithExprNode ae;
         std::vector<lgraph::VertexId> target_vids;
-        if (_FindNodeVidFilter(plan.Root(), op_filter, target_vids)) {
+        if (_FindNodeVidFilter(root, op_filter, target_vids)) {
             auto op_post = op_filter->parent;
             Node *node;
             const SymbolTable *symtab;
@@ -87,10 +89,12 @@ class LocateNodeByVid : public OptPass {
     bool _CheckVidFilter(OpFilter *&op_filter, std::vector<lgraph::VertexId> &target_vids) {
         /**
          * @brief
-         *  检查Filter是不是符合有且近包含的Id()操作的filter
+         *  Check if the Filter meets the requirement of having only Id() operation.
          *
-         * 适用情况： where id(n) = 1  where id(n) =2 or id(n)=3
-         *            where id(n) in [1,2,3]
+         *  Applicable scenarios:
+         *      where id(n) = 1
+         *      where id(n) = 2 or id(n) = 3
+         *      where id(n) in [1,2,3]
          */
         auto filter = op_filter->Filter();
         target_vids.clear();
@@ -116,16 +120,15 @@ class LocateNodeByVid : public OptPass {
         } else if (filter->Type() == lgraph::Filter::BINARY &&
                    filter->LogicalOp() == lgraph::LBR_OR) {
             /*
-             * 将符合条件的Or类型的filter变化成list形式
+             * Change the filter of the Or type that meets the conditions into a list form.
              *
              * id(n)=1 or id(n)=3  or id(n)=4
              *
-             * 混合其他的属性 暂时不管
+             * Temporarily ignore other mixed conditions.
              *
+             * TODO (anyone) Add more error handling.
              *
-             * TODO(anyone) 加更多的容错判断
-             *
-             * */
+             **/
             vid = getVidFromRangeFilter(filter->Right());
             if (vid == -1) return false;
             target_vids.emplace_back(vid);
@@ -143,7 +146,7 @@ class LocateNodeByVid : public OptPass {
             if (vid == -1) return false;
             target_vids.emplace_back(vid);
 
-            // 如果需要按照原来的输入顺序输出的话
+            // If you need to output in the original input order.
             std::reverse(target_vids.begin(), target_vids.end());
             return true;
         }
@@ -174,8 +177,8 @@ class LocateNodeByVid : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _AdjustNodeVidFilter(*plan);
+    int Execute(OpBase *root) override {
+        _AdjustNodeVidFilter(root);
         return 0;
     }
 };

@@ -1,0 +1,39 @@
+# 1 base
+
+
+## base
+match (n) return 1
+match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE {k1:'v1'}) return 1
+match (n:NODE_TYPE {k2:'v1', k3:1, k4:1.1, k5:false, k6:true}) return 1
+
+match (n)-(m) return 1
+match (n)->(m) return 1
+match (n)<-(m) return 1
+match (n)-[r]-(m) return 1
+match (n)-[r]->(m) return 1
+match (n)<-[r]-(m) return 1
+match (n)-[r:EDGE_TYPE]-(m) return 1
+match (n:NODE_TYPE {k2:'v1', k3:1, k4:1.1, k5:false, k6:true})-(m:NODE_TYPE {k2:'v1', k3:1, k4:1.1, k5:false, k6:true}) return 1
+
+# match (n)-[r:EDGE_TYPE * 1 .. 3]-(m) return 1
+# match (n)-[r:EDGE_TYPE * 1 ..]-(m) return 1
+# match (n)-[r:EDGE_TYPE * .. 3]-(m) return 1
+match (n)-[r1:EDGE_TYPE1|EDGE_TYPE2]-(m) return 1
+
+match (n)-[r:EDGE_TYPE {k2:'v1', k3:1, k4:1.1, k5:false, k6:true} ]-(m) return 1
+match (x)-[r1:EDGE_TYPE1]->(y)<-[r2:EDGE_TYPE2]-(z) return 1
+
+# match (x:NODE_TYPE {k1:'v1'})-[r1:EDGE_TYPE1 * 1 .. 6 {k2:'v1', k3:1, k4:1.1, k5:false, k6:true}]->(y)<-[r2:EDGE_TYPE2 |EDGE_TYPE3]-(n:NODE_TYPE {k2:'v1', k3:1, k4:1.1, k5:false, k6:true}) return 1"
+match (n)-[r1:EDGE_TYPE1|EDGE_TYPE2]-(m) return 1
+
+
+match (n where @id=1) return 1
+match (n where @id in (1,2,3)) return 1
+match (n:N where @id in (1,2,3)) return 1
+match (n:N where @id in ('1','2','3')) return 1
+match (n:N where @id in ('1','2','3') and @id = 7) return 1
+
+# match (n:N {k2:'v1', k3:1, k4:1.1, k5:false, k6:true} where @id in ('1','2','3')) return 1
+
+# match (n {@id:1} where @id=1) return 1

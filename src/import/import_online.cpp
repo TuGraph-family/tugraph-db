@@ -426,12 +426,12 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                 eo->temporal_field = v.GetTemporalField().name;
             options = std::move(eo);
         }
-
+        options->detach_property = v.detach_property;
         for (auto& p : m) fds.emplace_back(p.second);
         bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
-            FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
-                                 v.name);
+            FMA_LOG() << FMA_FMT("Add {} label:{}, detach:{}", v.is_vertex ? "vertex" : "edge",
+                                 v.name, options->detach_property);
         } else {
             throw InputError(
                 FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
@@ -449,7 +449,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                                 v.name, spec.name));
                 }
             } else if (!v.is_vertex && spec.index) {
-                if (db.AddEdgeIndex(v.name, spec.name, spec.unique)) {
+                if (db.AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
                     FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
                                          v.name, spec.name, spec.unique);
                 } else {

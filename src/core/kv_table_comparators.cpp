@@ -135,19 +135,69 @@ static int LexicalKeyEuidCompareFunc(const MDB_val* a, const MDB_val* b) {
     }
     return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
 }
+
+template <FieldType DT>
+struct KeyBothVidCompareFunc {
+    static int func(const MDB_val* a, const MDB_val* b) {
+        typedef typename ::lgraph::field_data_helper::FieldType2StorageType<DT>::type T;
+        FMA_DBG_ASSERT(a->mv_size == (sizeof(T) + VID_SIZE * 2)
+                       && b->mv_size == (sizeof(T) + VID_SIZE * 2));
+        int r = field_data_helper::ValueCompare<DT>(a->mv_data, sizeof(T), b->mv_data, sizeof(T));
+        if (r != 0) return r;
+        int64_t a_vid1 = GetVid((char*)a->mv_data + sizeof(T));
+        int64_t a_vid2 = GetVid((char*)a->mv_data + sizeof(T) + VID_SIZE);
+        int64_t b_vid1 = GetVid((char*)b->mv_data + sizeof(T));
+        int64_t b_vid2 = GetVid((char*)b->mv_data + sizeof(T) + VID_SIZE);
+        return a_vid1 < b_vid1   ? -1
+               : a_vid1 > b_vid1 ? 1
+               : a_vid2 < b_vid2 ? -1
+               : a_vid2 > b_vid2 ? 1
+                                 : 0;
+    }
+};
+
+static int LexicalKeyBothVidCompareFunc(const MDB_val* a, const MDB_val* b) {
+    int diff;
+    int len_diff;
+    unsigned int len;
+
+    len = static_cast<int>(a->mv_size) - VID_SIZE * 2;
+    len_diff = static_cast<int>(a->mv_size) - static_cast<int>(b->mv_size);
+    if (len_diff > 0) {
+        len = static_cast<int>(b->mv_size) - VID_SIZE * 2;
+        len_diff = 1;
+    }
+
+    diff = memcmp(a->mv_data, b->mv_data, len);
+    if (diff == 0 && len_diff == 0) {
+        int64_t a_vid1 = GetVid((char*)a->mv_data + a->mv_size - VID_SIZE * 2);
+        int64_t a_vid2 = GetVid((char*)a->mv_data + a->mv_size - VID_SIZE);
+        int64_t b_vid1 = GetVid((char*)b->mv_data + b->mv_size - VID_SIZE * 2);
+        int64_t b_vid2 = GetVid((char*)b->mv_data + b->mv_size - VID_SIZE);
+        return a_vid1 < b_vid1   ? -1
+               : a_vid1 > b_vid1 ? 1
+               : a_vid2 < b_vid2 ? -1
+               : a_vid2 > b_vid2 ? 1
+                                 : 0;
+    }
+    return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
+}
+
 }  // namespace _detail
 
 // NOLINT
 KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
     // useful macro
-#define RETURN_TYPED_COMPARATOR(type)                           \
-    if (desc.comp_type == ComparatorDesc::SINGLE_TYPE) {        \
-        return _detail::KeyCompareFunc<FieldType::type>::func;  \
-    } else if (desc.comp_type == ComparatorDesc::TYPE_AND_VID) {  \
-        return _detail::KeyVidCompareFunc<FieldType::type>::func; \
-    } else {                                                      \
-        return _detail::KeyEuidCompareFunc<FieldType::type>::func;\
-    }
+#define RETURN_TYPED_COMPARATOR(type)                                        \
+    if (desc.comp_type == ComparatorDesc::SINGLE_TYPE) {                     \
+        return _detail::KeyCompareFunc<FieldType::type>::func;               \
+    } else if (desc.comp_type == ComparatorDesc::TYPE_AND_VID) {             \
+        return _detail::KeyVidCompareFunc<FieldType::type>::func;            \
+    } else if (desc.comp_type == ComparatorDesc::TYPE_AND_EUID) {            \
+        return _detail::KeyEuidCompareFunc<FieldType::type>::func;           \
+    } else if (desc.comp_type == ComparatorDesc::BOTH_SIDE_VID) {            \
+        return _detail::KeyBothVidCompareFunc<FieldType::type>::func;        \
+    }                                                                        \
 
     // here is the logic
     switch (desc.comp_type) {
@@ -156,6 +206,7 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
     case ComparatorDesc::SINGLE_TYPE:
     case ComparatorDesc::TYPE_AND_VID:
     case ComparatorDesc::TYPE_AND_EUID:
+    case ComparatorDesc::BOTH_SIDE_VID:
         switch (desc.data_type) {
         case FieldType::BOOL:
             RETURN_TYPED_COMPARATOR(BOOL);
@@ -180,8 +231,10 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
                 return nullptr;
             else if (desc.comp_type == ComparatorDesc::TYPE_AND_VID)
                 return _detail::LexicalKeyVidCompareFunc;
-            else
+            else if (desc.comp_type == ComparatorDesc::TYPE_AND_EUID)
                 return _detail::LexicalKeyEuidCompareFunc;
+            else if (desc.comp_type == ComparatorDesc::BOTH_SIDE_VID)
+                return _detail::LexicalKeyBothVidCompareFunc;
         case FieldType::BLOB:
             throw KvException("Blob fields cannot act as key.");
         default:

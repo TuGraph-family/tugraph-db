@@ -222,6 +222,11 @@ class KeyPacker {
         return v;
     }
 
+    static VertexId GetVidFromPropertyTableKey(const Value& key) {
+        FMA_ASSERT(key.Size() == ::lgraph::_detail::VID_SIZE);
+        return GetNByteIntId<::lgraph::_detail::VID_SIZE>(key.Data());
+    }
+
     /**
      * Creates key for either InEdge node or OutEdge node.
      *
@@ -261,6 +266,27 @@ class KeyPacker {
         }
         SetNByteIntId<::lgraph::_detail::EID_SIZE>(v.Data() + foo, euid.eid);
         return v;
+    }
+
+    static EdgeUid GetEuidFromPropertyTableKey(const Value& key) {
+        auto no_tid = ::lgraph::_detail::VID_SIZE*2 + ::lgraph::_detail::EID_SIZE;
+        auto with_tid = ::lgraph::_detail::VID_SIZE*2 +
+              ::lgraph::_detail::EID_SIZE +
+              ::lgraph::_detail::TID_SIZE;
+        FMA_ASSERT(key.Size() == no_tid || key.Size() == with_tid);
+        bool compress_tid = (key.Size() == no_tid);
+        EdgeUid ret;
+        uint8_t offset = 0;
+        ret.src = GetNByteIntId<::lgraph::_detail::VID_SIZE>(key.Data());
+        offset = ::lgraph::_detail::VID_SIZE;
+        ret.dst = GetNByteIntId<::lgraph::_detail::VID_SIZE>(key.Data() + offset);
+        offset += ::lgraph::_detail::VID_SIZE;
+        if (!compress_tid) {
+            ret.tid = GetNByteIntId<::lgraph::_detail::TID_SIZE>(key.Data() + offset);
+            offset += ::lgraph::_detail::TID_SIZE;
+        }
+        ret.eid = GetNByteIntId<::lgraph::_detail::EID_SIZE>(key.Data() + offset);
+        return ret;
     }
 
     /**

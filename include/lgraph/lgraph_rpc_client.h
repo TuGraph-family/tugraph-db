@@ -31,8 +31,8 @@ namespace lgraph {
 
 class LGraphRequest;
 class LGraphResponse;
-class CypherResult;
-class CypherResponse;
+class GraphQueryResult;
+class GraphQueryResponse;
 class BackupLogEntry;
 
 enum ClientType {
@@ -254,7 +254,7 @@ class RpcClient {
 
         std::string CypherResultExtractor(const CypherResult cypher);
 #endif
-        std::string CypherResponseExtractor(const CypherResponse& cypher);
+        std::string CypherResponseExtractor(const GraphQueryResponse& cypher);
 
         std::string url;
         std::string user;

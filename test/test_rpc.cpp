@@ -951,9 +951,11 @@ void test_index(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.fullTextIndexes()");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge', 'index_value', false)");
+    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge','index_value',"
+                            "false, true)");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge', 'index_value', false)");
+    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge', 'index_value',"
+                            "false, true)");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.indexes()");

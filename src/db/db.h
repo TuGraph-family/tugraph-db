@@ -100,7 +100,8 @@ class AccessControlledDB {
 
     bool AddVertexIndex(const std::string& label, const std::string& field, bool is_unique);
 
-    bool AddEdgeIndex(const std::string& label, const std::string& field, bool is_unique);
+    bool AddEdgeIndex(const std::string& label, const std::string& field,
+                      bool is_unique, bool is_global);
 
     bool DeleteVertexIndex(const std::string& label, const std::string& field);
 

@@ -17,6 +17,11 @@
  */
 #pragma once
 
+#include "cypher/execution_plan/ops/op_filter.h"
+#include "cypher/execution_plan/ops/op_aggregate.h"
+#include "cypher/execution_plan/ops/op_traversal.h"
+#include "cypher/execution_plan/ops/op_expand_all.h"
+#include "cypher/execution_plan/ops/op_node_by_label_scan.h"
 #include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
@@ -55,9 +60,9 @@ class ParallelTraversal : public OptPass {
         return false;
     }
 
-    bool _AdjustTraversal(ExecutionPlan &plan) {
+    bool _AdjustTraversal(OpBase *root) {
         // 遍历查询计划，判断是否满足变换traversal条件
-        OpBase *leaf_op = plan.Root();
+        OpBase *leaf_op = root;
         while (!leaf_op->children.empty() && leaf_op->type != OpType::AGGREGATE) {
             // 由于txn_.Abort()，无法传递以及处理其他需要txn的op
             if (leaf_op->children.size() > 1 ||
@@ -160,8 +165,8 @@ class ParallelTraversal : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _AdjustTraversal(*plan);
+    int Execute(OpBase *root) override {
+        _AdjustTraversal(root);
         return 0;
     }
 };

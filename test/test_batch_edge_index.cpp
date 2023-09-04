@@ -28,7 +28,7 @@ class TestBatchEdgeIndex : public TuGraphTest {
         pad = "73@TuGraph";
         db_path = "./testdb";
         graph = "default";
-        indexes_str = "knows:weight:false,knows:since:false";
+        indexes_str = "knows:weight:false:true,knows:since:false:false";
         n_dump_key = 10;
         dump_only = false;
         verbose = 1;
@@ -95,7 +95,7 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     for (auto& str : indx) {
         // parse index specifier
         auto tokens = fma_common::Split(str, ":");
-        if (tokens.size() != 3) {
+        if (tokens.size() != 4) {
             UT_ERR() << "Failed to parse index specifier: " << str;
         }
         lgraph::IndexSpec spec;
@@ -103,7 +103,9 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
         spec.field = fma_common::Strip(tokens[1], "\t ");
         size_t r =
             fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), spec.unique);
-        if (spec.label.empty() || spec.field.empty() || !r) {
+        size_t g =
+            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[3], "\t "), spec.global);
+        if (spec.label.empty() || spec.field.empty() || !r || !g) {
             UT_ERR() << "Failed to parse index specifier: " << str;
         }
         idx_specs.emplace_back(std::move(spec));

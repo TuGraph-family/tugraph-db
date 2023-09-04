@@ -22,7 +22,7 @@
 #include "cypher/graph/common.h"
 
 namespace cypher {
-struct RTContext;
+class RTContext;
 
 class Node {
     NodeID id_;
@@ -82,6 +82,14 @@ class Node {
     bool AddRelp(RelpID rid, bool is_rhs_relp);
 
     void Set(const std::string &label, const Property &property);
+
+    void SetAlias(const std::string &alias) {
+        alias_ = alias;
+    }
+
+    void SetProperty(const Property &property) {
+        if (property.type != Property::NUL) property_ = property;
+    }
 
     lgraph::VertexId GetVid() const { return vid_; }
 

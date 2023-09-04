@@ -1,0 +1,92 @@
+// SUCC CASE
+// |-- 1 single agg func
+// |-- 2 single agg func alias
+// |-- 3 multi agg func
+// |-- 4 multi agg func alias
+// |-- 5 agg func unusual format
+// |-- 6 keyword capitalization
+// FAIL CASE
+// |-- 7 agg func invalid format
+// |-- 8 agg func nesting
+
+def agg_data_set_init: gql = {
+    // 0 init
+    INSERT (:node1{@id:1001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:1002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:1003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:2001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:2002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:2003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:3001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:3002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:3003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:4001, p_long:4, p_double:4.4, p_string:"xian"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) order by n.@id;
+
+    INSERT ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:1001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:1002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:1003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:2001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:2002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:2003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:3001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:3002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:3003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:4, p_double:4.4, p_string:"xian-distance", @src_id:4001, @dst_id:100, @timestamp:0}]->();
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) order by e.@src_id;
+}
+
+def agg_func: isogql = {
+    // 1 single agg func
+    // 1.1 NODE
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(distinct n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN count(n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN count(distinct n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN avg(n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN avg(distinct n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN max(n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN max(distinct n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN min(n.p_long);
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN min(distinct n.p_long);
+    match (n:node1{@id:135799}) RETURN sum(distinct n.@id), avg(distinct n.@id), max(distinct n.@id), min(distinct n.@id), count(distinct n.@id);
+
+    match (n:node1{@id:135799}) RETURN sum(n.@id), avg(n.@id), max(n.@id), min(n.@id), count(n.@id);
+    match (n:node1{@id:135799}) RETURN sum(n.@id), avg(n.@id), max(n.@id), min(n.@id), count(n.@id) group by n.@id;
+    match (n:node1{@id:135799}) RETURN sum(distinct n.@id), avg(distinct n.@id), max(distinct n.@id), min(distinct n.@id), count(distinct n.@id);
+    match (n:node1{@id:135799}) RETURN sum(distinct n.@id), avg(distinct n.@id), max(distinct n.@id), min(distinct n.@id), count(distinct n.@id) group by n.@id;
+    // 1.2 EDGE
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN count(e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN count(distinct e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN avg(e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN avg(distinct e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN max(e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN max(distinct e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN min(e.p_long);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN min(distinct e.p_long);
+    match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.@src_id), avg(distinct e.@src_id), max(distinct e.@src_id), min(distinct e.@src_id), count(distinct e.@src_id);
+    match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.@src_id), avg(e.@src_id), max(e.@src_id), min(e.@src_id), count(e.@src_id);
+    match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.@src_id), avg(e.@src_id), max(e.@src_id), min(e.@src_id), count(e.@src_id) group by n.@id;
+    match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.@src_id), avg(distinct e.@src_id), max(distinct e.@src_id), min(distinct e.@src_id), count(distinct e.@src_id);
+    match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.@src_id), avg(distinct e.@src_id), max(distinct e.@src_id), min(distinct e.@src_id), count(distinct e.@src_id) group by n.@id;
+
+    // 2 multi agg func
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(n.p_long), sum(n.p_double);
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.p_long), sum(e.p_double);
+
+    // 3 multi agg func alias
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(n.p_long) as sum_p_long, sum(n.p_double) as sum_p_double;
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.p_long) as sum_p_long, sum(e.p_double) as sum_p_double;
+
+    // 4 agg func unusual format
+    match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum( distinct n.p_long );
+    match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum( distinct e.p_long );
+}
+
+def graph_concat: isogql = {
+    match (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) RETURN n.@id, group_concat(m.@id) group by n.@id;
+    match (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) RETURN n.@id, group_concat(m.xx) group by n.@id;
+    match (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) RETURN n.@id, group_concat(e.p_string) group by n.@id;
+
+    match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, n, e, m, x;
+    match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, group_concat(distinct x.@id) group by n.@id;
+    match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, group_concat(distinct x.xx) group by n.@id;
+    match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, group_concat(distinct e.p_string) group by n.@id;
+}
+
+def agg_data_set_clear: gql = {
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:1001, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:1002, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:1003, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:2001, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:2002, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:2003, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:3001, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:3002, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:3003, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:4001, @dst_id:100, @timestamp:0}]->();
+}

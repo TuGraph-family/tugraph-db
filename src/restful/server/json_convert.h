@@ -18,6 +18,11 @@
 #include <string>
 #include <vector>
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/json.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/type_traits.h"
@@ -70,6 +75,7 @@ static const utility::string_t CPP_ID = _TU("cpp_id");
 static const utility::string_t CPP_VERSION = _TU("cpp_version");
 static const utility::string_t CURR_PASS = _TU("current_password");
 static const utility::string_t CYPHER = _TU("cypher");
+static const utility::string_t GQL = _TU("gql");
 static const utility::string_t DATA = _TU("data");
 static const utility::string_t DB = _TU("db");
 static const utility::string_t DBCONFIG = _TU("db_config");

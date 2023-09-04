@@ -88,6 +88,7 @@ add_executable(unit_test
         test_proto_convert.cpp
         test_python_plugin_manager.cpp
         test_python_plugin_manager_impl.cpp
+        test_query.cpp
         test_random_delete.cpp
         test_rest_client.cpp
         test_restful_abnormal_branch.cpp
@@ -122,6 +123,7 @@ add_executable(unit_test
 
 target_link_libraries(unit_test
         lgraph_server_lib
+        geax_isogql
         librocksdb.a)
 
 target_link_libraries(unit_test

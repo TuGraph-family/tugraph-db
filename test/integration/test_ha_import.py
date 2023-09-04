@@ -29,6 +29,7 @@ class TestHAImport:
     def test_online_import(self):
         client = start_ha_client(self.host, "29092")
         importer(self.host, IMPORTOPT)
+        time.sleep(5)
         ret = client.callCypher("MATCH (n) RETURN n LIMIT 100", "default")
         assert ret[0]
         res = json.loads(ret[1])

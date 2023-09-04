@@ -445,7 +445,8 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddEdgeIndex(const std::string &label, const std::string &field, bool is_unique);
+    bool AddEdgeIndex(const std::string &label, const std::string &field,
+                      bool is_unique, bool is_global);
 
     /**
      * @brief   Check if this vertex_label:field is indexed.

@@ -26,6 +26,7 @@ typedef std::string string_t;  // add by cpplint
 
 // methods in url
 static const string_t HTTP_CYPHER_METHOD = "cypher";
+static const string_t HTTP_GQL_METHOD = "gql";
 static const string_t HTTP_REFRESH_METHOD = "refresh";
 static const string_t HTTP_LOGIN_METHOD = "login";
 static const string_t HTTP_LOGOUT_METHOD = "logout";
@@ -78,8 +79,8 @@ static const string_t HTTP_HEADER_FILE_NAME = "File-Name";
 static const string_t HTTP_HEADER_BEGIN_POS = "Begin-Pos";
 static const string_t HTTP_HEADER_SIZE = "Size";
 static const string_t HTTP_PROCEDURE_DEMO_PATH_DIRECTORY = "/procedure_demo/";
-static const string_t HTTP_PROCEDURE_DEMO_PATH_CPP_V1 = "scan_graph.cpp";
-static const string_t HTTP_PROCEDURE_DEMO_PATH_CPP_V2 = "custom_pagerank.cpp";
+static const string_t HTTP_PROCEDURE_DEMO_PATH_CPP_V1 = "v1_scan_graph.cpp";
+static const string_t HTTP_PROCEDURE_DEMO_PATH_CPP_V2 = "v2_pagerank.cpp";
 static const string_t HTTP_PROCEDURE_DEMO_PATH_PYTHON = "scan_graph.py";
 static const uint32_t HTTP_SPECIFIED_FILE = 0;
 static const uint32_t HTTP_SPECIFIED_USER = 1;

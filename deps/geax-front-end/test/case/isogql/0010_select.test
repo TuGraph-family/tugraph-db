@@ -1,0 +1,108 @@
+// node
+def only_node: isogql = {
+    SELECT n.p_long
+    MATCH (n:node1 {@id: 1});
+}
+
+def only_node_where: isogql = {
+    SELECT n.p_long
+    MATCH(n:node1 where @id=1);
+}
+
+def only_node_where_SELECT_node: isogql = {
+    SELECT n.p_long, n
+    MATCH(n:node1 where @id=1);
+}
+
+def only_one_path_pattern: isogql = {
+    SELECT n.p_long, m.@id
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m);
+
+    SELECT n.p_long, m.@id
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m) group by n.p_long;
+
+    SELECT n.p_long, m.@id
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m) group by 1;
+
+    SELECT n.p_long, m.@id
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 PER_NODE_LIMIT(2)]->(m);
+
+    SELECT r.@src_id, r.@dst_id
+    MATCH(:node1 {@id: 1})-[r:edge_n1_n2]->(:node2 where @id = 12);
+
+    SELECT 100
+    MATCH(:node1 {@id: 1})-[:edge_n1_n2]->(:node2 where @id = 12);
+
+    SELECT r.@src_id, r.@dst_id
+    MATCH(:node1 {@id: 1})-[r:edge_n1_n2]->(:node2 where @id != 12);
+}
+
+def only_node_where_in: isogql = {
+    SELECT n, n.p_long
+    match (n where @id in (1, 10, 11,12, 13));
+}
+
+def hint: isogql = {
+    SELECT /*+ read_consistency( none ) */ 1, n.p_long MATCH (n:node1 {@id: 1}) ;
+    SELECT /*+ read_consistency( strong ) */ 1, n.p_long MATCH (n:node1 {@id: 1}) ;
+    SELECT /*+ read_consistency( weak ) */ 1, n.p_long MATCH (n:node1 {@id: 1}) ;
+    SELECT /*+ read_consistency( non_spread ) */ 1, n.p_long MATCH (n:node1 {@id: 1}) ;
+    SELECT /*+ read_consistency(none), read_consistency(strong) */ 1, n.p_long MATCH (n:node1 {@id: 1});
+}
+
+def path: isogql = {
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id MATCH (n:node1 where @id = 1)-[r]->(m);
+    SELECT p MATCH p = (n:node1 where @id = 1)-[r]->(m);
+    SELECT p, m MATCH p = (n:node1 where @id = 1)-[r]->(m);
+
+    // no path
+    SELECT p MATCH p = (n:node1 where @id = 999)-[r]->(m) ;
+
+    // SELECT path and vertex
+    SELECT p, n MATCH p = (n:node1 where @id = 1)-[r]->(m) ;
+    SELECT p, n, m MATCH p = (n:node1 where @id = 1)-[r]->(m) ;
+
+    // SELECT path and edge
+    SELECT p, r MATCH p = (n:node1 where @id = 1)-[r]->(m);
+
+    // SELECT path, vertex and edge
+    SELECT p, n, r, m MATCH p = (n:node1 where @id = 1)-[r]->(m) ;
+
+    // SELECT path and other properties
+    SELECT p, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH p = (n:node1 where @id = 1)-[r]->(m);
+}
+
+def orderbyAndPage: isogql = {
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m);
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) order by r.p_long DESC;
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) order by r.p_long DESC limit 1;
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) order by r.p_long DESC offset 1;
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) order by r.p_long DESC offset 3;
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) order by r.p_long DESC offset 1 limit 5;
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) limit 1;
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    MATCH (n:node1 where @id = 1)-[r]->(m) offset 1 limit 1;
+}
+
+def groupby: isogql = {
+    SELECT m.@id
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m);
+
+    SELECT SUM(m.@id)
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m) GROUP BY n.p_long;
+}

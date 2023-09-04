@@ -1,0 +1,260 @@
+# Query1
+# Query2
+# Query3
+# Query4
+# Query5
+# Query6
+# Query7
+# Query8
+# Query9
+# Query10
+# Query11
+# Query12
+# Query13
+# Query14
+# Query15
+# Query16
+
+## Query1
+```
+MATCH
+  (C:cardno_1656373146776000889 WHERE id = 112320)<-[E2:fund_newTRANSFER_uid2cardno_aml_cashflow_1656373146776000889|fund_newTRANSFER_withdraw_uid2cardno_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-(B:uid_1656373146776000889)<-[E1:fund_deposit_cardno2uid_aml_cashflow_1656373146776000889|fund_fundBuy_cardno2uid_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-(A:cardno_1656373146776000889)
+RETURN
+  E2.gmt_occur AS e2_gmt,
+  E2.amt AS e2_amt,
+  E1.gmt_occur AS e1_gmt,
+  E1.amt AS e1_amt,
+  C.id AS c_id,
+  B.id AS b_id,
+  A.id AS a_id
+THEN
+FILTER e2_gmt - e1_gmt > 0 AND e2_gmt - e1_gmt <= 172800000
+RETURN DISTINCT e2_gmt, e2_amt, e1_gmt, e1_amt, c_id, b_id, a_id
+```
+
+## Query2
+```
+{
+  MATCH
+    (B:uid_1656373146776000889 WHERE id = 112320)
+    <-[E1:fund_deposit_cardno2uid_aml_cashflow_1656373146776000889|fund_fundBuy_cardno2uid_aml_cashflow_1656373146776000889|fund_payByAccount_async_cardno2uid_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt > 1000) PER_NODE_LIMIT 100]-
+    (A:cardno_1656373146776000889)
+  RETURN
+    E1.gmt_occur AS E1_gmt_occur,
+    E1.amt AS E1_amt,
+    A.id AS A_ID,
+    B.id AS left_B_ID
+}
+  JOIN
+{
+  MATCH
+    (B:uid_1656373146776000889 WHERE id = 112320)
+    -[E2:fund_payByAccount_async_uid2uid_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt > 1000) PER_NODE_LIMIT 100]-> (C:uid_1656373146776000889) -[E3:fund_newTRANSFER_uid2cardno_aml_cashflow_1656373146776000889|fund_payByAccount_async_uid2uid_aml_cashflow_1656373146776000889|fund_newTRANSFER_withdraw_uid2cardno_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt > 1000) PER_NODE_LIMIT 100]->
+    (D:uid_1656373146776000889|cardno_1656373146776000889)
+  RETURN
+    D.id AS D_ID,
+    C.id AS C_ID,
+    E2.amt AS E2_amt,
+    E3.gmt_occur AS E3_gmt_occur,
+    E2.gmt_occur AS E2_gmt_occur,
+    B.id AS right_B_ID,
+    E3.amt AS E3_amt
+  THEN
+  FILTER E3_gmt_occur - E2_gmt_occur > 0 AND E3_gmt_occur - E2_gmt_occur <= 172800000
+  RETURN D_ID, C_ID, E2_amt, E3_gmt_occur, E2_gmt_occur, right_B_ID, E3_amt
+}
+  THEN
+FILTER E2_gmt_occur - E1_gmt_occur > 0 AND E2_gmt_occur - E1_gmt_occur <= 172800000
+RETURN DISTINCT A_ID AS a_id, left_B_ID AS b_id, C_ID AS c_id, D_ID AS d_id, E1_amt AS e1_amt, E1_gmt_occur AS e1_gmt, E2_amt AS e2_amt, E2_gmt_occur AS e2_gmt, E3_amt AS e3_amt, E3_gmt_occur AS e3_gmt
+```
+
+## Query3
+```
+MATCH
+  (D:cardno_1656373146776000889 WHERE id = 112320)
+  <-[E3:fund_newTRANSFER_uid2cardno_aml_cashflow_1656373146776000889|fund_newTRANSFER_withdraw_uid2cardno_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt > 1000) PER_NODE_LIMIT 100]-
+  (C:uid_1656373146776000889)
+  <-[E2:fund_payByAccount_async_uid2uid_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt > 1000) PER_NODE_LIMIT 100]-
+  (B:uid_1656373146776000889)
+  <-[E1:fund_deposit_cardno2uid_aml_cashflow_1656373146776000889|fund_fundBuy_cardno2uid_aml_cashflow_1656373146776000889|fund_payByAccount_async_cardno2uid_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt > 1000) PER_NODE_LIMIT 100]-
+  (A:cardno_1656373146776000889)
+RETURN
+  E3.gmt_occur AS e3_gmt,
+  E3.amt AS e3_amt,
+  E2.gmt_occur AS e2_gmt,
+  E2.amt AS e2_amt,
+  E1.gmt_occur AS e1_gmt,
+  E1.amt AS e1_amt,
+  D.id AS d_id,
+  C.id AS c_id,
+  B.id AS b_id,
+  A.id AS a_id
+THEN
+FILTER e3_gmt - e2_gmt > 0 AND e3_gmt - e2_gmt <= 172800000 AND e2_gmt - e1_gmt > 0 AND e2_gmt - e1_gmt <= 172800000
+RETURN DISTINCT e3_gmt, e3_amt, e2_gmt, e2_amt, e1_gmt, e1_amt, d_id, c_id, b_id, a_id
+```
+
+## Query4
+```
+MATCH
+  (A:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE id = 112320)
+  <-[E1:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000 AND (trans_source = '3008' OR trans_source = '6003') AND (trans_source = '3008' OR businesscode = 'scanTransferCodePay')) PER_NODE_LIMIT 100]-
+  (B:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE fraud_inacc_login_prov_lbs_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'] OR fraud_inacc_ip_prov_previous_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'])
+  -[E2:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000) PER_NODE_LIMIT 100]->
+  (C:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE fraud_inacc_login_prov_lbs_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'] OR fraud_inacc_ip_prov_previous_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'])
+RETURN DISTINCT A.id AS a_id, E2.bussno AS e2_bussno, E2.amt AS e2_amt
+```
+
+## Query5
+```
+MATCH
+  (A:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE id = 112320)
+  <-[E1:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000 AND (trans_source = '3008' OR trans_source = '6003') AND (trans_source = '3008' OR businesscode = 'scanTransferCodePay')) PER_NODE_LIMIT 100]-
+  (B:uid_c59cf1f205bf4105a50f9a76cb87aaea)
+  -[E2:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000) PER_NODE_LIMIT 100]->
+  (C:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE fraud_inacc_login_prov_lbs_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'] OR fraud_inacc_ip_prov_previous_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'])
+RETURN DISTINCT A.id AS a_id, E2.bussno AS e2_bussno, E2.amt AS e2_amt
+```
+
+## Query6
+```
+MATCH (n1 WHERE id = 112320) RETURN n1.node_id AS node_id
+```
+
+## Query7
+```
+MATCH
+  (n1 WHERE id = 112320)
+  <-[e1:fund_newTRANSFER_withdraw_uid2cardno_aml_cashflow_1656373146776000889|fund_newTRANSFER_uid2cardno_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-
+  (n2:uid_1656373146776000889 WHERE amlstr_fund_chain_seed_level_uid > 0 AND amlstr_fund_chain_seed_level_uid != 7.0 AND amlstr_fund_chain_seed_level_uid != 8.0 AND amlstr_fund_chain_seed_level_uid != 11.0)
+RETURN
+  COUNT(DISTINCT n2.id) AS usr_cnt
+```
+
+## Query8
+```
+MATCH
+  (n1 WHERE id = 112320)
+  -[e1:fund_payByAccount_uid2outletid_c09129f175744a74ae405ef583a58654 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (outletid != '' AND trans_source = '6003') PER_NODE_LIMIT 100]->
+  (n2:uid_c09129f175744a74ae405ef583a58654)
+RETURN n2.node_id AS n2_node_id
+```
+
+## Query9
+```
+MATCH
+  (n1 WHERE id = 112320)
+  <-[e1:fund_payByAccount_uid2outletid_c09129f175744a74ae405ef583a58654 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (outletid != '' AND trans_source = '6003') PER_NODE_LIMIT 100]-
+  (n2:uid_c09129f175744a74ae405ef583a58654)
+  <-[e2:fund_payByAccount_uid2uid_c09129f175744a74ae405ef583a58654 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-
+  (n3:uid_c09129f175744a74ae405ef583a58654)
+RETURN
+  n3.node_id AS node_id,
+  COUNT(DISTINCT e2.dst_id) AS user_cnt,
+  SUM(ALL e2.amt) AS total_amt
+GROUP BY node_id ORDER BY user_cnt DESC
+LIMIT 100
+```
+
+## Query10
+```
+MATCH
+(n1 WHERE id = 112320)
+<-[e1:fund_payByAccount_uid2uid_f0bac0c98daf410e89a9dbd1818f7db7 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (trans_source = '6003') PER_NODE_LIMIT 100]-
+(n2:uid_f0bac0c98daf410e89a9dbd1818f7db7)
+<-[e2:fund_payByAccount_uid2uid_f0bac0c98daf410e89a9dbd1818f7db7|fund_SendCoupon_uid2uid_f0bac0c98daf410e89a9dbd1818f7db7 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-
+(n3:uid_f0bac0c98daf410e89a9dbd1818f7db7)
+RETURN
+  n3.node_id AS node_id,
+  COUNT(DISTINCT e2.dst_id) AS user_cnt,
+  SUM(ALL e2.amt) AS total_amt
+GROUP BY node_id ORDER BY user_cnt DESC LIMIT 100
+```
+
+## Query11
+```
+MATCH
+  (n1 WHERE id = 112320)
+  -[e1:fund_payByAccount_uid2uid_f0bac0c98daf410e89a9dbd1818f7db7 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (merchant_junior_id != '' AND trans_source = '6003') PER_NODE_LIMIT 100]->
+  (n2:uid_f0bac0c98daf410e89a9dbd1818f7db7)
+RETURN
+  n2.node_id AS n2_node_id
+```
+
+## Query12
+```
+MATCH
+  (n1 WHERE id = 112320)
+  <-[e1:fund_payByAccount_uid2uid_f0bac0c98daf410e89a9dbd1818f7db7 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (merchant_junior_id != '' AND trans_source = '6003') PER_NODE_LIMIT 100]-
+  (n2:uid_f0bac0c98daf410e89a9dbd1818f7db7)
+  <-[e2:fund_payByAccount_uid2uid_f0bac0c98daf410e89a9dbd1818f7db7 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-
+  (n3:uid_f0bac0c98daf410e89a9dbd1818f7db7)
+RETURN
+  n3.node_id AS node_id,
+  COUNT(DISTINCT e2.dst_id) AS user_cnt,
+  SUM(ALL e2.amt) AS total_amt
+GROUP BY node_id ORDER BY user_cnt DESC LIMIT 100
+```
+
+## Query13
+```
+{
+  MATCH
+    (B:uid_1656373146776000889 WHERE id = 112320)
+    <-[E1:fund_deposit_cardno2uid_aml_cashflow_1656373146776000889|fund_fundBuy_cardno2uid_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]-
+    (A:cardno_1656373146776000889)
+  RETURN
+    E1.gmt_occur AS E1_gmt_occur,
+    E1.amt AS E1_amt,
+    A.id AS A_ID,
+    B.id AS left_B_ID
+}
+  JOIN
+{
+  MATCH
+    (B:uid_1656373146776000889 WHERE id = 112320)
+    -[E2:fund_newTRANSFER_uid2cardno_aml_cashflow_1656373146776000889|fund_payByAccount_async_uid2uid_aml_cashflow_1656373146776000889|fund_newTRANSFER_withdraw_uid2cardno_aml_cashflow_1656373146776000889 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]->
+    (C:uid_1656373146776000889|cardno_1656373146776000889)
+  RETURN
+    E2.gmt_occur AS E2_gmt_occur,
+    E2.amt AS E2_amt,
+    C.id AS C_ID,
+    B.id AS right_B_ID
+}
+THEN
+FILTER E2_gmt_occur - E1_gmt_occur > 0 AND E2_gmt_occur - E1_gmt_occur <= 172800000
+RETURN DISTINCT A_ID AS a_id, left_B_ID AS b_id, C_ID AS c_id, E1_amt AS e1_amt, E1_gmt_occur AS e1_gmt, E2_amt AS e2_amt, E2_gmt_occur AS e2_gmt
+```
+
+## Query14
+```
+MATCH
+  (n1 WHERE id = 112320)
+  <-[e1:fund_newTRANSFER_cache_withdraw_uid2cardno_da715d0e32a54be7bd0746d9b3734764|fund_newTRANSFER_transfer_accounts_uid2cardno_da715d0e32a54be7bd0746d9b3734764 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (amt >= 300.0) PER_NODE_LIMIT 100]-
+  (n2:uid_da715d0e32a54be7bd0746d9b3734764)
+  -[e2:fund_cashCouponRecharge_uid2uid_da715d0e32a54be7bd0746d9b3734764|fund_personCouponDraw_uid2uid_da715d0e32a54be7bd0746d9b3734764 WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 PER_NODE_LIMIT 100]->
+  (n3:uid_da715d0e32a54be7bd0746d9b3734764)
+RETURN COUNT(ALL n3.user_id) AS output1
+```
+
+## Query15
+```
+MATCH
+  (A:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE id = 112320)
+  <-[E1:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000 AND (trans_source = '3008' OR trans_source = '6003') AND (trans_source = '3008' OR businesscode = 'scanTransferCodePay')) PER_NODE_LIMIT 100]-
+  (B:uid_c59cf1f205bf4105a50f9a76cb87aaea)
+  -[E2:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000) PER_NODE_LIMIT 100]->
+  (C:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE fraud_inacc_login_prov_lbs_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'] OR fraud_inacc_ip_prov_previous_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'])
+RETURN DISTINCT A.id AS a_id, E2.bussno AS e2_bussno, E2.amt AS e2_amt
+```
+
+## Query16
+```
+MATCH
+  (A:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE id = 112320)
+  <-[E1:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000 AND (trans_source = '3008' OR trans_source = '6003') AND (trans_source = '3008' OR businesscode = 'scanTransferCodePay')) PER_NODE_LIMIT 100]-
+  (B:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE fraud_inacc_login_prov_lbs_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'] OR fraud_inacc_ip_prov_previous_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'])
+  -[E2:fund_payByAccount_uid2uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE gdb_timestamp >= 112320 AND gdb_timestamp <= 324033 AND (isNotBlank(bank_card_no) AND amt >= 5000) PER_NODE_LIMIT 100]->
+  (C:uid_c59cf1f205bf4105a50f9a76cb87aaea WHERE fraud_inacc_login_prov_lbs_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'] OR fraud_inacc_ip_prov_previous_3d IN LIST['福建', '福建省', '海南', '海南省', '广东', '广东省'])
+RETURN DISTINCT A.id AS a_id, E2.bussno AS e2_bussno, E2.amt AS e2_amt
+```

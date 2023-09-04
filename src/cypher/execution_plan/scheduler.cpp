@@ -16,6 +16,12 @@
 // Created by wt on 18-8-14.
 //
 #include "./antlr4-runtime.h"
+#include "fma-common/logger.h"
+#include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/AstDumper.h"
+#include "geax-front-end/isogql/GQLResolveCtx.h"
+#include "geax-front-end/isogql/GQLAstVisitor.h"
+#include "geax-front-end/isogql/parser/AntlrGqlParser.h"
 
 #include "core/task_tracker.h"
 
@@ -26,6 +32,8 @@
 
 #include "cypher/execution_plan/execution_plan.h"
 #include "cypher/execution_plan/scheduler.h"
+#include "cypher/execution_plan/execution_plan_v2.h"
+#include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 
 namespace cypher {
 
@@ -34,7 +42,26 @@ inline fma_common::Logger &Logger() {
     return logger;
 }
 
-void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {
+void Scheduler::Eval(RTContext *ctx, const lgraph_api::GraphQueryType &type,
+                     const std::string &script, ElapsedTime &elapsed) {
+    if (type == lgraph_api::GraphQueryType::CYPHER) {
+        EvalCypher(ctx, script, elapsed);
+    } else {
+        EvalGql(ctx, script, elapsed);
+    }
+}
+
+bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx,
+                                  const lgraph_api::GraphQueryType &query_type,
+                                  const std::string &script, std::string &name, std::string &type) {
+    if (query_type == lgraph_api::GraphQueryType::CYPHER) {
+        return DetermineCypherReadOnly(ctx, script, name, type);
+    } else {
+        return DetermineGqlReadOnly(ctx, script, name, type);
+    }
+}
+
+void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {
     using namespace parser;
     using namespace antlr4;
     auto t0 = fma_common::GetTime();
@@ -111,8 +138,63 @@ void Scheduler::Eval(RTContext *ctx, const std::string &script, ElapsedTime &ela
     }
 }
 
-bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx, const std::string &script,
-                                  std::string &name, std::string &type) {
+void Scheduler::EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {
+    using geax::frontend::GEAXErrorCode;
+    auto t0 = fma_common::GetTime();
+    std::string result;
+    geax::frontend::AntlrGqlParser parser(script);
+    parser::GqlParser::GqlRequestContext *rule = parser.gqlRequest();
+    if (!parser.error().empty()) {
+        FMA_DBG() << "parser.gqlRequest() error: " << parser.error();
+        result = parser.error();
+        throw lgraph::ParserException(result);
+    }
+    geax::common::ObjectArenaAllocator objAlloc_;
+    geax::frontend::GQLResolveCtx gql_ctx{objAlloc_};
+    geax::frontend::GQLAstVisitor visitor{gql_ctx};
+    rule->accept(&visitor);
+    auto ret = visitor.error();
+    if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+        FMA_DBG() << "rule->accept(&visitor) ret: " << ToString(ret);
+        result = ToString(ret);
+        throw lgraph::GqlException(result);
+    }
+    geax::frontend::AstNode *node = visitor.result();
+    // rewrite ast
+    cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
+    node->accept(gen_anonymous_alias_rewriter);
+    // dump
+    geax::frontend::AstDumper dumper;
+    ret = dumper.handle(node);
+    if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+        FMA_DBG() << "dumper.handle(node) gql: " << script;
+        FMA_DBG() << "dumper.handle(node) ret: " << ToString(ret);
+        FMA_DBG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+        result = dumper.error_msg();
+        throw lgraph::GqlException(result);
+    } else {
+        FMA_DBG() << "--- dumper.handle(node) dump ---";
+        FMA_DBG() << dumper.dump();
+    }
+    cypher::ExecutionPlanV2 execution_plan_v2;
+    ret = execution_plan_v2.Build(node);
+    elapsed.t_compile = fma_common::GetTime() - t0;
+    if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+        FMA_DBG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
+        result = execution_plan_v2.ErrorMsg();
+        throw lgraph::GqlException(result);
+    } else {
+        execution_plan_v2.Execute(ctx);
+        FMA_DBG() << "-----result-----";
+        result = ctx->result_->Dump(false);
+        FMA_DBG() << result;
+        elapsed.t_total = fma_common::GetTime() - t0;
+        elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
+    }
+}
+
+bool Scheduler::DetermineCypherReadOnly(cypher::RTContext *ctx, const std::string &script,
+                                        std::string &name, std::string &type) {
     using namespace parser;
     using namespace antlr4;
     ANTLRInputStream input(script);
@@ -131,25 +213,9 @@ bool Scheduler::DetermineReadOnly(cypher::RTContext *ctx, const std::string &scr
     return true;
 }
 
-//    ResultSet Scheduler::Eval(
-//            const std::shared_ptr<cypher::ExecutionPlan> &plan,
-//            lgraph::PluginManager *plugin_manager,
-//            lgraph::StateMachine *state_machine,
-//            cypher::PARAM_TAB *param_tab,
-//            double &elapsed)
-//    {
-//        // TODO(anyone) store script in the plan so we can track the task name
-//        lgraph::AutoTaskTracker task_tracker("[CYPHER_WITH_PARAM]");
-//        auto t0 = fma_common::GetTime();
-//        plan->Reset();
-//        plan->SetContext(param_tab, plugin_manager, state_machine);
-//        plan->Execute();
-//        elapsed = fma_common::GetTime() - t0;
-//        plan->DumpGraph();
-//        plan->DumpPlan();
-//        FMA_DBG_STREAM(Logger()) << "Current Plan Cache (" << _plan_cache.List().size() << "):";
-//        for (auto &p : _plan_cache.List()) FMA_DBG_STREAM(Logger()) << p.first << "\n";
-//        auto result = plan->GetResultSet();
-//        return result;
-//    }
+bool Scheduler::DetermineGqlReadOnly(cypher::RTContext *ctx, const std::string &script,
+                                     std::string &name, std::string &type) {
+    return true;
+}
+
 }  // namespace cypher

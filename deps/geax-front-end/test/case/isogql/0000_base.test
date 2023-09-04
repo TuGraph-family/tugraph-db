@@ -1,0 +1,329 @@
+// node
+def only_node: isogql = {
+    MATCH (n:node1 {@id: 1})
+    RETURN n.p_long;
+}
+
+def only_node_where: isogql = {
+    MATCH(n:node1 where @id=1)
+    RETURN n.p_long;
+}
+
+def only_node_map: isogql = {
+    MATCH (node1 {@id:1}) RETURN node1.@id,node1.p_long;
+    MATCH (node1 {@id:1,p_long:1}) RETURN node1.@id,node1.p_long;
+    MATCH (node1 {@id:1,p_long:1,p_long:2}) RETURN node1.@id,node1.p_long;
+}
+
+def only_node_where_return_node: isogql = {
+    MATCH(n:node1 where @id=1)
+    RETURN n.p_long, n;
+}
+
+def only_one_path_pattern: isogql = {
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN n.p_long, m.@id;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN n.p_long, m.@id group by n.p_long;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN n.p_long, m.@id group by 1;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 PER_NODE_LIMIT(2)]->(m)
+    RETURN n.p_long, m.@id;
+
+    MATCH(:node1 {@id: 1})-[r:edge_n1_n2]->(:node2 where @id = 12)
+    RETURN r.@src_id, r.@dst_id;
+
+    MATCH(:node1 {@id: 1})-[:edge_n1_n2]->(:node2 where @id = 12)
+    RETURN 100;
+
+    MATCH(:node1 {@id: 1})-[r:edge_n1_n2]->(:node2 where @id != 12)
+    RETURN r.@src_id, r.@dst_id;
+}
+
+def only_node_where_in: isogql = {
+    match (n where @id in (1, 10, 11,12, 13))
+    return n, n.p_long;
+}
+
+def hint: isogql = {
+    MATCH (n:node1 {@id: 1}) RETURN /*+ read_consistency( none ) */ 1, n.p_long;
+    MATCH (n:node1 {@id: 1}) RETURN /*+ read_consistency( strong ) */ 1, n.p_long;
+    MATCH (n:node1 {@id: 1}) RETURN /*+ read_consistency( weak ) */ 1, n.p_long;
+    MATCH (n:node1 {@id: 1}) RETURN /*+ read_consistency( non_spread ) */ 1, n.p_long;
+    MATCH (n:node1 {@id: 1})
+    RETURN /*+ read_consistency(none), read_consistency(strong) */ 1, n.p_long;
+}
+
+def path: isogql = {
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id;
+
+    MATCH p = (n:node1 where @id = 1)-[r]->(m)
+    RETURN p;
+
+    MATCH p = (n:node1 where @id = 1)-[r]->(m)
+    RETURN p, m;
+
+    // no path
+    MATCH p = (n:node1 where @id = 999)-[r]->(m) RETURN p;
+
+    // return path and vertex
+    MATCH p = (n:node1 where @id = 1)-[r]->(m) RETURN p, n;
+    MATCH p = (n:node1 where @id = 1)-[r]->(m) RETURN p, n, m;
+
+    // return path and edge
+    MATCH p = (n:node1 where @id = 1)-[r]->(m) RETURN p, r;
+
+    // return path, vertex and edge
+    MATCH p = (n:node1 where @id = 1)-[r]->(m) RETURN p, n, r, m;
+
+    // return path and other properties
+    MATCH p = (n:node1 where @id = 1)-[r]->(m)
+    RETURN p, r.p_long, r.p_string, r.p_double, m.@id;
+}
+
+def orderbyAndPage: isogql = {
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id order by r.p_long DESC;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id order by r.p_long DESC limit 1;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id order by r.p_long DESC offset 1;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id order by r.p_long DESC offset 3;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id order by r.p_long DESC offset 1 limit 5;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id limit 1;
+
+    MATCH (n:node1 where @id = 1)-[r]->(m)
+    RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id offset 1 limit 1;
+}
+
+def groupby: isogql = {
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN m.@id;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN SUM(m.@id) GROUP BY n.p_long;
+}
+
+def groupby_error: isogql->(7021) = {
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN SUM(m.@id) AS SUMVAL GROUP BY SUMVAL;
+}
+
+def parser_error_iso: isogql->(106) = {
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN n LIMIT 3, 3;
+
+    // not support ifnull
+    MATCH (a where @id in (1,23,45,1,11,12,65,79))-[r]->(b) where ifnull(a.p_string,100)
+    RETURN a.@node_type, a.p_string, b.@id;
+
+    MATCH (n where @id =1)-->(m)
+    RETURN n, m;
+    MATCH (n where @id =1)--(m)
+    RETURN n, m;
+    MATCH (n where @id =1)<--(m)
+    RETURN n, m;
+}
+
+def parser_error_gql: gql ->(106)= {
+    // not support ifnull
+    MATCH (a where @id in (1,23,45,1,11,12,65,79))-[r]->(b) where ifnull(a.p_string,0)
+    RETURN a.@node_type, a.p_string, b.@id;
+}
+
+def pernodelimit: isogql = {
+    // pernodelimit before where
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 PER_NODE_LIMIT(1)]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 PER_NODE_LIMIT(1) where p_long=13]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 PER_NODE_LIMIT(1) {p_long: 13}]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long>120]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r PER_NODE_LIMIT(1) where p_long>120]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    // pernodelimit after where
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 where p_long=13 PER_NODE_LIMIT(1)]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2 {p_long: 13} PER_NODE_LIMIT(1)]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long>120 PER_NODE_LIMIT(0)]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long>120 PER_NODE_LIMIT(1)]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long>120 PER_NODE_LIMIT(2)]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long>120 PER_NODE_LIMIT(3)]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long>120 PER_NODE_LIMIT(4)]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    // before and after
+    MATCH (n where @id in (10,11,12))-[r PER_NODE_LIMIT(2) where p_long>120]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r PER_NODE_LIMIT(2) where p_long>120 PER_NODE_LIMIT(1)]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r PER_NODE_LIMIT(2) {@src_id:11} PER_NODE_LIMIT(1)]->(m)
+    RETURN m.@id, r.p_long, r.p_double, r.p_string, m.p_long, m.p_double, m.p_string;
+
+    // more from gql_test
+    MATCH (n:node1 {@id:1})-[r:edge_n1_n2 per_node_limit 4]->(m:node2)
+    RETURN r.@src_id, r.p_long, m.@id;
+
+    MATCH (n:node1 {@id:1})-[r:edge_n1_n2 per_node_limit 3]->(m:node2)
+    RETURN r.@src_id, r.p_long, m.@id;
+
+    MATCH (n:node1 {@id:1})-[r:edge_n1_n2 per_node_limit 2]->(m:node2)
+    RETURN r.@src_id, r.p_long, m.@id;
+
+    MATCH (n:node1 {@id:1})-[r:edge_n1_n2 per_node_limit 1]->(m:node2)
+    RETURN r.@src_id, r.p_long, m.@id;
+
+    MATCH (n:node1 {@id:1})-[r:edge_n1_n2 per_node_limit 0]->(m:node2)
+    RETURN r.@src_id, r.p_long, m.@id;
+
+    MATCH (n:node1 where @id = 1)-[r:edge_n1_n2 where @timestamp = 0 and @dst_id = 10]->(m)
+    RETURN n.@id, r.@timestamp, m.@id;
+
+    MATCH (n:node1 where @id = 1)-[r:edge_n1_n2 PER_NODE_LIMIT 10 where @timestamp = 0 and @dst_id = 10]->(m)
+    RETURN n.@id, r.@timestamp, m.@id;
+
+    MATCH (n:node1 where @id = 1)-[r:edge_n1_n2 PER_NODE_LIMIT(10) where @timestamp = 0 and @dst_id = 10]->(m)
+    RETURN n.@id, r.@timestamp, m.@id;
+
+    MATCH (n:node1 where @id = 1)-[r:edge_n1_n2 PER_NODE_LIMIT 0 where @timestamp = 0 and @dst_id = 10]->(m)
+    RETURN n.@id, r.@timestamp, m.@id;
+
+    MATCH (n:node1 where @id = 1)-[r:edge_n1_n2 PER_NODE_LIMIT(0) where @timestamp = 0 and @dst_id = 10]->(m)
+    RETURN n.@id, r.@timestamp, m.@id;
+
+    MATCH (n where @id in (10,11,12))-[r PER_NODE_LIMIT(1) where p_long < 135]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r where p_long < 135]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+
+    MATCH (n where @id in (10,11,12))-[r PER_NODE_LIMIT(1) where p_long < 135 ]->(m)
+    RETURN n.@id, n.@node_type, r.p_string, r.p_long, m.@id, m.@node_type ORDER BY n.@id;
+}
+
+def error: isogql -> (3005)= {
+    //GDB_QUERY_CAN_NOT_FIND_REF
+    MATCH (n where @id in [1])-[ ]->(m) RETURN n.@id,r1.ep_string, m.@id;
+}
+
+def whereOfGraphPattern: isogql = {
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m)
+    RETURN n.p_long, r.p_long, r.p_double, m.p_long;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m) WHERE 1 > 0
+    RETURN n.p_long, r.p_long, r.p_double, m.p_long;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m) WHERE 1 = 0
+    RETURN n.p_long, r.p_long, r.p_double, m.p_long;
+
+    MATCH(n:node1 {@id: 1})-[r:edge_n1_n2]->(m) WHERE r.p_long > 12 or m.p_long = 10
+    RETURN n.p_long, r.p_long, r.p_double, m.p_long;
+}
+
+def extra_space_in_patterns: isogql = {
+    MATCH(n:node1 {@id: 1}) -[r:edge_n1_n2]->(m)
+    RETURN n.p_long, m.@id;
+
+    MATCH(n:node1 {@id: 1}) -[r:edge_n1_n2] ->(m)
+    RETURN n.p_long, m.@id;
+
+    MATCH(n:node1 {@id: 1}) - [r:edge_n1_n2] ->(m)
+    RETURN n.p_long, m.@id;
+
+    MATCH(n:node1 {@id: 1}) - [r:edge_n1_n2] -> (m)
+    RETURN n.p_long, m.@id;
+
+    MATCH(n:node1 {@id: 1}) - [r:edge_n1_n2] -> (m )
+    RETURN n.p_long, m.@id;
+
+    MATCH(n:node1 {@id: 1}) - [r:edge_n1_n2] -> ( m )
+    RETURN n.p_long, m.@id;
+}
+
+def only_node_null: isogql = {
+    MATCH(n:node1 where @id=1) where n.@id is null
+    RETURN n.p_long;
+
+    MATCH(n:node1 where @id=1) where n.@id is not null
+    RETURN n.p_long;
+}
+
+def same_ref: isogql = {
+    match p = (n:node1 where @id = 1)-[]->()<-[]-(n)
+    return p;
+
+    match p = (n:node1 where @id = 1)-[]->()-[]-(n)
+    return p;
+
+    match p = (n:node1 where @id = 1)-[]->()<-[]-(n)-[]->()
+    return p;
+
+    match p = (n:node1 where @id = 1)-[]->()-[]-(n)-[]-()
+    return p;
+}
+
+def table_name_with_pound_sign: isogql -> (8000) = {
+    match (n:node#1 where @id = 1)
+    return n;
+}
+
+def center_and_other_id: isogql = {
+    match (n:node1 where @id = 1)-[r]->(m)
+    return r.@center_id, r.@other_id;
+
+    match (n:node1 where @id = 10)<-[r]-(m)
+    return r.@center_id, r.@other_id;
+
+    match (n:node1 where @id = 1)-[r]-(m)
+    return r.@center_id, r.@other_id;
+
+    match (n:node1 where @id = 1)-[r]->{1, 2}(m)
+    return r.@center_id, r.@other_id;
+
+    match (n:node1 where @id = 10)<-[r]-{1, 2}(m)
+    return r.@center_id, r.@other_id;
+
+    match (n:node1 where @id = 1)-[r]-{1, 2}(m)
+    return r.@center_id, r.@other_id;
+
+    match (n:node1 where @id = 1)-[r]-{1, 3}(m)
+    return r.@center_id, r.@other_id;
+}

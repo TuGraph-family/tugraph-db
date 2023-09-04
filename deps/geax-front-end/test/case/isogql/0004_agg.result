@@ -1,0 +1,347 @@
+INSERT (:node1{@id:1001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:1002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:1003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:2001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:2002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:2003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:3001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:3002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:3003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:4001, p_long:4, p_double:4.4, p_string:"xian"});
+
+select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) order by n.@id;
++-------+----------+------------+------------+
+| n.@id | n.p_long | n.p_double | n.p_string |
++-------+----------+------------+------------+
+|  1001 |        1 |        1.1 |    beijing |
+|  1002 |        2 |        2.2 |   hangzhou |
+|  1003 |        3 |        3.3 |   shanghai |
+|  2001 |        1 |        1.1 |    beijing |
+|  2002 |        2 |        2.2 |   hangzhou |
+|  2003 |        3 |        3.3 |   shanghai |
+|  3001 |        1 |        1.1 |    beijing |
+|  3002 |        2 |        2.2 |   hangzhou |
+|  3003 |        3 |        3.3 |   shanghai |
+|  4001 |        4 |        4.4 |       xian |
++-------+----------+------------+------------+
+
+INSERT ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:1001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:1002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:1003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:2001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:2002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:2003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:3001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:3002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:3003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:4, p_double:4.4, p_string:"xian-distance", @src_id:4001, @dst_id:100, @timestamp:0}]->();
+
+select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) order by e.@src_id;
++-----------+-----------+--------------+----------+------------+-------------------+
+| e.@src_id | e.@dst_id | e.@timestamp | e.p_long | e.p_double |        e.p_string |
++-----------+-----------+--------------+----------+------------+-------------------+
+|      1001 |       100 |            0 |        1 |        1.1 |  beijing-distance |
+|      1002 |       100 |            0 |        2 |        2.2 | hangzhou-distance |
+|      1003 |       100 |            0 |        3 |        3.3 | shanghai-distance |
+|      2001 |       100 |            0 |        1 |        1.1 |  beijing-distance |
+|      2002 |       100 |            0 |        2 |        2.2 | hangzhou-distance |
+|      2003 |       100 |            0 |        3 |        3.3 | shanghai-distance |
+|      3001 |       100 |            0 |        1 |        1.1 |  beijing-distance |
+|      3002 |       100 |            0 |        2 |        2.2 | hangzhou-distance |
+|      3003 |       100 |            0 |        3 |        3.3 | shanghai-distance |
+|      4001 |       100 |            0 |        4 |        4.4 |     xian-distance |
++-----------+-----------+--------------+----------+------------+-------------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(n.p_long);
++---------------+
+| sum(n.p_long) |
++---------------+
+|            22 |
++---------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(distinct n.p_long);
++------------------------+
+| sum(distinct n.p_long) |
++------------------------+
+|                     10 |
++------------------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN count(n.p_long);
++-----------------+
+| count(n.p_long) |
++-----------------+
+|              10 |
++-----------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN count(distinct n.p_long);
++--------------------------+
+| count(distinct n.p_long) |
++--------------------------+
+|                        4 |
++--------------------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN avg(n.p_long);
++---------------+
+| avg(n.p_long) |
++---------------+
+|           2.2 |
++---------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN avg(distinct n.p_long);
++------------------------+
+| avg(distinct n.p_long) |
++------------------------+
+|                    2.5 |
++------------------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN max(n.p_long);
++---------------+
+| max(n.p_long) |
++---------------+
+|             4 |
++---------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN max(distinct n.p_long);
++------------------------+
+| max(distinct n.p_long) |
++------------------------+
+|                      4 |
++------------------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN min(n.p_long);
++---------------+
+| min(n.p_long) |
++---------------+
+|             1 |
++---------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN min(distinct n.p_long);
++------------------------+
+| min(distinct n.p_long) |
++------------------------+
+|                      1 |
++------------------------+
+
+match (n:node1{@id:135799}) RETURN sum(distinct n.@id), avg(distinct n.@id), max(distinct n.@id), min(distinct n.@id), count(distinct n.@id);
++---------------------+---------------------+---------------------+---------------------+-----------------------+
+| sum(distinct n.@id) | avg(distinct n.@id) | max(distinct n.@id) | min(distinct n.@id) | count(distinct n.@id) |
++---------------------+---------------------+---------------------+---------------------+-----------------------+
+|                null |                null |                null |                null |                     0 |
++---------------------+---------------------+---------------------+---------------------+-----------------------+
+
+match (n:node1{@id:135799}) RETURN sum(n.@id), avg(n.@id), max(n.@id), min(n.@id), count(n.@id);
++------------+------------+------------+------------+--------------+
+| sum(n.@id) | avg(n.@id) | max(n.@id) | min(n.@id) | count(n.@id) |
++------------+------------+------------+------------+--------------+
+|       null |       null |       null |       null |            0 |
++------------+------------+------------+------------+--------------+
+
+match (n:node1{@id:135799}) RETURN sum(n.@id), avg(n.@id), max(n.@id), min(n.@id), count(n.@id) group by n.@id;
+
+match (n:node1{@id:135799}) RETURN sum(distinct n.@id), avg(distinct n.@id), max(distinct n.@id), min(distinct n.@id), count(distinct n.@id);
++---------------------+---------------------+---------------------+---------------------+-----------------------+
+| sum(distinct n.@id) | avg(distinct n.@id) | max(distinct n.@id) | min(distinct n.@id) | count(distinct n.@id) |
++---------------------+---------------------+---------------------+---------------------+-----------------------+
+|                null |                null |                null |                null |                     0 |
++---------------------+---------------------+---------------------+---------------------+-----------------------+
+
+match (n:node1{@id:135799}) RETURN sum(distinct n.@id), avg(distinct n.@id), max(distinct n.@id), min(distinct n.@id), count(distinct n.@id) group by n.@id;
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.p_long);
++---------------+
+| sum(e.p_long) |
++---------------+
+|            22 |
++---------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.p_long);
++------------------------+
+| sum(distinct e.p_long) |
++------------------------+
+|                     10 |
++------------------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN count(e.p_long);
++-----------------+
+| count(e.p_long) |
++-----------------+
+|              10 |
++-----------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN count(distinct e.p_long);
++--------------------------+
+| count(distinct e.p_long) |
++--------------------------+
+|                        4 |
++--------------------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN avg(e.p_long);
++---------------+
+| avg(e.p_long) |
++---------------+
+|           2.2 |
++---------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN avg(distinct e.p_long);
++------------------------+
+| avg(distinct e.p_long) |
++------------------------+
+|                    2.5 |
++------------------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN max(e.p_long);
++---------------+
+| max(e.p_long) |
++---------------+
+|             4 |
++---------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN max(distinct e.p_long);
++------------------------+
+| max(distinct e.p_long) |
++------------------------+
+|                      4 |
++------------------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN min(e.p_long);
++---------------+
+| min(e.p_long) |
++---------------+
+|             1 |
++---------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN min(distinct e.p_long);
++------------------------+
+| min(distinct e.p_long) |
++------------------------+
+|                      1 |
++------------------------+
+
+match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.@src_id), avg(distinct e.@src_id), max(distinct e.@src_id), min(distinct e.@src_id), count(distinct e.@src_id);
++-------------------------+-------------------------+-------------------------+-------------------------+---------------------------+
+| sum(distinct e.@src_id) | avg(distinct e.@src_id) | max(distinct e.@src_id) | min(distinct e.@src_id) | count(distinct e.@src_id) |
++-------------------------+-------------------------+-------------------------+-------------------------+---------------------------+
+|                    null |                    null |                    null |                    null |                         0 |
++-------------------------+-------------------------+-------------------------+-------------------------+---------------------------+
+
+match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.@src_id), avg(e.@src_id), max(e.@src_id), min(e.@src_id), count(e.@src_id);
++----------------+----------------+----------------+----------------+------------------+
+| sum(e.@src_id) | avg(e.@src_id) | max(e.@src_id) | min(e.@src_id) | count(e.@src_id) |
++----------------+----------------+----------------+----------------+------------------+
+|           null |           null |           null |           null |                0 |
++----------------+----------------+----------------+----------------+------------------+
+
+match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.@src_id), avg(e.@src_id), max(e.@src_id), min(e.@src_id), count(e.@src_id) group by n.@id;
+
+match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.@src_id), avg(distinct e.@src_id), max(distinct e.@src_id), min(distinct e.@src_id), count(distinct e.@src_id);
++-------------------------+-------------------------+-------------------------+-------------------------+---------------------------+
+| sum(distinct e.@src_id) | avg(distinct e.@src_id) | max(distinct e.@src_id) | min(distinct e.@src_id) | count(distinct e.@src_id) |
++-------------------------+-------------------------+-------------------------+-------------------------+---------------------------+
+|                    null |                    null |                    null |                    null |                         0 |
++-------------------------+-------------------------+-------------------------+-------------------------+---------------------------+
+
+match (n:node1{@id:135799})-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(distinct e.@src_id), avg(distinct e.@src_id), max(distinct e.@src_id), min(distinct e.@src_id), count(distinct e.@src_id) group by n.@id;
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(n.p_long), sum(n.p_double);
++---------------+-----------------+
+| sum(n.p_long) | sum(n.p_double) |
++---------------+-----------------+
+|            22 |            24.2 |
++---------------+-----------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.p_long), sum(e.p_double);
++---------------+-----------------+
+| sum(e.p_long) | sum(e.p_double) |
++---------------+-----------------+
+|            22 |            24.2 |
++---------------+-----------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum(n.p_long) as sum_p_long, sum(n.p_double) as sum_p_double;
++------------+--------------+
+| sum_p_long | sum_p_double |
++------------+--------------+
+|         22 |         24.2 |
++------------+--------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum(e.p_long) as sum_p_long, sum(e.p_double) as sum_p_double;
++------------+--------------+
+| sum_p_long | sum_p_double |
++------------+--------------+
+|         22 |         24.2 |
++------------+--------------+
+
+match (n:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001)) RETURN sum( distinct n.p_long );
++--------------------------+
+| sum( distinct n.p_long ) |
++--------------------------+
+|                       10 |
++--------------------------+
+
+match (n1:node1 where @id in (1001,1002,1003,2001,2002,2003,3001,3002,3003,4001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN sum( distinct e.p_long );
++--------------------------+
+| sum( distinct e.p_long ) |
++--------------------------+
+|                       10 |
++--------------------------+
+
+match (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) RETURN n.@id, group_concat(m.@id) group by n.@id;
++-------+---------------------+
+| n.@id | group_concat(m.@id) |
++-------+---------------------+
+|     1 |            10,11,12 |
++-------+---------------------+
+
+match (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) RETURN n.@id, group_concat(m.xx) group by n.@id;
++-------+--------------------+
+| n.@id | group_concat(m.xx) |
++-------+--------------------+
+|     1 |               null |
++-------+--------------------+
+
+match (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) RETURN n.@id, group_concat(e.p_string) group by n.@id;
++-------+--------------------------+
+| n.@id | group_concat(e.p_string) |
++-------+--------------------------+
+|     1 |        1->10,1->11,1->12 |
++-------+--------------------------+
+
+match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, n, e, m, x;
++-------+-----------+---------------------------+------------+-------------+
+| n.@id |         n |                         e |          m |           x |
++-------+-----------+---------------------------+------------+-------------+
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(10) | (10:node2) | (100:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(10) | (10:node2) | (101:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(10) | (10:node2) | (102:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(10) | (10:node2) |   (1:node1) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(11) | (11:node2) | (110:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(11) | (11:node2) | (111:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(11) | (11:node2) | (112:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(11) | (11:node2) |   (1:node1) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(12) | (12:node2) | (120:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(12) | (12:node2) | (121:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(12) | (12:node2) | (122:node3) |
+|     1 | (1:node1) | (1)-[:edge_n1_n2|0]->(12) | (12:node2) |   (1:node1) |
++-------+-----------+---------------------------+------------+-------------+
+
+match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, group_concat(distinct x.@id) group by n.@id;
++-------+---------------------------------------+
+| n.@id |          group_concat(distinct x.@id) |
++-------+---------------------------------------+
+|     1 | 100,101,102,1,110,111,112,120,121,122 |
++-------+---------------------------------------+
+
+match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, group_concat(distinct x.xx) group by n.@id;
++-------+-----------------------------+
+| n.@id | group_concat(distinct x.xx) |
++-------+-----------------------------+
+|     1 |                        null |
++-------+-----------------------------+
+
+match (n:node1 {@id:1})-[e]-(m:node2)-(x) RETURN n.@id, group_concat(distinct e.p_string) group by n.@id;
++-------+-----------------------------------+
+| n.@id | group_concat(distinct e.p_string) |
++-------+-----------------------------------+
+|     1 |                 1->10,1->11,1->12 |
++-------+-----------------------------------+
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:1001, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:1002, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:1003, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:2001, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:2002, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:2003, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:3001, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:3002, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:3003, @dst_id:100, @timestamp:0}]->();
+
+DELETE r MATCH ()-[r:edge_n1_n2{@src_id:4001, @dst_id:100, @timestamp:0}]->();

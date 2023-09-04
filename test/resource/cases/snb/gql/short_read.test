@@ -1,0 +1,98 @@
+# short 1
+MATCH (person:Person {id: 2199023261980})-[e:personIsLocatedIn]->(city)
+RETURN
+    person.firstName AS personFirstName,
+    person.lastName AS personLastName,
+    person.birthday AS personBirthday,
+    person.locationIP AS personLocationIP,
+    person.browserUsed AS personBrowserUsed,
+    city.id AS cityId,
+    person.gender AS personGender,
+    person.creationDate AS personCreationDate;
+
+# short 2
+MATCH (person:Person WHERE person.id = 2199023261980)
+    <-[e1]-(message)
+    -[e2:replyOf]->{1,}(post:Post)
+    -[e3:postHasCreator]->(originalPoster:Person)
+WHERE
+    type(e1) = 'postHasCreator' OR type(e1) = 'commentHasCreator'
+RETURN
+    message.id AS messageId,
+    message.content AS messageContent,
+    message.imageFile AS messageImageFile,
+    message.creationDate AS messageCreationDate,
+    post.id AS postId,
+    originalPoster.id AS originalPosterId,
+    originalPoster.firstName AS originalPosterFirstName,
+    originalPoster.lastName AS originalPosterLastName
+ORDER BY messageCreationDate DESC, messageId DESC
+LIMIT 10;
+
+# short 3
+MATCH (person:Person {id: 2199023261980})-[knows:knows]-(friend:Person)
+RETURN
+    friend.id AS friendId,
+    friend.firstName AS friendFirstName,
+    friend.lastName AS friendLastName,
+    knows.creationDate AS creationDate
+ORDER BY
+    creationDate DESC,
+    friendLastName ASC;
+
+# short 4
+MATCH (message WHERE message.id = 1236950581249)
+WHERE label(message) = 'Post' OR label(message) = 'Comment'
+RETURN
+    message.creationDate as messageCreationDate,
+    coalesce(message.content, message.imageFile) as messageContent;
+
+MATCH (message WHERE message.id = 233)
+WHERE label(message) = 'Post' OR label(message) = 'Comment'
+RETURN
+    message.creationDate as messageCreationDate,
+    coalesce(message.content, message.imageFile) as messageContent;
+
+# short 5
+MATCH (message WHERE message.id = 1236950581249)-[e]->(person:Person)
+WHERE
+    (label(message) = 'Post' AND type(e) = 'postHasCreator') OR
+    (label(message) = 'Comment' AND type(e) = 'commentHasCreator')
+RETURN
+    person.id AS personId,
+    person.firstName AS firstName,
+    person.lastName AS lastName;
+
+MATCH (message WHERE message.id = 233)-[e]->(person:Person)
+WHERE
+    (label(message) = 'Post' AND type(e) = 'postHasCreator') OR
+    (label(message) = 'Comment' AND type(e) = 'commentHasCreator')
+RETURN
+    person.id AS personId,
+    person.firstName AS firstName,
+    person.lastName AS lastName;
+
+# short 6
+MATCH (m WHERE m.id = 2061584302089)-[e1:replyOf]->*(p:Post)<-[e2:containerOf]-(forum:Forum)-[e3:hasModerator]->(moderator:Person)
+RETURN
+    forum.id AS forumId,
+    forum.title AS forumTitle,
+    moderator.id AS moderatorId,
+    moderator.firstName AS moderatorFirstName,
+    moderator.lastName AS moderatorLastName;
+
+# short 7
+MATCH (m WHERE m.id = 2061584302089)<-[e1:replyOf]-(c:Comment)-[e2:commentHasCreator]->(p)
+WHERE label(m) = 'Post' OR label(m) = 'Comment'
+RETURN m, c, p
+NEXT
+OPTIONAL MATCH (m)-[e]->(a)-[r:knows]-(p)
+WHERE type(r) = 'postHasCreator' OR type(r) = 'commentHasCreator'
+RETURN
+    c.id AS commentId,
+    c.content AS commentContent,
+    c.creationDate AS commentCreationDate,
+    p.id AS replyAuthorId, p.firstName AS replyAuthorFirstName,
+    p.lastName AS replyAuthorLastName,
+    CASE WHEN r=null THEN false ELSE true END AS replyAuthorKnowsOriginalMessageAuthor
+ORDER BY commentCreationDate DESC, replyAuthorId;

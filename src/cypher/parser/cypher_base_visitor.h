@@ -52,7 +52,6 @@ class CypherBaseVisitor : public LcypherVisitor {
     std::string _curr_procedure_name;
     /* alias carry between query parts */
     std::vector<std::pair<std::string, cypher::SymbolNode::Type>> _carry;
-    bool _in_clause_with = false;
     std::string _listcompr_placeholder = "";
     enum _ClauseType : uint32_t {
         NA = 0x0,

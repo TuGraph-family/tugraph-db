@@ -24,6 +24,7 @@
 #include "cypher/cypher_types.h"
 #include "cypher/filter/iterator.h"
 #include "lgraph/lgraph_date_time.h"
+#include "utils/geax_util.h"
 
 namespace cypher {
 class LocateNodeByVid;
@@ -77,6 +78,9 @@ class Filter {
         TEST_EXISTS_FILTER,
         LABEL_FILTER,
         STRING_FILTER,
+        // todo (kehuang): AstExpr is currently temporarily used as a type of Filter, and will be
+        // replaced with AstExpr in the future.
+        GEAX_EXPR_FILTER,
     };
 
     static inline std::string ToString(const Type &type) {
@@ -99,6 +103,8 @@ class Filter {
             return "LABEL_FILTER";
         case Type::STRING_FILTER:
             return "STRING_FILTER";
+        case Type::GEAX_EXPR_FILTER:
+            return "GEAX_EXPR_FILTER";
         default:
             throw lgraph::CypherException("unknown RecordEntryType");
         }
@@ -622,8 +628,6 @@ class TestExists : public Filter {
     TestExists(const cypher::SymbolTable &sym_tab,
                const std::shared_ptr<cypher::PatternGraph> &pattern);
 
-    TestExists(const TestExists &rhs) = default;
-
     TestExists(TestExists &&rhs) noexcept
         : property_(std::move(rhs.property_)),
           nested_pattern_(rhs.nested_pattern_),
@@ -805,4 +809,50 @@ class StringFilter : public Filter {
         return str;
     }
 };
+
+class GeaxExprFilter : public Filter {
+ private:
+    cypher::ArithExprNode arith_expr_;
+
+ public:
+    GeaxExprFilter(geax::frontend::Expr *expr, const cypher::SymbolTable &sym_tab) {
+        arith_expr_.SetAstExp(expr, sym_tab);
+        _type = GEAX_EXPR_FILTER;
+    }
+
+    cypher::ArithExprNode &GetArithExpr() { return arith_expr_; }
+
+    std::shared_ptr<Filter> Clone() const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    std::set<std::string> Alias() const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    std::set<std::pair<std::string, std::string>> VisitedFields() const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    bool ContainAlias(const std::vector<std::string> &alias) const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    void RealignAliasId(const cypher::SymbolTable &sym_tab) override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    bool DoFilter(cypher::RTContext *ctx, const cypher::Record &record) override {
+        auto res = arith_expr_.Evaluate(ctx, record);
+        if (res.IsBool()) {
+            return res.constant.scalar.AsBool();
+        }
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    const std::string ToString() const override {
+        return arith_expr_.ToString();
+    }
+};
+
 }  // namespace lgraph

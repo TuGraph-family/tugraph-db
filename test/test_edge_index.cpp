@@ -41,29 +41,29 @@ int TestEdgeIndexImpl() {
     // test integer keys
     {
         KvTable idx_tab =
-            EdgeIndex::OpenTable(txn, store, "int32_index_test", FieldType::INT32, false);
-        EdgeIndex idx(idx_tab, FieldType::INT32, false);
+            EdgeIndex::OpenTable(txn, store, "int32_index_test", FieldType::INT32, false, true);
+        EdgeIndex idx(idx_tab, FieldType::INT32, false, true);
         // add many eids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), i, i + 2, 1, i, j));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), {i, i + 2, 1, i, j}));
             }
         }
         for (int64_t i = 100; i < 600; i += 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), {i, i + 2, 1, i, j}));
             }
         }
         // add some eids
         for (int64_t i = 98; i >= 0; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(2), {i, i + 2, 1, i, j}));
             }
         }
         // add some euids which already exist
         for (int64_t i = 88; i >= 80; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
+                UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef(2), {i, i + 2, 1, i, j}));
             }
         }
         auto tit = idx.GetUnmanagedIterator(txn, Value::ConstRef(2), Value::ConstRef(2));
@@ -72,13 +72,13 @@ int TestEdgeIndexImpl() {
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
             for (int j = 1; j <= 100; ++j) {
-                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(2), i, i + 2, 1, i, j));
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(2), {i, i + 2, 1, i, j}));
             }
         }
         tit.RefreshContentIfKvIteratorModified();
         UT_EXPECT_TRUE(tit.IsValid());
         // test updates
-        UT_EXPECT_TRUE(idx.Update(txn, Value::ConstRef(2), Value::ConstRef(1), 0, 2, 1, 0, 1));
+        UT_EXPECT_TRUE(idx.Update(txn, Value::ConstRef(2), Value::ConstRef(1), {0, 2, 1, 0, 1}));
         // output indexed euids
         {
             auto it = idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(1));
@@ -139,32 +139,33 @@ int TestEdgeIndexImpl() {
     // test Fullkeys
     {
         KvTable idx_tab =
-            EdgeIndex::OpenTable(txn, store, "stringss_index_test", FieldType::STRING, true);
-        EdgeIndex idx(idx_tab, FieldType::STRING, true);
+            EdgeIndex::OpenTable(txn, store, "stringss_index_test", FieldType::STRING, true, true);
+        EdgeIndex idx(idx_tab, FieldType::STRING, true, true);
         // add many euids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             UT_EXPECT_TRUE(
                 idx.Add(txn, Value::ConstRef("amazon story" +
-                        std::to_string(i)), i, i + 2, 1, 0, 1));
+                        std::to_string(i)), {i, i + 2, 1, 0, 1}));
         }
         for (int64_t i = 100; i < 600; i += 2) {
             UT_EXPECT_TRUE(
-                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
+                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), {i, i + 2, 1, 0, 1}));
         }
         // add some euids
         for (int64_t i = 98; i >= 0; i -= 2) {
             UT_EXPECT_TRUE(
-                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
+                idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), {i, i + 2, 1, 0, 1}));
         }
         // add some euids which already exist
         for (int64_t i = 88; i >= 80; i -= 2) {
             UT_EXPECT_TRUE(
-                !idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
+                !idx.Add(txn, Value::ConstRef("breakup" + std::to_string(i)), {i, i + 2, 1, 0, 1}));
         }
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
             UT_EXPECT_TRUE(
-                idx.Delete(txn, Value::ConstRef("breakup" + std::to_string(i)), i, i + 2, 1, 0, 1));
+                idx.Delete(txn, Value::ConstRef("breakup" + std::to_string(i)),
+                           {i, i + 2, 1, 0, 1}));
         }
         // output indexed eids
         {
@@ -195,26 +196,26 @@ int TestEdgeIndexImpl() {
     // test string keys
     {
         KvTable idx_tab =
-            EdgeIndex::OpenTable(txn, store, "string_index_test", FieldType::STRING, false);
-        EdgeIndex idx(idx_tab, FieldType::STRING, false);
+            EdgeIndex::OpenTable(txn, store, "string_index_test", FieldType::STRING, false, true);
+        EdgeIndex idx(idx_tab, FieldType::STRING, false, true);
         // add many euids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
-            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("a"), i, i + 2, 1, 0, 1));
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("a"), {i, i + 2, 1, 0, 1}));
         }
         for (int64_t i = 100; i < 600; i += 2) {
-            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), {i, i + 2, 1, 0, 1}));
         }
         // add some euids
         for (int64_t i = 98; i >= 0; i -= 2) {
-            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("b"), {i, i + 2, 1, 0, 1}));
         }
         // add some euids which already exist
         for (int64_t i = 88; i >= 80; i -= 2) {
-            UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
+            UT_EXPECT_TRUE(!idx.Add(txn, Value::ConstRef("b"), {i, i + 2, 1, 0, 1}));
         }
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
-            UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef("b"), i, i + 2, 1, 0, 1));
+            UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef("b"), {i, i + 2, 1, 0, 1}));
         }
         // output indexed eids
         {
@@ -300,14 +301,14 @@ int TestEdgeIndexImpl() {
         // index with non-unique keys
         {
             KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "string_index_non_unqiue",
-                                                   FieldType::STRING, false);
-            EdgeIndex idx(idx_tab, FieldType::STRING, false);
+                                                   FieldType::STRING, false, true);
+            EdgeIndex idx(idx_tab, FieldType::STRING, false, true);
             // add many vids; should split after some point
             for (int64_t i = 0; i < 500; i += 1) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("1"), i, i + 2, 1, 0, 1));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("1"), {i, i + 2, 1, 0, 1}));
             }
             for (int64_t i = 500; i < 600; i += 1) {
-                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("2"), i, i + 2, 1, 0, 1));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef("2"), {i, i + 2, 1, 0, 1}));
             }
             size_t n = 0;
             for (auto it = idx.GetUnmanagedIterator(txn, Value(), Value()); it.IsValid(); it.Next())
@@ -317,12 +318,13 @@ int TestEdgeIndexImpl() {
         // index with non-unique keys
         {
             KvTable idx_tab =
-                EdgeIndex::OpenTable(txn, store, "int32_index_unqiue", FieldType::INT32, false);
-            EdgeIndex idx(idx_tab, FieldType::INT32, false);
+                EdgeIndex::OpenTable(txn, store, "int32_index_unqiue",
+                                     FieldType::INT32, false, true);
+            EdgeIndex idx(idx_tab, FieldType::INT32, false, true);
             // add many vids; should split after some point
             for (int32_t i = 0; i < 100; i += 1) {
                 for (int j = 1; j <= 100; ++j) {
-                    UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), i, i + 2, 1, 0, j));
+                    UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), {i, i + 2, 1, 0, j}));
                 }
             }
             size_t n = 0;
@@ -353,13 +355,13 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
                                     {"type", FieldType::INT8, false}};
     std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                     {"comments", FieldType::STRING, true},
-                                    {"weight", FieldType::FLOAT, false}};
+                                    {"weight", FieldType::INT32, false}};
     UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, VertexOptions("name")));
     UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, EdgeOptions()));
     // add edge index
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", false, false));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", false, false));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "weight", false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", false, false, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", false, false, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "weight", false, false, true));
 
     Transaction txn = db.CreateWriteTxn();
     std::vector<std::string> v1_properties = {"name", "title", "description", "type"};
@@ -422,4 +424,948 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     }
     UT_EXPECT_EQ(count, 3);
     txn.Commit();
+}
+
+int TestEdgeIndexValue() {
+    {
+        auto fetch_n_bytes = [](const char* p, size_t nbytes) {
+            int64_t val = 0;
+            memcpy(&val, p, nbytes);
+            return val;
+        };
+        // test EdgeIndexValue
+        EdgeIndexValue eiv;
+        for (size_t i = 1; i <= 100; ++i) {
+            eiv.InsertEUid(i, i + 1, 1, i, i, true);
+            UT_EXPECT_EQ(eiv.GetEUidCount(), i);
+            bool found = false;
+            eiv.SearchEUid(i, i + 1, 1, i, i, true, found);
+            UT_EXPECT_TRUE(found);
+        }
+        UT_EXPECT_TRUE(eiv.TooLarge());
+        Value v = eiv.CreateKey(Value(), true);
+        UT_EXPECT_EQ(v.Size(), 24);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data(), 5), 100);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 5, 5), 101);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 10, 2), 1);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 12, 8), 100);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 20, 4), 100);
+
+        for (size_t i = 0; i < 100; ++i) {
+            VertexId src = eiv.GetNthSrcVid(i);
+            UT_EXPECT_EQ(src, i + 1);
+            VertexId dst = eiv.GetNthDstVid(i);
+            UT_EXPECT_EQ(dst, i + 2);
+            LabelId lid = eiv.GetNthLid(i, true);
+            UT_EXPECT_EQ(lid, 1);
+            TemporalId tid = eiv.GetNthTid(i, true);
+            UT_EXPECT_EQ(tid, i + 1);
+            EdgeId eid = eiv.GetNthEid(i, true);
+            UT_EXPECT_EQ(eid, i + 1);
+        }
+
+        EdgeIndexValue right = eiv.SplitRightHalf(true);
+        UT_EXPECT_EQ(right.GetEUidCount(), 50);
+        UT_EXPECT_EQ(eiv.GetEUidCount(), 50);
+
+        for (size_t i = 1; i < 50; ++i) {
+            uint8_t ret = eiv.DeleteEUidIfExist(i, i + 1, 1, i, i, true);
+            UT_EXPECT_EQ(ret, 1);
+        }
+        UT_EXPECT_EQ(eiv.DeleteEUidIfExist(50, 51, 1, 50, 50, true), 2);
+        UT_EXPECT_EQ(eiv.GetEUidCount(), 0);
+
+        EdgeIndexValue giv;
+        for (size_t i = 1; i <= 100; ++i) {
+            giv.InsertEUid(i, i + 1, 1, i, i, true);
+            UT_EXPECT_EQ(giv.GetEUidCount(), i);
+            bool found = false;
+            giv.SearchEUid(i, i + 1, 1, i, i, true, found);
+            UT_EXPECT_TRUE(found);
+        }
+
+        Value g = giv.CreateKey(Value(), false);
+        UT_EXPECT_EQ(g.Size(), 14);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data(), 5), 100);
+        UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 5, 5), 101);
+
+        UT_EXPECT_TRUE(giv.TooLarge());
+        for (size_t i = 0; i < 100; ++i) {
+            LabelId lid = giv.GetNthLid(i, true);
+            UT_EXPECT_EQ(lid, 1);
+            TemporalId tid = giv.GetNthTid(i, true);
+            UT_EXPECT_EQ(tid, i + 1);
+            EdgeId eid = giv.GetNthEid(i, true);
+            UT_EXPECT_EQ(eid, i + 1);
+        }
+
+        EdgeIndexValue gright = giv.SplitRightHalf(true);
+        UT_EXPECT_EQ(gright.GetEUidCount(), 50);
+        UT_EXPECT_EQ(giv.GetEUidCount(), 50);
+
+        for (size_t i = 1; i < 50; ++i) {
+            uint8_t ret = giv.DeleteEUidIfExist(i, i + 1, 1, i, i, true);
+            UT_EXPECT_EQ(ret, 1);
+        }
+        UT_EXPECT_EQ(giv.DeleteEUidIfExist(50, 51, 1, 50, 50, true), 2);
+        UT_EXPECT_EQ(giv.GetEUidCount(), 0);
+    }
+    return 0;
+}  // end of TestEdgeIndexValue
+
+int TestEdgeIndexCRUD() {
+    auto fetch_n_bytes = [](const char* p, size_t nbytes) {
+        int64_t val = 0;
+        memcpy(&val, p, nbytes);
+        return val;
+    };
+
+    auto int_unique_global_to_string = [&](const char* p, size_t s) {
+        int32_t key = fetch_n_bytes(p, s);
+        std::string ret = std::to_string(key);
+        return ret;
+    };
+
+    auto int_nonunique_global_to_string = [&](const char* p, size_t s) {
+        int64_t key = fetch_n_bytes(p, s - 24);
+        std::string ret = std::to_string(key);
+        int64_t src_vid = fetch_n_bytes(p + s - 24, 5);
+        ret.append(std::to_string(src_vid));
+        int64_t dst_vid = fetch_n_bytes(p + s - 19, 5);
+        ret.append(std::to_string(dst_vid));
+        int64_t lid = fetch_n_bytes(p + s - 14, 2);
+        ret.append(std::to_string(lid));
+        int64_t tid = fetch_n_bytes(p + s - 12, 8);
+        ret.append(std::to_string(tid));
+        int64_t eid = fetch_n_bytes(p + s - 4, 4);
+        ret.append(std::to_string(eid));
+        return ret;
+    };
+
+    auto int_unique_nonglobal_to_string = [&] (const char* p, size_t s) {
+        int64_t key = fetch_n_bytes(p, s - 10);
+        std::string ret = std::to_string(key);
+        int64_t src_vid = fetch_n_bytes(p + s - 10, 5);
+        ret.append(std::to_string(src_vid));
+        int64_t dst_vid = fetch_n_bytes(p + s - 5, 5);
+        ret.append(std::to_string(dst_vid));
+        return ret;
+    };
+
+    auto int_nonunique_nonglobal_to_string = [&] (const char* p, size_t s) {
+        int64_t key = fetch_n_bytes(p, s - 24);
+        std::string ret = std::to_string(key);
+        int64_t vid1 = fetch_n_bytes(p + s - 24, 5);
+        ret.append(std::to_string(vid1));
+        int64_t vid2 = fetch_n_bytes(p + s - 19, 5);
+        ret.append(std::to_string(vid2));
+        int64_t lid = fetch_n_bytes(p + s - 14, 2);
+        ret.append(std::to_string(lid));
+        int64_t tid = fetch_n_bytes(p + s - 12, 8);
+        ret.append(std::to_string(tid));
+        int64_t eid = fetch_n_bytes(p + s - 4, 4);
+        ret.append(std::to_string(eid));
+        return ret;
+    };
+    {
+        // test EdgeIndex
+        KvStore store("./testdb", (size_t)1 << 30, true);
+        // Start test, see if we already has a db
+        KvTransaction txn = store.CreateWriteTxn();
+        store.DropAll(txn);
+        txn.Commit();
+        txn = store.CreateWriteTxn();
+
+        // test integer unique global key
+        {
+            KvTable idx_tab =
+                EdgeIndex::OpenTable(txn, store, "UniqueGlobalInt32", FieldType::INT32, true, true);
+            EdgeIndex idx(idx_tab, FieldType::INT32, true, true);
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), {0, 0, 0, 0, 0}));
+            std::string eidx;
+            idx.Dump(txn, int_unique_global_to_string, eidx);
+            UT_EXPECT_TRUE(eidx.substr(0, 1) == "1");
+        }
+
+        // test integer non-unique global key
+        {
+            KvTable idx_tab =
+                EdgeIndex::OpenTable(txn, store, "NonUniqueGlobalInt32",
+                                     FieldType::INT32, false, true);
+            EdgeIndex idx(idx_tab, FieldType::INT32, false, true);
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), {0, 0, 0, 0, 0}));
+            std::string eidx;
+            idx.Dump(txn, int_nonunique_global_to_string, eidx);
+            UT_EXPECT_TRUE(eidx.substr(0, 6) == "100000");
+        }
+
+        // test integer unique non-global key
+        {
+            KvTable idx_tab =
+                EdgeIndex::OpenTable(txn, store, "UniqueNonGlobalInt32",
+                                     FieldType::INT32, true, false);
+            EdgeIndex idx(idx_tab, FieldType::INT32, true, false);
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), {3, 2, 0, 0, 0}));
+            std::string eidx;
+            idx.Dump(txn, int_unique_nonglobal_to_string, eidx);
+            UT_EXPECT_TRUE(eidx.substr(0, 3) == "123");
+        }
+
+        // test integer non-unique non-global key
+        {
+            KvTable idx_tab =
+                EdgeIndex::OpenTable(txn, store, "NonUniqueNonGlobalInt32",
+                                     FieldType::INT32, false, false);
+            EdgeIndex idx(idx_tab, FieldType::INT32, false, false);
+            UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), {9, 8, 7, 6, 5}));
+            std::string eidx;
+            idx.Dump(txn, int_nonunique_nonglobal_to_string, eidx);
+            UT_EXPECT_TRUE(eidx.substr(0, 6) == "189765");
+        }
+        // test unique global int32_t crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "UniqueGlobalAdd",
+                                     FieldType::INT32, true, true);
+            EdgeIndex idx(idx_tab, FieldType::INT32, true, true);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(txn, Value::ConstRef(i),
+                                                                    Value::ConstRef(i));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), i);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+            EdgeIndexIterator it_all = idx.GetUnmanagedIterator(txn, Value::ConstRef(0),
+                                                                Value::ConstRef(200));
+            size_t vaild_keys = 0;
+            while (it_all.IsValid()) {
+                ++vaild_keys;
+                it_all.Next();
+            }
+            UT_EXPECT_EQ(vaild_keys, 100);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(i), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(txn, Value::ConstRef(i),
+                                                                    Value::ConstRef(i));
+                UT_EXPECT_FALSE(it_del.IsValid());
+            }
+
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(txn, Value::ConstRef(0),
+                                                                 Value::ConstRef(200));
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+        }
+        // test unique global string crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "UniqueGlobalAddString",
+                                                   FieldType::STRING, true, true);
+            EdgeIndex idx(idx_tab, FieldType::STRING, true, true);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                std::string key("test_key" + std::to_string(i));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(txn, Value::ConstRef(key),
+                                                                    Value::ConstRef(key));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+            EdgeIndexIterator it_all = idx.GetUnmanagedIterator(txn,
+                                      Value::ConstRef("test_key0"), Value());
+            size_t vaild_keys = 0;
+            while (it_all.IsValid()) {
+                ++vaild_keys;
+                it_all.Next();
+            }
+            UT_EXPECT_EQ(vaild_keys, 100);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                std::string key("test_key" + std::to_string(i));
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(txn,
+                                           Value::ConstRef(key), Value::ConstRef(key));
+                UT_EXPECT_FALSE(it_del.IsValid());
+            }
+
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(txn,
+                                        Value::ConstRef("test_key0"), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+        }
+        // test unique non-global int32 crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "UniqueNonGlobalAddInt32",
+                                                   FieldType::INT32, true, false);
+            EdgeIndex idx(idx_tab, FieldType::INT32, true, false);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(txn,
+                                           Value::ConstRef(1), Value::ConstRef(1), i , i + 1);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), 1);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+            EdgeIndexIterator it_range =
+                idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(1));
+            size_t range_count = 0;
+            while (it_range.IsValid()) {
+                UT_EXPECT_EQ(it_range.GetSrcVid(), range_count);
+                UT_EXPECT_EQ(it_range.GetDstVid(), range_count + 1);
+                UT_EXPECT_EQ(it_range.GetLabelId(), 1);
+                UT_EXPECT_EQ(it_range.GetTemporalId(), range_count);
+                UT_EXPECT_EQ(it_range.GetEid(), range_count);
+                ++range_count;
+                it_range.Next();
+            }
+            UT_EXPECT_EQ(range_count, 100);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(1), edgeUid));
+                EdgeIndexIterator it_del =
+                    idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(1), i, i + 1);
+                if (i != 99) {
+                    UT_EXPECT_TRUE(it_del.IsValid());
+                    UT_EXPECT_EQ(it_del.GetKey().AsType<int32_t>(), 1);
+                    UT_EXPECT_NE(it_del.GetSrcVid(), i);
+                    UT_EXPECT_NE(it_del.GetDstVid(), i + 1);
+                    UT_EXPECT_EQ(it_del.GetLabelId(), 1);
+                    UT_EXPECT_NE(it_del.GetTemporalId(), i);
+                    UT_EXPECT_NE(it_del.GetEid(), i);
+                } else {
+                    UT_EXPECT_FALSE(it_del.IsValid());
+                }
+            }
+
+            EdgeIndexIterator it_none =
+                idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+        }
+        //  test unique non-global string crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "UniqueNonGlobalAddString",
+                                                   FieldType::STRING, true, false);
+            EdgeIndex idx(idx_tab, FieldType::STRING, true, false);
+            std::string key("test_key");
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i , i + 1);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+            EdgeIndexIterator it_range = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef(key), Value::ConstRef(key));
+            size_t range_count = 0;
+            while (it_range.IsValid()) {
+                UT_EXPECT_EQ(it_range.GetSrcVid(), range_count);
+                UT_EXPECT_EQ(it_range.GetDstVid(), range_count + 1);
+                UT_EXPECT_EQ(it_range.GetLabelId(), 1);
+                UT_EXPECT_EQ(it_range.GetTemporalId(), range_count);
+                UT_EXPECT_EQ(it_range.GetEid(), range_count);
+                ++range_count;
+                it_range.Next();
+            }
+            UT_EXPECT_EQ(range_count, 100);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, 1, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i, i + 1);
+                if (i != 99) {
+                    UT_EXPECT_TRUE(it_del.IsValid());
+                    UT_EXPECT_EQ(it_del.GetKey().AsString(), key);
+                    UT_EXPECT_NE(it_del.GetSrcVid(), i);
+                    UT_EXPECT_NE(it_del.GetDstVid(), i + 1);
+                    UT_EXPECT_EQ(it_del.GetLabelId(), 1);
+                    UT_EXPECT_NE(it_del.GetTemporalId(), i);
+                    UT_EXPECT_NE(it_del.GetEid(), i);
+                } else {
+                    UT_EXPECT_FALSE(it_del.IsValid());
+                }
+            }
+
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef(key), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+        }
+
+        // test non-unique global int32 crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "NonUniqueGlobalAddInt32",
+                                                   FieldType::INT32, false, true);
+            EdgeIndex idx(idx_tab, FieldType::INT32, false, true);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(1), Value::ConstRef(1), i , i + 1, i, i, i);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), 1);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+            EdgeIndexIterator it_range =
+                idx.GetUnmanagedIterator(txn, Value::ConstRef(1), Value::ConstRef(1));
+            size_t range_count = 0;
+            while (it_range.IsValid()) {
+                UT_EXPECT_EQ(it_range.GetSrcVid(), range_count);
+                UT_EXPECT_EQ(it_range.GetDstVid(), range_count + 1);
+                UT_EXPECT_EQ(it_range.GetLabelId(), range_count);
+                UT_EXPECT_EQ(it_range.GetTemporalId(), range_count);
+                UT_EXPECT_EQ(it_range.GetEid(), range_count);
+                ++range_count;
+                it_range.Next();
+            }
+            UT_EXPECT_EQ(range_count, 100);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(1), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(1), Value::ConstRef(1), i, i + 1, i, i, i);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_del.IsValid()) {
+                    if (it_del.GetSrcVid() == i) find_src = true;
+                    if (it_del.GetDstVid() == i + 1) find_dst = true;
+                    if (it_del.GetLabelId() == i) find_lid = true;
+                    if (it_del.GetTemporalId() == i) find_tid = true;
+                    if (it_del.GetEid() == i) find_eid = true;
+                    it_del.Next();
+                }
+                UT_EXPECT_FALSE(find_src);
+                UT_EXPECT_FALSE(find_dst);
+                UT_EXPECT_FALSE(find_lid);
+                UT_EXPECT_FALSE(find_tid);
+                UT_EXPECT_FALSE(find_eid);
+            }
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(txn, Value::ConstRef(0), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(i), Value::ConstRef(i));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), i);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), i);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(i), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(i), Value::ConstRef(i));
+                UT_EXPECT_FALSE(it_del.IsValid());
+            }
+            EdgeIndexIterator it_del = idx.GetUnmanagedIterator(txn, Value::ConstRef(0), Value());
+            size_t del_keys = 0;
+            while (it_del.IsValid()) {
+                ++del_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(del_keys, 0);
+        }
+
+        // test non-unique global string crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "NonUniqueGlobalAddString",
+                                                   FieldType::STRING, false, true);
+            EdgeIndex idx(idx_tab, FieldType::STRING, false, true);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key");
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i , i + 1, i, i, i);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+            EdgeIndexIterator it_range = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef("test_key"), Value::ConstRef("test_key"));
+            size_t range_count = 0;
+            while (it_range.IsValid()) {
+                UT_EXPECT_EQ(it_range.GetSrcVid(), range_count);
+                UT_EXPECT_EQ(it_range.GetDstVid(), range_count + 1);
+                UT_EXPECT_EQ(it_range.GetLabelId(), range_count);
+                UT_EXPECT_EQ(it_range.GetTemporalId(), range_count);
+                UT_EXPECT_EQ(it_range.GetEid(), range_count);
+                ++range_count;
+                it_range.Next();
+            }
+            UT_EXPECT_EQ(range_count, 100);
+            for (int32_t i = 0; i < 100; ++i) {
+                std::string key("test_key");
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i, i + 1, i, i, i);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_del.IsValid()) {
+                    if (it_del.GetSrcVid() == i) find_src = true;
+                    if (it_del.GetDstVid() == i + 1) find_dst = true;
+                    if (it_del.GetLabelId() == i) find_lid = true;
+                    if (it_del.GetTemporalId() == i) find_tid = true;
+                    if (it_del.GetEid() == i) find_eid = true;
+                    it_del.Next();
+                }
+                UT_EXPECT_FALSE(find_src);
+                UT_EXPECT_FALSE(find_dst);
+                UT_EXPECT_FALSE(find_lid);
+                UT_EXPECT_FALSE(find_tid);
+                UT_EXPECT_FALSE(find_eid);
+            }
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef("test_key"), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key" + std::to_string(i));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), i);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key" + std::to_string(i));
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key));
+                UT_EXPECT_FALSE(it_del.IsValid());
+            }
+        }
+
+        // test non-unique non-global int32 crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "NonUniqueNONGlobalAddInt32",
+                                                   FieldType::INT32, false, false);
+            EdgeIndex idx(idx_tab, FieldType::INT32, false, false);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(1), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(1), Value::ConstRef(1), i , i + 1, i, i, i);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), 1);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(1), Value::ConstRef(1), i , i + 1);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), 1);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(1), Value::ConstRef(1));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), 1);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+
+            EdgeIndexIterator it_range = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef(1), Value::ConstRef(1));
+            size_t range_count = 0;
+            while (it_range.IsValid()) {
+                UT_EXPECT_EQ(it_range.GetSrcVid(), range_count);
+                UT_EXPECT_EQ(it_range.GetDstVid(), range_count + 1);
+                UT_EXPECT_EQ(it_range.GetLabelId(), range_count);
+                UT_EXPECT_EQ(it_range.GetTemporalId(), range_count);
+                UT_EXPECT_EQ(it_range.GetEid(), range_count);
+                ++range_count;
+                it_range.Next();
+            }
+            UT_EXPECT_EQ(range_count, 100);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(1), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(1), Value::ConstRef(1), i, i + 1, i, i, i);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_del.IsValid()) {
+                    if (it_del.GetSrcVid() == i) find_src = true;
+                    if (it_del.GetDstVid() == i + 1) find_dst = true;
+                    if (it_del.GetLabelId() == i) find_lid = true;
+                    if (it_del.GetTemporalId() == i) find_tid = true;
+                    if (it_del.GetEid() == i) find_eid = true;
+                    it_del.Next();
+                }
+                UT_EXPECT_FALSE(find_src);
+                UT_EXPECT_FALSE(find_dst);
+                UT_EXPECT_FALSE(find_lid);
+                UT_EXPECT_FALSE(find_tid);
+                UT_EXPECT_FALSE(find_eid);
+            }
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(txn, Value::ConstRef(0), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(i), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(i), Value::ConstRef(i));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsType<int32_t>(), i);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), i);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(i), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(i), Value::ConstRef(i));
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_del.IsValid()) {
+                    if (it_del.GetSrcVid() == i) find_src = true;
+                    if (it_del.GetDstVid() == i + 1) find_dst = true;
+                    if (it_del.GetLabelId() == i) find_lid = true;
+                    if (it_del.GetTemporalId() == i) find_tid = true;
+                    if (it_del.GetEid() == i) find_eid = true;
+                    it_del.Next();
+                }
+                UT_EXPECT_FALSE(find_src);
+                UT_EXPECT_FALSE(find_dst);
+                UT_EXPECT_FALSE(find_lid);
+                UT_EXPECT_FALSE(find_tid);
+                UT_EXPECT_FALSE(find_eid);
+            }
+            EdgeIndexIterator it_del_all = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef(0), Value());
+            size_t del_keys = 0;
+            while (it_del_all.IsValid()) {
+                ++del_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(del_keys, 0);
+        }
+
+        // test non-unique non-global string crd
+        {
+            KvTable idx_tab = EdgeIndex::OpenTable(txn, store, "NonUniqueNONGlobalAddString",
+                                                   FieldType::STRING, false, false);
+            EdgeIndex idx(idx_tab, FieldType::STRING, false, false);
+            for (int32_t i = 0; i < 100; ++i) {
+                std::string key("test_key");
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i , i + 1, i, i, i);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key");
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i , i + 1);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key");
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key));
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_add.IsValid()) {
+                    if (it_add.GetSrcVid() == i) find_src = true;
+                    if (it_add.GetDstVid() == i + 1) find_dst = true;
+                    if (it_add.GetLabelId() == i) find_lid = true;
+                    if (it_add.GetTemporalId() == i) find_tid = true;
+                    if (it_add.GetEid() == i) find_eid = true;
+                    it_add.Next();
+                }
+                UT_EXPECT_TRUE(find_src);
+                UT_EXPECT_TRUE(find_dst);
+                UT_EXPECT_TRUE(find_lid);
+                UT_EXPECT_TRUE(find_tid);
+                UT_EXPECT_TRUE(find_eid);
+            }
+
+            EdgeIndexIterator it_range = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef("test_key"), Value::ConstRef("test_key"));
+            size_t range_count = 0;
+            while (it_range.IsValid()) {
+                UT_EXPECT_EQ(it_range.GetSrcVid(), range_count);
+                UT_EXPECT_EQ(it_range.GetDstVid(), range_count + 1);
+                UT_EXPECT_EQ(it_range.GetLabelId(), range_count);
+                UT_EXPECT_EQ(it_range.GetTemporalId(), range_count);
+                UT_EXPECT_EQ(it_range.GetEid(), range_count);
+                ++range_count;
+                it_range.Next();
+            }
+            UT_EXPECT_EQ(range_count, 100);
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key");
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i, i + 1, i, i, i);
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_del.IsValid()) {
+                    if (it_del.GetSrcVid() == i) find_src = true;
+                    if (it_del.GetDstVid() == i + 1) find_dst = true;
+                    if (it_del.GetLabelId() == i) find_lid = true;
+                    if (it_del.GetTemporalId() == i) find_tid = true;
+                    if (it_del.GetEid() == i) find_eid = true;
+                    it_del.Next();
+                }
+                UT_EXPECT_FALSE(find_src);
+                UT_EXPECT_FALSE(find_dst);
+                UT_EXPECT_FALSE(find_lid);
+                UT_EXPECT_FALSE(find_tid);
+                UT_EXPECT_FALSE(find_eid);
+            }
+            EdgeIndexIterator it_none = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef("test_key"), Value());
+            size_t all_keys = 0;
+            while (it_none.IsValid()) {
+                ++all_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(all_keys, 0);
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key" + std::to_string(i));
+                UT_EXPECT_TRUE(idx.Add(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key), i, i + 1);
+                UT_EXPECT_TRUE(it_add.IsValid());
+                UT_EXPECT_EQ(it_add.GetKey().AsString(), key);
+                UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+                UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+                UT_EXPECT_EQ(it_add.GetLabelId(), i);
+                UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+                UT_EXPECT_EQ(it_add.GetEid(), i);
+            }
+
+            for (int32_t i = 0; i < 100; ++i) {
+                EdgeUid edgeUid(i, i + 1, i, i, i);
+                std::string key("test_key" + std::to_string(i));
+                UT_EXPECT_TRUE(idx.Delete(txn, Value::ConstRef(key), edgeUid));
+                EdgeIndexIterator it_del = idx.GetUnmanagedIterator(
+                    txn, Value::ConstRef(key), Value::ConstRef(key));
+                bool find_src = false, find_dst = false, find_lid = false,
+                     find_tid = false, find_eid = false;
+                while (!find_src && it_del.IsValid()) {
+                    if (it_del.GetSrcVid() == i) find_src = true;
+                    if (it_del.GetDstVid() == i + 1) find_dst = true;
+                    if (it_del.GetLabelId() == i) find_lid = true;
+                    if (it_del.GetTemporalId() == i) find_tid = true;
+                    if (it_del.GetEid() == i) find_eid = true;
+                    it_del.Next();
+                }
+                UT_EXPECT_FALSE(find_src);
+                UT_EXPECT_FALSE(find_dst);
+                UT_EXPECT_FALSE(find_lid);
+                UT_EXPECT_FALSE(find_tid);
+                UT_EXPECT_FALSE(find_eid);
+            }
+            EdgeIndexIterator it_del_all = idx.GetUnmanagedIterator(
+                txn, Value::ConstRef("test_key"), Value());
+            size_t del_keys = 0;
+            while (it_del_all.IsValid()) {
+                ++del_keys;
+                it_none.Next();
+            }
+            UT_EXPECT_EQ(del_keys, 0);
+        }
+
+        txn.Commit();
+    }
+    return 0;
+}  // end of TestEdgeIndexCRUD
+
+TEST_F(TestEdgeIndex, TestEdgeIndexCRUD) {
+    TestEdgeIndexValue();
+    TestEdgeIndexCRUD();
 }

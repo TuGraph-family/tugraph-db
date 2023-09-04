@@ -74,6 +74,13 @@ class CypherException : public InputError {
     explicit CypherException(const std::string& err)
         : InputError(std::string("CypherException: ") + err) {}
 };
+class GqlException : public InputError {
+ public:
+    GqlException() = delete;
+
+    explicit GqlException(const std::string& err)
+        : InputError(std::string("GqlException: ") + err) {}
+};
 
 class LexerException : public CypherException {
  public:

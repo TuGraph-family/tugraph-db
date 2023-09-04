@@ -39,23 +39,25 @@ struct IndexEntry {
         : label(std::move(rhs.label)),
           field(std::move(rhs.field)),
           table_name(std::move(rhs.table_name)),
-          is_unique(rhs.is_unique) {}
+          is_unique(rhs.is_unique),
+          is_global(rhs.is_global) {}
 
     std::string label;
     std::string field;
     std::string table_name;
     bool is_unique = false;
+    bool is_global = false;
 
     template <typename StreamT>
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, table_name) +
-               BinaryWrite(buf, is_unique);
+               BinaryWrite(buf, is_unique) + BinaryWrite(buf, is_global);
     }
 
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, table_name) +
-               BinaryRead(buf, is_unique);
+               BinaryRead(buf, is_unique) + BinaryRead(buf, is_global);
     }
 };
 }  // namespace _detail
@@ -153,7 +155,8 @@ class IndexManager {
                         FieldType dt, bool is_unique, std::unique_ptr<VertexIndex>& index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
-                      FieldType dt, bool is_unique, std::unique_ptr<EdgeIndex>& index);
+                      FieldType dt, bool is_unique, bool is_global,
+                      std::unique_ptr<EdgeIndex>& index);
 
     bool AddFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                           const std::string& field);
