@@ -7,7 +7,7 @@ include(BuildLGraphApi.cmake)
 
 option(BUILD_JAVASDK "build lgraph4jni.so for javasdk" OFF)
 if(BUILD_JAVASDK)
-        include(BuildLGraphApiForJNI.cmake)
+include(BuildLGraphApiForJNI.cmake)
 endif()
 
 include(BuildPythonApi.cmake)

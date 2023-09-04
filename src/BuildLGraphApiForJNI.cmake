@@ -85,13 +85,10 @@ add_library(${TARGET_LGRAPH} SHARED
         ${LGRAPH_CORE_SRC}
         ${LGRAPH_DB_SRC}
         ${LGRAPH_ALGO_SRC}
-
-
         plugin/cpp_plugin.cpp
         plugin/plugin_context.cpp
         plugin/plugin_manager.cpp
         plugin/python_plugin.cpp
-
         tiny-process-library/process.cpp
         tiny-process-library/process_unix.cpp
         ${PROTO_SRCS}
@@ -104,7 +101,6 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
         ${LGRAPH_SRC_DIR}
         ${LGRAPH_SRC_DIR}/cypher
         ${JNI_INCLUDE_DIRS}
-
         /usr/lib/jvm/java-1.8.0-openjdk/include
         /usr/lib/jvm/java-1.8.0-openjdk/include/linux)
 
