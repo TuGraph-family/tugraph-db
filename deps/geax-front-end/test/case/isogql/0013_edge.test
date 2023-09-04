@@ -1,0 +1,65 @@
+//
+//  +------A-----+   edge_n5_n5   +-------B------+   edge_n5_n5   +-------C------+
+//  | node5 1101 | -------------> | node5 1102   | -------------> | node5 1103   |
+//  +------------+                +--------------+                +--------------+
+//                                              edge_n5_n5         |      ^
+//                                    +----------------------------+      | edge_n5_n5
+//                                    |                                   |
+//                                    v                                   |
+//                              +-------D------+   edge_n5_n5   +-------E------+
+//                              |  node5 1104  | -------------> |  node5 1105  |
+//                              +--------------+                +--------------+
+//
+//
+def init_dataset: gql = {
+    // 0.init
+    // insert node
+    INSERT (:node5{@id:1101, p_long:1101, p_double:110.1, p_string:"A_1101"}), (:node5{@id:1102, p_long:1102, p_double:110.2, p_string:"B_1102"}), (:node5{@id:1103, p_long:1103, p_double:110.3, p_string:"C_1103"}), (:node5{@id:1104, p_long:1104, p_double:110.4, p_string:"D_1104"}), (:node5{@id:1105, p_long:1105, p_double:110.5, p_string:"E_1105"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node5 where @id in (1101,1102,1103,1104,1105)) order by n.@id;
+
+    // insert edge
+    INSERT ()-[:edge_n5_n5{p_long:1101, p_double:1101.2, p_string:"A-B", @src_id:1101, @dst_id:1102, @timestamp:0}]->(), ()-[:edge_n5_n5{p_long:1102, p_double:1102.3, p_string:"B-C", @src_id:1102, @dst_id:1103, @timestamp:0}]->(), ()-[:edge_n5_n5{p_long:1103, p_double:1103.4, p_string:"C-D", @src_id:1103, @dst_id:1104, @timestamp:0}]->(), ()-[:edge_n5_n5{p_long:1104, p_double:1104.5, p_string:"D-E", @src_id:1104, @dst_id:1105, @timestamp:0}]->(), ()-[:edge_n5_n5{p_long:1105, p_double:1105.3, p_string:"E-C", @src_id:1105, @dst_id:1103, @timestamp:0}]->();
+    select r1, r2, r3, r4, r5 match (a where @id = 1101)-[r1]->(b)-[r2]->(c)-[r3]->(d)-[r4]->(e)-[r5]->(x);
+}
+
+def edgepattern: isogql = {
+    MATCH (a where @id = 1101)-[r1]->(b)-[r2]->(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1101)-[]->(b)-[]->(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1101)->(b)->(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1103)<-[r1]-(b)<-[r2]-(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1103)<-[]-(b)<-[]-(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1103)<-(b)<-(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1101)-[r1]-(b)-[r2]-(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1101)-[ ]-(b)-[]-(c)
+    RETURN a, b, c;
+
+    MATCH (a where @id = 1101)-(b)-(c)
+    RETURN a, b, c;
+}
+
+def delete: gql = {
+    DELETE r MATCH ()-[r:edge_n5_n5{@src_id:1101, @dst_id:1102, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n5_n5{@src_id:1102, @dst_id:1103, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n5_n5{@src_id:1103, @dst_id:1104, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n5_n5{@src_id:1104, @dst_id:1105, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n5_n5{@src_id:1105, @dst_id:1103, @timestamp:0}]->();
+    DELETE n MATCH (n:node5{@id:1101});
+    DELETE n MATCH (n:node5{@id:1102});
+    DELETE n MATCH (n:node5{@id:1103});
+    DELETE n MATCH (n:node5{@id:1104});
+    DELETE n MATCH (n:node5{@id:1105});
+}
