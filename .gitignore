@@ -77,6 +77,10 @@ src/core/version.h
 deps/build
 deps/install
 build.debug
+GqlLexer.*
+GqlParser.*
+GqlParserBaseVisitor.*
+GqlParserVisitor.*
 
 *.exp
 *.pdb
