@@ -16,14 +16,6 @@ env:
 #    should be upgrade to at least 2.18 in order to use actions/checkout@v3
 #    inside docker instead of running ut and it via Dockerfile.
 jobs:
-  deployment:
-    runs-on: ubuntu-latest
-    steps:
-      - name: codeScan
-        uses: TuGraph-family/alipay-cloud-devops-codescan@main
-        with:
-          parent_uid: ${{ secrets.ALI_PID }}
-          private_key: ${{ secrets.ALI_PK }}
   docker:
     runs-on: ubuntu-latest
     steps:
