@@ -72,18 +72,21 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
     && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
     && ./bootstrap && make ${JFLAG} && make install && rm -rf /cmake-3.*
 
-# install boost-1.68
-# if it is not accessible, replace it with the link below
-# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+# 1. Install boost-1.68 and the geometry extensions
+# 2. Revise the macro INVALID_INDEX in geometry module to avoid macro conflict error with Antlr4
+# 3. Copy the boost geometry extensions to the boost-1.68 include directory(headers only)
+# if boost-1.68 is not accessible, replace it with the link below
+# - https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+# Geometry extensions is the `include/boost/geometry/extensions` directory in the repository and commit id below.
+# - Commit 5fbd2a11027f658decda5e43af73935e98a84ee5 @ https://github.com/boostorg/geometry.git
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
-    && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
-    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
-    && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install && rm -rf /boost_*
-
-# install boost/geometry (including extensions)
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry.tar.gz \
-    && rm -rf /usr/local/include/boost/geometry && tar xf geometry.tar.gz \
-    && cp -r geometry/ /usr/local/include/boost/ && rm -rf geometry.tar.gz geometry
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
+    && cd boost_1_68_0 && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
+    && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
+    && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
+    && cp -r /extensions /usr/local/include/boost/geometry/ \
+    && rm -rf /boost_* /extensions
 
 # install protobuf
 # if it is not accessible, replace it with the link below
@@ -306,6 +309,7 @@ ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/
     ARROW_ZLIB_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zlib-1.2.13.tar.gz \
     ARROW_ZSTD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zstd-1.5.5.tar.gz
 
+# install Apache arrow
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/apache-arrow-13.0.0.tar.gz \
   && tar xf apache-arrow-13.0.0.tar.gz && cd apache-arrow-13.0.0/cpp && mkdir build && cd build \
   && cmake .. -DARROW_DATASET=ON -DARROW_PARQUET=ON -DARROW_ORC=ON -DARROW_CSV=ON && make ${JFLAG} \
