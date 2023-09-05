@@ -1,6 +1,8 @@
 ## Resource preparation for building docker image
 
-The docker files here uses many Cpp library resources which are uploaded to oss service.
+The docker files here uses many Cpp library resources which are uploaded to oss service. You can refer
+to  https://tugraph-db.readthedocs.io/zh_CN/latest/5.developer-manual/1.installation/3.docker-deployment.html for more
+details.
 
 Most of them are the same as the original resource. However, some exceptional ones are carefully
 modified to accelerate the building process with these problems:
@@ -11,7 +13,7 @@ modified to accelerate the building process with these problems:
 The pacakges revised from the original ones include,
 
 - GraphAr package
-- Gemoetry package
+- Geometry package
 
 ### GraphAr Package
 
