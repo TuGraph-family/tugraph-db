@@ -721,8 +721,9 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             continue;
         }
         // do index
+        std::vector<size_t> created_index;
         try {
-            schema->AddVertexToIndex(txn_, newvid, v);
+            schema->AddVertexToIndex(txn_, newvid, v, created_index);
         } catch (std::exception& e) {
             // if index fails, delete the vertex & the incomplete index
             bool success = graph_->DeleteVertex(txn_, newvid);
@@ -737,13 +738,14 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
              * (3) online import vertex with duplicated age(NON-UNIQUE INDEX),
              *     failed incorrectly.
              **/
-            schema->DeleteCreatedVertexIndex(txn_, newvid, v);
+            schema->DeleteCreatedVertexIndex(txn_, newvid, v, created_index);
             std::string msg =
                 FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
             if (!continue_on_error) {
                 throw ::lgraph::InputError(msg);
             }
             error.append(msg);
+            continue;
         }
         count++;
         // add fulltext index
@@ -765,23 +767,18 @@ std::string Transaction::_OnlineImportBatchAddEdges(
     std::function<void(int64_t, int64_t, uint16_t, int64_t, int64_t, const Value&)>
         add_fulltext_index;
 
+    int64_t count = 0;
     auto extra_work = [&](const EdgeUid& euid, const Value& record) {
-        if (fulltext_index_) {
-            schema->AddEdgeToFullTextIndex(euid, record, fulltext_buffers_);
-        }
-        if (schema->DetachProperty()) {
-            schema->AddDetachedEdgeProperty(txn_, euid, record);
-        }
-
+        std::vector<size_t> created_index;
         try {
-            schema->AddEdgeToIndex(txn_, euid, record);
+            schema->AddEdgeToIndex(txn_, euid, record, created_index);
         } catch (std::exception& e) {
             bool success = graph_->DeleteEdge(txn_, euid);
             if (!success) throw std::runtime_error("failed to undo AddEdge");
             if (schema->DetachProperty()) {
                 schema->GetDetachedEdgeProperty(txn_, euid);
             }
-            schema->DeleteCreatedEdgeIndex(txn_, euid, record);
+            schema->DeleteCreatedEdgeIndex(txn_, euid, record, created_index);
             std::string msg =
                 FMA_FMT("When importing edge label {}:\n{}\n",
                         schema->GetLabel(), PrintNestedException(e, 1));
@@ -789,11 +786,18 @@ std::string Transaction::_OnlineImportBatchAddEdges(
                 throw ::lgraph::InputError(msg);
             }
             error.append(msg);
+            return;
         }
+        if (fulltext_index_) {
+            schema->AddEdgeToFullTextIndex(euid, record, fulltext_buffers_);
+        }
+        if (schema->DetachProperty()) {
+            schema->AddDetachedEdgeProperty(txn_, euid, record);
+        }
+        ++count;
     };
-    int64_t count = 0;
+
     for (auto& v : data) {
-        count += v.outs.size();
         graph::Graph::OutIteratorImpl::InsertEdges(v.vid, v.outs.begin(), v.outs.end(), it,
                                                    extra_work, schema->DetachProperty());
         graph::Graph::InIteratorImpl::InsertEdges(v.vid, v.ins.begin(), v.ins.end(), it,
@@ -1181,7 +1185,8 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
                      : schema->CreateRecord(n_fields, fields, values);
     VertexId newvid = graph_->AddVertex(
         txn_, schema->DetachProperty() ? schema->CreateRecordWithLabelId() : prop);
-    schema->AddVertexToIndex(txn_, newvid, prop);
+    std::vector<size_t> created_index;
+    schema->AddVertexToIndex(txn_, newvid, prop, created_index);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(txn_, newvid, prop);
     }
@@ -1245,7 +1250,8 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     if (schema->DetachProperty()) {
         schema->AddDetachedEdgeProperty(txn_, euid, prop);
     }
-    schema->AddEdgeToIndex(txn_, euid, prop);
+    std::vector<size_t> created_index;
+    schema->AddEdgeToIndex(txn_, euid, prop, created_index);
     if (fulltext_index_) {
         schema->AddEdgeToFullTextIndex(euid, prop, fulltext_buffers_);
     }
