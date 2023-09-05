@@ -24,7 +24,7 @@ const int max_springback_iterations = 20;
 
 class LouvainGraph {
     OlapBase<double> *graph;
-    ParallelVector<size_t> label;
+    ParallelVector<size_t> *label;
     ParallelVector<double> k;
     ParallelVector<double> e_tot;
     double m;
@@ -38,12 +38,12 @@ class LouvainGraph {
     LouvainGraph *sub_louvain_graph = nullptr;
 
  public:
-    LouvainGraph(OlapBase<double> *myGraph, ParallelVector<size_t> &_label, int _is_sync = 0)
+    LouvainGraph(OlapBase<double> *myGraph, ParallelVector<size_t> *_label, int _is_sync = 0)
         : k(myGraph->AllocVertexArray<double>()),
           e_tot(myGraph->AllocVertexArray<double>()) {
             graph = myGraph;
             is_sync = _is_sync;
-            label.Swap(_label);
+            label = _label;
         }
 
     void init(size_t threshold) {
@@ -58,7 +58,7 @@ class LouvainGraph {
 
         real_nodes = graph->ProcessVertexInRange<size_t>(
             [&](size_t vi) {
-                label[vi] = vi;
+                (*label)[vi] = vi;
                 if (graph->OutDegree(vi) > 0) {
                     return 1;
                 }
@@ -98,7 +98,7 @@ class LouvainGraph {
         e_tot.Fill(0.0);
         graph->ProcessVertexInRange<size_t>(
             [&](size_t v) {
-                write_add(&e_tot[label[v]], k[v]);
+                write_add(&e_tot[(*label)[v]], k[v]);
                 return 0;
             },
         0, graph->NumVertices());
@@ -110,11 +110,11 @@ class LouvainGraph {
                     double q = 0.0;
                     for (auto e : graph->OutEdges(vi)) {
                         size_t nbr = e.neighbour;
-                        if (label[vi] == label[nbr]) {
+                        if ((*label)[vi] == (*label)[nbr]) {
                             q += e.edge_data;
                         }
                     }
-                    q -= 1.0 * k[vi] * e_tot[label[vi]] / (2.0 * m);
+                    q -= 1.0 * k[vi] * e_tot[(*label)[vi]] / (2.0 * m);
                     return q;
                 },
                 0, graph->NumVertices()) / (2.0 * m);
@@ -138,7 +138,7 @@ class LouvainGraph {
                     if (vi == e.neighbour) {
                         continue;
                     }
-                    size_t nbr_label = label[e.neighbour];
+                    size_t nbr_label = (*label)[e.neighbour];
                     auto it = count.find(nbr_label);
                     if (it == count.end()) {
                         count[nbr_label] = e.edge_data;
@@ -146,7 +146,7 @@ class LouvainGraph {
                         it->second += e.edge_data;
                     }
                 }
-                size_t old_label = label[vi];
+                size_t old_label = (*label)[vi];
                 double k_in_out = 0.0;
                 if (count.find(old_label) != count.end()) {
                     k_in_out = count[old_label];
@@ -174,7 +174,7 @@ class LouvainGraph {
                     graph->AcquireVertexLock(old_label);
                     e_tot[old_label] -= v_k;
                     graph->ReleaseVertexLock(old_label);
-                    label[vi] = label_max;
+                    (*label)[vi] = label_max;
                     graph->AcquireVertexLock(label_max);
                     e_tot[label_max] += v_k;
                     graph->ReleaseVertexLock(label_max);
@@ -195,7 +195,7 @@ class LouvainGraph {
             std::unordered_map<size_t, double> count;
             for (auto e : graph->OutEdges(v)) {
                 if (v == e.neighbour) continue;
-                size_t nbr_label = label[e.neighbour];
+                size_t nbr_label = (*label)[e.neighbour];
                 auto it = count.find(nbr_label);
                 if (it == count.end()) {
                     count[nbr_label] = e.edge_data;
@@ -203,7 +203,7 @@ class LouvainGraph {
                     it->second += e.edge_data;
                 }
             }
-            size_t old_label = label[v];
+            size_t old_label = (*label)[v];
             double k_in_out = 0.0;
             if (count.find(old_label) != count.end()) {
                 k_in_out = count[old_label];
@@ -226,7 +226,7 @@ class LouvainGraph {
             }
             if (label_max != old_label) {
                 e_tot[old_label] -= k[v];
-                label[v] = label_max;
+                (*label)[v] = label_max;
                 e_tot[label_max] += k[v];
                 active_vertices += 1;
             }
@@ -285,7 +285,7 @@ class LouvainGraph {
         min_label.Fill(graph->NumVertices());
         graph->ProcessVertexInRange<size_t>(
             [&](size_t vi) {
-                size_t v_label = label[vi];
+                size_t v_label = (*label)[vi];
                 auto lock = graph->GuardVertexLock(v_label);
                 if (min_label[v_label] > vi) {
                     min_label[v_label] = vi;
@@ -295,7 +295,7 @@ class LouvainGraph {
             0, graph->NumVertices());
         graph->ProcessVertexInRange<size_t>(
             [&](size_t vi) {
-                label[vi] = min_label[label[vi]];
+                (*label)[vi] = min_label[(*label)[vi]];
                 return 0;
             },
         0, graph->NumVertices());
@@ -315,7 +315,7 @@ class LouvainGraph {
         std::vector<std::unordered_map<size_t, double> > sub_edges(num_sub_vertices);
 
         for (size_t v = 0; v < graph->NumVertices(); v++) {
-            if (sub_index[label[v]] == (size_t)-1) {
+            if (sub_index[(*label)[v]] == (size_t)-1) {
                 continue;
             }
             for (auto e : graph->OutEdges(v)) {
@@ -325,10 +325,10 @@ class LouvainGraph {
                         edouble /= 2;
                     }
                     auto pair_it = sub_edges[
-                            sub_index[label[v]]].find(sub_index[label[e.neighbour]]);
-                    if (pair_it == sub_edges[sub_index[label[v]]].end()) {
-                        sub_edges[sub_index[label[v]]][
-                                sub_index[label[e.neighbour]]] = edouble;
+                        sub_index[(*label)[v]]].find(sub_index[(*label)[e.neighbour]]);
+                    if (pair_it == sub_edges[sub_index[(*label)[v]]].end()) {
+                        sub_edges[sub_index[(*label)[v]]][
+                            sub_index[(*label)[e.neighbour]]] = edouble;
                     } else {
                         pair_it->second += edouble;
                     }
@@ -371,7 +371,7 @@ class LouvainGraph {
                 0, graph->NumVertices());
 
         auto sub_label = sub_graph->AllocVertexArray<size_t>();
-        sub_louvain_graph = new LouvainGraph(sub_graph, sub_label, is_sync);
+        sub_louvain_graph = new LouvainGraph(sub_graph, &sub_label, is_sync);
         sub_louvain_graph->init(1);
         sub_louvain_graph->louvain_propagate();
 
@@ -383,18 +383,19 @@ class LouvainGraph {
 
         graph->ProcessVertexInRange<size_t> (
                 [&] (size_t v) {
-                    if (sub_index[label[v]] < 0) {
+                    if (sub_index[(*label)[v]] < 0) {
                         return 0;
                     }
-                    size_t sub_index_v_comm = sub_louvain_graph->label[sub_index[label[v]]];
-                    label[v] = sub_to_parent_label[sub_index_v_comm];
+                    size_t sub_index_v_comm = (*sub_louvain_graph->label)[sub_index[(*label)[v]]];
+                    (*label)[v] = sub_to_parent_label[sub_index_v_comm];
                     return 0;
                 },
                 0, graph->NumVertices());
+        delete sub_louvain_graph;
     }
 };
 
-double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t> &label,
+double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t> *label,
                    size_t active_threshold, int is_sync) {
     LouvainGraph louvain_graph(&graph, label, is_sync);
     louvain_graph.init(active_threshold);

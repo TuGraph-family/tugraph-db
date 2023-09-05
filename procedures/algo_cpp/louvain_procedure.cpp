@@ -46,7 +46,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // core
     start_time = get_time();
     auto label = olapondb.AllocVertexArray<size_t>();
-    auto modularity = LouvainCore(olapondb, label, active_threshold, is_sync);
+    auto modularity = LouvainCore(olapondb, &label, active_threshold, is_sync);
     auto core_cost = get_time() - start_time;
 
     // output

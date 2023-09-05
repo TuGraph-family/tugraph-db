@@ -184,7 +184,7 @@ size_t KCoreCore(OlapBase<Empty>& graph, ParallelVector<bool>& result, size_t va
  * @return   return the modularity of graph.
  */
 
-double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t>& label,
+double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t>* label,
                    size_t active_threshold = 0, int is_sync = 0);
 
 /**

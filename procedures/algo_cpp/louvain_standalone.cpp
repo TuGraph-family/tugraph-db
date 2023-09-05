@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
     // core
     start_time = get_time();
     auto label = graph.AllocVertexArray<size_t>();
-    auto modularity = LouvainCore(graph, label, config.active_threshold, config.is_sync);
+    auto modularity = LouvainCore(graph, &label, config.active_threshold, config.is_sync);
     memUsage.print();
     memUsage.reset();
     auto core_cost = get_time() - start_time;
