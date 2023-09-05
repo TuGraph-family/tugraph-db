@@ -74,6 +74,7 @@ class TestHABackup:
     def test_import_export(self):
         start_ha_server(self.host, "./db")
         importer(self.host, IMPORTOPT)
+        time.sleep(5)
         db_check(self.host)
         stop_server()
         os.system(f"./lgraph_export -d ha1/db -e ha1/export.dir -u admin -p 73@TuGraph")
@@ -86,10 +87,12 @@ class TestHABackup:
     def test_backup(self):
         start_ha_server(self.host, "./db")
         importer(self.host, IMPORTOPT)
+        time.sleep(5)
+        db_check(self.host)
         for cmd in BUILDOPT["cmd"]:
             os.system(cmd)
-        db_check(self.host)
         procedure_load(self.host)
+        time.sleep(5)
         procedure_check(self.host)
         stop_server()
         os.system(f"./lgraph_backup -s ha1/db -d ha1/db.backup")
