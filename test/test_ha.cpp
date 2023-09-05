@@ -241,7 +241,7 @@ class HaUnitTest : public UnitTestBase {
     }
 };
 
-class TestHA : public testing::Test {
+class TestHA : public TuGraphTest {
     std::shared_ptr<lgraph::GlobalConfig> config = std::make_shared<lgraph::GlobalConfig>();
 
  protected:
