@@ -13,7 +13,7 @@ SKIP_WEB=1 bash ./build_deps.sh -j2
 # build tugraph
 cd $WORKSPACE
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Coverage -DENABLE_INTERNAL_BUILD=1
+cmake .. -DCMAKE_BUILD_TYPE=Coverage
 make -j2
 
 # build java
