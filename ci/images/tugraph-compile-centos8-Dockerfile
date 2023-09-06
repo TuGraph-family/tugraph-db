@@ -260,7 +260,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.1
 # https://www.openssl.org/source/old/1.1.1/openssl-1.1.1g.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openssl-1.1.1g.tar.gz \
     && tar zxf openssl-1.1.1g.tar.gz && cd openssl-1.1.1g \
-    && ./config -fPIC --prefix=/usr \
+    && ./config -fPIC --prefix=/usr enable-md2 \
     && make ${JFLAG} && make install \
     && rm -rf /openssl*
 
