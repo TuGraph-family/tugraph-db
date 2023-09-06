@@ -53,6 +53,18 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("url") = "",
           pybind11::return_value_policy::move);
 
+    c.def("callGql", &LGraphPythonClient::CallGql,
+          "Execute a cypher query\n"
+          "gql             [in] inquire statement.\n"
+          "graph           [in] the graph to query.\n"
+          "json_format     [in] Returns the format， true is json，Otherwise, binary format\n"
+          "timeout         [in] Maximum execution time, overruns will be interrupted\n"
+          "url             [in] server address.\n",
+          pybind11::arg("gql"), pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
+          pybind11::arg("url") = "",
+          pybind11::return_value_policy::move);
+
     c.def("loadProcedure", &LGraphPythonClient::LoadProcedure,
           "Load a user-defined procedure\n"
           "source_file            [in] the source_file contain procedure code\n"
