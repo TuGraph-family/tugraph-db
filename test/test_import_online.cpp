@@ -1689,8 +1689,7 @@ TEST_F(TestImportOnline, UniqueIndexCollision) {
 )";
         WriteFile("import.conf", config_content);
 
-        std::string person_content = R"(
-Rachel Kempson,1910,10086,10010
+        std::string person_content = R"(Rachel Kempson,1910,10086,10010
 Michael Redgrave,1908,10087,10010
 Vanessa Redgrave,1937,10088,10011
 Corin Redgrave,1939,10089,10012
@@ -1698,7 +1697,7 @@ Liam Neeson,1952,10090,10013
 Natasha Richardson,1963,10091,10014
 Richard Harris,1930,10092,10015
 Dennis Quaid,1954,10093,10016
-Lindsay Lohan,1986,10094,100116
+Lindsay Lohan,1986,10094,10016
 Jemma Redgrave,1965,10087,10017
 Roy Redgrave,1873,10096,10018
 John Williams,1932,10094,10019
@@ -1706,8 +1705,7 @@ Christopher Nolan,1970,10098,10020
 )";
         WriteFile("person.csv", person_content);
 
-        std::string film_content = R"(
-"Goodbye, Mr. Chips"
+        std::string film_content = R"("Goodbye, Mr. Chips"
 Batman Begins
 Harry Potter and the Sorcerer's Stone
 The Parent Trap
@@ -1750,8 +1748,7 @@ Christopher Nolan,Batman Begins
 )";
         WriteFile("directed.csv", directed_content);
 
-        std::string has_child_content = R"(
-Rachel Kempson,Vanessa Redgrave
+        std::string has_child_content = R"(Rachel Kempson,Vanessa Redgrave
 Rachel Kempson,Corin Redgrave
 Michael Redgrave,Vanessa Redgrave
 Michael Redgrave,Corin Redgrave

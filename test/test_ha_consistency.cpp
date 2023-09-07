@@ -32,7 +32,7 @@ void build_add_vertex_so() {
     UT_EXPECT_EQ(rt, 0);
 }
 
-class TestHAConsistency : public testing::Test {
+class TestHAConsistency : public TuGraphTest {
  protected:
     void SetUp() override {
         build_add_vertex_so();

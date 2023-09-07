@@ -49,7 +49,7 @@ void build_ha_so() {
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./echo_binary.so",
-                 "../../plugins/cpp/echo_binary.cpp", LIBLGRAPH);
+                 "../../test/test_procedures/echo_binary.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./add_label.so",
@@ -241,7 +241,7 @@ class HaUnitTest : public UnitTestBase {
     }
 };
 
-class TestHA : public testing::Test {
+class TestHA : public TuGraphTest {
     std::shared_ptr<lgraph::GlobalConfig> config = std::make_shared<lgraph::GlobalConfig>();
 
  protected:

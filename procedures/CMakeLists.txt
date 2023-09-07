@@ -7,7 +7,7 @@ set(LGRAPH_API_SRC
         ${CMAKE_SOURCE_DIR}/src/lgraph_api/olap_profile.cpp)
 
 function(add_standalone APP)
-    add_executable(${APP}_standalone cpp/${APP}_core.cpp cpp/${APP}_standalone.cpp ${LGRAPH_API_SRC})
+    add_executable(${APP}_standalone algo_cpp/${APP}_core.cpp algo_cpp/${APP}_standalone.cpp ${LGRAPH_API_SRC})
     target_link_libraries(${APP}_standalone ${Boost_LIBRARIES} libstdc++fs.a libgomp.a dl)
     set_target_properties( ${APP}_standalone PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
@@ -16,14 +16,14 @@ function(add_standalone APP)
 endfunction()
 
 function(add_embed APP)
-    add_executable(${APP}_embed cpp/${APP}_core.cpp cpp/${APP}_procedure.cpp embed_main.cpp)
+    add_executable(${APP}_embed algo_cpp/${APP}_core.cpp algo_cpp/${APP}_procedure.cpp embed_main.cpp)
     target_link_libraries(${APP}_embed ${Boost_LIBRARIES} lgraph libgomp.a crypto dl)
     set_target_properties( ${APP}_embed PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
 endfunction()
 
 function(add_embed2 APP)
-    add_executable(${APP}_embed cpp/${APP}.cpp embed_main.cpp)
+    add_executable(${APP}_embed algo_cpp/${APP}.cpp embed_main.cpp)
     target_link_libraries(${APP}_embed ${Boost_LIBRARIES} lgraph libgomp.a crypto dl)
     set_target_properties( ${APP}_embed PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
@@ -31,7 +31,7 @@ function(add_embed2 APP)
 endfunction()
 
 function(add_extension APP)
-    add_cython_target(${APP} cython/${APP}.py CXX)
+    add_cython_target(${APP} algo_cython/${APP}.py CXX)
     add_library(${APP} MODULE ${APP})
     python_extension_module(${APP})
     target_link_libraries(${APP} ${Boost_LIBRARIES} lgraph libgomp.a dl)

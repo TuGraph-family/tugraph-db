@@ -5,7 +5,7 @@ TuGraph DB Interface
    :maxdepth: 2
    :glob:
 
-   1.cypher.md
+   1.query/index.rst
    2.olap/index.rst
    3.procedure/index.rst
    4.protocol/index.rst

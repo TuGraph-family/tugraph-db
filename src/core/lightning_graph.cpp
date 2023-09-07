@@ -1207,7 +1207,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 // but still good to find duplicates early
                 for (size_t i = 1; i < key_vids.size(); i++) {
                     if (key_vids[i].key == key_vids[i - 1].key)
-                        throw InputError(fma_common::StringFormatter::Format(
+                        throw InputError(FMA_FMT(
                             "Duplicate keys [{}] found for vids {} and {}.", key_vids[i].key,
                             key_vids[i - 1].vid, key_vids[i].vid));
                 }
@@ -1233,7 +1233,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         }
                         vids.push_back(kv.vid);
                     }
-                    if (!key_vids.empty()) {
+                    if (!vids.empty()) {
                         index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
                                                                 vids);
                     }
@@ -1315,7 +1315,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         }
                         euids.push_back(kv.euid);
                     }
-                    if (!key_euids.empty()) {
+                    if (!euids.empty()) {
                         edge_index->_AppendNonUniqueIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
                                                                euids);
                     }
@@ -1634,8 +1634,11 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     }
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
-        index_manager_->AddVertexIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
-                                       vertex_index);
+        bool success = index_manager_->AddVertexIndex(txn.GetTxn(), label, field,
+                                   extractor->Type(), is_unique, vertex_index);
+        if (!success)
+            throw InputError(FMA_FMT("build index {}-{} failed", label, field));
+
         vertex_index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
         if (schema->DetachProperty()) {
@@ -1670,27 +1673,27 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             start_vid = 0;
             end_vid = txn.GetLooseNumVertex();
             // vid range not known, try getting from index
-            auto& indexed_fields = schema->GetIndexedFields();
-            if (!indexed_fields.empty()) {
-                VertexIndex* idx =
-                    schema->GetFieldExtractor(*indexed_fields.begin())->GetVertexIndex();
-                FMA_DBG_ASSERT(idx);
-                VertexId beg = std::numeric_limits<VertexId>::max();
-                VertexId end = 0;
-                for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
-                     it.IsValid(); it.Next()) {
-                    VertexId vid = it.GetVid();
-                    beg = std::min(beg, vid);
-                    end = std::max(end, vid);
-                }
-                if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
-                if (end != 0) end_vid = end + 1;
+            VertexIndex* idx =
+                schema->GetFieldExtractor(schema->GetPrimaryField())->GetVertexIndex();
+            FMA_DBG_ASSERT(idx);
+            VertexId beg = std::numeric_limits<VertexId>::max();
+            VertexId end = 0;
+            for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
+                 it.IsValid(); it.Next()) {
+                VertexId vid = it.GetVid();
+                beg = std::min(beg, vid);
+                end = std::max(end, vid);
             }
+            if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
+            if (end != 0) end_vid = end + 1;
         }
     } else {
         std::unique_ptr<EdgeIndex> edge_index;
-        index_manager_->AddEdgeIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
-                                     is_global, edge_index);
+        bool success = index_manager_->AddEdgeIndex(txn.GetTxn(), label, field,
+                                       extractor->Type(), is_unique, is_global, edge_index);
+        if (!success)
+            throw InputError(FMA_FMT("build index {}-{} failed", label, field));
+
         edge_index->SetReady();
         schema->MarkEdgeIndexed(extractor->GetFieldId(), edge_index.release());
         if (schema->DetachProperty()) {
@@ -1727,19 +1730,23 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             end_vid = txn.GetLooseNumVertex();
             // vid range not known, try getting from index
             auto& indexed_fields = schema->GetIndexedFields();
-            if (!indexed_fields.empty()) {
-                EdgeIndex* idx = schema->GetFieldExtractor(*indexed_fields.begin())->GetEdgeIndex();
-                FMA_DBG_ASSERT(idx);
-                VertexId beg = std::numeric_limits<VertexId>::max();
-                VertexId end = 0;
-                for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
-                     it.IsValid(); it.Next()) {
-                    VertexId vid = it.GetSrcVid();
-                    beg = std::min(beg, vid);
-                    end = std::max(end, vid);
+            for (size_t pos : indexed_fields) {
+                auto fe = schema->GetFieldExtractor(pos);
+                if (!fe->IsOptional()) {
+                    EdgeIndex* idx = fe->GetEdgeIndex();
+                    FMA_DBG_ASSERT(idx);
+                    VertexId beg = std::numeric_limits<VertexId>::max();
+                    VertexId end = 0;
+                    for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
+                         it.IsValid(); it.Next()) {
+                        VertexId vid = it.GetSrcVid();
+                        beg = std::min(beg, vid);
+                        end = std::max(end, vid);
+                    }
+                    if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
+                    if (end != 0) end_vid = end + 1;
+                    break;
                 }
-                if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
-                if (end != 0) end_vid = end + 1;
             }
         }
     }

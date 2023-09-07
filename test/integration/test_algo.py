@@ -16,8 +16,8 @@ class TestExec:
     }
 
     IMPORTOPT = {
-        "cmd" : "./lgraph_import -c ./data/algo/fb.conf -d ./testdb --overwrite 1",
-        "cleanup_dir" : ["./testdb", "./.import_tmp"]
+        "cmd" : "./lgraph_import -c ./data/algo/fb.conf -d ./testdb --overwrite 1 && mkdir louvain_output",
+        "cleanup_dir" : ["./testdb", "./.import_tmp", "louvain_output"]
     }
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
@@ -470,7 +470,7 @@ class TestExec:
         pass
 
     LOUVAINSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/louvain_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "cmd": "OMP_NUM_THREADS=6 algo/louvain_standalone --type text --input_dir ./data/algo/fb_weighted --output_dir louvain_output/",
         "result": ["Q = 0.83"]
     }
 
