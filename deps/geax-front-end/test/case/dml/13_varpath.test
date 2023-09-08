@@ -1,0 +1,45 @@
+match p = (n1 where @id = 1)-[r1]->(n2)-[r2]->(n3) RETURN p order by p;
+
+match p = (n where @id = 1)-[r]->{0,2}(m) RETURN p order by p;
+match p = (n where @id = 1)-[r]->{1,2}(m) RETURN p order by p;
+
+match p = (n where @id = 1)-[r]->{0,2}(m) RETURN p, length(p) order by p;
+match p = (n where @id = 1)-[r]->{1,2}(m) RETURN p, length(p) order by p;
+
+match p = (n where @id = 1)-[r]->{1,2}(m) RETURN p, r.p_string order by p;
+
+match p = (n where @id = 1)-[r]->{1,2}(m) RETURN p, r.p_string, m.p_long order by p;
+match p = (n where @id = 1)-[r]->{0,2}(m) RETURN p, r.p_string, m.p_long order by p;
+
+match (n where @id = 1)-[r]->{1,2}(m) RETURN n.@id, m.@id order by n.@id, m.@id;
+
+match (n where @id = 1)-[r]->{2,2}(m) RETURN n.@id, m.@id order by n.@id, m.@id;
+
+match p = (n where @id = 10)-[r]-{1,2}(m) RETURN p order by p;
+
+match p = (n1 where @id = 10)-[r1]-{1,1}(n2)-[r2]-{1,1}(n3) RETURN p order by p;
+
+match p = (n1 where @id = 10)-[r1]-{1,1}(n2)-[r2]-(n3) RETURN p order by p;
+
+match p = (n where @id = 1)-[r]->{1,2}(m where @id >= 100) RETURN p order by p;
+match p = (n where @id = 1)-[r]->{1,2}(m where @id >= 100) RETURN p, m.@id order by p;
+match p = (n where @id = 1)-[r]->{0,2}(m where @id >= 10) RETURN p order by p;
+match p = (n where @id = 1)-[r]->{0,2}(m where @id >= 10) RETURN p, m.@id order by p;
+
+match p = (n where @id = 1)-[r]->{1,2}(m) where m.@id >= 100 RETURN p order by p;
+match p = (n where @id = 1)-[r]->{0,2}(m) where m.@id >= 10 RETURN p order by p;
+
+MATCH p=(c where @id=1)-[r]-{,2}(a where @id = 1) RETURN p,a,c;
+MATCH (c where @id=1)-[r]-{,2}(a where @id = 1) RETURN a,c;
+
+MATCH p = (a where @id=1)-[r]->{,2}(c where @id = 10) RETURN r.@timestamp,p;
+MATCH p = (a where @id=1)-[r]->{,2}(c where @id = 10) RETURN r,p;
+MATCH (a where @id=1)-[r]->{,2}(c where @id = 10) RETURN r.@timestamp;
+
+MATCH p = (n where @id = 1)-[r]->?(m) RETURN p order by p;
+
+match p = (n where @id = 1)-[r]->{1,2}(m) RETURN p, length(n) order by p;
+
+match p = (n:node1 where @id=1)-[r]->{0,2}(m) return p;
+
+match (n where @id = 1)-[r]->{1, 10}(m) RETURN count(distinct m)

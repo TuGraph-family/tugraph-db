@@ -1,5 +1,29 @@
 # Change Log for TuGraph
 
+# 4.0.0 (2023-9-6)
+
+**Breaking Changes:**
+
+1. ISO GQL support
+
+2. Add 11 graph algorithms
+
+**Improvements And Bug Fixes:**
+
+1. Official m1 docker
+
+2. TuGraph-DB Browser support explore
+
+3. Index bug fix during import
+
+4. Other bug fix
+
+**Interfaces Modification:**
+
+1. Proto version upgraded to 1.2.0
+
+2. ISO GQL query interface in client
+
 # 3.6.0 (2023-8-11)
 
 **Breaking Changes:**

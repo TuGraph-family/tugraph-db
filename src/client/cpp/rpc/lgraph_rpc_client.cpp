@@ -88,7 +88,8 @@ LGraphResponse RpcClient::RpcSingleClient::HandleRequest(LGraphRequest* req) {
     return resp;
 }
 
-bool RpcClient::RpcSingleClient::HandleCypherRequest(LGraphResponse* res, const std::string& query,
+bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::ProtoGraphQueryType type,
+                                                     LGraphResponse* res, const std::string& query,
                                                      const std::string& graph, bool json_format,
                                                      double timeout) {
     assert(res);
@@ -97,7 +98,8 @@ bool RpcClient::RpcSingleClient::HandleCypherRequest(LGraphResponse* res, const 
     LGraphRequest req;
     req.set_client_version(server_version);
     req.set_token(token);
-    lgraph::CypherRequest* cypher_req = req.mutable_cypher_request();
+    lgraph::GraphQueryRequest* cypher_req = req.mutable_graph_query_request();
+    cypher_req->set_type(type);
     cypher_req->set_graph(graph);
     cypher_req->set_query(query);
     cypher_req->set_timeout(timeout);
@@ -121,12 +123,27 @@ bool RpcClient::RpcSingleClient::CallCypher(std::string& result, const std::stri
                                             const std::string& graph, bool json_format,
                                             double timeout) {
     LGraphResponse res;
-    if (!HandleCypherRequest(&res, cypher, graph, json_format, timeout)) {
+    if (!HandleGraphQueryRequest(lgraph::ProtoGraphQueryType::CYPHER,
+                                 &res, cypher, graph, json_format, timeout)) {
         result = res.error();
         return false;
     }
-    CypherResponse cypher_res = res.cypher_response();
-    result = CypherResponseExtractor(cypher_res);
+    const GraphQueryResponse& cypher_res = res.graph_query_response();
+    result = GraphQueryResponseExtractor(cypher_res);
+    return true;
+}
+
+bool RpcClient::RpcSingleClient::CallGql(std::string& result, const std::string& gql,
+                                         const std::string& graph, bool json_format,
+                                         double timeout) {
+    LGraphResponse res;
+    if (!HandleGraphQueryRequest(lgraph::ProtoGraphQueryType::GQL,
+                                 &res, gql, graph, json_format, timeout)) {
+        result = res.error();
+        return false;
+    }
+    const GraphQueryResponse& gql_res = res.graph_query_response();
+    result = GraphQueryResponseExtractor(gql_res);
     return true;
 }
 
@@ -244,20 +261,21 @@ std::string RpcClient::RpcSingleClient::CypherResultExtractor(const CypherResult
 }
 #endif
 
-std::string RpcClient::RpcSingleClient::CypherResponseExtractor(const CypherResponse& cypher) {
+std::string RpcClient::RpcSingleClient::GraphQueryResponseExtractor(const GraphQueryResponse&
+                                                                    cypher) {
     switch (cypher.Result_case()) {
-    case CypherResponse::kJsonResult:
+    case GraphQueryResponse::kJsonResult:
         {
             return cypher.json_result();
         }
-    case CypherResponse::kBinaryResult:
+    case GraphQueryResponse::kBinaryResult:
         {
 #ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
             return CypherResultExtractor(cypher.binary_result());
 #endif
         }
-    case CypherResponse::RESULT_NOT_SET:
-        FMA_ERR() << "CypherResponse::RESULT_NOT_SET";
+    case GraphQueryResponse::RESULT_NOT_SET:
+        FMA_ERR() << "GraphQueryResponse::RESULT_NOT_SET";
         break;
     }
     //  Just to pass the compilation
@@ -540,7 +558,8 @@ RpcClient::RpcClient(const std::string &url, const std::string &user,
     bool ret = base_client->CallCypher(result, "CALL dbms.ha.clusterInfo()");
     if (ret) {
         client_type = DIRECT_HA_CONNECTION;
-        cypher_constant = {"create ", "set ", "delete ", "remove ", "merge ", "CALL "};
+        cypher_write_constant = {"create ", "set ", "delete ", "remove ", "merge "};
+        gql_write_constant = {"create ", "set ", "delete ", "remove ", "insert ", "drop "};
         RefreshConnection();
     } else {
         client_type = SINGLE_CONNECTION;
@@ -554,7 +573,8 @@ RpcClient::RpcClient(std::vector<std::string> &urls, std::string user,
       password(std::move(password)),
       urls(urls) {
     client_type = INDIRECT_HA_CONNECTION;
-    cypher_constant = {"create ", "set ", "delete ", "remove ", "merge ", "CALL "};
+    cypher_write_constant = {"create ", "set ", "delete ", "remove ", "merge "};
+    gql_write_constant = {"create ", "set ", "delete ", "remove ", "insert ", "drop "};
     RefreshConnection();
 }
 
@@ -575,7 +595,23 @@ bool RpcClient::CallCypher(std::string &result, const std::string &cypher,
     auto fun = [&]{
         if (!url.empty())
             return GetClientByNode(url)->CallCypher(result, cypher, graph, json_format, timeout);
-        return GetClient(cypher, graph)->CallCypher(result, cypher, graph, json_format, timeout);
+        return GetClient(lgraph::ProtoGraphQueryType::CYPHER, cypher, graph)->
+            CallCypher(result, cypher, graph, json_format, timeout);
+    };
+    return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::CallGql(std::string &result, const std::string &gql,
+                           const std::string &graph, bool json_format,
+                           double timeout, const std::string& url) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->CallGql(result, gql, graph, json_format, timeout);
+    }
+    auto fun = [&]{
+        if (!url.empty())
+            return GetClientByNode(url)->CallGql(result, gql, graph, json_format, timeout);
+        return GetClient(lgraph::ProtoGraphQueryType::GQL, gql, graph)->
+            CallGql(result, gql, graph, json_format, timeout);
     };
     return DoubleCheckQuery(fun);
 }
@@ -761,33 +797,43 @@ void RpcClient::RefreshClientPool() {
     }
 }
 
-bool RpcClient::IsReadCypher(const std::string &cypher, const std::string &graph) {
-    if (cypher.find(cypher_constant.at(5)) != std::string::npos) {
+bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
+                             const std::string &query, const std::string &graph) {
+    if (boost::to_upper_copy(query).find("CALL ") != std::string::npos) {
         for (auto &op : user_defined_procedures) {
             if (op["graph"] == graph &&
-                cypher.find(op["plugins"]["name"]) != std::string::npos) {
+                query.find(op["plugins"]["name"]) != std::string::npos) {
                 return op["plugins"]["read_only"];
             }
         }
         for (auto &procedure : built_in_procedures) {
-            if (cypher.find(procedure["name"]) != std::string::npos) {
+            if (query.find(procedure["name"]) != std::string::npos) {
                 return procedure["read_only"];
             }
         }
     }
-    std::string tmp = cypher;
+    std::string tmp = query;
     std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
-    for (int i = 0; i < 5; i++) {
-        if (tmp.find(cypher_constant[i]) != std::string::npos) {
-            return false;
+    if (type == lgraph::ProtoGraphQueryType::CYPHER) {
+        for (const auto &c : cypher_write_constant) {
+            if (tmp.find(c) != std::string::npos) {
+                return false;
+            }
+        }
+    } else {
+        for (const auto &c : gql_write_constant) {
+            if (tmp.find(c) != std::string::npos) {
+                return false;
+            }
         }
     }
     return true;
 }
 
-std::shared_ptr<lgraph::RpcClient::RpcSingleClient> RpcClient::GetClient(const std::string &cypher,
-                                                          const std::string &graph) {
-    return GetClient(IsReadCypher(cypher, graph));
+std::shared_ptr<lgraph::RpcClient::RpcSingleClient>
+    RpcClient::GetClient(lgraph::ProtoGraphQueryType type, const std::string &cypher,
+                         const std::string &graph) {
+    return GetClient(IsReadQuery(type, cypher, graph));
 }
 
 std::shared_ptr<lgraph::RpcClient::RpcSingleClient> RpcClient::GetClient(bool isReadQuery) {

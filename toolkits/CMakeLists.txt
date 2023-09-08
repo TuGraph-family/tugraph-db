@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(TuGraph C CXX)
 
-# boost
-# set(Boost_USE_STATIC_LIBS ON)
-# find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
-
 ############### lgraph_import ######################
 
 set(TARGET_LGRAPH_IMPORT lgraph_import)

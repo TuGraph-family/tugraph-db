@@ -19,6 +19,8 @@
 
 #include <regex>
 #include "cypher/execution_plan/ops/op.h"
+#include "lgraph/lgraph_types.h"
+#include "resultset/record.h"
 #include "server/json_convert.h"
 
 /* Runtime Record to User Record */
@@ -29,63 +31,90 @@ static void RRecordToURecord(
     if (header.empty()) {
         return;
     }
-    int index = 0;
-    for (auto &v : record_ptr->values) {
-        switch (header[index].second) {
-        case lgraph_api::LGraphType::NODE:
-            {
-                if (v.type == cypher::Entry::NODE_SNAPSHOT) {
-                    std::regex regex_word("(V)\\[([0-9]+)\\]");
-                    std::smatch match_group;
-                    auto node_str = v.ToString();
-                    CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
-                    auto vid = static_cast<size_t>(std::stoll(match_group[2].str()));
+
+    for (size_t index = 0; index < header.size(); index++) {
+        auto &v = record_ptr->values[index];
+        const auto &entry_type = v.type;
+        const auto &header_type = header[index].second;
+
+        if (entry_type == cypher::Entry::NODE_SNAPSHOT) {
+            if (header_type == lgraph_api::LGraphType::NODE ||
+                header_type == lgraph_api::LGraphType::ANY) {
+                std::regex regex_word("(V)\\[([0-9]+)\\]");
+                std::smatch match_group;
+                auto node_str = v.ToString();
+                CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
+                auto vid = static_cast<size_t>(std::stoll(match_group[2].str()));
+                record.InsertVertexByID(header[index].first, vid);
+                continue;
+            } else {
+                throw lgraph::CypherException(
+                    "unhandled record entry type: " + cypher::Entry::ToString(v.type) +
+                    ", header type: " + std::to_string(uint16_t(header_type)));
+            }
+        }
+
+        if (entry_type == cypher::Entry::NODE) {
+            if (header_type == lgraph_api::LGraphType::NODE ||
+                header_type == lgraph_api::LGraphType::ANY) {
+                auto vid = v.node->PullVid();
+                if (vid >= 0) {
+                    record.Insert(header[index].first, vid, txn);
+                } else {
+                    // OPTIONAL MATCH return null
                     record.InsertVertexByID(header[index].first, vid);
-                } else if (v.type == cypher::Entry::NODE) {
-                    auto vid = v.node->PullVid();
-                    if (vid >= 0) {
-                        record.Insert(header[index].first, vid, txn);
-                    } else {
-                        // OPTIONAL MATCH return null
-                        record.InsertVertexByID(header[index].first, vid);
-                    }
-                } else {
-                    throw lgraph::CypherException("unhandled record entry type: " +
-                                                  cypher::Entry::ToString(v.type));
                 }
-                break;
+                continue;
+            } else {
+                throw lgraph::CypherException(
+                    "unhandled record entry type: " + cypher::Entry::ToString(v.type) +
+                    ", header type: " + std::to_string(uint16_t(header_type)));
             }
-        case lgraph_api::LGraphType::RELATIONSHIP:
-            {
-                if (v.type == cypher::Entry::RELP_SNAPSHOT) {
-                    std::regex regex_word("(E)\\[([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+)\\]");
-                    std::smatch match_group;
-                    auto repl_str = v.ToString();
-                    CYPHER_THROW_ASSERT(std::regex_match(repl_str, match_group, regex_word));
-                    auto ids = match_group[2].str();
-                    lgraph_api::EdgeUid edge_uid;
-                    std::regex split_word("_");
-                    std::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
-                    // WARNING: This depend on EUID order.
-                    auto start = static_cast<size_t>(std::stoll(id++->str()));
-                    auto end = static_cast<size_t>(std::stoll(id++->str()));
-                    auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
-                    auto tid = static_cast<int64_t>(std::stoll(id++->str()));
-                    auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
-                    record.InsertEdgeByID(header[index].first,
-                                          lgraph_api::EdgeUid(start, end, lid, tid, eid));
-                } else if (v.type == cypher::Entry::RELATIONSHIP) {
-                    auto uit = v.relationship->ItRef();
-                    auto uid = uit->GetUid();
-                    record.Insert(header[index].first, uid, txn);
-                } else {
-                    throw lgraph::CypherException("unhandled record entry type: " +
-                                                  cypher::Entry::ToString(v.type));
-                }
-                break;
+        }
+
+        if (entry_type == cypher::Entry::RELP_SNAPSHOT) {
+            if (header_type == lgraph_api::LGraphType::RELATIONSHIP ||
+                header_type == lgraph_api::LGraphType::ANY) {
+                std::regex regex_word("(E)\\[([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+)\\]");
+                std::smatch match_group;
+                auto repl_str = v.ToString();
+                CYPHER_THROW_ASSERT(std::regex_match(repl_str, match_group, regex_word));
+                auto ids = match_group[2].str();
+                lgraph_api::EdgeUid edge_uid;
+                std::regex split_word("_");
+                std::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
+                // WARNING: This depend on EUID order.
+                auto start = static_cast<size_t>(std::stoll(id++->str()));
+                auto end = static_cast<size_t>(std::stoll(id++->str()));
+                auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
+                auto tid = static_cast<int64_t>(std::stoll(id++->str()));
+                auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
+                record.InsertEdgeByID(header[index].first,
+                                      lgraph_api::EdgeUid(start, end, lid, tid, eid));
+                continue;
+            } else {
+                throw lgraph::CypherException(
+                    "unhandled record entry type: " + cypher::Entry::ToString(v.type) +
+                    ", header type: " + std::to_string(uint16_t(header_type)));
             }
-        case lgraph_api::LGraphType::PATH:
-            {
+        }
+
+        if (entry_type == cypher::Entry::RELATIONSHIP) {
+            if (header_type == lgraph_api::LGraphType::RELATIONSHIP ||
+                header_type == lgraph_api::LGraphType::ANY) {
+                auto uit = v.relationship->ItRef();
+                auto uid = uit->GetUid();
+                record.Insert(header[index].first, uid, txn);
+                continue;
+            } else {
+                throw lgraph::CypherException(
+                    "unhandled record entry type: " + cypher::Entry::ToString(v.type) +
+                    ", header type: " + std::to_string(uint16_t(header_type)));
+            }
+        }
+
+        if (entry_type == cypher::Entry::CONSTANT) {
+            if (header_type == lgraph_api::LGraphType::PATH) {
                 using Vertex = lgraph_api::traversal::Vertex;
                 using Path = lgraph_api::traversal::Path;
                 using Edge = lgraph_api::traversal::Edge;
@@ -119,16 +148,29 @@ static void RRecordToURecord(
                     path.Append(Edge(start, lid, tid, end, eid, forward));
                 }
                 record.Insert(header[index].first, path, txn);
-                break;
+                continue;
+            } else {
+                if (v.constant.array != nullptr) {
+                    record.Insert(header[index].first, lgraph_api::FieldData(v.ToString()));
+                } else {
+                    record.Insert(header[index].first, v.constant.scalar);
+                }
+                continue;
             }
-        default:
-            if (v.constant.array != nullptr)
-                record.Insert(header[index].first, lgraph_api::FieldData(v.ToString()));
-            else
-                record.Insert(header[index].first, v.constant.scalar);
-            break;
         }
-        index++;
+
+        if (entry_type == cypher::Entry::UNKNOWN) {
+            if (v.constant.array != nullptr) {
+                record.Insert(header[index].first, lgraph_api::FieldData(v.ToString()));
+            } else {
+                record.Insert(header[index].first, v.constant.scalar);
+            }
+            continue;
+        }
+
+        throw lgraph::CypherException(
+            "unhandled record entry type: " + cypher::Entry::ToString(v.type) +
+            ", header type: " + std::to_string(uint16_t(header_type)));
     }
 }
 

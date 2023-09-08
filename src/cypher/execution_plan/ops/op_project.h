@@ -59,6 +59,18 @@ class Project : public OpBase {
         _BuildArithmeticExpressions(stmt);
     }
 
+    Project(const std::vector<std::tuple<ArithExprNode, std::string>> &items,
+            const SymbolTable *sym_tab)
+        : OpBase(OpType::PROJECT, "Project"), sym_tab_(*sym_tab) {
+        single_response_ = false;
+        state_ = Uninitialized;
+        for (const auto &[expr, var] : items) {
+            return_elements_.emplace_back(expr);
+            return_alias_.emplace_back(var.empty() ? expr.ToString() : var);
+            if (!var.empty()) modifies.emplace_back(var);
+        }
+    }
+
     OpResult Initialize(RTContext *ctx) override {
         if (!children.empty()) {
             auto &child = children[0];

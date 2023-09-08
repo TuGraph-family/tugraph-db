@@ -49,6 +49,8 @@ struct Entry {
 
     explicit Entry(const cypher::FieldData &v) : constant(v), type(CONSTANT) {}
 
+    explicit Entry(cypher::FieldData &&v) : constant(std::move(v)), type(CONSTANT) {}
+
     explicit Entry(Node *v) : node(v), type(NODE) {}
 
     explicit Entry(Relationship *v)

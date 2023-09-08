@@ -27,11 +27,14 @@
 #include "core/vertex_index.h"
 
 int TestEdgeIndexImpl();
+int TestEdgeIndexValue();
+int TestEdgeIndexCRUD();
 
 namespace lgraph {
 class Transaction;
 
 namespace _detail {
+
 /**
  * Patch the key with the specified vid.
  *
@@ -43,15 +46,23 @@ namespace _detail {
  * \param           eid     The eid.
  * \return  The patched key.
  */
-static Value PatchKeyWithEUid(const Value& key, VertexId src_vid, VertexId end_vid, LabelId lid,
-                              TemporalId tid, EdgeId eid) {
+static Value PatchNonUniqueKey(const Value& key, VertexId src_vid, VertexId end_vid,
+                                       LabelId lid, TemporalId tid, EdgeId eid) {
     Value key_euid(key.Size() + EUID_SIZE);
     memcpy(key_euid.Data(), key.Data(), key.Size());
-    WriteVid(key_euid.Data() + key.Size(), src_vid);
-    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, end_vid);
+    WriteVid(key_euid.Data() + key.Size(), src_vid < end_vid ? src_vid : end_vid);
+    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, src_vid > end_vid ? src_vid : end_vid);
     WriteLabelId(key_euid.Data() + key.Size() + LID_BEGIN, lid);
     WriteTemporalId(key_euid.Data() + key.Size() + TID_BEGIN, tid);
     WriteEid(key_euid.Data() + key.Size() + EID_BEGIN, eid);
+    return key_euid;
+}
+
+static Value PatchNonGlobalUniqueKey(const Value& key, VertexId src_vid, VertexId end_vid) {
+    Value key_euid(key.Size() + VID_SIZE * 2);
+    memcpy(key_euid.Data(), key.Data(), key.Size());
+    WriteVid(key_euid.Data() + key.Size(), src_vid < end_vid ? src_vid : end_vid);
+    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, src_vid > end_vid ? src_vid : end_vid);
     return key_euid;
 }
 
@@ -63,6 +74,8 @@ class EdgeIndexIterator;
 /**
  * An EdgeIndexValue packs multiple src_vids ,dst_vids, lids, tids and eids into a single value.
  */
+// TODO(jzj) will be reconfigured soon，distinguish EdgeUidVale and (lid, eid, tid)values
+// rename global, compare functions
 class EdgeIndexValue {
     /**
      * uint8_t count
@@ -71,6 +84,7 @@ class EdgeIndexValue {
 
     friend class EdgeIndex;
     friend class EdgeIndexIterator;
+    friend int ::TestEdgeIndexValue();
 
     Value v_;
 
@@ -81,7 +95,7 @@ class EdgeIndexValue {
     explicit EdgeIndexValue(Value&& v) : v_(std::move(v)) {}
 
     template <typename ET>
-    EdgeIndexValue(const ET& euid_beg, const ET& euid_end) {
+    EdgeIndexValue(const ET& euid_beg, const ET& euid_end, bool global) {
         size_t n = euid_end - euid_beg;
         FMA_DBG_ASSERT(n < std::numeric_limits<uint8_t>::max());
         v_.Resize(1 + (_detail::EUID_SIZE)*n);
@@ -90,17 +104,28 @@ class EdgeIndexValue {
 
         p++;
         for (auto et = euid_beg; et < euid_end; et++) {
-            auto src_vid = (*et).src;
-            auto dst_vid = (*et).dst;
-            auto lid = (*et).lid;
-            auto tid = (*et).tid;
-            auto eid = (*et).eid;
-            _detail::WriteVid(p, src_vid);
-            _detail::WriteVid(p + _detail::VID_SIZE, dst_vid);
-            _detail::WriteLabelId(p + _detail::LID_BEGIN, lid);
-            _detail::WriteTemporalId(p + _detail::TID_BEGIN, tid);
-            _detail::WriteEid(p + _detail::EID_BEGIN, eid);
-            p += _detail::EUID_SIZE;
+            if (global) {
+                auto src_vid = (*et).src;
+                auto dst_vid = (*et).dst;
+                auto lid = (*et).lid;
+                auto tid = (*et).tid;
+                auto eid = (*et).eid;
+                _detail::WriteVid(p, src_vid);
+                _detail::WriteVid(p + _detail::VID_SIZE, dst_vid);
+                _detail::WriteLabelId(p + _detail::LID_BEGIN, lid);
+                _detail::WriteTemporalId(p + _detail::TID_BEGIN, tid);
+                _detail::WriteEid(p + _detail::EID_BEGIN, eid);
+                p += _detail::EUID_SIZE;
+            } else {
+                auto lid = (*et).lid;
+                auto tid = (*et).tid;
+                auto eid = (*et).eid;
+                _detail::WriteLabelId(p, lid);
+                _detail::WriteTemporalId(p + _detail::LID_SIZE, tid);
+                _detail::WriteEid(p + _detail::LID_SIZE + _detail::TID_SIZE, eid);
+                size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+                p += size_per_edge;
+            }
         }
     }
 
@@ -114,16 +139,30 @@ class EdgeIndexValue {
         return _detail::GetVid(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::VID_SIZE);
     }
 
-    LabelId GetNthLid(int n) const {
-        return _detail::GetLabelId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::LID_BEGIN);
+    LabelId GetNthLid(int n, bool global) const {
+        if (global) {
+            return _detail::GetLabelId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::LID_BEGIN);
+        }
+        size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+        return _detail::GetLabelId(v_.Data() + 1 + size_per_edge * n);
     }
 
-    TemporalId GetNthTid(int n) const {
-        return _detail::GetTemporalId(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::TID_BEGIN);
+    TemporalId GetNthTid(int n, bool global) const {
+        if (global) {
+            return _detail::GetTemporalId(v_.Data() + 1 + (_detail::EUID_SIZE)*n +
+                                          _detail::TID_BEGIN);
+        }
+        size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+        return _detail::GetTemporalId(v_.Data() + 1 + _detail::LID_SIZE + size_per_edge * n);
     }
 
-    EdgeId GetNthEid(int n) const {
-        return _detail::GetEid(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::EID_BEGIN);
+    EdgeId GetNthEid(int n, bool global) const {
+        if (global) {
+            return _detail::GetEid(v_.Data() + 1 + (_detail::EUID_SIZE)*n + _detail::EID_BEGIN);
+        }
+        size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+        return _detail::GetEid(v_.Data() + 1 + _detail::LID_SIZE
+                                      + _detail::TID_SIZE + size_per_edge * n);
     }
 
     /**
@@ -140,52 +179,85 @@ class EdgeIndexValue {
      * list.
      */
     int SearchEUid(VertexId src_vid, VertexId dst_vid, LabelId lid, TemporalId tid, EdgeId eid,
-                   bool& found) const {
+                   bool global, bool& found) const {
         if (GetEUidCount() == 0) {
             found = false;
             return 0;
+        }
+        if (global) {
+            int beg = 0;
+            int end = (int)GetEUidCount();
+            while (beg < end) {
+                int p = (beg + end) / 2;
+                VertexId src_pivot = GetNthSrcVid(p);
+                VertexId dst_pivot = GetNthDstVid(p);
+                LabelId lid_pivot = GetNthLid(p, global);
+                TemporalId tid_pivot = GetNthTid(p, global);
+                EdgeId eid_pivot = GetNthEid(p, global);
+                if (src_pivot == src_vid) {
+                    if (dst_pivot < dst_vid) {
+                        beg = p + 1;
+                    } else if (dst_pivot > dst_vid) {
+                        end = p;
+                    } else {
+                        if (lid_pivot < lid) {
+                            beg = p + 1;
+                        } else if (lid_pivot > lid) {
+                            end = p;
+                        } else {
+                            if (tid_pivot < tid) {
+                                beg = p + 1;
+                            } else if (tid_pivot > tid) {
+                                end = p;
+                            } else {
+                                if (eid < eid_pivot) {
+                                    end = p;
+                                } else if (eid > eid_pivot) {
+                                    beg = p + 1;
+                                } else {
+                                    found = true;
+                                    return p;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (src_vid < src_pivot) {
+                    end = p;
+                } else if (src_vid > src_pivot) {
+                    beg = p + 1;
+                }
+            }
+            found = false;
+            return end;
         }
         int beg = 0;
         int end = (int)GetEUidCount();
         while (beg < end) {
             int p = (beg + end) / 2;
-            VertexId src_pivot = GetNthSrcVid(p);
-            VertexId dst_pivot = GetNthDstVid(p);
-            LabelId lid_pivot = GetNthLid(p);
-            TemporalId tid_pivot = GetNthTid(p);
-            EdgeId eid_pivot = GetNthEid(p);
-            if (src_pivot == src_vid) {
-                if (dst_pivot < dst_vid) {
-                    end = p;
-                } else if (dst_pivot > dst_vid) {
+            LabelId lid_pivot = GetNthLid(p, global);
+            TemporalId tid_pivot = GetNthTid(p, global);
+            EdgeId eid_pivot = GetNthEid(p, global);
+            if (lid_pivot == lid) {
+                if (tid_pivot < tid) {
                     beg = p + 1;
+                } else if (tid_pivot > tid) {
+                    end = p;
                 } else {
-                    if (lid_pivot < lid) {
-                        end = p;
-                    } else if (lid_pivot > lid) {
+                    if (eid_pivot < eid) {
                         beg = p + 1;
+                    } else if (eid_pivot > eid) {
+                        end = p;
                     } else {
-                        if (tid_pivot < tid) {
-                            end = p;
-                        } else if (tid_pivot > tid) {
-                            beg = p + 1;
-                        } else {
-                            if (eid < eid_pivot) {
-                                end = p;
-                            } else if (eid > eid_pivot) {
-                                beg = p + 1;
-                            } else {
-                                found = true;
-                                return p;
-                            }
-                        }
+                        found = true;
+                        return p;
                     }
                 }
             }
-            if (src_vid < src_pivot) {
-                end = p;
-            } else if (src_vid > src_pivot) {
+            if (lid_pivot < lid) {
                 beg = p + 1;
+            } else if (lid_pivot > lid) {
+                end = p;
             }
         }
         found = false;
@@ -208,30 +280,43 @@ class EdgeIndexValue {
      *   2, the key changes
      */
     uint8_t InsertEUid(VertexId src_vid, VertexId dst_vid, LabelId lid, TemporalId tid,
-                       EdgeId eid) {
+                       EdgeId eid, bool global) {
         bool exists;
-        int pos = SearchEUid(src_vid, dst_vid, lid, tid, eid, exists);
+        int pos = SearchEUid(src_vid, dst_vid, lid, tid, eid, global, exists);
         if (exists) {
             return 0;
         }
         bool tail = (pos == GetEUidCount());
-        InsertEUidAtNthPos(pos, src_vid, dst_vid, lid, tid, eid);
-        return !tail ? 1 : 2;
+        InsertEUidAtNthPos(pos, src_vid, dst_vid, lid, tid, eid, global);
+        uint8_t ret = !tail ? 1 : 2;
+        return ret;
     }
 
     void InsertEUidAtNthPos(int pos, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                            TemporalId tid, EdgeId eid) {
+                            TemporalId tid, EdgeId eid, bool global) {
         // insert the vid
-        size_t bytes_after_p = v_.Size() - (1 + (_detail::EUID_SIZE)*pos);
-        v_.Resize(v_.Size() + _detail::EUID_SIZE);
-        char* ptr = v_.Data() + 1 + (_detail::EUID_SIZE)*pos;
-        memmove(ptr + (_detail::EUID_SIZE), ptr, bytes_after_p);
-        _detail::WriteVid(ptr, src_vid);
-        _detail::WriteVid(ptr + _detail::VID_SIZE, dst_vid);
-        _detail::WriteLabelId(ptr + _detail::LID_BEGIN, lid);
-        _detail::WriteTemporalId(ptr + _detail::TID_BEGIN, tid);
-        _detail::WriteEid(ptr + _detail::EID_BEGIN, eid);
-        (*(uint8_t*)v_.Data())++;
+        if (global) {
+            size_t bytes_after_p = v_.Size() - (1 + (_detail::EUID_SIZE)*pos);
+            v_.Resize(v_.Size() + _detail::EUID_SIZE);
+            char* ptr = v_.Data() + 1 + (_detail::EUID_SIZE)*pos;
+            memmove(ptr + (_detail::EUID_SIZE), ptr, bytes_after_p);
+            _detail::WriteVid(ptr, src_vid);
+            _detail::WriteVid(ptr + _detail::VID_SIZE, dst_vid);
+            _detail::WriteLabelId(ptr + _detail::LID_BEGIN, lid);
+            _detail::WriteTemporalId(ptr + _detail::TID_BEGIN, tid);
+            _detail::WriteEid(ptr + _detail::EID_BEGIN, eid);
+            (*(uint8_t*)v_.Data())++;
+        } else {
+            size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+            size_t bytes_after_p = v_.Size() - (1 + size_per_edge * pos);
+            v_.Resize(v_.Size() + size_per_edge);
+            char* ptr = v_.Data() + 1 + size_per_edge * pos;
+            memmove(ptr + size_per_edge, ptr, bytes_after_p);
+            _detail::WriteLabelId(ptr, lid);
+            _detail::WriteTemporalId(ptr + _detail::LID_SIZE, tid);
+            _detail::WriteEid(ptr + _detail::LID_SIZE + _detail::TID_SIZE, eid);
+            (*(uint8_t*)v_.Data())++;
+        }
     }
 
     /**
@@ -250,39 +335,61 @@ class EdgeIndexValue {
      *   2, the key changes
      */
     uint8_t DeleteEUidIfExist(VertexId src_vid, VertexId dst_vid, LabelId lid, TemporalId tid,
-                              EdgeId eid) {
+                              EdgeId eid, bool global) {
         bool exists;
-        int pos = SearchEUid(src_vid, dst_vid, lid, tid, eid, exists);
+        int pos = SearchEUid(src_vid, dst_vid, lid, tid, eid, global, exists);
         if (!exists) {
             return 0;
         }
         bool tail = (pos == GetEUidCount() - 1);
-        DeleteNthEUid(pos);
+        DeleteNthEUid(pos, global);
         return !tail ? 1 : 2;
     }
 
-    void DeleteNthEUid(int pos) {
-        v_.Resize(v_.Size());
-        char* ptr = v_.Data() + 1 + (_detail::EUID_SIZE)*pos;
-        uint8_t n = GetEUidCount();
-        memmove(ptr, ptr + (_detail::EUID_SIZE), (n - pos - 1) * (_detail::EUID_SIZE));
-        v_.Resize(v_.Size() - (_detail::EUID_SIZE));
-        *(uint8_t*)v_.Data() = n - 1;
+    void DeleteNthEUid(int pos, bool global) {
+        if (global) {
+            v_.Resize(v_.Size());
+            char* ptr = v_.Data() + 1 + (_detail::EUID_SIZE)*pos;
+            uint8_t n = GetEUidCount();
+            memmove(ptr, ptr + (_detail::EUID_SIZE), (n - pos - 1) * (_detail::EUID_SIZE));
+            v_.Resize(v_.Size() - (_detail::EUID_SIZE));
+            *(uint8_t*)v_.Data() = n - 1;
+        } else {
+            v_.Resize(v_.Size());
+            size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+            char* ptr = v_.Data() + 1 + size_per_edge * pos;
+            uint8_t n = GetEUidCount();
+            memmove(ptr, ptr + size_per_edge, (n - pos - 1) * size_per_edge);
+            v_.Resize(v_.Size() - size_per_edge);
+            *(uint8_t*)v_.Data() = n - 1;
+        }
     }
 
     bool TooLarge() { return v_.Size() > _detail::NODE_SPLIT_THRESHOLD; }
 
-    EdgeIndexValue SplitRightHalf() {
+    EdgeIndexValue SplitRightHalf(bool global) {
         int n = GetEUidCount();
         int next_half_size = n / 2;
         int this_half_size = n - next_half_size;
+        if (global) {
+            EdgeIndexValue newnode;
+            newnode.v_.Resize(1 + next_half_size * (_detail::EUID_SIZE));
+            char* p = newnode.v_.Data();
+            *(uint8_t*)p = next_half_size;
+            memcpy(p + 1, v_.Data() + 1 + this_half_size * (_detail::EUID_SIZE),
+                   next_half_size * (_detail::EUID_SIZE));
+            v_.Resize(v_.Size() - next_half_size * (_detail::EUID_SIZE));
+            *(uint8_t*)v_.Data() = this_half_size;
+            return newnode;
+        }
         EdgeIndexValue newnode;
-        newnode.v_.Resize(1 + next_half_size * (_detail::EUID_SIZE));
+        size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+        newnode.v_.Resize(1 + next_half_size * size_per_edge);
         char* p = newnode.v_.Data();
         *(uint8_t*)p = next_half_size;
-        memcpy(p + 1, v_.Data() + 1 + this_half_size * (_detail::EUID_SIZE),
-               next_half_size * (_detail::EUID_SIZE));
-        v_.Resize(v_.Size() - next_half_size * (_detail::EUID_SIZE));
+        memcpy(p + 1, v_.Data() + 1 + this_half_size * size_per_edge,
+               next_half_size * size_per_edge);
+        v_.Resize(v_.Size() - next_half_size * size_per_edge);
         *(uint8_t*)v_.Data() = this_half_size;
         return newnode;
     }
@@ -294,13 +401,28 @@ class EdgeIndexValue {
     /**
      * Patch the key with the last euid in this EdgeIndexValue.
      */
-    Value CreateKey(const Value& key) const {
+    Value CreateKey(const Value& key, bool global) const {
         int pos = GetEUidCount() - 1;
-        Value v(key.Size() + (_detail::EUID_SIZE));
-        memcpy(v.Data(), key.Data(), key.Size());
-        memcpy(v.Data() + key.Size(), v_.Data() + 1 + pos * (_detail::EUID_SIZE),
-               (_detail::EUID_SIZE));
-        return v;
+        if (global) {
+            Value v(key.Size() + (_detail::EUID_SIZE));
+            memcpy(v.Data(), key.Data(), key.Size());
+            VertexId src = _detail::GetVid(v_.Data() + 1 + (_detail::EUID_SIZE)*pos);
+            VertexId dst = _detail::GetVid(v_.Data() + 1 +
+                                           (_detail::EUID_SIZE)*pos + _detail::VID_SIZE);
+            memcpy(v.Data() + key.Size(), src < dst ? &src : &dst, _detail::VID_SIZE);
+            memcpy(v.Data() + key.Size() + _detail::VID_SIZE,
+                        src > dst ? &src : &dst, _detail::VID_SIZE);
+            memcpy(v.Data() + key.Size() + _detail::LID_BEGIN,
+                           v_.Data() + 1 + pos * (_detail::EUID_SIZE) + _detail::LID_BEGIN,
+                        _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE);
+            return v;
+        } else {
+            size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE;
+            Value v(key.Size() + size_per_edge);
+            memcpy(v.Data(), key.Data(), key.Size());
+            memcpy(v.Data() + key.Size(), v_.Data() + 1 + pos * size_per_edge, size_per_edge);
+            return v;
+        }
     }
 };
 
@@ -322,6 +444,7 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
     TemporalId tid_;  // TOOD(heng):
     EdgeId eid_;
     bool unique_;
+    bool global_;
 
     /**
      * The constructor for EdgeIndexIterator
@@ -340,14 +463,15 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
      */
     EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& table, const Value& key_start,
                       const Value& key_end, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                      TemporalId tid, EdgeId eid, bool unique);
+                      TemporalId tid, EdgeId eid, bool unique, bool global);
 
     EdgeIndexIterator(EdgeIndex* idx, KvTransaction* txn, KvTable& table, const Value& key_start,
                       const Value& key_end, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                      TemporalId tid, EdgeId eid, bool unique);
+                      TemporalId tid, EdgeId eid, bool unique, bool global);
 
     bool KeyOutOfRange() {
-        if (key_end_.Empty() || (!unique_ && key_end_.Size() == _detail::EUID_SIZE)) return false;
+        if (!global_ || key_end_.Empty() || (!unique_ && key_end_.Size() == _detail::EUID_SIZE))
+            return false;
         return it_.GetTable().CompareKey(it_.GetTxn(), it_.GetKey(), key_end_) > 0;
     }
 
@@ -371,16 +495,35 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
      * \param        key       The key.
      * \return  Whether the iterator's current key starts with key.
      */
-    bool KeyEquals(const Value& key) {
-        if (unique_) {
-            const Value& k = it_.GetKey();
-            return key.Size() == k.Size() && (memcmp(k.Data(), key.Data(), k.Size()) == 0);
-        } else {
-            auto key_euid = it_.GetKey();
-            if (key_euid.Size() - _detail::EUID_SIZE != key.Size()) {
-                return false;
+    bool KeyEquals(Value& key, VertexId src, VertexId dst) {
+        if (global_) {
+            if (unique_) {
+                const Value& k = it_.GetKey();
+                return key.Size() == k.Size() && (memcmp(k.Data(), key.Data(), k.Size()) == 0);
+            } else {
+                auto key_euid = it_.GetKey();
+                if (key_euid.Size() - _detail::EUID_SIZE != key.Size()) {
+                    return false;
+                }
+                return memcmp(key.Data(), key_euid.Data(), key.Size()) == 0;
             }
-            return memcmp(key.Data(), key_euid.Data(), key.Size()) == 0;
+        } else {
+            size_t key_size = key.Size();
+            key.Resize(key_size + _detail::VID_SIZE * 2);
+            _detail::WriteVid(key.Data() + key_size, src < dst ? src : dst);
+            _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE, src > dst ? src : dst);
+            if (unique_) {
+                if (key.Size() != it_.GetKey().Size()) {
+                    return false;
+                }
+
+            } else {
+                if (key.Size() + _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE
+                    != it_.GetKey().Size()) {
+                    return false;
+                }
+            }
+            return memcmp(key.Data(), it_.GetKey().Data(), key.Size()) == 0;
         }
     }
 
@@ -392,25 +535,38 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
         curr_key_.Copy(GetKey());
         if (!unique_) {
             iv_ = EdgeIndexValue(it_.GetValue());
-            src_vid_ = iv_.GetNthSrcVid(pos_);
-            dst_vid_ = iv_.GetNthDstVid(pos_);
-            lid_ = iv_.GetNthLid(pos_);
-            tid_ = iv_.GetNthTid(pos_);
-            eid_ = iv_.GetNthEid(pos_);
+            if (global_) {
+                src_vid_ = iv_.GetNthSrcVid(pos_);
+                dst_vid_ = iv_.GetNthDstVid(pos_);
+            } else {
+                src_vid_ = GetNonGlobalSrcVertexId();
+                dst_vid_ = GetNonGlobalDstVertexId();
+            }
+            lid_ = iv_.GetNthLid(pos_, global_);
+            tid_ = iv_.GetNthTid(pos_, global_);
+            eid_ = iv_.GetNthEid(pos_, global_);
         } else {
-            src_vid_ = _detail::GetVid(it_.GetValue().Data());
-            dst_vid_ = _detail::GetVid(it_.GetValue().Data() + _detail::VID_SIZE);
-            lid_ = _detail::GetLabelId(it_.GetValue().Data() + _detail::LID_BEGIN);
-            tid_ = _detail::GetTemporalId(it_.GetValue().Data() + _detail::TID_BEGIN);
-            eid_ = _detail::GetEid(it_.GetValue().Data() + _detail::EID_BEGIN);
+            if (global_) {
+                src_vid_ = _detail::GetVid(it_.GetValue().Data());
+                dst_vid_ = _detail::GetVid(it_.GetValue().Data() + _detail::VID_SIZE);
+                lid_ = _detail::GetLabelId(it_.GetValue().Data() + _detail::LID_BEGIN);
+                tid_ = _detail::GetTemporalId(it_.GetValue().Data() + _detail::TID_BEGIN);
+                eid_ = _detail::GetEid(it_.GetValue().Data() + _detail::EID_BEGIN);
+            } else {
+                src_vid_ = GetNonGlobalSrcVertexId();
+                dst_vid_ = GetNonGlobalDstVertexId();
+                lid_ = _detail::GetLabelId(it_.GetValue().Data());
+                tid_ = _detail::GetTemporalId(it_.GetValue().Data() + _detail::LID_SIZE);
+                eid_ = _detail::GetEid(it_.GetValue().Data() + _detail::LID_SIZE
+                                       + _detail::TID_SIZE);
+            }
         }
     }
 
-    DISABLE_COPY(EdgeIndexIterator);
-    EdgeIndexIterator& operator=(EdgeIndexIterator&&) = delete;
-
  protected:
     void CloseImpl() override;
+    DISABLE_COPY(EdgeIndexIterator);
+    EdgeIndexIterator& operator=(EdgeIndexIterator&&) = delete;
 
  public:
     EdgeIndexIterator(EdgeIndexIterator&& rhs);
@@ -433,11 +589,13 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
         // just move forward
         if (!unique_ && pos_ < iv_.GetEUidCount() - 1) {
             pos_ += 1;
-            src_vid_ = iv_.GetNthSrcVid(pos_);
-            dst_vid_ = iv_.GetNthDstVid(pos_);
-            lid_ = iv_.GetNthLid(pos_);
-            tid_ = iv_.GetNthTid(pos_);
-            eid_ = iv_.GetNthEid(pos_);
+            if (global_) {
+                src_vid_ = iv_.GetNthSrcVid(pos_);
+                dst_vid_ = iv_.GetNthDstVid(pos_);
+            }
+            lid_ = iv_.GetNthLid(pos_, global_);
+            tid_ = iv_.GetNthTid(pos_, global_);
+            eid_ = iv_.GetNthEid(pos_, global_);
             return true;
         }
         // otherwise try moving to the next EdgeIndex Value,
@@ -456,13 +614,50 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
      * \return  The current key.
      */
     Value GetKey() const {
-        if (unique_) {
-            return _detail::ReturnKeyEvenIfLong(it_.GetKey());
+        if (global_) {
+            if (unique_) {
+                return _detail::ReturnKeyEvenIfLong(it_.GetKey());
+            } else {
+                Value key_euid = it_.GetKey();
+                return _detail::ReturnKeyEvenIfLong(
+                    Value(key_euid.Data(), key_euid.Size() - _detail::EUID_SIZE));
+            }
         } else {
-            Value key_euid = it_.GetKey();
-            return _detail::ReturnKeyEvenIfLong(
-                Value(key_euid.Data(), key_euid.Size() - _detail::EUID_SIZE));
+            if (unique_) {
+                Value key_both_vid = it_.GetKey();
+                return _detail::ReturnKeyEvenIfLong(
+                    Value(key_both_vid.Data(), key_both_vid.Size() - _detail::VID_SIZE * 2));
+            } else {
+                Value key_euid = it_.GetKey();
+                return _detail::ReturnKeyEvenIfLong(
+                    Value(key_euid.Data(), key_euid.Size() - _detail::EUID_SIZE));
+            }
         }
+    }
+
+    VertexId GetNonGlobalSrcVertexId() {
+        VertexId vid = 0;
+        Value key_vid = _detail::ReturnKeyEvenIfLong(it_.GetKey());
+        if (unique_) {
+            memcpy((char*)&vid, key_vid.Data() + key_vid.Size() - 2 * _detail::VID_SIZE,
+                        _detail::VID_SIZE);
+        } else {
+            memcpy((char*)&vid, key_vid.Data() + key_vid.Size() - _detail::EUID_SIZE,
+                   _detail::VID_SIZE);
+        }
+        return vid;
+    }
+    VertexId GetNonGlobalDstVertexId() {
+        VertexId vid = 0;
+        Value key_vid = _detail::ReturnKeyEvenIfLong(it_.GetKey());
+        if (unique_) {
+            memcpy((char*)&vid, key_vid.Data() + key_vid.Size() - _detail::VID_SIZE,
+                   _detail::VID_SIZE);
+        } else {
+            memcpy((char*)&vid, key_vid.Data() + key_vid.Size() -
+                                    _detail::EUID_SIZE + _detail::VID_SIZE, _detail::VID_SIZE);
+        }
+        return vid;
     }
 
     FieldData GetKeyData() const {
@@ -497,9 +692,16 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
         if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
             valid_ = false;
             // now it_ points to a valid position, but not necessary the right one
-            it_.GotoClosestKey(unique_ ? curr_key_
-                                       : _detail::PatchKeyWithEUid(curr_key_, src_vid_, dst_vid_,
-                                                                   lid_, tid_, eid_));
+            if (global_) {
+                it_.GotoClosestKey(unique_ ? curr_key_
+                     : _detail::PatchNonUniqueKey(curr_key_, src_vid_, dst_vid_,
+                                                                             lid_, tid_, eid_));
+            } else {
+                it_.GotoClosestKey(unique_
+                      ? _detail::PatchNonGlobalUniqueKey(curr_key_, src_vid_, dst_vid_)
+                      : _detail::PatchNonUniqueKey(curr_key_, src_vid_, dst_vid_,
+                                                                             lid_, tid_, eid_));
+            }
             FMA_DBG_ASSERT(it_.IsValid());
             if (KeyOutOfRange()) return;
             if (unique_) {
@@ -509,15 +711,20 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
             } else {
                 // non-unique, need to find correct pos_
                 iv_ = EdgeIndexValue(it_.GetValue());
-                pos_ = iv_.SearchEUid(src_vid_, dst_vid_, lid_, tid_, eid_, valid_);
+                pos_ = iv_.SearchEUid(src_vid_, dst_vid_, lid_, tid_, eid_, valid_, global_);
                 if (pos_ >= iv_.GetEUidCount()) return;
                 valid_ = true;
                 curr_key_.Copy(GetKey());
-                src_vid_ = iv_.GetNthSrcVid(pos_);
-                dst_vid_ = iv_.GetNthDstVid(pos_);
-                lid_ = iv_.GetNthLid(pos_);
-                tid_ = iv_.GetNthTid(pos_);
-                eid_ = iv_.GetNthEid(pos_);
+                if (global_) {
+                    src_vid_ = iv_.GetNthSrcVid(pos_);
+                    dst_vid_ = iv_.GetNthDstVid(pos_);
+                } else {
+                    src_vid_ = GetNonGlobalSrcVertexId();
+                    dst_vid_ = GetNonGlobalDstVertexId();
+                }
+                lid_ = iv_.GetNthLid(pos_, global_);
+                tid_ = iv_.GetNthTid(pos_, global_);
+                eid_ = iv_.GetNthEid(pos_, global_);
                 return;
             }
         }
@@ -535,23 +742,27 @@ class EdgeIndex {
     friend class LightningGraph;
     friend class Transaction;
     friend int ::TestEdgeIndexImpl();
+    friend int ::TestEdgeIndexCRUD();
 
     KvTable table_;
     FieldType key_type_;
     std::atomic<bool> ready_;
     std::atomic<bool> disabled_;
     bool unique_;
+    bool global_;
 
  public:
-    EdgeIndex(const KvTable& table, FieldType key_type, bool unique)
-        : table_(table), key_type_(key_type), ready_(false), disabled_(false), unique_(unique) {}
+    EdgeIndex(const KvTable& table, FieldType key_type, bool unique, bool global)
+        : table_(table), key_type_(key_type), ready_(false), disabled_(false),
+          unique_(unique), global_(global) {}
 
     EdgeIndex(const EdgeIndex& rhs)
         : table_(rhs.table_),
           key_type_(rhs.key_type_),
           ready_(rhs.ready_.load()),
           disabled_(rhs.disabled_.load()),
-          unique_(rhs.unique_) {}
+          unique_(rhs.unique_),
+          global_(rhs.global_) {}
 
     EdgeIndex(EdgeIndex&& rhs) = delete;
 
@@ -560,23 +771,43 @@ class EdgeIndex {
     EdgeIndex& operator=(EdgeIndex&& rhs) = delete;
 
     static KvTable OpenTable(KvTransaction& txn, KvStore& store, const std::string& name,
-                             FieldType dt, bool unique) {
+                             FieldType dt, bool unique, bool global) {
         ComparatorDesc desc;
-        desc.comp_type = unique ? ComparatorDesc::SINGLE_TYPE : ComparatorDesc::TYPE_AND_EUID;
-        desc.data_type = dt;
+        if (global) {
+            desc.comp_type = unique ? ComparatorDesc::SINGLE_TYPE : ComparatorDesc::TYPE_AND_EUID;
+            desc.data_type = dt;
+        } else {
+            desc.comp_type = unique ? ComparatorDesc::BOTH_SIDE_VID
+                                    : ComparatorDesc::TYPE_AND_EUID;
+            desc.data_type = dt;
+        }
         return store.OpenTable(txn, name, true, desc);
     }
 
     void _AppendIndexEntry(KvTransaction& txn, const Value& k, EdgeUid euid) {
         FMA_DBG_ASSERT(unique_);
-        FMA_DBG_CHECK_LE(k.Size(), _detail::MAX_KEY_SIZE);
-        Value v(_detail::EUID_SIZE);
-        _detail::WriteVid(v.Data(), euid.src);
-        _detail::WriteVid(v.Data() + _detail::VID_SIZE, euid.dst);
-        _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, euid.lid);
-        _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, euid.tid);
-        _detail::WriteEid(v.Data() + _detail::EID_BEGIN, euid.eid);
-        table_.AppendKv(txn, k, v);
+        Value key = CutEdgeIndexKeyIfLong(k);
+        if (!global_) {
+            size_t key_size = key.Size();
+            key.Resize(key_size + _detail::VID_SIZE * 2);
+            _detail::WriteVid(key.Data() + key_size,
+                              euid.src < euid.dst ? euid.src : euid.dst);
+            _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE,
+                              euid.src > euid.dst ? euid.src : euid.dst);
+            Value v(_detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE);
+            _detail::WriteLabelId(v.Data(), euid.lid);
+            _detail::WriteTemporalId(v.Data() + _detail::LID_SIZE, euid.tid);
+            _detail::WriteEid(v.Data() + _detail::LID_SIZE + _detail::TID_SIZE, euid.eid);
+            table_.AppendKv(txn, key, v);
+        } else {
+            Value v(_detail::EUID_SIZE);
+            _detail::WriteVid(v.Data(), euid.src);
+            _detail::WriteVid(v.Data() + _detail::VID_SIZE, euid.dst);
+            _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, euid.lid);
+            _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, euid.tid);
+            _detail::WriteEid(v.Data() + _detail::EID_BEGIN, euid.eid);
+            table_.AppendKv(txn, key, v);
+        }
     }
 
     /**
@@ -590,14 +821,20 @@ class EdgeIndex {
                                     const std::vector<EdgeUid>& euids) {
         FMA_DBG_ASSERT(!unique_);
         FMA_DBG_ASSERT(!euids.empty());
-        FMA_DBG_CHECK_LE(k.Size(), _detail::MAX_KEY_SIZE);
-        size_t euid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::EUID_SIZE;
-        for (size_t i = 0; i < euids.size(); i += euid_per_idv) {
-            size_t end = i + euid_per_idv;
-            end = end <= euids.size() ? end : euids.size();
-            EdgeIndexValue idv(euids.begin() + i, euids.begin() + end);
-            Value key = idv.CreateKey(k);
-            table_.AppendKv(txn, key, idv.GetBuf());
+        Value key = CutEdgeIndexKeyIfLong(k);
+        if (!global_) {
+            for (size_t i = 0; i < euids.size(); ++i) {
+                AddNonUnique(txn, k, euids[i]);
+            }
+        } else {
+            size_t euid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::EUID_SIZE;
+            for (size_t i = 0; i < euids.size(); i += euid_per_idv) {
+                size_t end = i + euid_per_idv;
+                end = end <= euids.size() ? end : euids.size();
+                EdgeIndexValue idv(euids.begin() + i, euids.begin() + end, global_);
+                Value real_key = idv.CreateKey(key, global_);
+                table_.AppendKv(txn, real_key, idv.GetBuf());
+            }
         }
     }
 
@@ -605,7 +842,8 @@ class EdgeIndex {
     do {                                                                                        \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();                             \
         return EdgeIndexIterator(this, &txn, table_, Value::ConstRef(d),                        \
-                                 std::forward<V2>(key_end), vid, vid2, lid, tid, eid, unique_); \
+                                 std::forward<V2>(key_end), vid, vid2, lid,                     \
+                                 tid, eid, unique_, global_);                                   \
     } while (0)
 
     /**
@@ -648,9 +886,8 @@ class EdgeIndex {
             case FieldType::STRING:
                 {
                     return EdgeIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
-                                             _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                             vid2, lid, tid, eid, unique_);
-                    break;
+                                             CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid,
+                                             vid2, lid, tid, eid, unique_, global_);
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
@@ -658,13 +895,13 @@ class EdgeIndex {
                 FMA_ASSERT(false);
                 return EdgeIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
                                          std::forward<V2>(key_end), vid, vid2, lid, tid, eid,
-                                         unique_);
+                                         unique_, global_);
             }
         } else {
             return EdgeIndexIterator(this, &txn, table_,
-                                     _detail::CutKeyIfLong(std::forward<V1>(key_start)),
-                                     _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid, vid2,
-                                     lid, tid, eid, unique_);
+                                     CutEdgeIndexKeyIfLong(std::forward<V1>(key_start)),
+                                     CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid, vid2,
+                                     lid, tid, eid, unique_, global_);
         }
     }
 
@@ -672,7 +909,7 @@ class EdgeIndex {
     do {                                                                                           \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();                                \
         return EdgeIndexIterator(this, txn, table_, Value::ConstRef(d), std::forward<V2>(key_end), \
-                                 vid, vid2, lid, tid, eid, unique_);                               \
+                                 vid, vid2, lid, tid, eid, unique_, global_);                      \
     } while (0)
 
     template <typename V1, typename V2>
@@ -702,8 +939,8 @@ class EdgeIndex {
             case FieldType::STRING:
                 {
                     return EdgeIndexIterator(this, txn, table_, std::forward<V1>(key_start),
-                                             _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                             vid2, lid, tid, eid, unique_);
+                                             CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid,
+                                             vid2, lid, tid, eid, unique_, global_);
                     break;
                 }
             case FieldType::BLOB:
@@ -712,13 +949,13 @@ class EdgeIndex {
                 FMA_ASSERT(false);
                 return EdgeIndexIterator(this, txn, table_, std::forward<V1>(key_start),
                                          std::forward<V2>(key_end), vid, vid2, lid, tid, eid,
-                                         unique_);
+                                         unique_, global_);
             }
         } else {
             return EdgeIndexIterator(this, txn, table_,
-                                     _detail::CutKeyIfLong(std::forward<V1>(key_start)),
-                                     _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid, vid2,
-                                     lid, tid, eid, unique_);
+                                     CutEdgeIndexKeyIfLong(std::forward<V1>(key_start)),
+                                     CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid, vid2,
+                                     lid, tid, eid, unique_, global_);
         }
     }
 
@@ -728,36 +965,66 @@ class EdgeIndex {
 
     bool IsUnique() const { return unique_; }
 
+    bool IsGlobal() const { return global_;}
+
     FieldType KeyType() { return key_type_; }
 
     void Dump(KvTransaction& txn,
-              const std::function<std::string(const char* p, size_t s)>& key_to_string) {
+              const std::function<std::string(const char* p, size_t s)>& key_to_string,
+              std::string& str) {
         for (auto it = table_.GetIterator(txn); it.IsValid(); it.Next()) {
             const Value& k = it.GetKey();
             EdgeIndexValue iv(it.GetValue());
-            std::string line = key_to_string(k.Data(), k.Size() - _detail::EUID_SIZE);
+            std::string line;
+            line = key_to_string(k.Data(), k.Size());
             line.append(" -> ");
-            if (unique_) {
-                line.append(std::to_string(_detail::GetVid(iv.GetBuf().Data())));
-                line.append(
-                    std::to_string(_detail::GetVid(iv.GetBuf().Data() + _detail::VID_SIZE)));
-                line.append(
-                    std::to_string(_detail::GetLabelId(iv.GetBuf().Data() + _detail::LID_BEGIN)));
-                line.append(std::to_string(
-                    _detail::GetTemporalId(iv.GetBuf().Data() + _detail::TID_BEGIN)));
-                line.append(
-                    std::to_string(_detail::GetEid(iv.GetBuf().Data() + _detail::EID_BEGIN)));
+            if (global_) {
+                if (unique_) {
+                    line.append(std::to_string(_detail::GetVid(iv.GetBuf().Data())));
+                    line.append(
+                        std::to_string(_detail::GetVid(iv.GetBuf().Data() + _detail::VID_SIZE)));
+                    line.append(std::to_string(
+                        _detail::GetLabelId(iv.GetBuf().Data() + _detail::LID_BEGIN)));
+                    line.append(std::to_string(
+                        _detail::GetTemporalId(iv.GetBuf().Data() + _detail::TID_BEGIN)));
+                    line.append(
+                        std::to_string(_detail::GetEid(iv.GetBuf().Data() + _detail::EID_BEGIN)));
+                } else {
+                    for (int i = 0; i < iv.GetEUidCount(); i++) {
+                        line.append(std::to_string(iv.GetNthSrcVid(i)));
+                        line.append(std::to_string(iv.GetNthDstVid(i)));
+                        line.append(std::to_string(iv.GetNthLid(i, global_)));
+                        line.append(std::to_string(iv.GetNthTid(i, global_)));
+                        line.append(std::to_string(iv.GetNthEid(i, global_)));
+                        line.append(",");
+                    }
+                }
             } else {
-                for (int i = 0; i < iv.GetEUidCount(); i++) {
-                    line.append(std::to_string(iv.GetNthSrcVid(i)));
-                    line.append(std::to_string(iv.GetNthDstVid(i)));
-                    line.append(std::to_string(iv.GetNthLid(i)));
-                    line.append(std::to_string(iv.GetNthTid(i)));
-                    line.append(std::to_string(iv.GetNthEid(i)));
-                    line.append(",");
+                if (unique_) {
+                    line.append(std::to_string(_detail::GetLabelId(iv.GetBuf().Data())));
+                    line.append(
+                        std::to_string(_detail::GetTemporalId(iv.GetBuf().Data()
+                                                              + _detail::LID_SIZE)));
+                    line.append(std::to_string(
+                            _detail::GetEid(iv.GetBuf().Data() + _detail::LID_SIZE
+                                 + _detail::TID_SIZE)));
+                } else {
+                    size_t size_per_edge = _detail::LID_SIZE + _detail::TID_SIZE
+                                           + _detail::EID_SIZE;
+                    for (int i = 0; i < iv.GetEUidCount(); i++) {
+                        line.append(std::to_string(_detail::GetLabelId(
+                            iv.GetBuf().Data() + 1 + size_per_edge * i)));
+                        line.append(std::to_string(
+                                _detail::GetTemporalId(iv.GetBuf().Data() + 1
+                                                   + _detail::LID_SIZE + size_per_edge * i)));
+                        line.append(std::to_string(
+                            _detail::GetEid(iv.GetBuf().Data() + 1 + _detail::LID_SIZE +
+                                            _detail::TID_SIZE + size_per_edge * i)));
+                        line.append(",");
+                    }
                 }
             }
-            FMA_LOG() << line;
+            str.swap(line);
         }
     }
 
@@ -786,11 +1053,10 @@ class EdgeIndex {
      * \param           eid The eid.
      * \return  Whether the operation succeeds or not.
      */
-    bool Delete(KvTransaction& txn, const Value& k, VertexId src_vid, VertexId dst_vid, LabelId lid,
-                TemporalId tid, EdgeId eid) {
-        Value key = _detail::CutKeyIfLong(k);
-        EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, src_vid, dst_vid, lid, tid, eid);
-        if (!it.IsValid() || it.KeyOutOfRange()) {
+    bool Delete(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
+        bool found = false;
+        EdgeIndexIterator it = FindKeyIfExist(txn, k, euid, found);
+        if (!found) {
             // no such key_vid
             return false;
         }
@@ -798,7 +1064,8 @@ class EdgeIndex {
             it.it_.DeleteKey();
             return true;
         } else {
-            uint8_t ret = it.iv_.DeleteEUidIfExist(src_vid, dst_vid, lid, tid, eid);
+            uint8_t ret = it.iv_.DeleteEUidIfExist(euid.src, euid.dst, euid.lid,
+                                                   euid.tid, euid.eid, global_);
             if (ret == 1) {
                 // the key does not change after deletion
                 it.it_.SetValue(it.iv_.GetBuf());
@@ -806,7 +1073,16 @@ class EdgeIndex {
                 // the key changes after deletion
                 it.it_.DeleteKey();
                 if (it.iv_.GetEUidCount()) {
-                    bool r = it.it_.AddKeyValue(it.iv_.CreateKey(key), it.iv_.GetBuf());
+                    Value key = CutEdgeIndexKeyIfLong(k);
+                    if (!global_) {
+                        size_t key_size = key.Size();
+                        key.Resize(key_size + _detail::VID_SIZE * 2);
+                        _detail::WriteVid(key.Data() + key_size,
+                                          euid.src < euid.dst ? euid.src : euid.dst);
+                        _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE,
+                                          euid.src > euid.dst ? euid.src : euid.dst);
+                    }
+                    bool r = it.it_.AddKeyValue(it.iv_.CreateKey(key, global_), it.iv_.GetBuf());
                     FMA_DBG_ASSERT(r);
                 }
             } else {
@@ -832,12 +1108,12 @@ class EdgeIndex {
      * \param           eid     The eid.
      * \return  Whether the operation succeeds or not.
      */
-    bool Update(KvTransaction& txn, const Value& old_key, const Value& new_key, VertexId src_vid,
-                VertexId dst_vid, LabelId lid, TemporalId tid, EdgeId eid) {
-        if (!Delete(txn, old_key, src_vid, dst_vid, lid, tid, eid)) {
+    bool Update(KvTransaction& txn, const Value& old_key, const Value& new_key,
+                const EdgeUid& euid) {
+        if (!Delete(txn, old_key, euid)) {
             return false;
         }
-        return Add(txn, new_key, src_vid, dst_vid, lid, tid, eid);
+        return Add(txn, new_key, euid);
     }
 
     /**
@@ -854,43 +1130,69 @@ class EdgeIndex {
      * \param           eid     The eid.
      * \return  Whether the operation succeeds or not.
      */
-    bool Add(KvTransaction& txn, const Value& k, VertexId src_vid, VertexId dst_vid, LabelId lid,
-             TemporalId tid, EdgeId eid, bool throw_on_long_key = true) {
-        if (k.Size() > _detail::MAX_KEY_SIZE && throw_on_long_key) {
+    bool Add(KvTransaction& txn, const Value& k, const EdgeUid& euid,
+             bool throw_on_long_key = true) {
+        if (k.Size() > GetMaxEdgeIndexKeySize() && throw_on_long_key) {
             throw InputError("EdgeIndex key size too large, must be less than 480.");
         }
-        Value key = _detail::CutKeyIfLong(k);
         if (unique_) {
-            Value v(_detail::EUID_SIZE);
-            _detail::WriteVid(v.Data(), src_vid);
-            _detail::WriteVid(v.Data() + _detail::VID_SIZE, dst_vid);
-            _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, lid);
-            _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, tid);
-            _detail::WriteEid(v.Data() + _detail::EID_BEGIN, eid);
-            return table_.AddKV(txn, key, v);
-        }
-        EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, src_vid, dst_vid, lid, tid, eid);
-        if (!it.IsValid() || it.KeyOutOfRange()) {
-            if (!it.PrevKV() || !it.KeyEquals(key)) {
-                // create a new EdgeIndexValue
-                EdgeIndexValue iv;
-                uint8_t r = iv.InsertEUid(src_vid, dst_vid, lid, tid, eid);
-                FMA_DBG_CHECK_NEQ(r, 0);
-                bool r2 = table_.AddKV(txn, iv.CreateKey(key), iv.GetBuf());
-                FMA_DBG_ASSERT(r2);
-                return true;
+            Value key = CutEdgeIndexKeyIfLong(k);
+            if (global_) {
+                Value v(_detail::EUID_SIZE);
+                _detail::WriteVid(v.Data(), euid.src);
+                _detail::WriteVid(v.Data() + _detail::VID_SIZE, euid.dst);
+                _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, euid.lid);
+                _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, euid.tid);
+                _detail::WriteEid(v.Data() + _detail::EID_BEGIN, euid.eid);
+                return table_.AddKV(txn, key, v);
+            } else {
+                size_t key_size = key.Size();
+                key.Resize(key_size + _detail::VID_SIZE * 2);
+                _detail::WriteVid(key.Data() + key_size,
+                                  euid.src < euid.dst ? euid.src : euid.dst);
+                _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE,
+                                  euid.src > euid.dst ? euid.src : euid.dst);
+                Value val(_detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE);
+                _detail::WriteLabelId(val.Data(), euid.lid);
+                _detail::WriteTemporalId(val.Data() + _detail::LID_SIZE, euid.tid);
+                _detail::WriteEid(val.Data() + _detail::LID_SIZE + _detail::TID_SIZE, euid.eid);
+                return table_.AddKV(txn, key, val);
             }
         }
-        uint8_t ret = it.iv_.InsertEUid(src_vid, dst_vid, lid, tid, eid);
+        return AddNonUnique(txn, k, euid);
+    }
+
+    bool AddNonUnique(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
+        bool found = false;
+        EdgeIndexIterator it = FindKeyIfExist(txn, k, euid, found);
+        Value key = CutEdgeIndexKeyIfLong(k);
+        if (!global_) {
+            size_t key_size = key.Size();
+            key.Resize(key_size + _detail::VID_SIZE * 2);
+            _detail::WriteVid(key.Data() + key_size,
+                              euid.src < euid.dst ? euid.src : euid.dst);
+            _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE,
+                              euid.src > euid.dst ? euid.src : euid.dst);
+        }
+        if (!found) {
+            EdgeIndexValue iv;
+            uint8_t r = iv.InsertEUid(euid.src, euid.dst,
+                                      euid.lid, euid.tid, euid.eid, global_);
+            FMA_DBG_CHECK_NEQ(r, 0);
+            bool r2 = table_.AddKV(txn, iv.CreateKey(key, global_), iv.GetBuf());
+            FMA_DBG_ASSERT(r2);
+            return true;
+        }
+        uint8_t ret = it.iv_.InsertEUid(euid.src, euid.dst, euid.lid, euid.tid, euid.eid, global_);
         if (it.iv_.TooLarge()) {
-            EdgeIndexValue right = it.iv_.SplitRightHalf();
+            EdgeIndexValue right = it.iv_.SplitRightHalf(global_);
             // remove the original EdgeIndexValue
             it.it_.DeleteKey();
             // insert the left half EdgeIndexValue
-            bool r = table_.AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
+            bool r = table_.AddKV(txn, it.iv_.CreateKey(key, global_), it.iv_.GetBuf());
             FMA_DBG_ASSERT(r);
             // insert the right half EdgeIndexValue
-            r = table_.AddKV(txn, right.CreateKey(key), right.GetBuf());
+            r = table_.AddKV(txn, right.CreateKey(key, global_), right.GetBuf());
             FMA_DBG_ASSERT(r);
         } else {
             if (ret == 1) {
@@ -900,7 +1202,7 @@ class EdgeIndex {
                 // the key changes so we need to remove the original EdgeIndexValue
                 it.it_.DeleteKey();
                 // then insert the EdgeIndexValue with an updated key
-                bool r = table_.AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
+                bool r = table_.AddKV(txn, it.iv_.CreateKey(key, global_), it.iv_.GetBuf());
                 FMA_DBG_ASSERT(r);
             } else {
                 // vid already exists
@@ -909,7 +1211,57 @@ class EdgeIndex {
         }
         return true;
     }
+
+    EdgeIndexIterator FindKeyIfExist(KvTransaction& txn, const Value& k,
+                                     const EdgeUid& euid, bool& found) {
+        EdgeIndexIterator it = GetUnmanagedIterator(txn, k, k, euid.src,
+                                                    euid.dst, euid.lid, euid.tid, euid.eid);
+        Value key = CutEdgeIndexKeyIfLong(k);
+        if (!it.IsValid()) {
+            if (it.PrevKV() && it.KeyEquals(key, euid.src, euid.dst)) {
+                found = true;
+                return it;
+            }
+        } else {
+            while (it.IsValid()) {
+                if (it.KeyEquals(key, euid.src, euid.dst)) {
+                    found = true;
+                    return it;
+                } else if (it.KeyOutOfRange()) {
+                    return it;
+                }
+                it.Next();
+            }
+        }
+        return it;
+    }
+
+    size_t GetMaxEdgeIndexKeySize() {
+        size_t key_size;
+        if (!global_) {
+            if (unique_) {
+                key_size = _detail::MAX_KEY_SIZE - _detail::VID_SIZE * 2;
+            } else {
+                key_size = _detail::MAX_KEY_SIZE - _detail::EUID_SIZE;
+            }
+        } else {
+            if (unique_) {
+                key_size = _detail::MAX_KEY_SIZE;
+            } else {
+                key_size = _detail::MAX_KEY_SIZE - _detail::EUID_SIZE;
+            }
+        }
+        return key_size;
+    }
+
+    Value CutEdgeIndexKeyIfLong(const Value& k) {
+        size_t key_size = GetMaxEdgeIndexKeySize();
+        if (k.Size() < key_size) return Value::ConstRef(k);
+        return Value(k.Data(), key_size);
+    }
 };
+
+
 
 inline FieldType EdgeIndexIterator::KeyType() const { return index_->KeyType(); }
 }  // namespace lgraph

@@ -20,9 +20,9 @@ install(DIRECTORY
 install(DIRECTORY
         DESTINATION share/lgraph/resource/procedure_demo/)
 install(FILES
-        ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/scan_graph.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/custom_pagerank.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/../plugins/python/scan_graph.py
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v1_scan_graph.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
         DESTINATION share/lgraph/resource/procedure_demo/)
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/python/FMA_shell
@@ -33,7 +33,6 @@ install(DIRECTORY
         DESTINATION share/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
-        ${CMAKE_CURRENT_LIST_DIR}/../plugins/lgraph_plugin.py
         DESTINATION bin)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../release/local/etc/lgraph.json
@@ -46,6 +45,12 @@ add_custom_command(TARGET lgraph_server
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/lgraph_task_runner.py)
+# prepare web resource and procedure demos
+# TODO: redefine the share directory before removing legacy web resource
+add_custom_command(TARGET lgraph_server
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -53,23 +58,9 @@ add_custom_command(TARGET lgraph_server
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo)
-add_custom_command(TARGET lgraph_server
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/scan_graph.cpp
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/scan_graph.cpp)
-add_custom_command(TARGET lgraph_server
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_LIST_DIR}/../test/test_procedures/custom_pagerank.cpp
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/custom_pagerank.cpp)
-add_custom_command(TARGET lgraph_server
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_LIST_DIR}/../plugins/python/scan_graph.py
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/scan_graph.py)
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink

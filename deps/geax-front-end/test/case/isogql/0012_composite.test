@@ -1,0 +1,410 @@
+// SUCC CASE
+// |-- 0 base
+// |-- 1 expression
+// |-- 2 group by
+// |-- 3 order by
+// |-- 4 agg
+// |-- 5 limit
+// |-- 6 nested select
+// FAIL CASE
+// |-- 7 semantic
+// |-- 8 not support
+
+def composite_data_set_init: gql = {
+    INSERT (:node1{@id:10001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:10002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:10003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:20001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:20002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:20003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:30001, p_long:1, p_double:1.1, p_string:"beijing"}), (:node1{@id:30002, p_long:2, p_double:2.2, p_string:"hangzhou"}), (:node1{@id:30003, p_long:3, p_double:3.3, p_string:"shanghai"}), (:node1{@id:40001, p_long:4, p_double:4.4, p_string:"xian"});
+    select n.@id, n.p_long, n.p_double, n.p_string MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001)) ORDER BY n.@id;
+
+    INSERT ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:10001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:10002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:10003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:20001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:20002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:20003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:1, p_double:1.1, p_string:"beijing-distance", @src_id:30001, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:2, p_double:2.2, p_string:"hangzhou-distance", @src_id:30002, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:3, p_double:3.3, p_string:"shanghai-distance", @src_id:30003, @dst_id:100, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:4, p_double:4.4, p_string:"xian-distance", @src_id:40001, @dst_id:100, @timestamp:0}]->();
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) ORDER BY e.@src_id;
+}
+
+def composite: isogql = {
+    //// 0 base
+    // UNION
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string UNION DISTINCT MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string UNION DISTINCT MATCH (m:node1 {@id:2}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string UNION DISTINCT MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string UNION DISTINCT MATCH (m:node1 {@id:2}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string UNION ALL MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.@id UNION MATCH (m:node1 {@id:3}) RETURN m.@id UNION DISTINCT MATCH (k:node1 {@id:4}) RETURN k.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.@id UNION MATCH (m:node1 {@id:2}) RETURN m.@id UNION DISTINCT MATCH (k:node1 {@id:3}) RETURN k.@id UNION MATCH (q:node1 {@id:4}) RETURN q.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.@id UNION MATCH (m:node1 {@id:2}) RETURN m.@id UNION DISTINCT MATCH (k:node1 {@id:3}) RETURN k.@id UNION MATCH (q:node1 {@id:4}) RETURN q.@id UNION ALL MATCH (d:node1 {@id:1}) RETURN d.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long, n.p_double, n.p_string UNION ALL MATCH (m:node1 {@id:1}) RETURN m.p_long, m.p_double, m.p_string UNION ALL MATCH (k:node1 {@id:1}) RETURN k.p_long,k.p_double,k.p_string UNION ALL MATCH (d:node1 {@id:1}) RETURN d.p_long,d.p_double,d.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id UNION MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN e.@src_id, e.p_long, e.p_double, e.p_string ORDER BY e.@src_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN e.@src_id, e.p_long, e.p_double, e.p_string ORDER BY e.@src_id UNION MATCH (n:node1 where @id in (10001,10002,10003))  RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id;
+    MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id UNION MATCH (m:node1 where @id in (20001,20002,20003)) RETURN m.@id, m.p_long, m.p_double, m.p_string ORDER BY m.@id UNION MATCH (k:node1 where @id in (30001,30002,30003)) RETURN k.@id, k.p_long, k.p_double, k.p_string ORDER BY k.@id UNION MATCH (l:node1{@id:40001}) RETURN l.@id, l.p_long, l.p_double, l.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id UNION MATCH (n1:node1 where @id in (10001,10002,10003)) RETURN n1.@id, n1.p_long, n1.p_double, n1.p_string;
+
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id UNION MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.@src_id, e22.p_long, e22.p_string ORDER BY e22.@src_id;
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id UNION MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.p_long, e22.p_string, e22.@src_id ORDER BY e22.p_long;
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id UNION ALL MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.p_string, e22.@src_id, e22.p_long ORDER BY e22.p_string UNION MATCH (n2:node1 {@id:1})-[e31:edge_n1_n2]->(m2:node2)-[e32:edge_n2_n3]->(k2:node3) RETURN m2.p_long, m2.p_string, m2.@id ORDER BY m2.p_long;
+
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id UNION MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id UNION ALL MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id UNION DISTINCT MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long as A, n.p_double as B, n.p_string as C UNION DISTINCT MATCH (n1:node1 {@id:1}) RETURN n1.p_long as D, n1.p_double as E, n1.p_string as F;
+    RETURN 1,2 UNION ALL MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.p_long,n.p_string;
+    RETURN 1,2 UNION ALL MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.p_long,n.p_string UNION ALL RETURN true, false;
+
+    // EXCEPT
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string EXCEPT DISTINCT MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string EXCEPT DISTINCT MATCH (m:node1 {@id:2}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string EXCEPT DISTINCT MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string EXCEPT DISTINCT MATCH (m:node1 {@id:2}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string EXCEPT ALL MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.@id EXCEPT MATCH (m:node1 {@id:3}) RETURN m.@id EXCEPT DISTINCT MATCH (k:node1 {@id:4}) RETURN k.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.@id EXCEPT MATCH (m:node1 {@id:2}) RETURN m.@id EXCEPT DISTINCT MATCH (k:node1 {@id:3}) RETURN k.@id EXCEPT MATCH (q:node1 {@id:4}) RETURN q.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.@id EXCEPT MATCH (m:node1 {@id:2}) RETURN m.@id EXCEPT DISTINCT MATCH (k:node1 {@id:3}) RETURN k.@id EXCEPT MATCH (q:node1 {@id:4}) RETURN q.@id EXCEPT ALL MATCH (d:node1 {@id:1}) RETURN d.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long, n.p_double, n.p_string EXCEPT ALL MATCH (m:node1 {@id:1}) RETURN m.p_long, m.p_double, m.p_string EXCEPT ALL MATCH (k:node1 {@id:1}) RETURN k.p_long,k.p_double,k.p_string EXCEPT ALL MATCH (d:node1 {@id:1}) RETURN d.p_long,d.p_double,d.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id EXCEPT MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN e.@src_id, e.p_long, e.p_double, e.p_string ORDER BY e.@src_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN e.@src_id, e.p_long, e.p_double, e.p_string ORDER BY e.@src_id EXCEPT MATCH (n:node1 where @id in (10001,10002,10003))  RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id;
+    MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id EXCEPT MATCH (m:node1 where @id in (20001,20002,20003)) RETURN m.@id, m.p_long, m.p_double, m.p_string ORDER BY m.@id EXCEPT MATCH (k:node1 where @id in (30001,30002,30003)) RETURN k.@id, k.p_long, k.p_double, k.p_string ORDER BY k.@id EXCEPT MATCH (l:node1{@id:40001}) RETURN l.@id, l.p_long, l.p_double, l.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id EXCEPT MATCH (n1:node1 where @id in (10001,10002,10003)) RETURN n1.@id, n1.p_long, n1.p_double, n1.p_string;
+
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id EXCEPT MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.@src_id, e22.p_long, e22.p_string ORDER BY e22.@src_id;
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id EXCEPT MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.p_long, e22.p_string, e22.@src_id ORDER BY e22.p_long;
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id EXCEPT ALL MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.p_string, e22.@src_id, e22.p_long ORDER BY e22.p_string EXCEPT MATCH (n2:node1 {@id:1})-[e31:edge_n1_n2]->(m2:node2)-[e32:edge_n2_n3]->(k2:node3) RETURN m2.p_long, m2.p_string, m2.@id ORDER BY m2.p_long;
+
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id EXCEPT MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id EXCEPT ALL MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id EXCEPT DISTINCT MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long as A, n.p_double as B, n.p_string as C EXCEPT DISTINCT MATCH (n1:node1 {@id:1}) RETURN n1.p_long as D, n1.p_double as E, n1.p_string as F;
+    RETURN 1,2 EXCEPT ALL MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.p_long,n.p_string;
+    RETURN 1,2 EXCEPT ALL MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.p_long,n.p_string EXCEPT ALL RETURN true, false;
+
+    // INTERSECT
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string INTERSECT DISTINCT MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string INTERSECT DISTINCT MATCH (m:node1 {@id:2}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string INTERSECT DISTINCT MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string INTERSECT DISTINCT MATCH (m:node1 {@id:2}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string INTERSECT ALL MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string;
+    MATCH (n:node1 {@id:2}) RETURN n.@id INTERSECT MATCH (m:node1 {@id:3}) RETURN m.@id INTERSECT DISTINCT MATCH (k:node1 {@id:4}) RETURN k.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.@id INTERSECT MATCH (m:node1 {@id:2}) RETURN m.@id INTERSECT DISTINCT MATCH (k:node1 {@id:3}) RETURN k.@id INTERSECT MATCH (q:node1 {@id:4}) RETURN q.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.@id INTERSECT MATCH (m:node1 {@id:2}) RETURN m.@id INTERSECT DISTINCT MATCH (k:node1 {@id:3}) RETURN k.@id INTERSECT MATCH (q:node1 {@id:4}) RETURN q.@id INTERSECT ALL MATCH (d:node1 {@id:1}) RETURN d.@id;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long, n.p_double, n.p_string INTERSECT ALL MATCH (m:node1 {@id:1}) RETURN m.p_long, m.p_double, m.p_string INTERSECT ALL MATCH (k:node1 {@id:1}) RETURN k.p_long,k.p_double,k.p_string INTERSECT ALL MATCH (d:node1 {@id:1}) RETURN d.p_long,d.p_double,d.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN e.@src_id, e.p_long, e.p_double, e.p_string ORDER BY e.@src_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) RETURN e.@src_id, e.p_long, e.p_double, e.p_string ORDER BY e.@src_id INTERSECT MATCH (n:node1 where @id in (10001,10002,10003))  RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id;
+    MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (m:node1 where @id in (20001,20002,20003)) RETURN m.@id, m.p_long, m.p_double, m.p_string ORDER BY m.@id INTERSECT MATCH (k:node1 where @id in (30001,30002,30003)) RETURN k.@id, k.p_long, k.p_double, k.p_string ORDER BY k.@id INTERSECT MATCH (l:node1{@id:40001}) RETURN l.@id, l.p_long, l.p_double, l.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (n1:node1 where @id in (10001,10002,10003)) RETURN n1.@id, n1.p_long, n1.p_double, n1.p_string;
+
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id INTERSECT MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.@src_id, e22.p_long, e22.p_string ORDER BY e22.@src_id;
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id INTERSECT MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.p_long, e22.p_string, e22.@src_id ORDER BY e22.p_long;
+    MATCH (n:node1 {@id:1})-[e11:edge_n1_n2]->(m:node2)-[e12:edge_n2_n3]->(k:node3) RETURN k.@id, k.p_long, k.p_string ORDER BY k.@id INTERSECT ALL MATCH (n1:node1 {@id:1})-[e21:edge_n1_n2]->(m1:node2)-[e22:edge_n2_n3]->(k1:node3) RETURN e22.p_string, e22.@src_id, e22.p_long ORDER BY e22.p_string INTERSECT MATCH (n2:node1 {@id:1})-[e31:edge_n1_n2]->(m2:node2)-[e32:edge_n2_n3]->(k2:node3) RETURN m2.p_long, m2.p_string, m2.@id ORDER BY m2.p_long;
+
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id INTERSECT MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id INTERSECT ALL MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n1:node1 where @id in (10001,10002,10003))-[e11:edge_n1_n2]->(n2:node2{@id:100}) RETURN e11.@dst_id ORDER BY e11.@src_id INTERSECT DISTINCT MATCH (n11:node1 where @id in (20001,20002,20003))-[e21:edge_n1_n2]->(n12:node2{@id:100}) RETURN e21.@dst_id;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long as A, n.p_double as B, n.p_string as C INTERSECT DISTINCT MATCH (n1:node1 {@id:1}) RETURN n1.p_long as D, n1.p_double as E, n1.p_string as F;
+    RETURN 1,2 INTERSECT ALL MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.p_long,n.p_string;
+    RETURN 1,2 INTERSECT ALL MATCH (n:node1 where @id in (10001,10002,10003)) RETURN n.p_long,n.p_string INTERSECT ALL RETURN true, false;
+
+    // HYBRID
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string UNION ALL MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string INTERSECT MATCH (k:node1 {@id:1}) RETURN k.p_long,k.p_double,k.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string UNION ALL MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string INTERSECT MATCH (k:node1 {@id:1}) RETURN k.p_long,k.p_double,k.p_string EXCEPT MATCH (l:node1 {@id:4}) RETURN l.p_long,l.p_double,l.p_string;
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string UNION ALL MATCH (m:node1 {@id:1}) RETURN m.p_long,m.p_double,m.p_string INTERSECT MATCH (k:node1 {@id:1}) RETURN k.p_long,k.p_double,k.p_string EXCEPT MATCH (l:node1 {@id:1}) RETURN l.p_long,l.p_double,l.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003))                                           RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id UNION ALL MATCH (m:node1 where @id in (20001,20002,20003))                          RETURN m.@id, m.p_long, m.p_double, m.p_string ORDER BY m.@id UNION ALL MATCH (k:node1 where @id in (30001,30002,30003))        RETURN k.@id, k.p_long, k.p_double, k.p_string ORDER BY k.@id UNION ALL MATCH (l:node1{@id:40001})                       RETURN l.@id, l.p_long, l.p_double, l.p_string EXCEPT MATCH (d:node1 where @id in (10001,10002,10003))       RETURN d.@id, d.p_long, d.p_double, d.p_string EXCEPT MATCH (c:node1 where @id in (20001,20002,20003)) RETURN c.@id, c.p_long, c.p_double, c.p_string EXCEPT MATCH (x:node1 where @id in (30001,30002,30003)) RETURN x.@id, x.p_long, x.p_double, x.p_string EXCEPT MATCH (y:node1{@id:40001}) RETURN y.@id, y.p_long, y.p_double, y.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003))                                           RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id UNION ALL MATCH (m:node1 where @id in (20001,20002,20003))                          RETURN m.@id, m.p_long, m.p_double, m.p_string ORDER BY m.@id UNION ALL MATCH (k:node1 where @id in (30001,30002,30003))        RETURN k.@id, k.p_long, k.p_double, k.p_string ORDER BY k.@id UNION ALL MATCH (l:node1{@id:40001})                       RETURN l.@id, l.p_long, l.p_double, l.p_string EXCEPT MATCH (d:node1 where @id in (10001,20001,30001,40001)) RETURN d.@id, d.p_long, d.p_double, d.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001)) RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (m:node1 where @id in (20001,20002,20003,30001,30002,30003,40001))  RETURN m.@id, m.p_long, m.p_double, m.p_string                INTERSECT MATCH (k:node1 where @id in (30001,30002,30003,40001))  RETURN k.@id, k.p_long, k.p_double, k.p_string                INTERSECT MATCH (l:node1 where @id in (30003,40001))       RETURN l.@id, l.p_long, l.p_double, l.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003))                         RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id UNION ALL MATCH (m:node1 where @id in (20001,20002,20003,30001,30002,30003))        RETURN m.@id, m.p_long, m.p_double, m.p_string ORDER BY m.@id UNION ALL MATCH (k:node1 where @id in (30001,30002,30003,40001))  RETURN k.@id, k.p_long, k.p_double, k.p_string ORDER BY k.@id INTERSECT MATCH (l:node1 where @id in (10002,20002,30002)) RETURN l.@id, l.p_long, l.p_double, l.p_string EXCEPT MATCH (d:node1 where @id in (10002,30002))             RETURN d.@id, d.p_long, d.p_double, d.p_string;
+    MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003))                         RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (m:node1 where @id in (20001,20002,20003,30001,30002,30003))        RETURN m.@id, m.p_long, m.p_double, m.p_string                EXCEPT    MATCH (k:node1 where @id in (20001,20003))              RETURN k.@id, k.p_long, k.p_double, k.p_string;
+    MATCH (n:node1 where @id in (20001,20002,20003,30001,30002,30003))                         RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (m:node1 where @id in (30001,30002,30003,40001))                    RETURN m.@id, m.p_long, m.p_double, m.p_string                EXCEPT    MATCH (k:node1 where @id in (20001,20003))              RETURN k.@id, k.p_long, k.p_double, k.p_string;
+    MATCH (n:node1 where @id in (20001,20002,20003,30001,30002,30003))                         RETURN n.@id, n.p_long, n.p_double, n.p_string ORDER BY n.@id INTERSECT MATCH (m:node1 where @id in (30001,30002,30003,40001))                    RETURN m.@id, m.p_long, m.p_double, m.p_string                EXCEPT    MATCH (k:node1 where @id in (30001,30003))              RETURN k.@id, k.p_long, k.p_double, k.p_string;
+
+////// 1 expression
+//RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay"
+//    RETURN -1 UNION ALL RETURN - 1 UNION ALL RETURN ! true UNION ALL RETURN !true UNION ALL RETURN !(1 = 2) UNION ALL RETURN !(1 != 2) UNION ALL RETURN ~1
+//    RETURN 1 + 2 UNION ALL RETURN 1.0 + 2 UNION ALL RETURN 1.0 + 2.0 UNION ALL RETURN true + 1 UNION ALL RETURN true + true
+//    RETURN 2 - 1 UNION ALL RETURN 2.0 - 1 UNION ALL RETURN 2.0 - 1.0 UNION ALL RETURN 2 - true UNION ALL RETURN true - false
+//    RETURN 1 * 2 UNION ALL RETURN 1.0 * 2 UNION ALL RETURN 1.0 * 2.0 UNION ALL RETURN true * 2 UNION ALL RETURN true * true
+//    RETURN 1 / 2 UNION ALL RETURN 1.0 / 2.0 UNION ALL RETURN 1.0 / 2 UNION ALL RETURN 1 / 0 UNION ALL RETURN 1 / 0.0
+//    RETURN 5 MOD 3 UNION ALL RETURN 5 % 3 UNION ALL RETURN 5 MOD 0 UNION ALL RETURN 5 % 0
+//    RETURN true && false UNION ALL RETURN true AND false UNION ALL RETURN true && true UNION ALL RETURN true AND true UNION ALL RETURN false && true UNION ALL RETURN false AND true
+//    RETURN 1 & 1 UNION ALL RETURN 1 | 0 UNION ALL RETURN 0 ^ 1 UNION ALL RETURN 1 << 1
+//    RETURN (-1) << 64 UNION ALL RETURN 1 >> 1 UNION ALL RETURN 1 = 1 UNION ALL RETURN 1 = 1.0
+//    RETURN "1" = "1" UNION ALL RETURN "1.0" = "1" UNION ALL RETURN 1.0 != 1.0
+//    RETURN 1 < 2 UNION ALL RETURN 1.0 <= 1 UNION ALL RETURN 2 > 1.0 UNION ALL RETURN 2.0 >= 1
+//    RETURN ABS(-2) UNION ALL RETURN LOG(1) UNION ALL RETURN ROUND(1.5) UNION ALL RETURN CEIL(1.7) UNION ALL RETURN FLOOR(1.5) UNION ALL RETURN FINDSTR("alipay", "pay")
+//
+//    --error 105
+//    RETURN 1 + 2 UNION ALL RETURN 1.0 + 2 UNION ALL RETURN 1.0 + 2.0 UNION ALL RETURN 1 + "2" UNION ALL RETURN true + 1 UNION ALL RETURN true + true
+//    --error 105
+//    RETURN 2 - 1 UNION ALL RETURN 2.0 - 1 UNION ALL RETURN 2.0 - 1.0 UNION ALL RETURN "2" - 1 UNION ALL RETURN 2 - true UNION ALL RETURN true - false
+//    --error 105
+//    RETURN 1 * 2 UNION ALL RETURN 1.0 * 2 UNION ALL RETURN 1.0 * 2.0 UNION ALL RETURN 1 * "2" UNION ALL RETURN true * 2 UNION ALL RETURN true * true
+//    --error 105
+//    RETURN 1 / 2 UNION ALL RETURN 1.0 / 2.0 UNION ALL RETURN 1.0 / 2 UNION ALL RETURN 2.0 / "1" UNION ALL RETURN 1 / 0 UNION ALL RETURN 1 / 0.0
+//    --error 105
+//    RETURN 1 = "1" UNION ALL RETURN "1" = "1" UNION ALL RETURN "1.0" = "1" UNION ALL RETURN 1.0 != 1.0
+//
+//    // UNION
+//    RETURN n.p_long MATCH (n:node1 {@id:1}) UNION ALL RETURN true
+//    RETURN true UNION ALL RETURN n.p_long MATCH (n:node1 {@id:1});
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION ALL RETURN true
+//    RETURN n.p_long MATCH (n:node1 {@id:1}) UNION ALL RETURN true
+//    RETURN n.@id MATCH (n:node1 {@id:1}) UNION ALL RETURN n.p_long MATCH (n:node2 {@id:11});
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION ALL RETURN n.p_long MATCH (n:node2 {@id:11}) UNION ALL RETURN true;
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION ALL RETURN n.p_long MATCH (n:node2 {@id:11}) UNION ALL RETURN 1+2;
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION ALL RETURN 1+2 UNION ALL RETURN 4;
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION RETURN "1";
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION DISTINCT RETURN "1";
+//RETURN n.@id MATCH (n:node1 {@id:1}) UNION ALL RETURN "1";
+//RETURN 1 UNION DISTINCT RETURN 1 UNION RETURN 1 UNION ALL RETURN 1
+//    RETURN 1 UNION DISTINCT RETURN 1.0 UNION RETURN "1" UNION DISTINCT RETURN 1
+//    RETURN 1 UNION ALL RETURN 1 UNION ALL RETURN 1 UNION RETURN 1
+//    RETURN 1 UNION ALL RETURN 1 UNION ALL RETURN 1 UNION DISTINCT RETURN 1
+//    RETURN 'alibaba', 'ant group' UNION ALL RETURN 100 as id, 100 as id;
+//
+//// EXCEPT
+//RETURN n.p_long MATCH (n:node1 {@id:1}) EXCEPT RETURN true
+//    RETURN 1.0 EXCEPT RETURN n.p_long MATCH (n:node1 {@id:1});
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN true
+//    RETURN n.p_long MATCH (n:node1 {@id:1}) EXCEPT RETURN 1.0
+//    RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN 1;
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN n.p_long MATCH (n:node2 {@id:11});
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN n.p_long MATCH (n:node2 {@id:11}) EXCEPT RETURN 1.0;
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN n.p_long MATCH (n:node2 {@id:11}) EXCEPT RETURN 1+0;
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN 1+2 EXCEPT RETURN -1;
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN "1";
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT DISTINCT RETURN "1";
+//RETURN n.@id MATCH (n:node1 {@id:1}) EXCEPT RETURN "1";
+//RETURN 1 EXCEPT DISTINCT RETURN 1 EXCEPT RETURN 1 EXCEPT RETURN 1
+//    RETURN 1 EXCEPT DISTINCT RETURN 1.0 EXCEPT RETURN "1" EXCEPT DISTINCT RETURN 1
+//    RETURN 1 EXCEPT RETURN 1+0 EXCEPT RETURN ~1 EXCEPT RETURN 2/1
+//
+//    // INTERSECT
+//    RETURN n.p_long MATCH (n:node1 {@id:1}) INTERSECT RETURN true
+//    RETURN true INTERSECT RETURN n.p_long MATCH (n:node1 {@id:1});
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN true
+//    RETURN n.p_long MATCH (n:node1 {@id:1}) INTERSECT RETURN true
+//    RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN n.p_long MATCH (n:node2 {@id:11});
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN n.p_long MATCH (n:node2 {@id:11}) INTERSECT RETURN true;
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN n.p_long MATCH (n:node2 {@id:11}) INTERSECT RETURN 1+0;
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN 1+0 INTERSECT RETURN 2-1;
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN "1";
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT DISTINCT RETURN "1";
+//RETURN n.@id MATCH (n:node1 {@id:1}) INTERSECT RETURN "1";
+//RETURN 1 INTERSECT DISTINCT RETURN 1 INTERSECT RETURN 1 INTERSECT RETURN 1
+//    RETURN 1 INTERSECT DISTINCT RETURN 1.0 INTERSECT RETURN "1" INTERSECT DISTINCT RETURN 1
+//
+//    //// 2 group by
+//    RETURN n.p_long MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2) GROUP BY e.p_string UNION ALL RETURN n.p_double MATCH (n:node2 {@id:11});
+//RETURN e2.@src_id, e2.p_long, e2.p_string MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.@src_id ORDER BY e2.@src_id UNION ALL RETURN e2.non_exist, e2.p_long, e2.p_string MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.non_exist;
+//RETURN n.@id, n.p_long, n.p_double, n.p_string MATCH (n:node1 where @id in (10001,10002,10003)) GROUP BY n.p_string ORDER BY n.@id UNION ALL RETURN n.@id, n.p_long, n.p_double, n.p_string MATCH (n:node1 where @id in (20001,20002,20003)) GROUP BY n.p_string ORDER BY n.@id UNION ALL RETURN n.@id, n.p_long, n.p_double, n.p_string MATCH (n:node1 where @id in (30001,30002,30003)) GROUP BY n.p_string ORDER BY n.@id UNION ALL RETURN n.@id, n.p_long, n.p_double, n.p_string MATCH (n:node1{@id:40001});
+//RETURN n.p_string, count(n.@id) MATCH (n:node1 where @id in (10001,10002,10003)) GROUP BY n.p_string ORDER BY n.p_string UNION ALL RETURN n.p_string, count(n.@id) MATCH (n:node1 where @id in (20001,20002,20003)) GROUP BY n.p_string ORDER BY n.p_string UNION ALL RETURN n.p_string, count(n.@id) MATCH (n:node1 where @id in (30001,30002,30003)) GROUP BY n.p_string ORDER BY n.p_string UNION ALL RETURN n.p_string, count(n.@id) MATCH (n:node1{@id:40001});
+//--error 105
+//    RETURN sum(n.p_long),max(n.p_double),min(n.p_string) MATCH (n:node1 {@id:1}) UNION ALL RETURN sum(n.p_long),max(n.p_double),min(n.p_string) MATCH (n:node1 {@id:1}) UNION ALL RETURN max(e.p_long), sum(e.p_long), avg(e.p_long) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2);
+//RETURN sum(n.p_long),max(n.p_double) MATCH (n:node1 {@id:1}) UNION ALL RETURN sum(n.p_long),max(n.p_double) MATCH (n:node1 {@id:1}) UNION ALL RETURN max(e.p_long), sum(e.p_long) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2);
+//--error 105
+//    RETURN min(n.@id), min(n.p_long), min(n.p_double), min(e.@src_id), min(e2.p_long), min(e.p_double), min(e.p_string), min(e2.p_string) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.@src_id UNION ALL RETURN max(n.@id), max(n.p_long), max(n.p_double), max(e.@src_id), max(e2.p_long), max(e.p_double), max(e.p_string), max(e2.p_string) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.non_exist;
+//RETURN min(n.@id), min(n.p_long), min(n.p_double), min(e.@src_id), min(e2.p_long), min(e.p_double) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.@src_id;
+//RETURN max(n.@id), max(n.p_long), max(n.p_double), max(e.@src_id), max(e2.p_long), max(e.p_double) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.non_exist;
+//RETURN min(n.@id), min(n.p_long), min(n.p_double), min(e.@src_id), min(e2.p_long), min(e.p_double) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.@src_id UNION ALL RETURN max(n.@id), max(n.p_long), max(n.p_double), max(e.@src_id), max(e2.p_long), max(e.p_double) MATCH (n:node1 {@id:1})-[e:edge_n1_n2]->(m:node2)-[e2:edge_n2_n3]->(k:node3) GROUP BY e2.non_exist;
+//
+////// 3 ORDER BY
+//RETURN n.@id, r.p_string, m.@id, s.p_string, t.@id, t.p_long MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) ORDER BY t.p_long UNION ALL RETURN n.@id, r.p_string, m.@id, s.p_string, t.@id, t.p_long MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) ORDER BY t.p_string
+//    RETURN n.@id, n.p_long, n.p_double, n.p_string MATCH (n:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001)) ORDER BY n.@id UNION ALL RETURN e.@src_id, e.p_long, e.p_double, e.p_string MATCH (n1:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003,40001))-[e:edge_n1_n2]->(n2:node2{@id:100}) ORDER BY e.@src_id;
+//
+////// 4 agg
+//// UNION
+//RETURN sum(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) UNION ALL RETURN max(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3);
+//RETURN sum(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) UNION DISTINCT RETURN max(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3);
+//
+//// EXCEPT
+//RETURN sum(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) EXCEPT RETURN max(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3);
+//RETURN sum(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) EXCEPT DISTINCT RETURN max(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3);
+//
+//// INTERSECT
+//RETURN sum(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) INTERSECT RETURN max(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3);
+//RETURN sum(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) INTERSECT DISTINCT RETURN max(t.p_long) MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3);
+//
+//// HYBRID
+//// FIXME(mengyu.lmy): https://aone.alipay.com/issue/34829456
+//// RETURN sum(n.@id), count(n.p_long), avg(n.p_double) MATCH (n:node1 where @id in (10001,10002,10003)) ORDER BY n.@id UNION ALL RETURN sum(n.@id), count(n.p_long), avg(n.p_double) MATCH (n:node1 where @id in (20001,20002,20003)) ORDER BY n.@id UNION ALL RETURN sum(n.@id), count(n.p_long), avg(n.p_double) MATCH (n:node1 where @id in (30001,30002,30003)) ORDER BY n.@id UNION ALL RETURN sum(n.@id), count(n.p_long), avg(n.p_double)  MATCH (n:node1{@id:40001}) EXCEPT RETURN sum(n.@id), count(n.p_long), avg(n.p_double)  MATCH (n:node1 where @id in (10001,20001,30001,40001));
+//
+////// 5 limit
+//RETURN n.@id, r.p_string, m.@id, s.p_string, t.@id, t.p_long MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) LIMIT 10 UNION ALL RETURN n.@id, r.p_string, m.@id, s.p_string, t.@id, t.p_long MATCH (n:node1 {@id: 1})-[r:edge_n1_n2]->(m:node2)-[s:edge_n2_n3]->(t:node3) LIMIT 1;
+//
+////// 6 nested RETURN
+//// UNION
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A UNION ALL RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A UNION ALL RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A UNION ALL RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A UNION ALL RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as B;
+//RETURN A.p1, A.p2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (10001,10002,10003)) ORDER BY m.p_long } as A UNION ALL RETURN B.p1 + 1, B.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20002,20003)) ORDER BY m.p_long } as B UNION ALL RETURN C.p1 + 3, C.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,30003)) ORDER BY m.p_long } as C;
+//
+//// EXCEPT
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A EXCEPT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A EXCEPT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A EXCEPT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A EXCEPT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as B;
+//RETURN A.p1, A.p2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003)) ORDER BY m.p_long } as A EXCEPT RETURN B.p1 + 1, B.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20002,20003)) ORDER BY m.p_long } as B EXCEPT RETURN C.p1 + 3, C.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,30003)) ORDER BY m.p_long } as C;
+//
+//// INTERSECT
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A INTERSECT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A INTERSECT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A INTERSECT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as B;
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A INTERSECT RETURN B.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as B;
+//RETURN A.p1, A.p2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (10001,10002,10003,20001,20002,20003,30001,30002,30003)) ORDER BY m.p_long } as A INTERSECT RETURN B.p1 + 1, B.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20003,30001,30003)) ORDER BY m.p_long } as B INTERSECT RETURN C.p1 + 3, C.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,20001,20002)) ORDER BY m.p_long } as C;
+//
+//// HYBRID
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:10001}) } as A UNION ALL RETURN B.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:20001}) } as B INTERSECT DISTINCT RETURN C.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:20001}) } as C EXCEPT RETURN D.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:40001}) } as D
+//                                                                                                                                                                                                                                                                                                                                                                                                                                               RETURN A.p1, A.p2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (10001,10002,10003)) ORDER BY m.p_long } as A UNION ALL RETURN B.p1 + 1, B.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20002,20003)) ORDER BY m.p_long } as B UNION ALL RETURN C.p1 + 3, C.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,30003)) ORDER BY m.p_long } as C EXCEPT RETURN D.p1 + 1, D.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20002,20003)) ORDER BY m.p_long } as D INTERSECT RETURN E.p1 + 3, E.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,30003)) ORDER BY m.p_long } as E;
+//
+//--error 105
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:10001}) UNION ALL RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:10002})} as A；
+//
+//                                                                                                                                                                                    //// 8 semantic
+//                                                                                                                                                                                    // UNION
+//                                                                                                                                                                                    --error 7027
+//                                                                                                                                                                                    RETURN 1,2 UNION ALL RETURN 1;
+//--error 7027
+//    RETURN 1,2 UNION ALL RETURN n.p_long MATCH (n:node1 {@id:1});
+//--error 7027
+//    RETURN 1,2 UNION ALL RETURN n.p_long MATCH (n:node1 {@id:2});
+//--error 7027
+//    RETURN n.p_long MATCH (n:node1 {@id:2}) UNION ALL RETURN 1,2;
+//--error 7027
+//    RETURN n.p_long MATCH (n:node1 {@id:2}) UNION ALL RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:3});
+//--error 7027
+//    RETURN n.p_long,n.p_double MATCH (n:node1 {@id:1}) UNION RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+//--error 106
+//    RETURN n.p_long,n.p_double MATCH (n:node1 {@id:1}) UNION MAX RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+//
+//// EXCEPT
+//--error 7027
+//    RETURN n.p_long,n.p_double MATCH (n:node1 {@id:1}) EXCEPT RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+//--error 105
+//    RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1}) EXCEPT ALL RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+//
+//// INTERSECT
+//--error 7027
+//    RETURN n.p_long,n.p_double MATCH (n:node1 {@id:1}) INTERSECT RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+//--error 105
+//    RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1}) INTERSECT ALL RETURN n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+//
+//// HYBRID
+//--error 7027
+//    RETURN n.@id MATCH (n:node1 {@id:1}) UNION RETURN n.@id MATCH (n:node1 {@id:2}) EXCEPT DISTINCT RETURN n.@id MATCH (n:node1 {@id:3}) INTERSECT RETURN n.@id MATCH (n:node1 {@id:4}) UNION ALL RETURN n.@id, n.p_long MATCH (n:node1 {@id:1});
+//// other
+//--error 2104
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN 9223372036854775807 + 1;
+//--error 2104
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN (1 << 62) + (1 << 62);
+//--error 2105
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN -9223372036854775807 - 2;
+//--error 2105
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN (1 << 62) - (-(1 << 62));
+//--error 2106
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN 9223372036854775807 * 2;
+//--error 2106
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN (1 << 31) * (1 << 32);
+//
+//RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN 1 << 63;
+//
+//RETURN A.p1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:2}) } as A UNION ALL RETURN A.p1 + 1 from { RETURN m.p_long as p1, m.p_double, m.p_string MATCH(m:node1 {@id:1}) } as A;
+//RETURN A.p1, A.p2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (10001,10002,10003)) ORDER BY m.p_long } as A UNION ALL RETURN A.p1 + 1, A.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20002,20003)) ORDER BY m.p_long } as A UNION ALL RETURN A.p1 + 3, A.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,30003)) ORDER BY m.p_long } as A EXCEPT RETURN A.p1 + 1, A.p2 + 2 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (20001,20002,20003)) ORDER BY m.p_long } as A INTERSECT RETURN A.p1 + 3, A.p2 + 4 from { RETURN m.p_long as p1, m.p_double as p2, m.p_string as p3 MATCH(m:node1 where @id in (30001,30002,30003)) ORDER BY m.p_long } as A;
+//
+////// 9 not support
+//--error 105
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1; RETURN "alipay" UNION ALL RETURN 1 << 63;
+//
+//--error 105
+//    RETURN true UNION ALL RETURN 1 UNION ALL RETURN 2.1 UNION ALL RETURN "alipay" UNION ALL RETURN 1 << 63; RETURN 1;
+}
+
+def same_ref: isogql = {
+    MATCH (n where @id in [10001])-[r]->(m) RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    INTERSECT
+    MATCH (n where @id in [10001])-[r]->(m) RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id;
+
+    MATCH (n where @id in [10001])-[r]->(m) RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id
+    INTERSECT
+    MATCH (n where @id in [10002])-[r]->(m) RETURN n.@id, r.p_long, r.p_string, r.p_double, m.@id;
+
+    MATCH (n:node1 {@id:2}) RETURN n.@id
+    INTERSECT
+    MATCH (n:node1 {@id:3}) RETURN n.@id
+    INTERSECT DISTINCT
+    MATCH (n:node1 {@id:4}) RETURN n.@id;
+
+    MATCH (n:node1 {@id:1}) RETURN n.p_long, n.p_double, n.p_string
+    INTERSECT
+    MATCH (n:node1 {@id:1}) RETURN n.p_long, n.p_double, n.p_string
+    INTERSECT
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string
+    INTERSECT
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string;
+
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string
+    EXCEPT DISTINCT
+    MATCH (n:node1 {@id:2}) RETURN n.p_long,n.p_double,n.p_string;
+
+    MATCH (n where @id = 10001) RETURN n.p_long UNION MATCH (n where @id = 10001) RETURN n.p_long;
+    MATCH (n where @id = 10001) RETURN n.p_long UNION MATCH (n where @id = 10002) RETURN n.p_string;
+
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string
+    UNION ALL
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string
+    INTERSECT
+    MATCH (n:node1 {@id:1}) RETURN n.p_long,n.p_double,n.p_string;
+
+    MATCH (n where @id = 10001) RETURN n UNION MATCH (n where @id = 10001) RETURN n;
+    MATCH (n where @id = 10001) RETURN n UNION ALL MATCH (n where @id = 10001) RETURN n;
+    MATCH (n where @id = 10001) RETURN n, n.p_long UNION MATCH (n where @id = 10001) RETURN n, n.p_long;
+    MATCH (n where @id = 10001) RETURN n, n.p_long UNION ALL MATCH (n where @id = 10001) RETURN n, n.p_long;
+}
+
+def same_ref_gql: gql = {
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id MATCH (n where @id in [10001])-[r]->(m)
+    INTERSECT
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id MATCH (n where @id in [10001])-[r]->(m);
+
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id MATCH (n where @id in [10001])-[r]->(m)
+    INTERSECT
+    SELECT n.@id, r.p_long, r.p_string, r.p_double, m.@id MATCH (n where @id in [10002])-[r]->(m);
+
+    SELECT n.@id MATCH (n:node1 {@id:2})
+    INTERSECT
+    SELECT n.@id MATCH (n:node1 {@id:3})
+    INTERSECT DISTINCT
+    SELECT n.@id MATCH (n:node1 {@id:4});
+
+    SELECT n.p_long, n.p_double, n.p_string MATCH (n:node1 {@id:1})
+    INTERSECT
+    SELECT n.p_long, n.p_double, n.p_string MATCH (n:node1 {@id:1})
+    INTERSECT
+    SELECT n.p_long, n.p_double, n.p_string MATCH (n:node1 {@id:1})
+    INTERSECT
+    SELECT n.p_long, n.p_double, n.p_string MATCH (n:node1 {@id:1});
+
+    SELECT n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1})
+    EXCEPT DISTINCT
+    SELECT n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:2});
+
+    SELECT n.p_long MATCH (n where @id = 10001) UNION SELECT n.p_long MATCH (n where @id = 10001);
+    SELECT n.p_long MATCH (n where @id = 10001) UNION SELECT n.p_string MATCH (n where @id = 10002);
+
+    SELECT n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1})
+    UNION ALL
+    SELECT n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1})
+    INTERSECT
+    SELECT n.p_long,n.p_double,n.p_string MATCH (n:node1 {@id:1});
+
+    SELECT n MATCH (n where @id = 10001) UNION SELECT n MATCH (n where @id = 10001);
+    SELECT n MATCH (n where @id = 10001) UNION ALL SELECT n MATCH (n where @id = 10001);
+    SELECT n, n.p_long MATCH (n where @id = 10001) UNION SELECT n, n.p_long MATCH (n where @id = 10001);
+    SELECT n, n.p_long MATCH (n where @id = 10001) UNION ALL SELECT n, n.p_long MATCH (n where @id = 10001);
+}
+
+def composite_data_set_clear: gql = {
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:10001, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:10002, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:10003, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:20001, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:20002, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:20003, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:30001, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:30002, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:30003, @dst_id:100, @timestamp:0}]->();
+    DELETE r MATCH ()-[r:edge_n1_n2{@src_id:40001, @dst_id:100, @timestamp:0}]->();
+}

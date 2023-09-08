@@ -16,6 +16,7 @@
 #include <deque>
 #include "core/defs.h"
 #include "tools/json.hpp"
+#include "protobuf/ha.pb.h"
 
 namespace fma_common {
 class Logger;
@@ -31,8 +32,8 @@ namespace lgraph {
 
 class LGraphRequest;
 class LGraphResponse;
-class CypherResult;
-class CypherResponse;
+class GraphQueryResult;
+class GraphQueryResponse;
 class BackupLogEntry;
 
 enum ClientType {
@@ -230,6 +231,22 @@ class RpcClient {
                         double timeout = 0);
 
         /**
+         * @brief   Execute a gql query
+         *
+         * @param [out] result      The result.
+         * @param [in]  gql         inquire statement.
+         * @param [in]  graph       (Optional) the graph to query.
+         * @param [in]  json_format (Optional) Returns the format， true is json，Otherwise, binary
+         *                          format.
+         * @param [in]  timeout     (Optional) Maximum execution time, overruns will be interrupted.
+         *
+         * @returns True if it succeeds, false if it fails.
+         */
+        bool CallGql(std::string& result, const std::string& gql,
+                        const std::string& graph = "default", bool json_format = true,
+                        double timeout = 0);
+
+        /**
          * @brief   Get the url of single client.
          *
          * @returns the url of single client.
@@ -244,8 +261,9 @@ class RpcClient {
      private:
         LGraphResponse HandleRequest(LGraphRequest* req);
 
-        bool HandleCypherRequest(LGraphResponse* res, const std::string& query,
-                                 const std::string& graph, bool json_format, double timeout);
+        bool HandleGraphQueryRequest(lgraph::ProtoGraphQueryType type,
+                                     LGraphResponse* res, const std::string& query,
+                                     const std::string& graph, bool json_format, double timeout);
 #ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
 
         std::string SingleElementExtractor(const CypherResult cypher);
@@ -254,7 +272,7 @@ class RpcClient {
 
         std::string CypherResultExtractor(const CypherResult cypher);
 #endif
-        std::string CypherResponseExtractor(const CypherResponse& cypher);
+        std::string GraphQueryResponseExtractor(const GraphQueryResponse& cypher);
 
         std::string url;
         std::string user;
@@ -309,6 +327,22 @@ class RpcClient {
      * @returns True if it succeeds, false if it fails.
      */
     bool CallCypher(std::string& result, const std::string& cypher,
+                    const std::string& graph = "default", bool json_format = true,
+                    double timeout = 0, const std::string& url = "");
+
+    /**
+     * @brief   Execute a gql query
+     *
+     * @param [out] result      The result.
+     * @param [in]  gql         inquire statement.
+     * @param [in]  graph       (Optional) the graph to query.
+     * @param [in]  json_format (Optional) Returns the format， true is json，Otherwise, binary
+     *                          format.
+     * @param [in]  timeout     (Optional) Maximum execution time, overruns will be interrupted.
+     * @param [in]  url         (Optional) Node address of calling cypher.
+     * @returns True if it succeeds, false if it fails.
+     */
+    bool CallGql(std::string& result, const std::string& gql,
                     const std::string& graph = "default", bool json_format = true,
                     double timeout = 0, const std::string& url = "");
 
@@ -484,26 +518,31 @@ class RpcClient {
     std::deque<std::shared_ptr<lgraph::RpcClient::RpcSingleClient>> client_pool;
     nlohmann::json built_in_procedures{};
     nlohmann::json user_defined_procedures{};
-    std::vector<std::string> cypher_constant;
+    std::vector<std::string> cypher_write_constant;
+    std::vector<std::string> gql_write_constant;
 
     /**
-     * @brief   Determine whether it is a read-only cypher
+     * @brief   Determine whether it is a read-only query
      *
-     * @param [in]  cypher              inquire statement.
+     * @param [in]  type                inquire query type.
+     * @param [in]  query               inquire statement.
      * @param [in]  graph               (Optional) the graph to query.
      * @returns True if it succeeds, false if it fails.
      */
-    bool IsReadCypher(const std::string& cypher, const std::string& graph);
+    bool IsReadQuery(lgraph::ProtoGraphQueryType type,
+                      const std::string& query, const std::string& graph);
 
     /**
      * @brief   Return rpc client based on whether it is a read-only query
      *
-     * @param [in]  cypher              inquire statement.
+     * @param [in]  type                inquire query type.
+     * @param [in]  query               inquire statement.
      * @param [in]  graph               (Optional) the graph to query.
      * @returns Master rpc client if cypher is not read-only, slaver rpc client if cypher is
      * read-only.
      */
-    std::shared_ptr<lgraph::RpcClient::RpcSingleClient> GetClient(const std::string& cypher,
+    std::shared_ptr<lgraph::RpcClient::RpcSingleClient> GetClient(lgraph::ProtoGraphQueryType type,
+                                                                  const std::string& cypher,
                                                                   const std::string& graph);
 
     /**

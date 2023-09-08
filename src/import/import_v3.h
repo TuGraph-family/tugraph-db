@@ -171,6 +171,7 @@ class Importer {
     void RocksdbToLmdb();
     void WriteCount();
     cuckoohash_map<std::string, VertexId> key_vid_maps_;  // vertex primary key => vid
+    cuckoohash_map<std::string, char> unique_index_keys_;
     Config config_;
     std::mutex next_vid_lock_;
     std::atomic<VertexId> next_vid_;
@@ -186,6 +187,7 @@ class Importer {
     std::string sst_files_path_;
     std::string rocksdb_path_;
     std::string vid_path_;
+    std::string dirty_data_path_;
     std::mutex exceptions_lock_;
     std::queue<std::exception_ptr> exceptions_;
     std::unique_ptr<rocksdb::DB> rocksdb_vids_;

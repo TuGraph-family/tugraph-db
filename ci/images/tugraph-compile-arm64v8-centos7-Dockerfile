@@ -1,0 +1,245 @@
+# Docker hub image
+FROM arm64v8/centos:7
+
+RUN yum update -y && yum install -y \
+    git \
+    gcc \
+    gcc-c++ \
+    make \
+    wget \
+    bzip2 \
+    openssl-static \
+    libtool \
+    libtool-ltdl \
+    libtool-ltdl-devel \
+    unzip \
+    byacc \
+    libuuid-devel \
+    rpm-build \
+    rpmdevtools \
+    rpmdev-setuptree \
+    autoconf \
+    automake \
+    libtoolize \
+    texinfo \
+    java-1.8.0-openjdk* \
+    perl-Digest-MD5 \
+    kde-l10n-Chinese \
+    glibc-common \
+    libcurl-devel \
+    centos-release-scl-rh
+
+# set locale
+RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8
+
+# install g++ 8.4.0
+# if it is not accessible, replace it with the link below
+# http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.tar.gz \
+    && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
+    && ./contrib/download_prerequisites && mkdir build && cd build \
+    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
+    && make -j4 && make install \
+    && cp  ./aarch64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
+    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
+    && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
+
+# install python3
+# if it is not accessible, replace it with the link below
+# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
+    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+    && make -j4 && make install \
+    && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && rm -rf /Python*
+    # dgl==1.0.0 :Could not find a version that satisfies the requirement dgl
+
+# install cmake
+# if it is not accessible, replace it with the link below
+# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
+    && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
+    && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
+
+# install boost-1.68
+# if it is not accessible, replace it with the link below
+# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
+    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
+    && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
+
+# install protobuf
+# if it is not accessible, replace it with the link below
+# https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/protobuf-3.6.0.tar.gz \
+    && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
+    && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
+    && make -j4 && make install && ldconfig && rm -rf /protobuf-*
+
+# install snappy
+# if it is not accessible, replace it with the link below
+# https://github.com/google/snappy/archive/refs/tags/1.1.9.zip
+# https://github.com/google/googletest/archive/refs/heads/v1.10.x.zip
+# https://github.com/google/benchmark/archive/bf585a2789e30585b4e3ce6baf11ef2750b54677.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/snappy-1.1.9.zip \
+    && unzip snappy-1.1.9.zip && mv snappy-1.1.9 snapppy && cd snapppy/third_party/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-v1.10.x.zip \
+    && unzip googletest-v1.10.x.zip && rm -rf googletest && mv googletest-1.10.x googletest \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/benchmark.zip \
+    && unzip benchmark.zip && rm -rf benchmark && mv benchmark-bf585a2789e30585b4e3ce6baf11ef2750b54677 benchmark \
+    && cd .. && mkdir build && cd build \
+    && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make -j4 && make install && rm -rf /snappy*
+
+# install gflags
+# if it is not accessible, replace it with the link below
+# https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gflags-2.2.1.tar.gz \
+    && tar xf gflags-2.2.1.tar.gz && cd gflags-2.2.1 \
+    && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS=-fPIC .. \
+    && make -j4 && make install && rm -rf /gflags-*
+
+# install leveldb
+# if it is not accessible, replace it with the link below
+# https://github.com/google/leveldb/archive/refs/tags/v1.20.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1.20.zip \
+    && unzip leveldb-v1.20.zip && mv leveldb-1.20 leveldb \
+    && cd leveldb && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make -j4 \
+    && cp -r ./include/leveldb/ /usr/local/include/ \
+    && cp ./out-shared/libleveldb.so.1.20 /usr/local/lib/ \
+    && cp ./out-static/libleveldb.a /usr/local/lib/ \
+    && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so.1 \
+    && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so \
+    && rm -rf /leveldb*
+
+# install node.js
+RUN yum install -y rh-nodejs14-nodejs \
+    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/node /usr/local/bin/ \
+    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/npm /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com \
+    && npm install -g npm@latest
+
+# install lcov
+# if it is not accessible, replace it with the link below
+# https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14-1.noarch.rpm
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov-1.14-1.noarch.rpm \
+    && rpm -ivh lcov-1.14-1.noarch.rpm \
+    && rm lcov-1.14-1.noarch.rpm
+
+
+#install maven
+# if it is not accessible, replace it with the link below
+# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
+RUN cd opt \
+    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
+    && tar xf apache-maven-3.8.7-bin.tar.gz \
+    && rm apache-maven-*.tar.gz
+
+ARG CMAKE_OPT="-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DBUILD_TESTS=0 -DBUILD_SAMPLES=0 -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
+
+# brpc
+# if it is not accessible, replace it with the link below
+# wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.2.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/brpc-release-1.2.zip \
+    && unzip brpc-release-1.2.zip && mv brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
+    && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make -j4 && make install \
+    && rm -rf /brpc*
+
+# cpprestsdk
+# if it is not accessible, replace it with the link below
+# https://github.com/microsoft/cpprestsdk/archive/refs/tags/v2.10.18.zip
+# https://github.com/zaphoyd/websocketpp/archive/56123c87598f8b1dd471be83ca841ceae07f95ba.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cpprestsdk-v2.10.18.zip \
+    && unzip cpprestsdk-v2.10.18.zip && mv cpprestsdk-2.10.18 cpprestsdk && cd /cpprestsdk/Release/libs/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/websocketpp.zip \
+    && unzip websocketpp.zip && rm -rf websocketpp && mv websocketpp-56123c87598f8b1dd471be83ca841ceae07f95ba websocketpp \
+    && cd .. \
+    # -   set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
+    # +   set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
+    && sed -i '/  set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")/c\  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")' CMakeLists.txt \
+    && mkdir build && cd build \
+    && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-fPIC -Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make -j4 && make install \
+    && rm -rf /cpprestsdk*
+
+# googletest
+# if it is not accessible, replace it with the link below
+# https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-release-1.12.1.zip \
+    && unzip googletest-release-1.12.1.zip && mv googletest-release-1.12.1 googletest && cd /googletest && mkdir build && cd build \
+    && cmake $CMAKE_OPT .. && make -j4 && make install \
+    && rm -rf /googletest*
+
+# jwt-cpp
+# if it is not accessible, replace it with the link below
+# https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.6.0.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jwt-v0.6.0.zip \
+    && unzip jwt-v0.6.0.zip && mv jwt-cpp-0.6.0 jwt-cpp && cd /jwt-cpp && cp -r include/jwt-cpp/ /usr/local/include \
+    && cp -r include/picojson/ /usr/local/include \
+    && rm -rf /jwt-cpp*
+
+# prometheus-cpp-client
+# if it is not accessible, replace it with the link below
+# https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip
+# https://github.com/civetweb/civetweb/archive/eefb26f82b233268fc98577d265352720d477ba4.zip
+# https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/prometheus-cpp-client-v1.0.1.zip \
+    && unzip prometheus-cpp-client-v1.0.1.zip && mv prometheus-cpp-1.0.1 prometheus-cpp-client && cd /prometheus-cpp-client/3rdparty/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/civetweb.zip \
+    && unzip civetweb.zip && rm -rf civetweb \
+    && mv civetweb-eefb26f82b233268fc98577d265352720d477ba4 civetweb \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest.zip \
+    && unzip googletest.zip && rm -rf googletest \
+    && mv googletest-e2239ee6043f73722e7aa812a459f54a28552929 googletest \
+    && cd .. && mkdir build && cd build \
+    && cmake $CMAKE_OPT .. && make -j4 && make install \
+    && rm -rf /prometheus-cpp-client*
+
+# pybind11
+# if it is not accessible, replace it with the link below
+# https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/pybind11-v2.10.0.zip \
+    && unzip pybind11-v2.10.0.zip && mv pybind11-2.10.0 pybind11 && cd /pybind11 && cp -r include/pybind11 /usr/local/include \
+    && rm -rf /pybind11*
+
+# braft
+# if it is not accessible, replace it with the link below
+# wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/braft-v1.1.2.zip \
+    && unzip braft-v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
+    # - set(CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} -msse4 -msse4.2")
+    && sed -i '/.*set(CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} -msse4 -msse4.2")*/c\' CMakeLists.txt \
+    && mkdir build && cd build && cmake $CMAKE_OPT .. && make -j4 && make install \
+    && rm -rf /braft*
+
+# jemalloc
+# if it is not accessible, replace it with the link below
+# https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5.3.0.tar.gz \
+   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 && ./autogen.sh && make -j4 && make install \
+   && rm -rf /jemalloc*
+
+# rocksdb
+# if it is not accessible, replace it with the link below
+# https://github.com/facebook/rocksdb/archive/refs/tags/v7.8.3.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7.8.3.tar.gz \
+# -DFORCE_SSE42=OFF
+  && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=OFF -DWITH_JEMALLOC=ON \
+  && make -j6 && make install && rm -rf /rocksdb*
+
+# antlr4
+# if it is not accessible, replace it with the link below
+# https://github.com/antlr/antlr4/archive/refs/tags/4.12.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.12.0.tar.gz \
+  && tar zxf antlr4-4.12.0.tar.gz && cd antlr4-4.12.0/runtime/Cpp/ && mkdir build && cd build \
+  && cmake $CMAKE_OPT -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DANTLR4_INSTALL=1 .. \
+  && make -j4 && make install && rm -rf /antlr4*
+
+RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0/jre/lib/aarch64/server:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
+    PATH=/opt/apache-maven-3.8.7/bin:$PATH

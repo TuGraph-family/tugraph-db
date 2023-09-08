@@ -1,0 +1,86 @@
+def init_dataset: gql = {
+    // 0.init
+    // insert node
+    INSERT (:node5{@id:1101, p_long:1, p_double:110.1, p_string:"A_1101"}), (:node5{@id:1102, p_long:1, p_double:110.2, p_string:"B_1102"}), (:node5{@id:1103, p_long:1, p_double:110.3, p_string:"C_1103"}), (:node5{@id:1104, p_long:1, p_double:110.4, p_string:"D_1104"}), (:node5{@id:1105, p_long:1, p_double:110.5, p_string:"E_1105"});
+    INSERT (:node5{@id:2101, p_long:2, p_double:210.1, p_string:"A_2101"}), (:node5{@id:2102, p_long:2, p_double:210.2, p_string:"B_2102"});
+    INSERT (:node5{@id:3101, p_long:3, p_double:310.1, p_string:"A_3101"});
+}
+
+def distinct_limit: isogql = {
+    MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    RETURN n.p_long;
+
+    MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    RETURN DISTINCT n.p_long;
+
+    MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    RETURN DISTINCT n.p_long LIMIT 2;
+
+    MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    RETURN DISTINCT n.p_long OFFSET 1 LIMIT 2;
+}
+
+def distinct_limit_gql: gql = {
+    SELECT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101));
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101));
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 2;
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 1, 2;
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 2
+    UNION DISTINCT
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 1, 2;
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 2
+    UNION ALL
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 1, 2;
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 2
+    EXCEPT
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 1, 2;
+
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 2
+    INTERSECT
+    SELECT DISTINCT n.p_long MATCH (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101)) LIMIT 1, 2;
+}
+
+def distinct_orderby: isogql  = {
+    match (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    return distinct n.p_long;
+
+    match (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    return distinct floor(n.p_long)
+    order by floor(n.p_long);
+
+    match (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    return distinct floor(n.p_long)
+    order by floor(n.p_long) + 1 DESC;
+
+    match (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    return distinct avg(n.p_long)
+    order by avg(n.p_long);
+
+    match (n:node5 where @id in (1101, 1102, 1103, 1104, 1105, 2101, 2102, 3101))
+    return distinct avg(n.p_long), sum(n.p_long)
+    order by avg(n.p_long) + sum(n.p_long) DESC;
+
+    match (n where @id in (10,11,12,13,30,31,32,33))-[r:edge_n2_n3]->(m) where n.vp_long > 12
+    return distinct n.@id,n.vp_long,n.vp_double,n.vp_string order by n.@id;
+
+    MATCH (where @id=1)-[]-()-[]-(a)
+    RETURN DISTINCT a.@node_type,case WHEN 1=0 THEN 'TRUE' ELSE 'FALSE' END AS result
+    ORDER BY a.@node_type;
+}
+
+def delete: gql = {
+    DELETE n MATCH (n:node5{@id:1101});
+    DELETE n MATCH (n:node5{@id:1102});
+    DELETE n MATCH (n:node5{@id:1103});
+    DELETE n MATCH (n:node5{@id:1104});
+    DELETE n MATCH (n:node5{@id:1105});
+    DELETE n MATCH (n:node5{@id:2101});
+    DELETE n MATCH (n:node5{@id:2102});
+    DELETE n MATCH (n:node5{@id:3101});
+}

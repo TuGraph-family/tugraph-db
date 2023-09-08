@@ -1,0 +1,11 @@
+def only_node1: isogql = {
+    MATCH (n1:node1{@id:1}) return n1;
+    MATCH (n2:node2{@id:10}) return n2;
+    MATCH (n1:node1{@id:1}) MATCH (n2:node2{@id:10}) return n1, n2;
+}
+
+def only_path: isogql = {
+    MATCH (a:node1 where @id = 1)-[b]->(c) RETURN a, b, c;
+    MATCH (d:node2 where @id = 10)-[e]->(f) RETURN d, e, f;
+    MATCH (a:node1 where @id = 1)-[b]->(c) MATCH (d:node2 where @id = 10)-[e]->(f) RETURN a, b, c, d, e, f;
+}

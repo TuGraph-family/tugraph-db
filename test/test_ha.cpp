@@ -6,6 +6,11 @@
 #include <utility>
 #include "gtest/gtest.h"
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/http_client.h"
 
 #include "fma-common/logger.h"
@@ -44,7 +49,7 @@ void build_ha_so() {
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./echo_binary.so",
-                 "../../plugins/cpp/echo_binary.cpp", LIBLGRAPH);
+                 "../../test/test_procedures/echo_binary.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./add_label.so",
@@ -236,7 +241,7 @@ class HaUnitTest : public UnitTestBase {
     }
 };
 
-class TestHA : public testing::Test {
+class TestHA : public TuGraphTest {
     std::shared_ptr<lgraph::GlobalConfig> config = std::make_shared<lgraph::GlobalConfig>();
 
  protected:

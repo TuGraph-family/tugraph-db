@@ -188,12 +188,12 @@ class LightningGraph {
      * \return  True if it succeeds, false if the index already exists. Throws exception on error.
      */
     bool _AddEmptyIndex(const std::string& label, const std::string& field,
-                        bool is_unique, bool is_vertex);
+                        bool is_unique, bool is_vertex, bool is_global = false);
 
     // adds an index, blocks until the index is ready
     // returns true if success, false if index already exists.
     bool BlockingAddIndex(const std::string& label, const std::string& field,
-                          bool is_unique, bool is_vertex,
+                          bool is_unique, bool is_vertex, bool is_global = false,
                           bool known_vid_range = false, VertexId start_vid = 0,
                           VertexId end_vid = 0);
 

@@ -193,9 +193,9 @@ bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const 
 }
 
 bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const std::string& field,
-                                          bool is_unique) {
+                                          bool is_unique, bool is_global) {
     CheckFullAccess();
-    return graph_->BlockingAddIndex(label, field, is_unique, false);
+    return graph_->BlockingAddIndex(label, field, is_unique, false, is_global);
 }
 
 bool lgraph::AccessControlledDB::AddFullTextIndex(bool is_vertex, const std::string& label,

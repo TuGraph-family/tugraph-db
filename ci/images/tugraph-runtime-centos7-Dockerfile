@@ -8,7 +8,7 @@ ARG FILEPATH
 # specifies installation package name for tugraph
 ARG FILENAME
 
-RUN yum update -y && yum install -y \
+RUN rpm --rebuilddb && yum update -y && yum install -y \
     git \
     gcc \
     gcc-c++ \
@@ -90,17 +90,16 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6
     && ln -s /node-v16.6.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
     && yarn config set registry https://registry.npmmirror.com
 
-# install tugraoh-db-web dependencies
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugrpah-db-browser.tar.gz \
+# install tugraph-db-web dependencies
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-db-browser.tar.gz \
     && mkdir -p /var/lib/web \
-    && mv tugrpah-db-browser.tar.gz /var/lib/web \
+    && mv tugraph-db-browser.tar.gz /var/lib/web \
     && cd /var/lib/web \
-    && tar xf tugrpah-db-browser.tar.gz \
-    && rm tugrpah-db-browser.tar.gz \
-    && cd tugraph-db-browser/server \
-    && chown root:root . && cd .. \
+    && tar xf tugraph-db-browser.tar.gz --no-same-owner \
+    && rm tugraph-db-browser.tar.gz \
+    && cd tugraph-db-browser \
     && yarn run bootstrap \
-    && yarn run server-build
+    && yarn run build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \

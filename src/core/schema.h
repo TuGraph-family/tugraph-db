@@ -416,8 +416,10 @@ class Schema {
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void DeleteEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                         TemporalId tid, EdgeId eid, const Value& record);
+    void DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
+
+    void DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
+                                const std::vector<size_t>& created);
 
     void DeleteVertexFullTextIndex(VertexId vid, std::vector<FTIndexEntry>& buffers);
 
@@ -428,15 +430,14 @@ class Schema {
      * Note: Currently this function is only used to delete and clean up residual indexes
      * after AddVertexToIndex fails.
      */
-    void DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
+    void DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                                  const std::vector<size_t>& created);
 
-    void DeletePartialEdgeIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                                EdgeId eid, const Value& record);
+    void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                          std::vector<size_t>& created);
 
-    void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record);
-
-    void AddEdgeToIndex(KvTransaction& txn, VertexId vid, VertexId dst, LabelId lid,
-                        TemporalId tid, EdgeId eid, const Value& record);
+    void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
+                        std::vector<size_t>& created);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);

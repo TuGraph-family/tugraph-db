@@ -419,8 +419,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                     property = edge_schema->GetDetachedEdgeProperty(
                         txn_, {vid, data.vid, data.lid, data.tid, data.eid});
                 }
-                edge_schema->DeleteEdgeIndex(txn_, vid,
-                                        data.vid, data.lid, data.tid, data.eid,
+                edge_schema->DeleteEdgeIndex(txn_, {vid, data.vid, data.lid, data.tid, data.eid},
                                              property);
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
@@ -438,8 +437,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                     property = edge_schema->GetDetachedEdgeProperty(
                         txn_, {data.vid, vid, data.lid, data.tid, data.eid});
                 }
-                edge_schema->DeleteEdgeIndex(txn_, data.vid,
-                                        vid, data.lid, data.tid, data.eid,
+                edge_schema->DeleteEdgeIndex(txn_, {data.vid, vid, data.lid, data.tid, data.eid},
                                              property);
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
@@ -489,8 +487,7 @@ Transaction::DeleteEdge(EIT& eit) {
         prop = schema->GetDetachedEdgeProperty(txn_, euid);
     }
     if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, txn_);
-    schema->DeleteEdgeIndex(txn_, eit.GetSrc(), eit.GetDst(), eit.GetLabelId(), eit.GetTemporalId(),
-                            eit.GetEdgeId(), prop);
+    schema->DeleteEdgeIndex(txn_, eit.GetUid(), prop);
     graph_->DeleteEdge(txn_, eit);
     if (schema->DetachProperty()) {
         schema->DeleteDetachedEdgeProperty(txn_, euid);
@@ -724,8 +721,9 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             continue;
         }
         // do index
+        std::vector<size_t> created_index;
         try {
-            schema->AddVertexToIndex(txn_, newvid, v);
+            schema->AddVertexToIndex(txn_, newvid, v, created_index);
         } catch (std::exception& e) {
             // if index fails, delete the vertex & the incomplete index
             bool success = graph_->DeleteVertex(txn_, newvid);
@@ -740,13 +738,14 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
              * (3) online import vertex with duplicated age(NON-UNIQUE INDEX),
              *     failed incorrectly.
              **/
-            schema->DeleteCreatedVertexIndex(txn_, newvid, v);
+            schema->DeleteCreatedVertexIndex(txn_, newvid, v, created_index);
             std::string msg =
                 FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
             if (!continue_on_error) {
                 throw ::lgraph::InputError(msg);
             }
             error.append(msg);
+            continue;
         }
         count++;
         // add fulltext index
@@ -768,17 +767,37 @@ std::string Transaction::_OnlineImportBatchAddEdges(
     std::function<void(int64_t, int64_t, uint16_t, int64_t, int64_t, const Value&)>
         add_fulltext_index;
 
-    auto extra_work = [this, schema](const EdgeUid& eid, const Value& record) {
+    int64_t count = 0;
+    auto extra_work = [&](const EdgeUid& euid, const Value& record) {
+        std::vector<size_t> created_index;
+        try {
+            schema->AddEdgeToIndex(txn_, euid, record, created_index);
+        } catch (std::exception& e) {
+            bool success = graph_->DeleteEdge(txn_, euid);
+            if (!success) throw std::runtime_error("failed to undo AddEdge");
+            if (schema->DetachProperty()) {
+                schema->GetDetachedEdgeProperty(txn_, euid);
+            }
+            schema->DeleteCreatedEdgeIndex(txn_, euid, record, created_index);
+            std::string msg =
+                FMA_FMT("When importing edge label {}:\n{}\n",
+                        schema->GetLabel(), PrintNestedException(e, 1));
+            if (!continue_on_error) {
+                throw ::lgraph::InputError(msg);
+            }
+            error.append(msg);
+            return;
+        }
         if (fulltext_index_) {
-            schema->AddEdgeToFullTextIndex(eid, record, fulltext_buffers_);
+            schema->AddEdgeToFullTextIndex(euid, record, fulltext_buffers_);
         }
         if (schema->DetachProperty()) {
-            schema->AddDetachedEdgeProperty(txn_, eid, record);
+            schema->AddDetachedEdgeProperty(txn_, euid, record);
         }
+        ++count;
     };
-    int64_t count = 0;
+
     for (auto& v : data) {
-        count += v.outs.size();
         graph::Graph::OutIteratorImpl::InsertEdges(v.vid, v.outs.begin(), v.outs.end(), it,
                                                    extra_work, schema->DetachProperty());
         graph::Graph::InIteratorImpl::InsertEdges(v.vid, v.ins.begin(), v.ins.end(), it,
@@ -1013,24 +1032,21 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                 if (!oldnull && !newnull) {
                     // update
                     bool r = index->Update(txn_, fe->GetConstRef(old_prop),
-                                           fe->GetConstRef(new_prop),
-                                           euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
+                                           fe->GetConstRef(new_prop), euid);
                     if (!r)
                         throw InputError(FMA_FMT(
                             "failed to update edge index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop)));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
-                    bool r = index->Add(txn_, fe->GetConstRef(new_prop),
-                                        euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
+                    bool r = index->Add(txn_, fe->GetConstRef(new_prop), euid);
                     if (!r)
                         throw InputError(FMA_FMT(
                             "failed to add edge index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop)));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
-                    bool r = index->Delete(txn_, fe->GetConstRef(old_prop),
-                                           euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
+                    bool r = index->Delete(txn_, fe->GetConstRef(old_prop), euid);
                     FMA_DBG_ASSERT(r);
                 } else {
                     // both null, nothing to do
@@ -1169,7 +1185,8 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
                      : schema->CreateRecord(n_fields, fields, values);
     VertexId newvid = graph_->AddVertex(
         txn_, schema->DetachProperty() ? schema->CreateRecordWithLabelId() : prop);
-    schema->AddVertexToIndex(txn_, newvid, prop);
+    std::vector<size_t> created_index;
+    schema->AddVertexToIndex(txn_, newvid, prop, created_index);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(txn_, newvid, prop);
     }
@@ -1230,13 +1247,11 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     EdgeUid euid = graph_->AddEdge(
         txn_, EdgeSid(src, dst, schema->GetLabelId(), tid),
         schema->DetachProperty() ? Value() : prop, constraints);
-    EdgeId eid = euid.eid;
-    tid = euid.tid;
-    LabelId lid = euid.lid;
     if (schema->DetachProperty()) {
         schema->AddDetachedEdgeProperty(txn_, euid, prop);
     }
-    schema->AddEdgeToIndex(txn_, src, dst, lid, tid, eid, prop);
+    std::vector<size_t> created_index;
+    schema->AddEdgeToIndex(txn_, euid, prop, created_index);
     if (fulltext_index_) {
         schema->AddEdgeToFullTextIndex(euid, prop, fulltext_buffers_);
     }

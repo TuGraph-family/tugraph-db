@@ -241,8 +241,19 @@ int LGraphServer::Start() {
                     config_->server_key_file;
             }
 
-            if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
-                GENERAL_LOG(WARNING) << "Failed to start RPC server";
+            int max_retries = 5;
+            int retries = 0;
+            while (retries < max_retries) {
+                if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
+                    GENERAL_LOG(WARNING) << "RPC server returns -1, try again after 1s";
+                } else {
+                    break;
+                }
+                fma_common::SleepS(1);
+                retries++;
+            }
+            if (retries >= max_retries) {
+                GENERAL_LOG(ERROR) << "Failed to start RPC server";
                 return -1;
             }
             GENERAL_LOG(INFO) << "Listening for RPC on port " << config_->rpc_port;

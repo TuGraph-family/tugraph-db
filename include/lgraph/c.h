@@ -758,7 +758,9 @@ extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_add_vertex_index(lgraph_api_g
                                                                     bool is_unique, char** errptr);
 extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_add_edge_index(lgraph_api_graph_db_t* graphdb,
                                                                   const char* label,
-                                                                  const char* field, bool is_unique,
+                                                                  const char* field,
+                                                                  bool is_unique,
+                                                                  bool is_global,
                                                                   char** errptr);
 extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_is_vertex_indexed(lgraph_api_graph_db_t* graphdb,
                                                                      const char* label,

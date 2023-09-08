@@ -1,0 +1,54 @@
+// Operator Precedence follow mysql:
+// https://dev.mysql.com/doc/refman/8.0/en/operator-precedence.html
+//
+// !
+// - (unary minus), ~ (unary bit inversion)
+// ^
+// *, /, DIV, %, MOD
+// -, +
+// <<, >>
+// &
+// |
+// = (comparison), <=>, >=, >, <=, <, <>, !=, IS, LIKE, LIKE_REGEXP, IN,
+// BETWEEN, CASE, WHEN, THEN, ELSE
+// NOT
+// AND, &&
+// XOR
+// OR, ||
+// = (assignment), :=
+
+def operator_precedence: isogql = {
+    RETURN !(5%3)>1<<2;
+    RETURN (!(5%3)) > (1<<2);
+    RETURN NOT(5%3)>1<<2;
+    RETURN NOT((5%3) > (1<<2));
+
+    RETURN 2/-(7/3.0), 2/-(-(7/3.0)), 2/-(-7/3.0), 2/-(-(-7/3.0));
+    RETURN -1<~0, -1<-2;
+
+    // TODO(suosi): expression '~' has wrong implemention
+    RETURN ~1;
+    RETURN 1+4/~1/4+2;
+    RETURN (1 + ((4 / (~1)) / 4)) + 2;
+
+    RETURN 2|1&1<<2+!0^~100%8, 2|1&1<<2+!0^~100%8>5;
+    RETURN (2 | (1 & (1 << (2 + (((!0) ^ (~100)) % 8))))), (2 | (1 & (1 << (2 + (((!0) ^ (~100)) % 8))))) > 5;
+}
+
+def operator_precedence_gql: gql = {
+    SELECT !(5%3)>1<<2;
+    SELECT (!(5%3)) > (1<<2);
+    SELECT NOT(5%3)>1<<2;
+    SELECT NOT((5%3) > (1<<2));
+
+    SELECT 2/-(7/3.0), 2/-(-(7/3.0)), 2/-(-7/3.0), 2/-(-(-7/3.0));
+    SELECT -1<~0, -1<-2;
+
+    // TODO(suosi): expression '~' has wrong implemention
+    SELECT ~1;
+    SELECT 1+4/~1/4+2;
+    SELECT (1 + ((4 / (~1)) / 4)) + 2;
+
+    SELECT 2|1&1<<2+!0^~100%8, 2|1&1<<2+!0^~100%8>5;
+    SELECT (2 | (1 & (1 << (2 + (((!0) ^ (~100)) % 8))))), (2 | (1 & (1 << (2 + (((!0) ^ (~100)) % 8))))) > 5;
+}

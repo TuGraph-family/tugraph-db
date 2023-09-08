@@ -29,11 +29,11 @@
 namespace cypher {
 
 class PassManager {
-    ExecutionPlan *plan_ = nullptr;
+    OpBase *root_ = nullptr;
     std::vector<OptPass *> all_passes_;
 
  public:
-    explicit PassManager(ExecutionPlan *plan, cypher::RTContext *ctx) : plan_(plan) {
+    explicit PassManager(OpBase *root, cypher::RTContext *ctx) : root_(root) {
         all_passes_.emplace_back(new OptRewriteWithSchemaInference(ctx));
         all_passes_.emplace_back(new PassReduceCount());
         all_passes_.emplace_back(new EdgeFilterPushdownExpand());
@@ -53,7 +53,7 @@ class PassManager {
 
     void ExecutePasses() {
         for (auto p : all_passes_) {
-            if (p->Gate()) p->Execute(plan_);
+            if (p->Gate()) p->Execute(root_);
         }
     }
 

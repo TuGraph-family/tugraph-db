@@ -77,6 +77,16 @@ src/core/version.h
 deps/build
 deps/install
 build.debug
+GqlLexer.h
+GqlLexer.cpp
+GqlLexer.interp
+GqlLexer.tokens
+GqlParser.h
+GqlParser.cpp
+GqlParser.interp
+GqlParser.tokens
+GqlParserBaseVisitor.*
+GqlParserVisitor.*
 
 *.exp
 *.pdb
@@ -97,6 +107,7 @@ logs/
 *artifacts
 .DS_Store
 .cache
+*.real
 
 # docs
 doc/en-US/build

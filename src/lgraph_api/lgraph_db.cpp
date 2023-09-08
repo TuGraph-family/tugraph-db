@@ -194,10 +194,11 @@ bool GraphDB::AddVertexIndex(const std::string& label, const std::string& field,
     return db_->AddVertexIndex(label, field, is_unique);
 }
 
-bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field, bool is_unique) {
+bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field,
+                           bool is_unique, bool is_global) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddEdgeIndex(label, field, is_unique);
+    return db_->AddEdgeIndex(label, field, is_unique, is_global);
 }
 
 bool GraphDB::IsVertexIndexed(const std::string& label, const std::string& field) {

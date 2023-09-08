@@ -21,9 +21,6 @@ if ((NOT LEVELDB_INCLUDE_PATH) OR (NOT LEVELDB_LIB))
     message(FATAL_ERROR "Fail to find leveldb")
 endif ()
 
-# openssl for cpprest
-find_package(OpenSSL)
-
 # protbuf
 include(cmake/GenerateProtobuf.cmake)
 GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
@@ -67,6 +64,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             PUBLIC
             lgraph
             lgraph_cypher_lib
+            geax_isogql
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -77,10 +75,10 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             ${GPERFTOOLS_LIBRARIES}
             ${LEVELDB_LIB}
             snappy
+            OpenSSL::ssl
+            OpenSSL::crypto
             # end static linking
             -Wl,-Bdynamic
-            ssl
-            crypto
             dl
             c
             )
@@ -109,7 +107,8 @@ else ()
             profiler
             snappy
             pthread
-            ssl
+            OpenSSL::ssl
+            OpenSSL::crypto
             z
             )
 endif ()

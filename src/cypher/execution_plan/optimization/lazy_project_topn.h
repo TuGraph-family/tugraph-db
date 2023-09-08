@@ -57,11 +57,11 @@ class LazyProjectTopN : public OptPass {
         return true;
     }
 
-    void _AdjustProjectOrder(ExecutionPlan &plan) {
+    void _AdjustProjectOrder(OpBase *root) {
         Limit *op_limit = nullptr;
         Sort *op_sort = nullptr;
         Project *op_project = nullptr;
-        if (!_IdentifyElementAndTopN(plan.Root(), op_limit, op_sort, op_project)) {
+        if (!_IdentifyElementAndTopN(root, op_limit, op_sort, op_project)) {
             return;
         }
         // add topN
@@ -92,8 +92,8 @@ class LazyProjectTopN : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _AdjustProjectOrder(*plan);
+    int Execute(OpBase *root) override {
+        _AdjustProjectOrder(root);
         return 0;
     }
 };
