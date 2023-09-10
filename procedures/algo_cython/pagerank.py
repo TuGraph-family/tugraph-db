@@ -142,7 +142,7 @@ def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict
 @cython.ccall
 def Standalone(input_dir: str, num_iterations: size_t = 20):
 # Standalone为Standalone模式下插件入口，用cython.ccall修饰
-# 可以任意设置参数，相应修改plugins/cython/standalone_main.py即可
+# 可以任意设置参数，相应修改 procedures/algo_cython/run_standalone.py即可
     cost = time.time()
     graph = OlapOnDisk[Empty]()
     config = ConfigBase[Empty]()

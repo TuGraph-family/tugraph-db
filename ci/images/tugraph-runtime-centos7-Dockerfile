@@ -8,7 +8,7 @@ ARG FILEPATH
 # specifies installation package name for tugraph
 ARG FILENAME
 
-RUN yum update -y && yum install -y \
+RUN rpm --rebuilddb && yum update -y && yum install -y \
     git \
     gcc \
     gcc-c++ \

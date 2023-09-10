@@ -301,6 +301,10 @@ class LouvainGraph {
         0, graph->NumVertices());
     }
 
+    void update_label(ParallelVector<size_t> &_label) {
+        _label.Swap(label);
+    }
+
     void update_by_subgraph() {
         auto sub_index = graph->AllocVertexArray<size_t>();
         size_t num_sub_vertices = 0;
@@ -383,7 +387,7 @@ class LouvainGraph {
 
         graph->ProcessVertexInRange<size_t> (
                 [&] (size_t v) {
-                    if (sub_index[label[v]] < 0) {
+                    if (sub_index[label[v]] == (size_t)-1) {
                         return 0;
                     }
                     size_t sub_index_v_comm = sub_louvain_graph->label[sub_index[label[v]]];
@@ -391,6 +395,8 @@ class LouvainGraph {
                     return 0;
                 },
                 0, graph->NumVertices());
+
+        delete sub_louvain_graph;
     }
 };
 
@@ -402,5 +408,6 @@ double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t> &label,
     louvain_graph.update_by_subgraph();
 
     louvain_graph.update_all();
+    louvain_graph.update_label(label);
     return louvain_graph.get_Q();
 }

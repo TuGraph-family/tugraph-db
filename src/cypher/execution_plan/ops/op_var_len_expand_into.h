@@ -12,9 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-//
-// Created by wt on 21-7-2.
-//
 #pragma once
 
 #include "cypher/execution_plan/ops/op.h"
@@ -23,8 +20,6 @@ namespace cypher {
 
 /* Variable Length Expand Into */
 class VarLenExpandInto : public OpBase {
-    // TODO(anyone) 20210712, refer to plugins/var_len_khop.cpp
-
  public:
     cypher::PatternGraph *pattern_graph_ = nullptr;
     cypher::Node *start_ = nullptr;         // start node to expand

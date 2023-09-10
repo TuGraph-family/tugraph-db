@@ -177,6 +177,21 @@ class LGraphPythonClient {
         return {ret, result};
     }
 
+    std::pair<bool, std::string> CallGql(const std::string& gql,
+                                            const std::string& graph = "default",
+                                            bool json_format = true, double timeout = 0,
+                                            const std::string& url = "") {
+        std::string result;
+        bool ret;
+        try {
+            ret = client->CallGql(result, gql, graph, json_format, timeout, url);
+        } catch (lgraph::RpcException &e) {
+            ret = false;
+            result = e.what();
+        }
+        return {ret, result};
+    }
+
     void Logout() {
         client->Logout();
         client.reset();

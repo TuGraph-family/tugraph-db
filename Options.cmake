@@ -1,5 +1,5 @@
-set(LGRAPH_VERSION_MAJOR 3)
-set(LGRAPH_VERSION_MINOR 6)
+set(LGRAPH_VERSION_MAJOR 4)
+set(LGRAPH_VERSION_MINOR 0)
 set(LGRAPH_VERSION_PATCH 0)
 
 # options
@@ -18,14 +18,6 @@ if (ENABLE_BOOST_STACKTRACE)
 else (ENABLE_BOOST_STACKTRACE)
     message("Boost stacktrace is disabled.")
 endif (ENABLE_BOOST_STACKTRACE)
-
-option(ENABLE_INTERNAL_BUILD "Enable internal build." OFF)
-if (ENABLE_INTERNAL_BUILD)
-    message("Internal build is enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLGRAPH_ENABLE_INTERNAL_BUILD=1")
-else (ENABLE_INTERNAL_BUILD)
-    message("Internal build is disabled.")
-endif (ENABLE_INTERNAL_BUILD)
 
 option(USE_MOCK_KV "Use mock kv-store." OFF)
 if (USE_MOCK_KV)
