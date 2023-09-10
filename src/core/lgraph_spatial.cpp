@@ -304,6 +304,21 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
 }
 
 template<typename SRID_Type>
+point<SRID_Type>::point(double arg1, double arg2, SRID& srid) : SpatialBase(srid, SpatialType::POINT){
+    bg::set<0>(point_, arg1);
+    bg::set<1>(point_, arg2);
+    // write wkb;
+    std::string wkb_out;
+    bg::write_wkb(point_, std::back_inserter(wkb_out));
+    std::string hex_out;
+    if(!bg::wkb2hex(wkb_out.begin(), wkb_out.end(), hex_out))
+        throw InputError("wrong  point data!");
+    // set extension
+    EWKB = set_extension(hex_out, srid);
+    transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
+}
+
+template<typename SRID_Type>
 point<SRID_Type>::point(const std::string& EWKB_)
 : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     std::string WKB = EWKB_.substr(0, 10) + EWKB_.substr(18);
@@ -332,6 +347,18 @@ std::string point<SRID_Type>::AsEWKT() const {
     EWKT.pop_back();
 
     return EWKT;
+}
+
+template<typename SRID_Type>
+bg::model::point<double, 2, SRID_Type> point<SRID_Type>::GetSpatialData() {
+    return point_;
+}
+
+template<typename SRID_Type>
+double point<SRID_Type>::Distance(point<SRID_Type>& other) {
+    if(other.GetSrid() != GetSrid())
+        throw InputError("wrong distance srid!");
+    return bg::distance(point_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>

@@ -29,7 +29,7 @@
 #include <boost/geometry/io/wkt/read.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/write_wkb.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/utility.hpp>
-
+#include <boost/geometry.hpp>
 #include <boost/geometry/io/wkt/wkt.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/read_wkb.hpp>
 
@@ -221,7 +221,10 @@ class point : public SpatialBase {
  public:
     point(SRID srid, SpatialType type, int construct_type, std::string content);
 
+    point(double arg1, double arg2, SRID& srid);
+
     explicit point(const std::string& EWKB);
+
 
     std::string AsEWKB() const override {
         return EWKB;
@@ -236,9 +239,9 @@ class point : public SpatialBase {
     /**
      *  @brief return point type data;
     */
-    bg::model::point<double, 2, SRID_Type> GetSpatialData() {
-        return point_;
-    }
+    bg::model::point<double, 2, SRID_Type> GetSpatialData();
+
+    double Distance(point<SRID_Type>& other);
 
     bool operator==(const point<SRID_Type>& other);
 };

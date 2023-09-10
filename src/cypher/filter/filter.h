@@ -60,6 +60,36 @@ struct FieldDataHash {
             return std::hash<std::string>()(fd.AsString());
         case FieldType::BLOB:
             return std::hash<std::string>()(fd.AsBlob());
+        case FieldType::POINT: {
+            switch(fd.GetSRID()) {
+                case ::lgraph_api::SRID::WSG84:
+                    return std::hash<std::string>()(fd.AsWsgPoint().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
+                default:
+                    throw lgraph::InputError("wrong spatial srid");
+            }
+        }
+        case FieldType::LINESTRING: {
+            switch(fd.GetSRID()) {
+                case ::lgraph_api::SRID::WSG84:
+                    return std::hash<std::string>()(fd.AsWsgLineString().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
+                default:
+                    throw lgraph::InputError("wrong spatial srid");
+            }
+        }
+        case FieldType::POLYGON: {
+            switch(fd.GetSRID()) {
+                case ::lgraph_api::SRID::WSG84:
+                    return std::hash<std::string>()(fd.AsWsgPolygon().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
+                default:
+                    throw lgraph::InputError("wrong spatial srid");
+            }
+        }
         default:
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         }

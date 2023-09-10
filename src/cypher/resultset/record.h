@@ -96,6 +96,12 @@ struct Entry {
 
     bool IsString() const { return type == CONSTANT && constant.IsString(); }
 
+    bool IsPoint() const { return type == CONSTANT && constant.IsPoint(); }
+
+    bool IsLineString() const { return type == CONSTANT && constant.IsLineString(); }
+
+    bool IsPolygon() const { return type == CONSTANT && constant.IsPolygon(); }
+
     bool IsNode() const { return type == NODE && node; }
 
     bool IsRelationship() const { return type == RELATIONSHIP && relationship; }
