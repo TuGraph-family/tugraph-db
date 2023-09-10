@@ -273,6 +273,7 @@ TEST_P(TestSpatial, Spatial) {
         UT_LOG() << "Testing point constructor";
         std::string point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
         point<Wsg84> p(point_EWKB);
+        // UT_EXPECT_ANY_THROW(point<Cartesian> p_(point_EWKB));
         UT_EXPECT_EQ(p.AsEWKB(), point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
     }

@@ -712,7 +712,6 @@ inline bool ParseStringIntoStorageType<FieldType::POLYGON>
 // handled there, so here we just assume they are not the same type
 template <FieldType DstType>
 struct FieldDataTypeConvert {
-    // typedef typename FieldType2CType<DstType>::type CT;  // 这里的CT一直没用到，可以注释?
     typedef typename FieldType2StorageType<DstType>::type ST;
     static inline bool Convert(const FieldData& fd, ST& s) {
         FMA_DBG_CHECK_NEQ(DstType, fd.type);
@@ -1042,9 +1041,9 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         {
             std::string ewkb = v.AsString();
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
-            switch (s) {     // 这里是否要加ewkb, 写法有待确认;
+            switch (s) {
                 case ::lgraph_api::SRID::NUL:
-                    throw std::runtime_error("cannot convert to spatial data!");
+                    throw std::runtime_error("cannot convert to point data!");
                 case ::lgraph_api::SRID::WSG84:
                     return FieldData(::lgraph_api::point<::lgraph_api::Wsg84>(ewkb));
                 case ::lgraph_api::SRID::CARTESIAN:
@@ -1055,9 +1054,9 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         {
             std::string ewkb = v.AsString();
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
-            switch (s) {     // 这里是否要加ewkb, 写法有待确认;
+            switch (s) {
                 case ::lgraph_api::SRID::NUL:
-                    throw std::runtime_error("cannot convert to spatial data!");
+                    throw std::runtime_error("cannot convert to point data!");
                 case ::lgraph_api::SRID::WSG84:
                     return FieldData(::lgraph_api::linestring<::lgraph_api::Wsg84>(ewkb));
                 case ::lgraph_api::SRID::CARTESIAN:
@@ -1068,9 +1067,9 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         {
             std::string ewkb = v.AsString();
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
-            switch (s) {     // 这里是否要加ewkb, 写法有待确认;
+            switch (s) {
                 case ::lgraph_api::SRID::NUL:
-                    throw std::runtime_error("cannot convert to spatial data!");
+                    throw std::runtime_error("cannot convert to point data!");
                 case ::lgraph_api::SRID::WSG84:
                     return FieldData(::lgraph_api::polygon<::lgraph_api::Wsg84>(ewkb));
                 case ::lgraph_api::SRID::CARTESIAN:

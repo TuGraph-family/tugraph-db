@@ -155,23 +155,23 @@ struct VertexOptions : public LabelOptions {
 
 /** @brief   Field and value types. */
 enum FieldType {
-    NUL = 0,        // NULL value, used to represent an empty value, can not be used as field type
-    BOOL = 1,       // Boolean value, TRUE or FALSE
-    INT8 = 2,       // 8-bit signed integer
-    INT16 = 3,      // 16-bit signed integer
-    INT32 = 4,      // 32-bit signed integer
-    INT64 = 5,      // 64-bit signed integer
-    FLOAT = 6,      // 32-bit IEEE 754 floating point number
-    DOUBLE = 7,     // 64-bit IEEE 754 floating point number
-    DATE = 8,       // Date ranging from 0/1/1 to 9999/12/31
-    DATETIME = 9,   // DateTime ranging from 0000-01-01 00:00:00.000000 to
-                    // 9999-12-31 23:59:59.999999
-    STRING = 10,    // string type, in unicode encoding
-    BLOB = 11,      // binary byte array
-    POINT = 12,
-    LINESTRING = 13,
-    POLYGON = 14,
-    SPATIAL = 15    // spatial data
+    NUL = 0,          // NULL value, used to represent an empty value, can not be used as field type
+    BOOL = 1,         // Boolean value, TRUE or FALSE
+    INT8 = 2,         // 8-bit signed integer
+    INT16 = 3,        // 16-bit signed integer
+    INT32 = 4,        // 32-bit signed integer
+    INT64 = 5,        // 64-bit signed integer
+    FLOAT = 6,        // 32-bit IEEE 754 floating point number
+    DOUBLE = 7,       // 64-bit IEEE 754 floating point number
+    DATE = 8,         // Date ranging from 0/1/1 to 9999/12/31
+    DATETIME = 9,     // DateTime ranging from 0000-01-01 00:00:00.000000 to
+                      // 9999-12-31 23:59:59.999999
+    STRING = 10,      // string type, in unicode encoding
+    BLOB = 11,        // binary byte array
+    POINT = 12,       // point type of spatial data
+    LINESTRING = 13,  // linestring type of spatial data
+    POLYGON = 14,     // polygon type of spatial data
+    SPATIAL = 15      // spatial data, it's now unused but may be used in the future.
 };
 
 /**
@@ -532,13 +532,13 @@ struct FieldData {
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(point<Cartesian>(str));
             case ::lgraph_api::SRID::WSG84:
                 return FieldData(::lgraph_api::point<Wsg84>(str));
             default:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
         }
     }
 
@@ -549,13 +549,13 @@ struct FieldData {
     static inline FieldData LineString(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(linestring<Cartesian>(str));
             case ::lgraph_api::SRID::WSG84:
                 return FieldData(::lgraph_api::linestring<Wsg84>(str));
             default:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
         }
     }
 
@@ -565,13 +565,13 @@ struct FieldData {
     static inline FieldData Polygon(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(polygon<Cartesian>(str));
             case ::lgraph_api::SRID::WSG84:
                 return FieldData(::lgraph_api::polygon<Wsg84>(str));
             default:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
         }
     }
 

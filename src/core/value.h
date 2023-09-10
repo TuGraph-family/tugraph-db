@@ -196,7 +196,6 @@ class Value {
     /**
      * Constructs a const reference to the memory block given in the MDB_val
      * object.
-     * 
      * \param   val An MDB_val describing memory block and its size.
      */
     explicit Value(const MDB_val& val)

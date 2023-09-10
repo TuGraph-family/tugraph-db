@@ -36,7 +36,7 @@ void EndianTansfer(std::string& input) {
     input = output;
 }
 
-std::string srid2hex(SRID srid_type, size_t width, bool endian) {
+std::string Srid2Hex(SRID srid_type, size_t width, bool endian) {
     int srid = static_cast<int>(srid_type);
     std::stringstream ioss;
     std::string s_hex;
@@ -55,12 +55,12 @@ std::string srid2hex(SRID srid_type, size_t width, bool endian) {
     return s_hex;
 }
 
-std::string set_extension(const std::string& WKB, SRID srid_type) {
+std::string SetExtension(const std::string& WKB, SRID srid_type) {
     bool endian = Endian(WKB);
     std::string EWKB = WKB;
 
-    EWKB[endian ? 8 : 9] = '2';
-    std::string s_hex = srid2hex(srid_type, 8, endian);
+    EWKB[endian ? 8 : 6] = '2';
+    std::string s_hex = Srid2Hex(srid_type, 8, endian);
     EWKB.insert(10, s_hex);
 
     return EWKB;
@@ -86,7 +86,7 @@ SRID ExtractSRID(const std::string& EWKB) {
         case 7203:
             return SRID::CARTESIAN;
         default:
-            throw InputError("wrong srid!");
+            throw InputError("Unsupported SRID!");
     }
 }
 
@@ -166,7 +166,7 @@ bool TryDecodeEWKB(const std::string& EWKB, SpatialType type) {
     if (EWKB.size() < 50)
         return false;
 
-    char dim = EWKB[8] > EWKB[9] ? EWKB[8] : EWKB[9];
+    char dim = EWKB[8] > EWKB[6] ? EWKB[8] : EWKB[6];
     if (dim != '2')
         return false;
     SRID s = ExtractSRID(EWKB);
@@ -176,7 +176,7 @@ bool TryDecodeEWKB(const std::string& EWKB, SpatialType type) {
 
     std::string WKB = EWKB.substr(0, 10) + EWKB.substr(18);
     WKB[8] = '0';
-    WKB[9] = '0';
+    WKB[6] = '0';
 
     switch (s) {
         case SRID::NUL:
@@ -278,7 +278,7 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
         !bg::read_wkb(wkb_.begin(), wkb_.end(), point_)) {
             throw InputError("wrong wkb format: " + content);
         }
-        EWKB = set_extension(content, GetSrid());
+        EWKB = SetExtension(content, GetSrid());
     }
 
     if (construct_type == 1) {
@@ -297,7 +297,7 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
 
         // 这里要不要判断异常?
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), EWKB);
-        EWKB = set_extension(EWKB, GetSrid());
+        EWKB = SetExtension(EWKB, GetSrid());
     }
 
     transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
@@ -354,7 +354,7 @@ int construct_type, std::string content)
         !bg::read_wkb(wkb_.begin(), wkb_.end(), line_)) {
             throw InputError("wrong wkb format: " + content);
         }
-        EWKB = set_extension(content, GetSrid());
+        EWKB = SetExtension(content, GetSrid());
     }
 
     if (construct_type == 1) {
@@ -369,7 +369,7 @@ int construct_type, std::string content)
             throw InputError("wrong wkt format: " + content);
         }
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), EWKB);
-        EWKB = set_extension(EWKB, GetSrid());
+        EWKB = SetExtension(EWKB, GetSrid());
     }
     transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
 }
@@ -427,7 +427,7 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
             throw InputError("wrong wkb format: " + content);
         }
 
-        EWKB = set_extension(content, GetSrid());
+        EWKB = SetExtension(content, GetSrid());
     }
 
     if (construct_type == 1) {
@@ -444,7 +444,7 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
         }
 
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), EWKB);
-        EWKB = set_extension(EWKB, GetSrid());
+        EWKB = SetExtension(EWKB, GetSrid());
     }
     transform(EWKB.begin(), EWKB.end(), EWKB.begin(), ::toupper);
 }

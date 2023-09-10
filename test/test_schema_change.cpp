@@ -464,7 +464,6 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
                     std::vector<FieldData>({FieldData(123)}), true, &n_changed),
                 lgraph::ParseIncompatibleTypeException);  // cannot convert 123 to string
         }
-
         {
             LightningGraph graph(conf);
             size_t n_changed = 0;

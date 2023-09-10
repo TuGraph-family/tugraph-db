@@ -41,17 +41,35 @@ typedef bg::cs::cartesian Cartesian;
 typedef bg::cs::geographic<bg::degree> Wsg84;
 typedef std::vector<boost::uint8_t> byte_vector;
 
+/**         
+ * @brief   now support three types of spatial data, they are all two-dimensional;
+ *          for more detial, you can refer to
+ *          https://www.boost.org/doc/libs/1_68_0/libs/geometry/doc/html/geometry/reference/models.html 
+ */
 enum class SpatialType {
     NUL = 0,
-    POINT = 1,
-    LINESTRING = 2,
-    POLYGON = 3
+    POINT = 1,        // point type, e.g. (1.0 2.0)
+    LINESTRING = 2,   // linestring type, represent a linestring which is
+                      // composed of different points. e.g (1.0 2.0, 3.0 2.0, 5.0 4.0)
+    POLYGON = 3       // polygon type,
+                      // A polygon of Boost.Geometry is a polygon with or without holes
+                      // e.g (1.0 2.0, 3.0 2.0, 5.0 4.0, 1.0 2.0) for more detail, you can refer to
+                      // https://www.boost.org/doc/libs/1_68_0/libs/geometry/doc/html/geometry/
+                      // reference/concepts/concept_polygon.html
 };
 
+/**
+ * @brief   the full name of srid is Spatial Reference System Identifier, it's the reference system for
+ *          spatial data, we now support two types of SRID. All spatial data in tugraph should have a 
+ *          srid and the default srid is 4326. 
+ *          这里暂时没有找到比较官方的参考资料
+ */
 enum class SRID {
     NUL = 0,
-    WSG84 = 4326,
-    CARTESIAN = 7203
+    WSG84 = 4326,      // it's the latest revision of the World Geodetic System standard
+                       // (from 1984 CE), which defines a standard spheroidal reference system
+                       // for mapping the Earth.
+    CARTESIAN = 7203   // the cartesian srid, which is often used in Planar geometry.
 };
 
 template<typename SRID_Type>
@@ -66,11 +84,17 @@ class polygon;
 // true if little endian, false if big endian;
 bool Endian(const std::string& EWKB);
 
-// transfer endian between little and big;
+/**
+* @brief transfer the given hex format string between little and big endian;
+*        the hex data is 4 bit each, so the size 2 hex data is 1 byte. We need 
+*        to reverse every byte between the two endian. 
+*
+* @param [in,out] input little/big endian hex format string;
+*/
 void EndianTansfer(std::string& input);
 
 /**
-* @brief  transform the srid_type into hex format;
+* @brief  transfer the srid_type into hex format;
 * 
 * @param srid_type      Spatial Reference System Identifier;
 * @param width          the length of hex format to transform;   
@@ -78,18 +102,20 @@ void EndianTansfer(std::string& input);
 * 
 * @returns the hex format srid_type;
 */
-std::string srid2hex(SRID srid_type, size_t width, bool endian);
+std::string Srid2Hex(SRID srid_type, size_t width, bool endian);
 
 /**
 * @brief  set the wkb format string to EWKB format string;
-* 
-* @param content        
-* @param width          the length of hex format to transform;   
-* @param ebdian         true little endian, false big endian;
+*         关于EWKB与WKB layout 见TryDecodeEWKB与TryDecodeWKB注释;
+*         EWKB -> WKB   以little-endian为例:
+*         WKB[8] = 2;   在WKB[10]之后插入SRID信息, E6100000(4326) 共8位
+*              
+* @param WKB          the wkb format to be extended   
+* @param srid_type    the srid type to be added in the format
 * 
 * @returns the hex format srid_type;
 */
-std::string set_extension(const std::string& WKB, SRID srid_type);
+std::string SetExtension(const std::string& WKB, SRID srid_type);
 
 // extract the srid from EWKB format;
 SRID ExtractSRID(const std::string& EWKB);
@@ -97,11 +123,39 @@ SRID ExtractSRID(const std::string& EWKB);
 // extract the spatial type from EWKB format;
 SpatialType ExtractType(const std::string& EWKB);
 
-// return whether a WKB format is valid;
+/**
+* @brief  the WKB layout of spatial data:
+*          以point为例: 01  0100  0000  000000000000F03F  0000000000000040 Point(1.0 2.0) 
+*          01:   编码方式, 00表示big-endian, 01表示little-endian
+*          0100: 数据类型, 0100代表Point;
+*          0000: 
+*          每16个字节代表一个坐标对。
+*          这里主要利用boost/geometry 中的read_wkb检验WKB格式是否正确。
+*
+* @param WKB           the string to be parse;
+* @param type          the type of spatial data;
+* 
+* @returns true if WKB format is valid, false if wkb format is invalid;
+*/
 template<typename SRID_Type>
-bool TryDecodeWKB(const std::string& EWKB, SpatialType type);
+bool TryDecodeWKB(const std::string& WKB, SpatialType type);
 
-// return whether a EWKB format is valid;
+/**
+* @brief  the EWKB layout of spatial data:
+*          以point为例: 01 0100 0020 E6100000 000000000000F03F 0000000000000040 Point(1.0 2.0)
+*          01:           编码方式, 00表示big-endian, 01表示little-endian
+*          0100:         数据类型, 0100代表Point;
+*          0020:         表示维度为二维;(?)
+*          E6010000:     SRID -- 4326；  0x000010e6的小端表示;
+*          每16个字节代表一个坐标对。
+*          这里首先将EWKB格式转换为WKB格式,再调用TryDecodeWKB;
+*          EWKB -> WKB  WKB -> EWKB的逆变换, 修改EWKB[8] or EWKB[9], 去除SRID信息;(EWKB[10] - EWKB[17])
+*
+* @param EWKB          the string to be parse;
+* @param type          the type of spatial data;
+* 
+* @returns true if EWKB format is valid, false if wkb format is invalid;
+*/
 bool TryDecodeEWKB(const std::string& EWKB, SpatialType type);
 
 /** @brief   Implements the Spatial template class. Spatial class now can hold one of
