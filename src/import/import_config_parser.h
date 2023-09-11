@@ -330,7 +330,6 @@ struct LabelDesc {
         return ret;
     }
 
-
     std::vector<FieldSpec> GetFieldSpecs(std::vector<std::string>& names) const {
         std::vector<FieldSpec> fs;
         for (const auto& n : names) {
@@ -755,10 +754,10 @@ class ImportConfParser {
                     throw InputError(FMA_FMT(
                         R"(Label[{}]: Missing "primary" or "properties" definition)", ld.name));
                 }
-                for (auto & p : s["properties"]) {
+                for (auto& p : s["properties"]) {
                     if (p.contains("global")) {
-                        throw InputError(FMA_FMT(
-                            R"(global indexe is not supported in Vertex [{}])", ld.name));
+                        throw InputError(
+                            FMA_FMT(R"(global indexe is not supported in Vertex [{}])", ld.name));
                     }
                 }
             } else {
@@ -822,8 +821,8 @@ class ImportConfParser {
             }
             if (s.contains("detach_property")) {
                 if (!s["detach_property"].is_boolean()) {
-                    throw InputError(FMA_FMT(
-                        "Label[{}]: \"detach_property\" is not boolean", ld.name));
+                    throw InputError(
+                        FMA_FMT("Label[{}]: \"detach_property\" is not boolean", ld.name));
                 }
                 ld.detach_property = s["detach_property"];
             }
@@ -884,10 +883,11 @@ class ImportConfParser {
                     cd.size = fs::file_size(file);
                 }
                 cd.data_format = item["format"];
-                if (cd.data_format != "CSV" && cd.data_format != "JSON" && cd.data_format != "GraphAr") {
-                    throw InputError(
-                        FMA_FMT("\"format\" value error : {}, should be CSV, JSON or GraphAr in json {}",
-                                cd.data_format, item.dump(4)));
+                if (cd.data_format != "CSV" && cd.data_format != "JSON" &&
+                    cd.data_format != "GraphAr") {
+                    throw InputError(FMA_FMT(
+                        "\"format\" value error : {}, should be CSV, JSON or GraphAr in json {}",
+                        cd.data_format, item.dump(4)));
                 }
                 cd.label = item["label"];
                 if (item.contains("header")) {

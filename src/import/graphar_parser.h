@@ -14,13 +14,13 @@
 
 #pragma once
 
+#include <gar/graph.h>
+#include <gar/graph_info.h>
+
 #include "core/data_type.h"
 #include "core/field_data_helper.h"
 #include "import/block_parser.h"
 #include "import/import_config_parser.h"
-
-#include <gar/graph.h>
-#include <gar/graph_info.h>
 
 namespace lgraph {
 namespace import_v2 {
@@ -31,6 +31,9 @@ class GraphArParser : public BlockParser {
     CsvDesc cd_;              // Schema definition and config
     bool label_read = false;  // Means the block has been read
 
+    /**
+     * @brief  Traverse the vertex properties to get the primary key.
+     */
     GraphArchive::Property GetPrimaryKey(const GraphArchive::VertexInfo& ver_info) {
         auto ver_groups = ver_info.GetPropertyGroups();
         for (auto ver_props : ver_groups)
@@ -111,7 +114,7 @@ class GraphArParser : public BlockParser {
     void MapIdPrimary(std::unordered_map<GraphArchive::IdType, FieldData>& primary_map,
                       const GraphArchive::GraphInfo& graph_info, const std::string& ver_label) {
         auto ver_info = graph_info.GetVertexInfo(ver_label).value();
-        GraphArchive::Property ver_prop =  GetPrimaryKey(ver_info);
+        GraphArchive::Property ver_prop = GetPrimaryKey(ver_info);
         auto vertices = GraphArchive::ConstructVerticesCollection(graph_info, ver_label).value();
         for (auto vertex : vertices) {
             primary_map[vertex.id()] = ParseVertexData(vertex, ver_prop.name, ver_prop.type);
@@ -119,13 +122,12 @@ class GraphArParser : public BlockParser {
     }
 
  public:
-    GraphArParser(const CsvDesc& cd) : cd_(cd) {}
+    explicit GraphArParser(const CsvDesc& cd) : cd_(cd) {}
 
     /**
      * Read the gar data via the CsvDesc, and parse the gar data to the block of FieldData.
-     * Gar edge endpoint use ID instead of primary key, so construct a map to find primary data.
-     * @param buf The block import_v3 needed.
-     * @return Whether the read process has been finished.
+     * @param   buf  The block import_v3 needed.
+     * @return  Whether the read process has been finished.
      */
     bool ReadBlock(std::vector<std::vector<FieldData>>& buf) {
         if (label_read) return false;
@@ -148,13 +150,13 @@ class GraphArParser : public BlockParser {
             }
             return true;
         } else {
-            auto edges_ = GraphArchive::ConstructEdgesCollection(
+            auto edges_collection = GraphArchive::ConstructEdgesCollection(
                               graph_info, cd_.edge_src.label, cd_.label, cd_.edge_dst.label,
                               GraphArchive::AdjListType::ordered_by_source)
                               .value();
             auto edges = std::get<
                 GraphArchive::EdgesCollection<GraphArchive::AdjListType::ordered_by_source>>(
-                edges_);
+                edges_collection);
             auto edge_info =
                 graph_info.GetEdgeInfo(cd_.edge_src.label, cd_.label, cd_.edge_dst.label).value();
 
