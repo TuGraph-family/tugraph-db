@@ -28,7 +28,6 @@ jobs:
         with:
           file: ci/gh-actions/ubuntu-latest/Dockerfile
           context: .
-          load: true
           tags: ${{ env.TEST_TAG }}
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
