@@ -52,12 +52,12 @@ typedef lgraph_api::FieldData FieldData;
 typedef lgraph_api::FieldType FieldType;
 typedef lgraph_api::Date Date;
 typedef lgraph_api::DateTime DateTime;
-typedef lgraph_api::point<lgraph_api::Wsg84> point_Wsg84;
-typedef lgraph_api::point<lgraph_api::Cartesian> point_Cartesian;
-typedef lgraph_api::linestring<lgraph_api::Wsg84> linestring_Wsg84;
-typedef lgraph_api::linestring<lgraph_api::Cartesian> linestring_Cartesian;
-typedef lgraph_api::polygon<lgraph_api::Wsg84> polygon_Wsg84;
-typedef lgraph_api::polygon<lgraph_api::Cartesian> polygon_Cartesian;
+typedef lgraph_api::point<lgraph_api::Wsg84> PointWsg84;
+typedef lgraph_api::point<lgraph_api::Cartesian> PointCartesian;
+typedef lgraph_api::linestring<lgraph_api::Wsg84> LineStringWsg84;
+typedef lgraph_api::linestring<lgraph_api::Cartesian> LineStringCartesian;
+typedef lgraph_api::polygon<lgraph_api::Wsg84> PolygonWsg84;
+typedef lgraph_api::polygon<lgraph_api::Cartesian> PolygonCartesian;
 
 
 //===============================

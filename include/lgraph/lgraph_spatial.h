@@ -94,15 +94,36 @@ bool Endian(const std::string& EWKB);
 void EndianTansfer(std::string& input);
 
 /**
-* @brief  transfer the srid_type into hex format;
+* @brief  transfer the srid_type into hex format(little endian);
 * 
 * @param srid_type      Spatial Reference System Identifier;
 * @param width          the length of hex format to transform;   
-* @param ebdian         true little endian, false big endian;
 * 
 * @returns the hex format srid_type;
 */
-std::string Srid2Hex(SRID srid_type, size_t width, bool endian);
+std::string Srid2Hex(SRID srid_type, size_t width);
+
+/**
+* @brief transfer the wkb format data between big and little endian;
+*        first, transfer the first byte. Then transfer the next 4 bytes,
+*        for linestring and polygon, we need to transfer extra bytes.        
+*        then transfer the n next 8 bytes. you can refer to the wkb layout
+*        from the contens of TryDecodeWKB;
+* 
+* @param [in, out] WKB  the wkb format data in big/little endian, out int little/big endian;
+*/
+void WkbEndianTransfer(std::string& WKB);
+
+/**
+* @brief transfer the EWKB format data from between big and little endian;
+*        Extract the wkb from EWKB, call WkbEndianTransfer and the set
+*        extension from the WKB;
+*        
+* @param EWKB  the EWKB format data in big/little endian;
+*
+* @returns the EWKB format data in little/big endian;
+*/
+std::string EwkbEndianTransfer(const std::string& EWKB);
 
 /**
 * @brief  set the wkb format string to EWKB format string;
@@ -125,11 +146,11 @@ SpatialType ExtractType(const std::string& EWKB);
 
 /**
 * @brief  the WKB layout of spatial data:
-*          以point为例: 01  0100  0000  000000000000F03F  0000000000000040 Point(1.0 2.0) 
-*          01:   编码方式, 00表示big-endian, 01表示little-endian
-*          0100: 数据类型, 0100代表Point;
-*          0000: 
-*          每16个字节代表一个坐标对。
+*          以point为例: 01  01000000  000000000000F03F  0000000000000040 Point(1.0 2.0) 
+*          01:       1byte 编码方式, 00表示big-endian, 01表示little-endian
+*          01000000: 数据类型, 00000001的little endian, 表示point. 
+*                    02 linestring 03 polygon 
+*          接下来每8个字节代表一个数据, 每16个字节代表一个坐标。
 *          这里主要利用boost/geometry 中的read_wkb检验WKB格式是否正确。
 *
 * @param WKB           the string to be parse;
@@ -141,7 +162,7 @@ template<typename SRID_Type>
 bool TryDecodeWKB(const std::string& WKB, SpatialType type);
 
 /**
-* @brief  the EWKB layout of spatial data:
+* @brief   the EWKB layout of spatial data:
 *          以point为例: 01 0100 0020 E6100000 000000000000F03F 0000000000000040 Point(1.0 2.0)
 *          01:           编码方式, 00表示big-endian, 01表示little-endian
 *          0100:         数据类型, 0100代表Point;
@@ -273,7 +294,7 @@ class point : public SpatialBase {
     bg::model::point<double, 2, SRID_Type> point_;
 
  public:
-    point(SRID srid, SpatialType type, int construct_type, std::string content);
+    point(SRID srid, SpatialType type, int construct_type, std::string& content);
 
     explicit point(const std::string& EWKB);
 
@@ -307,7 +328,7 @@ class linestring : public SpatialBase {
     bg::model::linestring<point_> line_;
 
  public:
-    linestring(SRID srid, SpatialType type, int construct_type, std::string content);
+    linestring(SRID srid, SpatialType type, int construct_type, std::string& content);
 
     explicit linestring(const std::string& EWKB);
 
@@ -339,7 +360,7 @@ class polygon : public SpatialBase {
     bg::model::polygon<point> polygon_;
 
  public:
-    polygon(SRID srid, SpatialType type, int construct_type, std::string content);
+    polygon(SRID srid, SpatialType type, int construct_type, std::string& content);
 
     explicit polygon(const std::string& EWKB);
 

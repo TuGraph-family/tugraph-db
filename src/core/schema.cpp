@@ -220,9 +220,9 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
             case lgraph_api::SRID::WSG84:
-                return FieldData(point_Wsg84(EWKB));
+                return FieldData(PointWsg84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
-                return FieldData(point_Cartesian(EWKB));
+                return FieldData(PointCartesian(EWKB));
             default:
                 throw InputError("invalid srid!\n");
         }
@@ -236,9 +236,9 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
             case lgraph_api::SRID::WSG84:
-                return FieldData(linestring_Wsg84(EWKB));
+                return FieldData(LineStringWsg84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
-                return FieldData(linestring_Cartesian(EWKB));
+                return FieldData(LineStringCartesian(EWKB));
             default:
                 throw InputError("invalid srid!\n");
         }
@@ -252,9 +252,9 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
             case lgraph_api::SRID::WSG84:
-                return FieldData(polygon_Wsg84(EWKB));
+                return FieldData(PolygonWsg84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
-                return FieldData(polygon_Cartesian(EWKB));
+                return FieldData(PolygonCartesian(EWKB));
             default:
                 throw InputError("invalid srid!\n");
         }

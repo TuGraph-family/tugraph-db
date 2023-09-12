@@ -189,7 +189,6 @@ TEST_P(TestSpatial, Spatial) {
         // testing wrong wkb format;
         UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, "1111111"));
 
-
         Spatial<Cartesian> point_c(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(1.0 1.0)");
         UT_EXPECT_EQ(point_c.AsEWKB(), "0101000020231C0000000000000000F03F000000000000F03F");
         UT_EXPECT_EQ(point_c.AsEWKT(), "SRID=7203;POINT(1 1)");
@@ -270,12 +269,45 @@ TEST_P(TestSpatial, Spatial) {
     }
 
     {
-        UT_LOG() << "Testing point constructor";
+        UT_LOG() << "Testing constructor";
         std::string point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
+        std::string line_WKT = "LINESTRING(0 0,2 2,3 1)";
         point<Wsg84> p(point_EWKB);
-        // UT_EXPECT_ANY_THROW(point<Cartesian> p_(point_EWKB));
+        UT_EXPECT_ANY_THROW(point<Cartesian> p_(point_EWKB));
+        UT_EXPECT_ANY_THROW(linestring<Wsg84> l_(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
+        line_WKT));
         UT_EXPECT_EQ(p.AsEWKB(), point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
+    }
+
+    {
+        UT_LOG() << "Testing point big endian";
+        std::string big_point_wkb = "00000000013FF00000000000003FF0000000000000";
+        std::string big_point_EWKB = "0000012000000010E63FF00000000000003FF0000000000000";
+        std::string little_point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
+        point<Wsg84> p(SRID::WSG84, SpatialType::POINT, 0, big_point_wkb);
+        point<Wsg84> p_(big_point_EWKB);
+        UT_EXPECT_EQ(p.AsEWKB(), little_point_EWKB);
+        UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
+        UT_EXPECT_EQ(p_.AsEWKB(), little_point_EWKB);
+        UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POINT(1 1)");
+
+        /*UT_LOG() << "Testing linestring big endian";
+        std::string big_linestring_wkb = "0102000000030000000000000000000000000000"
+        "0000000000000000000000004000000000000000400000000000000840000000000000F03F";
+        std::string big_linestring_EWKB = "0102000020E61000000300000000000000000000000"
+        "000000000000000000000000000004000000000000000400000000000000840000000000000F03F";
+        std::string little_linestring_EWKB = big_linestring_EWKB;
+        WkbEndianTransfer(big_linestring_wkb);
+        big_linestring_EWKB = EwkbEndianTransfer(big_linestring_EWKB);
+
+        linestring<Wsg84> l(SRID::WSG84, SpatialType::LINESTRING, 0, big_linestring_wkb);
+        linestring<Wsg84> l_(big_linestring_EWKB);
+        UT_EXPECT_EQ(l.AsEWKB(), little_linestring_EWKB);
+        UT_EXPECT_EQ(l.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
+        UT_EXPECT_EQ(l_.AsEWKB(), little_linestring_EWKB);
+        UT_EXPECT_EQ(l_.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
+        */
     }
 }
 

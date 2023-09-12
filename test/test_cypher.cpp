@@ -822,8 +822,6 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
          "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
-        // {"RETURN point_ewkb("") as p1", 1},
-        // {"RETURN point_ewkt("") as p2", 1},
         {"return point('0101000020E6100000000000000000F03F0000000000000040') as p3", 1},
         {"return linestring('0102000020231C000003000000000000000000000000000000000000000"
                             "00000000000004000000000000000400000000000000840000000000000F03F')", 1},

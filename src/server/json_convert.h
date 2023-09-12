@@ -82,9 +82,9 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
             ::lgraph_api::SRID s = data.GetSRID();
             switch (s) {
                 case ::lgraph_api::SRID::WSG84:
-                    return json(data.AsWsgPoint().AsEWKB());
+                    return json(data.AsWsgPoint().ToString());
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return json(data.AsCartesianPoint().AsEWKB());
+                    return json(data.AsCartesianPoint().ToString());
                 default:
                     throw lgraph::InputError("wrong spatial srid");
             }
@@ -94,9 +94,9 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
             ::lgraph_api::SRID s = data.GetSRID();
             switch (s) {
                 case ::lgraph_api::SRID::WSG84:
-                    return json(data.AsWsgLineString().AsEWKB());
+                    return json(data.AsWsgLineString().ToString());
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return json(data.AsCartesianLineString().AsEWKB());
+                    return json(data.AsCartesianLineString().ToString());
                 default:
                     throw lgraph::InputError("wrong spatial srid");
             }
@@ -106,9 +106,9 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
             ::lgraph_api::SRID s = data.GetSRID();
             switch (s) {
                 case ::lgraph_api::SRID::WSG84:
-                    return json(data.AsWsgPolygon().AsEWKB());
+                    return json(data.AsWsgPolygon().ToString());
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return json(data.AsCartesianPolygon().AsEWKB());
+                    return json(data.AsCartesianPolygon().ToString());
                 default:
                     throw lgraph::InputError("wrong spatial srid");
             }

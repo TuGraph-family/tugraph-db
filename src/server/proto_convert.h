@@ -160,11 +160,11 @@ struct FieldDataConvert {
         case FieldType::BLOB:
             return ret->set_blob(*fd.data.buf);
         case FieldType::POINT:
-
+            // TODO(shw): realize convert of point type between fielddata and protofielddata;
         case FieldType::LINESTRING:
-
+            // TODO(shw): realize convert of linestring type between fielddata and protofielddata;
         case FieldType::POLYGON:
-
+            // TODO(shw): realize convert of polygon type between fielddata and protofielddata;
         case FieldType::SPATIAL:
             return;
         }

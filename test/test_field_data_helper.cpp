@@ -363,7 +363,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POINT, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), point_Wsg84(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), PointWsg84(EWKB).AsEWKB());
     }
 
     // testing linestring;
@@ -373,7 +373,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::LINESTRING, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), linestring_Cartesian(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), LineStringCartesian(EWKB).AsEWKB());
     }
 
     // testing polygon
@@ -384,7 +384,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POLYGON, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), polygon_Wsg84(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), PolygonWsg84(EWKB).AsEWKB());
     }
 }
 
@@ -508,9 +508,9 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
         std::string EWKB1 = "0101000020E6100000000000000000F03F0000000000000040";
         std::string EWKB2 = "0101000020231C0000000000000000F03F000000000000F03F";
 
-        FieldData a = FieldData::Point(point_Wsg84(EWKB1));
-        FieldData b = FieldData::Point(point_Wsg84(EWKB1));
-        FieldData c = FieldData::Point(point_Cartesian(EWKB2));
+        FieldData a = FieldData::Point(PointWsg84(EWKB1));
+        FieldData b = FieldData::Point(PointWsg84(EWKB1));
+        FieldData c = FieldData::Point(PointCartesian(EWKB2));
 
         Value va = Value::ConstRef(GetStoredValue<FieldType::POINT>(a));
         Value vb = Value::ConstRef(GetStoredValue<FieldType::POINT>(b));
