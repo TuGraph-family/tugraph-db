@@ -23,8 +23,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: 'true'
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
       - name: Unit Test
         uses: docker/build-push-action@v3
         with:
@@ -34,3 +32,6 @@ jobs:
           tags: ${{ env.TEST_TAG }}
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
+      - name: Check disk space
+        if: always()
+        run: df -h
