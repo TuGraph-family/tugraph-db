@@ -102,6 +102,8 @@ struct Entry {
 
     bool IsPolygon() const { return type == CONSTANT && constant.IsPolygon(); }
 
+    bool IsSpatial() const { return (IsPoint() || IsLineString() || IsPolygon()); }
+
     bool IsNode() const { return type == NODE && node; }
 
     bool IsRelationship() const { return type == RELATIONSHIP && relationship; }

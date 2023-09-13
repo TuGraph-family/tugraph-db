@@ -176,7 +176,7 @@ class Spatial {
 
     bool operator==(const Spatial<SRID_Type>& other);
 
-    // double Distance(geography<T>& other);
+    double Distance(Spatial<SRID_Type>& other);
 };
 
 /**
@@ -243,6 +243,10 @@ class point : public SpatialBase {
 
     double Distance(point<SRID_Type>& other);
 
+    double Distance(linestring<SRID_Type>& other);
+
+    double Distance(polygon<SRID_Type>& other);
+
     bool operator==(const point<SRID_Type>& other);
 };
 
@@ -275,6 +279,12 @@ class linestring : public SpatialBase {
         return line_;
     }
 
+    double Distance(point<SRID_Type>& other);
+
+    double Distance(linestring<SRID_Type>& other);
+
+    double Distance(polygon<SRID_Type>& other);
+
     bool operator==(const linestring<SRID_Type>& other);
 };
 
@@ -284,8 +294,8 @@ class linestring : public SpatialBase {
 template<typename SRID_Type>
 class polygon : public SpatialBase {
     std::string EWKB;
-    typedef bg::model::point<double, 2, SRID_Type> point;
-    bg::model::polygon<point> polygon_;
+    typedef bg::model::point<double, 2, SRID_Type> point_;
+    bg::model::polygon<point_> polygon_;
 
  public:
     polygon(SRID srid, SpatialType type, int construct_type, std::string content);
@@ -306,6 +316,12 @@ class polygon : public SpatialBase {
     bg::model::polygon<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return polygon_;
     }
+
+    double Distance(point<SRID_Type>& other);
+
+    double Distance(linestring<SRID_Type>& other);
+
+    double Distance(polygon<SRID_Type>& other);
 
     bool operator==(const polygon<SRID_Type>& other);
 };

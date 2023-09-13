@@ -166,6 +166,8 @@ struct FieldData {
 
     bool IsPolygon() const { return type == SCALAR && scalar.type == lgraph::FieldType::POLYGON; }
 
+    bool IsSpatial() const { return (IsPoint() || IsLineString() || IsPolygon()); }
+
     bool IsArray() const { return type == ARRAY; }
     
     static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }

@@ -787,6 +787,7 @@ cypher::FieldData BuiltinFunction::LineString_WKB(RTContext *ctx, const Record &
     }
 
     auto srid = args[2].Evaluate(ctx, record);
+    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::LineString(
@@ -816,6 +817,7 @@ cypher::FieldData BuiltinFunction::LineString_WKT(RTContext *ctx, const Record &
     }
 
     auto srid = args[2].Evaluate(ctx, record);
+    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::LineString(
@@ -857,6 +859,7 @@ cypher::FieldData BuiltinFunction::Polygon_WKB(RTContext *ctx, const Record &rec
     }
 
     auto srid = args[2].Evaluate(ctx, record);
+    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::Polygon(
@@ -886,6 +889,7 @@ cypher::FieldData BuiltinFunction::Polygon_WKT(RTContext *ctx, const Record &rec
     }
 
     auto srid = args[2].Evaluate(ctx, record);
+    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::Polygon(
@@ -902,16 +906,36 @@ cypher::FieldData BuiltinFunction::Polygon_WKT(RTContext *ctx, const Record &rec
 cypher::FieldData BuiltinFunction::Distance(RTContext *ctx, const Record &record,
                                 const std::vector<ArithExprNode> &args) {
     if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
-    auto geo1 = args[1].Evaluate(ctx, record);
-    auto geo2 = args[2].Evaluate(ctx, record);
+    auto Spatial1 = args[1].Evaluate(ctx, record);
+    auto Spatial2 = args[2].Evaluate(ctx, record);
 
-    if(!geo1.IsPoint() || !geo2.IsPoint()) CYPHER_ARGUMENT_ERROR();
+    if (!Spatial1.IsSpatial() || !Spatial2.IsSpatial()) CYPHER_ARGUMENT_ERROR();
 
-    lgraph_api::point<lgraph_api::Wsg84> g1(geo1.constant.scalar.ToString());
-    lgraph_api::point<lgraph_api::Wsg84> g2(geo1.constant.scalar.ToString());
-    auto d = g1.Distance(g2);
-    if(d != 0)
-        CYPHER_ARGUMENT_ERROR();
+    ::lgraph_api::SRID srid1 = Spatial1.constant.scalar.GetSRID();
+    ::lgraph_api::SRID srid2 = Spatial2.constant.scalar.GetSRID();
+    CYPHER_THROW_ASSERT(srid1 == srid2);
+    
+    double d = 0;
+    switch (srid1) {
+        case ::lgraph_api::SRID::WSG84:
+        {
+            auto s1 = Spatial1.constant.scalar.AsWsgSpatial();
+            auto s2 = Spatial2.constant.scalar.AsWsgSpatial();
+            d = s1.Distance(s2);
+            break;
+        }
+
+        case ::lgraph_api::SRID::CARTESIAN:
+        {
+            auto s1 = Spatial1.constant.scalar.AsCartesianSpatial();
+            auto s2 = Spatial2.constant.scalar.AsCartesianSpatial();
+            d = s1.Distance(s2);
+            break;
+        }
+        
+        default:
+            throw std::runtime_error("unsupported srid type!");
+    }
 
     return cypher::FieldData(::lgraph::FieldData(d));
 }

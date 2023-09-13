@@ -779,6 +779,12 @@ struct FieldData {
         throw std::bad_cast();
     }
 
+    inline ::lgraph_api::SpatialType GetSpatialType() const {
+        if (type >= FieldType::POINT && type <= FieldType::SPATIAL)
+            return ::lgraph_api::ExtractType(*data.buf);
+        throw std::bad_cast();
+    }
+
     inline ::lgraph_api::point<::lgraph_api::Wsg84> AsWsgPoint() const {
         if (type == FieldType::POINT) return ::lgraph_api::point
         <::lgraph_api::Wsg84>(*data.buf);
@@ -817,19 +823,19 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    /* inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial()
+    inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial()
     const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        if (IsSpatial()) return ::lgraph_api::Spatial
         <::lgraph_api::Wsg84>(*data.buf);
         throw std::bad_cast();
     }
 
     inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial()
     const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        if (IsSpatial()) return ::lgraph_api::Spatial
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
-    } */
+    }
 
     /** @brief   Get string representation of this FieldData. */
     inline std::string ToString(const std::string& null_value = "NUL") const {
@@ -1105,7 +1111,7 @@ struct FieldData {
     bool IsPolygon() const { return type == FieldType::POLYGON; }
 
     /** @brief   Query if this object is spatial*/
-    bool IsSpatial() const { return type == FieldType::SPATIAL; }
+    bool IsSpatial() const { return (IsPoint() || IsLineString() || IsPolygon()); }
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */
