@@ -23,12 +23,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: 'true'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          buildkitd-flags: --debug
       - name: Unit Test
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           file: ci/gh-actions/ubuntu-latest/Dockerfile
           context: .
-          load: true
           tags: ${{ env.TEST_TAG }}
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
