@@ -290,7 +290,7 @@ struct BuiltinFunction {
 
     static cypher::FieldData Polygon_WKT(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-    
+
     static cypher::FieldData Distance(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 

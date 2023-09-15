@@ -86,7 +86,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianPoint().AsEWKB());
                 default:
-                    throw lgraph::InputError("wrong spatial srid");
+                    throw lgraph::InputError("unsupported spatial srid");
             }
         }
     case lgraph_api::FieldType::LINESTRING:
@@ -98,7 +98,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianLineString().AsEWKB());
                 default:
-                    throw lgraph::InputError("wrong spatial srid");
+                    throw lgraph::InputError("unsupported spatial srid");
             }
         }
     case lgraph_api::FieldType::POLYGON:
@@ -110,7 +110,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianPolygon().AsEWKB());
                 default:
-                    throw lgraph::InputError("wrong spatial srid");
+                    throw lgraph::InputError("unsupported spatial srid");
             }
         }
     default:
