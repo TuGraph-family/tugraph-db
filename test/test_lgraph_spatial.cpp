@@ -281,9 +281,8 @@ TEST_P(TestSpatial, Spatial) {
         point<Wsg84> p_(1.0, 1.0, s);
         UT_EXPECT_EQ(p_.AsEWKB(), point_EWKB);
         UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POINT(1 1)");
-    
+
         point<Wsg84> p_c(1, 1, s_);
-        //UT_EXPECT_EQ(p_.AsEWKB(), point_EWKB);
         UT_EXPECT_EQ(p_c.AsEWKT(), "SRID=7203;POINT(1 1)");
     }
 
@@ -293,7 +292,6 @@ TEST_P(TestSpatial, Spatial) {
         point<Wsg84> p1(point_EWKB);
         point<Wsg84> p2(point_EWKB);
         UT_EXPECT_EQ(p1.Distance(p2), 0);
-        //UT_EXPECT_EQ(bg::distance(p1.GetSpatialData(), p2.GetSpatialData()), 0);
     }
 }
 

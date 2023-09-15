@@ -649,7 +649,7 @@ cypher::FieldData BuiltinFunction::Point(RTContext *ctx, const Record &record,
     CYPHER_THROW_ASSERT(args.size() >= 2);
     // Point(string) Returns a Point by parsing a string.
     auto arg1 = args[1].Evaluate(ctx, record);
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         if (!arg1.IsString()) CYPHER_ARGUMENT_ERROR();
         auto pt = ::lgraph::FieldData::Point(arg1.constant.scalar.AsString());
         return cypher::FieldData(pt);
@@ -657,30 +657,31 @@ cypher::FieldData BuiltinFunction::Point(RTContext *ctx, const Record &record,
     auto arg2 = args[2].Evaluate(ctx, record);
     lgraph_api::SRID s;
     double arg1_, arg2_;
-    if(arg1.IsInteger())
+    if (arg1.IsInteger())
         arg1_ = static_cast<double>(arg1.constant.scalar.AsInt64());
-    else
+    else if (arg1.IsReal())
         arg1_ = arg1.constant.scalar.AsDouble();
-    
-    if(arg2.IsInteger())
-        arg2_ = static_cast<double>(arg2.constant.scalar.AsInt64());
     else
+        CYPHER_ARGUMENT_ERROR();
+
+    if (arg2.IsInteger())
+        arg2_ = static_cast<double>(arg2.constant.scalar.AsInt64());
+    else if (arg2.IsReal())
         arg2_ = arg2.constant.scalar.AsDouble();
+    else
+        CYPHER_ARGUMENT_ERROR();
 
     // return point(2.32, 4.96)  srid = 4326 by default;
-    if(args.size() == 3) {
-        if ((!arg1.IsInteger() && !arg1.IsReal()) || (!arg2.IsInteger() && !arg2.IsReal()))
-            CYPHER_ARGUMENT_ERROR();
-        s = lgraph_api::SRID::WSG84; 
+    if (args.size() == 3) {
+        s = lgraph_api::SRID::WSG84;
         auto pt = ::lgraph::FieldData::Point(lgraph_api::point<lgraph_api::Wsg84>
                 (arg1_, arg2_, s));
         return cypher::FieldData(pt);
     }
-    
-    // return point(arg1, arg2, 7203); 
+
+    // return point(arg1, arg2, 7203);
     auto arg3 = args[3].Evaluate(ctx, record);
-    if((!arg1.IsInteger() && !arg1.IsReal()) || (!arg2.IsInteger() && !arg2.IsReal()) 
-    || !arg3.IsInteger()) 
+    if (!arg3.IsInteger())
         CYPHER_ARGUMENT_ERROR();
 
     switch (arg3.constant.scalar.AsInt64()) {
@@ -707,14 +708,14 @@ cypher::FieldData BuiltinFunction::Point_WKB(RTContext *ctx, const Record &recor
 
     lgraph_api::SRID s = lgraph_api::SRID::WSG84;
     lgraph_api::SpatialType t = lgraph_api::SpatialType::POINT;
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         auto pt = ::lgraph::FieldData::Point(lgraph_api::point<lgraph_api::Wsg84>
                 (s, t, 0, wkt.constant.scalar.AsString()));
         return cypher::FieldData(pt);
     }
 
     auto srid = args[2].Evaluate(ctx, record);
-    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    if (!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::Point(
@@ -738,14 +739,14 @@ cypher::FieldData BuiltinFunction::Point_WKT(RTContext *ctx, const Record &recor
 
     lgraph_api::SRID s = lgraph_api::SRID::WSG84;
     lgraph_api::SpatialType t = lgraph_api::SpatialType::POINT;
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         auto pt = ::lgraph::FieldData::Point(lgraph_api::point<lgraph_api::Cartesian>
                 (s, t, 1, wkt.constant.scalar.AsString()));
         return cypher::FieldData(pt);
     }
 
     auto srid = args[2].Evaluate(ctx, record);
-    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    if (!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::Point(
@@ -780,22 +781,24 @@ cypher::FieldData BuiltinFunction::LineString_WKB(RTContext *ctx, const Record &
 
     lgraph_api::SRID s = lgraph_api::SRID::WSG84;
     lgraph_api::SpatialType t = lgraph_api::SpatialType::LINESTRING;
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         auto pt = ::lgraph::FieldData::LineString(lgraph_api::linestring<lgraph_api::Wsg84>
                 (s, t, 0, wkt.constant.scalar.AsString()));
         return cypher::FieldData(pt);
     }
 
     auto srid = args[2].Evaluate(ctx, record);
-    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    if (!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::LineString(
-                lgraph_api::linestring<lgraph_api::Wsg84>(s, t, 0, wkt.constant.scalar.AsString())));
+                lgraph_api::linestring<lgraph_api::Wsg84>
+                (s, t, 0, wkt.constant.scalar.AsString())));
         case 7203:
             s = lgraph_api::SRID::CARTESIAN;
             return cypher::FieldData(::lgraph::FieldData::LineString(
-                lgraph_api::linestring<lgraph_api::Cartesian>(s, t, 0, wkt.constant.scalar.AsString())));
+                lgraph_api::linestring<lgraph_api::Cartesian>
+                (s, t, 0, wkt.constant.scalar.AsString())));
         default:
             CYPHER_ARGUMENT_ERROR();
     }
@@ -810,22 +813,24 @@ cypher::FieldData BuiltinFunction::LineString_WKT(RTContext *ctx, const Record &
 
     lgraph_api::SRID s = lgraph_api::SRID::WSG84;
     lgraph_api::SpatialType t = lgraph_api::SpatialType::LINESTRING;
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         auto pt = ::lgraph::FieldData::LineString(lgraph_api::linestring<lgraph_api::Wsg84>
                 (s, t, 1, wkt.constant.scalar.AsString()));
         return cypher::FieldData(pt);
     }
 
     auto srid = args[2].Evaluate(ctx, record);
-    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    if (!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::LineString(
-                lgraph_api::linestring<lgraph_api::Wsg84>(s, t, 1, wkt.constant.scalar.AsString())));
+                lgraph_api::linestring<lgraph_api::Wsg84>
+                (s, t, 1, wkt.constant.scalar.AsString())));
         case 7203:
             s = lgraph_api::SRID::CARTESIAN;
             return cypher::FieldData(::lgraph::FieldData::LineString(
-                lgraph_api::linestring<lgraph_api::Cartesian>(s, t, 1, wkt.constant.scalar.AsString())));
+                lgraph_api::linestring<lgraph_api::Cartesian>
+                (s, t, 1, wkt.constant.scalar.AsString())));
         default:
             CYPHER_ARGUMENT_ERROR();
     }
@@ -852,22 +857,24 @@ cypher::FieldData BuiltinFunction::Polygon_WKB(RTContext *ctx, const Record &rec
 
     lgraph_api::SRID s = lgraph_api::SRID::WSG84;
     lgraph_api::SpatialType t = lgraph_api::SpatialType::POLYGON;
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         auto pt = ::lgraph::FieldData::Polygon(lgraph_api::polygon<lgraph_api::Wsg84>
                 (s, t, 0, wkt.constant.scalar.AsString()));
         return cypher::FieldData(pt);
     }
 
     auto srid = args[2].Evaluate(ctx, record);
-    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    if (!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::Polygon(
-                lgraph_api::polygon<lgraph_api::Wsg84>(s, t, 0, wkt.constant.scalar.AsString())));
+                lgraph_api::polygon<lgraph_api::Wsg84>
+                (s, t, 0, wkt.constant.scalar.AsString())));
         case 7203:
             s = lgraph_api::SRID::CARTESIAN;
             return cypher::FieldData(::lgraph::FieldData::Polygon(
-                lgraph_api::polygon<lgraph_api::Cartesian>(s, t, 0, wkt.constant.scalar.AsString())));
+                lgraph_api::polygon<lgraph_api::Cartesian>
+                (s, t, 0, wkt.constant.scalar.AsString())));
         default:
             CYPHER_ARGUMENT_ERROR();
     }
@@ -882,22 +889,24 @@ cypher::FieldData BuiltinFunction::Polygon_WKT(RTContext *ctx, const Record &rec
 
     lgraph_api::SRID s = lgraph_api::SRID::WSG84;
     lgraph_api::SpatialType t = lgraph_api::SpatialType::LINESTRING;
-    if(args.size() == 2) {
+    if (args.size() == 2) {
         auto pt = ::lgraph::FieldData::Polygon(lgraph_api::polygon<lgraph_api::Wsg84>
                 (s, t, 1, wkt.constant.scalar.AsString()));
         return cypher::FieldData(pt);
     }
 
     auto srid = args[2].Evaluate(ctx, record);
-    if(!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    if (!srid.IsInteger()) CYPHER_ARGUMENT_ERROR();
     switch (srid.constant.scalar.AsInt64()) {
         case 4326:
             return cypher::FieldData(::lgraph::FieldData::Polygon(
-                lgraph_api::polygon<lgraph_api::Wsg84>(s, t, 1, wkt.constant.scalar.AsString())));
+                lgraph_api::polygon<lgraph_api::Wsg84>
+                (s, t, 1, wkt.constant.scalar.AsString())));
         case 7203:
             s = lgraph_api::SRID::CARTESIAN;
             return cypher::FieldData(::lgraph::FieldData::Polygon(
-                lgraph_api::polygon<lgraph_api::Cartesian>(s, t, 1, wkt.constant.scalar.AsString())));
+                lgraph_api::polygon<lgraph_api::Cartesian>
+                (s, t, 1, wkt.constant.scalar.AsString())));
         default:
             CYPHER_ARGUMENT_ERROR();
     }
@@ -914,7 +923,7 @@ cypher::FieldData BuiltinFunction::Distance(RTContext *ctx, const Record &record
     ::lgraph_api::SRID srid1 = Spatial1.constant.scalar.GetSRID();
     ::lgraph_api::SRID srid2 = Spatial2.constant.scalar.GetSRID();
     CYPHER_THROW_ASSERT(srid1 == srid2);
-    
+
     double d = 0;
     switch (srid1) {
         case ::lgraph_api::SRID::WSG84:
@@ -932,7 +941,7 @@ cypher::FieldData BuiltinFunction::Distance(RTContext *ctx, const Record &record
             d = s1.Distance(s2);
             break;
         }
-        
+
         default:
             throw std::runtime_error("unsupported srid type!");
     }
