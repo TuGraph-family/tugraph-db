@@ -285,6 +285,7 @@ TEST_P(TestSpatial, Spatial) {
         std::string big_point_wkb = "00000000013FF00000000000003FF0000000000000";
         std::string big_point_EWKB = "0000012000000010E63FF00000000000003FF0000000000000";
         std::string little_point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
+        std::string little_point_wkb = "0101000000000000000000F03F000000000000F03F";
         point<Wsg84> p(SRID::WSG84, SpatialType::POINT, 0, big_point_wkb);
         point<Wsg84> p_(big_point_EWKB);
         UT_EXPECT_EQ(p.AsEWKB(), little_point_EWKB);
@@ -292,22 +293,38 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_EQ(p_.AsEWKB(), little_point_EWKB);
         UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POINT(1 1)");
 
-        /*UT_LOG() << "Testing linestring big endian";
+        UT_LOG() << "Testing linestring big endian";
         std::string big_linestring_wkb = "0102000000030000000000000000000000000000"
         "0000000000000000000000004000000000000000400000000000000840000000000000F03F";
+        // std::string little_linestring_wkb = big_linestring_wkb;
         std::string big_linestring_EWKB = "0102000020E61000000300000000000000000000000"
         "000000000000000000000000000004000000000000000400000000000000840000000000000F03F";
         std::string little_linestring_EWKB = big_linestring_EWKB;
         WkbEndianTransfer(big_linestring_wkb);
         big_linestring_EWKB = EwkbEndianTransfer(big_linestring_EWKB);
-
         linestring<Wsg84> l(SRID::WSG84, SpatialType::LINESTRING, 0, big_linestring_wkb);
         linestring<Wsg84> l_(big_linestring_EWKB);
         UT_EXPECT_EQ(l.AsEWKB(), little_linestring_EWKB);
         UT_EXPECT_EQ(l.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
         UT_EXPECT_EQ(l_.AsEWKB(), little_linestring_EWKB);
         UT_EXPECT_EQ(l_.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
-        */
+
+        UT_LOG() << "Testing polygon big endian";
+        std::string big_polygon_wkb = "010300000001000000050000000000000000000000000000000"
+        "000000000000000000000000000000000001C4000000000000010400000000000000040"
+        "0000000000000040000000000000000000000000000000000000000000000000";
+        std::string big_polygon_ewkb = "0103000020E6100000010000000500000000000000000000000"
+        "00000000000000000000000000000000000000000001C4000000000000010400000000000000040000"
+        "0000000000040000000000000000000000000000000000000000000000000";
+        std::string little_polygon_ewkb = big_polygon_ewkb;
+        WkbEndianTransfer(big_polygon_wkb);
+        big_polygon_ewkb = EwkbEndianTransfer(big_polygon_ewkb);
+        polygon<Wsg84> po(SRID::WSG84, SpatialType::POLYGON, 0, big_polygon_wkb);
+        polygon<Wsg84> po_(big_polygon_ewkb);
+        UT_EXPECT_EQ(po.AsEWKB(), little_polygon_ewkb);
+        UT_EXPECT_EQ(po.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
+        UT_EXPECT_EQ(po_.AsEWKB(), little_polygon_ewkb);
+        UT_EXPECT_EQ(po_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
     }
 }
 

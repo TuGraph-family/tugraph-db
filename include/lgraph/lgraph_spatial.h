@@ -106,9 +106,10 @@ std::string Srid2Hex(SRID srid_type, size_t width);
 /**
 * @brief transfer the wkb format data between big and little endian;
 *        first, transfer the first byte. Then transfer the next 4 bytes,
-*        for linestring and polygon, we need to transfer extra bytes.        
-*        then transfer the n next 8 bytes. you can refer to the wkb layout
-*        from the contens of TryDecodeWKB;
+*        for linestring and polygon, we need to transfer extra bytes(which 
+*        represents the number of points and rings).        
+*        then transfer the next n * 8 bytes. you can refer to the wkb layout
+*        from the conments of TryDecodeWKB;
 * 
 * @param [in, out] WKB  the wkb format data in big/little endian, out int little/big endian;
 */
@@ -116,9 +117,12 @@ void WkbEndianTransfer(std::string& WKB);
 
 /**
 * @brief transfer the EWKB format data from between big and little endian;
-*        Extract the wkb from EWKB, call WkbEndianTransfer and the set
-*        extension from the WKB;
-*        
+*        first, transfer the first byte. Then transfer the next 2 bytes(type) and
+*        the following 2 bytes(dimension). Then transfer the next 4 bytes(srid).
+*        for linestring and polygon, we need to transfer extra bytes(which 
+*        represents the number of points and rings). Then transfer the next n * 8 bytes.
+*        you can refer to the EWKB layout from the comments of TryDecodeEWKB. 
+*       
 * @param EWKB  the EWKB format data in big/little endian;
 *
 * @returns the EWKB format data in little/big endian;

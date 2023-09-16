@@ -53,7 +53,10 @@ std::string Srid2Hex(SRID srid_type, size_t width) {
     return s_hex;
 }
 
+// there's some problem in big2little transform
 void WkbEndianTransfer(std::string& WKB) {
+    if(WKB.size() < 42)
+        throw InputError("wrong wkb type!");
     // transfer the first byte which represents the big/little endian;
     std::string output;
     std::string en = WKB.substr(0, 2);
@@ -65,24 +68,25 @@ void WkbEndianTransfer(std::string& WKB) {
     std::string t = WKB.substr(2, 8);
     EndianTansfer(t);
     output += t;
-    size_t start = 10;  // the start idx of transfer data;
-    // set the next 4 bytes;
+    size_t start = 10;  
+    // for linestring/polygon we need 4 bytes to represent the number of
+    // point pairs/rings;
     if (ExtractType(WKB) == SpatialType::LINESTRING ||
         ExtractType(WKB) == SpatialType::POLYGON) {
-        std::string t = WKB.substr(10, 8);
+        std::string t = WKB.substr(start, 8);
         EndianTansfer(t);
         output += t;
         start += 8;
     }
-
+    // for polygon, we need extra 4 bytes to represent the number of point
     if (ExtractType(WKB) == SpatialType::POLYGON) {
-        std::string t = WKB.substr(18, 8);
+        std::string t = WKB.substr(start, 8);
         EndianTansfer(t);
         output += t;
         start += 8;
     }
 
-    // transfer the next n 8 byte data;
+    // transfer the next n * 8 byte(each represent a point data);
     while (start < WKB.size()) {
         std::string data = WKB.substr(start, 16);
         EndianTansfer(data);
@@ -94,17 +98,49 @@ void WkbEndianTransfer(std::string& WKB) {
 }
 
 std::string EwkbEndianTransfer(const std::string& EWKB) {
+    if(EWKB.size() < 50)
+        throw InputError("wrong wkb type!");
     std::string output;
-    // extract WKB from EWKB (big endian)
-    output = EWKB.substr(0, 10) + EWKB.substr(18);
-    output[6] = output[8] = '0';   // erase the big endian dimension
-    if (!Endian(EWKB)) {
-        output[9] = output[5];
-        output[5] = '0';
+    std::string tmp = EWKB.substr(0, 2);  // transfer the first byte which represents the type;
+    if (tmp == "01") tmp = "00";
+    else if (tmp == "00") tmp = "01";
+    output += tmp;
+
+    tmp = EWKB.substr(2, 4);   // transfer the next 2 bytes which represents type;
+    EndianTansfer(tmp);   
+    output += tmp;       
+    tmp = EWKB.substr(6, 4);  // transfer the next 2 bytes which represents dimension;
+    EndianTansfer(tmp);   
+    output += tmp;     
+    tmp = EWKB.substr(10, 8);  // transfer the next 4 bytes which represents srid;
+    EndianTansfer(tmp);
+    output += tmp;
+
+    size_t start = 18;  
+    // for linestring/polygon we need 4 bytes to represent the number of
+    // point pairs/rings;
+    if (ExtractType(EWKB) == SpatialType::LINESTRING ||
+        ExtractType(EWKB) == SpatialType::POLYGON) {
+        std::string t = EWKB.substr(start, 8);
+        EndianTansfer(t);
+        output += t;
+        start += 8;
     }
 
-    WkbEndianTransfer(output);
-    output = SetExtension(output, ExtractSRID(EWKB));
+    if (ExtractType(EWKB) == SpatialType::POLYGON) {
+        std::string t = EWKB.substr(start, 8);
+        EndianTansfer(t);
+        output += t;
+        start += 8;
+    }
+
+    // for polygon, we need extra 4 bytes to represent the number of point
+    while (start < EWKB.size()) {
+        std::string data = EWKB.substr(start, 16);
+        EndianTansfer(data);
+        output += data;
+        start += 16;
+    }
 
     return output;
 }
@@ -113,24 +149,32 @@ std::string SetExtension(const std::string& WKB, SRID srid_type) {
     bool en = Endian(WKB);
     std::string EWKB = WKB;
 
+    // set the dimension information;
     if (en)
-        EWKB[8] = '2';   // set the dimension information;
+        EWKB[8] = '2';   
     else
         EWKB[6] = '2';
 
-    std::string s_hex = Srid2Hex(srid_type, 8);  // in little endian;
+    // transform srid into hex format in little endian;
+    std::string s_hex = Srid2Hex(srid_type, 8);  
+    transform(s_hex.begin(), s_hex.end(), s_hex.begin(), ::toupper);
+    
+    // if the wkb is in big endian, we need transform it;
     if (!en)
         EndianTansfer(s_hex);
+    // insert the srid information into EWKB format;
     EWKB.insert(10, s_hex);
 
     return EWKB;
 }
 
 SRID ExtractSRID(const std::string& EWKB) {
+    // only ewkb format have srid information; 
     if (EWKB.size() < 50)
         throw InputError("wrong EWKB type");
 
     std::string srid = EWKB.substr(10, 8);
+    // transfer the little endian data into big endian for convenient;
     if (Endian(EWKB)) {
         EndianTansfer(srid);
     }
@@ -154,7 +198,11 @@ SpatialType ExtractType(const std::string& EWKB) {
     // if (EWKB.size() < 50)
     //    throw InputError("wrong EWKB type");
 
-    std::string type = EWKB.substr(2, 4);
+    std::string type = EWKB.substr(2, 8);
+    // if the input format is EWKB type, we only need the first 2 bytes;
+    if(type[4] != '0' || type[6] != '0') 
+        type = type.substr(0, 4);
+    // transfer the little endian into big endian for convenient;
     if (Endian(EWKB)) {
         EndianTansfer(type);
     }
