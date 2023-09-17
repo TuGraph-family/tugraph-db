@@ -89,6 +89,12 @@ else (ENABLE_LGRAPH_LOG)
     message("Use native fma log.")
 endif (ENABLE_LGRAPH_LOG)
 
+option(BUILD_JAVASDK "Build lgraph4jni.so for javasdk" OFF)
+if (BUILD_JAVASDK)
+    message("Build lgraph4jni.so for javasdk.")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D=1")
+endif (BUILD_JAVASDK)
+
 # disable krb5
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENSSL_NO_KRB5=1")
 
