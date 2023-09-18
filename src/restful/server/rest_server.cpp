@@ -360,6 +360,15 @@ web::json::value ProtoFieldDataToJson(const ProtoFieldData& data) {
         return web::json::value(_TU(data.str()));
     case ProtoFieldData::kBlob:
         return web::json::value(_TU(::lgraph_api::base64::Encode(data.blob())));
+    case ProtoFieldData::kPoint:
+        // TODO(shw): string(_TU(Point(data.point()).ToString()));
+        return web::json::value::string(_TU(data.point()));
+    case ProtoFieldData::kLinestring:
+        // TODO(shw): string(_TU(LineString(data.linestring()).ToString()));
+        return web::json::value::string(_TU(data.linestring()));
+    case ProtoFieldData::kPolygon:
+        // TODO(shw): string(_TU(Polygon(data.polygon()).ToString()));
+        return web::json::value::string(_TU(data.polygon()));
     }
     FMA_ASSERT(false);
     return web::json::value::null();

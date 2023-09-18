@@ -241,7 +241,7 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_FAIL(BLOB, "kkk");
     _CHECK_PARSE_STRING_FAIL(POINT, "123absd");
     _CHECK_PARSE_STRING_FAIL(LINESTRING, "0.23124325");
-    _CHECK_PARSE_STRING_FAIL(POINT, "asdjasncioo");
+    _CHECK_PARSE_STRING_FAIL(POLYGON, "asdjasncioo");
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -274,7 +274,7 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     _TEST_FD_CONVERT(INT64, 10000000000L, INT32, 1, false);  // out of range
     _TEST_FD_CONVERT(STRING, "111", INT64, 1, false);
     _TEST_FD_CONVERT(BLOB, "111", INT64, 1, false);
-    // floating points can be converted from fp or int types
+    // floating Points can be converted from fp or int types
     _TEST_FD_CONVERT(INT8, 127, FLOAT, 127, true);
     _TEST_FD_CONVERT(INT32, 1 << 30, DOUBLE, 1 << 30, true);
     _TEST_FD_CONVERT(FLOAT, 0.25, DOUBLE, 0.25, true);
@@ -289,17 +289,17 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     // testing spatial data;
     std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
     _TEST_FD_CONVERT(STRING, EWKB, POINT,
-                     ::lgraph_api::point<::lgraph_api::Wsg84>(EWKB).AsEWKB(), true);
+                     ::lgraph_api::Point<::lgraph_api::Wsg84>(EWKB).AsEWKB(), true);
     EWKB = "0102000020231C00000300000000000000000000000000000000000000000"
            "000000000004000000000000000400000000000000840000000000000F03F";
     _TEST_FD_CONVERT(STRING, EWKB, LINESTRING,
-                     ::lgraph_api::linestring<::lgraph_api::Cartesian>(EWKB).AsEWKB(),
+                     ::lgraph_api::LineString<::lgraph_api::Cartesian>(EWKB).AsEWKB(),
                      true);
     EWKB = "0103000020E6100000010000000500000000000000000000000000000000"
            "00000000000000000000000000000000001C400000000000001040000000000000"
            "00400000000000000040000000000000000000000000000000000000000000000000";
     _TEST_FD_CONVERT(STRING, EWKB, POLYGON,
-                     ::lgraph_api::polygon<::lgraph_api::Wsg84>(EWKB).AsEWKB(),
+                     ::lgraph_api::Polygon<::lgraph_api::Wsg84>(EWKB).AsEWKB(),
                      true);
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
@@ -357,7 +357,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
     _TEST_FD_TO_VALUE_OF_FT(BLOB, "hello", BLOB, "hello", true);
     _TEST_FD_TO_VALUE_OF_FT(STRING, ::lgraph_api::base64::Encode("hello"), BLOB, "hello", true);
 
-    // testing point;
+    // testing Point;
     {
         std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
         FieldData fd = FieldData(EWKB);
@@ -366,7 +366,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         UT_EXPECT_EQ(v.AsType<std::string>(), PointWsg84(EWKB).AsEWKB());
     }
 
-    // testing linestring;
+    // testing LineString;
     {
         std::string EWKB = "0102000020231C00000300000000000000000000000000000000000000000"
                            "000000000004000000000000000400000000000000840000000000000F03F";
@@ -376,7 +376,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         UT_EXPECT_EQ(v.AsType<std::string>(), LineStringCartesian(EWKB).AsEWKB());
     }
 
-    // testing polygon
+    // testing Polygon
     {
         std::string EWKB = "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
@@ -503,7 +503,7 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
     _TEST_VALUE_COMPARE(BLOB, std::string(3, 'a'), std::string(4, 'a'), -1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
-    // testing point(compare string);
+    // testing Point(compare string);
     {
         std::string EWKB1 = "0101000020E6100000000000000000F03F0000000000000040";
         std::string EWKB2 = "0101000020231C0000000000000000F03F000000000000F03F";

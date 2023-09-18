@@ -18,6 +18,9 @@
 namespace lgraph_api {
 
 bool Endian(const std::string& EWKB) {
+    if (EWKB.size() < 42)
+        throw InputError("wrong wkb/ewkb format");
+
     std::string endian = EWKB.substr(0, 2);
     if (endian == "01") {
         return true;
@@ -27,6 +30,8 @@ bool Endian(const std::string& EWKB) {
 
 void EndianTansfer(std::string& input) {
     size_t size = input.size();
+    if (size % 2 || size <= 2)
+        throw InputError("invalid endian transfer data!");
     int i = size - 2;
     std::string output;
     while (i >= 0) {
@@ -37,6 +42,8 @@ void EndianTansfer(std::string& input) {
 }
 
 std::string Srid2Hex(SRID srid_type, size_t width) {
+    if (width < 4)
+        throw InputError("invalid width in Srid2Hex!");
     int srid = static_cast<int>(srid_type);
     std::stringstream ioss;
     std::string s_hex;
@@ -55,7 +62,7 @@ std::string Srid2Hex(SRID srid_type, size_t width) {
 
 // there's some problem in big2little transform
 void WkbEndianTransfer(std::string& WKB) {
-    if(WKB.size() < 42)
+    if (WKB.size() < 42)
         throw InputError("wrong wkb type!");
     // transfer the first byte which represents the big/little endian;
     std::string output;
@@ -68,9 +75,9 @@ void WkbEndianTransfer(std::string& WKB) {
     std::string t = WKB.substr(2, 8);
     EndianTansfer(t);
     output += t;
-    size_t start = 10;  
-    // for linestring/polygon we need 4 bytes to represent the number of
-    // point pairs/rings;
+    size_t start = 10;
+    // for LineString/Polygon we need 4 bytes to represent the number of
+    // Point pairs/rings;
     if (ExtractType(WKB) == SpatialType::LINESTRING ||
         ExtractType(WKB) == SpatialType::POLYGON) {
         std::string t = WKB.substr(start, 8);
@@ -78,7 +85,7 @@ void WkbEndianTransfer(std::string& WKB) {
         output += t;
         start += 8;
     }
-    // for polygon, we need extra 4 bytes to represent the number of point
+    // for Polygon, we need extra 4 bytes to represent the number of Point
     if (ExtractType(WKB) == SpatialType::POLYGON) {
         std::string t = WKB.substr(start, 8);
         EndianTansfer(t);
@@ -86,7 +93,7 @@ void WkbEndianTransfer(std::string& WKB) {
         start += 8;
     }
 
-    // transfer the next n * 8 byte(each represent a point data);
+    // transfer the next n * 8 byte(each represent a Point data);
     while (start < WKB.size()) {
         std::string data = WKB.substr(start, 16);
         EndianTansfer(data);
@@ -98,7 +105,7 @@ void WkbEndianTransfer(std::string& WKB) {
 }
 
 std::string EwkbEndianTransfer(const std::string& EWKB) {
-    if(EWKB.size() < 50)
+    if (EWKB.size() < 50)
         throw InputError("wrong wkb type!");
     std::string output;
     std::string tmp = EWKB.substr(0, 2);  // transfer the first byte which represents the type;
@@ -107,18 +114,18 @@ std::string EwkbEndianTransfer(const std::string& EWKB) {
     output += tmp;
 
     tmp = EWKB.substr(2, 4);   // transfer the next 2 bytes which represents type;
-    EndianTansfer(tmp);   
-    output += tmp;       
+    EndianTansfer(tmp);
+    output += tmp;
     tmp = EWKB.substr(6, 4);  // transfer the next 2 bytes which represents dimension;
-    EndianTansfer(tmp);   
-    output += tmp;     
+    EndianTansfer(tmp);
+    output += tmp;
     tmp = EWKB.substr(10, 8);  // transfer the next 4 bytes which represents srid;
     EndianTansfer(tmp);
     output += tmp;
 
-    size_t start = 18;  
-    // for linestring/polygon we need 4 bytes to represent the number of
-    // point pairs/rings;
+    size_t start = 18;
+    // for LineString/Polygon we need 4 bytes to represent the number of
+    // Point pairs/rings;
     if (ExtractType(EWKB) == SpatialType::LINESTRING ||
         ExtractType(EWKB) == SpatialType::POLYGON) {
         std::string t = EWKB.substr(start, 8);
@@ -126,15 +133,14 @@ std::string EwkbEndianTransfer(const std::string& EWKB) {
         output += t;
         start += 8;
     }
-
+    // for Polygon, we need extra 4 bytes to represent the number of Point
     if (ExtractType(EWKB) == SpatialType::POLYGON) {
         std::string t = EWKB.substr(start, 8);
         EndianTansfer(t);
         output += t;
         start += 8;
     }
-
-    // for polygon, we need extra 4 bytes to represent the number of point
+    // transfer the next n * 8 byte(each represent a Point data);
     while (start < EWKB.size()) {
         std::string data = EWKB.substr(start, 16);
         EndianTansfer(data);
@@ -151,14 +157,14 @@ std::string SetExtension(const std::string& WKB, SRID srid_type) {
 
     // set the dimension information;
     if (en)
-        EWKB[8] = '2';   
+        EWKB[8] = '2';
     else
         EWKB[6] = '2';
 
     // transform srid into hex format in little endian;
-    std::string s_hex = Srid2Hex(srid_type, 8);  
+    std::string s_hex = Srid2Hex(srid_type, 8);
     transform(s_hex.begin(), s_hex.end(), s_hex.begin(), ::toupper);
-    
+
     // if the wkb is in big endian, we need transform it;
     if (!en)
         EndianTansfer(s_hex);
@@ -169,7 +175,7 @@ std::string SetExtension(const std::string& WKB, SRID srid_type) {
 }
 
 SRID ExtractSRID(const std::string& EWKB) {
-    // only ewkb format have srid information; 
+    // only ewkb format have srid information;
     if (EWKB.size() < 50)
         throw InputError("wrong EWKB type");
 
@@ -200,7 +206,7 @@ SpatialType ExtractType(const std::string& EWKB) {
 
     std::string type = EWKB.substr(2, 8);
     // if the input format is EWKB type, we only need the first 2 bytes;
-    if(type[4] != '0' || type[6] != '0') 
+    if (type[4] != '0' || type[6] != '0')
         type = type.substr(0, 4);
     // transfer the little endian into big endian for convenient;
     if (Endian(EWKB)) {
@@ -227,23 +233,23 @@ SpatialType ExtractType(const std::string& EWKB) {
 
 template<typename SRID_Type>
 bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
-    typedef bg::model::point<double, 2, SRID_Type> point;
+    typedef bg::model::point<double, 2, SRID_Type> Point;
     switch (type) {
         case SpatialType::NUL:
             return false;
         case SpatialType::POINT: {
-            point point_;
+            Point Point_;
             byte_vector wkb_;
 
             if (!bg::hex2wkb(WKB, std::back_inserter(wkb_)) ||
-            !bg::read_wkb(wkb_.begin(), wkb_.end(), point_)) {
+            !bg::read_wkb(wkb_.begin(), wkb_.end(), Point_)) {
                 return false;
             }
             return true;
         }
 
         case SpatialType::LINESTRING: {
-            bg::model::linestring<point> line_;
+            bg::model::linestring<Point> line_;
             byte_vector wkb_;
 
             if (!bg::hex2wkb(WKB, std::back_inserter(wkb_)) ||
@@ -254,11 +260,11 @@ bool TryDecodeWKB(const std::string& WKB, SpatialType type) {
         }
 
         case SpatialType::POLYGON: {
-            bg::model::polygon<point> polygon_;
+            bg::model::polygon<Point> Polygon_;
             byte_vector wkb_;
 
             if (!bg::hex2wkb(WKB, std::back_inserter(wkb_)) ||
-            !bg::read_wkb(wkb_.begin(), wkb_.end(), polygon_)) {
+            !bg::read_wkb(wkb_.begin(), wkb_.end(), Polygon_)) {
                 return false;
             }
             return true;
@@ -306,13 +312,13 @@ Spatial<SRID_Type>::Spatial(SRID srid, SpatialType type, int construct_type, std
         case SpatialType::NUL:
             throw std::runtime_error("Unknown Spatial Type");
         case SpatialType::POINT:
-            point_.reset(new point<SRID_Type>(srid, type, construct_type, content));
+            Point_.reset(new Point<SRID_Type>(srid, type, construct_type, content));
             break;
         case SpatialType::LINESTRING:
-            line_.reset(new linestring<SRID_Type>(srid, type, construct_type, content));
+            line_.reset(new LineString<SRID_Type>(srid, type, construct_type, content));
             break;
         case SpatialType::POLYGON:
-            polygon_.reset(new polygon<SRID_Type>(srid, type, construct_type, content));
+            Polygon_.reset(new Polygon<SRID_Type>(srid, type, construct_type, content));
             break;
     }
 }
@@ -329,13 +335,13 @@ Spatial<SRID_Type>::Spatial(const std::string& EWKB) {
         case SpatialType::NUL:
             throw InputError("invalid spatial type");
         case SpatialType::POINT:
-            point_.reset(new point<SRID_Type>(srid, type_, 0, WKB));
+            Point_.reset(new Point<SRID_Type>(srid, type_, 0, WKB));
             break;
         case SpatialType::LINESTRING:
-            line_.reset(new linestring<SRID_Type>(srid, type_, 0, WKB));
+            line_.reset(new LineString<SRID_Type>(srid, type_, 0, WKB));
             break;
         case SpatialType::POLYGON:
-            polygon_.reset(new polygon<SRID_Type>(srid, type_, 0, WKB));
+            Polygon_.reset(new Polygon<SRID_Type>(srid, type_, 0, WKB));
     }
 }
 
@@ -345,11 +351,11 @@ std::string Spatial<SRID_Type>::AsEWKB() const {
         case SpatialType::NUL:
             return "NUL";
         case SpatialType::POINT:
-            return point_->AsEWKB();
+            return Point_->AsEWKB();
         case SpatialType::LINESTRING:
             return line_->AsEWKB();
         case SpatialType::POLYGON:
-            return polygon_->AsEWKB();
+            return Polygon_->AsEWKB();
         default:
             throw std::runtime_error("Unknown SRID Type");
     }
@@ -361,11 +367,11 @@ std::string Spatial<SRID_Type>::AsEWKT() const {
         case SpatialType::NUL:
             return "NUL";
         case SpatialType::POINT:
-            return point_->AsEWKT();
+            return Point_->AsEWKT();
         case SpatialType::LINESTRING:
             return line_->AsEWKT();
         case SpatialType::POLYGON:
-            return polygon_->AsEWKT();
+            return Polygon_->AsEWKT();
         default:
             throw std::runtime_error("Unknown SRID Type");
     }
@@ -377,7 +383,7 @@ bool Spatial<SRID_Type>::operator==(const Spatial<SRID_Type> &other) {
 }
 
 template<typename SRID_Type>
-point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::string& content)
+Point<SRID_Type>::Point(SRID srid, SpatialType type, int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
@@ -391,9 +397,10 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
         byte_vector wkb_;
 
         if (!bg::hex2wkb(content, std::back_inserter(wkb_)) ||
-        !bg::read_wkb(wkb_.begin(), wkb_.end(), point_)) {
+        !bg::read_wkb(wkb_.begin(), wkb_.end(), Point_)) {
             throw InputError("wrong wkb format: " + content);
         }
+        // extend wkb format to ewkb format
         EWKB = SetExtension(content, GetSrid());
     }
 
@@ -402,12 +409,12 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
 
         // 如果WKT格式错误，这里会抛出异常; boost::exception_detail;
         try {
-            bg::read_wkt(content, point_);
+            bg::read_wkt(content, Point_);
         } catch (const std::exception &ex) {
             throw InputError("wrong wkt format:" + std::string(ex.what()));
         }
 
-        if (!bg::write_wkb(point_, std::back_inserter(wkb_out))) {
+        if (!bg::write_wkb(Point_, std::back_inserter(wkb_out))) {
             throw InputError("wrong wkt format: " + content);
         }
 
@@ -420,7 +427,7 @@ point<SRID_Type>::point(SRID srid, SpatialType type, int construct_type, std::st
 }
 
 template<typename SRID_Type>
-point<SRID_Type>::point(const std::string& EWKB_)
+Point<SRID_Type>::Point(const std::string& EWKB_)
 : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     // first, we need to transfer big endian to little endian;
     SRID srid = ExtractSRID(EWKB_);
@@ -437,7 +444,7 @@ point<SRID_Type>::point(const std::string& EWKB_)
     byte_vector wkb_;
 
     if (!bg::hex2wkb(WKB, std::back_inserter(wkb_)) ||
-    !bg::read_wkb(wkb_.begin(), wkb_.end(), point_)) {
+    !bg::read_wkb(wkb_.begin(), wkb_.end(), Point_)) {
         throw InputError("wrong wkb format: " + WKB);
     }
 
@@ -445,10 +452,10 @@ point<SRID_Type>::point(const std::string& EWKB_)
 }
 
 template<typename SRID_Type>
-std::string point<SRID_Type>::AsEWKT() const {
+std::string Point<SRID_Type>::AsEWKT() const {
     std::string EWKT;
     std::stringstream ioss;
-    ioss << "SRID=" << static_cast<int>(GetSrid()) << ";" << bg::wkt(point_) << std::endl;
+    ioss << "SRID=" << static_cast<int>(GetSrid()) << ";" << bg::wkt(Point_) << std::endl;
 
     std::string tmp;
     while (ioss >> tmp) {
@@ -461,17 +468,17 @@ std::string point<SRID_Type>::AsEWKT() const {
 }
 
 template<typename SRID_Type>
-std::string point<SRID_Type>::ToString() const {
+std::string Point<SRID_Type>::ToString() const {
     return AsEWKB();
 }
 
 template<typename SRID_Type>
-bool point<SRID_Type>::operator==(const point<SRID_Type> &other) {
+bool Point<SRID_Type>::operator==(const Point<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
 
 template<typename SRID_Type>
-linestring<SRID_Type>::linestring(SRID srid, SpatialType type,
+LineString<SRID_Type>::LineString(SRID srid, SpatialType type,
 int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
@@ -508,7 +515,7 @@ int construct_type, std::string& content)
 }
 
 template<typename SRID_Type>
-linestring<SRID_Type>::linestring(const std::string& EWKB_)
+LineString<SRID_Type>::LineString(const std::string& EWKB_)
 : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     SRID srid = ExtractSRID(EWKB_);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
@@ -531,7 +538,7 @@ linestring<SRID_Type>::linestring(const std::string& EWKB_)
 }
 
 template<typename SRID_Type>
-std::string linestring<SRID_Type>::AsEWKT() const {
+std::string LineString<SRID_Type>::AsEWKT() const {
     std::string EWKT;
     std::stringstream ioss;
 
@@ -548,17 +555,17 @@ std::string linestring<SRID_Type>::AsEWKT() const {
 }
 
 template<typename SRID_Type>
-std::string linestring<SRID_Type>::ToString() const {
+std::string LineString<SRID_Type>::ToString() const {
     return AsEWKB();
 }
 
 template<typename SRID_Type>
-bool linestring<SRID_Type>::operator==(const linestring<SRID_Type> &other) {
+bool LineString<SRID_Type>::operator==(const LineString<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
 
 template<typename SRID_Type>
-polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std::string& content)
+Polygon<SRID_Type>::Polygon(SRID srid, SpatialType type, int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
@@ -571,7 +578,7 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
         byte_vector wkb_;
         bg::hex2wkb(content, std::back_inserter(wkb_));
         if (!bg::hex2wkb(content, std::back_inserter(wkb_)) ||
-        !bg::read_wkb(wkb_.begin(), wkb_.end(), polygon_)) {
+        !bg::read_wkb(wkb_.begin(), wkb_.end(), Polygon_)) {
             throw InputError("wrong wkb format: " + content);
         }
 
@@ -582,12 +589,12 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
         std::string wkb_out;
 
         try {
-            bg::read_wkt(content, polygon_);
+            bg::read_wkt(content, Polygon_);
         } catch (const std::exception &ex) {
             throw InputError("wrong wkt format" + std::string(ex.what()));
         }
 
-        if (!bg::write_wkb(polygon_, std::back_inserter(wkb_out))) {
+        if (!bg::write_wkb(Polygon_, std::back_inserter(wkb_out))) {
             throw InputError("wrong wkt format: " + content);
         }
 
@@ -598,7 +605,7 @@ polygon<SRID_Type>::polygon(SRID srid, SpatialType type, int construct_type, std
 }
 
 template<typename SRID_Type>
-polygon<SRID_Type>::polygon(const std::string& EWKB_)
+Polygon<SRID_Type>::Polygon(const std::string& EWKB_)
 : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     SRID srid = ExtractSRID(EWKB_);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
@@ -616,17 +623,17 @@ polygon<SRID_Type>::polygon(const std::string& EWKB_)
     byte_vector wkb_;
 
     if (!bg::hex2wkb(WKB, std::back_inserter(wkb_)) ||
-    !bg::read_wkb(wkb_.begin(), wkb_.end(), polygon_)) {
+    !bg::read_wkb(wkb_.begin(), wkb_.end(), Polygon_)) {
         throw InputError("wrong wkb format: " + WKB);
     }
 }
 
 template<typename SRID_Type>
-std::string polygon<SRID_Type>::AsEWKT() const {
+std::string Polygon<SRID_Type>::AsEWKT() const {
     std::string EWKT;
     std::stringstream ioss;
 
-    ioss << "SRID=" << static_cast<int>(GetSrid()) << ";" << bg::wkt(polygon_) << std::endl;
+    ioss << "SRID=" << static_cast<int>(GetSrid()) << ";" << bg::wkt(Polygon_) << std::endl;
 
     std::string tmp;
     while (ioss >> tmp) {
@@ -639,21 +646,21 @@ std::string polygon<SRID_Type>::AsEWKT() const {
 }
 
 template<typename SRID_Type>
-std::string polygon<SRID_Type>::ToString() const {
+std::string Polygon<SRID_Type>::ToString() const {
     return AsEWKB();
 }
 
 template<typename SRID_Type>
-bool polygon<SRID_Type>::operator==(const polygon<SRID_Type> &other) {
+bool Polygon<SRID_Type>::operator==(const Polygon<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
 
-template class point<Wsg84>;
-template class point<Cartesian>;
-template class linestring<Wsg84>;
-template class linestring<Cartesian>;
-template class polygon<Wsg84>;
-template class polygon<Cartesian>;
+template class Point<Wsg84>;
+template class Point<Cartesian>;
+template class LineString<Wsg84>;
+template class LineString<Cartesian>;
+template class Polygon<Wsg84>;
+template class Polygon<Cartesian>;
 template class Spatial<Wsg84>;
 template class Spatial<Cartesian>;
 

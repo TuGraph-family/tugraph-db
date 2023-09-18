@@ -53,6 +53,15 @@ TEST_F(TestProtoConvert, ProtoConvert) {
             UT_EXPECT_EQ(fd.AsString(), fd2.AsString());
         }
         {
+            FieldData fd(PointWsg84(std::string("0101000020E6100000000000000000"
+                                                "F03F0000000000000040")));
+            FieldDataConvert::FromLGraphT(fd, &pfd);
+            UT_EXPECT_TRUE(fd.AsWsgPoint() == PointWsg84(pfd.point()));
+            UT_EXPECT_TRUE(pfd.has_point());
+            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+            UT_EXPECT_TRUE(fd.AsWsgPoint() == fd2.AsWsgPoint());
+        }
+        {
             FieldData fd;
             FieldDataConvert::FromLGraphT(fd, &pfd);
             UT_EXPECT_EQ(pfd.Data_case(), pfd.DATA_NOT_SET);
@@ -88,6 +97,9 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         fss.emplace_back("int8", FieldType::FLOAT, false);
         fss.emplace_back("int8", FieldType::DOUBLE, false);
         fss.emplace_back("int8", FieldType::STRING, true);
+        fss.emplace_back("int8", FieldType::POINT, false);
+        fss.emplace_back("int8", FieldType::LINESTRING, false);
+        fss.emplace_back("int8", FieldType::POLYGON, false);
         ::google::protobuf::RepeatedPtrField<ProtoFieldSpec> pfss, pfss2;
         FieldSpecConvert::FromLGraphT(fss, &pfss);
         UT_EXPECT_EQ(pfss.size(), fss.size());

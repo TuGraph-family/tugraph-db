@@ -15,7 +15,7 @@
  *   1. 进一步通过测试样例检查ParseStringToValueOfFieldType与TryFieldDataToValueOfFieldType
  *      实现的正确性(空间数据与string数据的转换);
  *   2. FieldType2CType无法实现空间数据相关功能, 目前绕开实现。
- *   3. 确认line与polygon调用_SetVariableLengthValue实现正确。
+ *   3. 确认line与Polygon调用_SetVariableLengthValue实现正确。
  */  
 
 #pragma once
@@ -48,14 +48,14 @@ typedef std::vector<boost::uint8_t> byte_vector;
  */
 enum class SpatialType {
     NUL = 0,
-    POINT = 1,        // point type, e.g. (1.0 2.0)
-    LINESTRING = 2,   // linestring type, represent a linestring which is
-                      // composed of different points. e.g (1.0 2.0, 3.0 2.0, 5.0 4.0)
-    POLYGON = 3       // polygon type,
-                      // A polygon of Boost.Geometry is a polygon with or without holes
+    POINT = 1,        // Point type, e.g. (1.0 2.0)
+    LINESTRING = 2,   // LineString type, represent a LineString which is
+                      // composed of different Points. e.g (1.0 2.0, 3.0 2.0, 5.0 4.0)
+    POLYGON = 3       // Polygon type,
+                      // A Polygon of Boost.Geometry is a Polygon with or without holes
                       // e.g (1.0 2.0, 3.0 2.0, 5.0 4.0, 1.0 2.0) for more detail, you can refer to
                       // https://www.boost.org/doc/libs/1_68_0/libs/geometry/doc/html/geometry/
-                      // reference/concepts/concept_polygon.html
+                      // reference/concepts/concept_Polygon.html
 };
 
 /**
@@ -73,44 +73,63 @@ enum class SRID {
 };
 
 template<typename SRID_Type>
-class point;
+class Point;
 
 template<typename SRID_Type>
-class linestring;
+class LineString;
 
 template<typename SRID_Type>
-class polygon;
+class Polygon;
 
-// true if little endian, false if big endian;
+/**
+* @brief       return the given ewkb/wkb format data is little or big endian
+*              (determined by the first byte)
+*
+* @exception   InputError  Thrown if the input size is less than 42(the minimum 
+*                           wkb format length)
+*
+* @param       EWKB expected wkb/ewkb format string;
+*
+* @returns     true if little endian, false if big endian;
+*/
 bool Endian(const std::string& EWKB);
 
 /**
 * @brief transfer the given hex format string between little and big endian;
-*        the hex data is 4 bit each, so the size 2 hex data is 1 byte. We need 
-*        to reverse every byte between the two endian. 
+*        the hex data is 4 bit each, so every 2 hex data is 1 byte. We need 
+*        to reverse each byte from the given input.
+*
+* @exception   InputError  Thrown if the input size is less than 42(the minimum 
+*                          wkb format length)
 *
 * @param [in,out] input little/big endian hex format string;
 */
 void EndianTansfer(std::string& input);
 
 /**
-* @brief  transfer the srid_type into hex format(little endian);
+* @brief  transfer the srid_type(enum class) into hex format(little endian in default);
 * 
 * @param srid_type      Spatial Reference System Identifier;
+*
 * @param width          the length of hex format to transform;   
 * 
-* @returns the hex format srid_type;
+* @exception   InputError Thrown if the input width is less than 4;
+*
+* @returns the hex format srid_type in little endian;
 */
 std::string Srid2Hex(SRID srid_type, size_t width);
 
 /**
 * @brief transfer the wkb format data between big and little endian;
 *        first, transfer the first byte. Then transfer the next 4 bytes,
-*        for linestring and polygon, we need to transfer extra bytes(which 
-*        represents the number of points and rings).        
+*        for LineString and Polygon, we need to transfer extra bytes(which 
+*        represents the number of Points and rings).        
 *        then transfer the next n * 8 bytes. you can refer to the wkb layout
 *        from the conments of TryDecodeWKB;
-* 
+*
+* @exception   InputError  Thrown if the input size is less than 42(the minimum 
+*                          wkb format length)
+*
 * @param [in, out] WKB  the wkb format data in big/little endian, out int little/big endian;
 */
 void WkbEndianTransfer(std::string& WKB);
@@ -119,10 +138,13 @@ void WkbEndianTransfer(std::string& WKB);
 * @brief transfer the EWKB format data from between big and little endian;
 *        first, transfer the first byte. Then transfer the next 2 bytes(type) and
 *        the following 2 bytes(dimension). Then transfer the next 4 bytes(srid).
-*        for linestring and polygon, we need to transfer extra bytes(which 
-*        represents the number of points and rings). Then transfer the next n * 8 bytes.
+*        for LineString and Polygon, we need to transfer extra bytes(which 
+*        represents the number of Points and rings). Then transfer the next n * 8 bytes.
 *        you can refer to the EWKB layout from the comments of TryDecodeEWKB. 
 *       
+* @exception   InputError  Thrown if the input size is less than 50(the minimum 
+*                          ewkb format length)
+*
 * @param EWKB  the EWKB format data in big/little endian;
 *
 * @returns the EWKB format data in little/big endian;
@@ -130,15 +152,15 @@ void WkbEndianTransfer(std::string& WKB);
 std::string EwkbEndianTransfer(const std::string& EWKB);
 
 /**
-* @brief  set the wkb format string to EWKB format string;
-*         关于EWKB与WKB layout 见TryDecodeEWKB与TryDecodeWKB注释;
-*         EWKB -> WKB   以little-endian为例:
-*         WKB[8] = 2;   在WKB[10]之后插入SRID信息, E6100000(4326) 共8位
+* @brief  extend the wkb format string to EWKB format string;
+*         you can find the difference between WKB and EWKB format
+*         at the comments of TryDecodeWKB and TryDecodeEWKB
 *              
 * @param WKB          the wkb format to be extended   
+*
 * @param srid_type    the srid type to be added in the format
 * 
-* @returns the hex format srid_type;
+* @returns the EWKB foramt data extended from the input wkb format data;
 */
 std::string SetExtension(const std::string& WKB, SRID srid_type);
 
@@ -149,13 +171,35 @@ SRID ExtractSRID(const std::string& EWKB);
 SpatialType ExtractType(const std::string& EWKB);
 
 /**
-* @brief  the WKB layout of spatial data:
-*          以point为例: 01  01000000  000000000000F03F  0000000000000040 Point(1.0 2.0) 
-*          01:       1byte 编码方式, 00表示big-endian, 01表示little-endian
-*          01000000: 数据类型, 00000001的little endian, 表示point. 
-*                    02 linestring 03 polygon 
-*          接下来每8个字节代表一个数据, 每16个字节代表一个坐标。
-*          这里主要利用boost/geometry 中的read_wkb检验WKB格式是否正确。
+* @brief  the WKB layout of spatial data(little endian):
+*          Point: 01  01000000  000000000000F03F  0000000000000040 Point(1.0 2.0) 
+*          01:       1byte  编码方式, 00表示big-endian, 01表示little-endian
+*          01000000: 4bytes 数据类型, 00000001的little endian, 表示Point. 
+*                    02 LineString 03 Polygon 
+*          接下来每4个bytes代表一个数据, 每8个bytes代表一个Point坐标。
+*           
+*          LineString: 01 02000000 03000000 0000000000000000 0000000000000000
+*          0000000000000040 0000000000000040 0000000000000840 000000000000F03F
+*          LineString(0 0,2 2,3 1)
+*          01:       1byte  编码方式
+*          02000000: 4bytes 数据类型  表示LineString
+*          03000000: 4bytes 表示在LineString中有三个Point;
+*          接下来每8个bytes表示一个Point;
+*
+*          Polygon: 01 03000000 01000000 05000000 0000000000000000 000000000
+*          0000000 0000000000000000 0000000000001C40 0000000000001040 0000000000000040
+*          0000000000000040 0000000000000000 0000000000000000 0000000000000000
+*          Polygon((0 0,0 1,1 1,1 0,0 0))
+*          01:       1byte  编码方式
+*          03000000: 4bytes 数据类型  表示LineString
+*          01000000: 4bytes 表示在Polygon中有一个ring;
+*          05000000: 4bytes 
+*          接下来每8个bytes表示一个Point;             
+*          
+*          big endian表示:
+*          将上述wkb format以空格隔开的每个部分都由little endian转为big endian;
+*
+*          这里主要利用boost/geometry/extensions 中的read_wkb检验WKB格式是否正确。
 *
 * @param WKB           the string to be parse;
 * @param type          the type of spatial data;
@@ -167,30 +211,45 @@ bool TryDecodeWKB(const std::string& WKB, SpatialType type);
 
 /**
 * @brief   the EWKB layout of spatial data:
-*          以point为例: 01 0100 0020 E6100000 000000000000F03F 0000000000000040 Point(1.0 2.0)
+*          Point: 01 0100 0020 E6100000 000000000000F03F 0000000000000040 
+*          SRID=4326 Point(1.0 2.0)
 *          01:           编码方式, 00表示big-endian, 01表示little-endian
-*          0100:         数据类型, 0100代表Point;
-*          0020:         表示维度为二维;(?)
-*          E6010000:     SRID -- 4326；  0x000010e6的小端表示;
-*          每16个字节代表一个坐标对。
-*          这里首先将EWKB格式转换为WKB格式,再调用TryDecodeWKB;
-*          EWKB -> WKB  WKB -> EWKB的逆变换, 修改EWKB[8] or EWKB[9], 去除SRID信息;(EWKB[10] - EWKB[17])
+*          0100:         数据类型, 0100代表Point; (相比于WKB, 由4bytes表示变为2bytes)
+*          0020:         表示维度为二维;
+*          E6010000:     4bytes SRID -- 4326；  0x000010e6的小端表示; 
+*          每8个byte代表一个Point。
+*          
+*          LineString: 01 0200 0020 E6100000 03000000 0000000000000000 0000000000000000
+*          0000000000000040 0000000000000040 0000000000000840 000000000000F03F
+*          SRID=4326 LineString(0 0,2 2,3 1)
+*          01:   1byte  编码方式
+*          0200: 2bytes 数据类型  表示LineString
+*          0020: 2bytes dimension
+*          E6010000: 4bytes SRID -- 4326；  0x000010e6的小端表示;
+*          03000000: 4bytes 表示在LineString中有三个Point;
+*          接下来每8个bytes表示一个Point;
+*          
+*          Polygon: 类似;
+*          01 0300 0020 e6100000 01000000 05000000 0000000000000000 0000000000000000
+*          0000000000000000 000000000000f03f 000000000000f03f 000000000000f03f 000000000000f03f
+*          0000000000000000 0000000000000000 0000000000000000
+*          SRID=4326;Polygon((0 0,0 1,1 1,1 0,0 0)) 
 *
 * @param EWKB          the string to be parse;
 * @param type          the type of spatial data;
 * 
-* @returns true if EWKB format is valid, false if wkb format is invalid;
+* @returns true if WKB format is valid, false if WKB format is invalid;
 */
 bool TryDecodeEWKB(const std::string& EWKB, SpatialType type);
 
 /** @brief   Implements the Spatial template class. Spatial class now can hold one of
- *  point, linestring or polygon pointer;
+ *  Point, LineString or Polygon Pointer;
  */
 template<typename SRID_Type>
 class Spatial {
-    std::unique_ptr<point<SRID_Type>> point_;
-    std::unique_ptr<linestring<SRID_Type>> line_;
-    std::unique_ptr<polygon<SRID_Type>> polygon_;
+    std::unique_ptr<Point<SRID_Type>> Point_;
+    std::unique_ptr<LineString<SRID_Type>> line_;
+    std::unique_ptr<Polygon<SRID_Type>> Polygon_;
 
     SpatialType type_;
 
@@ -233,19 +292,19 @@ class Spatial {
      */
     std::string AsEWKT() const;
 
-    /** @brief  return the point type pointer */
-    std::unique_ptr<point<SRID_Type>>& GetPoint() {
-        return point_;
+    /** @brief  return the Point type Pointer */
+    std::unique_ptr<Point<SRID_Type>>& GetPoint() {
+        return Point_;
     }
 
-    /** @brief return the line type pointer */
-    std::unique_ptr<linestring<SRID_Type>>& GetLine() {
+    /** @brief return the line type Pointer */
+    std::unique_ptr<LineString<SRID_Type>>& GetLine() {
         return line_;
     }
 
-    /** @brief return the polygon type pointer */
-    std::unique_ptr<polygon<SRID_Type>>& GetPolygon() {
-        return polygon_;
+    /** @brief return the Polygon type Pointer */
+    std::unique_ptr<Polygon<SRID_Type>>& GetPolygon() {
+        return Polygon_;
     }
 
     /** @brief return the type of spatial*/
@@ -290,17 +349,39 @@ class SpatialBase {
 };
 
 /**
- * @brief implements a point spatial class which spatial data is point; 
+ * @brief implements a Point spatial class which spatial data is Point; 
  */
 template<typename SRID_Type>
-class point : public SpatialBase {
+class Point : public SpatialBase {
     std::string EWKB;
-    bg::model::point<double, 2, SRID_Type> point_;
+    bg::model::point<double, 2, SRID_Type> Point_;
 
  public:
-    point(SRID srid, SpatialType type, int construct_type, std::string& content);
+    /**
+    *  @brief construct Point class from wkb/wkt format;
+    * 
+    *  @param srid the srid of the Point;
+    *  
+    *  @param type type of the spatial data(Point)
+    * 
+    *  @param construct_type 0: WKB  1: wkt;
+    * 
+    *  @param content  the wkb/wkt format data;
+    * 
+    *  @exception InputError  Thrown if the WKB/WKT format is invalid or the input
+    *                         srid dismatch the template srid;
+    */
+    Point(SRID srid, SpatialType type, int construct_type, std::string& content);
 
-    explicit point(const std::string& EWKB);
+    /**
+     *  @brief construct Point class from EWKB format;
+     * 
+     *  @param EWKB the EWKB format data
+     * 
+     *  @param InputError Thrown if the EWKB format is invalid or the input
+     *                    srid dismatch the template srid;
+    */
+    explicit Point(const std::string& EWKB);
 
     std::string AsEWKB() const override {
         return EWKB;
@@ -313,28 +394,28 @@ class point : public SpatialBase {
     */
     std::string ToString() const;
     /**
-     *  @brief return point type data;
+     *  @brief return Point type data;
     */
     bg::model::point<double, 2, SRID_Type> GetSpatialData() {
-        return point_;
+        return Point_;
     }
 
-    bool operator==(const point<SRID_Type>& other);
+    bool operator==(const Point<SRID_Type>& other);
 };
 
 /**
- * @brief implements a linestring spatial class which spatial data is point; 
+ * @brief implements a LineString spatial class which spatial data is Point; 
  */
 template<typename SRID_Type>
-class linestring : public SpatialBase {
+class LineString : public SpatialBase {
     std::string EWKB;
-    typedef bg::model::point<double, 2, SRID_Type> point_;
-    bg::model::linestring<point_> line_;
+    typedef bg::model::point<double, 2, SRID_Type> Point_;
+    bg::model::linestring<Point_> line_;
 
  public:
-    linestring(SRID srid, SpatialType type, int construct_type, std::string& content);
+    LineString(SRID srid, SpatialType type, int construct_type, std::string& content);
 
-    explicit linestring(const std::string& EWKB);
+    explicit LineString(const std::string& EWKB);
 
     std::string AsEWKB() const override {
         return EWKB;
@@ -351,22 +432,22 @@ class linestring : public SpatialBase {
         return line_;
     }
 
-    bool operator==(const linestring<SRID_Type>& other);
+    bool operator==(const LineString<SRID_Type>& other);
 };
 
 /**
- * @brief implements a polygon spatial class which spatial data is point; 
+ * @brief implements a Polygon spatial class which spatial data is Point; 
  */
 template<typename SRID_Type>
-class polygon : public SpatialBase {
+class Polygon : public SpatialBase {
     std::string EWKB;
-    typedef bg::model::point<double, 2, SRID_Type> point;
-    bg::model::polygon<point> polygon_;
+    typedef bg::model::point<double, 2, SRID_Type> Point;
+    bg::model::polygon<Point> Polygon_;
 
  public:
-    polygon(SRID srid, SpatialType type, int construct_type, std::string& content);
+    Polygon(SRID srid, SpatialType type, int construct_type, std::string& content);
 
-    explicit polygon(const std::string& EWKB);
+    explicit Polygon(const std::string& EWKB);
 
     std::string AsEWKB() const override {
         return EWKB;
@@ -380,9 +461,9 @@ class polygon : public SpatialBase {
     std::string ToString() const;
 
     bg::model::polygon<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
-        return polygon_;
+        return Polygon_;
     }
 
-    bool operator==(const polygon<SRID_Type>& other);
+    bool operator==(const Polygon<SRID_Type>& other);
 };
 }  //  namespace lgraph_api

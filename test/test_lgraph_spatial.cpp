@@ -43,12 +43,12 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
         "spatial",
         std::vector<FieldSpec>(
             {FieldSpec("id", FieldType::INT32, false),
-             FieldSpec("string2point", FieldType::STRING, false),
-             FieldSpec("point", FieldType::POINT, false),
+             FieldSpec("string2Point", FieldType::STRING, false),
+             FieldSpec("Point", FieldType::POINT, false),
              FieldSpec("string2line", FieldType::STRING, false),
-             FieldSpec("linestring", FieldType::LINESTRING, true),
-             FieldSpec("string2polygon", FieldType::POLYGON, true),
-             FieldSpec("polygon", FieldType::POLYGON, true)}),
+             FieldSpec("LineString", FieldType::LINESTRING, true),
+             FieldSpec("string2Polygon", FieldType::POLYGON, true),
+             FieldSpec("Polygon", FieldType::POLYGON, true)}),
         true, vo));
 
     EdgeOptions options;
@@ -69,24 +69,24 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
 
     VertexId v0 = txn.AddVertex(
     std::string("spatial"),
-    std::vector<std::string>({"id", "string2point", "point",
-    "string2line", "linestring", "string2polygon", "polygon"}),
+    std::vector<std::string>({"id", "string2Point", "Point",
+    "string2line", "LineString", "string2Polygon", "Polygon"}),
     std::vector<std::string>({"1",
     Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB}));
 
     // 这里的primary_key不能相同;
     VertexId v1 = txn.AddVertex(
     std::string("spatial"),
-    std::vector<std::string>({"id", "string2point", "point",
-    "string2line", "linestring", "string2polygon", "polygon"}),
+    std::vector<std::string>({"id", "string2Point", "Point",
+    "string2line", "LineString", "string2Polygon", "Polygon"}),
     std::vector<std::string>({"2",
     Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB}));
 
     // testting parse and set fielddata;
     VertexId v2 = txn.AddVertex(
     std::string("spatial"),
-    std::vector<std::string>({"id", "string2point", "point",
-    "string2line", "linestring", "string2polygon", "polygon"}),
+    std::vector<std::string>({"id", "string2Point", "Point",
+    "string2line", "LineString", "string2Polygon", "Polygon"}),
     std::vector<FieldData>({FieldData::Int32(3), FieldData::String(Point_EWKB),
     FieldData::Point(Point_EWKB), FieldData::String(Line_EWKB),
     FieldData::LineString(Line_EWKB), FieldData::String(Polygon_EWKB),
@@ -114,15 +114,15 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
         "spatial",
         std::vector<FieldSpec>(
             {FieldSpec("id", FieldType::INT32, false),
-             FieldSpec("point", FieldType::POINT, true),
+             FieldSpec("Point", FieldType::POINT, true),
              FieldSpec("line", FieldType::LINESTRING, true),
-             FieldSpec("polygon", FieldType::POLYGON, true)}),
+             FieldSpec("Polygon", FieldType::POLYGON, true)}),
         true, vo));
     {
         auto txn = lg.CreateWriteTxn();
         UT_EXPECT_ANY_THROW(txn.AddVertex(
             std::string("spatial"),
-            std::vector<std::string>({"id", "point", "line", "polygon"}),
+            std::vector<std::string>({"id", "Point", "line", "Polygon"}),
             std::vector<std::string>({"1",
             "aabbcsadsafasda",
             "01020000201234000003000000000000000000000000000000000000000"
@@ -133,7 +133,7 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
         UT_EXPECT_ANY_THROW(
             txn.AddVertex(
                 std::string("spatial"),
-                std::vector<std::string>({"id", "point", "line", "polygon"}),
+                std::vector<std::string>({"id", "Point", "line", "Polygon"}),
                 std::vector<FieldData>({FieldData::Int32(1), FieldData::Point("asdasjcabkdsv"),
                 FieldData::LineString("01020000201234000003000000000000000000000000000000000000000"
                 "00000000000004000000000000000400000000000000840000000000000F03F"),
@@ -146,16 +146,16 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
         "spatial_transform",
         std::vector<FieldSpec>(
             {FieldSpec("id", FieldType::INT32, false),
-            FieldSpec("point2string", FieldType::STRING, true),
+            FieldSpec("Point2string", FieldType::STRING, true),
              FieldSpec("line2string", FieldType::STRING, true),
-             FieldSpec("polygon2string", FieldType::STRING, true)}),
+             FieldSpec("Polygon2string", FieldType::STRING, true)}),
         true, vo));
 
         auto txn = lg.CreateWriteTxn();
 
         txn.AddVertex(
             std::string("spatial_transform"),
-            std::vector<std::string>({"id", "point2string", "line2string", "polygon2string"}),
+            std::vector<std::string>({"id", "Point2string", "line2string", "Polygon2string"}),
             std::vector<std::string>({"1",
             "aabbcsadsafasda",
             "01020000201234000003000000000000000000000000000000000000000"
@@ -167,9 +167,9 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
         size_t n_changed = 0;
         UT_EXPECT_ANY_THROW(lg.AlterLabelModFields(
             "spatial_transform",
-            std::vector<FieldSpec>({FieldSpec("point2string", FieldType::POINT, true),
-                                    FieldSpec("linestring2string", FieldType::LINESTRING, true),
-                                    FieldSpec("polygon2string", FieldType::POLYGON, true)}),
+            std::vector<FieldSpec>({FieldSpec("Point2string", FieldType::POINT, true),
+                                    FieldSpec("LineString2string", FieldType::LINESTRING, true),
+                                    FieldSpec("Polygon2string", FieldType::POLYGON, true)}),
                                     true, &n_changed));
     }
 }
@@ -180,18 +180,18 @@ TEST_P(TestSpatial, Spatial) {
     {
         UT_LOG() << "Testing encode and decode";
 
-        Spatial<Wsg84> point_w(SRID::WSG84, SpatialType::POINT, 0,
+        Spatial<Wsg84> Point_w(SRID::WSG84, SpatialType::POINT, 0,
         "0101000000000000000000F03F0000000000000040");
         // 输出全部为大写字母
-        UT_EXPECT_EQ(point_w.AsEWKB(), "0101000020E6100000000000000000F03F0000000000000040");
-        UT_EXPECT_EQ(point_w.AsEWKT(), "SRID=4326;POINT(1 2)");
+        UT_EXPECT_EQ(Point_w.AsEWKB(), "0101000020E6100000000000000000F03F0000000000000040");
+        UT_EXPECT_EQ(Point_w.AsEWKT(), "SRID=4326;POINT(1 2)");
 
         // testing wrong wkb format;
         UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, "1111111"));
 
-        Spatial<Cartesian> point_c(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(1.0 1.0)");
-        UT_EXPECT_EQ(point_c.AsEWKB(), "0101000020231C0000000000000000F03F000000000000F03F");
-        UT_EXPECT_EQ(point_c.AsEWKT(), "SRID=7203;POINT(1 1)");
+        Spatial<Cartesian> Point_c(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(1.0 1.0)");
+        UT_EXPECT_EQ(Point_c.AsEWKB(), "0101000020231C0000000000000000F03F000000000000F03F");
+        UT_EXPECT_EQ(Point_c.AsEWKT(), "SRID=7203;POINT(1 1)");
 
         // testing wrong wkt format;
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POINT, 1,
@@ -219,25 +219,25 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINE(0 0,2 2,3 1)"));
 
-        Spatial<Wsg84> polygon_w(SRID::WSG84, SpatialType::POLYGON, 0,
+        Spatial<Wsg84> Polygon_w(SRID::WSG84, SpatialType::POLYGON, 0,
         "0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000");
 
-        UT_EXPECT_EQ(polygon_w.AsEWKB(), "0103000020E6100000010000000500000000000000000000000"
+        UT_EXPECT_EQ(Polygon_w.AsEWKB(), "0103000020E6100000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004000000"
         "00000000040000000000000000000000000000000000000000000000000");
 
-        UT_EXPECT_EQ(polygon_w.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
+        UT_EXPECT_EQ(Polygon_w.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::POLYGON, 1, "abcde"));
 
-        Spatial<Cartesian> polygon_c(SRID::CARTESIAN, SpatialType::POLYGON, 1,
+        Spatial<Cartesian> Polygon_c(SRID::CARTESIAN, SpatialType::POLYGON, 1,
         "POLYGON((0 0,0 7,4 2,2 0,0 0))");
-        UT_EXPECT_EQ(polygon_c.AsEWKB(), "0103000020231C0000010000000500000000000000000000000"
+        UT_EXPECT_EQ(Polygon_c.AsEWKB(), "0103000020231C0000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004000000"
         "00000000040000000000000000000000000000000000000000000000000");
 
-        UT_EXPECT_EQ(polygon_c.AsEWKT(), "SRID=7203;POLYGON((0 0,0 7,4 2,2 0,0 0))");
+        UT_EXPECT_EQ(Polygon_c.AsEWKT(), "SRID=7203;POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::WSG84, SpatialType::POLYGON, 1,
         "POLYGON(122)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POLYGON, 1,
@@ -270,60 +270,60 @@ TEST_P(TestSpatial, Spatial) {
 
     {
         UT_LOG() << "Testing constructor";
-        std::string point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
+        std::string Point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
         std::string line_WKT = "LINESTRING(0 0,2 2,3 1)";
-        point<Wsg84> p(point_EWKB);
-        UT_EXPECT_ANY_THROW(point<Cartesian> p_(point_EWKB));
-        UT_EXPECT_ANY_THROW(linestring<Wsg84> l_(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
+        Point<Wsg84> p(Point_EWKB);
+        UT_EXPECT_ANY_THROW(Point<Cartesian> p_(Point_EWKB));
+        UT_EXPECT_ANY_THROW(LineString<Wsg84> l_(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         line_WKT));
-        UT_EXPECT_EQ(p.AsEWKB(), point_EWKB);
+        UT_EXPECT_EQ(p.AsEWKB(), Point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
     }
 
     {
-        UT_LOG() << "Testing point big endian";
-        std::string big_point_wkb = "00000000013FF00000000000003FF0000000000000";
-        std::string big_point_EWKB = "0000012000000010E63FF00000000000003FF0000000000000";
-        std::string little_point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
-        std::string little_point_wkb = "0101000000000000000000F03F000000000000F03F";
-        point<Wsg84> p(SRID::WSG84, SpatialType::POINT, 0, big_point_wkb);
-        point<Wsg84> p_(big_point_EWKB);
-        UT_EXPECT_EQ(p.AsEWKB(), little_point_EWKB);
+        UT_LOG() << "Testing Point big endian";
+        std::string big_Point_wkb = "00000000013FF00000000000003FF0000000000000";
+        std::string big_Point_EWKB = "0000012000000010E63FF00000000000003FF0000000000000";
+        std::string little_Point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
+        std::string little_Point_wkb = "0101000000000000000000F03F000000000000F03F";
+        Point<Wsg84> p(SRID::WSG84, SpatialType::POINT, 0, big_Point_wkb);
+        Point<Wsg84> p_(big_Point_EWKB);
+        UT_EXPECT_EQ(p.AsEWKB(), little_Point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
-        UT_EXPECT_EQ(p_.AsEWKB(), little_point_EWKB);
+        UT_EXPECT_EQ(p_.AsEWKB(), little_Point_EWKB);
         UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POINT(1 1)");
 
-        UT_LOG() << "Testing linestring big endian";
-        std::string big_linestring_wkb = "0102000000030000000000000000000000000000"
+        UT_LOG() << "Testing LineString big endian";
+        std::string big_LineString_wkb = "0102000000030000000000000000000000000000"
         "0000000000000000000000004000000000000000400000000000000840000000000000F03F";
-        // std::string little_linestring_wkb = big_linestring_wkb;
-        std::string big_linestring_EWKB = "0102000020E61000000300000000000000000000000"
+        // std::string little_LineString_wkb = big_LineString_wkb;
+        std::string big_LineString_EWKB = "0102000020E61000000300000000000000000000000"
         "000000000000000000000000000004000000000000000400000000000000840000000000000F03F";
-        std::string little_linestring_EWKB = big_linestring_EWKB;
-        WkbEndianTransfer(big_linestring_wkb);
-        big_linestring_EWKB = EwkbEndianTransfer(big_linestring_EWKB);
-        linestring<Wsg84> l(SRID::WSG84, SpatialType::LINESTRING, 0, big_linestring_wkb);
-        linestring<Wsg84> l_(big_linestring_EWKB);
-        UT_EXPECT_EQ(l.AsEWKB(), little_linestring_EWKB);
+        std::string little_LineString_EWKB = big_LineString_EWKB;
+        WkbEndianTransfer(big_LineString_wkb);
+        big_LineString_EWKB = EwkbEndianTransfer(big_LineString_EWKB);
+        LineString<Wsg84> l(SRID::WSG84, SpatialType::LINESTRING, 0, big_LineString_wkb);
+        LineString<Wsg84> l_(big_LineString_EWKB);
+        UT_EXPECT_EQ(l.AsEWKB(), little_LineString_EWKB);
         UT_EXPECT_EQ(l.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
-        UT_EXPECT_EQ(l_.AsEWKB(), little_linestring_EWKB);
+        UT_EXPECT_EQ(l_.AsEWKB(), little_LineString_EWKB);
         UT_EXPECT_EQ(l_.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
 
-        UT_LOG() << "Testing polygon big endian";
-        std::string big_polygon_wkb = "010300000001000000050000000000000000000000000000000"
+        UT_LOG() << "Testing Polygon big endian";
+        std::string big_Polygon_wkb = "010300000001000000050000000000000000000000000000000"
         "000000000000000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000";
-        std::string big_polygon_ewkb = "0103000020E6100000010000000500000000000000000000000"
+        std::string big_Polygon_ewkb = "0103000020E6100000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C4000000000000010400000000000000040000"
         "0000000000040000000000000000000000000000000000000000000000000";
-        std::string little_polygon_ewkb = big_polygon_ewkb;
-        WkbEndianTransfer(big_polygon_wkb);
-        big_polygon_ewkb = EwkbEndianTransfer(big_polygon_ewkb);
-        polygon<Wsg84> po(SRID::WSG84, SpatialType::POLYGON, 0, big_polygon_wkb);
-        polygon<Wsg84> po_(big_polygon_ewkb);
-        UT_EXPECT_EQ(po.AsEWKB(), little_polygon_ewkb);
+        std::string little_Polygon_ewkb = big_Polygon_ewkb;
+        WkbEndianTransfer(big_Polygon_wkb);
+        big_Polygon_ewkb = EwkbEndianTransfer(big_Polygon_ewkb);
+        Polygon<Wsg84> po(SRID::WSG84, SpatialType::POLYGON, 0, big_Polygon_wkb);
+        Polygon<Wsg84> po_(big_Polygon_ewkb);
+        UT_EXPECT_EQ(po.AsEWKB(), little_Polygon_ewkb);
         UT_EXPECT_EQ(po.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
-        UT_EXPECT_EQ(po_.AsEWKB(), little_polygon_ewkb);
+        UT_EXPECT_EQ(po_.AsEWKB(), little_Polygon_ewkb);
         UT_EXPECT_EQ(po_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
     }
 }
@@ -337,32 +337,32 @@ TEST_P(TestSpatial, Spatial_Schema) {
         true,
         std::vector<FieldSpec>(
             {FieldSpec("id", FieldType::INT32, false),
-             FieldSpec("point", FieldType::POINT, false),
-             FieldSpec("linestring", FieldType::LINESTRING, true),
-             FieldSpec("polygon", FieldType::POLYGON, true),
-             FieldSpec("string2point", FieldType::STRING, true),
+             FieldSpec("Point", FieldType::POINT, false),
+             FieldSpec("LineString", FieldType::LINESTRING, true),
+             FieldSpec("Polygon", FieldType::POLYGON, true),
+             FieldSpec("string2Point", FieldType::STRING, true),
              FieldSpec("string2line", FieldType::STRING, false),
-             FieldSpec("string2polygon", FieldType::STRING, true)}),
+             FieldSpec("string2Polygon", FieldType::STRING, true)}),
         "id", {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     // add fields;
     {
         Schema s2(s1);
-        s2.AddFields(std::vector<FieldSpec>({FieldSpec("point2", FieldType::POINT, false)}));
-        UT_EXPECT_TRUE(s2.GetFieldExtractor("point2")->GetFieldSpec() ==
-                       FieldSpec("point2", FieldType::POINT, false));
+        s2.AddFields(std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, false)}));
+        UT_EXPECT_TRUE(s2.GetFieldExtractor("Point2")->GetFieldSpec() ==
+                       FieldSpec("Point2", FieldType::POINT, false));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
-        fmap.erase("point2");
+        fmap.erase("Point2");
         UT_EXPECT_TRUE(fmap == fields);
     }
 
     // mod fields;
     {
         Schema s2(s1);
-        std::vector<FieldSpec> mod = {FieldSpec("string2point", FieldType::POINT, false),
+        std::vector<FieldSpec> mod = {FieldSpec("string2Point", FieldType::POINT, false),
                                       FieldSpec("string2line", FieldType::LINESTRING, false),
-                                      FieldSpec("string2polygon", FieldType::POLYGON, false)};
+                                      FieldSpec("string2Polygon", FieldType::POLYGON, false)};
         s2.ModFields(mod);
         UT_EXPECT_TRUE(!s2.HasBlob());
         auto fmap = s2.GetFieldSpecsAsMap();
@@ -377,7 +377,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
     // del fields;
     {
         Schema s2(s1);
-        std::vector<std::string> to_del = {"point", "linestring", "polygon"};
+        std::vector<std::string> to_del = {"Point", "LineString", "Polygon"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
         auto fmap = s2.GetFieldSpecsAsMap();
@@ -395,12 +395,12 @@ TEST_P(TestSpatial, Spatial_Schema) {
     UT_LOG() << "Testing set spatial schema and add vertex";
     {
         auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("point")) == FieldData::Point
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point")) == FieldData::Point
         ("0101000020E6100000000000000000F03F0000000000000040"));
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("linestring")) == FieldData::LineString
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("LineString")) == FieldData::LineString
         ("0102000020E610000003000000000000000000000000000000000000000"
         "00000000000004000000000000000400000000000000840000000000000F03F"));
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("polygon")) == FieldData::Polygon
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Polygon")) == FieldData::Polygon
         ("0103000020231C0000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004000000"
         "00000000040000000000000000000000000000000000000000000000000"));
@@ -411,15 +411,15 @@ TEST_P(TestSpatial, Spatial_Schema) {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelAddFields(
             "spatial",
-            std::vector<FieldSpec>({FieldSpec("point2", FieldType::POINT, true),
-                                    FieldSpec("linestring2", FieldType::LINESTRING, true),
-                                    FieldSpec("polygon2", FieldType::POLYGON, true)}),
+            std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, true),
+                                    FieldSpec("LineString2", FieldType::LINESTRING, true),
+                                    FieldSpec("Polygon2", FieldType::POLYGON, true)}),
             std::vector<FieldData>({FieldData::Point
             ("0101000020231C0000000000000000F03F0000000000000040"),
             FieldData(), FieldData()}), true, &n_changed));
         UT_EXPECT_EQ(n_changed, 3);
         auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("point2")) == FieldData::Point
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point2")) == FieldData::Point
         ("0101000020231C0000000000000000F03F0000000000000040"));
     }
 
@@ -428,13 +428,13 @@ TEST_P(TestSpatial, Spatial_Schema) {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelModFields(
             "spatial",
-            std::vector<FieldSpec>({FieldSpec("string2point", FieldType::POINT, false),
+            std::vector<FieldSpec>({FieldSpec("string2Point", FieldType::POINT, false),
                                     FieldSpec("string2line", FieldType::LINESTRING, false),
-                                    FieldSpec("string2polygon", FieldType::POLYGON, false)}),
+                                    FieldSpec("string2Polygon", FieldType::POLYGON, false)}),
             true, &n_changed));
         UT_EXPECT_EQ(n_changed, 3);
         auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2point")) == FieldData::Point
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2Point")) == FieldData::Point
         ("0101000020E6100000000000000000F03F0000000000000040"));
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2line")) == FieldData::LineString
         ("0102000020E610000003000000000000000000000000000000000000000"
@@ -445,12 +445,12 @@ TEST_P(TestSpatial, Spatial_Schema) {
     {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("spatial", std::vector<std::string>
-                       ({"point", "linestring", "polygon"}), true, &n_changed));
+                       ({"Point", "LineString", "Polygon"}), true, &n_changed));
         UT_EXPECT_EQ(n_changed, 3);
         auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("point")) == FieldData());
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("linestring")) == FieldData());
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("polygon")) == FieldData());
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point")) == FieldData());
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("LineString")) == FieldData());
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Polygon")) == FieldData());
     }
 }
 

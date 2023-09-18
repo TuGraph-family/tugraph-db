@@ -52,12 +52,12 @@ typedef lgraph_api::FieldData FieldData;
 typedef lgraph_api::FieldType FieldType;
 typedef lgraph_api::Date Date;
 typedef lgraph_api::DateTime DateTime;
-typedef lgraph_api::point<lgraph_api::Wsg84> PointWsg84;
-typedef lgraph_api::point<lgraph_api::Cartesian> PointCartesian;
-typedef lgraph_api::linestring<lgraph_api::Wsg84> LineStringWsg84;
-typedef lgraph_api::linestring<lgraph_api::Cartesian> LineStringCartesian;
-typedef lgraph_api::polygon<lgraph_api::Wsg84> PolygonWsg84;
-typedef lgraph_api::polygon<lgraph_api::Cartesian> PolygonCartesian;
+typedef lgraph_api::Point<lgraph_api::Wsg84> PointWsg84;
+typedef lgraph_api::Point<lgraph_api::Cartesian> PointCartesian;
+typedef lgraph_api::LineString<lgraph_api::Wsg84> LineStringWsg84;
+typedef lgraph_api::LineString<lgraph_api::Cartesian> LineStringCartesian;
+typedef lgraph_api::Polygon<lgraph_api::Wsg84> PolygonWsg84;
+typedef lgraph_api::Polygon<lgraph_api::Cartesian> PolygonCartesian;
 
 
 //===============================
@@ -92,9 +92,9 @@ static constexpr size_t FieldTypeSizes[] = {
     8,  // datetime
     0,  // string
     0,  // blob
-    50,  // point
-    0,  // linestring
-    0   // polygon
+    50,  // Point
+    0,  // LineString
+    0   // Polygon
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -110,9 +110,9 @@ static constexpr bool IsFixedLengthType[] = {
     true,   // datetime
     false,  // string
     false,  // blob
-    true,  // point
-    false,  // linestring
-    false   // polygon
+    true,  // Point
+    false,  // LineString
+    false   // Polygon
 };
 
 template <class T, size_t N>
@@ -753,13 +753,13 @@ struct FieldDataTypeConvert {
             // nothing can be converted from bin
             break;
         case FieldType::POINT:
-            // nothing can be converted from point
+            // nothing can be converted from Point
             break;
         case FieldType::LINESTRING:
-            // nothing can be converted from linestring
+            // nothing can be converted from LineString
             break;
         case FieldType::POLYGON:
-            // nothing can be converted from polygon;
+            // nothing can be converted from Polygon;
             break;
         case FieldType::SPATIAL:
             // nothing can be converted from spatial
@@ -886,8 +886,8 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::POINT:
         {
-             // can only convert string to point
-             // point类型为fixed_length, string类型为variable, 应该不可以直接copy!;
+             // can only convert string to Point
+             // Point类型为fixed_length, string类型为variable, 应该不可以直接copy!;
              // 怎么处理?
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
@@ -898,7 +898,7 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::LINESTRING:
         {
-             // can only convert string to linestring
+             // can only convert string to LineString
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
             if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::LINESTRING))
@@ -908,7 +908,7 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::POLYGON:
         {
-             // can only convert string to polygon
+             // can only convert string to Polygon
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
             if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::POLYGON))
@@ -1043,11 +1043,11 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
             switch (s) {
                 case ::lgraph_api::SRID::NUL:
-                    throw std::runtime_error("cannot convert to point data!");
+                    throw std::runtime_error("cannot convert to Point data!");
                 case ::lgraph_api::SRID::WSG84:
-                    return FieldData(::lgraph_api::point<::lgraph_api::Wsg84>(ewkb));
+                    return FieldData(::lgraph_api::Point<::lgraph_api::Wsg84>(ewkb));
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return FieldData(::lgraph_api::point<::lgraph_api::Cartesian>(ewkb));
+                    return FieldData(::lgraph_api::Point<::lgraph_api::Cartesian>(ewkb));
             }
         }
     case FieldType::LINESTRING:
@@ -1056,11 +1056,11 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
             switch (s) {
                 case ::lgraph_api::SRID::NUL:
-                    throw std::runtime_error("cannot convert to point data!");
+                    throw std::runtime_error("cannot convert to Point data!");
                 case ::lgraph_api::SRID::WSG84:
-                    return FieldData(::lgraph_api::linestring<::lgraph_api::Wsg84>(ewkb));
+                    return FieldData(::lgraph_api::LineString<::lgraph_api::Wsg84>(ewkb));
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return FieldData(::lgraph_api::linestring<::lgraph_api::Cartesian>(ewkb));
+                    return FieldData(::lgraph_api::LineString<::lgraph_api::Cartesian>(ewkb));
             }
         }
     case FieldType::POLYGON:
@@ -1069,11 +1069,11 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
             switch (s) {
                 case ::lgraph_api::SRID::NUL:
-                    throw std::runtime_error("cannot convert to point data!");
+                    throw std::runtime_error("cannot convert to Point data!");
                 case ::lgraph_api::SRID::WSG84:
-                    return FieldData(::lgraph_api::polygon<::lgraph_api::Wsg84>(ewkb));
+                    return FieldData(::lgraph_api::Polygon<::lgraph_api::Wsg84>(ewkb));
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return FieldData(::lgraph_api::polygon<::lgraph_api::Cartesian>(ewkb));
+                    return FieldData(::lgraph_api::Polygon<::lgraph_api::Cartesian>(ewkb));
                 }
         }
     case FieldType::SPATIAL:
