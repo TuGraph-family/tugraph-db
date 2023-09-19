@@ -40,3 +40,21 @@ TEST_F(TestImportGar, TestGarConfig) {
     nlohmann::json conf;
     UT_EXPECT_NO_THROW(ParserGraphArConf(conf, config.config_file));
 }
+
+TEST_F(TestImportGar, TestGarData) {
+    UT_LOG() << "Read gar datas";
+    Importer::Config config;
+    std::string tugraph_path = std::filesystem::path(__FILE__).parent_path().parent_path();
+    config.config_file = tugraph_path + "/test/resource/data/ldbc_parquet/ldbc_sample.graph.yml";
+    config.is_graphar = true;
+    config.delete_if_exists = true;
+
+    nlohmann::json conf;
+    ParserGraphArConf(conf, config.config_file);
+
+    // test the first vertex data in gar config
+    std::vector<import_v2::CsvDesc> data_files = import_v2::ImportConfParser::ParseFiles(conf);
+    import_v2::GraphArParser parser = import_v2::GraphArParser(data_files.front());
+    std::vector<std::vector<FieldData>> block;
+    UT_EXPECT_NO_THROW(parser.ReadBlock(block));
+}
