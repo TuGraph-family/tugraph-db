@@ -2361,6 +2361,124 @@ TEST_F(TestImportV3, dirtyData) {
     }
 }
 
+TEST_F(TestImportV3, emptySST) {
+    {
+        UT_LOG() << "Test empty sst";
+        std::vector<std::pair<std::string, std::string>> data = {
+            {"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "node",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT32"},
+                {"name" : "addr", "type":"STRING", "index": true},
+                {"name" : "name", "type":"STRING", "index": true, "unique":true}
+            ]
+        },
+        {
+            "label" : "edge",
+            "type" : "EDGE",
+            "properties" : [
+                {"name" : "score", "type" : "INT32", "index": true},
+                {"name" : "weight", "type" : "FLOAT", "index": true, "unique":true}
+            ]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "node1.csv",
+            "format" : "JSON",
+            "label" : "node",
+            "columns" : ["id","name", "addr"]
+        },
+        {
+            "path" : "node_invalid.csv",
+            "format" : "JSON",
+            "label" : "node",
+            "columns" : ["id","name", "addr"]
+        },
+        {
+            "path" : "edge1.csv",
+            "format" : "JSON",
+            "label" : "edge",
+            "SRC_ID" : "node",
+            "DST_ID" : "node",
+            "columns" : ["SRC_ID","DST_ID", "weight", "score"]
+        },
+        {
+            "path" : "edge_invalid.csv",
+            "format" : "JSON",
+            "label" : "edge",
+            "SRC_ID" : "node",
+            "DST_ID" : "node",
+            "columns" : ["SRC_ID","DST_ID", "weight", "score"]
+        }
+    ]
+}
+                    )"},
+            {"node1.csv",
+             R"([1,"name1","beijing"]
+[2,"name2","beijing"]
+[3,"name3","shanghai"]
+[3,"name33","shanghai"]
+[4,"name4","hangzhou"]
+[11,"name4","hangzhou"]
+[5,"name5","shenzhen"]
+[6,"name6","beijing"]
+[7,"name7","beijing"]
+[8,"name8","shanghai"]
+[9,"name9","beijing"]
+[10,"name10","hangzhou"])"},
+            {"node_invalid.csv",
+             R"([1,"name1","beijing"]
+[2,"name2","beijing"]
+[3,"name3","shanghai"]
+[3,"name33","shanghai"]
+[4,"name4","hangzhou"]
+[11,"name4","hangzhou"]
+[5,"name5","shenzhen"]
+[6,"name6","beijing"]
+[7,"name7","beijing"]
+[8,"name8","shanghai"]
+[9,"name9","beijing"]
+[10,"name10","hangzhou"])"},
+            {"edge1.csv", R"([1,2,1.1,10]
+[2,3,2.1,1]
+[3,4,3.1,2]
+[4,5,4.1,3]
+[5,6,5.1,4]
+[5,6,5.1,44]
+[6,7,6.1,5]
+[7,8,7.1,6]
+[11,8,7.1,6]
+[9,10,8.1,7]
+[10,1,9.1,8]
+[1,2,10.1,8])"},
+            {"edge_invalid.csv", R"([100,2,110.1,10]
+[200,3,20.1,1]
+[3,400,30.1,2]
+[400,5,40.1,3]
+[500,6,50.1,4]
+[500,6,50.1,44]
+[600,7,60.1,5]
+[7,800,70.1,6]
+[110,8,70.1,6]
+[900,10,80.1,7]
+[100,1,90.1,8]
+[100,2,110.1,8])"}
+        };
+        Importer::Config config;
+        config.delete_if_exists = true;
+        config.continue_on_error = true;
+        TestImportOnData(data, config, 10, 10);
+        config.keep_vid_in_memory = false;
+        TestImportOnData(data, config, 10, 10);
+    }
+}
+
 template<class T>
 void encode_decode_test(T a, T b) {
     std::string encoded_a, encoded_b;
