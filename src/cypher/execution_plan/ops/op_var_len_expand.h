@@ -293,7 +293,6 @@ class VarLenExpand : public OpBase {
     cypher::Node *start_ = nullptr;         // start node to expand
     cypher::Node *neighbor_ = nullptr;      // neighbor of start node
     cypher::Relationship *relp_ = nullptr;  // relationship to expand
-    lgraph::EIter *eit_ = nullptr;
     int start_rec_idx_;
     int nbr_rec_idx_;
     int relp_rec_idx_;
@@ -302,9 +301,7 @@ class VarLenExpand : public OpBase {
     int hop_;  // current hop working on
     bool collect_all_;
     ExpandTowards expand_direction_;
-    // std::queue<lgraph::VertexId> frontier_buffer_;
-    // std::queue<Path> path_buffer_;
-    std::vector<lgraph::EIter> eits_;
+    std::vector<lgraph::EIter> &eits_;
     enum State {
         Uninitialized, /* ExpandAll wasn't initialized it. */
         Resetted,      /* ExpandAll was just restarted. */
@@ -320,8 +317,8 @@ class VarLenExpand : public OpBase {
           min_hop_(relp->MinHop()),
           max_hop_(relp->MaxHop()),
           hop_(0),
-          collect_all_(false) {
-        eit_ = relp->ItRef();
+          collect_all_(false),
+          eits_(relp_->ItsRef()) {
         modifies.emplace_back(neighbor_->Alias());
         modifies.emplace_back(relp_->Alias());
         auto &sym_tab = pattern_graph->symbol_table;
