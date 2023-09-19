@@ -6,7 +6,7 @@ FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 ARG JFLAG=-j8
 ARG PYPI="-i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com"
 
-RUN yum update -y && yum install -y \
+RUN yum -x filesystem update -y && yum install -y \
     git \
     gcc \
     gcc-c++ \

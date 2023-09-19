@@ -1,0 +1,93 @@
+# write 1
+CREATE (p:Person{id:1000, name:'Person1000', isBlocked:false});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+
+
+# write 2
+CREATE (:Company {id:2000, name:'Company2000', isBlocked:false});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+
+
+# write 3
+CREATE (:Medium {id: 7000, isBlocked: false, type: 'tp1'});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+
+
+# write 4
+MATCH (p:Person{id:1000}) WITH p CREATE(p)-[:own]->(a:Account{id:4000, createTime:20, isBlocked:false, type:'tp1'});
+[{"<SUMMARY>":"created 1 vertices, created 1 edges."}]
+
+
+# write 5
+MATCH (c:Company {id:2000}) WITH c CREATE (c)-[:own]->(:Account {id: 2000, createTime: 20, isBlocked: false, type: 'tp1'});
+[{"<SUMMARY>":"created 1 vertices, created 1 edges."}]
+
+
+# write 6
+MATCH (p:Person {id: 15}) CREATE (:Loan {id: 6000, loanAmount: 6, balance: 0})<-[:apply {timestamp: 15}]-(p);
+[{"<SUMMARY>":"created 1 vertices, created 1 edges."}]
+
+
+# write 7
+MATCH (c:Company {id: 15}) CREATE (:Loan {id: 7000, loanAmount: 7, balance: 0})<-[:apply {timestamp: 16}]-(c);
+[{"<SUMMARY>":"created 1 vertices, created 1 edges."}]
+
+
+# write 8
+MATCH (p:Person{id:15}), (c:Company{id:15}) CREATE (p)-[:invest{timestamp: 8, ratio: 0.08}]->(c);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 9
+MATCH (c1:Company{id:15}), (c2:Company{id:16}) CREATE (c1)-[:invest{timestamp: 9, ratio: 0.09}]->(c2);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 10
+MATCH (p1:Person{id:15}), (p2:Person{id:16}) CREATE (p1)-[:guarantee{timestamp: 10}]->(p2);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 11
+MATCH (c1:Company{id:15}), (c2:Company{id:16}) CREATE (c1)-[:guarantee{timestamp: 11}]->(c2);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 12
+MATCH (a1:Account{id:15}), (a2:Account{id:16}) CREATE (a1)-[:transfer{timestamp: 12, amount: 12.0}]->(a2);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 13
+MATCH (a1:Account{id:15}), (a2:Account{id:16}) CREATE (a1)-[:withdraw{timestamp: 13, amount: 13.0}]->(a2);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 14
+MATCH (a:Account{id:15}), (loan:Loan{id:16}) CREATE (a)-[:repay{timestamp: 14, amount: 14.0}]->(loan);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 15
+MATCH (a:Account{id:15}), (loan:Loan{id:16}) CREATE (a)<-[:deposit{timestamp: 14, amount: 14.0}]-(loan);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 16
+MATCH (acc:Account {id: 15}), (med:Medium {id: 16}) CREATE (acc)<-[:signIn {timestamp: 16}]-(med);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+
+# write 17
+MATCH (a:Account {id: 18}) DELETE a;
+[{"<SUMMARY>":"deleted 1 vertices, deleted 61 edges."}]
+
+
+# write 18
+MATCH (a:Account {id: 19}) SET a.isBlocked = true;
+[{"<SUMMARY>":"set 1 properties."}]
+
+
+# write 19
+MATCH (p:Person {id: 19}) SET p.isBlocked = true;
+[{"<SUMMARY>":"set 1 properties."}]

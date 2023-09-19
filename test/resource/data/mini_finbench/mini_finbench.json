@@ -54,78 +54,78 @@
         {
             "label" : "transfer",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"},
+                {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
             ]
         },
         {
             "label" : "withdraw",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"},
+                {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
             ]
         },
         {
             "label" : "repay",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"},
+                {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
             ]
         },
         {
             "label" : "deposit",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"},
+                {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
             ]
         },
         {
             "label" : "signIn",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"}
+                {"name" : "timestamp", "type":"INT64"}
             ]
         },
         {
             "label" : "invest",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"},
+                {"name" : "timestamp", "type":"INT64"},
                 {"name" : "ratio", "type":"DOUBLE"}
             ]
         },
         {
             "label" : "apply",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"}
+                {"name" : "timestamp", "type":"INT64"}
             ]
         },
         {
             "label" : "guarantee",
             "type" : "EDGE",
-            "tid" : "ts",
+            "tid" : "timestamp",
             "tid_order" : "desc",
             "properties" : [
-                {"name" : "ts", "type":"INT64"}
+                {"name" : "timestamp", "type":"INT64"}
             ]
         },
         {
@@ -178,7 +178,7 @@
             "label" : "transfer",
             "SRC_ID" : "Account",
             "DST_ID" : "Account",
-            "columns" : ["SRC_ID", "DST_ID", "ts", "amount", "SKIP"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount", "SKIP"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/account_withdraw_account.csv",
@@ -186,7 +186,7 @@
             "label" : "withdraw",
             "SRC_ID" : "Account",
             "DST_ID" : "Account",
-            "columns" : ["SRC_ID", "DST_ID", "ts", "amount"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/account_repay_loan.csv",
@@ -194,7 +194,7 @@
             "label" : "repay",
             "SRC_ID" : "Account",
             "DST_ID" : "Loan",
-            "columns" : ["SRC_ID", "DST_ID", "ts", "amount"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/loan_deposit_account.csv",
@@ -202,7 +202,7 @@
             "label" : "deposit",
             "SRC_ID" : "Loan",
             "DST_ID" : "Account",
-            "columns" : ["SRC_ID", "DST_ID", "ts", "amount"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/medium_signin_account.csv",
@@ -210,7 +210,7 @@
             "label" : "signIn",
             "SRC_ID" : "Medium",
             "DST_ID" : "Account",
-            "columns" : ["SRC_ID", "DST_ID", "ts"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/person_invest_company.csv",
@@ -218,7 +218,7 @@
             "label" : "invest",
             "SRC_ID" : "Person",
             "DST_ID" : "Company",
-            "columns" : ["SRC_ID", "DST_ID", "ts", "ratio"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "ratio"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/company_invest_company.csv",
@@ -226,7 +226,7 @@
             "label" : "invest",
             "SRC_ID" : "Company",
             "DST_ID" : "Company",
-            "columns" : ["SRC_ID", "DST_ID", "ts", "ratio"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "ratio"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/person_apply_loan.csv",
@@ -234,7 +234,7 @@
             "label" : "apply",
             "SRC_ID" : "Person",
             "DST_ID" : "Loan",
-            "columns" : ["SRC_ID", "DST_ID", "ts"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/company_apply_loan.csv",
@@ -242,7 +242,7 @@
             "label" : "apply",
             "SRC_ID" : "Company",
             "DST_ID" : "Loan",
-            "columns" : ["SRC_ID", "DST_ID", "ts"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/person_guarantee_person.csv",
@@ -250,7 +250,7 @@
             "label" : "guarantee",
             "SRC_ID" : "Person",
             "DST_ID" : "Person",
-            "columns" : ["SRC_ID", "DST_ID", "ts"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/company_guarantee_company.csv",
@@ -258,7 +258,7 @@
             "label" : "guarantee",
             "SRC_ID" : "Company",
             "DST_ID" : "Company",
-            "columns" : ["SRC_ID", "DST_ID", "ts"]
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
         },
         {
             "path" : "../../test/resource/data/mini_finbench/company_own_account.csv",

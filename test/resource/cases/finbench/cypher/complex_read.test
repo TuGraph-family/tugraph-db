@@ -1,0 +1,284 @@
+# complex read 1
+MATCH p = (acc:Account {id:12})
+    -[e1:transfer *1..3]
+    ->(other:Account)<-[e2:signIn]-(medium)
+WHERE
+    isAsc(getMemberProp(e1, 'timestamp'))=true
+    AND head(getMemberProp(e1, 'timestamp')) > 10
+    AND last(getMemberProp(e1, 'timestamp')) < 50
+    AND e2.timestamp > 10
+    AND e2.timestamp < 50
+    AND medium.isBlocked = true
+RETURN DISTINCT
+    other.id as otherId,
+    length(p)-1 as accountDistance,
+    medium.id as mediumId,
+    medium.type as mediumType
+ORDER BY accountDistance, otherId, mediumId;
+
+
+# complex read 2
+MATCH (p:Person {id:12})-[e1:own]->(acc:Account)
+    <-[e2:transfer*1..3]-(other:Account)
+WHERE
+    isDesc(getMemberProp(e2, 'timestamp'))=true
+    AND head(getMemberProp(e2, 'timestamp')) < 50
+    AND last(getMemberProp(e2, 'timestamp')) > 10
+WITH DISTINCT other
+MATCH (other)<-[e3:deposit]-(loan:Loan)
+WHERE
+    e3.timestamp > 10
+    AND e3.timestamp < 50
+WITH
+    other.id AS otherId,
+    sum(loan.loanAmount) as sumLoanAmount,
+    sum(loan.balance) as sumLoanBalance
+RETURN
+    otherId,
+    round(sumLoanAmount * 1000) / 1000 as sumLoanAmount,
+    round(sumLoanBalance * 1000) / 1000 as sumLoanBalance
+ORDER BY sumLoanAmount DESC, otherId ASC;
+
+
+# complex read 3
+MATCH (src:Account{id:2}), (dst:Account{id:3})
+CALL algo.shortestPath(
+    src,
+    dst,
+    {
+        direction: 'PointingRight',
+        relationshipQuery:'transfer',
+        edgeFilter: {
+            timestamp: {
+                smaller_than: 90,
+                greater_than: 50
+            }
+        }
+    }
+)
+YIELD nodeCount
+RETURN nodeCount - 1 AS len;
+
+
+# complex read 4
+MATCH (src:Account {id:3})-[e1:transfer]->(dst:Account {id:8})
+WHERE
+    e1.timestamp > 10
+    AND e1.timestamp < 100
+WITH src, dst
+MATCH (src)<-[e2:transfer]-(other:Account)<-[e3:transfer]-(dst)
+WHERE
+    e2.timestamp > 10
+    AND e2.timestamp < 100
+    AND e3.timestamp > 10
+    AND e3.timestamp < 100
+WITH DISTINCT src, other, dst
+MATCH (src)<-[e2:transfer]-(other)
+WHERE
+    e2.timestamp > 10
+    AND e2.timestamp < 100
+WITH
+    src, other, dst,
+    count(e2) as numEdge2,
+    sum(e2.amount) as sumEdge2Amount,
+    max(e2.amount) as maxEdge2Amount
+MATCH (other)<-[e3:transfer]-(dst)
+WHERE
+    e3.timestamp > 10
+    AND e3.timestamp < 100
+WITH
+    other.id as otherId,
+    numEdge2,
+    sumEdge2Amount,
+    maxEdge2Amount,
+    count(e3) as numEdge3,
+    sum(e3.amount) as sumEdge3Amount,
+    max(e3.amount) as maxEdge3Amount
+RETURN
+    otherId,
+    numEdge2,
+    round(sumEdge2Amount * 1000) / 1000 as sumEdge2Amount,
+    round(maxEdge2Amount * 1000) / 1000 as maxEdge2Amount,
+    numEdge3,
+    round(sumEdge3Amount * 1000) / 1000 as sumEdge3Amount,
+    round(maxEdge3Amount * 1000) / 1000 as maxEdge3Amount
+ORDER BY sumEdge2Amount DESC, sumEdge3Amount DESC, otherId ASC;
+
+
+# complex read 5
+MATCH (person:Person {id: 12})-[e1:own]->(src:Account)
+WITH src
+MATCH p=(src)-[e2:transfer*1..3]->(dst:Account)
+WHERE
+    isAsc(getMemberProp(e2, 'timestamp'))=true
+    AND head(getMemberProp(e2, 'timestamp')) > 30
+    AND last(getMemberProp(e2, 'timestamp')) < 50
+WITH DISTINCT
+    getMemberProp(nodes(p), "id") as path,
+    length(p) as len
+ORDER BY len DESC
+WHERE hasDuplicates(path)=false
+RETURN path;
+
+
+# complex read 6
+MATCH (dstCard:Account {id: 15} )<-[edge2:withdraw]-(mid:Account)
+WHERE
+    dstCard.type = 'tp2'
+    AND edge2.timestamp > 10
+    AND edge2.timestamp < 90
+    AND edge2.amount > 12
+WITH
+    mid,
+    sum(edge2.amount) as sumEdge2Amount,
+    count(edge2.amount) as t
+MATCH (mid)<-[edge1:transfer]-(src:Account)
+WHERE
+    edge1.timestamp > 10
+    AND edge1.timestamp < 90
+    AND edge1.amount > 11
+WITH
+    mid.id AS midId,
+    count(edge1) AS edge1Count,
+    sum(edge1.amount) AS sumEdge1Amount,
+    sumEdge2Amount
+WHERE edge1Count > 3
+WITH
+    midId,
+    sumEdge1Amount,
+    sumEdge2Amount
+RETURN
+    midId,
+    round(sumEdge1Amount * 1000) / 1000 as sumEdge1Amount,
+    round(sumEdge2Amount * 1000) / 1000 as sumEdge2Amount
+ORDER BY sumEdge2Amount DESC;
+
+
+# complex read 7
+MATCH (mid:Account {id:12}) WITH mid
+OPTIONAL MATCH (mid)-[edge2:transfer]->(dst:Account)
+WHERE
+    edge2.timestamp > 10
+    AND edge2.timestamp < 90
+    AND edge2.amount > 30
+WITH mid,
+    count(distinct dst) as numDst,
+    sum(edge2.amount) as amountDst
+OPTIONAL MATCH (mid)<-[edge1:transfer]-(src:Account)
+WHERE
+    edge1.timestamp > 10
+    AND edge1.timestamp < 90
+    AND edge1.amount > 30
+WITH
+    count(distinct src) as numSrc,
+    sum(edge1.amount) as amountSrc,
+    numDst,
+    amountDst
+RETURN
+    numSrc,
+    numDst,
+    CASE WHEN amountDst=0 THEN -1 ELSE round(1000.0 * amountSrc / amountDst) / 1000 END AS inOutRatio;
+
+
+# complex read 8
+-- loadProcedure tcr8 ../../test/resource/cases/finbench/cypher/procedure/tcr8.cpp read_only=true
+CALL plugin.cpp.tcr8({
+    id: 2,
+    threshold: 0.1,
+    startTime: 60,
+    endTime: 90
+});
+
+
+# complex read 9
+MATCH (mid:Account{id:12}) WITH mid
+OPTIONAL MATCH (mid)-[edge2:repay]->(loan:Loan)
+WHERE
+    edge2.amount > 90
+    AND edge2.timestamp > 10
+    AND edge2.timestamp < 90
+WITH
+    mid,
+    sum(edge2.amount) AS edge2Amount
+OPTIONAL MATCH (mid)<-[edge1:deposit]-(loan:Loan)
+WHERE
+    edge1.amount > 90
+    AND edge1.timestamp > 10
+    AND edge1.timestamp < 90
+WITH
+    mid,
+    sum(edge1.amount) AS edge1Amount,
+    edge2Amount
+OPTIONAL MATCH (mid)-[edge4:transfer]->(down:Account)
+WHERE
+    edge4.amount > 90
+    AND edge4.timestamp > 10
+    AND edge4.timestamp < 90
+WITH
+    mid,
+    edge1Amount,
+    edge2Amount,
+    sum(edge4.amount) AS edge4Amount
+OPTIONAL MATCH (mid)<-[edge3:transfer]-(up:Account)
+WHERE
+    edge3.amount > 90
+    AND edge3.timestamp > 10
+    AND edge3.timestamp < 90
+WITH
+    edge1Amount,
+    edge2Amount,
+    sum(edge3.amount) AS edge3Amount,
+    edge4Amount
+RETURN
+    CASE WHEN edge2Amount=0 THEN -1 ELSE round(1000.0 * edge1Amount / edge2Amount) / 1000 END AS ratioRepay,
+    CASE WHEN edge4Amount=0 THEN -1 ELSE round(1000.0 * edge1Amount / edge4Amount) / 1000 END AS ratioDeposit,
+    CASE WHEN edge4Amount=0 THEN -1 ELSE round(1000.0 * edge3Amount / edge4Amount) / 1000 END AS ratioTransfer;
+
+
+# complex read 10
+MATCH (p1:Person {id: 12})-[edge1:invest]->(m1:Company)
+WHERE
+    edge1.timestamp > 10
+    AND edge1.timestamp < 90
+WITH collect(distinct id(m1)) as m1_vids
+MATCH (p2:Person {id: 16})-[edge2:invest]->(m2:Company)
+WHERE
+    edge2.timestamp > 10
+    AND edge2.timestamp < 90
+WITH collect(distinct id(m2)) as m2_vids, m1_vids
+CALL algo.jaccard(m1_vids, m2_vids) YIELD similarity
+RETURN round(similarity*1000)/1000 AS similarity;
+
+
+# complex read 11
+MATCH
+    (p1:Person {id:12})-[edge:guarantee*1..5]->(pN:Person)
+    -[:apply]->(loan:Loan)
+WHERE
+    minInList(getMemberProp(edge, 'timestamp')) > 40
+    AND maxInList(getMemberProp(edge, 'timestamp')) < 50
+WITH
+    DISTINCT loan
+WITH
+    sum(loan.loanAmount) as sumLoanAmount,
+    count(distinct loan) as numLoans
+RETURN
+    round(sumLoanAmount * 1000) / 1000 as sumLoanAmount,
+    numLoans;
+
+
+# complex read 12
+MATCH
+    (person:Person {id:12})-[edge1:own]->(pAcc:Account)
+    -[edge2:transfer]->(compAcc:Account)
+    <-[edge3:own]-(com:Company)
+WHERE
+    edge2.timestamp > 45
+    AND edge2.timestamp < 50
+WITH
+    compAcc.id AS compAccountId,
+    sum(edge2.amount) AS sumEdge2Amount
+RETURN
+    compAccountId,
+    round(sumEdge2Amount * 1000) / 1000 as sumEdge2Amount
+ORDER BY sumEdge2Amount DESC;

@@ -25,6 +25,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
+    try {
+        json input = json::parse(request);
+    } catch (std::exception& e) {
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
+        return false;
+    }
     auto txn = db.CreateReadTxn();
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
     auto prepare_cost = get_time() - start_time;

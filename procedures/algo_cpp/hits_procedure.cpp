@@ -30,14 +30,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     try {
         json input = json::parse(request);
-        if (input["iterations"].is_number()) {
-            iterations = input["iterations"].get<int64_t>();
-        }
-        if (input["delta"].is_number()) {
-            delta = input["delta"].get<double>();
-        }
+        parse_from_json(iterations, "iterations", input);
+        parse_from_json(delta, "delta", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();

@@ -1,0 +1,159 @@
+-- loadProcedure trw1 ../../test/resource/cases/finbench/cypher/procedure/trw1.cpp read_only=false
+
+# trw1 - 1
+CALL plugin.cpp.trw1({
+    srcId: 12,
+    dstId: 13,
+    time: 15,
+    amt: 15,
+    startTime: 10,
+    endTime: 90
+});
+
+
+# trw1 - 2
+OPTIONAL MATCH (src:Account{id:6})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+CALL plugin.cpp.trw1({
+    srcId: 6,
+    dstId: 8,
+    time: 15,
+    amt: 15,
+    startTime: 10,
+    endTime: 90
+});
+
+OPTIONAL MATCH (src:Account{id:6})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+
+# trw1 - 3
+OPTIONAL MATCH (src:Account{id:0}),(dst:Account{id:8})
+RETURN src.isBlocked, dst.isBlocked;
+
+OPTIONAL MATCH (src:Account{id:0})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+CALL plugin.cpp.trw1({
+    srcId: 0,
+    dstId: 8,
+    time: 15,
+    amt: 15,
+    startTime: 10,
+    endTime: 90
+});
+
+OPTIONAL MATCH (src:Account{id:0}),(dst:Account{id:8})
+RETURN src.isBlocked, dst.isBlocked;
+
+OPTIONAL MATCH (src:Account{id:0})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+
+# trw1 - reset
+MATCH (src:Account{id:0})
+SET src.isBlocked = false;
+
+MATCH (dst:Account{id:8})
+SET dst.isBlocked = false;
+
+MATCH (src:Account{id:6})-[e]-(dst:Account{id:8})
+DELETE e;
+
+
+-- loadProcedure trw2 ../../test/resource/cases/finbench/cypher/procedure/trw2.cpp read_only=false
+
+# trw2 - 1
+CALL plugin.cpp.trw2({
+    srcId: 12,
+    dstId: 13,
+    time: 15,
+    amt: 15,
+    threshold: 10,
+    startTime: 10,
+    endTime: 90
+});
+
+
+# trw2 - 2
+OPTIONAL MATCH (src:Account{id:6})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+CALL plugin.cpp.trw2({
+    srcId: 6,
+    dstId: 8,
+    time: 15,
+    amt: 15,
+    threshold: 100,
+    startTime: 10,
+    endTime: 90
+});
+
+OPTIONAL MATCH (src:Account{id:6})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+
+# trw2 - 3
+OPTIONAL MATCH (src:Account{id:0}),(dst:Account{id:8})
+RETURN src.isBlocked, dst.isBlocked;
+
+OPTIONAL MATCH (src:Account{id:0})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+CALL plugin.cpp.trw2({
+    srcId: 0,
+    dstId: 8,
+    time: 15,
+    amt: 15,
+    threshold: 10,
+    startTime: 10,
+    endTime: 90
+});
+
+OPTIONAL MATCH (src:Account{id:0}),(dst:Account{id:8})
+RETURN src.isBlocked, dst.isBlocked;
+
+OPTIONAL MATCH (src:Account{id:0})-[e]-(dst:Account{id:8}) RETURN count(e);
+
+
+-- loadProcedure trw3 ../../test/resource/cases/finbench/cypher/procedure/trw3.cpp read_only=false
+
+# trw3 - 1
+CALL plugin.cpp.trw3({
+    srcId: 12,
+    dstId: 13,
+    time: 15,
+    threshold: 10,
+    startTime: 10,
+    endTime: 90
+});
+
+
+# trw3 - 2
+OPTIONAL MATCH (src:Person{id:6})-[e]-(dst:Person{id:11}) RETURN count(e);
+
+CALL plugin.cpp.trw3({
+    srcId: 6,
+    dstId: 11,
+    time: 15,
+    threshold: 2000,
+    startTime: 10,
+    endTime: 90
+});
+
+OPTIONAL MATCH (src:Person{id:6})-[e]-(dst:Person{id:11}) RETURN count(e);
+
+
+# trw3 - 3
+OPTIONAL MATCH (src:Person{id:6}),(dst:Person{id:11})
+RETURN src.isBlocked, dst.isBlocked;
+
+OPTIONAL MATCH (src:Person{id:6})-[e]-(dst:Person{id:11}) RETURN count(e);
+
+CALL plugin.cpp.trw3({
+    srcId: 6,
+    dstId: 11,
+    time: 15,
+    threshold: 10,
+    startTime: 10,
+    endTime: 90
+});
+
+OPTIONAL MATCH (src:Person{id:6}),(dst:Person{id:11})
+RETURN src.isBlocked, dst.isBlocked;
+
+OPTIONAL MATCH (src:Person{id:6})-[e]-(dst:Person{id:11}) RETURN count(e);
