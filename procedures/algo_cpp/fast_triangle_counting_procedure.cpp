@@ -29,11 +29,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        if (input["make_symmetric"].is_number()) {
-            make_symmetric = input["make_symmetric"].get<int64_t>();
-        }
+        parse_from_json(make_symmetric, "make_symmetric", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
+        return false;
     }
     auto txn = db.CreateReadTxn();
     size_t construct_param = SNAPSHOT_PARALLEL;

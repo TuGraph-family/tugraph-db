@@ -29,7 +29,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::string src_field = "id";
     std::string dst_label = "node";
     std::string dst_field = "id";
-    std::vector<std::pair<size_t, size_t>> search_list = {{0, 1}, {1, 972}, {101, 202}};
+    int64_t make_symmetric = 0;
+    std::vector<std::pair<size_t, size_t> > search_list = {{0, 1}, {1, 972}};
     auto txn = db.CreateReadTxn();
     try {
         json input = json::parse(request);
@@ -37,7 +38,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(src_field, "src_field", input);
         parse_from_json(dst_label, "dst_label", input);
         parse_from_json(dst_field, "dst_field", input);
-        parse_from_json(search_list, "search_pairs", input);
+        parse_from_json(make_symmetric, "make_symmetric", input);
         if (input["search_pairs"].is_array()) {
             search_list.clear();
             for (auto &e : input["search_pairs"]) {
@@ -45,34 +46,36 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
                 int64_t dst_id = e[1];
                 lgraph_api::FieldData src_field_data(src_id);
                 lgraph_api::FieldData dst_field_data(dst_id);
-                size_t src = txn.GetVertexIndexIterator(src_label,
-                        src_field, src_field_data, src_field_data).GetVid();
-                size_t dst = txn.GetVertexIndexIterator(dst_label,
-                        dst_field, dst_field_data, dst_field_data).GetVid();
+                size_t src = txn.GetVertexIndexIterator(
+                    src_label, src_field, src_field_data, src_field_data).GetVid();
+                size_t dst = txn.GetVertexIndexIterator(
+                    dst_label, dst_field, dst_field_data, dst_field_data).GetVid();
                 search_list.push_back(std::make_pair(src, dst));
             }
         }
     } catch (std::exception &e) {
         throw std::runtime_error("json parse error");
     }
-
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
+    size_t construct_param = SNAPSHOT_PARALLEL;
+    if (make_symmetric != 0) {
+        construct_param = SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED;
+    }
+    OlapOnDB<Empty> olapondb(db, txn, construct_param);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    std::vector< std::tuple<size_t, size_t, double> > result_list;
+    std::vector< std::tuple<size_t, size_t, size_t> > result_list;
     for (auto search_pair : search_list) {
-        double score = JiCore(olapondb, search_pair);
-        std::cout << score <<std::endl;
-        result_list.push_back(std::make_tuple(search_pair.first, search_pair.second, score));
+        double length = SPSPCore(olapondb, search_pair);
+        result_list.push_back(std::make_tuple(search_pair.first, search_pair.second, length));
     }
     auto core_cost = get_time() - start_time;
 
     // return
     {
         json output;
-        output["ji_list"] = result_list;
+        output["length_list"] = result_list;
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;

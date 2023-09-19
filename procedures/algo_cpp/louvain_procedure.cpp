@@ -51,6 +51,16 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // output
     start_time = get_time();
+    if (output_file != "") {
+        FILE* fout = fopen(output_file.c_str(), "w");
+#pragma omp parallel for
+        for (size_t i = 0; i < olapondb.NumVertices(); i++) {
+            if (label[i]) {
+                fprintf(fout, "%ld, %ld\n", i, label[i]);
+            }
+        }
+        fclose(fout);
+    }
     double output_cost = get_time() - start_time;
 
     json output;

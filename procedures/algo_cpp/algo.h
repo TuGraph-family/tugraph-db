@@ -33,13 +33,24 @@ size_t BCCore(OlapBase<Empty>& graph, size_t samples, ParallelVector<double>& sc
 /**
  * \brief   Perform a BFS from root vertex.
  *
- * \param               graph    The graph to compute on.
- * \param               root_vid    The root vertex id to start bfs from.
+ * \param               graph     The graph to compute on.
+ * \param               root_vid  The root vertex id to start bfs from.
  * \param   [in,out]    parent    The ParallelVector to judge whether have visited.
  *
  * \return  The number of visited vertices of graph.
  */
 size_t BFSCore(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent);
+
+/**
+ * @brief    Compute the closeness centrality of all vertices in the graph.
+ *
+ * @param[in]       graph      The graph to compute on.
+ * @param[in]       samples    The number of samples.
+ * @param[in,out]   score      The vector to store closeness centrality.
+ * @param[in,out]   path_num   The vector to store the num of path.
+ */
+void CLCECore(OlapBase<double>& graph, size_t samples, ParallelVector<double>& score,
+              ParallelVector<size_t>& path_num);
 
 /**
  * @brief    Compute the common neighbours of all input pairs.
@@ -188,6 +199,27 @@ double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t>& label,
                    size_t active_threshold = 0, int is_sync = 0);
 
 /**
+ * @brief    Compute the Motif Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        motif_vertices The vertices of computation.
+ * @param[in]        k              The size of subgraph.
+ * @param[in,out]    motif_count    The array to store motif value.
+ *
+ */
+void MotifCore(OlapBase<Empty>& graph, ParallelVector<size_t>& motif_vertices, int k,
+               ParallelVector<std::map<uint64_t, size_t>>& motif_count);
+
+/**
+ * @brief    Compute Multiple-source Shortest Paths algorithm.
+ *
+ * @param[in]    graph          The graph to compute on.
+ * @param[in]    root           The set of root vertex.
+ * @param[in,out]    distance       The ParallelVector to store shostest distance.
+ */
+void MSSPCore(OlapBase<double>& graph, std::vector<size_t> roots, ParallelVector<double>& distance);
+
+/**
  * @brief    Compute the Triangle Counting algorithm.
  *
  * @param[in]    graph           The graph to compute on.
@@ -196,3 +228,21 @@ double LouvainCore(OlapBase<double>& graph, ParallelVector<size_t>& label,
  * @return   return the number of triangles of the whole graph.
  */
 size_t TriangleCore(OlapBase<Empty>& graph, ParallelVector<size_t>& num_triangle);
+
+/**
+ * @brief    Compute the strongly connected components algorithm.
+ *
+ * @param[in]        graph           The graph to compute on.
+ * @param[in,out]    label           The community of vertex.
+ */
+void SCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
+
+/**
+ * @brief    Compute the Single Pair Shortest Path algorithm.
+ *
+ * @param[in]    graph           The graph to compute on.
+ * @param[in]    search_pair     The vertex pair to compute.
+ *
+ * @return    return the shortest path distance of search pair.
+ */
+size_t SPSPCore(OlapBase<Empty>& graph, std::pair<size_t, size_t> search_pair);
