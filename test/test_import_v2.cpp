@@ -1415,7 +1415,7 @@ TEST_F(TestImportV2, ImportV2) {
         {
             "label" : "edge",
             "type" : "EDGE",
-            "primary" : "ts",
+            "temporal" : "ts",
             "properties" : [
                 {"name" : "ts", "type" : "INT64"},
                 {"name" : "weight", "type":"FLOAT"}
