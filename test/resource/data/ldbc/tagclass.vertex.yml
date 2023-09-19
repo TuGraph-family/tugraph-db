@@ -1,0 +1,16 @@
+label: tagclass
+chunk_size: 4096
+prefix: vertex/tagclass/
+property_groups:
+  - file_type: parquet
+    properties:
+      - name: name
+        data_type: string
+        is_primary: false
+      - name: url
+        data_type: string
+        is_primary: false
+      - name: id
+        data_type: int64
+        is_primary: true
+version: gar/v1

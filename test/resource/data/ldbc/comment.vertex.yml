@@ -1,0 +1,30 @@
+label: comment
+chunk_size: 4096
+prefix: vertex/comment/
+property_groups:
+  - file_type: parquet
+    properties:
+      - name: locationIP
+        data_type: string
+        is_primary: false
+  - file_type: parquet
+    properties:
+      - name: browserUsed
+        data_type: string
+        is_primary: false
+  - file_type: parquet
+    properties:
+      - name: content
+        data_type: string
+        is_primary: false
+  - file_type: parquet
+    properties:
+      - name: length
+        data_type: int64
+        is_primary: false
+  - file_type: parquet
+    properties:
+      - name: id
+        data_type: int64
+        is_primary: true
+version: gar/v1

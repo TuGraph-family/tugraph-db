@@ -1,0 +1,28 @@
+src_label: person
+edge_label: studyAt
+dst_label: organisation
+chunk_size: 8192
+src_chunk_size: 4096
+dst_chunk_size: 4096
+prefix: edge/person_studyAt_organisation/
+directed: true
+adj_lists:
+  - ordered: true
+    aligned_by: dst
+    file_type: parquet
+    property_groups:
+      - file_type: parquet
+        properties:
+          - name: classYear
+            data_type: int64
+            is_primary: false
+  - ordered: true
+    aligned_by: src
+    file_type: parquet
+    property_groups:
+      - file_type: parquet
+        properties:
+          - name: classYear
+            data_type: int64
+            is_primary: false
+version: gar/v1

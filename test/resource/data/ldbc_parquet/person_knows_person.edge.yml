@@ -1,0 +1,37 @@
+src_label: person
+edge_label: knows
+dst_label: person
+chunk_size: 1024
+src_chunk_size: 100
+dst_chunk_size: 100
+directed: false
+prefix: edge/person_knows_person/
+adj_lists:
+  - ordered: false
+    aligned_by: src
+    file_type: parquet
+    property_groups:
+      - file_type: parquet
+        properties:
+          - name: creationDate
+            data_type: string
+            is_primary: false
+  - ordered: true
+    aligned_by: src
+    file_type: parquet
+    property_groups:
+      - file_type: parquet
+        properties:
+          - name: creationDate
+            data_type: string
+            is_primary: false
+  - ordered: true
+    aligned_by: dst
+    file_type: parquet
+    property_groups:
+      - file_type: parquet
+        properties:
+          - name: creationDate
+            data_type: string
+            is_primary: false
+version: gar/v1

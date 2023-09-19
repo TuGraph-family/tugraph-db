@@ -1,0 +1,13 @@
+label: forum
+chunk_size: 4096
+prefix: vertex/forum/
+property_groups:
+  - file_type: parquet
+    properties:
+      - name: title
+        data_type: string
+        is_primary: false
+      - name: id
+        data_type: int64
+        is_primary: true
+version: gar/v1

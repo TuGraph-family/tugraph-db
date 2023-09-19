@@ -136,7 +136,7 @@ class Importer {
         std::string db_dir = "./lgraph_db";  // db data dir to use
         std::string user = "admin";
         std::string password = "73@TuGraph";
-        bool is_graphar = false;         // whether to import Graphar file
+        bool is_graphar = false;         // import Graphar file, config file must be absolute path
         std::string graph = "default";   // graph name
         bool delete_if_exists = false;   // force import, delete data if already exists
         bool continue_on_error = false;  // whether to continue when there are data errors

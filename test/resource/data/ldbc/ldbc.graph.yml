@@ -1,0 +1,35 @@
+name: ldbc
+vertices:
+  - tagclass.vertex.yml
+  - post.vertex.yml
+  - comment.vertex.yml
+  - place.vertex.yml
+  - tag.vertex.yml
+  - organisation.vertex.yml
+  - forum.vertex.yml
+  - person.vertex.yml
+edges:
+  - tag_hasType_tagclass.edge.yml
+  - tagclass_isSubclassOf_tagclass.edge.yml
+  - forum_hasMember_person.edge.yml
+  - forum_containerOf_post.edge.yml
+  - forum_hasTag_tag.edge.yml
+  - comment_hasTag_tag.edge.yml
+  - place_isPartOf_place.edge.yml
+  - comment_replyOf_post.edge.yml
+  - organisation_isLocatedIn_place.edge.yml
+  - comment_replyOf_comment.edge.yml
+  - post_hasCreator_person.edge.yml
+  - comment_isLocatedIn_place.edge.yml
+  - person_hasInterest_tag.edge.yml
+  - person_workAt_organisation.edge.yml
+  - post_isLocatedIn_place.edge.yml
+  - post_hasTag_tag.edge.yml
+  - person_studyAt_organisation.edge.yml
+  - forum_hasModerator_person.edge.yml
+  - person_likes_post.edge.yml
+  - person_likes_comment.edge.yml
+  - comment_hasCreator_person.edge.yml
+  - person_isLocatedIn_place.edge.yml
+  - person_knows_person.edge.yml
+version: gar/v1

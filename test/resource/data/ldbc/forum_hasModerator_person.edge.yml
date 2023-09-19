@@ -1,0 +1,16 @@
+src_label: forum
+edge_label: hasModerator
+dst_label: person
+chunk_size: 8192
+src_chunk_size: 4096
+dst_chunk_size: 4096
+prefix: edge/forum_hasModerator_person/
+directed: true
+adj_lists:
+  - ordered: true
+    aligned_by: dst
+    file_type: parquet
+  - ordered: true
+    aligned_by: src
+    file_type: parquet
+version: gar/v1
