@@ -26,10 +26,11 @@ typedef std::map<std::string, std::string> Dict;
 
 /**
  * @brief  Parse the gar DataType to FieldType in config.
+ * 
  * @param   data_type  The GraphAr DataType of the vetex or  property.
  * @param   type_name  The FieldType string which used to make json object.
  */
-void ParseType(const GraphArchive::DataType& data_type, std::string& type_name) {
+inline void ParseType(const GraphArchive::DataType& data_type, std::string& type_name) {
     switch (data_type.id()) {
     case GraphArchive::Type::BOOL:
         type_name = "BOOL";
@@ -56,13 +57,14 @@ void ParseType(const GraphArchive::DataType& data_type, std::string& type_name) 
 
 /**
  * @brief  Check which AdjListType the Gar Edge info contains.
+ * 
  * @param   edge_info  The GraphAr edge info.
  * @param   adj_list_type  The gar adj_list_type which used to get edge collection.
  * The adj_list_type value maybe unordered_by_source, unordered_by_dest, ordered_by_source
  * or ordered_by_dest.
  * Reference: https://alibaba.github.io/GraphAr/reference/api-reference-cpp.html#adj-list-type
  */
-void CheckAdjListType(const GraphArchive::EdgeInfo& edge_info,
+inline void CheckAdjListType(const GraphArchive::EdgeInfo& edge_info,
                       GraphArchive::AdjListType& adj_list_type) {
     for (std::uint8_t i = 0;
          i <= static_cast<std::uint8_t>(GraphArchive::AdjListType::ordered_by_dest); ++i) {
@@ -79,7 +81,7 @@ void CheckAdjListType(const GraphArchive::EdgeInfo& edge_info,
  * @param   props  All the properties of the vertex. One of it maybe {"name":"id","type":"INT64"}.
  * @param   prop_names  All the property names of the vertex. One of it maybe "id".
  */
-void WalkVertex(const GraphArchive::VertexInfo& ver_info, std::string& primary,
+inline void WalkVertex(const GraphArchive::VertexInfo& ver_info, std::string& primary,
                 std::vector<Dict>& props, std::vector<std::string>& prop_names) {
     auto ver_groups = ver_info.GetPropertyGroups();
     for (auto ver_props : ver_groups) {
@@ -101,7 +103,7 @@ void WalkVertex(const GraphArchive::VertexInfo& ver_info, std::string& primary,
  * @param   props  All the properties of the vertex. One of it maybe {"name":"id","type":"INT64"}.
  * @param   prop_names  All the property names of the vertex. One of it maybe "id".
  */
-void WalkEdge(const GraphArchive::EdgeInfo& edge_info, std::vector<Dict>& props,
+inline void WalkEdge(const GraphArchive::EdgeInfo& edge_info, std::vector<Dict>& props,
               std::vector<std::string>& prop_names) {
     GraphArchive::AdjListType adj_list_type = GraphArchive::AdjListType::ordered_by_dest;
     CheckAdjListType(edge_info, adj_list_type);
@@ -119,10 +121,11 @@ void WalkEdge(const GraphArchive::EdgeInfo& edge_info, std::vector<Dict>& props,
 
 /**
  * @brief   Read the gar yml file to construct the import config in json form.
+ * 
  * @param   gar_conf  The json object of the import config used in import_v3. 
  * @param   path  The location of gar yml file.
  */
-void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path) {
+inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path) {
     auto graph_info = GraphArchive::GraphInfo::Load(path).value();
     gar_conf["schema"] = {};
     gar_conf["files"] = {};
