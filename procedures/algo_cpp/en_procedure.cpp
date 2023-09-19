@@ -29,14 +29,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     int hop_value = 1;
     try {
         json input = json::parse(request);
-        if (input["root_vid"].is_number()) {
-            root_vid = input["root_vid"].get<int64_t>();
-        }
-        if (input["hop_value"].is_number()) {
-            hop_value = input["hop_value"].get<int64_t>();
-        }
+        parse_from_json(root_vid, "root_vid", input);
+        parse_from_json(hop_value, "hop_value", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();

@@ -39,7 +39,7 @@ class AsyncTuGraphClient:
         warnings.simplefilter("ignore", DeprecationWarning)
         return asyncio.get_event_loop().run_until_complete(func())
 
-    async def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=True):
+    async def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=False):
         '''
         Retry getting results with get_func
         If connection error, retry.
@@ -102,7 +102,7 @@ class AsyncTuGraphClient:
         Returns json response if return_json_only=True, otherwise return (status_code, json/err_msg)
         '''
         get_func = partial(requests.get, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        r = await self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
+        r = await self.__get_result_with_retry__(get_func)
         if return_json_only:
             return r[1]
         else:
@@ -118,7 +118,7 @@ class AsyncTuGraphClient:
             headers=self.http_headers,
             json=data_dict
         )
-        r = await self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
+        r = await self.__get_result_with_retry__(get_func)
         if return_json_only:
             return r[1]
         else:
@@ -129,14 +129,14 @@ class AsyncTuGraphClient:
         Raises if there is error.
         '''
         get_func = partial(requests.delete, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        return await self.__get_result_with_retry__(get_func, True)
+        return await self.__get_result_with_retry__(get_func, raise_on_error=True)
 
     async def __try_get__(self, relative_url):
         '''
         Returns (status_code, json/err_msg)
         '''
         get_func = partial(requests.get, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        return await self.__get_result_with_retry__(get_func, retries=1)
 
     async def __try_post__(self, relative_url, data_dict):
         '''
@@ -148,14 +148,14 @@ class AsyncTuGraphClient:
             headers=self.http_headers,
             json=data_dict,
         )
-        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        return await self.__get_result_with_retry__(get_func, retries=1)
 
     async def __try_del__(self, relative_url):
         '''
         Returns (status_code, json/err_msg)
         '''
         get_func = partial(requests.delete, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        return await self.__get_result_with_retry__(get_func, retries=1)
 
     def __get_url_base__(self):
         return ('https://{}/' if self.use_https else 'http://{}/').format(self.curr_server)

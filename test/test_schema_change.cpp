@@ -138,7 +138,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
              FieldSpec("name1", FieldType::STRING, true),
              FieldSpec("name2", FieldType::STRING, true), FieldSpec("blob", FieldType::BLOB, true),
              FieldSpec("age", FieldType::FLOAT, false)}),
-        "id", {});
+        "id", "", {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     {
         Schema s2(s1);
@@ -574,7 +574,7 @@ TEST_P(TestSchemaChange, DelLabel) {
                                              FieldSpec("name2", FieldType::STRING, true),
                                              FieldSpec("blob", FieldType::BLOB, true),
                                              FieldSpec("age", FieldType::FLOAT, false)}),
-                     "id", {});
+                     "id", "", {});
         UT_EXPECT_THROW(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),
             lgraph::InputError);
@@ -584,6 +584,24 @@ TEST_P(TestSchemaChange, DelLabel) {
         UT_EXPECT_THROW(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("DST_ID", FieldType::STRING, false)})),
             lgraph::InputError);
+    }
+
+    UT_LOG() << "Testing delete field name";
+    {
+        Schema s;
+        s.SetSchema(false,
+                    std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
+                                            FieldSpec("id2", FieldType::INT32, false),
+                                            FieldSpec("name1", FieldType::STRING, true),
+                                            FieldSpec("name2", FieldType::STRING, true),
+                                            FieldSpec("blob", FieldType::BLOB, true),
+                                            FieldSpec("age", FieldType::FLOAT, false)}),
+                    "", "id", {});
+        UT_EXPECT_THROW(s.DelFields(std::vector<std::string>{"id"}), FieldCannotBeDeletedException);
+        s.AddFields({FieldSpec("telphone", FieldType::STRING, false)});
+        UT_EXPECT_EQ(s.HasTemporalField(), true);
+        UT_EXPECT_EQ(s.GetTemporalField(), "id");
+        UT_EXPECT_EQ(s.GetTemporalFieldId(), s.GetFieldId("id"));
     }
     fma_common::SleepS(1);  // waiting for memory reclaiming by async task
 }

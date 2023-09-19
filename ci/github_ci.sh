@@ -50,7 +50,7 @@ pytest ./
 
 # codecov
 cd $WORKSPACE
-bash ./ci/codecov.sh $WORKSPACE/build $WORKSPACE/testresult $CODECOV_TOKEN
+bash ./ci/codecov.sh $WORKSPACE/build $WORKSPACE/testresult
 # Uploading report to CodeCov
-bash <(curl -s https://codecov.io/bash) -f $2/coverage.info -t  $3 || echo "Codecov did not collect coverage reports"
+bash <(curl -s https://codecov.io/bash) -f $WORKSPACE/testresult/coverage.info -t $CODECOV_TOKEN || echo "Codecov did not collect coverage reports"
 python3  ./ci/lcov_cobertura.py $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle

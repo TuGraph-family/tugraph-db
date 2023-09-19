@@ -358,6 +358,9 @@ class AlgoFunc {
 
     static void PageRank(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void Jaccard(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                        const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -758,6 +761,15 @@ static std::vector<Procedure> global_procedures = {
               },
               Procedure::SIG_SPEC{{"node", {0, lgraph_api::LGraphType::NODE}},
                                   {"pr", {1, lgraph_api::LGraphType::FLOAT}}}),
+
+    Procedure("algo.jaccard", AlgoFunc::Jaccard,
+              Procedure::SIG_SPEC{
+                  {"lhs", {0, lgraph_api::LGraphType::ANY}},
+                  {"rhs", {0, lgraph_api::LGraphType::ANY}},
+              },
+              Procedure::SIG_SPEC{
+                  {"similarity", {0, lgraph_api::LGraphType::FLOAT}},
+              }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},

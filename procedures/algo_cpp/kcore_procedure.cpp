@@ -29,12 +29,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::string output_file = "";
     try {
         json input = json::parse(request);
-        if (input["value_k"].is_number()) {
-            value_k = input["value_k"].get<int64_t>();
-        }
-        if (input["output_file"].is_string()) {
-            output_file = input["output_file"].get<std::string>();
-        }
+        parse_from_json(value_k, "value_k", input);
+        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         throw std::runtime_error("json parse error");
         return false;
@@ -57,6 +53,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     if (output_file != "") {
         FILE* fout = fopen(output_file.c_str(), "w");
+#pragma omp parallel for
         for (size_t i = 0; i < olapondb.NumVertices(); i++) {
             if (result[i]) {
                 fprintf(fout, "%ld, %d\n", i, result[i]);
@@ -64,6 +61,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         }
         fclose(fout);
     }
+    double output_cost = get_time() - start_time;
 
     json output;
     output["num_result_vertices"] = num_result_vertices;
@@ -71,7 +69,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     output["num_edges"] = olapondb.NumEdges();
     output["prepare_cost"] = prepare_cost;
     output["core_cost"] = core_cost;
-    output["total_cost"] = prepare_cost + core_cost;
+    output["total_cost"] = prepare_cost + core_cost + output_cost;
     response = output.dump();
     return true;
 }

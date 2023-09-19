@@ -1152,7 +1152,7 @@ TEST_F(TestImportOnline, HasTid) {
         {
             "label" : "BORN_IN",
             "type" : "EDGE",
-            "primary" : "tid",
+            "temporal" : "tid",
             "properties" : [
                 {"name" : "weight", "type":"FLOAT", "optional":true},
                 {"name" : "tid", "type":"INT64"}
@@ -1163,7 +1163,7 @@ TEST_F(TestImportOnline, HasTid) {
         {
             "label" : "ACTED_IN",
             "type" : "EDGE",
-            "primary" : "tid",
+            "temporal" : "tid",
             "properties" : [
                 {"name" : "charactername", "type":"STRING"},
                 {"name" : "tid", "type" : "INT64"}
