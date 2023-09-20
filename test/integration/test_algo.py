@@ -16,8 +16,8 @@ class TestExec:
     }
 
     IMPORTOPT = {
-        "cmd" : "./lgraph_import -c ./data/algo/fb.conf -d ./testdb --overwrite 1",
-        "cleanup_dir" : ["./testdb", "./.import_tmp"]
+        "cmd" : "./lgraph_import -c ./data/algo/fb.conf -d ./testdb --overwrite 1 && mkdir louvain_output",
+        "cleanup_dir" : ["./testdb", "./.import_tmp", "louvain_output"]
     }
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
@@ -70,6 +70,321 @@ class TestExec:
     def test_exec_bfs_python_standalone(self, algo):
         pass
 
+    BCEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/bc_embed ./testdb",
+        "result": ['''"max_score":1.0,"max_score_vid":1465''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [BCEMBEDOPT], indirect=True)
+    def test_exec_bc_embed(self, importor, algo):
+        pass
+
+    BCSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/bc_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["max score is: score[1465]=1"]
+    }
+
+    @pytest.mark.parametrize("algo", [BCSTANDOPT], indirect=True)
+    def test_exec_bc_standalone(self, algo):
+        pass
+
+    CLCEEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/clce_embed ./testdb",
+        "result": ['''"max_length":1.0,"max_length_vi":1684''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [CLCEEMBEDOPT], indirect=True)
+    def test_exec_clce_embed(self, importor, algo):
+        pass
+
+    CLCESTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/clce_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["max_score is score[1684] = 1.0"]
+    }
+
+    @pytest.mark.parametrize("algo", [CLCESTANDOPT], indirect=True)
+    def test_exec_clce_standalone(self, algo):
+        pass
+
+    CNEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/cn_embed ./testdb",
+        "result": ['''"cn_list":[[0,1,16.0],[1,972,0.0],[101,202,1.0],[1000,4000,0.0]]''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [CNEMBEDOPT], indirect=True)
+    def test_exec_cn_embed(self, importor, algo):
+        pass
+
+    CNSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/cn_standalone --type text --input_dir ./data/algo/fb_weighted --search_dir ./data/algo/search_dir/ --make_symmetric 1",
+        "result": ["cn(0,1) = 16", "cn(1,972) = 0", "cn(101,202) = 1", "cn(1000,4000) = 0"]
+    }
+
+    @pytest.mark.parametrize("algo", [CNSTANDOPT], indirect=True)
+    def test_exec_cn_standalone(self, algo):
+        pass
+
+    DCEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/dc_embed ./testdb",
+        "result": ['''"graph_dc":1.92524''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [DCEMBEDOPT], indirect=True)
+    def test_exec_dc_embed(self, importor, algo):
+        pass
+
+    DCSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/dc_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["graph_dc:1.92524"]
+    }
+
+    @pytest.mark.parametrize("algo", [DCSTANDOPT], indirect=True)
+    def test_exec_dc_standalone(self, algo):
+        pass
+
+    DEEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/de_embed ./testdb",
+        "result": ['''"max_diamension":9''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [DEEMBEDOPT], indirect=True)
+    def test_exec_de_embed(self, importor, algo):
+        pass
+
+    DESTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/de_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["max_diamension:9"]
+    }
+
+    @pytest.mark.parametrize("algo", [DESTANDOPT], indirect=True)
+    def test_exec_de_standalone(self, algo):
+        pass
+
+    FASTTRIANGLEEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/fast_triangle_counting_embed ./testdb",
+        "result": ['''"discovered_triangles":1612010''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [FASTTRIANGLEEMBEDOPT], indirect=True)
+    def test_exec_fast_triangle_embed(self, importor, algo):
+        pass
+
+    FASTTRIANGLESTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/fast_triangle_counting_standalone --type text --input_dir ./data/algo/fb_unweighted --make_symmetric 1",
+        "result": ["discovered 1612010 triangles"]
+    }
+
+    @pytest.mark.parametrize("algo", [FASTTRIANGLESTANDOPT], indirect=True)
+    def test_exec_fast_triangle_standalone(self, algo):
+        pass
+
+    HITSEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/hits_embed ./testdb",
+        "result": ["max authority value is authority[2604] = 0.11527", "max hub value is hub[1912] = 0.13993"]
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [HITSEMBEDOPT], indirect=True)
+    def test_exec_hits_embed(self, importor, algo):
+        pass
+
+    HITSSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/hits_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["max authority value is authority[2604] = 0.11527", "max hub value is hub[1912] = 0.13993"]
+    }
+
+    @pytest.mark.parametrize("algo", [HITSSTANDOPT], indirect=True)
+    def test_exec_hits_standalone(self, algo):
+        pass
+
+    JIEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/ji_embed ./testdb",
+        "result": ['''"ji_list":[[0,1,0.04597701149425287],[1,972,0.0],[101,202,0.045454545454545456]]''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [JIEMBEDOPT], indirect=True)
+    def test_exec_ji_embed(self, importor, algo):
+        pass
+
+    JISTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/ji_standalone --type text --input_dir ./data/algo/fb_weighted --search_dir ./data/algo/search_dir/ --make_symmetric 1",
+        "result": ["ji(0,1) = 0.045977", "ji(1,972) = 0.000000", "ji(101,202) = 0.04545"]
+    }
+
+    @pytest.mark.parametrize("algo", [JISTANDOPT], indirect=True)
+    def test_exec_ji_standalone(self, algo):
+        pass
+
+    KCOREEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/kcore_embed ./testdb",
+        "result": ['''"num_result_vertices":2987''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KCOREEMBEDOPT], indirect=True)
+    def test_exec_kcore_embed(self, importor, algo):
+        pass
+
+    KCORESTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/kcore_standalone --type text --input_dir ./data/algo/fb_weighted --make_symmetric 1",
+        "result": ["number of 10-core vertices: 2987"]
+    }
+
+    @pytest.mark.parametrize("algo", [KCORESTANDOPT], indirect=True)
+    def test_exec_kcore_standalone(self, algo):
+        pass
+
+    KHOPKTH = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/khop_kth_embed ./testdb",
+        "result" : ['''"size":3168''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KHOPKTH], indirect=True)
+    def test_exec_khopkth_embed(self, importor, algo):
+        pass
+
+    KHOPWITHIN = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/khop_within_embed ./testdb",
+        "result" : ['''"size":3259''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KHOPWITHIN], indirect=True)
+    def test_exec_khopwithin_embed(self, importor, algo):
+        pass
+
+    LCCEMBEDOPT = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/lcc_embed ./testdb",
+        "result" : ['''"average_lcc":0.60554''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LCCEMBEDOPT], indirect=True)
+    def test_exec_lcc_embed(self, importor, algo):
+        pass
+
+    LCCSTANDOPT = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/lcc_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result" : ["average_lcc is: 0.60554"]
+    }
+    @pytest.mark.parametrize("algo", [LCCSTANDOPT], indirect=True)
+    def test_exec_lcc_standalone(self, algo):
+        pass
+
+    LCCPYTHONEMBEDOPT = {
+        "cmd": "python3 python_embed.py lcc ./testdb",
+        "result" : ['''"average_lcc": 0.60554''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LCCPYTHONEMBEDOPT], indirect=True)
+    def test_exec_lcc_python_embed(self, importor, algo):
+        pass
+
+    LCCPYTHONSTANDOPT = {
+        "cmd": "python3 python_standalone.py lcc ./data/algo/fb_weighted",
+        "result" : ["average_lcc = 0.60554"]
+    }
+    @pytest.mark.parametrize("algo", [LCCPYTHONSTANDOPT], indirect=True)
+    def test_exec_lcc_python_standalone(self, algo):
+        pass
+
+    LOUVAINEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/louvain_embed ./testdb",
+        "result": ['''"modularity":0.83''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LOUVAINEMBEDOPT], indirect=True)
+    def test_exec_louvain_embed(self, importor, algo):
+        pass
+
+    LOUVAINSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/louvain_standalone --type text --input_dir ./data/algo/fb_weighted --output_dir louvain_output/",
+        "result": ["Q = 0.83"]
+    }
+
+    @pytest.mark.parametrize("algo", [LOUVAINSTANDOPT], indirect=True)
+    def test_exec_louvain_standalone(self, algo):
+        pass
+
+    LPAEMBEDOPT = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/lpa_embed ./testdb",
+        "result" : ['''"modularity":0.770773''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LPAEMBEDOPT], indirect=True)
+    def test_exec_lpa_embed(self, importor, algo):
+        pass
+
+    LPASTANDOPT = {
+        "cmd" : "OMP_NUM_THREADS=6 algo/lpa_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result" : ["modularity: 0.770773"]
+    }
+    @pytest.mark.parametrize("algo", [LPASTANDOPT], indirect=True)
+    def test_exec_lpa_standalone(self, algo):
+        pass
+
+    LPAPYTHONEMBEDOPT = {
+        "cmd": "python3 python_embed.py lpa ./testdb",
+        "result" : ['''"max_community": 1015''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LPAPYTHONEMBEDOPT], indirect=True)
+    def test_exec_lpa_python_embed(self, importor, algo):
+        pass
+
+    LPAPYTHONSTANDOPT = {
+        "cmd": "python3 python_standalone.py lpa ./data/algo/fb_weighted",
+        "result" : ["max_community = 1015"]
+    }
+    @pytest.mark.parametrize("algo", [LPAPYTHONSTANDOPT], indirect=True)
+    def test_exec_lpa_python_standalone(self, algo):
+        pass
+
+    MOTIFEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/motif_embed ./testdb",
+        "result": ['''[6,57512]''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [MOTIFEMBEDOPT], indirect=True)
+    def test_exec_motif_embed(self, importor, algo):
+        pass
+
+    MOTIFSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/motif_standalone --type text --input_dir ./data/algo/fb_unweighted --value_k 3 --vertices_ids 0,1",
+        "result": ["[6,57512]"]
+    }
+
+    @pytest.mark.parametrize("algo", [MOTIFSTANDOPT], indirect=True)
+    def test_exec_motif_standalone(self, algo):
+        pass
+
+    MSSPEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/mssp_embed ./testdb",
+        "result": ['''"max_distance_val":5.0''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [MSSPEMBEDOPT], indirect=True)
+    def test_exec_mssp_embed(self, importor, algo):
+        pass
+
+    MSSPSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/mssp_standalone --type text --input_dir ./data/algo/fb_weighted --roots_dir ./data/algo/roots_dir/",
+        "result": ["max distance is: 5.0"]
+    }
+
+    @pytest.mark.parametrize("algo", [MSSPSTANDOPT], indirect=True)
+    def test_exec_mssp_standalone(self, algo):
+        pass
 
     PGEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/pagerank_embed ./testdb",
@@ -80,7 +395,6 @@ class TestExec:
     @pytest.mark.parametrize("algo", [PGEMBEDOPT], indirect=True)
     def test_exec_pagerank_embed(self, importor, algo):
         pass
-
 
     PGSTANDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/pagerank_standalone --type text --input_dir ./data/algo/fb_weighted",
@@ -123,6 +437,46 @@ class TestExec:
     @pytest.mark.parametrize("algo", [PGPYTHONSTANDOPT], indirect=True)
     def test_exec_pagerank_python_standalone(self, algo):
         pass
+
+    SCCEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/scc_embed ./testdb",
+        "result": ['''"max_component":1,"num_components":4039''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SCCEMBEDOPT], indirect=True)
+    def test_exec_scc_embed(self, importor, algo):
+        pass
+
+    SCCSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/scc_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["num_components = 4039"]
+    }
+
+    @pytest.mark.parametrize("algo", [SCCSTANDOPT], indirect=True)
+    def test_exec_scc_standalone(self, algo):
+        pass
+
+    SPSPEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/spsp_embed ./testdb",
+        "result": ['''"length_list":[[0,1,1],[1,972,10]]''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SPSPEMBEDOPT], indirect=True)
+    def test_exec_spsp_embed(self, importor, algo):
+        pass
+
+    SPSPSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/spsp_standalone --type text --input_dir ./data/algo/fb_weighted --search_dir ./data/algo/search_dir/",
+        "result": ["psp(0,1) = 1",
+                   "psp(1,972) = 10"]
+    }
+
+    @pytest.mark.parametrize("algo", [SPSPSTANDOPT], indirect=True)
+    def test_exec_spsp_standalone(self, algo):
+        pass
+
 
     SSSPEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/sssp_embed ./testdb",
@@ -179,6 +533,25 @@ class TestExec:
     def test_exec_sssp_python_standalone(self, algo):
         pass
 
+    TRIANGLEEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/triangle_embed ./testdb",
+        "result": ['''"discovered_triangles":1612010''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [TRIANGLEEMBEDOPT], indirect=True)
+    def test_exec_triangle_embed(self, importor, algo):
+        pass
+
+    TRIANGLESTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/triangle_standalone --type text --input_dir ./data/algo/fb_weighted --make_symmetric 1",
+        "result": ["discovered 1612010 triangles"]
+    }
+
+    @pytest.mark.parametrize("algo", [TRIANGLESTANDOPT], indirect=True)
+    def test_exec_triangle_standalone(self, algo):
+        pass
+
     WCCEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/wcc_embed ./testdb",
         "result" : ['''"max_component":4039,"num_components":1''']
@@ -187,7 +560,6 @@ class TestExec:
     @pytest.mark.parametrize("algo", [WCCEMBEDOPT], indirect=True)
     def test_exec_wcc_embed(self, importor, algo):
         pass
-
 
     WCCSTANDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/wcc_standalone --type text --input_dir ./data/algo/fb_weighted",
@@ -213,305 +585,4 @@ class TestExec:
     }
     @pytest.mark.parametrize("algo", [WCCPYTHONSTANDOPT], indirect=True)
     def test_exec_wcc_python_standalone(self, algo):
-        pass
-
-    LCCEMBEDOPT = {
-        "cmd" : "OMP_NUM_THREADS=6 algo/lcc_embed ./testdb",
-        "result" : ['''"average_lcc":0.60554''']
-    }
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [LCCEMBEDOPT], indirect=True)
-    def test_exec_lcc_embed(self, importor, algo):
-        pass
-
-    LCCSTANDOPT = {
-        "cmd" : "OMP_NUM_THREADS=6 algo/lcc_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result" : ["average_lcc is: 0.60554"]
-    }
-    @pytest.mark.parametrize("algo", [LCCSTANDOPT], indirect=True)
-    def test_exec_lcc_standalone(self, algo):
-        pass
-
-    LCCPYTHONEMBEDOPT = {
-        "cmd": "python3 python_embed.py lcc ./testdb",
-        "result" : ['''"average_lcc": 0.60554''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [LCCPYTHONEMBEDOPT], indirect=True)
-    def test_exec_lcc_python_embed(self, importor, algo):
-        pass
-
-    LCCPYTHONSTANDOPT = {
-        "cmd": "python3 python_standalone.py lcc ./data/algo/fb_weighted",
-        "result" : ["average_lcc = 0.60554"]
-    }
-    @pytest.mark.parametrize("algo", [LCCPYTHONSTANDOPT], indirect=True)
-    def test_exec_lcc_python_standalone(self, algo):
-        pass
-
-
-    LPAEMBEDOPT = {
-        "cmd" : "OMP_NUM_THREADS=6 algo/lpa_embed ./testdb",
-        "result" : ['''"modularity":0.770773''']
-    }
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [LPAEMBEDOPT], indirect=True)
-    def test_exec_lpa_embed(self, importor, algo):
-        pass
-
-    LPASTANDOPT = {
-        "cmd" : "OMP_NUM_THREADS=6 algo/lpa_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result" : ["modularity: 0.770773"]
-    }
-    @pytest.mark.parametrize("algo", [LPASTANDOPT], indirect=True)
-    def test_exec_lpa_standalone(self, algo):
-        pass
-
-    LPAPYTHONEMBEDOPT = {
-        "cmd": "python3 python_embed.py lpa ./testdb",
-        "result" : ['''"max_community": 1015''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [LPAPYTHONEMBEDOPT], indirect=True)
-    def test_exec_lpa_python_embed(self, importor, algo):
-        pass
-
-    LPAPYTHONSTANDOPT = {
-        "cmd": "python3 python_standalone.py lpa ./data/algo/fb_weighted",
-        "result" : ["max_community = 1015"]
-    }
-    @pytest.mark.parametrize("algo", [LPAPYTHONSTANDOPT], indirect=True)
-    def test_exec_lpa_python_standalone(self, algo):
-        pass
-
-
-
-    KHOPKTH = {
-        "cmd" : "OMP_NUM_THREADS=6 algo/khop_kth_embed ./testdb",
-        "result" : ['''"size":3168''']
-    }
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [KHOPKTH], indirect=True)
-    def test_exec_khopkth_embed(self, importor, algo):
-        pass
-
-    KHOPWITHIN = {
-        "cmd" : "OMP_NUM_THREADS=6 algo/khop_within_embed ./testdb",
-        "result" : ['''"size":3259''']
-    }
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [KHOPWITHIN], indirect=True)
-    def test_exec_khopwithin_embed(self, importor, algo):
-        pass
-
-    BCEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/bc_embed ./testdb",
-        "result": ['''"max_score":1.0,"max_score_vid":1465''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [BCEMBEDOPT], indirect=True)
-    def test_exec_bc_embed(self, importor, algo):
-        pass
-
-    BCSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/bc_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result": ["max score is: score[1465]=1"]
-    }
-
-    @pytest.mark.parametrize("algo", [BCSTANDOPT], indirect=True)
-    def test_exec_bc_standalone(self, algo):
-        pass
-
-    CNEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/cn_embed ./testdb",
-        "result": ['''"cn_list":[[0,1,16.0],[1,2,1.0]]''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [CNEMBEDOPT], indirect=True)
-    def test_exec_cn_embed(self, importor, algo):
-        pass
-
-    CNSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/cn_standalone --type text --input_dir ./data/algo/fb_weighted --search_dir ./data/algo/search_dir/ --make_symmetric 1",
-        "result": ["cn(0,1) = 16", "cn(1,2) = 1", "cn(1,100) = 2", "cn(1,972) = 0", "cn(101,202) = 1"]
-    }
-
-    @pytest.mark.parametrize("algo", [CNSTANDOPT], indirect=True)
-    def test_exec_cn_standalone(self, algo):
-        pass
-
-    DCEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/dc_embed ./testdb",
-        "result": ['''"graph_dc":1.92524''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [DCEMBEDOPT], indirect=True)
-    def test_exec_dc_embed(self, importor, algo):
-        pass
-
-    DCSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/dc_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result": ["graph_dc:1.92524"]
-    }
-
-    @pytest.mark.parametrize("algo", [DCSTANDOPT], indirect=True)
-    def test_exec_dc_standalone(self, algo):
-        pass
-
-    DEEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/de_embed ./testdb",
-        "result": ['''"max_diamension":9''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [DEEMBEDOPT], indirect=True)
-    def test_exec_de_embed(self, importor, algo):
-        pass
-
-    DESTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/de_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result": ["max_diamension:9"]
-    }
-
-    @pytest.mark.parametrize("algo", [DESTANDOPT], indirect=True)
-    def test_exec_de_standalone(self, algo):
-        pass
-
-    ENEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/en_embed ./testdb",
-        "result": ['''"num_reachable_vertices":348''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [ENEMBEDOPT], indirect=True)
-    def test_exec_en_embed(self, importor, algo):
-        pass
-
-    ENSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/en_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result": ["num_reachable_vertices:348"]
-    }
-
-    @pytest.mark.parametrize("algo", [ENSTANDOPT], indirect=True)
-    def test_exec_en_standalone(self, algo):
-        pass
-
-    FASTTRIANGLEEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/fast_triangle_counting_embed ./testdb",
-        "result": ['''"discovered_triangles":1612010''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [FASTTRIANGLEEMBEDOPT], indirect=True)
-    def test_exec_fast_triangle_embed(self, importor, algo):
-        pass
-
-    FASTTRIANGLESTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/fast_triangle_counting_standalone --type text --input_dir ./data/algo/fb_unweighted --make_symmetric 1",
-        "result": ["discovered 1612010 triangles"]
-    }
-
-    @pytest.mark.parametrize("algo", [FASTTRIANGLESTANDOPT], indirect=True)
-    def test_exec_fast_triangle_standalone(self, algo):
-        pass
-
-    HITSEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/hits_embed ./testdb",
-        "result": ["max authority value is authority[2604] = 0.11527", "max hub value is hub[1912] = 0.13993"]
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [HITSEMBEDOPT], indirect=True)
-    def test_exec_hits_embed(self, importor, algo):
-        pass
-
-    HITSSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/hits_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result": ["max authority value is authority[2604] = 0.11527", "max hub value is hub[1912] = 0.13993"]
-    }
-
-    @pytest.mark.parametrize("algo", [HITSSTANDOPT], indirect=True)
-    def test_exec_hits_standalone(self, algo):
-        pass
-
-    JIEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/ji_embed ./testdb",
-        "result": ['''"ji_list":[[0,1,0.04597701149425287],[1,2,0.038461538461538464]]''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [JIEMBEDOPT], indirect=True)
-    def test_exec_ji_embed(self, importor, algo):
-        pass
-
-    JISTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/ji_standalone --type text --input_dir ./data/algo/fb_weighted --search_dir ./data/algo/search_dir/ --make_symmetric 1",
-        "result": ["ji(0,1) = 0.045977", "ji(1,2) = 0.03846", "ji(1,100) = 0.08333", "ji(1,972) = 0.00000",
-                   "ji(101,202) = 0.04545"]
-    }
-
-    @pytest.mark.parametrize("algo", [JISTANDOPT], indirect=True)
-    def test_exec_ji_standalone(self, algo):
-        pass
-
-    LOUVAINEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/louvain_embed ./testdb",
-        "result": ['''"modularity":0.83''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [LOUVAINEMBEDOPT], indirect=True)
-    def test_exec_louvain_embed(self, importor, algo):
-        pass
-
-    LOUVAINSTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/louvain_standalone --type text --input_dir ./data/algo/fb_weighted",
-        "result": ["Q = 0.83"]
-    }
-
-    @pytest.mark.parametrize("algo", [LOUVAINSTANDOPT], indirect=True)
-    def test_exec_louvain_standalone(self, algo):
-        pass
-
-    KCOREEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/kcore_embed ./testdb",
-        "result": ['''"num_result_vertices":2987''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [KCOREEMBEDOPT], indirect=True)
-    def test_exec_kcore_embed(self, importor, algo):
-        pass
-
-    KCORESTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/kcore_standalone --type text --input_dir ./data/algo/fb_weighted --make_symmetric 1",
-        "result": ["number of 10-core vertices: 2987"]
-    }
-
-    @pytest.mark.parametrize("algo", [KCORESTANDOPT], indirect=True)
-    def test_exec_kcore_standalone(self, algo):
-        pass
-
-    TRIANGLEEMBEDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/triangle_embed ./testdb",
-        "result": ['''"discovered_triangles":1612010''']
-    }
-
-    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
-    @pytest.mark.parametrize("algo", [TRIANGLEEMBEDOPT], indirect=True)
-    def test_exec_triangle_embed(self, importor, algo):
-        pass
-
-    TRIANGLESTANDOPT = {
-        "cmd": "OMP_NUM_THREADS=6 algo/triangle_standalone --type text --input_dir ./data/algo/fb_weighted --make_symmetric 1",
-        "result": ["discovered 1612010 triangles"]
-    }
-
-    @pytest.mark.parametrize("algo", [TRIANGLESTANDOPT], indirect=True)
-    def test_exec_triangle_standalone(self, algo):
         pass

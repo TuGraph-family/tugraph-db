@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     import_v3::Importer::Config import_config_v3;
     OnlineImportClient::Config online_import_config;
 
-    std::string log_file;
+    std::string log_dir;
     int verbose_level = 1;
     bool memory_profile = false;
 
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
     if (online) {
         fma_common::Configuration config;
-        config.Add(log_file, "log", true).Comment("Log file to use, empty means stderr");
+        config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
         config.Add(verbose_level, "v,verbose", true)
             .Comment("Verbose level to use, higher means more verbose");
         config.Add(online_import_config.config_file, "c,config_file", false)
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
         config.ParseAndFinalize(argc, argv);
     } else if (!v3) {
         fma_common::Configuration config;
-        config.Add(log_file, "log", true).Comment("Log file to use, empty means stderr");
+        config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
         config.Add(verbose_level, "v,verbose", true)
             .Comment("Verbose level to use, higher means more verbose");
         config.Add(import_config.config_file, "c,config_file", false).Comment("Config file path");
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
         config.ParseAndFinalize(argc, argv);
     } else {
         fma_common::Configuration config;
-        config.Add(log_file, "log", true).Comment("Log file to use, empty means stderr");
+        config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
         config.Add(verbose_level, "v,verbose", true)
             .Comment("Verbose level to use, higher means more verbose");
         config.Add(import_config_v3.config_file, "c,config_file", false)
@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
         vlevel = lgraph_log::DEBUG;
         break;
     }
-    lgraph_log::LoggerManager::GetInstance().Init("", vlevel);
+    lgraph_log::LoggerManager::GetInstance().Init(log_dir, vlevel);
 
     try {
         if (online) {
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
                       << "\n\tfrom:                " << online_import_config.config_file
                       << "\n\tto:                  " << online_import_config.url
                       << "\n\tverbose:             " << verbose_level
-                      << "\n\tlog:                 " << log_file;
+                      << "\n\tlog_dir:             " << log_dir;
             online_import_config.delimiter = lgraph::ParseDelimiter(online_import_config.delimiter);
             OnlineImportClient client(online_import_config);
             client.DoImport();
@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
                       << "\n\tfrom:                " << import_config.config_file
                       << "\n\tto:                  " << import_config.db_dir
                       << "\n\tverbose:             " << verbose_level
-                      << "\n\tlog:                 " << log_file;
+                      << "\n\tlog_dir:             " << log_dir;
             import_config.delimiter = lgraph::ParseDelimiter(import_config.delimiter);
             fma_common::TimedTaskScheduler scheduler;
             if (memory_profile) {
@@ -229,7 +229,7 @@ int main(int argc, char** argv) {
                       << "\n\tfrom:                 " << import_config_v3.config_file
                       << "\n\tto:                   " << import_config_v3.db_dir
                       << "\n\tverbose:              " << verbose_level
-                      << "\n\tlog:                  " << log_file
+                      << "\n\tlog_dir:              " << log_dir
                       << "\n\tkeep_vid_in_memory:   " << import_config_v3.keep_vid_in_memory
                       << "\n\tparse_file_threads:   " << import_config_v3.parse_file_threads
                       << "\n\tparse_block_threads:  " << import_config_v3.parse_block_threads

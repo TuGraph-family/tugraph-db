@@ -52,22 +52,26 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            throw InputError(
-                fma_common::StringFormatter::Format("Failed to un-index vertex [{}] with field "
+            throw InputError(FMA_FMT("Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record)));
         }
     }
 }
 
-void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
-    for (auto& idx : indexed_fields_) {
+void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                                      const std::vector<size_t>& created) {
+    for (auto& idx : created) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VertexIndex* index = fe.GetVertexIndex();
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
-        index->Delete(txn, fe.GetConstRef(record), vid);
+        if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+            throw InputError(FMA_FMT("Failed to un-index vertex [{}] with field "
+                                                    "value [{}:{}]: index value does not exist.",
+                                                    vid, fe.Name(), fe.FieldToString(record)));
+        }
     }
 }
 
@@ -107,7 +111,9 @@ void Schema::AddVertexToFullTextIndex(VertexId vid, const Value& record,
     buffers.emplace_back(std::move(entry));
 }
 
-void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                              std::vector<size_t>& created) {
+    created.reserve(fields_.size());
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
@@ -115,10 +121,11 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
         FMA_ASSERT(index);
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            throw InputError(fma_common::StringFormatter::Format(
+            throw InputError(FMA_FMT(
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record)));
         }
+        created.push_back(idx);
     }
 }
 
@@ -130,26 +137,32 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Valu
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            throw InputError(
-                fma_common::StringFormatter::Format("Failed to un-index edge with field "
+            throw InputError(FMA_FMT("Failed to un-index edge with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     fe.Name(), fe.FieldToString(record)));
         }
     }
 }
 
-void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
-    for (auto& idx : indexed_fields_) {
+void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
+                                    const std::vector<size_t>& created) {
+    for (auto& idx : created) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         EdgeIndex* index = fe.GetEdgeIndex();
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
-        index->Delete(txn, fe.GetConstRef(record), euid);
+        if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+            throw InputError(FMA_FMT("Failed to un-index edge with field "
+                                                    "value [{}:{}]: index value does not exist.",
+                                                    fe.Name(), fe.FieldToString(record)));
+        }
     }
 }
 
-void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
+void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
+                            std::vector<size_t>& created) {
+    created.reserve(fields_.size());
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
@@ -157,10 +170,11 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
         FMA_ASSERT(index);
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), euid)) {
-            throw InputError(fma_common::StringFormatter::Format(
+            throw InputError(FMA_FMT(
                 "Failed to index edge with field value [{}:{}]: index value already exists.",
                 fe.Name(), fe.FieldToString(record)));
         }
+        created.push_back(idx);
     }
 }
 
@@ -399,7 +413,8 @@ void Schema::ClearFields() {
  */
 
 void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
-                       const std::string& primary, const EdgeConstraints& edge_constraints) {
+                       const std::string& primary, const std::string& temporal,
+                       const EdgeConstraints& edge_constraints) {
     if (_F_UNLIKELY(n_fields > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
     fields_.clear();
     name_to_idx_.clear();
@@ -417,6 +432,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     }
     is_vertex_ = is_vertex;
     primary_field_ = primary;
+    temporal_field_ = temporal;
     edge_constraints_ = edge_constraints;
     RefreshLayout();
 }
@@ -434,11 +450,11 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         }
     } else {
         // if edge has temporal field, can not be deleted
-        if (!primary_field_.empty()) {
+        if (!temporal_field_.empty()) {
             auto ret = std::find_if(del_fields.begin(), del_fields.end(),
-                                    [this](auto& fd) { return this->primary_field_ == fd; });
+                                    [this](auto& fd) { return this->temporal_field_ == fd; });
             if (ret != del_fields.end()) {
-                throw FieldCannotBeDeletedException(primary_field_);
+                throw FieldCannotBeDeletedException(temporal_field_);
             }
         }
     }

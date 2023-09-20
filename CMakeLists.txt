@@ -49,7 +49,7 @@ add_subdirectory(deps/geax-front-end)
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(toolkits)
-add_subdirectory(plugins)
+add_subdirectory(procedures)
 add_subdirectory(release)
 add_subdirectory(learn)
 

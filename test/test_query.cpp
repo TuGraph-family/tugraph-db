@@ -58,9 +58,8 @@ class TestQuery : public TuGraphTest {
     inline static const std::string RESULT_SUFFIX = ".result";
     inline static const std::string COMMENT_PREFIX = "#";
     inline static const std::string END_LINE_SUFFIX = ";";
-    inline static const std::string LOAD_PROCEDURE_CMD_PREFIX = "--loadProcedure";
-    inline static const std::string SET_PER_NODE_LIMIT_CMD_PREFIX = "--setPerNodeLimit";
-    inline static const std::string ERROR_CMD_PREFIX = "--error";
+    inline static const std::string LOAD_PROCEDURE_CMD_PREFIX = "-- loadProcedure";
+    inline static const std::string ERROR_CMD_PREFIX = "-- error";
     inline static const std::string LOAD_PROCEDURE_READ_ONLY = "read_only=true";
     std::string db_dir_ = "./testdb";
     std::string graph_name_ = "default";
@@ -245,6 +244,18 @@ class TestQuery : public TuGraphTest {
                 real_file_out << line << std::endl;
                 is_error = true;
                 continue;
+            } else if (fma_common::StartsWith(line_t, LOAD_PROCEDURE_CMD_PREFIX)) {
+                // Load stored procedure
+                // Input format: -- loadProcedure name procedure_source_path [read_only=true]
+                // The default value for read_only is true.
+                real_file_out << line << std::endl;
+                auto args = fma_common::Split(line_t, " ");
+                if (args.size() / 2 == 2 && !args[2].empty() && !args[3].empty()) {
+                    load_procedure(args[2], args[3],
+                                   args.size() != 5 || args[4] == LOAD_PROCEDURE_READ_ONLY);
+                    continue;
+                }
+                UT_EXPECT_TRUE(false);
             }
             if (!query.empty()) {
                 query += "\n";
@@ -268,6 +279,27 @@ class TestQuery : public TuGraphTest {
         } else {
             UT_EXPECT_TRUE(false);
         }
+    }
+
+    void load_procedure(const std::string& name, const std::string& procedure_source_path,
+                        bool read_only = true) {
+        std::ifstream f;
+        f.open(procedure_source_path, std::ios::in);
+        std::string buf;
+        std::string text = "";
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        std::string encoded = lgraph_api::encode_base64(text);
+        std::string result;
+        std::string procedure_version = "v1";
+        UT_EXPECT_TRUE(test_cypher_case(
+            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', {}, '{}')", name,
+                    encoded, name, read_only ? "true" : "false", procedure_version),
+            result));
+        return;
     }
 };
 
@@ -317,5 +349,12 @@ TEST_F(TestQuery, TestGqlFinbench) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
     set_query_type(lgraph::ut::QUERY_TYPE::GQL);
     std::string dir = test_suite_dir_ + "/finbench/gql";
+    test_files(dir);
+}
+
+TEST_F(TestQuery, TestCypherFinbench) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
+    set_query_type(lgraph::ut::QUERY_TYPE::CYPHER);
+    std::string dir = test_suite_dir_ + "/finbench/cypher";
     test_files(dir);
 }

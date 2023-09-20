@@ -90,11 +90,11 @@ RETURN
     count(n) as num;
 [{"max0":1966.0,"num":11,"sum1":21274.0,"sum2":21263.0}]
 
---error
+-- error
 MATCH (n) RETURN sum(count(n.birthyear));
 Agg function cannot be nested
 
---error
+-- error
 MATCH (n) RETURN sum(n.birthyear)+round(n.birthyear);
 Variables cannot be used outside of the Agg function, for example: sum(n) + m
 

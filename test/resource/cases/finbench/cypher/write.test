@@ -1,0 +1,120 @@
+# write 1
+CREATE
+(p:Person{id:1000, name:'Person1000', isBlocked:false})-[:own]->
+(a:Account{id:1000, createTime:20, isBlocked:false, type:'tp1'});
+# check
+MATCH (n:Person{id:1000})-[e:own]-(m:Account{id:1000})
+RETURN n.id, m.id;
+
+
+# write 2
+CREATE (:Company {id:2000, name:'Company2000', isBlocked:false})
+    -[:own]->
+    (:Account {id: 2000, createTime: 20, isBlocked: false, type: 'tp1'});
+# check
+MATCH (n:Company{id:2000})-[e:own]-(m:Account{id:2000})
+RETURN n.id, m.id;
+
+
+# write 3
+MATCH (dst:Account {id: 19}), (src:Account {id: 17})
+CREATE (dst)<-[:transfer {timestamp: 20, amount: 20}]-(src);
+# check
+MATCH (dst:Account {id: 19})-[e:transfer]-(src:Account {id: 17})
+RETURN count(e) as num_e;
+
+
+# write 4
+MATCH (dst:Account {id: 19}), (src:Account {id: 17})
+WHERE dst.type='tp3'
+CREATE (dst)<-[:withdraw {timestamp: 20, amount: 20}]-(src);
+# check
+MATCH (dst:Account {id: 19})-[e:withdraw]-(src:Account {id: 17})
+RETURN count(e) as num_e;
+
+
+# write 5
+MATCH (p:Person {id: 15})
+CREATE (:Loan {id: 5000, loanAmount: 15, balance: 0})<-[:apply {timestamp: 15}]-(p);
+# check
+MATCH (p:Person {id: 15})-[e:apply]->(loan:Loan{id:5000})
+RETURN e.timestamp;
+
+
+# write 6
+MATCH (c:Company {id: 15})
+CREATE (:Loan {id: 6000, loanAmount: 16, balance: 0})<-[:apply {timestamp: 16}]-(c);
+# check
+MATCH (c:Company {id: 15})-[e:apply]->(loan:Loan{id:6000})
+RETURN e.timestamp;
+
+
+# write 7
+MATCH (acc:Account {id: 15})
+CREATE (acc)<-[:signIn {timestamp: 17}]-(:Medium {id: 7000, isBlocked: false, type: 'tp1'});
+# check
+MATCH (acc:Account {id: 15})<-[e:signIn]-(:Medium{id:7000})
+RETURN e.timestamp;
+
+
+# write 8
+MATCH (acc:Account {id: 15}), (loan: Loan {id: 16})
+CREATE (acc)<-[:deposit {timestamp: 18, amount: 18}]-(loan);
+# check
+MATCH (acc:Account {id: 15})<-[e:deposit]-(:Loan{id:16})
+RETURN e.timestamp;
+
+
+# write 9
+MATCH (acc:Account {id: 15}), (loan: Loan {id: 16})
+CREATE (acc)-[:repay {timestamp: 19, amount: 19}]->(loan);
+# check
+MATCH (acc:Account {id: 15})-[e:repay]->(:Loan{id:16})
+RETURN e.timestamp;
+
+
+# write 10
+MATCH (acc:Account {id: 19})
+SET acc.isBlocked = true;
+# check
+MATCH (acc:Account {id: 19})
+RETURN acc.isBlocked as isBlocked;
+
+
+# write 11
+MATCH (p1:Person {id: 19})
+SET p1.isBlocked = true;
+# check
+MATCH (p1:Person {id: 19})
+RETURN p1.isBlocked as isBlocked;
+
+
+# write 12
+MATCH (med:Medium {id: 19})
+SET med.isBlocked = true;
+# check
+MATCH (med:Medium {id: 19})
+RETURN med.isBlocked as isBlocked;
+
+
+# write 13
+MATCH (p1:Person{id:18}),(p2:Person{id:19})
+CREATE (p1)<-[:guarantee {timestamp: 23}]-(p2);
+# check
+MATCH (p1:Person{id:18})<-[e:guarantee]-(p2:Person{id:19})
+RETURN e.timestamp;
+
+
+# write 14
+MATCH (acc:Account {id: 1}) WITH acc
+OPTIONAL MATCH (acc)-[:repay]->(loan:Loan)-[:deposit]->(acc)
+DELETE acc, loan;
+# check
+MATCH (acc:Account {id: 1}) RETURN acc;
+
+
+# write 15
+MATCH (loan:Loan {id: 18})
+DELETE loan;
+# check
+MATCH (loan:Loan {id: 18}) RETURN loan;

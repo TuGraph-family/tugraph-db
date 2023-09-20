@@ -203,7 +203,7 @@ class SchemaManager {
             }
             ls->SetLabelId((LabelId)(schemas_.size() - 1));
         }
-        std::string primary;
+        std::string primary, temporal;
         if (is_vertex) {
             primary = dynamic_cast<const VertexOptions&>(options).primary_field;
         }
@@ -211,8 +211,9 @@ class SchemaManager {
         if (!is_vertex) {
             edge_constraints = dynamic_cast<const EdgeOptions&>(options).edge_constraints;
             primary = dynamic_cast<const EdgeOptions&>(options).temporal_field;
+            temporal = dynamic_cast<const EdgeOptions&>(options).temporal_field;
         }
-        ls->SetSchema(is_vertex, n_fields, fields, primary, edge_constraints);
+        ls->SetSchema(is_vertex, n_fields, fields, primary, temporal, edge_constraints);
         ls->SetLabel(label);
         ls->SetDetachProperty(options.detach_property);
         name_to_idx_.emplace_hint(it, label, ls->GetLabelId());

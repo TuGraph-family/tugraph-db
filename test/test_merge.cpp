@@ -18,8 +18,8 @@
 #include "gtest/gtest.h"
 
 #include "core/lightning_graph.h"
-#include "../plugins/cpp/merge.h"
-#include "../plugins/cpp/merge_reduced.h"
+#include "../procedures/demo/merge.h"
+#include "../procedures/demo/merge_reduced.h"
 #include "./ut_utils.h"
 using namespace lgraph_api;
 using namespace std;
