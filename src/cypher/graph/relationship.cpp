@@ -44,7 +44,9 @@ Relationship::Relationship(RelpID id, const std::set<std::string> &types, NodeID
       direction_(direction),
       derivation_(derivation),
       min_hop_(min_hop),
-      max_hop_(max_hop) {}
+      max_hop_(max_hop) {
+    its_.resize(max_hop_ < 0 ? 0 : max_hop_);
+}
 
 RelpID Relationship::ID() const { return id_; }
 
@@ -75,6 +77,8 @@ NodeID Relationship::Dst() const {
 const std::string &Relationship::Alias() const { return alias_; }
 
 lgraph::EIter *Relationship::ItRef() { return &it_; }
+
+std::vector<lgraph::EIter> &Relationship::ItsRef() { return its_; }
 
 bool Relationship::Empty() const { return (id_ < 0); }
 

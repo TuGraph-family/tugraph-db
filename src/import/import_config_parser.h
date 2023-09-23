@@ -187,11 +187,20 @@ struct ColumnSpec {
     bool unique = false;
     bool global = false;
     bool primary = false;
+    bool temporal = false;
     bool fulltext = false;
 
     inline bool CheckValid() const {
-        if (primary && !(index && unique)) throw InputError("primary should be index and unique");
-        if (index && optional) throw InputError("index/primary should not be optional");
+        if (primary && !(index && unique)) throw InputError(
+            FMA_FMT("primary {} should be index and unique", name));
+        if (unique && optional) throw InputError(
+            FMA_FMT("unique/primary index {} should not be optional", name));
+        if (type == FieldType ::BLOB && index) throw InputError(
+            FMA_FMT("BLOB field {} should not be indexed", name));
+        if (type != FieldType::STRING && fulltext) throw InputError(
+            FMA_FMT("fulltext index {} only supports STRING type", name));
+        if (type != FieldType::INT64 && temporal) throw InputError(
+            FMA_FMT("edge label [{}] temporal field [{}] should be INT64", name));
         return true;
     }
 
@@ -203,10 +212,11 @@ struct ColumnSpec {
           unique(false),
           global(false),
           primary(false),
+          temporal(false),
           fulltext(false) {}
     ColumnSpec(std::string name_, FieldType type_, bool is_id_, bool optional_ = false,
                bool index_ = false, bool unique_ = false, bool global_ = false,
-               bool fulltext_ = false)
+               bool temporal_ = false, bool fulltext_ = false)
         : name(std::move(name_)),
           type(type_),
           optional(optional_),
@@ -214,13 +224,14 @@ struct ColumnSpec {
           unique(unique_),
           global(global_),
           primary(is_id_),
+          temporal(temporal_),
           fulltext(fulltext_) {}
 
     bool operator==(const ColumnSpec& rhs) const {
         // do not compare is_id/skip
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
                index == rhs.index && unique == rhs.unique && global == rhs.global &&
-               fulltext == rhs.fulltext;
+               temporal == rhs.temporal && fulltext == rhs.fulltext;
     }
 
     bool operator<(const ColumnSpec& rhs) const { return name < rhs.name; }
@@ -237,6 +248,7 @@ struct ColumnSpec {
         conf["index"] = this->index;
         conf["unique"] = this->unique;
         conf["global"] = this->global;
+        conf["temporal"] = this->temporal;
         conf["optional"] = this->optional;
         return conf.dump(4);
     }
@@ -320,18 +332,18 @@ struct LabelDesc {
     }
 
     ColumnSpec GetTemporalField() const {
-        if (is_vertex) throw std::runtime_error("No primary column found");
+        if (is_vertex) throw std::runtime_error("No temporal column found");
         for (auto it = columns.begin(); it != columns.end(); ++it) {
-            if (it->primary) return *it;
+            if (it->temporal) return *it;
         }
-        throw std::runtime_error("No primary column found");
+        throw std::runtime_error("No temporal column found");
     }
 
     bool HasTemporalField() const {
         if (is_vertex) return false;
         bool ret = false;
         for (auto it = columns.begin(); it != columns.end(); ++it) {
-            if (it->primary) return true;
+            if (it->temporal) return true;
         }
         return ret;
     }
@@ -403,24 +415,13 @@ struct LabelDesc {
     bool CheckValid() const {
         bool find_primary = false;
         for (auto it = columns.begin(); it != columns.end(); ++it) {
+            it->CheckValid();
             if (it->primary && is_vertex) {
                 if (find_primary) {
                     throw InputError(
                         FMA_FMT("vertex label [{}] should has no more than one primary.", name));
                 }
                 find_primary = true;
-            }
-            if (!is_vertex && it->primary) {
-                if (it->type != FieldType::INT64)
-                    throw InputError(FMA_FMT("edge label [{}] primary field [{}] should be INT64",
-                                             name, it->name));
-            }
-            if (it->type == FieldType::BLOB && it->index)
-                throw InputError(
-                    FMA_FMT("vertex label [{}]'s BLOB field is indexed, which should not", name));
-            if (it->fulltext && it->type != FieldType::STRING) {
-                throw InputError(
-                    FMA_FMT("label [{}] ：fulltext index only supports STRING type", name));
             }
         }
         if (is_vertex && !find_primary) {
@@ -761,13 +762,21 @@ class ImportConfParser {
                     throw InputError(FMA_FMT(
                         R"(Label[{}]: Missing "primary" or "properties" definition)", ld.name));
                 }
+                if (s.contains("temporal")) {
+                    throw InputError(FMA_FMT(
+                        R"(Label[{}]: "temporal" is not supported in Vertex)", ld.name));
+                }
                 for (auto & p : s["properties"]) {
                     if (p.contains("global")) {
                         throw InputError(FMA_FMT(
-                            R"(global indexe is not supported in Vertex [{}])", ld.name));
+                            R"(Label[{}]: "global indexe" is not supported in Vertex)", ld.name));
                     }
                 }
             } else {
+                if (s.contains("primary")) {
+                    throw InputError(FMA_FMT(
+                        R"(Label[{}]: "primary" is not supported in Edge)", ld.name));
+                }
                 if (s.contains("constraints")) {
                     if (!s["constraints"].is_array())
                         throw InputError(
@@ -806,6 +815,9 @@ class ImportConfParser {
                             cs.unique = true;
                             cs.index = true;
                         }
+                    }
+                    if (s.contains("temporal") && cs.name == s["temporal"]) {
+                        cs.temporal = true;
                     }
                     if (p.contains("index")) {
                         cs.index = p["index"];

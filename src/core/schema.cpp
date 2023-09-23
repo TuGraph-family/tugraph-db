@@ -476,7 +476,8 @@ void Schema::ClearFields() {
  */
 
 void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
-                       const std::string& primary, const EdgeConstraints& edge_constraints) {
+                       const std::string& primary, const std::string& temporal,
+                       const EdgeConstraints& edge_constraints) {
     if (_F_UNLIKELY(n_fields > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
     fields_.clear();
     name_to_idx_.clear();
@@ -494,6 +495,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     }
     is_vertex_ = is_vertex;
     primary_field_ = primary;
+    temporal_field_ = temporal;
     edge_constraints_ = edge_constraints;
     RefreshLayout();
 }
@@ -511,11 +513,11 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         }
     } else {
         // if edge has temporal field, can not be deleted
-        if (!primary_field_.empty()) {
+        if (!temporal_field_.empty()) {
             auto ret = std::find_if(del_fields.begin(), del_fields.end(),
-                                    [this](auto& fd) { return this->primary_field_ == fd; });
+                                    [this](auto& fd) { return this->temporal_field_ == fd; });
             if (ret != del_fields.end()) {
-                throw FieldCannotBeDeletedException(primary_field_);
+                throw FieldCannotBeDeletedException(temporal_field_);
             }
         }
     }

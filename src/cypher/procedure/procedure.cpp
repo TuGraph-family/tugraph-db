@@ -20,6 +20,7 @@
 #include "core/field_data_helper.h"
 #include "core/thread_id.h"
 #include "db/galaxy.h"
+#include "parser/data_typedef.h"
 #include "server/state_machine.h"
 #include "restful/server/json_convert.h"
 #include "cypher/graph/common.h"
@@ -42,6 +43,9 @@ namespace cypher {
         if (!ctx->ac_db_) CYPHER_INTL_ERR();                                                  \
         if (!ctx->txn_) CYPHER_INTL_ERR();                                                    \
     } while (0)
+
+typedef std::unordered_map<std::string, std::unordered_map<std::string, lgraph::FieldData>>
+    EDGE_FILTER_T;
 
 const std::unordered_map<std::string, lgraph::FieldType> BuiltinProcedure::type_map_ =
     lgraph::field_data_helper::_detail::_FieldName2TypeDict_();
@@ -1953,33 +1957,77 @@ static void _FetchPath(lgraph::Transaction &txn, size_t hops,
     }
 }
 
+template<typename EIT>
+static bool _Filter(lgraph::Transaction &txn, const EIT &eit,
+                    const EDGE_FILTER_T &edge_filter) {
+    for (auto &kv1 : edge_filter) {
+        auto field = txn.GetEdgeField(eit.GetUid(), kv1.first);
+        for (auto &kv2 : kv1.second) {
+            if ((kv2.first == "smaller_than" && field >= kv2.second) ||
+                (kv2.first == "greater_than" && field <= kv2.second)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgraph::VertexId vid,
-                                                   const std::string &edge_label) {
+                                                   const std::string &edge_label,
+                                                   const EDGE_FILTER_T& edge_filter,
+                                                   const parser::LinkDirection& direction,
+                                                   std::optional<size_t> per_node_limit) {
     static fma_common::Logger &logger = fma_common::Logger::Get("cypher.algo.p2puwssp");
     auto vit = txn.GetVertexIterator(vid);
     CYPHER_THROW_ASSERT(vit.IsValid());
     std::vector<lgraph::VertexId> neighbors;
     if (edge_label.empty()) {
         bool out_edge_left = false, in_edge_left = false;
-        neighbors = vit.ListDstVids(nullptr, nullptr, 10000, &out_edge_left, nullptr);
-        auto srcIds = vit.ListSrcVids(nullptr, nullptr, 10000, &in_edge_left, nullptr);
+        neighbors = vit.ListDstVids(nullptr, nullptr,
+                                    per_node_limit.has_value() ? per_node_limit.value() : 10000,
+                                    &out_edge_left, nullptr);
+        auto srcIds = vit.ListSrcVids(nullptr, nullptr,
+                                      per_node_limit.has_value() ? per_node_limit.value() : 10000,
+                                      &in_edge_left, nullptr);
         if (out_edge_left || in_edge_left) {
             FMA_WARN_STREAM(logger) << "Result trimmed down because " << vid
                                     << " has more than 10000 in/out neighbours";
         }
-        neighbors.reserve(neighbors.size() + srcIds.size());
-        neighbors.insert(neighbors.end(), srcIds.begin(), srcIds.end());
+        if (direction == parser::LinkDirection::RIGHT_TO_LEFT) {
+            neighbors = srcIds;
+        } else if (direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
+            neighbors.reserve(neighbors.size() + srcIds.size());
+            neighbors.insert(neighbors.end(), srcIds.begin(), srcIds.end());
+        }
     } else {
         auto edge_lid = txn.GetLabelId(false, edge_label);
-        for (auto eit = vit.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-             eit.IsValid(); eit.Next()) {
-            if (eit.GetLabelId() != edge_lid) break;
-            neighbors.push_back(eit.GetDst());
+        if (direction == parser::LinkDirection::LEFT_TO_RIGHT ||
+            direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
+            size_t count = 0;
+            for (auto eit = vit.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != edge_lid) break;
+                count += 1;
+                if (per_node_limit.has_value() && count > per_node_limit.value()) {
+                    break;
+                }
+                if (!_Filter(txn, eit, edge_filter)) continue;
+                neighbors.push_back(eit.GetDst());
+            }
         }
-        for (auto eit = vit.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-             eit.IsValid(); eit.Next()) {
-            if (eit.GetLabelId() != edge_lid) break;
-            neighbors.push_back(eit.GetSrc());
+        if (direction == parser::LinkDirection::RIGHT_TO_LEFT ||
+            direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
+            size_t count = 0;
+            for (auto eit = vit.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != edge_lid) break;
+                count += 1;
+                if (per_node_limit.has_value() && count > per_node_limit.value()) {
+                    break;
+                }
+                if (!_Filter(txn, eit, edge_filter)) continue;
+                neighbors.push_back(eit.GetSrc());
+            }
         }
     }
     return neighbors;
@@ -1994,7 +2042,9 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
  */
 static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexId start_vid,
                                        lgraph::VertexId end_vid, const std::string &edge_label,
-                                       size_t max_hops, cypher::Path &path) {
+                                       size_t max_hops, cypher::Path &path,
+                                       const EDGE_FILTER_T &edge_filter, parser::LinkDirection &dir,
+                                       std::optional<size_t> per_node_limit) {
     path.Clear();
     path.SetStart(start_vid);
     if (start_vid == end_vid) return;
@@ -2003,13 +2053,19 @@ static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexI
     std::vector<lgraph::VertexId> forward_q{start_vid};
     std::vector<lgraph::VertexId> backward_q{end_vid};
     size_t hops = 0;
+    parser::LinkDirection forward_dir = dir;
+    parser::LinkDirection backward_dir =
+        dir == parser::LinkDirection::RIGHT_TO_LEFT   ? parser::LinkDirection::LEFT_TO_RIGHT
+        : dir == parser::LinkDirection::LEFT_TO_RIGHT ? parser::LinkDirection::RIGHT_TO_LEFT
+                                                      : parser::LinkDirection::DIR_NOT_SPECIFIED;
     while (hops++ < max_hops) {
         std::vector<lgraph::VertexId> next_q;
         // decide which way to search first
         if (forward_q.size() <= backward_q.size()) {
             // search forward
             for (auto vid : forward_q) {
-                auto nbrs = _GetNeighbors(txn, vid, edge_label);
+                auto nbrs = _GetNeighbors(txn, vid, edge_label, edge_filter, forward_dir,
+                                          per_node_limit);
                 for (auto nbr : nbrs) {
                     if (child.find(nbr) != child.end()) {
                         // found the path
@@ -2027,7 +2083,8 @@ static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexI
             forward_q = std::move(next_q);
         } else {
             for (auto vid : backward_q) {
-                auto nbrs = _GetNeighbors(txn, vid, edge_label);
+                auto nbrs = _GetNeighbors(txn, vid, edge_label, edge_filter, backward_dir,
+                                          per_node_limit);
                 for (auto nbr : nbrs) {
                     if (parent.find(nbr) != parent.end()) {
                         // found the path
@@ -2273,6 +2330,8 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
                          (args.size() == 2 || args[2].type == parser::Expression::MAP),
                      "wrong type")
     std::string edge_label;
+    EDGE_FILTER_T edge_filter;
+    parser::LinkDirection direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
     size_t max_hops = 20;
     if (args.size() == 3) {
         auto &map = args[2].Map();
@@ -2286,6 +2345,34 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
             if (max->second.type != parser::Expression::INT) CYPHER_TODO();
             max_hops = max->second.Int();
         }
+        auto map_edge_filter = map.find("edgeFilter");
+        if (map_edge_filter != map.end()) {
+            if (map_edge_filter->second.type != parser::Expression::MAP) CYPHER_TODO();
+            for (auto &kv : map_edge_filter->second.Map()) {
+                if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
+                std::unordered_map<std::string, lgraph::FieldData> filter_t;
+                for (auto filter_pair : kv.second.Map()) {
+                    lgraph::FieldData field;
+                    if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
+                    field = parser::MakeFieldData(filter_pair.second);
+                    filter_t.emplace(filter_pair.first, field);
+                }
+                edge_filter.emplace(kv.first, filter_t);
+            }
+        }
+        auto it_dir = map.find("direction");
+        if (it_dir != map.end()) {
+            if (it_dir->second.type != parser::Expression::STRING) CYPHER_TODO();
+            if (it_dir->second.String() == "PointingLeft") {
+                direction = parser::LinkDirection::RIGHT_TO_LEFT;
+            } else if (it_dir->second.String() == "PointingRight") {
+                direction = parser::LinkDirection::LEFT_TO_RIGHT;
+            } else if (it_dir->second.String() == "AnyDirection") {
+                direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
+            } else {
+                CYPHER_TODO();
+            }
+        }
     }
     CYPHER_THROW_ASSERT(record);
     auto it1 = record->symbol_table->symbols.find(args[0].String());
@@ -2298,7 +2385,7 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     cypher::Path path;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, max_hops,
-                               path);
+                               path, edge_filter, direction, std::nullopt);
 
     auto pp = global_ptable.GetProcedure("algo.shortestPath");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
@@ -2510,6 +2597,46 @@ void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record, const cyph
         if (title_exsited.find("pr") != title_exsited.end()) {
             r.AddConstant(lgraph::FieldData(node_pr.second.first));
         }
+        records->emplace_back(r.Snapshot());
+    }
+}
+
+void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 2, "args number should be 2");
+    ArithExprNode lef(args[0], *record->symbol_table);
+    ArithExprNode rig(args[1], *record->symbol_table);
+    auto lef_entry = lef.Evaluate(ctx, *record);
+    auto rig_entry = rig.Evaluate(ctx, *record);
+    CYPHER_ARG_CHECK(lef_entry.IsArray(), "args[0] is not list");
+    CYPHER_ARG_CHECK(rig_entry.IsArray(), "args[1] is not list");
+    std::unordered_set<int64_t> union_set, intersection;
+    for (auto &item : *lef_entry.constant.array) {
+        CYPHER_ARG_CHECK(item.IsInteger(), "item is not integer");
+        union_set.emplace(item.AsInt64());
+    }
+    for (auto &item : *rig_entry.constant.array) {
+        CYPHER_ARG_CHECK(item.IsInteger(), "item is not integer");
+        if (union_set.find(item.AsInt64()) != union_set.end()) {
+            intersection.emplace(item.AsInt64());
+        }
+    }
+    for (auto &item : *rig_entry.constant.array) {
+        CYPHER_ARG_CHECK(item.IsInteger(), "item is not integer");
+        union_set.emplace(item.AsInt64());
+    }
+    std::unordered_set<std::string> title_exsited;
+    cypher::VEC_STR titles = ProcedureTitles("algo.jaccard", yield_items);
+    std::transform(titles.begin(), titles.end(), std::inserter(title_exsited, title_exsited.end()),
+                   [](const std::string &title) { return title; });
+    if (title_exsited.find("similarity") != title_exsited.end()) {
+        auto f = union_set.empty()
+                     ? lgraph::FieldData()
+                     : lgraph::FieldData(float(intersection.size()) / union_set.size());
+        cypher::Record r;
+        r.AddConstant(f);
         records->emplace_back(r.Snapshot());
     }
 }

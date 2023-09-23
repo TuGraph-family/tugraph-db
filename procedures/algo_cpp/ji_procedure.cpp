@@ -29,22 +29,15 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::string src_field = "id";
     std::string dst_label = "node";
     std::string dst_field = "id";
-    std::vector<std::pair<size_t, size_t>> search_list = {{0, 1}, {1, 2}};
+    std::vector<std::pair<size_t, size_t>> search_list = {{0, 1}, {1, 972}, {101, 202}};
     auto txn = db.CreateReadTxn();
     try {
         json input = json::parse(request);
-        if (input["src_label"].is_string()) {
-            src_label = input["src_label"].get<std::string>();
-        }
-        if (input["src_field"].is_string()) {
-            src_field = input["src_field"].get<std::string>();
-        }
-        if (input["dst_label"].is_string()) {
-            dst_label = input["dst_label"].get<std::string>();
-        }
-        if (input["dst_field"].is_string()) {
-            dst_field = input["dst_field"].get<std::string>();
-        }
+        parse_from_json(src_label, "src_label", input);
+        parse_from_json(src_field, "src_field", input);
+        parse_from_json(dst_label, "dst_label", input);
+        parse_from_json(dst_field, "dst_field", input);
+        parse_from_json(search_list, "search_pairs", input);
         if (input["search_pairs"].is_array()) {
             search_list.clear();
             for (auto &e : input["search_pairs"]) {

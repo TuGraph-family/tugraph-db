@@ -186,6 +186,42 @@ cypher::FieldData BuiltinFunction::Last(RTContext *ctx, const Record &record,
                                      : cypher::FieldData(r.constant.array->back());
 }
 
+cypher::FieldData BuiltinFunction::MaxInList(RTContext *ctx, const Record &record,
+                                             const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray())
+        throw lgraph::CypherException("List expected in maxInList(): " + r.ToString());
+    if (r.constant.array->empty()) {
+        throw lgraph::CypherException("List cannot be empty in maxInList()");
+    }
+    size_t pos = 0;
+    for (size_t i = 0; i < r.constant.array->size(); i++) {
+        if ((*r.constant.array)[i] > (*r.constant.array)[pos]) {
+            pos = i;
+        }
+    }
+    return cypher::FieldData((*r.constant.array)[pos]);
+}
+
+cypher::FieldData BuiltinFunction::MinInList(RTContext *ctx, const Record &record,
+                                             const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray())
+        throw lgraph::CypherException("List expected in minInList(): " + r.ToString());
+    if (r.constant.array->empty()) {
+        throw lgraph::CypherException("List cannot be empty in minInList()");
+    }
+    size_t pos = 0;
+    for (size_t i = 0; i < r.constant.array->size(); i++) {
+        if ((*r.constant.array)[i] < (*r.constant.array)[pos]) {
+            pos = i;
+        }
+    }
+    return cypher::FieldData((*r.constant.array)[pos]);
+}
+
 cypher::FieldData BuiltinFunction::Size(RTContext *ctx, const Record &record,
                                         const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
@@ -225,6 +261,25 @@ cypher::FieldData BuiltinFunction::Nodes(RTContext *ctx, const Record &record,
             lgraph::FieldData(static_cast<int64_t>(std::stoll(vid_number_str.c_str()))));
     }
     return cypher::FieldData(vids);
+}
+
+// TODO(huangke): support native path in FieldData
+cypher::FieldData BuiltinFunction::Relationships(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray()) throw lgraph::CypherException("Path expected in nodes(): " + r.ToString());
+    std::vector<lgraph::FieldData> euids;
+    for (size_t i = 1; i < r.constant.array->size(); i += 2) {
+        std::string euid_str = (*r.constant.array)[i].AsString(); /* E[0_0_0_0_0] */
+        auto open_bracket_pos = euid_str.find('[');
+        auto close_bracket_pos = euid_str.find(']');
+        auto euid_tuple_str =
+            euid_str.substr(open_bracket_pos + 1, close_bracket_pos - open_bracket_pos - 1);
+        euids.emplace_back(
+            lgraph::FieldData(euid_tuple_str));
+    }
+    return cypher::FieldData(euids);
 }
 
 cypher::FieldData BuiltinFunction::Labels(RTContext *ctx, const Record &record,
@@ -319,6 +374,106 @@ cypher::FieldData BuiltinFunction::Subscript(RTContext *ctx, const Record &recor
         return ret;
     }
     CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::IsAsc(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto r = operand.Evaluate(ctx, record);
+    if (r.IsArray()) {
+        for (size_t i = 1; i < r.constant.array->size(); i++) {
+            if ((*r.constant.array)[i] <= (*r.constant.array)[i-1]) {
+                return cypher::FieldData(lgraph::FieldData(false));
+            }
+        }
+        return cypher::FieldData(lgraph::FieldData(true));
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::IsDesc(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto r = operand.Evaluate(ctx, record);
+    if (r.IsArray()) {
+        for (size_t i = 1; i < r.constant.array->size(); i++) {
+            if ((*r.constant.array)[i] >= (*r.constant.array)[i-1]) {
+                return cypher::FieldData(lgraph::FieldData(false));
+            }
+        }
+        return cypher::FieldData(lgraph::FieldData(true));
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::HasDuplicates(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto r = operand.Evaluate(ctx, record);
+    if (r.IsArray()) {
+        std::unordered_set<int64_t> s;
+        for (auto item : *r.constant.array) {
+            if (!item.IsInteger()) {
+                CYPHER_ARGUMENT_ERROR();
+            }
+            if (s.find(item.AsInt64()) != s.end()) {
+                return cypher::FieldData(lgraph::FieldData(true));
+            }
+            s.emplace(item.AsInt64());
+        }
+        return cypher::FieldData(lgraph::FieldData(false));
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::GetMemberProp(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args) {
+    if (args.empty() || args.size() > 3) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto ret = cypher::FieldData::Array(0);
+    std::string field_name;
+    if (args.size() == 3) {
+        auto field_name_entry = args[2].Evaluate(ctx, record);
+        if (field_name_entry.IsString()) {
+            field_name = field_name_entry.constant.scalar.AsString();
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+
+    const auto &entry = args[1].Evaluate(ctx, record);
+    if (entry.type == Entry::VAR_LEN_RELP) {
+        for (auto &eit : entry.relationship->ItsRef()) {
+            if (eit.IsValid()) {
+                ret.array->emplace_back(lgraph::FieldData(eit.GetField(field_name)));
+            }
+        }
+    } else if (entry.type == Entry::CONSTANT && entry.constant.IsArray()) {
+        for (auto &item : *entry.constant.array) {
+            // TODO(huangke): support native nodes in FieldData
+            if (item.IsInteger()) {
+                auto vit = ctx->txn_->GetVertexIterator();
+                vit.Goto(item.AsInt64());
+                if (vit.IsValid()) {
+                    ret.array->emplace_back(lgraph::FieldData(vit.GetField(field_name)));
+                } else {
+                    ret.array->emplace_back(lgraph::FieldData());
+                }
+            } else {
+                ret.array->emplace_back(lgraph::FieldData());
+            }
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+    return ret;
 }
 
 cypher::FieldData BuiltinFunction::Abs(RTContext *ctx, const Record &record,

@@ -97,7 +97,7 @@ TEST_F(TestImportConfigParser, ImportConfigParser) {
                 {"name" : "role", "type":"STRING"},
                 {"name" : "id", "type" : "INT64"}
             ],
-            "primary" : "id",
+            "temporal" : "id",
             "constraints" : [["actor", "movie"]]
         }
     ],
@@ -246,7 +246,7 @@ TEST_F(TestImportConfigParser, ImportConfigParser) {
                 { "name" : "aid", "type":"STRING"},
                 { "name" : "name", "type":"STRING"}
             ],
-            "primary" : "aid"
+            "temporal" : "aid"
         }
     ]
 }

@@ -68,10 +68,10 @@ RETURN
     sum(n.birthyear) as sum2,
     count(n) as num;
 
---error
+-- error
 MATCH (n) RETURN sum(count(n.birthyear));
 
---error
+-- error
 MATCH (n) RETURN sum(n.birthyear)+round(n.birthyear);
 
 MATCH (n) RETURN sum(n.birthyear)+count(n.birthyear);

@@ -358,14 +358,17 @@ void Importer::VertexDataToSST() {
                             pending_tasks--;
                             std::vector<std::string> vec_kvs;
                             VertexId start_vid = dataBlock->start_vid;
-                            rocksdb::SstFileWriter vertex_sst_writer(rocksdb::EnvOptions(), {},
-                                                                   nullptr, false);
-                            auto s = vertex_sst_writer.Open(sst_files_path_ + "/vertex_" +
-                                                          std::to_string(start_vid));
+                            std::unique_ptr<rocksdb::SstFileWriter> vertex_sst_writer(
+                                new rocksdb::SstFileWriter(rocksdb::EnvOptions(),
+                                                           {}, nullptr, false));
+                            std::string sst_path = sst_files_path_ + "/vertex_" +
+                                                        std::to_string(start_vid);
+                            auto s = vertex_sst_writer->Open(sst_path);
                             if (!s.ok()) {
                                 throw std::runtime_error(
                                     FMA_FMT("Failed to open vertex_sst_writer"));
                             }
+                            bool sst_empty = true;
                             auto hasBlob = dataBlock->schema->HasBlob();
                             for (auto& line : dataBlock->block) {
                                 const FieldData& key_col = line[dataBlock->key_col_id];
@@ -443,21 +446,27 @@ void Importer::VertexDataToSST() {
                                             return blob_writer.AddBlob(blob.MakeCopy());
                                         });
                                 }
-                                s = vertex_sst_writer.Put({(const char*)&vid, sizeof(vid)},
+                                s = vertex_sst_writer->Put({(const char*)&vid, sizeof(vid)},
                                                     {value.Data(), value.Size()});
                                 if (!s.ok()) {
                                     throw std::runtime_error(
                                         FMA_FMT("vertex_sst_writer.Put error, {}", s.ToString()));
                                 }
+                                sst_empty = false;
                             }
                             std::vector<std::vector<FieldData>>().swap(dataBlock->block);
-                            s = vertex_sst_writer.Finish();
-                            if (!s.ok()) {
-                                throw std::runtime_error(
-                                    FMA_FMT("vertex_sst_writer.Finish error, {}", s.ToString()));
+                            if (!sst_empty) {
+                                s = vertex_sst_writer->Finish();
+                                if (!s.ok()) {
+                                    throw std::runtime_error(FMA_FMT(
+                                        "vertex_sst_writer.Finish error, {}", s.ToString()));
+                                }
+                            } else {
+                                vertex_sst_writer.reset();
+                                std::remove(sst_path.c_str());
                             }
 
-                            if (!config_.keep_vid_in_memory) {
+                            if (!config_.keep_vid_in_memory && !vec_kvs.empty()) {
                                 rocksdb::SstFileWriter vid_sst_writer(rocksdb::EnvOptions(), {},
                                                                          nullptr, false);
                                 s = vid_sst_writer.Open(
@@ -500,6 +509,12 @@ void Importer::VertexDataToSST() {
     if (!exceptions_.empty()) {
         std::rethrow_exception(exceptions_.front());
     }
+    if (config_.keep_vid_in_memory) {
+        if (key_vid_maps_.empty()) {
+            FMA_WARN() << "vids in memory are empty, no valid vertex data";
+            exit(-1);
+        }
+    }
     // free memory
     cuckoohash_map<std::string, char>().swap(unique_index_keys_);
     if (!config_.keep_vid_in_memory) {
@@ -510,6 +525,10 @@ void Importer::VertexDataToSST() {
             if (path.find("vid_") != std::string::npos) {
                 ingest_files.push_back(path);
             }
+        }
+        if (ingest_files.empty()) {
+            FMA_WARN() << "vids in sst are empty, no valid vertex data";
+            exit(-1);
         }
         rocksdb::IngestExternalFileOptions op;
         op.move_files = true;
@@ -657,10 +676,12 @@ void Importer::EdgeDataToSST() {
                         try {
                             pending_tasks--;
                             uint64_t num = ++sst_file_id;
-                            rocksdb::SstFileWriter sst_file_writer(rocksdb::EnvOptions(), {},
-                                                                   nullptr, false);
-                            auto s = sst_file_writer.Open(sst_files_path_ + "/edge_" +
-                                                          std::to_string(num));
+                            std::unique_ptr<rocksdb::SstFileWriter> sst_file_writer(
+                                new rocksdb::SstFileWriter(rocksdb::EnvOptions(),
+                                                           {}, nullptr, false));
+                            std::string sst_path = sst_files_path_ + "/edge_" +
+                                                   std::to_string(num);
+                            auto s = sst_file_writer->Open(sst_path);
                             if (!s.ok()) {
                                 throw std::runtime_error(FMA_FMT("failed to open sst_file_writer"));
                             }
@@ -731,8 +752,8 @@ void Importer::EdgeDataToSST() {
                                 } else {
                                     vid_iter->Seek(k);
                                     if (!vid_iter->Valid()) {
-                                        throw std::runtime_error(
-                                            FMA_FMT("get src_id, iterator is invalid"));
+                                        OnErrorOffline("no vid for " + src_fd.ToString());
+                                        continue;
                                     }
                                     auto slice_k = vid_iter->key();
                                     auto offset = slice_k.data() +
@@ -756,8 +777,8 @@ void Importer::EdgeDataToSST() {
                                 } else {
                                     vid_iter->Seek(k);
                                     if (!vid_iter->Valid()) {
-                                        throw std::runtime_error(
-                                            FMA_FMT("get dst_id, iterator is invalid"));
+                                        OnErrorOffline("no vid for " + dst_fd.ToString());
+                                        continue;
                                     }
                                     auto slice_k = vid_iter->key();
                                     auto offset = slice_k.data() +
@@ -811,17 +832,23 @@ void Importer::EdgeDataToSST() {
                                 vec_kvs.emplace_back(std::move(edge_key), std::move(record));
                                 edgeDataBlock->start_eid++;
                             }
+                            if (vec_kvs.empty()) {
+                                sst_file_writer.reset();
+                                std::remove(sst_path.c_str());
+                                delete vid_iter;
+                                return;
+                            }
                             // free memory
                             std::vector<std::vector<FieldData>>().swap(edgeDataBlock->block);
                             // sort
                             LGRAPH_PSORT(vec_kvs.begin(), vec_kvs.end(),
                                          [](const KV& a, const KV& b) { return a.key < b.key; });
                             for (auto& pair : vec_kvs) {
-                                sst_file_writer.Put(pair.key,
+                                sst_file_writer->Put(pair.key,
                                                     {pair.value.Data(), pair.value.Size()});
                             }
                             std::vector<KV>().swap(vec_kvs);
-                            sst_file_writer.Finish();
+                            sst_file_writer->Finish();
                             delete vid_iter;
                         } catch (...) {
                             std::lock_guard<std::mutex> guard(exceptions_lock_);
@@ -1018,6 +1045,11 @@ void Importer::RocksdbToLmdb() {
     std::vector<std::string> ingest_files;
     for (const auto & entry : std::filesystem::directory_iterator(sst_files_path_)) {
         ingest_files.push_back(entry.path().generic_string());
+    }
+    if (ingest_files.empty()) {
+        FMA_WARN() << "no sst files are created, "
+                      "please check if the input vertex and edge files are valid";
+        exit(-1);
     }
     rocksdb::IngestExternalFileOptions op;
     op.move_files = true;
