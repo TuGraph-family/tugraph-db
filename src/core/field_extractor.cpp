@@ -96,8 +96,8 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
  */
 void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type)
-        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON)
-        || def_.type == FieldType::SPATIAL) {
+        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON
+        || def_.type == FieldType::SPATIAL)) {
         SetIsNull(record, true);
         return;
     }
@@ -209,20 +209,25 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
             return;
         }
     case FieldType::LINESTRING:
+        {
         if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
             throw ParseFieldDataException(Name(), data, Type());
         if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::LINESTRING);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
     case FieldType::POLYGON:
+        {
         if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
             throw ParseFieldDataException(Name(), data, Type());
         if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
     case FieldType::SPATIAL:
+        {
         if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
             throw ParseFieldDataException(Name(), data, Type());
         ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(*data.data.buf);
@@ -230,6 +235,8 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                 throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
+        
     default:
         FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
     }

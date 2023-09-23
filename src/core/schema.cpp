@@ -277,9 +277,8 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     }
     case FieldType::NUL:
         FMA_ERR() << "FieldType NUL";
-
-    return FieldData();
     }
+    return FieldData();
 }
 
 void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
