@@ -43,8 +43,8 @@ inline lgraph::DateTime ParseStringToT<lgraph::DateTime>(const std::string& str)
     return lgraph::DateTime(str);
 }
 template <>
-inline lgraph::PointWsg84 ParseStringToT<lgraph::PointWsg84>(const std::string& str) {
-    return lgraph::PointWsg84(str);
+inline lgraph::PointWgs84 ParseStringToT<lgraph::PointWgs84>(const std::string& str) {
+    return lgraph::PointWgs84(str);
 }
 
 template<>
@@ -54,8 +54,8 @@ inline lgraph::PointCartesian ParseStringToT<lgraph::PointCartesian>
 }
 
 template <>
-inline lgraph::LineStringWsg84 ParseStringToT<lgraph::LineStringWsg84>(const std::string& str) {
-    return lgraph::LineStringWsg84(str);
+inline lgraph::LineStringWgs84 ParseStringToT<lgraph::LineStringWgs84>(const std::string& str) {
+    return lgraph::LineStringWgs84(str);
 }
 
 template<>
@@ -65,8 +65,8 @@ inline lgraph::LineStringCartesian ParseStringToT<lgraph::LineStringCartesian>
 }
 
 template <>
-inline lgraph::PolygonWsg84 ParseStringToT<lgraph::PolygonWsg84>(const std::string& str) {
-    return lgraph::PolygonWsg84(str);
+inline lgraph::PolygonWgs84 ParseStringToT<lgraph::PolygonWgs84>(const std::string& str) {
+    return lgraph::PolygonWgs84(str);
 }
 
 template<>
@@ -199,7 +199,7 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         CheckParseDataType<lgraph::DateTime>(FieldType::DATETIME, value_tmp, "2019-09-08 00:15:14",
                                              FieldData::DateTime("2020-05-04 20:24:34"),
                                              "not valid date", FieldData(123), true, "10240-09-01");
-        CheckParseDataType<lgraph::PointWsg84>(FieldType::POINT, value_tmp,
+        CheckParseDataType<lgraph::PointWgs84>(FieldType::POINT, value_tmp,
                            "0101000020E6100000000000000000F03F0000000000000040",
                            FieldData::Point("0101000020E6100000000000000000F03F0000000000000040"),
                            "aasd332423d", FieldData(3215), false);
@@ -210,7 +210,7 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
                            "0000000000000000000000000000000000000000400000000"
                            "0000000400000000000000840000000000000F03F"),
                            "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::PolygonWsg84>(FieldType::POLYGON, value_tmp,
+        CheckParseDataType<lgraph::PolygonWgs84>(FieldType::POLYGON, value_tmp,
                            "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000",

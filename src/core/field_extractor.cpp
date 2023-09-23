@@ -77,6 +77,9 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
                                                           const std::string& data) const {
+    ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(data);
+    if (!::lgraph_api::TryDecodeEWKB(data, s))
+        throw ParseStringException(Name(), data, FieldType::SPATIAL);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 /**
@@ -93,7 +96,8 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
  */
 void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type)
-        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON)) {
+        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON)
+        || def_.type == FieldType::SPATIAL) {
         SetIsNull(record, true);
         return;
     }
@@ -131,7 +135,7 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     case FieldType::POLYGON:
         return _ParseStringAndSet<FieldType::POLYGON>(record, data);
     case FieldType::SPATIAL:
-        FMA_ERR() << "do not support spatial now!";
+        return _ParseStringAndSet<FieldType::SPATIAL>(record, data);
     case FieldType::NUL:
         FMA_ERR() << "NUL FieldType";
     }
@@ -218,7 +222,14 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+    case FieldType::SPATIAL:
+        if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
+            throw ParseFieldDataException(Name(), data, Type());
+        ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(*data.data.buf);
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
 
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
     default:
         FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
     }
@@ -286,11 +297,8 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
             return fma_common::StringFormatter::Format("[BLOB]");
         }
     case FieldType::POINT:
-
     case FieldType::LINESTRING:
-
     case FieldType::POLYGON:
-
     case FieldType::SPATIAL:
         {
             std::string ret(GetDataSize(record), 0);

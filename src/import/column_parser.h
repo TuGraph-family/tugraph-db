@@ -615,6 +615,7 @@ class JsonLinesParser : public BlockParser {
                 case FieldType::POLYGON:
                     // TODO(shw): support import for polygon type;
                 case FieldType::SPATIAL:
+                    // TODO(shw): support import for spatial type;
                     throw std::runtime_error("do not support spatial type now!");
                 }
                 if (fd.is_null()) {

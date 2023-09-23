@@ -219,8 +219,8 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         switch (srid) {
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
-            case lgraph_api::SRID::WSG84:
-                return FieldData(PointWsg84(EWKB));
+            case lgraph_api::SRID::WGS84:
+                return FieldData(PointWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(PointCartesian(EWKB));
             default:
@@ -235,8 +235,8 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         switch (srid) {
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
-            case lgraph_api::SRID::WSG84:
-                return FieldData(LineStringWsg84(EWKB));
+            case lgraph_api::SRID::WGS84:
+                return FieldData(LineStringWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(LineStringCartesian(EWKB));
             default:
@@ -251,8 +251,8 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         switch (srid) {
             case lgraph_api::SRID::NUL:
                 throw InputError("invalid srid!\n");
-            case lgraph_api::SRID::WSG84:
-                return FieldData(PolygonWsg84(EWKB));
+            case lgraph_api::SRID::WGS84:
+                return FieldData(PolygonWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(PolygonCartesian(EWKB));
             default:
@@ -261,11 +261,25 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     }
 
     case FieldType::SPATIAL:
-        FMA_ERR() << "Do not support spatial type now!";
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch (srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(SpatialWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(SpatialCartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
     case FieldType::NUL:
         FMA_ERR() << "FieldType NUL";
-    }
+
     return FieldData();
+    }
 }
 
 void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,

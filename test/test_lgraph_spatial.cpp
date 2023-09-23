@@ -180,14 +180,14 @@ TEST_P(TestSpatial, Spatial) {
     {
         UT_LOG() << "Testing encode and decode";
 
-        Spatial<Wsg84> Point_w(SRID::WSG84, SpatialType::POINT, 0,
+        Spatial<Wgs84> Point_w(SRID::WGS84, SpatialType::POINT, 0,
         "0101000000000000000000F03F0000000000000040");
         // 输出全部为大写字母
         UT_EXPECT_EQ(Point_w.AsEWKB(), "0101000020E6100000000000000000F03F0000000000000040");
         UT_EXPECT_EQ(Point_w.AsEWKT(), "SRID=4326;POINT(1 2)");
 
         // testing wrong wkb format;
-        UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::POINT, 0, "1111111"));
+        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, "1111111"));
 
         Spatial<Cartesian> Point_c(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(1.0 1.0)");
         UT_EXPECT_EQ(Point_c.AsEWKB(), "0101000020231C0000000000000000F03F000000000000F03F");
@@ -198,7 +198,7 @@ TEST_P(TestSpatial, Spatial) {
         "POINT(1.0 2.0 3.0)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(a)"));
 
-        Spatial<Wsg84> line_w(SRID::WSG84, SpatialType::LINESTRING, 0, "01020000000300000000000000"
+        Spatial<Wgs84> line_w(SRID::WGS84, SpatialType::LINESTRING, 0, "01020000000300000000000000"
         "000000000000000000000000000000000000004000000000000000400000000000000840000000000000F03F");
 
         UT_EXPECT_EQ(line_w.AsEWKB(), "0102000020E610000003000000000000000000000000000000000000000"
@@ -206,7 +206,7 @@ TEST_P(TestSpatial, Spatial) {
 
         UT_EXPECT_EQ(line_w.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
 
-        UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::LINESTRING, 0, "1111111"));
+        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::LINESTRING, 0, "1111111"));
 
         Spatial<Cartesian> line_c(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINESTRING(0 0,2 2,3 1)");
@@ -214,12 +214,12 @@ TEST_P(TestSpatial, Spatial) {
         "000000000000000004000000000000000400000000000000840000000000000F03F");
         UT_EXPECT_EQ(line_c.AsEWKT(), "SRID=7203;LINESTRING(0 0,2 2,3 1)");
 
-        UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::LINESTRING, 1,
+        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::LINESTRING, 1,
         "LINESTRING(1.0 2.0 a)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINE(0 0,2 2,3 1)"));
 
-        Spatial<Wsg84> Polygon_w(SRID::WSG84, SpatialType::POLYGON, 0,
+        Spatial<Wgs84> Polygon_w(SRID::WGS84, SpatialType::POLYGON, 0,
         "0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000");
@@ -229,7 +229,7 @@ TEST_P(TestSpatial, Spatial) {
         "00000000040000000000000000000000000000000000000000000000000");
 
         UT_EXPECT_EQ(Polygon_w.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
-        UT_EXPECT_ANY_THROW(Spatial<Wsg84>(SRID::WSG84, SpatialType::POLYGON, 1, "abcde"));
+        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 1, "abcde"));
 
         Spatial<Cartesian> Polygon_c(SRID::CARTESIAN, SpatialType::POLYGON, 1,
         "POLYGON((0 0,0 7,4 2,2 0,0 0))");
@@ -238,7 +238,7 @@ TEST_P(TestSpatial, Spatial) {
         "00000000040000000000000000000000000000000000000000000000000");
 
         UT_EXPECT_EQ(Polygon_c.AsEWKT(), "SRID=7203;POLYGON((0 0,0 7,4 2,2 0,0 0))");
-        UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::WSG84, SpatialType::POLYGON, 1,
+        UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::WGS84, SpatialType::POLYGON, 1,
         "POLYGON(122)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POLYGON, 1,
         "POL((0 0,0 7,4 2,2 0,0 0))"));
@@ -248,7 +248,7 @@ TEST_P(TestSpatial, Spatial) {
         UT_LOG() << "Testing construct from EWKB";
 
         std::string EWKB1 = "0101000020E6100000000000000000F03F000000000000F03F";
-        Spatial<Wsg84> p(EWKB1);
+        Spatial<Wgs84> p(EWKB1);
         UT_EXPECT_EQ(p.AsEWKB(), EWKB1);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
 
@@ -263,7 +263,7 @@ TEST_P(TestSpatial, Spatial) {
         "00000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F"
         "000000000000F03F000000000000000000000000000000000000000000000000";
 
-        Spatial<Wsg84> p_(EWKB3);
+        Spatial<Wgs84> p_(EWKB3);
         UT_EXPECT_EQ(p_.AsEWKB(), EWKB3);
         UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 1,1 1,1 0,0 0))");
     }
@@ -272,9 +272,9 @@ TEST_P(TestSpatial, Spatial) {
         UT_LOG() << "Testing constructor";
         std::string Point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
         std::string line_WKT = "LINESTRING(0 0,2 2,3 1)";
-        Point<Wsg84> p(Point_EWKB);
+        Point<Wgs84> p(Point_EWKB);
         UT_EXPECT_ANY_THROW(Point<Cartesian> p_(Point_EWKB));
-        UT_EXPECT_ANY_THROW(LineString<Wsg84> l_(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
+        UT_EXPECT_ANY_THROW(LineString<Wgs84> l_(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         line_WKT));
         UT_EXPECT_EQ(p.AsEWKB(), Point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
@@ -286,8 +286,8 @@ TEST_P(TestSpatial, Spatial) {
         std::string big_Point_EWKB = "0000012000000010E63FF00000000000003FF0000000000000";
         std::string little_Point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
         std::string little_Point_wkb = "0101000000000000000000F03F000000000000F03F";
-        Point<Wsg84> p(SRID::WSG84, SpatialType::POINT, 0, big_Point_wkb);
-        Point<Wsg84> p_(big_Point_EWKB);
+        Point<Wgs84> p(SRID::WGS84, SpatialType::POINT, 0, big_Point_wkb);
+        Point<Wgs84> p_(big_Point_EWKB);
         UT_EXPECT_EQ(p.AsEWKB(), little_Point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
         UT_EXPECT_EQ(p_.AsEWKB(), little_Point_EWKB);
@@ -302,8 +302,8 @@ TEST_P(TestSpatial, Spatial) {
         std::string little_LineString_EWKB = big_LineString_EWKB;
         WkbEndianTransfer(big_LineString_wkb);
         big_LineString_EWKB = EwkbEndianTransfer(big_LineString_EWKB);
-        LineString<Wsg84> l(SRID::WSG84, SpatialType::LINESTRING, 0, big_LineString_wkb);
-        LineString<Wsg84> l_(big_LineString_EWKB);
+        LineString<Wgs84> l(SRID::WGS84, SpatialType::LINESTRING, 0, big_LineString_wkb);
+        LineString<Wgs84> l_(big_LineString_EWKB);
         UT_EXPECT_EQ(l.AsEWKB(), little_LineString_EWKB);
         UT_EXPECT_EQ(l.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
         UT_EXPECT_EQ(l_.AsEWKB(), little_LineString_EWKB);
@@ -319,8 +319,8 @@ TEST_P(TestSpatial, Spatial) {
         std::string little_Polygon_ewkb = big_Polygon_ewkb;
         WkbEndianTransfer(big_Polygon_wkb);
         big_Polygon_ewkb = EwkbEndianTransfer(big_Polygon_ewkb);
-        Polygon<Wsg84> po(SRID::WSG84, SpatialType::POLYGON, 0, big_Polygon_wkb);
-        Polygon<Wsg84> po_(big_Polygon_ewkb);
+        Polygon<Wgs84> po(SRID::WGS84, SpatialType::POLYGON, 0, big_Polygon_wkb);
+        Polygon<Wgs84> po_(big_Polygon_ewkb);
         UT_EXPECT_EQ(po.AsEWKB(), little_Polygon_ewkb);
         UT_EXPECT_EQ(po.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_EQ(po_.AsEWKB(), little_Polygon_ewkb);

@@ -53,13 +53,13 @@ TEST_F(TestProtoConvert, ProtoConvert) {
             UT_EXPECT_EQ(fd.AsString(), fd2.AsString());
         }
         {
-            FieldData fd(PointWsg84(std::string("0101000020E6100000000000000000"
+            FieldData fd(PointWgs84(std::string("0101000020E6100000000000000000"
                                                 "F03F0000000000000040")));
             FieldDataConvert::FromLGraphT(fd, &pfd);
-            UT_EXPECT_TRUE(fd.AsWsgPoint() == PointWsg84(pfd.point()));
+            UT_EXPECT_TRUE(fd.AsWgsPoint() == PointWgs84(pfd.point()));
             UT_EXPECT_TRUE(pfd.has_point());
             auto fd2 = FieldDataConvert::ToLGraphT(pfd);
-            UT_EXPECT_TRUE(fd.AsWsgPoint() == fd2.AsWsgPoint());
+            UT_EXPECT_TRUE(fd.AsWgsPoint() == fd2.AsWgsPoint());
         }
         {
             FieldData fd;

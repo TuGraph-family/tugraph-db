@@ -407,8 +407,8 @@ inline web::json::value ValueToJson(const FieldData& fd) {
         {
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
             switch (s) {
-                case ::lgraph_api::SRID::WSG84:
-                    return web::json::value::string(_TU(PointWsg84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(PointWgs84(*fd.data.buf).ToString()));
                 case ::lgraph_api::SRID::CARTESIAN:
                     return web::json::value::string(_TU(PointCartesian(*fd.data.buf).ToString()));
                 default:
@@ -419,8 +419,8 @@ inline web::json::value ValueToJson(const FieldData& fd) {
         {
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
             switch (s) {
-                case ::lgraph_api::SRID::WSG84:
-                    return web::json::value::string(_TU(LineStringWsg84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(LineStringWgs84(*fd.data.buf).ToString()));
                 case ::lgraph_api::SRID::CARTESIAN:
                     return web::json::value::string(
                         _TU(LineStringCartesian(*fd.data.buf).ToString()));
@@ -432,8 +432,8 @@ inline web::json::value ValueToJson(const FieldData& fd) {
         {
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
             switch (s) {
-                case ::lgraph_api::SRID::WSG84:
-                    return web::json::value::string(_TU(PolygonWsg84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(PolygonWgs84(*fd.data.buf).ToString()));
                 case ::lgraph_api::SRID::CARTESIAN:
                     return web::json::value::string(_TU(PolygonCartesian(*fd.data.buf).ToString()));
                 default:
@@ -441,7 +441,17 @@ inline web::json::value ValueToJson(const FieldData& fd) {
             }
         }
     case FieldType::SPATIAL:
-        throw std::runtime_error("do not support spatial type now!");
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(SpatialWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(SpatialCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
     }
     FMA_DBG_ASSERT(false);  // unhandled FieldData type
     return web::json::value::null();

@@ -192,7 +192,7 @@ SRID ExtractSRID(const std::string& EWKB) {
         case 0:
             return SRID::NUL;
         case 4326:
-            return SRID::WSG84;
+            return SRID::WGS84;
         case 7203:
             return SRID::CARTESIAN;
         default:
@@ -295,8 +295,8 @@ bool TryDecodeEWKB(const std::string& EWKB, SpatialType type) {
     switch (s) {
         case SRID::NUL:
             return false;
-        case SRID::WSG84:
-            return TryDecodeWKB<Wsg84>(WKB, t);
+        case SRID::WGS84:
+            return TryDecodeWKB<Wgs84>(WKB, t);
         case SRID::CARTESIAN:
             return TryDecodeWKB<Cartesian>(WKB, t);
         default:
@@ -378,6 +378,11 @@ std::string Spatial<SRID_Type>::AsEWKT() const {
 }
 
 template<typename SRID_Type>
+std::string Spatial<SRID_Type>::ToString() const {
+    return AsEWKT();
+}
+
+template<typename SRID_Type>
 bool Spatial<SRID_Type>::operator==(const Spatial<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
@@ -386,7 +391,7 @@ template<typename SRID_Type>
 Point<SRID_Type>::Point(SRID srid, SpatialType type, int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
-    || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
+    || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
         throw InputError("template srid dismatch with input srid");
     }
 
@@ -432,7 +437,7 @@ Point<SRID_Type>::Point(const std::string& EWKB_)
     // first, we need to transfer big endian to little endian;
     SRID srid = ExtractSRID(EWKB_);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
-    || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
+    || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
         throw InputError("template srid dismatch with input srid");
     }
     if (!Endian(EWKB_))
@@ -482,7 +487,7 @@ LineString<SRID_Type>::LineString(SRID srid, SpatialType type,
 int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
-    || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
+    || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
         throw InputError("template srid dismatch with input srid");
     }
 
@@ -519,7 +524,7 @@ LineString<SRID_Type>::LineString(const std::string& EWKB_)
 : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     SRID srid = ExtractSRID(EWKB_);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
-    || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
+    || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
         throw InputError("template srid dismatch with input srid");
     }
 
@@ -568,7 +573,7 @@ template<typename SRID_Type>
 Polygon<SRID_Type>::Polygon(SRID srid, SpatialType type, int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
-    || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
+    || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
         throw InputError("template srid dismatch with input srid");
     }
 
@@ -609,7 +614,7 @@ Polygon<SRID_Type>::Polygon(const std::string& EWKB_)
 : SpatialBase(ExtractSRID(EWKB_), ExtractType(EWKB_)) {
     SRID srid = ExtractSRID(EWKB_);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
-    || (std::is_same<SRID_Type, Wsg84>::value && srid != SRID::WSG84)) {
+    || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
         throw InputError("template srid dismatch with input srid");
     }
 
@@ -655,13 +660,13 @@ bool Polygon<SRID_Type>::operator==(const Polygon<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
 
-template class Point<Wsg84>;
+template class Point<Wgs84>;
 template class Point<Cartesian>;
-template class LineString<Wsg84>;
+template class LineString<Wgs84>;
 template class LineString<Cartesian>;
-template class Polygon<Wsg84>;
+template class Polygon<Wgs84>;
 template class Polygon<Cartesian>;
-template class Spatial<Wsg84>;
+template class Spatial<Wgs84>;
 template class Spatial<Cartesian>;
 
 }  // namespace lgraph_api

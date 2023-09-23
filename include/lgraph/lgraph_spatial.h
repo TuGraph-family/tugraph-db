@@ -38,7 +38,7 @@ namespace lgraph_api {
 namespace bg = boost::geometry;
 
 typedef bg::cs::cartesian Cartesian;
-typedef bg::cs::geographic<bg::degree> Wsg84;
+typedef bg::cs::geographic<bg::degree> Wgs84;
 typedef std::vector<boost::uint8_t> byte_vector;
 
 /**         
@@ -66,7 +66,7 @@ enum class SpatialType {
  */
 enum class SRID {
     NUL = 0,
-    WSG84 = 4326,      // it's the latest revision of the World Geodetic System standard
+    WGS84 = 4326,      // it's the latest revision of the World Geodetic System standard
                        // (from 1984 CE), which defines a standard spheroidal reference system
                        // for mapping the Earth.
     CARTESIAN = 7203   // the cartesian srid, which is often used in Planar geometry.
@@ -291,6 +291,11 @@ class Spatial {
      * @returns EWKT format string of spatial type(in capital);
      */
     std::string AsEWKT() const;
+
+    /**
+     * @brief return EWKB format in default;
+    */
+    std::string ToString() const;
 
     /** @brief  return the Point type Pointer */
     std::unique_ptr<Point<SRID_Type>>& GetPoint() {

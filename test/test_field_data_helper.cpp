@@ -289,7 +289,7 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     // testing spatial data;
     std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
     _TEST_FD_CONVERT(STRING, EWKB, POINT,
-                     ::lgraph_api::Point<::lgraph_api::Wsg84>(EWKB).AsEWKB(), true);
+                     ::lgraph_api::Point<::lgraph_api::Wgs84>(EWKB).AsEWKB(), true);
     EWKB = "0102000020231C00000300000000000000000000000000000000000000000"
            "000000000004000000000000000400000000000000840000000000000F03F";
     _TEST_FD_CONVERT(STRING, EWKB, LINESTRING,
@@ -299,7 +299,7 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
            "00000000000000000000000000000000001C400000000000001040000000000000"
            "00400000000000000040000000000000000000000000000000000000000000000000";
     _TEST_FD_CONVERT(STRING, EWKB, POLYGON,
-                     ::lgraph_api::Polygon<::lgraph_api::Wsg84>(EWKB).AsEWKB(),
+                     ::lgraph_api::Polygon<::lgraph_api::Wgs84>(EWKB).AsEWKB(),
                      true);
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
@@ -363,7 +363,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POINT, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), PointWsg84(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), PointWgs84(EWKB).AsEWKB());
     }
 
     // testing LineString;
@@ -384,7 +384,7 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POLYGON, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), PolygonWsg84(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), PolygonWgs84(EWKB).AsEWKB());
     }
 }
 
@@ -508,8 +508,8 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
         std::string EWKB1 = "0101000020E6100000000000000000F03F0000000000000040";
         std::string EWKB2 = "0101000020231C0000000000000000F03F000000000000F03F";
 
-        FieldData a = FieldData::Point(PointWsg84(EWKB1));
-        FieldData b = FieldData::Point(PointWsg84(EWKB1));
+        FieldData a = FieldData::Point(PointWgs84(EWKB1));
+        FieldData b = FieldData::Point(PointWgs84(EWKB1));
         FieldData c = FieldData::Point(PointCartesian(EWKB2));
 
         Value va = Value::ConstRef(GetStoredValue<FieldType::POINT>(a));

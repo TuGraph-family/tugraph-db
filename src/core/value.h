@@ -58,9 +58,9 @@ struct TypeCast<std::string> {
 // spatial类型不能简单使用memcopy构造;
 // 这里需要先进行正确性判断吗?
 template <>
-struct TypeCast<lgraph_api::Point<lgraph_api::Wsg84>> {
-    static lgraph_api::Point<lgraph_api::Wsg84> AsType(void* p, size_t s) {
-        return lgraph_api::Point<lgraph_api::Wsg84>(std::string((char*)p, s));
+struct TypeCast<lgraph_api::Point<lgraph_api::Wgs84>> {
+    static lgraph_api::Point<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::Point<lgraph_api::Wgs84>(std::string((char*)p, s));
     }
 };
 
@@ -72,9 +72,9 @@ struct TypeCast<lgraph_api::Point<lgraph_api::Cartesian>> {
 };
 
 template <>
-struct TypeCast<lgraph_api::LineString<lgraph_api::Wsg84>> {
-    static lgraph_api::LineString<lgraph_api::Wsg84> AsType(void* p, size_t s) {
-        return lgraph_api::LineString<lgraph_api::Wsg84>(std::string((char*)p, s));
+struct TypeCast<lgraph_api::LineString<lgraph_api::Wgs84>> {
+    static lgraph_api::LineString<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::LineString<lgraph_api::Wgs84>(std::string((char*)p, s));
     }
 };
 
@@ -86,9 +86,9 @@ struct TypeCast<lgraph_api::LineString<lgraph_api::Cartesian>> {
 };
 
 template <>
-struct TypeCast<lgraph_api::Polygon<lgraph_api::Wsg84>> {
-    static lgraph_api::Polygon<lgraph_api::Wsg84> AsType(void* p, size_t s) {
-        return lgraph_api::Polygon<lgraph_api::Wsg84>(std::string((char*)p, s));
+struct TypeCast<lgraph_api::Polygon<lgraph_api::Wgs84>> {
+    static lgraph_api::Polygon<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::Polygon<lgraph_api::Wgs84>(std::string((char*)p, s));
     }
 };
 
