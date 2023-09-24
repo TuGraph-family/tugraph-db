@@ -142,7 +142,7 @@ struct FieldDataConvert {
         case FieldType::POLYGON:
             return ret->set_polygon(std::move(*fd.data.buf));
         case FieldType::SPATIAL:
-            return;
+            return ret->set_spatial(std::move(*fd.data.buf));
         }
         FMA_ASSERT(false);
     }
@@ -180,7 +180,7 @@ struct FieldDataConvert {
         case FieldType::POLYGON:
             return ret->set_polygon(*fd.data.buf);
         case FieldType::SPATIAL:
-            return;
+            return ret->set_spatial(*fd.data.buf);
         }
         FMA_ASSERT(false);
     }

@@ -43,7 +43,7 @@ void CheckFieldTypeSizeNameIsFixed(::lgraph::FieldType ft, const std::string& na
 
 TEST_F(TestFieldDataHelper, FieldTypeSize) {
     UT_LOG() << "Testing FieldTypeSize, FieldTypeName and IsFixedLengthFieldType";
-    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::POLYGON; ft++) {
+    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::SPATIAL; ft++) {
         FieldType parsed;
         UT_EXPECT_TRUE(TryGetFieldType(FieldTypeName((FieldType)ft), parsed));
         UT_EXPECT_EQ((int)parsed, ft);
@@ -67,6 +67,7 @@ TEST_F(TestFieldDataHelper, FieldTypeSize) {
     CheckFieldTypeSizeNameIsFixed(FieldType::POINT, "POINT", 50, true);
     CheckFieldTypeSizeNameIsFixed(FieldType::LINESTRING, "LINESTRING", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::POLYGON, "POLYGON", 0, false);
+    CheckFieldTypeSizeNameIsFixed(FieldType::SPATIAL, "SPATIAL", 0, false);
 }
 
 TEST_F(TestFieldDataHelper, FieldTypeStorageType) {
@@ -222,6 +223,13 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
                             "0103000020E6100000010000000500000000000000000000000000000000"
                             "00000000000000000000000000000000001C400000000000001040000000000000"
                             "00400000000000000040000000000000000000000000000000000000000000000000");
+    _CHECK_PARSE_STRING_SUCC(SPATIAL, "0101000020E6100000000000000000F03F0000000000000040",
+                            "0101000020E6100000000000000000F03F0000000000000040");
+    _CHECK_PARSE_STRING_SUCC(SPATIAL,
+                            "0102000020231C00000300000000000000000000000000000000000000000"
+                            "000000000004000000000000000400000000000000840000000000000F03F",
+                            "0102000020231C00000300000000000000000000000000000000000000000"
+                            "000000000004000000000000000400000000000000840000000000000F03F");
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
@@ -242,6 +250,7 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_FAIL(POINT, "123absd");
     _CHECK_PARSE_STRING_FAIL(LINESTRING, "0.23124325");
     _CHECK_PARSE_STRING_FAIL(POLYGON, "asdjasncioo");
+    _CHECK_PARSE_STRING_FAIL(SPATIAL, "123@.adsas--=");
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -386,6 +395,24 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POLYGON, v), true);
         UT_EXPECT_EQ(v.AsType<std::string>(), PolygonWgs84(EWKB).AsEWKB());
     }
+
+    // testing spatial
+    {
+        std::string EWKB1 = "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000";
+        FieldData fd1 = FieldData(EWKB1);
+        Value v1;
+        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd1, FieldType::SPATIAL, v1), true);
+        UT_EXPECT_EQ(v1.AsType<std::string>(), SpatialWgs84(EWKB1).AsEWKB());
+
+        std::string EWKB2 = "0102000020231C00000300000000000000000000000000000000000000000"
+                            "000000000004000000000000000400000000000000840000000000000F03F";
+        FieldData fd2 = FieldData(EWKB2);
+        Value v2;
+        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd2, FieldType::SPATIAL, v2), true);
+        UT_EXPECT_EQ(v2.AsType<std::string>(), SpatialCartesian(EWKB2).AsEWKB());
+    }
 }
 
 TEST_F(TestFieldDataHelper, FieldDataToValueOfFieldType) {
@@ -436,6 +463,16 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
                            "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000");
+    _TEST_PARSE_TO_V_OF_FT(SPATIAL, "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000",
+                           "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000");
+    _TEST_PARSE_TO_V_OF_FT(SPATIAL, "0102000020231C00000300000000000000000000000000000000000"
+                           "000000000000000004000000000000000400000000000000840000000000000F03F",
+                           "0102000020231C00000300000000000000000000000000000000000000000"
+                           "000000000004000000000000000400000000000000840000000000000F03F");
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BOOL, "tr", 1));
@@ -453,6 +490,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POINT, "213234asda", "342341123"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(LINESTRING, "21qwe234.asd", "342341123asdq"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POLYGON, "213234qweasda", "34.342as341123"));
+    UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(SPATIAL, "213234qwe#@asda", "34.342as3@#41123"));
 }
 
 TEST_F(TestFieldDataHelper, ValueCompare) {
@@ -515,9 +553,11 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
         Value va = Value::ConstRef(GetStoredValue<FieldType::POINT>(a));
         Value vb = Value::ConstRef(GetStoredValue<FieldType::POINT>(b));
         Value vc = Value::ConstRef(GetStoredValue<FieldType::POINT>(c));
+        Value vd = Value::ConstRef(GetStoredValue<FieldType::SPATIAL>(a));
 
         UT_EXPECT_EQ(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vb.Data(), vb.Size()), 0);
         UT_EXPECT_GT(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vc.Data(), vc.Size()), 0);
         UT_EXPECT_LT(ValueCompare<FieldType::POINT>(vc.Data(), vc.Size(), va.Data(), va.Size()), 0);
+        UT_EXPECT_EQ(ValueCompare<FieldType::SPATIAL>(va.Data(), va.Size(), vd.Data(), vd.Size()), 0);
     }
 }

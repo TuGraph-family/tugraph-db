@@ -578,6 +578,19 @@ struct FieldData {
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Cartesian>& s) {
     return FieldData(s); }
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Wgs84>& s) {return FieldData(s); }
+    static inline FieldData Spatial(const std::string& str) {
+        ::lgraph_api::SpatialType s = ExtractType(str);
+        switch(s) {
+            case ::lgraph_api::SpatialType::NUL:
+                throw InputError("Unknown Spatial Type");
+            case ::lgraph_api::SpatialType::POINT:
+                return Point(str);
+            case ::lgraph_api::SpatialType::LINESTRING:
+                return LineString(str);
+            case ::lgraph_api::SpatialType::POLYGON:
+                return Polygon(str);
+        }
+    }
 
     //-------------------------
     // Constructs blobs.

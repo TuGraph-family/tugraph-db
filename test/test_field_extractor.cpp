@@ -46,34 +46,39 @@ template <>
 inline lgraph::PointWgs84 ParseStringToT<lgraph::PointWgs84>(const std::string& str) {
     return lgraph::PointWgs84(str);
 }
-
 template<>
 inline lgraph::PointCartesian ParseStringToT<lgraph::PointCartesian>
 (const std::string &str) {
     return lgraph::PointCartesian(str);
 }
-
 template <>
 inline lgraph::LineStringWgs84 ParseStringToT<lgraph::LineStringWgs84>(const std::string& str) {
     return lgraph::LineStringWgs84(str);
 }
-
 template<>
 inline lgraph::LineStringCartesian ParseStringToT<lgraph::LineStringCartesian>
 (const std::string &str) {
     return lgraph::LineStringCartesian(str);
 }
-
 template <>
 inline lgraph::PolygonWgs84 ParseStringToT<lgraph::PolygonWgs84>(const std::string& str) {
     return lgraph::PolygonWgs84(str);
 }
-
 template<>
 inline lgraph::PolygonCartesian ParseStringToT<lgraph::PolygonCartesian>
 (const std::string &str) {
     return lgraph::PolygonCartesian(str);
 }
+template <>
+inline lgraph::SpatialWgs84 ParseStringToT<lgraph::SpatialWgs84>(const std::string& str) {
+    return lgraph::SpatialWgs84(str);
+}
+template<>
+inline lgraph::SpatialCartesian ParseStringToT<lgraph::SpatialCartesian>
+(const std::string &str) {
+    return lgraph::SpatialCartesian(str);
+}
+
 
 template <typename T, typename T2 = int64_t>
 static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok,
@@ -218,6 +223,21 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
                            "000000000000000000000000000000000000000"
                            "0000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000"),
+                           "aasd332423d", FieldData(3215), false);
+        CheckParseDataType<lgraph::SpatialWgs84>(FieldType::SPATIAL, value_tmp,
+                           "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000",
+                           FieldData::Spatial("0103000020E61000000100000005000000000000000000000000"
+                           "0000000000000000000000000000000000000000001C400000000000001040000000000"
+                           "00000400000000000000040000000000000000000000000000000000000000000000000"),
+                           "aasd332423d", FieldData(3215), false);
+        CheckParseDataType<lgraph::SpatialWgs84>(FieldType::SPATIAL, value_tmp,
+                           "0102000020231C00000300000000000000000000000000000000000000000"
+                           "000000000004000000000000000400000000000000840000000000000F03F",
+                           FieldData::Spatial("0102000020231C000003000000000000"
+                           "0000000000000000000000000000000000000000400000000"
+                           "0000000400000000000000840000000000000F03F"),
                            "aasd332423d", FieldData(3215), false);
         CheckParseStringAndBlob(FieldType::STRING, value_tmp, "this is a string",
                                 FieldData("another string"),

@@ -100,6 +100,7 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         fss.emplace_back("int8", FieldType::POINT, false);
         fss.emplace_back("int8", FieldType::LINESTRING, false);
         fss.emplace_back("int8", FieldType::POLYGON, false);
+        fss.emplace_back("int8", FieldType::SPATIAL, false);
         ::google::protobuf::RepeatedPtrField<ProtoFieldSpec> pfss, pfss2;
         FieldSpecConvert::FromLGraphT(fss, &pfss);
         UT_EXPECT_EQ(pfss.size(), fss.size());

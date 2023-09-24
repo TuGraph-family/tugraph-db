@@ -78,9 +78,9 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_EQ(FieldData::BlobFromBase64(::lgraph_api::base64::Encode(orig)).AsBlob(), orig);
         std::string WKB = "0101000000000000000000f03f0000000000000040";
         std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
-        // UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
-        // WKB)).AsWgsSpatial() == Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
-        // WKB));
+        UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
+        WKB)).AsWgsSpatial() == Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
+        WKB));
 
         // ToString
         UT_EXPECT_EQ(FieldData::Bool(true).ToString(), "true");
@@ -128,6 +128,8 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_TRUE(FieldData::Blob("123") == FieldData::Blob("123"));
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
         WKB)) == FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, WKB)));
+        UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(EWKB))
+        == FieldData::Spatial(Spatial<Wgs84>(EWKB)));
 
         UT_EXPECT_ANY_THROW(FieldData::Int8(1) > FieldData::Bool(false));
         UT_EXPECT_TRUE(FieldData::Int8(1) > FieldData::Int8(-10));

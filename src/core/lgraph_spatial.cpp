@@ -227,7 +227,7 @@ SpatialType ExtractType(const std::string& EWKB) {
         case 3:
             return SpatialType::POLYGON;
         default:
-            throw std::runtime_error("wrong SpatialType!");
+            throw InputError("Unkown Spatial Type!");
     }
 }
 
@@ -310,7 +310,7 @@ Spatial<SRID_Type>::Spatial(SRID srid, SpatialType type, int construct_type, std
     type_ = type;
     switch (type) {
         case SpatialType::NUL:
-            throw std::runtime_error("Unknown Spatial Type");
+            throw InputError("Unknown Spatial Type");
         case SpatialType::POINT:
             Point_.reset(new Point<SRID_Type>(srid, type, construct_type, content));
             break;
@@ -326,22 +326,18 @@ Spatial<SRID_Type>::Spatial(SRID srid, SpatialType type, int construct_type, std
 template<typename SRID_Type>
 Spatial<SRID_Type>::Spatial(const std::string& EWKB) {
     type_ = ExtractType(EWKB);
-    SRID srid = ExtractSRID(EWKB);
-    std::string WKB = EWKB.substr(0, 10) + EWKB.substr(18);
-    WKB[8] = '0';
-    WKB[6] = '0';
 
     switch (type_) {
         case SpatialType::NUL:
-            throw InputError("invalid spatial type");
+            throw InputError("Unknown Spatial Type");
         case SpatialType::POINT:
-            Point_.reset(new Point<SRID_Type>(srid, type_, 0, WKB));
+            Point_.reset(new Point<SRID_Type>(EWKB));
             break;
         case SpatialType::LINESTRING:
-            line_.reset(new LineString<SRID_Type>(srid, type_, 0, WKB));
+            line_.reset(new LineString<SRID_Type>(EWKB));
             break;
         case SpatialType::POLYGON:
-            Polygon_.reset(new Polygon<SRID_Type>(srid, type_, 0, WKB));
+            Polygon_.reset(new Polygon<SRID_Type>(EWKB));
     }
 }
 

@@ -325,6 +325,21 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_EQ(po.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_EQ(po_.AsEWKB(), little_Polygon_ewkb);
         UT_EXPECT_EQ(po_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
+
+        UT_LOG() << "Testing Spatial big endian";
+        Spatial<Wgs84> s(SRID::WGS84, SpatialType::POLYGON, 0, big_Polygon_wkb);
+        Spatial<Wgs84> s_(big_Polygon_ewkb);
+        UT_EXPECT_EQ(s.AsEWKB(), little_Polygon_ewkb);
+        UT_EXPECT_EQ(s.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
+        UT_EXPECT_EQ(s_.AsEWKB(), little_Polygon_ewkb);
+        UT_EXPECT_EQ(s_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
+
+        Spatial<Wgs84> sl(SRID::WGS84, SpatialType::LINESTRING, 0, big_LineString_wkb);
+        Spatial<Wgs84> sl_(big_LineString_EWKB);
+        UT_EXPECT_EQ(sl.AsEWKB(), little_LineString_EWKB);
+        UT_EXPECT_EQ(sl.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
+        UT_EXPECT_EQ(sl_.AsEWKB(), little_LineString_EWKB);
+        UT_EXPECT_EQ(sl_.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
     }
 }
 
@@ -343,7 +358,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
              FieldSpec("string2Point", FieldType::STRING, true),
              FieldSpec("string2line", FieldType::STRING, false),
              FieldSpec("string2Polygon", FieldType::STRING, true)}),
-        "id", {});
+        "id", "", {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     // add fields;
     {
