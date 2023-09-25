@@ -62,6 +62,7 @@ class RTContext : public SubmitQueryContext {
     std::unique_ptr<lgraph_api::Transaction> txn_ = nullptr;
     std::unique_ptr<ResultInfo> result_info_ = nullptr;
     std::unique_ptr<lgraph_api::Result> result_ = nullptr;
+    std::optional<size_t> per_node_limit_ = std::nullopt;
 
     RTContext() = default;
 

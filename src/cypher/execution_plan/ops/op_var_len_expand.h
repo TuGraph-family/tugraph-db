@@ -34,7 +34,7 @@ namespace cypher {
 
 /* Variable Length Expand */
 class VarLenExpand : public OpBase {
-    void _InitializeEdgeIter(RTContext *ctx, int64_t vid, lgraph::EIter &eit) {
+    void _InitializeEdgeIter(RTContext *ctx, int64_t vid, lgraph::EIter &eit, size_t &count) {
         auto &types = relp_->Types();
         auto iter_type = lgraph::EIter::NA;
         switch (expand_direction_) {
@@ -49,6 +49,7 @@ class VarLenExpand : public OpBase {
             break;
         }
         eit.Initialize(ctx->txn_->GetTxn().get(), iter_type, vid, types);
+        count = 1;
     }
 
 #if 0  // 20210704
@@ -177,13 +178,20 @@ class VarLenExpand : public OpBase {
         }
 #endif
 
+    bool PerNodeLimit(RTContext *ctx, size_t k) {
+        return !ctx->per_node_limit_.has_value() ||
+               expand_counts_[k] <= ctx->per_node_limit_.value();
+    }
+
     int64_t GetFirstFromKthHop(RTContext *ctx, size_t k) {
         auto start_id = start_->PullVid();
         relp_->path_.Clear();
         relp_->path_.SetStart(start_id);
         if (k == 0) return start_id;
-        _InitializeEdgeIter(ctx, start_id, eits_[0]);
-        if (!eits_[0].IsValid()) return -1;
+        _InitializeEdgeIter(ctx, start_id, eits_[0], expand_counts_[0]);
+        if (!eits_[0].IsValid() || !PerNodeLimit(ctx, 0)) {
+            return -1;
+        }
         if (k == 1) {
             relp_->path_.Append(eits_[0].GetUid());
             if (ctx->path_unique_) pattern_graph_->VisitedEdges().Add(eits_[0]);
@@ -208,24 +216,28 @@ class VarLenExpand : public OpBase {
         if (!get_first || k != 1 ||
             (ctx->path_unique_ && pattern_graph_->VisitedEdges().Contains(eits_[k - 1]))) {
             do {
+                expand_counts_[k - 1] += 1;
                 eits_[k - 1].Next();
-            } while (eits_[k - 1].IsValid() && ctx->path_unique_ &&
+            } while (eits_[k - 1].IsValid() && PerNodeLimit(ctx, k - 1) && ctx->path_unique_ &&
                      pattern_graph_->VisitedEdges().Contains(eits_[k - 1]));
         }
         do {
-            if (!eits_[k - 1].IsValid()) {
+            if (!eits_[k - 1].IsValid() || !PerNodeLimit(ctx, k - 1)) {
                 auto id = GetNextFromKthHop(ctx, k - 1, get_first);
                 if (id < 0) return id;
-                _InitializeEdgeIter(ctx, id, eits_[k - 1]);
+                _InitializeEdgeIter(ctx, id, eits_[k - 1], expand_counts_[k - 1]);
                 /* We have called get_next previously, mark get_first as
                  * false. */
                 get_first = false;
             }
             while (ctx->path_unique_ && pattern_graph_->VisitedEdges().Contains(eits_[k - 1])) {
+                expand_counts_[k - 1] += 1;
                 eits_[k - 1].Next();
             }
-        } while (!eits_[k - 1].IsValid());
-        if (!eits_[k - 1].IsValid()) return -1;
+        } while (!eits_[k - 1].IsValid() || !PerNodeLimit(ctx, k - 1));
+        if (!eits_[k - 1].IsValid() || !PerNodeLimit(ctx, k - 1)) {
+            return -1;
+        }
         relp_->path_.Append(eits_[k - 1].GetUid());
         if (ctx->path_unique_) pattern_graph_->VisitedEdges().Add(eits_[k - 1]);
         return eits_[k - 1].GetNbr(expand_direction_);
@@ -258,19 +270,20 @@ class VarLenExpand : public OpBase {
             auto vid = GetFirstFromKthHop(ctx, hop_ - 1);
             if (vid < 0) return OP_REFRESH;
             if (hop_ > 1 && !eits_[hop_ - 2].IsValid()) CYPHER_INTL_ERR();
-            _InitializeEdgeIter(ctx, vid, eits_[hop_ - 1]);
+            _InitializeEdgeIter(ctx, vid, eits_[hop_ - 1], expand_counts_[hop_ - 1]);
             // TODO(anyone) merge these code similiar to GetNextFromKthHop
             do {
-                if (!eits_[hop_ - 1].IsValid()) {
+                if (!eits_[hop_ - 1].IsValid() || !PerNodeLimit(ctx, hop_ - 1)) {
                     auto v = GetNextFromKthHop(ctx, hop_ - 1, false);
                     if (v < 0) return OP_REFRESH;
-                    _InitializeEdgeIter(ctx, v, eits_[hop_ - 1]);
+                    _InitializeEdgeIter(ctx, v, eits_[hop_ - 1], expand_counts_[hop_ - 1]);
                 }
                 while (ctx->path_unique_ &&
                        pattern_graph_->VisitedEdges().Contains(eits_[hop_ - 1])) {
+                    expand_counts_[hop_ - 1] += 1;
                     eits_[hop_ - 1].Next();
                 }
-            } while (!eits_[hop_ - 1].IsValid());
+            } while (!eits_[hop_ - 1].IsValid() || !PerNodeLimit(ctx, hop_ - 1));
             neighbor_->PushVid(eits_[hop_ - 1].GetNbr(expand_direction_));
             relp_->path_.Append(eits_[hop_ - 1].GetUid());
             // TODO(anyone) remove in last hop
@@ -302,6 +315,7 @@ class VarLenExpand : public OpBase {
     bool collect_all_;
     ExpandTowards expand_direction_;
     std::vector<lgraph::EIter> &eits_;
+    std::vector<size_t> expand_counts_;
     enum State {
         Uninitialized, /* ExpandAll wasn't initialized it. */
         Resetted,      /* ExpandAll was just restarted. */
@@ -333,6 +347,7 @@ class VarLenExpand : public OpBase {
         start_rec_idx_ = sit->second.id;
         nbr_rec_idx_ = dit->second.id;
         relp_rec_idx_ = rit->second.id;
+        expand_counts_.resize(eits_.size());
         state_ = Uninitialized;
     }
 

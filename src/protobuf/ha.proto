@@ -504,6 +504,7 @@ message GraphQueryRequest {
     required bool result_in_json_format = 5;
     optional string graph = 6;
     optional double timeout = 7;
+    optional int64 per_node_limit = 8;
 };
 
 message GraphQueryResult {

@@ -60,6 +60,10 @@ class ExpandAll : public OpBase {
         if (neighbor_->Label().empty()) return true;
         auto nbr_it = ctx->txn_->GetTxn()->GetVertexIterator(eit_->GetNbr(expand_direction_));
         while (ctx->txn_->GetTxn()->GetVertexLabel(nbr_it) != neighbor_->Label()) {
+            if (ctx->per_node_limit_.has_value() && expand_count_ > ctx->per_node_limit_.value()) {
+                return false;
+            }
+            expand_count_ += 1;
             eit_->Next();
             if (!eit_->IsValid()) return false;
             nbr_it.Goto(eit_->GetNbr(expand_direction_));
@@ -81,9 +85,12 @@ class ExpandAll : public OpBase {
         if (state_ == ExpandAllResetted) {
             /* Start node iterator may be invalid, such as when the start is an argument
              * produced by OPTIONAL MATCH.  */
+            expand_count_ = 1;
             if (start_->PullVid() < 0) return OP_REFRESH;
             _InitializeEdgeIter(ctx);
-            while (_CheckToSkipEdge(ctx)) {
+            while (_CheckToSkipEdge(ctx) && (!ctx->per_node_limit_.has_value() ||
+                                             expand_count_ <= ctx->per_node_limit_.value())) {
+                expand_count_ += 1;
                 eit_->Next();
             }
             if (!eit_->IsValid() || !_FilterNeighborLabel(ctx)) return OP_REFRESH;
@@ -98,9 +105,17 @@ class ExpandAll : public OpBase {
         // The iterators are set, keep on consuming.
         pattern_graph_->VisitedEdges().Erase(*eit_);
         do {
+            if (ctx->per_node_limit_.has_value() && expand_count_ > ctx->per_node_limit_.value()) {
+                break;
+            }
+            expand_count_ += 1;
             eit_->Next();
         } while (_CheckToSkipEdge(ctx));
-        if (!eit_->IsValid() || !_FilterNeighborLabel(ctx)) return OP_REFRESH;
+        if ((ctx->per_node_limit_.has_value() && expand_count_ > ctx->per_node_limit_.value()) ||
+            !eit_->IsValid() || !_FilterNeighborLabel(ctx)) {
+            neighbor_->PushVid(-1);
+            return OP_REFRESH;
+        }
         neighbor_->PushVid(eit_->GetNbr(expand_direction_));
         pattern_graph_->VisitedEdges().Add(*eit_);
         _DumpForDebug();
@@ -119,6 +134,7 @@ class ExpandAll : public OpBase {
     bool expand_into_;
     ExpandTowards expand_direction_;
     std::shared_ptr<lgraph::Filter> edge_filter_ = nullptr;
+    size_t expand_count_;
 
     /* ExpandAllStates
      * Different states in which ExpandAll can be at. */

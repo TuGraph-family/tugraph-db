@@ -923,6 +923,9 @@ bool lgraph::StateMachine::ApplyGraphQueryRequest(const LGraphRequest* lgraph_re
     auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
     cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
                           field_access);
+    if (req.has_per_node_limit()) {
+        ctx.per_node_limit_ = req.per_node_limit();
+    }
     if (lgraph_req->has_is_write_op()) {
         is_write = lgraph_req->is_write_op();
     } else {
