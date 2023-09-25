@@ -53,7 +53,8 @@ TEST_F(TestDetachProperty, normal) {
     e_options.detach_property = true;
     e_options.edge_constraints = {{"v1", "v2"}};
     UT_EXPECT_EQ(e_options.to_string(),
-                 "detach_property: 1, edge_constraints: [v1 -> v2], temporal_field: ");
+                 "detach_property: 1, edge_constraints: [v1 -> v2], temporal_field: , "
+                 "temporal_field_order: ASC");
     ret = graph.AddEdgeLabel("e1", std::vector<FieldSpec>(
                                        {{"weight", FieldType::INT16, false}}),
                              e_options);
@@ -226,7 +227,8 @@ TEST_F(TestDetachProperty, reopen) {
         e_options.detach_property = true;
         e_options.edge_constraints = {{"v1", "v2"}};
         UT_EXPECT_EQ(e_options.to_string(),
-                     "detach_property: 1, edge_constraints: [v1 -> v2], temporal_field: ");
+                     "detach_property: 1, edge_constraints: [v1 -> v2], temporal_field: , "
+                     "temporal_field_order: ASC");
         ret = graph.AddEdgeLabel(
             "e1", std::vector<FieldSpec>({{"weight", FieldType::INT16, false}}), e_options);
         UT_EXPECT_TRUE(ret);

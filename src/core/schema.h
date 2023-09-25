@@ -77,6 +77,7 @@ class Schema {
     std::string primary_field_{};
     // temporal_field_ should be int64.
     std::string temporal_field_{};
+    TemporalFieldOrder temporal_order_{};
     // When Schema is VERTEX type, `edge_constraints_` is always empty.
     EdgeConstraints edge_constraints_;
     std::unordered_set<size_t> fulltext_fields_;
@@ -141,11 +142,14 @@ class Schema {
      */
     void SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                    const std::string& primary, const std::string& temporal,
+                   const TemporalFieldOrder& temporal_order,
                    const EdgeConstraints& edge_constraints);
 
     void SetSchema(bool is_vertex, const std::vector<FieldSpec>& fields, const std::string& primary,
-                   const std::string& temporal, const EdgeConstraints& edge_constraints) {
-        SetSchema(is_vertex, fields.size(), fields.data(), primary, temporal, edge_constraints);
+                   const std::string& temporal, const TemporalFieldOrder& temporal_order,
+                   const EdgeConstraints& edge_constraints) {
+        SetSchema(is_vertex, fields.size(), fields.data(), primary, temporal, temporal_order,
+                  edge_constraints);
     }
 
     void SetEdgeConstraintsLids(std::unordered_map<LabelId, std::unordered_set<LabelId>> lids) {
@@ -175,6 +179,7 @@ class Schema {
     const std::string& GetPrimaryField() const { return primary_field_; }
     bool DetachProperty() const { return detach_property_; }
     bool HasTemporalField() const { return !temporal_field_.empty(); }
+    TemporalFieldOrder GetTemporalOrder() const { return temporal_order_; }
     const EdgeConstraints& GetEdgeConstraints() const { return edge_constraints_; }
     void SetEdgeConstraints(const EdgeConstraints& edge_constraints) {
         edge_constraints_ = edge_constraints;
@@ -476,13 +481,17 @@ class Schema {
         s = BinaryRead(buf, temporal_field_);
         if (!s) return 0;
         bytes_read += s;
+        s = BinaryRead(buf, temporal_order_);
+        if (!s) return 0;
+        bytes_read += s;
         s = BinaryRead(buf, edge_constraints_);
         if (!s) return 0;
         bytes_read += s;
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        SetSchema(is_vertex_, fds, primary_field_, temporal_field_, edge_constraints_);
+        SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
+                  edge_constraints_);
         return bytes_read;
     }
 
@@ -492,7 +501,8 @@ class Schema {
                BinaryWrite(buf, label_in_record_) + BinaryWrite(buf, deleted_) +
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
                BinaryWrite(buf, primary_field_) + BinaryWrite(buf, temporal_field_) +
-               BinaryWrite(buf, edge_constraints_) + BinaryWrite(buf, detach_property_);
+               BinaryWrite(buf, temporal_order_) + BinaryWrite(buf, edge_constraints_) +
+               BinaryWrite(buf, detach_property_);
     }
 
     std::string ToString() const { return fma_common::ToString(GetFieldSpecsAsMap()); }

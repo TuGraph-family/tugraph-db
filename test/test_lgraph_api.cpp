@@ -15,6 +15,7 @@
 #include <map>
 #include <string>
 
+#include "core/data_type.h"
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/utils.h"
@@ -552,6 +553,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
             FMA_LOG() << "Testing edges with tid";
             EdgeOptions options;
             options.temporal_field = "ts";
+            options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
             db.AddEdgeLabel("et",
                             std::vector<lgraph_api::FieldSpec>{
                                 lgraph_api::FieldSpec("ts", FieldType::INT64, false),

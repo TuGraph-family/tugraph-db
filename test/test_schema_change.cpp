@@ -65,6 +65,7 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     lg.BlockingAddIndex("person", "age", false, true);
     EdgeOptions options;
     options.temporal_field = "ts";
+    options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
     options.detach_property = detach_property;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
                                std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
@@ -138,7 +139,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
              FieldSpec("name1", FieldType::STRING, true),
              FieldSpec("name2", FieldType::STRING, true), FieldSpec("blob", FieldType::BLOB, true),
              FieldSpec("age", FieldType::FLOAT, false)}),
-        "id", "", {});
+        "id", "", {}, {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     {
         Schema s2(s1);
@@ -574,7 +575,7 @@ TEST_P(TestSchemaChange, DelLabel) {
                                              FieldSpec("name2", FieldType::STRING, true),
                                              FieldSpec("blob", FieldType::BLOB, true),
                                              FieldSpec("age", FieldType::FLOAT, false)}),
-                     "id", "", {});
+                     "id", "", {}, {});
         UT_EXPECT_THROW(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),
             lgraph::InputError);
@@ -596,7 +597,7 @@ TEST_P(TestSchemaChange, DelLabel) {
                                             FieldSpec("name2", FieldType::STRING, true),
                                             FieldSpec("blob", FieldType::BLOB, true),
                                             FieldSpec("age", FieldType::FLOAT, false)}),
-                    "", "id", {});
+                    "", "id", {}, {});
         UT_EXPECT_THROW(s.DelFields(std::vector<std::string>{"id"}), FieldCannotBeDeletedException);
         s.AddFields({FieldSpec("telphone", FieldType::STRING, false)});
         UT_EXPECT_EQ(s.HasTemporalField(), true);

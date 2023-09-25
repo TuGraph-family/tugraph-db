@@ -18,6 +18,8 @@
 #include "import/import_v2.h"
 #include "import/blob_writer.h"
 
+using lgraph::import::LabelGraph;
+
 lgraph::import_v2::Importer::Importer(const Config& config)
     : config_(config),
       intermediate_file_(config.intermediate_dir, config.intermediate_buf_size),
@@ -106,8 +108,11 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                 options = std::move(vo);
             } else {
                 auto eo = std::make_unique<EdgeOptions>();
-                if (v.HasTemporalField())
-                    eo->temporal_field = v.GetTemporalField().name;
+                if (v.HasTemporalField()) {
+                    auto tf = v.GetTemporalField();
+                    eo->temporal_field = tf.name;
+                    eo->temporal_field_order = tf.temporal_order;
+                }
                 eo->edge_constraints = v.edge_constraints;
                 options = std::move(eo);
             }
@@ -518,9 +523,12 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
         size_t second_id_pos = std::max(src_id_pos, dst_id_pos);
         size_t label_id;
         bool has_tid = ld.HasTemporalField();
+        TemporalFieldOrder tid_order = TemporalFieldOrder::ASC;
         int primary_id_pos = -1;
         if (has_tid) {
-            primary_id_pos = (int)fd.FindIdxExcludeSkip(ld.GetTemporalField().name);
+            auto tf = ld.GetTemporalField();
+            tid_order = tf.temporal_order;
+            primary_id_pos = (int)fd.FindIdxExcludeSkip(tf.name);
         }
         std::vector<size_t> field_ids;
         Schema schema;
@@ -563,7 +571,9 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                         const FieldData& src_id = edge[src_id_pos];
                         const FieldData& dst_id = edge[dst_id_pos];
                         TemporalId tid = 0;
-                        if (has_tid) tid = edge[primary_id_pos].AsInt64();
+                        if (has_tid) {
+                            tid = Transaction::ParseTemporalId(edge[primary_id_pos], tid_order);
+                        }
                         VidType src_vid, dst_vid;
                         bool resolve_success = true;
                         // try to translate src and dst id into vid
