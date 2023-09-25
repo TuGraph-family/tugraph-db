@@ -1,27 +1,23 @@
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.IOException;
 
 public class LuceneTest {
-    private Lucene lucene;
 
-    @Before
-    public void init() throws IOException {
-        lucene = new Lucene("test","StandardAnalyzer", 10, 1);
-        lucene.clear();
+    private static class InnerLucene extends Lucene{
+        public InnerLucene() throws IOException {
+            super("test", "StandardAnalyzer", 10, 1);
+            super.clear();
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            super.close();
+        }
     }
 
-    @After
-    public void close() throws IOException {
-        lucene.close();
-    }
-
-    @Test
-    public void testAddVertex() throws IOException, ParseException {
+    public static void testAddVertex() throws IOException, ParseException {
+        InnerLucene lucene = new InnerLucene();
         int labelId = 10;
         for (int i = 0; i < 10; i++) {
             String[] keys = {"field_1"};
@@ -30,15 +26,15 @@ public class LuceneTest {
         }
         lucene.maybeRefresh();
         ScoreVid[] ids = lucene.queryVertex(labelId, "field_1:field_1_5", 100);
-        Assert.assertTrue(ids.length == 1);
-        Assert.assertTrue(ids[0].vid == 5);
+        assert ids.length == 1;
+        assert ids[0].vid == 5;
 
         ids = lucene.queryVertex(labelId, "field_1_5", 100);
-        Assert.assertTrue(ids.length == 0);
+        assert ids.length == 0;
     }
 
-    @Test
-    public void testDeleteVertex() throws IOException, ParseException {
+    public static void testDeleteVertex() throws IOException, ParseException {
+        InnerLucene lucene = new InnerLucene();
         int labelId1 = 10;
         for (int i = 0; i < 10; i++) {
             String[] keys = {"field_1"};
@@ -48,12 +44,12 @@ public class LuceneTest {
         lucene.deleteVertex(5);
         lucene.maybeRefresh();
         ScoreVid[] ids = lucene.queryVertex(labelId1, "field_1:field_1_5", 100);
-        Assert.assertTrue(ids.length == 0);
+        assert ids.length == 0;
 
         lucene.deleteVertex(20);
         lucene.maybeRefresh();
         ids = lucene.queryVertex(labelId1, "field_1:field_1_*", 100);
-        Assert.assertTrue(ids.length == 9);
+        assert ids.length == 9;
 
         int labelId2 = 20;
         for (int i = 10; i < 20; i++) {
@@ -63,20 +59,20 @@ public class LuceneTest {
         }
         lucene.maybeRefresh();
         ids = lucene.queryVertex(labelId2, "field_2:field_*", 100);
-        Assert.assertTrue(ids.length == 10);
+        assert ids.length == 10;
         ids = lucene.queryVertex(labelId1, "field_1:field_*", 100);
-        Assert.assertTrue(ids.length == 9);
+        assert ids.length == 9;
 
         lucene.deleteLabel(true, labelId1);
         lucene.maybeRefresh();
         ids = lucene.queryVertex(labelId2, "field_2:field_*", 100);
-        Assert.assertTrue(ids.length == 10);
+        assert ids.length == 10;
         ids = lucene.queryVertex(labelId1, "field_1:field_*", 100);
-        Assert.assertTrue(ids.length == 0);
+        assert ids.length == 0;
     }
 
-    @Test
-    public void testAddEdge() throws IOException, ParseException {
+    public static void testAddEdge() throws IOException, ParseException {
+        InnerLucene lucene = new InnerLucene();
         int labelId = 11;
         for (int i = 0; i < 10; i++) {
             String[] keys = {"field_1"};
@@ -85,15 +81,15 @@ public class LuceneTest {
         }
         lucene.maybeRefresh();
         ScoreEdgeUid[] ids = lucene.queryEdge(labelId, "field_1:field_1_5", 100);
-        Assert.assertTrue(ids.length == 1);
-        Assert.assertTrue(ids[0].srcId == 5);
-        Assert.assertTrue(ids[0].destId == 6);
-        Assert.assertTrue(ids[0].labelId == labelId);
-        Assert.assertTrue(ids[0].edgeId == 5);
+        assert ids.length == 1;
+        assert ids[0].srcId == 5;
+        assert ids[0].destId == 6;
+        assert ids[0].labelId == labelId;
+        assert ids[0].edgeId == 5;
     }
 
-    @Test
-    public void testDeleteEdge() throws IOException, ParseException {
+    public static void testDeleteEdge() throws IOException, ParseException {
+        InnerLucene lucene = new InnerLucene();
         int labelId = 11;
         for (int i = 0; i < 10; i++) {
             String[] keys = {"field_1"};
@@ -103,6 +99,13 @@ public class LuceneTest {
         lucene.deleteEdge(5, 6, labelId, 5);
         lucene.maybeRefresh();
         ScoreEdgeUid[] ids = lucene.queryEdge(labelId, "field_1:field_1_5", 100);
-        Assert.assertTrue(ids.length == 0);
+        assert ids.length == 0;
+    }
+
+    public static void main(String[] args) throws IOException, ParseException {
+        testAddVertex();
+        testDeleteVertex();
+        testAddEdge();
+        testDeleteEdge();
     }
 }
