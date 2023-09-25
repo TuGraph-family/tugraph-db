@@ -1061,6 +1061,12 @@ class Transaction {
 
     void GetStartAndEndVid(VertexId& start, VertexId& end);
 
+    static TemporalId ParseTemporalId(const FieldData& fd,
+                                      const TemporalFieldOrder& temporal_order);
+
+    static TemporalId ParseTemporalId(const std::string& fd,
+                                      const TemporalFieldOrder& temporal_order);
+
  private:
     void CloseAllIterators() {
         /** NOTE: it->Close() will remove the it from iterators_. So we
@@ -1076,9 +1082,6 @@ class Transaction {
     VertexIndex* GetVertexIndex(size_t label, size_t field);
     EdgeIndex* GetEdgeIndex(const std::string& label, const std::string& field);
     EdgeIndex* GetEdgeIndex(size_t label, size_t field);
-
-    TemporalId ParseTemporalId(const FieldData& fd);
-    TemporalId ParseTemporalId(const std::string& fd);
 
     void EnterTxn();
     void LeaveTxn();

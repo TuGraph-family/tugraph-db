@@ -15,6 +15,7 @@ namespace fma_common {
 #define LOG() FMA_LOG()
 #define WARN() FMA_WARN()
 #define ERR() FMA_ERR()
+#define FATAL() FMA_FATAL()
 #define CHECK(pred) FMA_CHECK(pred)
 #define CHECK_EQ(a, b) FMA_CHECK_EQ(a, b)
 #define CHECK_NEQ(a, b) FMA_CHECK_NEQ(a, b)

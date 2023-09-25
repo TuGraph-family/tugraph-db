@@ -414,6 +414,7 @@ void Schema::ClearFields() {
 
 void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const std::string& primary, const std::string& temporal,
+                       const TemporalFieldOrder& temporal_order,
                        const EdgeConstraints& edge_constraints) {
     if (_F_UNLIKELY(n_fields > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
     fields_.clear();
@@ -433,6 +434,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     is_vertex_ = is_vertex;
     primary_field_ = primary;
     temporal_field_ = temporal;
+    temporal_order_ = temporal_order;
     edge_constraints_ = edge_constraints;
     RefreshLayout();
 }

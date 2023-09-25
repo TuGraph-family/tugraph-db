@@ -168,8 +168,11 @@ void Importer::DoImportOffline() {
             options = std::move(vo);
         } else {
             auto eo = std::make_unique<EdgeOptions>();
-            if (v.HasTemporalField())
-                eo->temporal_field = v.GetTemporalField().name;
+            if (v.HasTemporalField()) {
+                auto tf = v.GetTemporalField();
+                eo->temporal_field = tf.name;
+                eo->temporal_field_order = tf.temporal_order;
+            }
             eo->edge_constraints = v.edge_constraints;
             options = std::move(eo);
         }
@@ -573,6 +576,7 @@ void Importer::EdgeDataToSST() {
         LabelId label_id = 0;
         int16_t tid_pos = 0;
         bool has_tid = false;
+        TemporalFieldOrder tid_order = TemporalFieldOrder::ASC;
         LabelId src_label_id = 0;
         LabelId dst_label_id = 0;
         Schema* schema = nullptr;
@@ -647,11 +651,14 @@ void Importer::EdgeDataToSST() {
                     parser.reset(new import_v2::GraphArParser(file));
                 }
                 bool has_tid = false;
+                TemporalFieldOrder tid_order = TemporalFieldOrder::ASC;
                 int16_t tid_pos = -1;
-                if (schemaDesc_.FindEdgeLabel(file.label).HasTemporalField()) {
+                auto cs = schemaDesc_.FindEdgeLabel(file.label);
+                if (cs.HasTemporalField()) {
                     has_tid = true;
-                    tid_pos = (int16_t)file.FindIdxExcludeSkip(
-                        schemaDesc_.FindEdgeLabel(file.label).GetTemporalField().name);
+                    auto tf = cs.GetTemporalField();
+                    tid_order = tf.temporal_order;
+                    tid_pos = (int16_t)file.FindIdxExcludeSkip(tf.name);
                 }
 
                 std::vector<std::vector<FieldData>> block;
@@ -669,6 +676,7 @@ void Importer::EdgeDataToSST() {
                     edgeDataBlock->dst_id_pos = dst_id_pos;
                     edgeDataBlock->label_id = boost::endian::native_to_big(label_id);
                     edgeDataBlock->has_tid = has_tid;
+                    edgeDataBlock->tid_order = tid_order;
                     edgeDataBlock->tid_pos = tid_pos;
                     edgeDataBlock->src_label_id = boost::endian::native_to_big(src_label_id);
                     edgeDataBlock->dst_label_id = boost::endian::native_to_big(dst_label_id);
@@ -747,8 +755,11 @@ void Importer::EdgeDataToSST() {
                                 }
                                 const FieldData& src_fd = line[edgeDataBlock->src_id_pos];
                                 const FieldData& dst_fd = line[edgeDataBlock->dst_id_pos];
-                                int64_t tid = edgeDataBlock->has_tid
-                                                  ? line[edgeDataBlock->tid_pos].AsInt64() : 0;
+                                int64_t tid =
+                                    edgeDataBlock->has_tid
+                                        ? Transaction::ParseTemporalId(line[edgeDataBlock->tid_pos],
+                                                                       edgeDataBlock->tid_order)
+                                        : 0;
                                 k.clear();
                                 k.append((const char*)&edgeDataBlock->src_label_id,
                                          sizeof(edgeDataBlock->src_label_id));
