@@ -118,9 +118,9 @@ size_t LightningGraph::GetNumVertices() {
 
 template <bool IS_LABEL>
 inline void CheckIsValidLabelFieldName(const std::string& lof) {
-    if (lof.empty() || lof.size() > 64) {
+    if (lof.empty() || lof.size() > 255) {
         throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +
-                         " is invalid: must be between 1 and 64 bytes.");
+                         " is invalid: must be between 1 and 255 bytes.");
     }
     if (fma_common::TextParserUtils::IsDigits(lof.front())) {
         throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +

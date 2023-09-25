@@ -216,8 +216,12 @@ TEST_F(TestLGraph, LGraph) {
         UT_EXPECT_ANY_THROW(db.AddLabel(
             "", std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
             true, VertexOptions("id")));
+        // label name
+        db.AddLabel(std::string(255, 'e'),
+                                        std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+                                        true, VertexOptions("id"));
         // long label name
-        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(65, 'a'),
+        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(256, 'a'),
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
                                         true, VertexOptions("id")));
         // strange label names
@@ -243,11 +247,16 @@ TEST_F(TestLGraph, LGraph) {
             db.AddLabel("field_name_start_with_digit",
                         std::vector<FieldSpec>{FieldSpec("10234_kkk", FieldType::STRING, false)},
                         true, VertexOptions("10234_kkk")));
+        // field name ok
+        db.AddLabel(
+            "field_name_not_long",
+            std::vector<FieldSpec>{FieldSpec(std::string(255, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(255, 'a')));
         // field name too long
         UT_EXPECT_ANY_THROW(db.AddLabel(
             "field_name_too_long",
-            std::vector<FieldSpec>{FieldSpec(std::string(65, 'a'), FieldType::STRING, false)}, true,
-            VertexOptions(std::string(65, 'a'))));
+            std::vector<FieldSpec>{FieldSpec(std::string(256, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(256, 'a'))));
         // invalid character in field name
         for (auto& str : std::vector<std::string>{"#", "!", "+", "-", "*", "/"})
             UT_EXPECT_ANY_THROW(db.AddLabel(
