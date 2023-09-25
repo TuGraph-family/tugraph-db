@@ -401,16 +401,18 @@ class Graph {
         if (!it.IsValid()) {
             int64_t count = delta;
             if (count < 0) {
-                FMA_ERR() << "Unexpected count value, is_vertex: " << is_vertex
-                          << ", LabelId: " << lid << ", count: " << count;
+                // todo(kehuang): fix lgraph_import v2
+                // FMA_ERR() << "Unexpected count value, is_vertex: " << is_vertex
+                //           << ", LabelId: " << lid << ", count: " << count;
             }
             meta_table_->AddKV(txn, k, Value::ConstRef(count));
         } else {
             int64_t count = it.GetValue().AsType<int64_t>();
             count += delta;
             if (count < 0) {
-                FMA_ERR() << "Unexpected count value, is_vertex: " << is_vertex
-                          << ", LabelId: " << lid << ", count: " << count;
+                // todo(kehuang): fix lgraph_import v2
+                // FMA_ERR() << "Unexpected count value, is_vertex: " << is_vertex
+                //           << ", LabelId: " << lid << ", count: " << count;
             }
             it.SetValue(Value::ConstRef(count));
         }
