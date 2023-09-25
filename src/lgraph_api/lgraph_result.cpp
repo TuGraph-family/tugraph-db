@@ -89,9 +89,9 @@ void Record::Insert(const std::string &key, const FieldData &value) {
     } else if (header[key] == LGraphType::PATH && value.type == FieldType::STRING) {
         record[key] =
             std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::PATH));
-    } else if (header[key] == LGraphType::ANY) {
-        record[key] =
-            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::ANY));
+    } else if (header[key] == LGraphType::ANY || header[key] == LGraphType::NODE ||
+               header[key] == LGraphType::RELATIONSHIP) {
+        record[key] = std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::ANY));
     } else {
         throw std::runtime_error("[Result ERROR] type is valid");
     }

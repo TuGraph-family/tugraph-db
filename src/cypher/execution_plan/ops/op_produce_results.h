@@ -103,8 +103,12 @@ static void RRecordToURecord(
             if (header_type == lgraph_api::LGraphType::RELATIONSHIP ||
                 header_type == lgraph_api::LGraphType::ANY) {
                 auto uit = v.relationship->ItRef();
-                auto uid = uit->GetUid();
-                record.Insert(header[index].first, uid, txn);
+                if (uit->IsValid()) {
+                    auto uid = uit->GetUid();
+                    record.Insert(header[index].first, uid, txn);
+                } else {
+                    record.Insert(header[index].first, lgraph_api::FieldData());
+                }
                 continue;
             } else {
                 throw lgraph::CypherException(

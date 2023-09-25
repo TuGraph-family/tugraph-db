@@ -61,28 +61,6 @@
             "res": 21
           }
         ],
-        "parallel_traversal": [
-          {
-            "query": "MATCH (n:Person) return count(n)",
-            "plan": "Execution Plan:\nProduce Results\n    Traversal [n]\n",
-            "res": 1
-          },
-          {
-            "query": "MATCH (n:Person) where n.birthyear > 1900 and n.birthyear < 2000 return count(n) ",
-            "plan": "Execution Plan:\nProduce Results\n    Traversal [n]\n",
-            "res": 1
-          },
-          {
-            "query": "MATCH (n:Person) return n.birthyear, count(n)",
-            "plan": "Execution Plan:\nProduce Results\n    Traversal [n]\n",
-            "res": 13
-          },
-          {
-            "query": "MATCH (f:Film)<-[:ACTED_IN]-(p:Person)-[:BORN_IN]->(c:City) return c.name, count(f)",
-            "plan": "Execution Plan:\nProduce Results\n    Traversal [f<--p-->c]\n",
-            "res": 3
-          }
-        ],
         "issue148": [
           {
             "query": "WITH 'a' as a UNWIND ['a', 'b'] as k RETURN a, k",

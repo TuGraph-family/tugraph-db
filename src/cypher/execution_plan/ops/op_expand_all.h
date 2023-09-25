@@ -180,6 +180,9 @@ class ExpandAll : public OpBase {
         CYPHER_THROW_ASSERT(!children.empty());
         auto child = children[0];
         while (state_ == ExpandAllUninitialized || Next(ctx) == OP_REFRESH) {
+            if (!expand_into_) {
+                ResetImpl(true);
+            }
             auto res = child->Consume(ctx);
             state_ = ExpandAllResetted;
             if (res != OP_OK) {

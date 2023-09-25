@@ -777,6 +777,9 @@ class EIter {
     bool Undirected() const { return _type >= BI_EDGE && _type < NA; }
 
     bool IsValid() const {
+        if (!_CheckItPtr()) {
+            return false;
+        }
         switch (_type) {
         case OUT_EDGE:
             return (_oeit && _oeit->IsValid());
