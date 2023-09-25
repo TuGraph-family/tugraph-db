@@ -77,7 +77,14 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
                                                           const std::string& data) const {
-    ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(data);
+    ::lgraph_api::SpatialType s;
+    // throw ParseStringException in this function;
+    try {
+        s = ::lgraph_api::ExtractType(data);
+    } catch (...) {
+        throw ParseStringException(Name(), data, FieldType::SPATIAL);
+    }
+
     if (!::lgraph_api::TryDecodeEWKB(data, s))
         throw ParseStringException(Name(), data, FieldType::SPATIAL);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
@@ -230,13 +237,21 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         {
         if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
             throw ParseFieldDataException(Name(), data, Type());
-        ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(*data.data.buf);
+        ::lgraph_api::SpatialType s;
+
+        // throw ParseStringException in this function;
+        try {
+            s = ::lgraph_api::ExtractType(*data.data.buf);
+        }  catch (...) {
+            throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
+        }
+
         if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
-        
+
     default:
         FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
     }

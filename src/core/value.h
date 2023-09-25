@@ -99,6 +99,19 @@ struct TypeCast<lgraph_api::Polygon<lgraph_api::Cartesian>> {
     }
 };
 
+template <>
+struct TypeCast<lgraph_api::Spatial<lgraph_api::Wgs84>> {
+    static lgraph_api::Spatial<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::Spatial<lgraph_api::Wgs84>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
+    static lgraph_api::Spatial<lgraph_api::Cartesian> AsType(void* p, size_t s) {
+        return lgraph_api::Spatial<lgraph_api::Cartesian>(std::string((char*)p, s));
+    }
+};
 }  // namespace _detail
 
 /**

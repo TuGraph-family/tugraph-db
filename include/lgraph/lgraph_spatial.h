@@ -11,12 +11,13 @@
  * @file lgraph_spatial.h
  * @brief Implemnets the Spatial, SpatialBase and SpatialDerive classes.
  * 
- * TODO:
- *   1. 进一步通过测试样例检查ParseStringToValueOfFieldType与TryFieldDataToValueOfFieldType
- *      实现的正确性(空间数据与string数据的转换);
- *   2. FieldType2CType无法实现空间数据相关功能, 目前绕开实现。
- *   3. 确认line与Polygon调用_SetVariableLengthValue实现正确。
- */  
+ * TODO(shw):
+ *   1. add more tests for the conversion between string type and spatial type in
+ *      funciton ParseStringToValueOfFieldType and TryFieldDataToValueOfFieldType. 
+ *   2. support the compression of EWKB, which is now the format of spatial type storage.
+ *   3. more comprehensive and readable comments.
+ *   4. use FieldType2CType to simplify the realization of spatial data function;
+ */
 
 #pragma once
 

@@ -117,6 +117,8 @@ nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
         return nlohmann::json(data.linestring());
     case ProtoFieldData::kPolygon:
         return nlohmann::json(data.polygon());
+    case ProtoFieldData::kSpatial:
+        return nlohmann::json(data.spatial());
     }
     FMA_ASSERT(false);
     return nlohmann::json();

@@ -67,6 +67,8 @@ struct FieldDataConvert {
             return FieldData::LineString(std::move(*fd.release_linestring()));
         case ProtoFieldData::kPolygon:
             return FieldData::Polygon(std::move(*fd.release_polygon()));
+        case ProtoFieldData::kSpatial:
+            return FieldData::Spatial(std::move(*fd.release_polygon()));
         }
         FMA_ASSERT(false);
         return FieldData();
@@ -104,6 +106,8 @@ struct FieldDataConvert {
             return FieldData::LineString(fd.linestring());
         case ProtoFieldData::kPolygon:
             return FieldData::Polygon(fd.polygon());
+         case ProtoFieldData::kSpatial:
+            return FieldData::Spatial(fd.spatial());
         }
         FMA_ASSERT(false);
         return FieldData();

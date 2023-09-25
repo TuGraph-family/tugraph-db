@@ -558,6 +558,7 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
         UT_EXPECT_EQ(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vb.Data(), vb.Size()), 0);
         UT_EXPECT_GT(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vc.Data(), vc.Size()), 0);
         UT_EXPECT_LT(ValueCompare<FieldType::POINT>(vc.Data(), vc.Size(), va.Data(), va.Size()), 0);
-        UT_EXPECT_EQ(ValueCompare<FieldType::SPATIAL>(va.Data(), va.Size(), vd.Data(), vd.Size()), 0);
+        UT_EXPECT_EQ(ValueCompare<FieldType::SPATIAL>
+        (va.Data(), va.Size(), vd.Data(), vd.Size()), 0);
     }
 }

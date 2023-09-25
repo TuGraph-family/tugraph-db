@@ -375,7 +375,7 @@ std::string Spatial<SRID_Type>::AsEWKT() const {
 
 template<typename SRID_Type>
 std::string Spatial<SRID_Type>::ToString() const {
-    return AsEWKT();
+    return AsEWKB();
 }
 
 template<typename SRID_Type>

@@ -731,11 +731,12 @@ inline bool ParseStringIntoStorageType<FieldType::SPATIAL>
 (const std::string& str, std::string& sd) {
     ::lgraph_api::SpatialType s;
     // extracttype may throw any exception if the input str is not valid!
+    // return false instead of throw exception;
     try {
         s = ::lgraph_api::ExtractType(str);
     } catch (...) {
         return false;
-    };
+    }
     if (!::lgraph_api::TryDecodeEWKB(str, s)) {
         return false;
     }
@@ -955,10 +956,17 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::SPATIAL:
         {
-             // can only convert string to Polygon
+            // can only convert string to Polygon
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
-            ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(EWKB);
+            ::lgraph_api::SpatialType s;
+            // return false instead of throw exception;
+            try {
+                s = ::lgraph_api::ExtractType(EWKB);
+            } catch (...) {
+                return false;
+            }
+
             if (!::lgraph_api::TryDecodeEWKB(EWKB, s))
                 return false;
             v.Copy(EWKB);
@@ -1048,7 +1056,13 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
         }
     case FieldType::SPATIAL:
         {
-            ::lgraph_api::SpatialType s = ::lgraph_api::ExtractType(str);
+            // throw ParseError in this function;
+            ::lgraph_api::SpatialType s;
+            try {
+                s = ::lgraph_api::ExtractType(str);
+            } catch (...) {
+                ThrowParseError(str, FieldType::SPATIAL);
+            }
             if (!::lgraph_api::TryDecodeEWKB(str, s))
                 ThrowParseError(str, FieldType::SPATIAL);
             Value v;

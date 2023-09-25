@@ -369,6 +369,9 @@ web::json::value ProtoFieldDataToJson(const ProtoFieldData& data) {
     case ProtoFieldData::kPolygon:
         // TODO(shw): string(_TU(Polygon(data.polygon()).ToString()));
         return web::json::value::string(_TU(data.polygon()));
+    case ProtoFieldData::kSpatial:
+        // TODO(shw): string(_TU(Polygon(data.spatial()).ToString()));
+        return web::json::value::string(_TU(data.spatial()));
     }
     FMA_ASSERT(false);
     return web::json::value::null();
