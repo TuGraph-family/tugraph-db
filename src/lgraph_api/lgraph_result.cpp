@@ -391,7 +391,8 @@ void Result::Load(const std::string &output) {
                 auto title = col.key();
                 switch (GetType(title)) {
                 case LGraphType::INTEGER:
-                    record->Insert(title, FieldData(std::forward<int>(col.value().get<int>())));
+                    record->Insert(title,
+                                   FieldData(std::forward<int64_t>(col.value().get<int64_t>())));
                     break;
                 case LGraphType::FLOAT:
                     record->Insert(title, FieldData(std::forward<float>(col.value().get<float>())));
