@@ -14,12 +14,15 @@
 
 #pragma once
 
+#include "cypher/execution_plan/ops/ops.h"
+#include "cypher/execution_plan/validation/validation_pass.h"
+#include "cypher/execution_plan/runtime_context.h"
 #include "cypher/execution_plan/visitor/visitor.h"
 
 namespace cypher {
-class CheckGraphVisitor : public Visitor {
+class GraphNameCheckerVisitor : public Visitor {
  public:
-    explicit CheckGraphVisitor(cypher::RTContext *ctx) : ctx_(ctx) {}
+    explicit GraphNameCheckerVisitor(cypher::RTContext *ctx) : ctx_(ctx) {}
 
     void Visit(const OpBase &op) override {
         std::vector<const OpBase *> ops = {&op};
@@ -28,8 +31,9 @@ class CheckGraphVisitor : public Visitor {
             ops.insert(ops.end(), op_->children.begin(), op_->children.end());
             op_->Accept(this);
         }
-        if (!has_standalone_call && ctx_->graph_.empty())
-            throw lgraph::CypherException("graph name cannot be empty");
+        if (!has_standalone_call && ctx_->graph_.empty()) {
+            throw lgraph::CypherException("Graph name cannot be empty.");
+        }
     }
 
     void Visit(const Aggregate &op) override{};
@@ -72,4 +76,23 @@ class CheckGraphVisitor : public Visitor {
     cypher::RTContext *ctx_ = nullptr;
     bool has_standalone_call = false;
 };
+
+class GraphNameChecker : public ValidationPass {
+ public:
+    GraphNameChecker(OpBase *root, cypher::RTContext *ctx)
+        : ValidationPass(typeid(GraphNameChecker).name()), root_(root), ctx_(ctx) {}
+
+    bool Gate() override { return true; }
+
+    int Execute() override {
+        GraphNameCheckerVisitor visitor(ctx_);
+        visitor.Visit(*root_);
+        return 0;
+    }
+
+ private:
+    OpBase *root_;
+    cypher::RTContext *ctx_;
+};
+
 }  // namespace cypher
