@@ -54,8 +54,8 @@
         {
             "label" : "transfer",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
@@ -64,8 +64,8 @@
         {
             "label" : "withdraw",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
@@ -74,8 +74,8 @@
         {
             "label" : "repay",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
@@ -84,8 +84,8 @@
         {
             "label" : "deposit",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"},
                 {"name" : "amount", "type":"DOUBLE"}
@@ -94,8 +94,8 @@
         {
             "label" : "signIn",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"}
             ]
@@ -103,8 +103,8 @@
         {
             "label" : "invest",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"},
                 {"name" : "ratio", "type":"DOUBLE"}
@@ -113,8 +113,8 @@
         {
             "label" : "apply",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"}
             ]
@@ -122,8 +122,8 @@
         {
             "label" : "guarantee",
             "type" : "EDGE",
-            "tid" : "timestamp",
-            "tid_order" : "desc",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
             "properties" : [
                 {"name" : "timestamp", "type":"INT64"}
             ]

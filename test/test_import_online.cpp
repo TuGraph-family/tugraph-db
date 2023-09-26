@@ -1434,6 +1434,9 @@ Liam Neeson,Batman Begins,Henri Ducard, 298
         web::json::value json_val = web::json::value::parse(str);
         UT_EXPECT_EQ(json_val.size() == 0, true);
         ret = client.ImportSchemaFromContent(str, sImportContent["schema"]);
+        if (!ret) {
+            UT_ERR() << "ImportSchemaFromContent failed, error: " << str;
+        }
         UT_EXPECT_TRUE(ret);
         ret = client.ImportDataFromContent(str, sImportContent["person_desc"],
                                            sImportContent["person"], ",");

@@ -55,6 +55,8 @@ typedef lgraph_api::EdgeConstraints EdgeConstraints;
 typedef lgraph_api::LabelOptions LabelOptions;
 typedef lgraph_api::VertexOptions VertexOptions;
 typedef lgraph_api::EdgeOptions EdgeOptions;
+typedef lgraph_api::EdgeOptions::TemporalFieldOrder TemporalFieldOrder;
+
 
 typedef int64_t VertexId;
 typedef int64_t EdgeId;

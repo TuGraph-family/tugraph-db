@@ -542,13 +542,13 @@ R"(
     }
 
     static void create_mini_finbench(const std::string& dir = "./lgraph_db") {
-        lgraph::import_v2::Importer::Config config;
+        lgraph::import_v3::Importer::Config config;
         config.config_file = "../../test/resource/data/mini_finbench/mini_finbench.json";
         config.db_dir = dir;
         config.delete_if_exists = true;
         config.graph = "default";
         config.delimiter = "|";
-        lgraph::import_v2::Importer importer(config);
+        lgraph::import_v3::Importer importer(config);
         importer.DoImportOffline();
     }
 

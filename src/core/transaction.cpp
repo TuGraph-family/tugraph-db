@@ -13,6 +13,7 @@
  */
 
 #include "core/blob_manager.h"
+#include "core/data_type.h"
 #include "core/field_data_helper.h"
 #include "core/index_manager.h"
 #include "core/lightning_graph.h"
@@ -1197,13 +1198,25 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     return newvid;
 }
 
-TemporalId Transaction::ParseTemporalId(const FieldData& fd) { return fd.AsInt64(); }
+TemporalId Transaction::ParseTemporalId(const FieldData& fd,
+                                        const TemporalFieldOrder& temporal_order) {
+    if (temporal_order == TemporalFieldOrder::ASC) {
+        return fd.AsInt64();
+    } else {
+        return std::numeric_limits<int64_t>::max() ^ fd.AsInt64();
+    }
+}
 
-TemporalId Transaction::ParseTemporalId(const std::string& str) {
+TemporalId Transaction::ParseTemporalId(const std::string& str,
+                                        const TemporalFieldOrder& temporal_order) {
     TemporalId tid = 0;
     if (fma_common::TextParserUtils::ParseT(str, tid) != str.size())
         throw InputError(FMA_FMT("Incorrect tid format: {}", str));
-    return tid;
+    if (temporal_order == TemporalFieldOrder::ASC) {
+        return tid;
+    } else {
+        return std::numeric_limits<int64_t>::max() ^ tid;
+    }
 }
 
 /**
@@ -1240,7 +1253,7 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     if (schema->HasTemporalField()) {
         int pos = schema->GetTemporalPos(n_fields, fields);
         if (pos != -1) {
-            tid = ParseTemporalId(values[pos]);
+            tid = ParseTemporalId(values[pos], schema->GetTemporalOrder());
         }
     }
     const auto& constraints = schema->GetEdgeConstraintsLids();
@@ -1275,7 +1288,7 @@ Transaction::UpsertEdge(VertexId src, VertexId dst, const LabelT& label, size_t 
         // NOTE: if one edge has primary id, different primary id will be insert rather than update.
         int pos = schema->GetTemporalPos(n_fields, fields);
         if (pos != -1) {
-            tid = ParseTemporalId(values[pos]);
+            tid = ParseTemporalId(values[pos], schema->GetTemporalOrder());
         }
     }
     graph::OutEdgeIterator it =

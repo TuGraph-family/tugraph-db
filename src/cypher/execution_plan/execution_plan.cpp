@@ -27,7 +27,7 @@
 #include "monitor/memory_monitor_allocator.h"
 #include "optimization/pass_manager.h"
 #include "procedure/procedure.h"
-#include "validation/check_graph.h"
+#include "cypher/execution_plan/validation/graph_name_checker.h"
 #include "cypher/execution_plan/execution_plan.h"
 
 namespace cypher {
@@ -1278,13 +1278,14 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::Cmd
     }
     // Optimize the operations in the ExecutionPlan.
     // TODO(seijiang): split context-free optimizations & context-dependent ones
-    PassManager pass_manager(Root(), ctx);
+    PassManager pass_manager(_root, ctx);
     pass_manager.ExecutePasses();
 }
 
-void ExecutionPlan::Validate(cypher::RTContext *ctx_) {
-    CheckGraphVisitor check_graph(ctx_);
-    check_graph.Visit(*_root);
+void ExecutionPlan::Validate(cypher::RTContext *ctx) {
+    // todo(kehuang): Add validation manager here.
+    GraphNameChecker checker(_root, ctx);
+    checker.Execute();
 }
 
 ExecutionPlan::~ExecutionPlan() {

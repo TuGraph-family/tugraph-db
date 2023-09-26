@@ -2206,15 +2206,16 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
         "(m:Person {name:'Liam Neeson'}), "
         "(o:Person {name:'Liam Neeson'}) "
         "WHERE custom.myadd('asd')='1' RETURN 1");
-    // issue #312
+    // issue #312 & #463
     auto graph = ctx->graph_;
     ctx->graph_ = "";
     expected_exception_any(ctx, "MATCH (n) RETURN n LIMIT 5");
     expected_exception_any(ctx, "CALL db.vertexLabels");
     expected_exception_any(ctx, "CALL db.warmup");
     eval_script(ctx, "CALL dbms.graph.listGraphs()");
+    expected_exception_any(ctx, "MATCH p=(n)-[e]->(m) RETURN p LIMIT 5");
     ctx->graph_ = graph;
-    // issue #312 end
+    // issue #312 & #464 end
     return 0;
 }
 

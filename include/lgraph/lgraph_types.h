@@ -40,6 +40,7 @@ enum class AccessLevel {
     FULL = 3
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const AccessLevel& v) {
     switch (v) {
         case AccessLevel::NONE:    return "NONE";
@@ -58,6 +59,7 @@ enum class FieldAccessLevel {
     WRITE = 2
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const FieldAccessLevel& v) {
     switch (v) {
         case FieldAccessLevel::NONE:    return "NONE";
@@ -72,6 +74,7 @@ enum class GraphQueryType {
     GQL = 1
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const GraphQueryType& v) {
     switch (v) {
         case GraphQueryType::CYPHER:    return "CYPHER";
@@ -107,6 +110,23 @@ struct EdgeOptions : LabelOptions {
     // edge temporal field, edge will be stored in the order of this field
     // Default: empty
     std::string temporal_field;
+    // order of edge temporal field
+    // Default: ASC
+    enum class TemporalFieldOrder {
+        ASC = 0,
+        DESC = 1,
+    } temporal_field_order = TemporalFieldOrder::ASC;
+
+    inline static std::string to_string(const TemporalFieldOrder& v) {
+        switch (v) {
+        case TemporalFieldOrder::ASC:
+            return "ASC";
+        case TemporalFieldOrder::DESC:
+            return "DESC";
+        default:
+            throw std::runtime_error("Unknown TemporalFieldOrder");
+        }
+    }
 
     EdgeOptions() = default;
     explicit EdgeOptions(const EdgeConstraints& edge_constraints)
@@ -124,8 +144,8 @@ struct EdgeOptions : LabelOptions {
         constraints = "[" + constraints + "]";
 
         return "detach_property: " + std::to_string(detach_property) +
-               ", edge_constraints: " + constraints +
-               ", temporal_field: " + temporal_field;
+               ", edge_constraints: " + constraints + ", temporal_field: " + temporal_field +
+               ", temporal_field_order: " + to_string(temporal_field_order);
     }
     void clear() {
         detach_property = false;

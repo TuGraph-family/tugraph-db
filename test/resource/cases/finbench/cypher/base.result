@@ -1,0 +1,20 @@
+# temporal order: DESC
+MATCH (n:Account)
+WITH n LIMIT 1
+MATCH (n)-[e:withdraw]->(m:Account)
+WHERE e.timestamp > 0
+RETURN n.id, e.timestamp, type(e), m.id
+LIMIT 3;
+[{"e.timestamp":100,"m.id":3,"n.id":0,"type(e)":"withdraw"},{"e.timestamp":95,"m.id":3,"n.id":0,"type(e)":"withdraw"},{"e.timestamp":91,"m.id":12,"n.id":0,"type(e)":"withdraw"}]
+
+MATCH (n:Account{id:0}), (m:Account{id:3})
+CREATE (n)-[:withdraw{timestamp:97, amount:0.0}]->(m);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+
+MATCH (n:Account)
+WITH n LIMIT 1
+MATCH (n)-[e:withdraw]->(m:Account)
+WHERE e.timestamp > 0
+RETURN n.id, e.timestamp, type(e), m.id
+LIMIT 4;
+[{"e.timestamp":100,"m.id":3,"n.id":0,"type(e)":"withdraw"},{"e.timestamp":97,"m.id":3,"n.id":0,"type(e)":"withdraw"},{"e.timestamp":95,"m.id":3,"n.id":0,"type(e)":"withdraw"},{"e.timestamp":91,"m.id":12,"n.id":0,"type(e)":"withdraw"}]
