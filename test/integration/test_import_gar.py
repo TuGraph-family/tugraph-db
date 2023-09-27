@@ -19,16 +19,32 @@ class TestImportGar:
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("rest_client", [CLIENTOPT], indirect=True)
     def test_import_gar(self, importor, server, rest_client):
+        # test vertex label
         vertex_label_res = rest_client.call_cypher("default", "CALL db.vertexLabels()")
-        log.info(vertex_label_res)
         assert len(vertex_label_res) == 1
         assert vertex_label_res[0]['label'] == 'person'
 
+        # test edge label
         edge_label_res = rest_client.call_cypher("default", "CALL db.edgeLabels()")
-        log.info(edge_label_res)
         assert len(edge_label_res) == 1
         assert edge_label_res[0]['label'] == 'knows'
 
-        vertex_res = rest_client.call_cypher("default", "MATCH (p:person) RETURN count(p)")
-        log.info(vertex_res)
-        assert vertex_res[0]['count(p)'] == 903
+        # test vertex count
+        vertex_count = rest_client.call_cypher("default", "MATCH (p:person) RETURN count(p)")
+        assert vertex_count[0]['count(p)'] == 903
+
+        # text edge count
+        edge_count = rest_client.call_cypher("default", "MATCH ()-[r:knows]-() RETURN count(r)")
+        assert edge_count[0]['count(r)'] == 6626 * 2
+
+        # text vertex keys
+        vertex_keys = rest_client.call_cypher("default", "MATCH (p:person) RETURN keys(p) LIMIT 1")
+        assert "id" in vertex_keys[0]['keys(p)']
+        assert "firstName" in vertex_keys[0]['keys(p)']
+        assert "lastName" in vertex_keys[0]['keys(p)']
+        assert "gender" in vertex_keys[0]['keys(p)']
+        assert len(vertex_keys[0]['keys(p)']) == 30
+
+        # test edge has 'creationDate' key
+        edge_has_key = rest_client.call_cypher("default", "MATCH ()-[r]-() RETURN exists(r.creationDate) LIMIT 1")
+        assert edge_has_key[0]['{EXISTS(r.creationDate)}'] == True

@@ -40,7 +40,7 @@ void Importer::OnErrorOffline(const std::string& msg) {
     FMA_WARN() << msg;
     if (!config_.continue_on_error) {
         FMA_WARN() << "If you wish to ignore the errors, use "
-                     "--continue_on_error true";
+                      "--continue_on_error true";
         exit(-1);
     }
 }
@@ -149,10 +149,10 @@ void Importer::DoImportOffline() {
                      .MeetEdgeConstraints(file.edge_src.label, file.edge_dst.label)) {
                 throw std::runtime_error(FMA_FMT("{} not meet the edge constraints", file.path));
             }
-            file.edge_src.id = schemaDesc_.FindVertexLabel(
-                                              file.edge_src.label).GetPrimaryField().name;
-            file.edge_dst.id = schemaDesc_.FindVertexLabel(
-                                              file.edge_dst.label).GetPrimaryField().name;
+            file.edge_src.id =
+                schemaDesc_.FindVertexLabel(file.edge_src.label).GetPrimaryField().name;
+            file.edge_dst.id =
+                schemaDesc_.FindVertexLabel(file.edge_dst.label).GetPrimaryField().name;
         }
         import_v2::ImportConfParser::CheckConsistent(schemaDesc_, file);
     }
@@ -180,8 +180,7 @@ void Importer::DoImportOffline() {
         for (auto& p : m) fds.emplace_back(p.second);
         bool ok = db_->AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
-            FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
-                                 v.name);
+            FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge", v.name);
         } else {
             throw InputError(
                 FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
@@ -220,18 +219,16 @@ void Importer::DoImportOffline() {
                         FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
                                              v.name, spec.name, spec.unique);
                     } else {
-                        throw InputError(
-                            FMA_FMT("Vertex index [label:{}, field:{}] already exists",
-                                    v.name, spec.name));
+                        throw InputError(FMA_FMT("Vertex index [label:{}, field:{}] already exists",
+                                                 v.name, spec.name));
                     }
                 } else if (!v.is_vertex && spec.index) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
                         FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
                                              v.name, spec.name, spec.unique);
                     } else {
-                        throw InputError(
-                            FMA_FMT("Edge index [label:{}, field:{}] already exists",
-                                    v.name, spec.name));
+                        throw InputError(FMA_FMT("Edge index [label:{}, field:{}] already exists",
+                                                 v.name, spec.name));
                     }
                 }
                 if (spec.fulltext) {
@@ -240,9 +237,9 @@ void Importer::DoImportOffline() {
                         FMA_LOG() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
                                              v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     } else {
-                        throw InputError(FMA_FMT(
-                            "Fulltext index [{} label:{}, field:{}] already exists",
-                            v.is_vertex ? "vertex" : "edge", v.name, spec.name));
+                        throw InputError(
+                            FMA_FMT("Fulltext index [{} label:{}, field:{}] already exists",
+                                    v.is_vertex ? "vertex" : "edge", v.name, spec.name));
                     }
                 }
             }
@@ -267,16 +264,14 @@ void Importer::VertexDataToSST() {
         rocksdb::DB* db;
         auto s = rocksdb::DB::Open(options, vid_path_, &db);
         if (!s.ok()) {
-            throw std::runtime_error(
-                FMA_FMT("Opening DB failed, error: {}", s.ToString().c_str()));
+            throw std::runtime_error(FMA_FMT("Opening DB failed, error: {}", s.ToString().c_str()));
         }
         rocksdb_vids_.reset(db);
     }
 
-    parse_file_threads_ = std::make_unique<boost::asio::thread_pool>(
-        config_.parse_file_threads);
-    generate_sst_threads_ = std::make_unique<boost::asio::thread_pool>(
-        config_.generate_sst_threads);
+    parse_file_threads_ = std::make_unique<boost::asio::thread_pool>(config_.parse_file_threads);
+    generate_sst_threads_ =
+        std::make_unique<boost::asio::thread_pool>(config_.generate_sst_threads);
     struct VertexDataBlock {
         VertexId start_vid = 0;
         uint16_t key_col_id = 0;
@@ -296,7 +291,7 @@ void Importer::VertexDataToSST() {
         if (!file.is_vertex_file) {
             continue;
         }
-        boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, file](){
+        boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, file]() {
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -325,22 +320,22 @@ void Importer::VertexDataToSST() {
                     auto prop_name = prop_names[i];
                     auto col = schemaDesc_.FindVertexLabel(file.label).Find(prop_name);
                     if (col.index && col.unique && !col.primary) {
-                        unique_index_info.emplace_back(
-                            file.FindIdxExcludeSkip(prop_name), field_ids[i]);
+                        unique_index_info.emplace_back(file.FindIdxExcludeSkip(prop_name),
+                                                       field_ids[i]);
                     }
                 }
                 std::unique_ptr<import_v2::BlockParser> parser;
-                if (file.data_format == "CSV") {
+                if (file.data_format == "GraphAr") {
+                    parser.reset(new import_v2::GraphArParser(file));
+                } else if (file.data_format == "CSV") {
                     parser.reset(new import_v2::ColumnParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.delimiter,
                         config_.quiet ? 0 : 100));
-                } else if (file.data_format == "JSON") {
+                } else {
                     parser.reset(new import_v2::JsonLinesParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.quiet ? 0 : 100));
-                } else {
-                    parser.reset(new import_v2::GraphArParser(file));
                 }
                 std::vector<std::vector<FieldData>> block;
                 while (parser->ReadBlock(block)) {
@@ -369,10 +364,10 @@ void Importer::VertexDataToSST() {
                             std::vector<std::string> vec_kvs;
                             VertexId start_vid = dataBlock->start_vid;
                             std::unique_ptr<rocksdb::SstFileWriter> vertex_sst_writer(
-                                new rocksdb::SstFileWriter(rocksdb::EnvOptions(),
-                                                           {}, nullptr, false));
-                            std::string sst_path = sst_files_path_ + "/vertex_" +
-                                                        std::to_string(start_vid);
+                                new rocksdb::SstFileWriter(rocksdb::EnvOptions(), {}, nullptr,
+                                                           false));
+                            std::string sst_path =
+                                sst_files_path_ + "/vertex_" + std::to_string(start_vid);
                             auto s = vertex_sst_writer->Open(sst_path);
                             if (!s.ok()) {
                                 throw std::runtime_error(
@@ -390,8 +385,8 @@ void Importer::VertexDataToSST() {
                                 // check super long key
                                 if (key_col.IsString() &&
                                     key_col.string().size() > lgraph::_detail::MAX_KEY_SIZE) {
-                                    OnErrorOffline("Id string too long: "
-                                                   + key_col.string().substr(0, 1024));
+                                    OnErrorOffline("Id string too long: " +
+                                                   key_col.string().substr(0, 1024));
                                     continue;
                                 }
                                 bool unique_index_ok = true;
@@ -405,13 +400,13 @@ void Importer::VertexDataToSST() {
                                     if (unique_index_col.IsString() &&
                                         unique_index_col.string().size() >
                                             lgraph::_detail::MAX_KEY_SIZE) {
-                                        OnErrorOffline("Unique index string key is too long: "
-                                                       + unique_index_col.string().substr(0, 1024));
+                                        OnErrorOffline("Unique index string key is too long: " +
+                                                       unique_index_col.string().substr(0, 1024));
                                         continue;
                                     }
                                     std::string unique_key;
                                     unique_key.append((const char*)&dataBlock->label_id,
-                                             sizeof(dataBlock->label_id));
+                                                      sizeof(dataBlock->label_id));
                                     auto fd_id = info.second;
                                     unique_key.append((const char*)&fd_id, sizeof(fd_id));
                                     AppendFieldData(unique_key, unique_index_col);
@@ -457,7 +452,7 @@ void Importer::VertexDataToSST() {
                                         });
                                 }
                                 s = vertex_sst_writer->Put({(const char*)&vid, sizeof(vid)},
-                                                    {value.Data(), value.Size()});
+                                                           {value.Data(), value.Size()});
                                 if (!s.ok()) {
                                     throw std::runtime_error(
                                         FMA_FMT("vertex_sst_writer.Put error, {}", s.ToString()));
@@ -478,10 +473,9 @@ void Importer::VertexDataToSST() {
 
                             if (!config_.keep_vid_in_memory && !vec_kvs.empty()) {
                                 rocksdb::SstFileWriter vid_sst_writer(rocksdb::EnvOptions(), {},
-                                                                         nullptr, false);
-                                s = vid_sst_writer.Open(
-                                    sst_files_path_ + "/vid_" +
-                                    std::to_string(dataBlock->start_vid));
+                                                                      nullptr, false);
+                                s = vid_sst_writer.Open(sst_files_path_ + "/vid_" +
+                                                        std::to_string(dataBlock->start_vid));
                                 if (!s.ok()) {
                                     throw std::runtime_error(
                                         FMA_FMT("Failed to open vid_sst_writer"));
@@ -530,7 +524,7 @@ void Importer::VertexDataToSST() {
     if (!config_.keep_vid_in_memory) {
         auto begin = fma_common::GetTime();
         std::vector<std::string> ingest_files;
-        for (const auto & entry : std::filesystem::directory_iterator(sst_files_path_)) {
+        for (const auto& entry : std::filesystem::directory_iterator(sst_files_path_)) {
             const auto& path = entry.path().string();
             if (path.find("vid_") != std::string::npos) {
                 ingest_files.push_back(path);
@@ -564,10 +558,9 @@ void Importer::VertexDataToSST() {
 
 void Importer::EdgeDataToSST() {
     auto t1 = fma_common::GetTime();
-    parse_file_threads_ = std::make_unique<boost::asio::thread_pool>(
-        config_.parse_file_threads);
-    generate_sst_threads_ = std::make_unique<boost::asio::thread_pool>(
-        config_.generate_sst_threads);
+    parse_file_threads_ = std::make_unique<boost::asio::thread_pool>(config_.parse_file_threads);
+    generate_sst_threads_ =
+        std::make_unique<boost::asio::thread_pool>(config_.generate_sst_threads);
     struct EdgeDataBlock {
         std::vector<std::vector<FieldData>> block;
         uint64_t start_eid = 0;
@@ -584,7 +577,7 @@ void Importer::EdgeDataToSST() {
     struct KV {
         std::string key;
         Value value;
-        KV(std::string k, Value v): key(std::move(k)), value(std::move(v)) {}
+        KV(std::string k, Value v) : key(std::move(k)), value(std::move(v)) {}
     };
     BufferedBlobWriter blob_writer(db_->GetLightningGraph());
     std::atomic<uint64_t> pending_tasks(0);
@@ -594,8 +587,8 @@ void Importer::EdgeDataToSST() {
         if (file.is_vertex_file) {
             continue;
         }
-        boost::asio::post(*parse_file_threads_,
-                          [this, file, &blob_writer, &pending_tasks, &sst_file_id](){
+        boost::asio::post(*parse_file_threads_, [this, file, &blob_writer, &pending_tasks,
+                                                 &sst_file_id]() {
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -633,8 +626,8 @@ void Importer::EdgeDataToSST() {
                     auto prop_name = prop_names[i];
                     auto col = schemaDesc_.FindEdgeLabel(file.label).Find(prop_name);
                     if (col.index && col.unique) {
-                        unique_index_info.emplace_back(
-                            file.FindIdxExcludeSkip(prop_name), field_ids[i]);
+                        unique_index_info.emplace_back(file.FindIdxExcludeSkip(prop_name),
+                                                       field_ids[i]);
                     }
                 }
                 std::unique_ptr<import_v2::BlockParser> parser;
@@ -694,10 +687,9 @@ void Importer::EdgeDataToSST() {
                             pending_tasks--;
                             uint64_t num = ++sst_file_id;
                             std::unique_ptr<rocksdb::SstFileWriter> sst_file_writer(
-                                new rocksdb::SstFileWriter(rocksdb::EnvOptions(),
-                                                           {}, nullptr, false));
-                            std::string sst_path = sst_files_path_ + "/edge_" +
-                                                   std::to_string(num);
+                                new rocksdb::SstFileWriter(rocksdb::EnvOptions(), {}, nullptr,
+                                                           false));
+                            std::string sst_path = sst_files_path_ + "/edge_" + std::to_string(num);
                             auto s = sst_file_writer->Open(sst_path);
                             if (!s.ok()) {
                                 throw std::runtime_error(FMA_FMT("failed to open sst_file_writer"));
@@ -733,13 +725,13 @@ void Importer::EdgeDataToSST() {
                                     if (unique_index_col.IsString() &&
                                         unique_index_col.string().size() >
                                             lgraph::_detail::MAX_KEY_SIZE) {
-                                        OnErrorOffline("Unique index string key is too long: "
-                                                       + unique_index_col.string().substr(0, 1024));
+                                        OnErrorOffline("Unique index string key is too long: " +
+                                                       unique_index_col.string().substr(0, 1024));
                                         continue;
                                     }
                                     std::string unique_key;
                                     unique_key.append((const char*)&edgeDataBlock->label_id,
-                                             sizeof(edgeDataBlock->label_id));
+                                                      sizeof(edgeDataBlock->label_id));
                                     auto fd_id = info.second;
                                     unique_key.append((const char*)&fd_id, sizeof(fd_id));
                                     AppendFieldData(unique_key, unique_index_col);
@@ -776,8 +768,8 @@ void Importer::EdgeDataToSST() {
                                         continue;
                                     }
                                     auto slice_k = vid_iter->key();
-                                    auto offset = slice_k.data() +
-                                                  (slice_k.size() - sizeof(VertexId));
+                                    auto offset =
+                                        slice_k.data() + (slice_k.size() - sizeof(VertexId));
                                     src_vid = *(VertexId*)offset;
                                     slice_k.remove_suffix(sizeof(VertexId));
                                     if (slice_k.compare(k) != 0) {
@@ -801,8 +793,8 @@ void Importer::EdgeDataToSST() {
                                         continue;
                                     }
                                     auto slice_k = vid_iter->key();
-                                    auto offset = slice_k.data() +
-                                                  (slice_k.size() - sizeof(VertexId));
+                                    auto offset =
+                                        slice_k.data() + (slice_k.size() - sizeof(VertexId));
                                     dst_vid = *(VertexId*)offset;
                                     slice_k.remove_suffix(sizeof(VertexId));
                                     if (slice_k.compare(k) != 0) {
@@ -865,7 +857,7 @@ void Importer::EdgeDataToSST() {
                                          [](const KV& a, const KV& b) { return a.key < b.key; });
                             for (auto& pair : vec_kvs) {
                                 sst_file_writer->Put(pair.key,
-                                                    {pair.value.Data(), pair.value.Size()});
+                                                     {pair.value.Data(), pair.value.Size()});
                             }
                             std::vector<KV>().swap(vec_kvs);
                             sst_file_writer->Finish();
@@ -919,7 +911,7 @@ void Importer::VertexPrimaryIndexToLmdb() {
     LabelId preLabelId = std::numeric_limits<LabelId>::max();
     auto txn = db_->CreateWriteTxn();
     VertexIndex* vertexIndex = nullptr;
-    auto write_index = [&](const std::string& key, VertexId vid){
+    auto write_index = [&](const std::string& key, VertexId vid) {
         FMA_DBG_CHECK(key.size() > sizeof(LabelId));
         LabelId labelId = *((LabelId*)key.data());
         if (labelId != preLabelId) {
@@ -1041,8 +1033,7 @@ void Importer::VertexPrimaryIndexToLmdb() {
     FMA_LOG() << "Write vertex primary index to lmdb, time: " << t2 - t1 << "s";
     rocksdb_vids_.reset(nullptr);
 }
-typedef std::vector<std::tuple<LabelId, TemporalId,
-                               VertexId, import_v2::DenseString>>::iterator IT;
+typedef std::vector<std::tuple<LabelId, TemporalId, VertexId, import_v2::DenseString>>::iterator IT;
 void Importer::RocksdbToLmdb() {
     auto t1 = fma_common::GetTime();
     std::unique_ptr<rocksdb::DB> rocksdb;
@@ -1063,7 +1054,7 @@ void Importer::RocksdbToLmdb() {
         rocksdb.reset(db);
     }
     std::vector<std::string> ingest_files;
-    for (const auto & entry : std::filesystem::directory_iterator(sst_files_path_)) {
+    for (const auto& entry : std::filesystem::directory_iterator(sst_files_path_)) {
         ingest_files.push_back(entry.path().generic_string());
     }
     if (ingest_files.empty()) {
@@ -1118,16 +1109,15 @@ void Importer::RocksdbToLmdb() {
 
     std::atomic<uint64_t> pending_tasks(0);
     std::atomic<uint16_t> stage(0);
-    std::unique_ptr<boost::asio::thread_pool> lmdb_writer(
-        new boost::asio::thread_pool(1));
+    std::unique_ptr<boost::asio::thread_pool> lmdb_writer(new boost::asio::thread_pool(1));
     std::unique_ptr<boost::asio::thread_pool> rocksdb_readers(
         new boost::asio::thread_pool(config_.read_rocksdb_threads));
     for (uint16_t i = 0; i < config_.read_rocksdb_threads; i++) {
-        boost::asio::post(*rocksdb_readers, [this, i, &pending_tasks,
-                                             &rocksdb, &lmdb_writer, &stage]() {
+        boost::asio::post(*rocksdb_readers, [this, i, &pending_tasks, &rocksdb, &lmdb_writer,
+                                             &stage]() {
             uint64_t start_vid = i * config_.vid_num_per_reading;
             uint64_t bigend_start_vid = boost::endian::native_to_big(start_vid);
-            uint64_t end_vid = (i+1) * config_.vid_num_per_reading;
+            uint64_t end_vid = (i + 1) * config_.vid_num_per_reading;
             uint64_t bigend_end_vid = boost::endian::native_to_big(end_vid);
             rocksdb::ReadOptions options;
             options.ignore_range_deletions = true;
@@ -1149,49 +1139,48 @@ void Importer::RocksdbToLmdb() {
             size_t total_size = 0;
             VertexId pre_vid = InvalidVid;
 
-            auto throw_kvs_to_lmdb = [&lmdb_writer, &pending_tasks, this, &stage, i]
-                (std::vector<std::pair<Value, Value>> kvs,
-                 std::vector<std::tuple<LabelId, VertexId, Value>> v_property,
-                 std::vector<std::tuple<LabelId, EdgeUid, Value>> e_property){
-                while (stage != i || pending_tasks > 1) {
-                    fma_common::SleepUs(1000);
-                }
-                pending_tasks++;
-                boost::asio::post(*lmdb_writer, [this, &pending_tasks,
-                                                 kvs = std::move(kvs),
-                                                 v_property = std::move(v_property),
-                                                 e_property = std::move(e_property)]() {
-                    Transaction txn = db_->CreateWriteTxn();
-                    for (auto& kv : kvs) {
-                        txn.ImportAppendDataRaw(kv.first, kv.second);
+            auto throw_kvs_to_lmdb =
+                [&lmdb_writer, &pending_tasks, this, &stage, i](
+                    std::vector<std::pair<Value, Value>> kvs,
+                    std::vector<std::tuple<LabelId, VertexId, Value>> v_property,
+                    std::vector<std::tuple<LabelId, EdgeUid, Value>> e_property) {
+                    while (stage != i || pending_tasks > 1) {
+                        fma_common::SleepUs(1000);
                     }
-                    txn.RefreshNextVid();
-                    for (auto& pro : v_property) {
-                        auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), true));
-                        s->AddDetachedVertexProperty(
-                            txn.GetTxn(), std::get<1>(pro), std::get<2>(pro));
-                    }
-                    for (auto& pro : e_property) {
-                        auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), false));
-                        s->AddDetachedEdgeProperty(
-                            txn.GetTxn(), std::get<1>(pro), std::get<2>(pro));
-                    }
-                    txn.Commit();
-                    pending_tasks--;
-                });
-            };
+                    pending_tasks++;
+                    boost::asio::post(*lmdb_writer, [this, &pending_tasks, kvs = std::move(kvs),
+                                                     v_property = std::move(v_property),
+                                                     e_property = std::move(e_property)]() {
+                        Transaction txn = db_->CreateWriteTxn();
+                        for (auto& kv : kvs) {
+                            txn.ImportAppendDataRaw(kv.first, kv.second);
+                        }
+                        txn.RefreshNextVid();
+                        for (auto& pro : v_property) {
+                            auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), true));
+                            s->AddDetachedVertexProperty(txn.GetTxn(), std::get<1>(pro),
+                                                         std::get<2>(pro));
+                        }
+                        for (auto& pro : e_property) {
+                            auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), false));
+                            s->AddDetachedEdgeProperty(txn.GetTxn(), std::get<1>(pro),
+                                                       std::get<2>(pro));
+                        }
+                        txn.Commit();
+                        pending_tasks--;
+                    });
+                };
             auto make_kvs = [&]() {
                 if (!split) {
                     lgraph::graph::VertexValue vov(GetConstRef(vdata));
                     IT next_beg;
                     lgraph::graph::EdgeValue oev(outs.begin(), outs.end(), out_last_lid,
-                                                 out_last_tid, out_last_dst, out_last_eid,
-                                                 next_beg, true);
+                                                 out_last_tid, out_last_dst, out_last_eid, next_beg,
+                                                 true);
                     FMA_DBG_ASSERT(next_beg == outs.end());
                     outs.clear();
-                    lgraph::graph::EdgeValue iev(ins.begin(), ins.end(), in_last_lid,
-                                                 in_last_tid, in_last_dst, in_last_eid,
-                                                 next_beg, true);
+                    lgraph::graph::EdgeValue iev(ins.begin(), ins.end(), in_last_lid, in_last_tid,
+                                                 in_last_dst, in_last_eid, next_beg, true);
                     FMA_DBG_ASSERT(next_beg == ins.end());
                     ins.clear();
                     Value data;
@@ -1206,8 +1195,7 @@ void Importer::RocksdbToLmdb() {
                                                      out_last_tid, out_last_dst, out_last_eid,
                                                      next_start, true);
                         FMA_DBG_ASSERT(next_start == outs.end());
-                        kvs.emplace_back(oev.CreateOutEdgeKey(pre_vid),
-                                         std::move(oev.GetBuf()));
+                        kvs.emplace_back(oev.CreateOutEdgeKey(pre_vid), std::move(oev.GetBuf()));
                         all_kv_size += kvs.back().first.Size() + kvs.back().second.Size();
                         outs.clear();
                     }
@@ -1217,8 +1205,7 @@ void Importer::RocksdbToLmdb() {
                                                      in_last_tid, in_last_dst, in_last_eid,
                                                      next_start, true);
                         FMA_DBG_ASSERT(next_start == ins.end());
-                        kvs.emplace_back(iev.CreateInEdgeKey(pre_vid),
-                                         std::move(iev.GetBuf()));
+                        kvs.emplace_back(iev.CreateInEdgeKey(pre_vid), std::move(iev.GetBuf()));
                         all_kv_size += kvs.back().first.Size() + kvs.back().second.Size();
                         ins.clear();
                     }
@@ -1238,13 +1225,11 @@ void Importer::RocksdbToLmdb() {
             while (true) {
                 pre_vid = InvalidVid;
                 for (iter->Seek({(const char*)&bigend_start_vid, sizeof(bigend_start_vid)});
-                     iter->Valid();
-                     iter->Next()) {
+                     iter->Valid(); iter->Next()) {
                     auto key = iter->key();
                     if (key.compare({(const char*)&bigend_end_vid, sizeof(bigend_end_vid)}) >= 0) {
                         make_kvs();
-                        throw_kvs_to_lmdb(std::move(kvs),
-                                          std::move(vertex_property),
+                        throw_kvs_to_lmdb(std::move(kvs), std::move(vertex_property),
                                           std::move(edge_property));
                         all_kv_size = 0;
                         stage = (i + 1) % config_.read_rocksdb_threads;
@@ -1262,8 +1247,7 @@ void Importer::RocksdbToLmdb() {
                             if (pre_vid != InvalidVid) {
                                 make_kvs();
                                 if (all_kv_size > config_.max_size_per_reading) {
-                                    throw_kvs_to_lmdb(std::move(kvs),
-                                                      std::move(vertex_property),
+                                    throw_kvs_to_lmdb(std::move(kvs), std::move(vertex_property),
                                                       std::move(edge_property));
                                     all_kv_size = 0;
                                 }
@@ -1272,8 +1256,8 @@ void Importer::RocksdbToLmdb() {
                         }
                         if (vlid_detach_.at(lid)) {
                             // detach property
-                            vertex_property.emplace_back(
-                                lid, vid, Value::MakeCopy(val.data(), val.size()));
+                            vertex_property.emplace_back(lid, vid,
+                                                         Value::MakeCopy(val.data(), val.size()));
                             vdata = import_v2::DenseString((const char*)(&lid), sizeof(LabelId));
                         } else {
                             vdata = import_v2::DenseString(val.data(), val.size());
@@ -1319,8 +1303,8 @@ void Importer::RocksdbToLmdb() {
                                         uid.eid = 0;
                                     }
                                 }
-                                edge_property.emplace_back(
-                                    labelId, uid, Value::MakeCopy(val.data(), val.size()));
+                                edge_property.emplace_back(labelId, uid,
+                                                           Value::MakeCopy(val.data(), val.size()));
                                 outs.emplace_back(labelId, tid, vertexId, import_v2::DenseString());
                             } else {
                                 outs.emplace_back(labelId, tid, vertexId,
@@ -1342,10 +1326,9 @@ void Importer::RocksdbToLmdb() {
                             }
                             if (!outs.empty()) {
                                 IT next_start;
-                                lgraph::graph::EdgeValue oev(outs.begin(), outs.end(),
-                                                             out_last_lid, out_last_tid,
-                                                             out_last_dst, out_last_eid,
-                                                             next_start, true);
+                                lgraph::graph::EdgeValue oev(outs.begin(), outs.end(), out_last_lid,
+                                                             out_last_tid, out_last_dst,
+                                                             out_last_eid, next_start, true);
                                 FMA_DBG_ASSERT(next_start == outs.end());
                                 kvs.emplace_back(oev.CreateOutEdgeKey(pre_vid),
                                                  std::move(oev.GetBuf()));
@@ -1365,8 +1348,7 @@ void Importer::RocksdbToLmdb() {
                             }
 
                             if (all_kv_size > config_.max_size_per_reading) {
-                                throw_kvs_to_lmdb(std::move(kvs),
-                                                  std::move(vertex_property),
+                                throw_kvs_to_lmdb(std::move(kvs), std::move(vertex_property),
                                                   std::move(edge_property));
                                 all_kv_size = 0;
                             }
@@ -1382,8 +1364,7 @@ void Importer::RocksdbToLmdb() {
                 } else {
                     if (pre_vid != InvalidVid) {
                         make_kvs();
-                        throw_kvs_to_lmdb(std::move(kvs),
-                                          std::move(vertex_property),
+                        throw_kvs_to_lmdb(std::move(kvs), std::move(vertex_property),
                                           std::move(edge_property));
                         all_kv_size = 0;
                     }
