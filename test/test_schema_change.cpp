@@ -65,6 +65,7 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     lg.BlockingAddIndex("person", "age", false, true);
     EdgeOptions options;
     options.temporal_field = "ts";
+    options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
     options.detach_property = detach_property;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
                                std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
@@ -138,7 +139,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
              FieldSpec("name1", FieldType::STRING, true),
              FieldSpec("name2", FieldType::STRING, true), FieldSpec("blob", FieldType::BLOB, true),
              FieldSpec("age", FieldType::FLOAT, false)}),
-        "id", {});
+        "id", "", {}, {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     {
         Schema s2(s1);
@@ -464,7 +465,6 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
                     std::vector<FieldData>({FieldData(123)}), true, &n_changed),
                 lgraph::ParseIncompatibleTypeException);  // cannot convert 123 to string
         }
-
         {
             LightningGraph graph(conf);
             size_t n_changed = 0;
@@ -575,7 +575,7 @@ TEST_P(TestSchemaChange, DelLabel) {
                                              FieldSpec("name2", FieldType::STRING, true),
                                              FieldSpec("blob", FieldType::BLOB, true),
                                              FieldSpec("age", FieldType::FLOAT, false)}),
-                     "id", {});
+                     "id", "", {}, {});
         UT_EXPECT_THROW(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),
             lgraph::InputError);
@@ -585,6 +585,24 @@ TEST_P(TestSchemaChange, DelLabel) {
         UT_EXPECT_THROW(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("DST_ID", FieldType::STRING, false)})),
             lgraph::InputError);
+    }
+
+    UT_LOG() << "Testing delete field name";
+    {
+        Schema s;
+        s.SetSchema(false,
+                    std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
+                                            FieldSpec("id2", FieldType::INT32, false),
+                                            FieldSpec("name1", FieldType::STRING, true),
+                                            FieldSpec("name2", FieldType::STRING, true),
+                                            FieldSpec("blob", FieldType::BLOB, true),
+                                            FieldSpec("age", FieldType::FLOAT, false)}),
+                    "", "id", {}, {});
+        UT_EXPECT_THROW(s.DelFields(std::vector<std::string>{"id"}), FieldCannotBeDeletedException);
+        s.AddFields({FieldSpec("telphone", FieldType::STRING, false)});
+        UT_EXPECT_EQ(s.HasTemporalField(), true);
+        UT_EXPECT_EQ(s.GetTemporalField(), "id");
+        UT_EXPECT_EQ(s.GetTemporalFieldId(), s.GetFieldId("id"));
     }
     fma_common::SleepS(1);  // waiting for memory reclaiming by async task
 }

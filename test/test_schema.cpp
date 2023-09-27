@@ -32,7 +32,7 @@ static Schema ConstructSimpleSchema() {
                                         FieldSpec("string", FieldType::STRING, true),
                                         FieldSpec("blob", FieldType::BLOB, true),
                                         FieldSpec("date", FieldType::DATE, false)}),
-                "int16", {});
+                "int16", "", {}, {});
     return s;
 }
 
@@ -79,16 +79,16 @@ TEST_F(TestSchema, SetSchema) {
         s.SetSchema(true,
                     std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true),
                                             FieldSpec("int16", FieldType::INT16, true)}),
-                    "int16", {}),
+                    "int16", "", {}, {}),
         lgraph::FieldAlreadyExistsException);
     UT_EXPECT_THROW(
         s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("int16", FieldType::NUL, true)}),
-                    "int16", {}),
+                    "int16", "", {}, {}),
         lgraph::FieldCannotBeNullTypeException);
     std::vector<FieldSpec> fs;
     for (size_t i = 0; i < _detail::MAX_NUM_FIELDS + 1; i++)
         fs.emplace_back(UT_FMT("f_{}", i), FieldType::INT16, true);
-    UT_EXPECT_THROW(s.SetSchema(true, fs, "f_0", {}), lgraph::TooManyFieldsException);
+    UT_EXPECT_THROW(s.SetSchema(true, fs, "f_0", "", {}, {}), lgraph::TooManyFieldsException);
 }
 
 TEST_F(TestSchema, HasBlob) {
@@ -96,7 +96,8 @@ TEST_F(TestSchema, HasBlob) {
     UT_EXPECT_TRUE(s.HasBlob());
     Schema s2 = s;
     UT_EXPECT_TRUE(s2.HasBlob());
-    s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("f", FieldType::INT16, true)}), "f", {});
+    s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("f", FieldType::INT16, true)}), "f", "", {},
+                {});
     UT_EXPECT_TRUE(!s.HasBlob());
     s = s2;
     UT_EXPECT_TRUE(s.HasBlob());
@@ -145,11 +146,11 @@ TEST_F(TestSchema, DumpRecord) {
     FieldSpec fd_4("addr", FieldType::STRING, true);
     FieldSpec fd_5("float", FieldType::DOUBLE, true);
     std::vector<FieldSpec> fds{fd_0, fd_1, fd_2, fd_3, fd_4, fd_5};
-    schema.SetSchema(true, fds, "uid", {});
-    schema_1.SetSchema(true, fds, "uid", {});
+    schema.SetSchema(true, fds, "uid", "", {}, {});
+    schema_1.SetSchema(true, fds, "uid", "", {}, {});
     UT_EXPECT_EQ(schema.GetNumFields(), 6);
     UT_LOG() << "size of schema:" << schema.GetNumFields();
-    schema.SetSchema(true, fds, "uid", {});
+    schema.SetSchema(true, fds, "uid", "", {}, {});
     Value va_tmp = schema.CreateEmptyRecord();
     UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
                     lgraph::FieldCannotBeSetNullException);

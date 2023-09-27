@@ -59,6 +59,16 @@ struct FieldDataConvert {
             return FieldData::String(std::move(*fd.release_str()));
         case ProtoFieldData::kBlob:
             return FieldData::Blob(std::move(*fd.release_blob()));
+        case ProtoFieldData::kPoint:
+            // TODO(shw): 这里有必要在spatial中实现std::string&& 移动语义吗
+            //       string类型应该只涉及传参，不涉及深浅拷贝。
+            return FieldData::Point(std::move(*fd.release_point()));
+        case ProtoFieldData::kLinestring:
+            return FieldData::LineString(std::move(*fd.release_linestring()));
+        case ProtoFieldData::kPolygon:
+            return FieldData::Polygon(std::move(*fd.release_polygon()));
+        case ProtoFieldData::kSpatial:
+            return FieldData::Spatial(std::move(*fd.release_polygon()));
         }
         FMA_ASSERT(false);
         return FieldData();
@@ -90,6 +100,14 @@ struct FieldDataConvert {
             return FieldData::String(fd.str());
         case ProtoFieldData::kBlob:
             return FieldData::Blob(fd.blob());
+        case ProtoFieldData::kPoint:
+            return FieldData::Point(fd.point());
+        case ProtoFieldData::kLinestring:
+            return FieldData::LineString(fd.linestring());
+        case ProtoFieldData::kPolygon:
+            return FieldData::Polygon(fd.polygon());
+         case ProtoFieldData::kSpatial:
+            return FieldData::Spatial(fd.spatial());
         }
         FMA_ASSERT(false);
         return FieldData();
@@ -122,13 +140,13 @@ struct FieldDataConvert {
         case FieldType::BLOB:
             return ret->set_blob(std::move(*fd.data.buf));
         case FieldType::POINT:
-
+            return ret->set_point(std::move(*fd.data.buf));
         case FieldType::LINESTRING:
-
+            return ret->set_linestring(std::move(*fd.data.buf));
         case FieldType::POLYGON:
-
+            return ret->set_polygon(std::move(*fd.data.buf));
         case FieldType::SPATIAL:
-            return;
+            return ret->set_spatial(std::move(*fd.data.buf));
         }
         FMA_ASSERT(false);
     }
@@ -160,13 +178,13 @@ struct FieldDataConvert {
         case FieldType::BLOB:
             return ret->set_blob(*fd.data.buf);
         case FieldType::POINT:
-
+            return ret->set_point(*fd.data.buf);
         case FieldType::LINESTRING:
-
+            return ret->set_linestring(*fd.data.buf);
         case FieldType::POLYGON:
-
+            return ret->set_polygon(*fd.data.buf);
         case FieldType::SPATIAL:
-            return;
+            return ret->set_spatial(*fd.data.buf);
         }
         FMA_ASSERT(false);
     }

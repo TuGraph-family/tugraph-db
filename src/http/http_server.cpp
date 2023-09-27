@@ -111,6 +111,14 @@ nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
         return nlohmann::json(data.str());
     case ProtoFieldData::kBlob:
         return nlohmann::json(::lgraph_api::base64::Encode(data.blob()));
+    case ProtoFieldData::kPoint:
+        return nlohmann::json(data.point());
+    case ProtoFieldData::kLinestring:
+        return nlohmann::json(data.linestring());
+    case ProtoFieldData::kPolygon:
+        return nlohmann::json(data.polygon());
+    case ProtoFieldData::kSpatial:
+        return nlohmann::json(data.spatial());
     }
     FMA_ASSERT(false);
     return nlohmann::json();

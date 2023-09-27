@@ -118,9 +118,9 @@ size_t LightningGraph::GetNumVertices() {
 
 template <bool IS_LABEL>
 inline void CheckIsValidLabelFieldName(const std::string& lof) {
-    if (lof.empty() || lof.size() > 64) {
+    if (lof.empty() || lof.size() > 255) {
         throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +
-                         " is invalid: must be between 1 and 64 bytes.");
+                         " is invalid: must be between 1 and 255 bytes.");
     }
     if (fma_common::TextParserUtils::IsDigits(lof.front())) {
         throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +
@@ -1046,12 +1046,11 @@ class ConstStringRef {
 
     ConstStringRef(const char* p, size_t s) {
         if (s > std::numeric_limits<uint16_t>::max())
-            throw std::runtime_error(
-                fma_common::StringFormatter::Format("String size too large: {}", s));
+            throw std::runtime_error(FMA_FMT("String size too large: {}", s));
         size_ptr_.size = s;
         uint64_t up = (uint64_t)p;
         if ((up & ((uint64_t)0xFFFF << 48)) != 0)
-            throw std::runtime_error(fma_common::StringFormatter::Format(
+            throw std::runtime_error(FMA_FMT(
                 "Pointer larger than 48 bit is not supported: {}", (void*)p));
         size_ptr_.ptr = (uint64_t)p;
     }
@@ -1134,7 +1133,7 @@ T GetIndexKeyFromValue(const Value& v) {
 template <>
 ConstStringRef GetIndexKeyFromValue<ConstStringRef>(const Value& v) {
     if (v.Size() > _detail::MAX_KEY_SIZE)
-        throw InputError(fma_common::StringFormatter::Format(
+        throw InputError(FMA_FMT(
             "This string is too long to be indexed, max indexable size={}, string size={}, "
             "content: {}...",
             _detail::MAX_KEY_SIZE, v.Size(), v.AsString().substr(0, 100)));
@@ -1144,7 +1143,7 @@ ConstStringRef GetIndexKeyFromValue<ConstStringRef>(const Value& v) {
 template <>
 std::string GetIndexKeyFromValue<std::string>(const Value& v) {
     if (v.Size() > _detail::MAX_KEY_SIZE)
-        throw InputError(fma_common::StringFormatter::Format(
+        throw InputError(FMA_FMT(
             "This string is too long to be indexed, max indexable size={}, string size={}, "
             "content: {}...",
             _detail::MAX_KEY_SIZE, v.Size(), v.AsString().substr(0, 100)));
@@ -1207,7 +1206,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 // but still good to find duplicates early
                 for (size_t i = 1; i < key_vids.size(); i++) {
                     if (key_vids[i].key == key_vids[i - 1].key)
-                        throw InputError(fma_common::StringFormatter::Format(
+                        throw InputError(FMA_FMT(
                             "Duplicate keys [{}] found for vids {} and {}.", key_vids[i].key,
                             key_vids[i - 1].vid, key_vids[i].vid));
                 }
@@ -1233,7 +1232,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         }
                         vids.push_back(kv.vid);
                     }
-                    if (!key_vids.empty()) {
+                    if (!vids.empty()) {
                         index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
                                                                 vids);
                     }
@@ -1286,7 +1285,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 // but still good to find duplicates early
                 for (size_t i = 1; i < key_euids.size(); i++) {
                     if (key_euids[i].key == key_euids[i - 1].key)
-                        throw InputError(fma_common::StringFormatter::Format(
+                        throw InputError(FMA_FMT(
                             "Duplicate keys [{}] found for vid {} dst{} eid (),"
                             "and {} {} {}.",
                             key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
@@ -1315,7 +1314,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         }
                         euids.push_back(kv.euid);
                     }
-                    if (!key_euids.empty()) {
+                    if (!euids.empty()) {
                         edge_index->_AppendNonUniqueIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
                                                                euids);
                     }
@@ -1335,8 +1334,7 @@ std::vector<std::pair<int64_t, float>> LightningGraph::QueryVertexByFullTextInde
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     auto schema = curr_schema_info->v_schema_manager.GetSchema(label);
     if (!schema) {
-        throw InputError(
-            fma_common::StringFormatter::Format("Vertex Label [{}] does not exist.", label));
+        throw InputError(FMA_FMT("Vertex Label [{}] does not exist.", label));
     }
     if (fulltext_index_) {
         return fulltext_index_->QueryVertex(schema->GetLabelId(), query, top_n);
@@ -1350,8 +1348,7 @@ std::vector<std::pair<EdgeUid, float>> LightningGraph::QueryEdgeByFullTextIndex(
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     auto schema = curr_schema_info->e_schema_manager.GetSchema(label);
     if (!schema) {
-        throw InputError(
-            fma_common::StringFormatter::Format("Edge Label [{}] does not exist.", label));
+        throw InputError(FMA_FMT("Edge Label [{}] does not exist.", label));
     }
     if (fulltext_index_) {
         return fulltext_index_->QueryEdge(schema->GetLabelId(), query, top_n);
@@ -1412,24 +1409,20 @@ void LightningGraph::RebuildFullTextIndex(const std::set<std::string>& v_labels,
     for (const auto& label : v_labels) {
         auto* schema = curr_schema_info->v_schema_manager.GetSchema(label);
         if (!schema) {
-            throw InputError(
-                fma_common::StringFormatter::Format("Vertex Label [{}] does not exist.", label));
+            throw InputError(FMA_FMT("Vertex Label [{}] does not exist.", label));
         }
         if (schema->GetFullTextFields().empty()) {
-            throw InputError(fma_common::StringFormatter::Format(
-                "Vertex Label [{}] has no fulltext index.", label));
+            throw InputError(FMA_FMT("Vertex Label [{}] has no fulltext index.", label));
         }
         v_lids.emplace(schema->GetLabelId());
     }
     for (const auto& label : e_labels) {
         auto* schema = curr_schema_info->e_schema_manager.GetSchema(label);
         if (!schema) {
-            throw InputError(
-                fma_common::StringFormatter::Format("Edge Label [{}] does not exist.", label));
+            throw InputError(FMA_FMT("Edge Label [{}] does not exist.", label));
         }
         if (schema->GetFullTextFields().empty()) {
-            throw InputError(fma_common::StringFormatter::Format(
-                "Edge Label [{}] has no fulltext index.", label));
+            throw InputError(FMA_FMT("Edge Label [{}] has no fulltext index.", label));
         }
         e_lids.emplace(schema->GetLabelId());
     }
@@ -1458,7 +1451,7 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
         Schema* schema = curr_schema_info->v_schema_manager.GetSchema(id);
         const auto& fulltext_filelds = schema->GetFullTextFields();
         LabelId lid = schema->GetLabelId();
-        for (auto iit = txn.GetVertexIndexIterator(schema->GetLabel(), schema->GetTemporalField());
+        for (auto iit = txn.GetVertexIndexIterator(schema->GetLabel(), schema->GetPrimaryField());
              iit.IsValid(); iit.Next()) {
             VertexId vid = iit.GetVid();
             Value properties;
@@ -1531,13 +1524,11 @@ bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
         schema = new_schema->e_schema_manager.GetSchema(label);
     }
     if (!schema) {
-        throw InputError(
-            fma_common::StringFormatter::Format("label \"{}\" does not exist.", label));
+        throw InputError(FMA_FMT("label \"{}\" does not exist.", label));
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
-        throw InputError(fma_common::StringFormatter::Format("field \"{}\":\"{}\" does not exist.",
-                                                             label, field));
+        throw InputError(FMA_FMT("field \"{}\":\"{}\" does not exist.", label, field));
     }
     if (extractor->FullTextIndexed()) {
         return false;
@@ -1603,24 +1594,16 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                                : new_schema->e_schema_manager.GetSchema(label);
     if (!schema) {
         if (is_vertex)
-            throw InputError(
-                fma_common::StringFormatter::Format("Vertex label \"{}\" "
-                                                    "does not exist.",
-                                                    label));
+            throw InputError(FMA_FMT("Vertex label \"{}\" does not exist.", label));
         else
-            throw InputError(
-                fma_common::StringFormatter::Format("Edge label \"{}\" "
-                                                    "does not exist.",
-                                                    label));
+            throw InputError(FMA_FMT("Edge label \"{}\" does not exist.", label));
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
         if (is_vertex)
-            throw InputError(fma_common::StringFormatter::Format(
-                "Vertex field \"{}\":\"{}\" does not exist.", label, field));
+            throw InputError(FMA_FMT("Vertex field \"{}\":\"{}\" does not exist.", label, field));
         else
-            throw InputError(fma_common::StringFormatter::Format(
-                "Edge field \"{}\":\"{}\" does not exist.", label, field));
+            throw InputError(FMA_FMT("Edge field \"{}\":\"{}\" does not exist.", label, field));
     }
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
@@ -1634,8 +1617,11 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     }
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
-        index_manager_->AddVertexIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
-                                       vertex_index);
+        bool success = index_manager_->AddVertexIndex(txn.GetTxn(), label, field,
+                                   extractor->Type(), is_unique, vertex_index);
+        if (!success)
+            throw InputError(FMA_FMT("build index {}-{} failed", label, field));
+
         vertex_index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
         if (schema->DetachProperty()) {
@@ -1670,27 +1656,27 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             start_vid = 0;
             end_vid = txn.GetLooseNumVertex();
             // vid range not known, try getting from index
-            auto& indexed_fields = schema->GetIndexedFields();
-            if (!indexed_fields.empty()) {
-                VertexIndex* idx =
-                    schema->GetFieldExtractor(*indexed_fields.begin())->GetVertexIndex();
-                FMA_DBG_ASSERT(idx);
-                VertexId beg = std::numeric_limits<VertexId>::max();
-                VertexId end = 0;
-                for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
-                     it.IsValid(); it.Next()) {
-                    VertexId vid = it.GetVid();
-                    beg = std::min(beg, vid);
-                    end = std::max(end, vid);
-                }
-                if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
-                if (end != 0) end_vid = end + 1;
+            VertexIndex* idx =
+                schema->GetFieldExtractor(schema->GetPrimaryField())->GetVertexIndex();
+            FMA_DBG_ASSERT(idx);
+            VertexId beg = std::numeric_limits<VertexId>::max();
+            VertexId end = 0;
+            for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
+                 it.IsValid(); it.Next()) {
+                VertexId vid = it.GetVid();
+                beg = std::min(beg, vid);
+                end = std::max(end, vid);
             }
+            if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
+            if (end != 0) end_vid = end + 1;
         }
     } else {
         std::unique_ptr<EdgeIndex> edge_index;
-        index_manager_->AddEdgeIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
-                                     is_global, edge_index);
+        bool success = index_manager_->AddEdgeIndex(txn.GetTxn(), label, field,
+                                       extractor->Type(), is_unique, is_global, edge_index);
+        if (!success)
+            throw InputError(FMA_FMT("build index {}-{} failed", label, field));
+
         edge_index->SetReady();
         schema->MarkEdgeIndexed(extractor->GetFieldId(), edge_index.release());
         if (schema->DetachProperty()) {
@@ -1727,19 +1713,23 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             end_vid = txn.GetLooseNumVertex();
             // vid range not known, try getting from index
             auto& indexed_fields = schema->GetIndexedFields();
-            if (!indexed_fields.empty()) {
-                EdgeIndex* idx = schema->GetFieldExtractor(*indexed_fields.begin())->GetEdgeIndex();
-                FMA_DBG_ASSERT(idx);
-                VertexId beg = std::numeric_limits<VertexId>::max();
-                VertexId end = 0;
-                for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
-                     it.IsValid(); it.Next()) {
-                    VertexId vid = it.GetSrcVid();
-                    beg = std::min(beg, vid);
-                    end = std::max(end, vid);
+            for (size_t pos : indexed_fields) {
+                auto fe = schema->GetFieldExtractor(pos);
+                if (!fe->IsOptional()) {
+                    EdgeIndex* idx = fe->GetEdgeIndex();
+                    FMA_DBG_ASSERT(idx);
+                    VertexId beg = std::numeric_limits<VertexId>::max();
+                    VertexId end = 0;
+                    for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
+                         it.IsValid(); it.Next()) {
+                        VertexId vid = it.GetSrcVid();
+                        beg = std::min(beg, vid);
+                        end = std::max(end, vid);
+                    }
+                    if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
+                    if (end != 0) end_vid = end + 1;
+                    break;
                 }
-                if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
-                if (end != 0) end_vid = end + 1;
             }
         }
     }
@@ -1824,8 +1814,8 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
     std::deque<KeyVid<T>> key_vids;
     std::deque<KeyEUid<T>> key_euids;
     if (!_AddEmptyIndex(spec.label, spec.field, spec.unique, is_vertex, spec.global) && is_vertex) {
-        throw InputError(fma_common::StringFormatter::Format(
-            "Failed to create index {}:{}: index already exists", spec.label, spec.field));
+        throw InputError(FMA_FMT("Failed to create index {}:{}: index already exists",
+                                 spec.label, spec.field));
     }
     if (is_vertex) {
         auto txn = CreateReadTxn();
@@ -1996,8 +1986,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         });
         for (size_t i = 1; i < v.size(); i++) {
             if (v[i].spec.field == v[i - 1].spec.field) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Duplicate index specified for {}:{}", kv.first, v[i].spec.field));
+                throw InputError(FMA_FMT("Duplicate index specified for {}:{}",
+                                         kv.first, v[i].spec.field));
             }
         }
         // get field types
@@ -2008,8 +1998,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         for (auto& st : v) {
             auto it = fts.find(st.spec.field);
             if (it == fts.end()) {
-                throw InputError(fma_common::StringFormatter::Format(
-                    "Field {} does not exist for label {}", st.spec.field, st.spec.label));
+                throw InputError(FMA_FMT("Field {} does not exist for label {}",
+                                         st.spec.field, st.spec.label));
             }
             st.type = it->second;
         }
@@ -2033,8 +2023,7 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         start_vid = vit.GetId();
         if (!is_vertex || label_id_done.find(curr_lid) != label_id_done.end()) {
             if (is_vertex && label_id_done[curr_lid]) {
-                throw InternalError(fma_common::StringFormatter::Format(
-                    "Vertex Ids are not totally ordered: "
+                throw InternalError(FMA_FMT("Vertex Ids are not totally ordered: "
                     "found vertex vid={} with label {} after scanning the last range. "
                     "Please delete the indexes of this label and retry.",
                     vit.GetId(), txn.GetVertexLabel(vit)));
@@ -2148,13 +2137,11 @@ bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& labe
         schema = new_schema->e_schema_manager.GetSchema(label);
     }
     if (!schema) {
-        throw InputError(
-            fma_common::StringFormatter::Format("label \"{}\" does not exist.", label));
+        throw InputError(FMA_FMT("label \"{}\" does not exist.", label));
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
-        throw InputError(fma_common::StringFormatter::Format("field \"{}\":\"{}\" does not exist.",
-                                                             label, field));
+        throw InputError(FMA_FMT("field \"{}\":\"{}\" does not exist.", label, field));
     }
     if (!extractor->FullTextIndexed()) {
         return false;
@@ -2176,7 +2163,7 @@ bool LightningGraph::DeleteIndex(const std::string& label, const std::string& fi
                                : curr_schema->e_schema_manager.GetSchema(label);
     std::unique_ptr<SchemaInfo> old_schema_backup(new SchemaInfo(*curr_schema.Get()));
     if (!schema) throw LabelNotExistException(label);
-    if (field == schema->GetTemporalField()) {
+    if (field == schema->GetPrimaryField()) {
         throw PrimaryIndexCannotBeDeletedException(field);
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);

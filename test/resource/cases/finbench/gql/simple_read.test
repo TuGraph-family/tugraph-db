@@ -10,8 +10,8 @@ RETURN
 MATCH (n:Account{id:12}) RETURN n NEXT
 OPTIONAL MATCH (n)-[e:transfer]->(m:Account)
 WHERE
-    e.ts > 45
-    AND e.ts < 50
+    e.timestamp > 45
+    AND e.timestamp < 50
 RETURN
     n,
     sum(e.amount) as sumEdge1Amount,
@@ -20,8 +20,8 @@ RETURN
 NEXT
 OPTIONAL MATCH (n)<-[e:transfer]-(m:Account)
 WHERE
-    e.ts > 0
-    AND e.ts < 100
+    e.timestamp > 0
+    AND e.timestamp < 100
 RETURN
     sumEdge1Amount,
     maxEdge1Amount,
@@ -43,8 +43,8 @@ RETURN
 OPTIONAL MATCH (n:Account{id:12})<-[e:transfer]-(m:Account)
 WHERE
     e.amount > 30.0
-    AND e.ts > 10
-    AND e.ts < 70
+    AND e.timestamp > 10
+    AND e.timestamp < 70
     AND m.isBlocked=true
 RETURN count(m) * 1.0 as numM
 NEXT
@@ -59,8 +59,8 @@ MATCH (n:Account{id:12}) RETURN n NEXT
 MATCH (n)-[e:transfer]->(m:Account)
 WHERE
     e.amount > 20
-    AND e.ts > 30
-    AND e.ts < 101
+    AND e.timestamp > 30
+    AND e.timestamp < 101
 RETURN
     m.id as dstId,
     count(e) as numEdges,
@@ -77,8 +77,8 @@ ORDER BY sumAmount DESC, dstId ASC;
 MATCH (n:Account{id:12})<-[e:transfer]-(m:Account)
 WHERE
     e.amount > 0
-    AND e.ts > 0
-    AND e.ts < 100
+    AND e.timestamp > 0
+    AND e.timestamp < 100
 RETURN
     m.id as srcId,
     count(e) as numEdges,
@@ -98,10 +98,10 @@ MATCH
 WHERE
     dst.isBlocked = true
     AND src.id <> dst.id
-    AND e1.ts > 20
-    AND e1.ts < 40
-    AND e2.ts > 30
-    AND e2.ts < 70
+    AND e1.timestamp > 20
+    AND e1.timestamp < 40
+    AND e2.timestamp > 30
+    AND e2.timestamp < 70
 RETURN
     DISTINCT dst.id as dstId
 ORDER BY dstId ASC;

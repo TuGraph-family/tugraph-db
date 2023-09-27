@@ -112,8 +112,8 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     }
     UT_LOG() << "We will build the following indexes: ";
     for (auto& spec : idx_specs) {
-        UT_LOG() << "\tlabel=" << spec.label << ", field=" << spec.field
-                 << ", unique=" << spec.unique;
+        UT_LOG() << "\tlabel =" << spec.label << ", field =" << spec.field
+                 << ", unique =" << spec.unique << ", global = " << spec.global;
     }
 
     lgraph::Galaxy::Config conf;

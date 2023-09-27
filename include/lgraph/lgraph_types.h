@@ -40,6 +40,7 @@ enum class AccessLevel {
     FULL = 3
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const AccessLevel& v) {
     switch (v) {
         case AccessLevel::NONE:    return "NONE";
@@ -58,6 +59,7 @@ enum class FieldAccessLevel {
     WRITE = 2
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const FieldAccessLevel& v) {
     switch (v) {
         case FieldAccessLevel::NONE:    return "NONE";
@@ -72,6 +74,7 @@ enum class GraphQueryType {
     GQL = 1
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const GraphQueryType& v) {
     switch (v) {
         case GraphQueryType::CYPHER:    return "CYPHER";
@@ -107,6 +110,23 @@ struct EdgeOptions : LabelOptions {
     // edge temporal field, edge will be stored in the order of this field
     // Default: empty
     std::string temporal_field;
+    // order of edge temporal field
+    // Default: ASC
+    enum class TemporalFieldOrder {
+        ASC = 0,
+        DESC = 1,
+    } temporal_field_order = TemporalFieldOrder::ASC;
+
+    inline static std::string to_string(const TemporalFieldOrder& v) {
+        switch (v) {
+        case TemporalFieldOrder::ASC:
+            return "ASC";
+        case TemporalFieldOrder::DESC:
+            return "DESC";
+        default:
+            throw std::runtime_error("Unknown TemporalFieldOrder");
+        }
+    }
 
     EdgeOptions() = default;
     explicit EdgeOptions(const EdgeConstraints& edge_constraints)
@@ -124,8 +144,8 @@ struct EdgeOptions : LabelOptions {
         constraints = "[" + constraints + "]";
 
         return "detach_property: " + std::to_string(detach_property) +
-               ", edge_constraints: " + constraints +
-               ", temporal_field: " + temporal_field;
+               ", edge_constraints: " + constraints + ", temporal_field: " + temporal_field +
+               ", temporal_field_order: " + to_string(temporal_field_order);
     }
     void clear() {
         detach_property = false;
@@ -155,23 +175,23 @@ struct VertexOptions : public LabelOptions {
 
 /** @brief   Field and value types. */
 enum FieldType {
-    NUL = 0,        // NULL value, used to represent an empty value, can not be used as field type
-    BOOL = 1,       // Boolean value, TRUE or FALSE
-    INT8 = 2,       // 8-bit signed integer
-    INT16 = 3,      // 16-bit signed integer
-    INT32 = 4,      // 32-bit signed integer
-    INT64 = 5,      // 64-bit signed integer
-    FLOAT = 6,      // 32-bit IEEE 754 floating point number
-    DOUBLE = 7,     // 64-bit IEEE 754 floating point number
-    DATE = 8,       // Date ranging from 0/1/1 to 9999/12/31
-    DATETIME = 9,   // DateTime ranging from 0000-01-01 00:00:00.000000 to
-                    // 9999-12-31 23:59:59.999999
-    STRING = 10,    // string type, in unicode encoding
-    BLOB = 11,      // binary byte array
-    POINT = 12,
-    LINESTRING = 13,
-    POLYGON = 14,
-    SPATIAL = 15    // spatial data
+    NUL = 0,          // NULL value, used to represent an empty value, can not be used as field type
+    BOOL = 1,         // Boolean value, TRUE or FALSE
+    INT8 = 2,         // 8-bit signed integer
+    INT16 = 3,        // 16-bit signed integer
+    INT32 = 4,        // 32-bit signed integer
+    INT64 = 5,        // 64-bit signed integer
+    FLOAT = 6,        // 32-bit IEEE 754 floating Point number
+    DOUBLE = 7,       // 64-bit IEEE 754 floating Point number
+    DATE = 8,         // Date ranging from 0/1/1 to 9999/12/31
+    DATETIME = 9,     // DateTime ranging from 0000-01-01 00:00:00.000000 to
+                      // 9999-12-31 23:59:59.999999
+    STRING = 10,      // string type, in unicode encoding
+    BLOB = 11,        // binary byte array
+    POINT = 12,       // Point type of spatial data
+    LINESTRING = 13,  // LineString type of spatial data
+    POLYGON = 14,     // Polygon type of spatial data
+    SPATIAL = 15      // spatial data, it's now unused but may be used in the future.
 };
 
 /**
@@ -419,32 +439,32 @@ struct FieldData {
         data.buf = new std::string(buf, buf + s);
     }
 
-    explicit FieldData(const point<Cartesian>& p) {
+    explicit FieldData(const Point<Cartesian>& p) {
         type = FieldType::POINT;
         data.buf = new std::string(p.AsEWKB());
     }
 
-    explicit FieldData(const point<Wsg84>& p) {
+    explicit FieldData(const Point<Wgs84>& p) {
         type = FieldType::POINT;
         data.buf = new std::string(p.AsEWKB());
     }
 
-    explicit FieldData(const linestring<Cartesian>& l) {
+    explicit FieldData(const LineString<Cartesian>& l) {
         type = FieldType::LINESTRING;
         data.buf = new std::string(l.AsEWKB());
     }
 
-    explicit FieldData(const linestring<Wsg84>& l) {
+    explicit FieldData(const LineString<Wgs84>& l) {
         type = FieldType::LINESTRING;
         data.buf = new std::string(l.AsEWKB());
     }
 
-    explicit FieldData(const polygon<Cartesian>& p) {
+    explicit FieldData(const Polygon<Cartesian>& p) {
         type = FieldType::POLYGON;
         data.buf = new std::string(p.AsEWKB());
     }
 
-    explicit FieldData(const polygon<Wsg84>& p) {
+    explicit FieldData(const Polygon<Wgs84>& p) {
         type = FieldType::POLYGON;
         data.buf = new std::string(p.AsEWKB());
     }
@@ -454,7 +474,7 @@ struct FieldData {
         data.buf = new std::string(s.AsEWKB());
     }
 
-    explicit FieldData(const Spatial<Wsg84>& s) {
+    explicit FieldData(const Spatial<Wgs84>& s) {
         type = FieldType::SPATIAL;
         data.buf = new std::string(s.AsEWKB());
     }
@@ -526,58 +546,70 @@ struct FieldData {
     static inline FieldData String(const char* str) { return FieldData(str); }
     static inline FieldData String(const char* p, size_t s) { return FieldData(p, s); }
 
-    static inline FieldData Point(const ::lgraph_api::point<Cartesian>& p) {
+    static inline FieldData Point(const ::lgraph_api::Point<Cartesian>& p) {
     return FieldData(p); }
-    static inline FieldData Point(const ::lgraph_api::point<Wsg84>& p) {return FieldData(p); }
+    static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) {return FieldData(p); }
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(point<Cartesian>(str));
-            case ::lgraph_api::SRID::WSG84:
-                return FieldData(::lgraph_api::point<Wsg84>(str));
+                return FieldData(::lgraph_api::Point<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::Point<Wgs84>(str));
             default:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
         }
     }
 
-    static inline FieldData LineString(const ::lgraph_api::linestring<Cartesian>& l) {
+    static inline FieldData LineString(const ::lgraph_api::LineString<Cartesian>& l) {
         return FieldData(l); }
-    static inline FieldData LineString(const ::lgraph_api::linestring<Wsg84>& l) {
+    static inline FieldData LineString(const ::lgraph_api::LineString<Wgs84>& l) {
         return FieldData(l); }
     static inline FieldData LineString(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(linestring<Cartesian>(str));
-            case ::lgraph_api::SRID::WSG84:
-                return FieldData(::lgraph_api::linestring<Wsg84>(str));
+                return FieldData(::lgraph_api::LineString<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::LineString<Wgs84>(str));
             default:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
         }
     }
 
-    static inline FieldData Polygon(const ::lgraph_api::polygon<Cartesian>& p) {
+    static inline FieldData Polygon(const ::lgraph_api::Polygon<Cartesian>& p) {
     return FieldData(p); }
-    static inline FieldData Polygon(const ::lgraph_api::polygon<Wsg84>& p) {return FieldData(p); }
+    static inline FieldData Polygon(const ::lgraph_api::Polygon<Wgs84>& p) {return FieldData(p); }
     static inline FieldData Polygon(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(polygon<Cartesian>(str));
-            case ::lgraph_api::SRID::WSG84:
-                return FieldData(::lgraph_api::polygon<Wsg84>(str));
+                return FieldData(::lgraph_api::Polygon<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::Polygon<Wgs84>(str));
             default:
-                throw InputError("Wrong SRID!");
+                throw InputError("Unsupported SRID!");
         }
     }
 
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Cartesian>& s) {
     return FieldData(s); }
-    static inline FieldData Spatial(const ::lgraph_api::Spatial<Wsg84>& s) {return FieldData(s); }
+    static inline FieldData Spatial(const ::lgraph_api::Spatial<Wgs84>& s) {return FieldData(s); }
+    static inline FieldData Spatial(const std::string& str) {
+        switch (::lgraph_api::ExtractSRID(str)) {
+            case ::lgraph_api::SRID::NUL:
+                throw InputError("Unsupported SRID!");
+            case ::lgraph_api::SRID::CARTESIAN:
+                return FieldData(::lgraph_api::Spatial<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::Spatial<Wgs84>(str));
+            default:
+                throw InputError("Unsupported SRID!");
+        }
+    }
 
     //-------------------------
     // Constructs blobs.
@@ -785,48 +817,54 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::point<::lgraph_api::Wsg84> AsWsgPoint() const {
+    inline ::lgraph_api::point<::lgraph_api::Wgs84> AsWgsPoint() const {
         if (type == FieldType::POINT) return ::lgraph_api::point
-        <::lgraph_api::Wsg84>(*data.buf);
+        <::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::point<::lgraph_api::Cartesian> AsCartesianPoint() const {
-        if (type == FieldType::POINT) return ::lgraph_api::point
+    inline ::lgraph_api::Point<::lgraph_api::Wgs84> AsWgsPoint() const {
+        if (type == FieldType::POINT) return ::lgraph_api::Point
+        <::lgraph_api::Wgs84>(*data.buf);
+        throw std::bad_cast();
+    }
+
+    inline ::lgraph_api::Point<::lgraph_api::Cartesian> AsCartesianPoint() const {
+        if (type == FieldType::POINT) return ::lgraph_api::Point
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::linestring<::lgraph_api::Wsg84> AsWsgLineString()
+    inline ::lgraph_api::LineString<::lgraph_api::Wgs84> AsWgsLineString()
     const {
-        if (type == FieldType::LINESTRING) return ::lgraph_api::linestring
-        <::lgraph_api::Wsg84>(*data.buf);
+        if (type == FieldType::LINESTRING) return ::lgraph_api::LineString
+        <::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::linestring<::lgraph_api::Cartesian> AsCartesianLineString()
+    inline ::lgraph_api::LineString<::lgraph_api::Cartesian> AsCartesianLineString()
     const {
-        if (type == FieldType::LINESTRING) return ::lgraph_api::linestring
+        if (type == FieldType::LINESTRING) return ::lgraph_api::LineString
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::polygon<::lgraph_api::Wsg84> AsWsgPolygon() const {
-        if (type == FieldType::POLYGON) return ::lgraph_api::polygon
-        <::lgraph_api::Wsg84>(*data.buf);
+    inline ::lgraph_api::Polygon<::lgraph_api::Wgs84> AsWgsPolygon() const {
+        if (type == FieldType::POLYGON) return ::lgraph_api::Polygon
+        <::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::polygon<::lgraph_api::Cartesian> AsCartesianPolygon() const {
-        if (type == FieldType::POLYGON) return ::lgraph_api::polygon
+    inline ::lgraph_api::Polygon<::lgraph_api::Cartesian> AsCartesianPolygon() const {
+        if (type == FieldType::POLYGON) return ::lgraph_api::Polygon
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::Spatial<::lgraph_api::Wsg84> AsWsgSpatial()
+    inline ::lgraph_api::Spatial<::lgraph_api::Wgs84> AsWgsSpatial()
     const {
-        if (IsSpatial()) return ::lgraph_api::Spatial
-        <::lgraph_api::Wsg84>(*data.buf);
+        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        <::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
@@ -880,7 +918,7 @@ struct FieldData {
      *           2. they are both numeric types
      *           In case 1, the underlying values are compared directly. In case 2, integer
      *           values are converted to int64_t if compared with another integer, or to double
-     *           if compared with a floating-point number.
+     *           if compared with a floating-Point number.
      */
 
     inline bool operator==(const FieldData& rhs) const {
@@ -1101,13 +1139,13 @@ struct FieldData {
     /** @brief   Query if this object is date time */
     bool IsDateTime() const { return type == FieldType::DATETIME; }
 
-    /** @brief   Query if this object is point */
+    /** @brief   Query if this object is Point */
     bool IsPoint() const { return type == FieldType::POINT; }
 
-    /** @brief   Query if this object is linestring */
+    /** @brief   Query if this object is LineString */
     bool IsLineString() const { return type == FieldType::LINESTRING; }
 
-    /** @brief   Query if this object is polygon*/
+    /** @brief   Query if this object is Polygon*/
     bool IsPolygon() const { return type == FieldType::POLYGON; }
 
     /** @brief   Query if this object is spatial*/
@@ -1129,7 +1167,7 @@ struct FieldData {
 
     static_assert(sizeof(decltype(data.int64)) == sizeof(decltype(data.buf)) &&
                       sizeof(decltype(data.int64)) >= sizeof(decltype(data.dp)),
-                  "sizeof int64_t is supposed to be equal to pointer types");
+                  "sizeof int64_t is supposed to be equal to Pointer types");
 };
 
 /** @brief   Specification for a field. */

@@ -81,10 +81,10 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         {
             ::lgraph_api::SRID s = data.GetSRID();
             switch (s) {
-                case ::lgraph_api::SRID::WSG84:
-                    return json(data.AsWsgPoint().AsEWKB());
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsPoint().ToString());
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return json(data.AsCartesianPoint().AsEWKB());
+                    return json(data.AsCartesianPoint().ToString());
                 default:
                     throw lgraph::InputError("unsupported spatial srid");
             }
@@ -93,10 +93,10 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         {
             ::lgraph_api::SRID s = data.GetSRID();
             switch (s) {
-                case ::lgraph_api::SRID::WSG84:
-                    return json(data.AsWsgLineString().AsEWKB());
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsLineString().ToString());
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return json(data.AsCartesianLineString().AsEWKB());
+                    return json(data.AsCartesianLineString().ToString());
                 default:
                     throw lgraph::InputError("unsupported spatial srid");
             }
@@ -105,10 +105,22 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         {
             ::lgraph_api::SRID s = data.GetSRID();
             switch (s) {
-                case ::lgraph_api::SRID::WSG84:
-                    return json(data.AsWsgPolygon().AsEWKB());
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsPolygon().ToString());
                 case ::lgraph_api::SRID::CARTESIAN:
-                    return json(data.AsCartesianPolygon().AsEWKB());
+                    return json(data.AsCartesianPolygon().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+            }
+        }
+    case lgraph_api::FieldType::SPATIAL:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsSpatial().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianSpatial().ToString());
                 default:
                     throw lgraph::InputError("unsupported spatial srid");
             }

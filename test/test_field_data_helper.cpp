@@ -43,7 +43,7 @@ void CheckFieldTypeSizeNameIsFixed(::lgraph::FieldType ft, const std::string& na
 
 TEST_F(TestFieldDataHelper, FieldTypeSize) {
     UT_LOG() << "Testing FieldTypeSize, FieldTypeName and IsFixedLengthFieldType";
-    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::POLYGON; ft++) {
+    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::SPATIAL; ft++) {
         FieldType parsed;
         UT_EXPECT_TRUE(TryGetFieldType(FieldTypeName((FieldType)ft), parsed));
         UT_EXPECT_EQ((int)parsed, ft);
@@ -67,6 +67,7 @@ TEST_F(TestFieldDataHelper, FieldTypeSize) {
     CheckFieldTypeSizeNameIsFixed(FieldType::POINT, "POINT", 50, true);
     CheckFieldTypeSizeNameIsFixed(FieldType::LINESTRING, "LINESTRING", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::POLYGON, "POLYGON", 0, false);
+    CheckFieldTypeSizeNameIsFixed(FieldType::SPATIAL, "SPATIAL", 0, false);
 }
 
 TEST_F(TestFieldDataHelper, FieldTypeStorageType) {
@@ -222,6 +223,13 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
                             "0103000020E6100000010000000500000000000000000000000000000000"
                             "00000000000000000000000000000000001C400000000000001040000000000000"
                             "00400000000000000040000000000000000000000000000000000000000000000000");
+    _CHECK_PARSE_STRING_SUCC(SPATIAL, "0101000020E6100000000000000000F03F0000000000000040",
+                            "0101000020E6100000000000000000F03F0000000000000040");
+    _CHECK_PARSE_STRING_SUCC(SPATIAL,
+                            "0102000020231C00000300000000000000000000000000000000000000000"
+                            "000000000004000000000000000400000000000000840000000000000F03F",
+                            "0102000020231C00000300000000000000000000000000000000000000000"
+                            "000000000004000000000000000400000000000000840000000000000F03F");
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
@@ -241,7 +249,8 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_FAIL(BLOB, "kkk");
     _CHECK_PARSE_STRING_FAIL(POINT, "123absd");
     _CHECK_PARSE_STRING_FAIL(LINESTRING, "0.23124325");
-    _CHECK_PARSE_STRING_FAIL(POINT, "asdjasncioo");
+    _CHECK_PARSE_STRING_FAIL(POLYGON, "asdjasncioo");
+    _CHECK_PARSE_STRING_FAIL(SPATIAL, "123@.adsas--=");
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -274,7 +283,7 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     _TEST_FD_CONVERT(INT64, 10000000000L, INT32, 1, false);  // out of range
     _TEST_FD_CONVERT(STRING, "111", INT64, 1, false);
     _TEST_FD_CONVERT(BLOB, "111", INT64, 1, false);
-    // floating points can be converted from fp or int types
+    // floating Points can be converted from fp or int types
     _TEST_FD_CONVERT(INT8, 127, FLOAT, 127, true);
     _TEST_FD_CONVERT(INT32, 1 << 30, DOUBLE, 1 << 30, true);
     _TEST_FD_CONVERT(FLOAT, 0.25, DOUBLE, 0.25, true);
@@ -289,17 +298,17 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     // testing spatial data;
     std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
     _TEST_FD_CONVERT(STRING, EWKB, POINT,
-                     ::lgraph_api::point<::lgraph_api::Wsg84>(EWKB).AsEWKB(), true);
+                     ::lgraph_api::Point<::lgraph_api::Wgs84>(EWKB).AsEWKB(), true);
     EWKB = "0102000020231C00000300000000000000000000000000000000000000000"
            "000000000004000000000000000400000000000000840000000000000F03F";
     _TEST_FD_CONVERT(STRING, EWKB, LINESTRING,
-                     ::lgraph_api::linestring<::lgraph_api::Cartesian>(EWKB).AsEWKB(),
+                     ::lgraph_api::LineString<::lgraph_api::Cartesian>(EWKB).AsEWKB(),
                      true);
     EWKB = "0103000020E6100000010000000500000000000000000000000000000000"
            "00000000000000000000000000000000001C400000000000001040000000000000"
            "00400000000000000040000000000000000000000000000000000000000000000000";
     _TEST_FD_CONVERT(STRING, EWKB, POLYGON,
-                     ::lgraph_api::polygon<::lgraph_api::Wsg84>(EWKB).AsEWKB(),
+                     ::lgraph_api::Polygon<::lgraph_api::Wgs84>(EWKB).AsEWKB(),
                      true);
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
@@ -357,26 +366,26 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
     _TEST_FD_TO_VALUE_OF_FT(BLOB, "hello", BLOB, "hello", true);
     _TEST_FD_TO_VALUE_OF_FT(STRING, ::lgraph_api::base64::Encode("hello"), BLOB, "hello", true);
 
-    // testing point;
+    // testing Point;
     {
         std::string EWKB = "0101000020E6100000000000000000F03F0000000000000040";
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POINT, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), point_Wsg84(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), PointWgs84(EWKB).AsEWKB());
     }
 
-    // testing linestring;
+    // testing LineString;
     {
         std::string EWKB = "0102000020231C00000300000000000000000000000000000000000000000"
                            "000000000004000000000000000400000000000000840000000000000F03F";
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::LINESTRING, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), linestring_Cartesian(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), LineStringCartesian(EWKB).AsEWKB());
     }
 
-    // testing polygon
+    // testing Polygon
     {
         std::string EWKB = "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
@@ -384,7 +393,25 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         FieldData fd = FieldData(EWKB);
         Value v;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::POLYGON, v), true);
-        UT_EXPECT_EQ(v.AsType<std::string>(), polygon_Wsg84(EWKB).AsEWKB());
+        UT_EXPECT_EQ(v.AsType<std::string>(), PolygonWgs84(EWKB).AsEWKB());
+    }
+
+    // testing spatial
+    {
+        std::string EWKB1 = "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000";
+        FieldData fd1 = FieldData(EWKB1);
+        Value v1;
+        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd1, FieldType::SPATIAL, v1), true);
+        UT_EXPECT_EQ(v1.AsType<std::string>(), SpatialWgs84(EWKB1).AsEWKB());
+
+        std::string EWKB2 = "0102000020231C00000300000000000000000000000000000000000000000"
+                            "000000000004000000000000000400000000000000840000000000000F03F";
+        FieldData fd2 = FieldData(EWKB2);
+        Value v2;
+        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd2, FieldType::SPATIAL, v2), true);
+        UT_EXPECT_EQ(v2.AsType<std::string>(), SpatialCartesian(EWKB2).AsEWKB());
     }
 }
 
@@ -436,6 +463,16 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
                            "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000");
+    _TEST_PARSE_TO_V_OF_FT(SPATIAL, "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000",
+                           "0103000020E6100000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000");
+    _TEST_PARSE_TO_V_OF_FT(SPATIAL, "0102000020231C00000300000000000000000000000000000000000"
+                           "000000000000000004000000000000000400000000000000840000000000000F03F",
+                           "0102000020231C00000300000000000000000000000000000000000000000"
+                           "000000000004000000000000000400000000000000840000000000000F03F");
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BOOL, "tr", 1));
@@ -453,6 +490,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POINT, "213234asda", "342341123"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(LINESTRING, "21qwe234.asd", "342341123asdq"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POLYGON, "213234qweasda", "34.342as341123"));
+    UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(SPATIAL, "213234qwe#@asda", "34.342as3@#41123"));
 }
 
 TEST_F(TestFieldDataHelper, ValueCompare) {
@@ -503,21 +541,24 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
     _TEST_VALUE_COMPARE(BLOB, std::string(3, 'a'), std::string(4, 'a'), -1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
-    // testing point(compare string);
+    // testing Point(compare string);
     {
         std::string EWKB1 = "0101000020E6100000000000000000F03F0000000000000040";
         std::string EWKB2 = "0101000020231C0000000000000000F03F000000000000F03F";
 
-        FieldData a = FieldData::Point(point_Wsg84(EWKB1));
-        FieldData b = FieldData::Point(point_Wsg84(EWKB1));
-        FieldData c = FieldData::Point(point_Cartesian(EWKB2));
+        FieldData a = FieldData::Point(PointWgs84(EWKB1));
+        FieldData b = FieldData::Point(PointWgs84(EWKB1));
+        FieldData c = FieldData::Point(PointCartesian(EWKB2));
 
         Value va = Value::ConstRef(GetStoredValue<FieldType::POINT>(a));
         Value vb = Value::ConstRef(GetStoredValue<FieldType::POINT>(b));
         Value vc = Value::ConstRef(GetStoredValue<FieldType::POINT>(c));
+        Value vd = Value::ConstRef(GetStoredValue<FieldType::SPATIAL>(a));
 
         UT_EXPECT_EQ(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vb.Data(), vb.Size()), 0);
         UT_EXPECT_GT(ValueCompare<FieldType::POINT>(va.Data(), va.Size(), vc.Data(), vc.Size()), 0);
         UT_EXPECT_LT(ValueCompare<FieldType::POINT>(vc.Data(), vc.Size(), va.Data(), va.Size()), 0);
+        UT_EXPECT_EQ(ValueCompare<FieldType::SPATIAL>
+        (va.Data(), va.Size(), vd.Data(), vd.Size()), 0);
     }
 }

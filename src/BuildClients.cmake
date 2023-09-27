@@ -26,13 +26,13 @@ find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT RE
 
 ############### liblgraph_client_cpp_rpc ######################
 
-set(TARGET_CPP_CLIENT_RPC lgraph_client_cpp_rpc)
+set(TARGET_CLIENT_CPP_RPC lgraph_client_cpp_rpc)
 
-add_library(${TARGET_CPP_CLIENT_RPC} SHARED
+add_library(${TARGET_CLIENT_CPP_RPC} SHARED
         client/cpp/rpc/lgraph_rpc_client.cpp
         ${PROTO_SRCS})
 
-target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
+target_include_directories(${TARGET_CLIENT_CPP_RPC} PRIVATE
         ${DEPS_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher    # for FieldDataConvert
@@ -40,7 +40,7 @@ target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
         ${JNI_INCLUDE_DIRS})
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
-    target_link_libraries(${TARGET_CPP_CLIENT_RPC}
+    target_link_libraries(${TARGET_CLIENT_CPP_RPC}
             PUBLIC
             ${Boost_LIBRARIES}
             # begin static linking
@@ -65,7 +65,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             z
             )
 else ()
-    target_link_libraries(${TARGET_CPP_CLIENT_RPC}
+    target_link_libraries(${TARGET_CLIENT_CPP_RPC}
             PUBLIC
             lgraph
             lgraph_cypher_lib

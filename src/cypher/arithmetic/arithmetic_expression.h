@@ -197,6 +197,12 @@ struct BuiltinFunction {
     static cypher::FieldData Last(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 
+    static cypher::FieldData MaxInList(RTContext *ctx, const Record &record,
+                                       const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData MinInList(RTContext *ctx, const Record &record,
+                                       const std::vector<ArithExprNode> &args);
+
     static cypher::FieldData Size(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 
@@ -205,6 +211,9 @@ struct BuiltinFunction {
 
     static cypher::FieldData Nodes(RTContext *ctx, const Record &record,
                                    const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Relationships(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args);
 
     /* List functions */
     static cypher::FieldData Labels(RTContext *ctx, const Record &record,
@@ -218,6 +227,18 @@ struct BuiltinFunction {
 
     static cypher::FieldData Subscript(RTContext *ctx, const Record &record,
                                        const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData IsAsc(RTContext *ctx, const Record &record,
+                                   const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData IsDesc(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData HasDuplicates(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData GetMemberProp(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args);
 
     /* Mathematical functions - numeric */
     static cypher::FieldData Abs(RTContext *ctx, const Record &record,
@@ -457,13 +478,20 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("properties", BuiltinFunction::Properties);
         ae_registered_funcs.emplace("head", BuiltinFunction::Head);
         ae_registered_funcs.emplace("last", BuiltinFunction::Last);
+        ae_registered_funcs.emplace("maxinlist", BuiltinFunction::MaxInList);
+        ae_registered_funcs.emplace("mininlist", BuiltinFunction::MinInList);
         ae_registered_funcs.emplace("size", BuiltinFunction::Size);
         ae_registered_funcs.emplace("length", BuiltinFunction::Length);
         ae_registered_funcs.emplace("nodes", BuiltinFunction::Nodes);
+        ae_registered_funcs.emplace("relationships", BuiltinFunction::Relationships);
         ae_registered_funcs.emplace("labels", BuiltinFunction::Labels);
         ae_registered_funcs.emplace("keys", BuiltinFunction::Keys);
         ae_registered_funcs.emplace("range", BuiltinFunction::Range);
         ae_registered_funcs.emplace("subscript", BuiltinFunction::Subscript);
+        ae_registered_funcs.emplace("isasc", BuiltinFunction::IsAsc);
+        ae_registered_funcs.emplace("isdesc", BuiltinFunction::IsDesc);
+        ae_registered_funcs.emplace("hasduplicates", BuiltinFunction::HasDuplicates);
+        ae_registered_funcs.emplace("getmemberprop", BuiltinFunction::GetMemberProp);
         ae_registered_funcs.emplace("abs", BuiltinFunction::Abs);
         ae_registered_funcs.emplace("ceil", BuiltinFunction::Ceil);
         ae_registered_funcs.emplace("floor", BuiltinFunction::Floor);

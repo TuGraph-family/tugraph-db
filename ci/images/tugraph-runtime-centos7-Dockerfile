@@ -1,5 +1,5 @@
 # Docker hub image
-#FROM centos:7.3.1611
+# FROM centos:7.3.1611
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
@@ -8,7 +8,7 @@ ARG FILEPATH
 # specifies installation package name for tugraph
 ARG FILENAME
 
-RUN yum update -y && yum install -y \
+RUN yum -x filesystem update -y && yum install -y \
     git \
     gcc \
     gcc-c++ \

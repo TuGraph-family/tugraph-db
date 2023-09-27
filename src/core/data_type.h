@@ -41,18 +41,22 @@ typedef lgraph_api::FieldSpec FieldSpec;
 typedef lgraph_api::EdgeUid EdgeUid;
 typedef lgraph_api::Date Date;
 typedef lgraph_api::DateTime DateTime;
-typedef lgraph_api::point<lgraph_api::Wsg84> point_Wsg84;
-typedef lgraph_api::point<lgraph_api::Cartesian> point_Cartesian;
-typedef lgraph_api::linestring<lgraph_api::Wsg84> linestring_Wsg84;
-typedef lgraph_api::linestring<lgraph_api::Cartesian> linestring_Cartesian;
-typedef lgraph_api::polygon<lgraph_api::Wsg84> polygon_Wsg84;
-typedef lgraph_api::polygon<lgraph_api::Cartesian> polygon_Cartesian;
+typedef lgraph_api::Point<lgraph_api::Wgs84> PointWgs84;
+typedef lgraph_api::Point<lgraph_api::Cartesian> PointCartesian;
+typedef lgraph_api::LineString<lgraph_api::Wgs84> LineStringWgs84;
+typedef lgraph_api::LineString<lgraph_api::Cartesian> LineStringCartesian;
+typedef lgraph_api::Polygon<lgraph_api::Wgs84> PolygonWgs84;
+typedef lgraph_api::Polygon<lgraph_api::Cartesian> PolygonCartesian;
+typedef lgraph_api::Spatial<lgraph_api::Wgs84> SpatialWgs84;
+typedef lgraph_api::Spatial<lgraph_api::Cartesian> SpatialCartesian;
 typedef lgraph_api::LGraphType ElementType;
 typedef lgraph_api::Result Result;
 typedef lgraph_api::EdgeConstraints EdgeConstraints;
 typedef lgraph_api::LabelOptions LabelOptions;
 typedef lgraph_api::VertexOptions VertexOptions;
 typedef lgraph_api::EdgeOptions EdgeOptions;
+typedef lgraph_api::EdgeOptions::TemporalFieldOrder TemporalFieldOrder;
+
 
 typedef int64_t VertexId;
 typedef int64_t EdgeId;

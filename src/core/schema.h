@@ -74,8 +74,10 @@ class Schema {
 
     std::unordered_set<size_t> indexed_fields_;
     std::vector<size_t> blob_fields_;
-    // When Schema is EDGE type, `primary_field_` should be int64.
     std::string primary_field_{};
+    // temporal_field_ should be int64.
+    std::string temporal_field_{};
+    TemporalFieldOrder temporal_order_{};
     // When Schema is VERTEX type, `edge_constraints_` is always empty.
     EdgeConstraints edge_constraints_;
     std::unordered_set<size_t> fulltext_fields_;
@@ -139,11 +141,15 @@ class Schema {
      * throws exception if there is error in the schema definition.
      */
     void SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
-                   const std::string& primary, const EdgeConstraints& edge_constraints);
+                   const std::string& primary, const std::string& temporal,
+                   const TemporalFieldOrder& temporal_order,
+                   const EdgeConstraints& edge_constraints);
 
     void SetSchema(bool is_vertex, const std::vector<FieldSpec>& fields, const std::string& primary,
+                   const std::string& temporal, const TemporalFieldOrder& temporal_order,
                    const EdgeConstraints& edge_constraints) {
-        SetSchema(is_vertex, fields.size(), fields.data(), primary, edge_constraints);
+        SetSchema(is_vertex, fields.size(), fields.data(), primary, temporal, temporal_order,
+                  edge_constraints);
     }
 
     void SetEdgeConstraintsLids(std::unordered_map<LabelId, std::unordered_set<LabelId>> lids) {
@@ -169,10 +175,11 @@ class Schema {
     //-----------------------
     // const accessors
     const std::string& GetLabel() const { return label_; }
-    const std::string& GetTemporalField() const { return primary_field_; }
+    const std::string& GetTemporalField() const { return temporal_field_; }
     const std::string& GetPrimaryField() const { return primary_field_; }
     bool DetachProperty() const { return detach_property_; }
-    bool HasTemporalField() const { return !primary_field_.empty(); }
+    bool HasTemporalField() const { return !temporal_field_.empty(); }
+    TemporalFieldOrder GetTemporalOrder() const { return temporal_order_; }
     const EdgeConstraints& GetEdgeConstraints() const { return edge_constraints_; }
     void SetEdgeConstraints(const EdgeConstraints& edge_constraints) {
         edge_constraints_ = edge_constraints;
@@ -418,7 +425,8 @@ class Schema {
 
     void DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
 
-    void DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
+    void DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
+                                const std::vector<size_t>& created);
 
     void DeleteVertexFullTextIndex(VertexId vid, std::vector<FTIndexEntry>& buffers);
 
@@ -429,11 +437,14 @@ class Schema {
      * Note: Currently this function is only used to delete and clean up residual indexes
      * after AddVertexToIndex fails.
      */
-    void DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
+    void DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                                  const std::vector<size_t>& created);
 
-    void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record);
+    void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                          std::vector<size_t>& created);
 
-    void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
+    void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
+                        std::vector<size_t>& created);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);
@@ -467,13 +478,20 @@ class Schema {
         s = BinaryRead(buf, primary_field_);
         if (!s) return 0;
         bytes_read += s;
+        s = BinaryRead(buf, temporal_field_);
+        if (!s) return 0;
+        bytes_read += s;
+        s = BinaryRead(buf, temporal_order_);
+        if (!s) return 0;
+        bytes_read += s;
         s = BinaryRead(buf, edge_constraints_);
         if (!s) return 0;
         bytes_read += s;
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        SetSchema(is_vertex_, fds, primary_field_, edge_constraints_);
+        SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
+                  edge_constraints_);
         return bytes_read;
     }
 
@@ -482,7 +500,8 @@ class Schema {
         return BinaryWrite(buf, label_) + BinaryWrite(buf, label_id_) +
                BinaryWrite(buf, label_in_record_) + BinaryWrite(buf, deleted_) +
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
-               BinaryWrite(buf, primary_field_) + BinaryWrite(buf, edge_constraints_) +
+               BinaryWrite(buf, primary_field_) + BinaryWrite(buf, temporal_field_) +
+               BinaryWrite(buf, temporal_order_) + BinaryWrite(buf, edge_constraints_) +
                BinaryWrite(buf, detach_property_);
     }
 

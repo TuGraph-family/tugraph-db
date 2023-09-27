@@ -422,8 +422,11 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
         } else {
             auto eo = std::make_unique<EdgeOptions>();
             eo->edge_constraints = v.edge_constraints;
-            if (v.HasTemporalField())
-                eo->temporal_field = v.GetTemporalField().name;
+            if (v.HasTemporalField()) {
+                auto tf = v.GetTemporalField();
+                eo->temporal_field = tf.name;
+                eo->temporal_field_order = tf.temporal_order;
+            }
             options = std::move(eo);
         }
         options->detach_property = v.detach_property;

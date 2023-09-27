@@ -404,13 +404,54 @@ inline web::json::value ValueToJson(const FieldData& fd) {
     case FieldType::BLOB:
         return web::json::value::string(_TU(::lgraph_api::base64::Encode(*fd.data.buf)));
     case FieldType::POINT:
-
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(PointWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(PointCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
     case FieldType::LINESTRING:
-
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(LineStringWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(
+                        _TU(LineStringCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
     case FieldType::POLYGON:
-
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(PolygonWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(PolygonCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
     case FieldType::SPATIAL:
-        throw std::runtime_error("do not support spatial type now!");
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(SpatialWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(SpatialCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
     }
     FMA_DBG_ASSERT(false);  // unhandled FieldData type
     return web::json::value::null();
