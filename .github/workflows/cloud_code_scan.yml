@@ -1,6 +1,8 @@
 name: Alipay Cloud Devops Codescan
 on:
-  push:
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
   deployment:
@@ -9,5 +11,5 @@ jobs:
       - name: codeScan
         uses: TuGraph-family/alipay-cloud-devops-codescan@main
         with:
-          parent_uid: ${{ secrets.ALI_PID }}
-          private_key: ${{ secrets.ALI_PK }}
+          parent_uid: ${{ variables.ALI_PID }}
+          private_key: ${{ variables.ALI_PK }}
