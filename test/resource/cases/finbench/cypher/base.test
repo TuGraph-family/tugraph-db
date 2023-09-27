@@ -1,0 +1,17 @@
+# temporal order: DESC
+MATCH (n:Account)
+WITH n LIMIT 1
+MATCH (n)-[e:withdraw]->(m:Account)
+WHERE e.timestamp > 0
+RETURN n.id, e.timestamp, type(e), m.id
+LIMIT 3;
+
+MATCH (n:Account{id:0}), (m:Account{id:3})
+CREATE (n)-[:withdraw{timestamp:97, amount:0.0}]->(m);
+
+MATCH (n:Account)
+WITH n LIMIT 1
+MATCH (n)-[e:withdraw]->(m:Account)
+WHERE e.timestamp > 0
+RETURN n.id, e.timestamp, type(e), m.id
+LIMIT 4;

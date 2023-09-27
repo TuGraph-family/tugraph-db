@@ -20,6 +20,7 @@
 
 #include "fma-common/fma_stream.h"
 #include "lgraph/lgraph_types.h"
+#include "core/data_type.h"
 #include "core/field_data_helper.h"
 #include "core/lightning_graph.h"
 #include "import/import_exception.h"
@@ -54,7 +55,9 @@ enum KeyWord {
     SKIP,
     HEADER,
     OPTIONAL_,  // OPTIONAL is a macro in windows SDK
-    FORMAT
+    FORMAT,
+    ASC,        // TemporalFieldOrder::ASC
+    DESC        // TemporalFieldOrder::DESC
 };
 
 class KeyWordFunc {
@@ -83,6 +86,8 @@ class KeyWordFunc {
             {KeyWord::HEADER, "HEADER"},
             {KeyWord::OPTIONAL_, "OPTIONAL"},
             {KeyWord::FORMAT, "FORMAT"},
+            {KeyWord::ASC, "ASC"},
+            {KeyWord::DESC, "DESC"},
         };
         return m;
     }
@@ -164,6 +169,17 @@ class KeyWordFunc {
         return ft;
     }
 
+    static TemporalFieldOrder GetTemporalFieldOrderFromStr(const std::string& s) {
+        KeyWord kw = GetKeyWordFromStr(s);
+        if (kw == KeyWord::ASC) {
+            return TemporalFieldOrder::ASC;
+        } else if (kw == KeyWord::DESC) {
+            return TemporalFieldOrder::DESC;
+        } else {
+            throw std::runtime_error(FMA_FMT("keyword [{}] is not a TemporalFieldOrder", s));
+        }
+    }
+
     static const std::string& GetStrFromKeyWord(const KeyWord& kw) {
         return KeyWordToStrMap().at(kw);
     }
@@ -182,6 +198,7 @@ struct ColumnSpec {
     bool global = false;
     bool primary = false;
     bool temporal = false;
+    TemporalFieldOrder temporal_order = TemporalFieldOrder::ASC;
     bool fulltext = false;
 
     inline bool CheckValid() const {
@@ -207,10 +224,13 @@ struct ColumnSpec {
           global(false),
           primary(false),
           temporal(false),
+          temporal_order(TemporalFieldOrder::ASC),
           fulltext(false) {}
     ColumnSpec(std::string name_, FieldType type_, bool is_id_, bool optional_ = false,
                bool index_ = false, bool unique_ = false, bool global_ = false,
-               bool temporal_ = false, bool fulltext_ = false)
+               bool temporal_ = false,
+               TemporalFieldOrder temporal_order_ = TemporalFieldOrder::ASC,
+               bool fulltext_ = false)
         : name(std::move(name_)),
           type(type_),
           optional(optional_),
@@ -219,6 +239,7 @@ struct ColumnSpec {
           global(global_),
           primary(is_id_),
           temporal(temporal_),
+          temporal_order(temporal_order_),
           fulltext(fulltext_) {}
 
     bool operator==(const ColumnSpec& rhs) const {
@@ -341,7 +362,6 @@ struct LabelDesc {
         }
         return ret;
     }
-
 
     std::vector<FieldSpec> GetFieldSpecs(std::vector<std::string>& names) const {
         std::vector<FieldSpec> fs;
@@ -812,6 +832,12 @@ class ImportConfParser {
                     }
                     if (s.contains("temporal") && cs.name == s["temporal"]) {
                         cs.temporal = true;
+                        if (s.contains("temporal_order")) {
+                            cs.temporal_order =
+                                KeyWordFunc::GetTemporalFieldOrderFromStr(s["temporal_order"]);
+                        } else {
+                            cs.temporal_order = TemporalFieldOrder::ASC;
+                        }
                     }
                     if (p.contains("index")) {
                         cs.index = p["index"];

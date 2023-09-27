@@ -17,6 +17,14 @@
 //
 #pragma once
 
+#include "db/galaxy.h"
+#include "cypher/execution_plan/ops/op_expand_all.h"
+#include "cypher/execution_plan/ops/op_all_node_scan.h"
+#include "cypher/execution_plan/ops/op_all_node_scan_dynamic.h"
+#include "cypher/execution_plan/ops/op_node_index_seek.h"
+#include "cypher/execution_plan/ops/op_node_index_seek_dynamic.h"
+#include "cypher/execution_plan/ops/op_node_by_label_scan.h"
+#include "cypher/execution_plan/ops/op_node_by_label_scan_dynamic.h"
 #include "cypher/execution_plan/optimization/opt_pass.h"
 #include "cypher/execution_plan/optimization/rewrite/schema_rewrite.h"
 
@@ -230,19 +238,16 @@ class OptRewriteWithSchemaInference : public OptPass {
     bool Gate() override { return true; }
 
     int Execute(OpBase *root) override {
-        const lgraph::SchemaInfo *schema_info;
         if (_ctx->graph_.empty()) {
-            _ctx->ac_db_.reset(nullptr);
-            schema_info = nullptr;
-        } else {
-            _ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
-                _ctx->galaxy_->OpenGraph(_ctx->user_, _ctx->graph_));
-            lgraph_api::GraphDB db(_ctx->ac_db_.get(), true);
-            _ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
-            schema_info = &_ctx->txn_->GetTxn()->GetSchemaInfo();
+            // Skip optimization when the graph name is empty.
+            return 0;
         }
+        _ctx->ac_db_ = std::make_unique<lgraph::AccessControlledDB>(
+            _ctx->galaxy_->OpenGraph(_ctx->user_, _ctx->graph_));
+        lgraph_api::GraphDB db(_ctx->ac_db_.get(), true);
+        _ctx->txn_ = std::make_unique<lgraph_api::Transaction>(db.CreateReadTxn());
+        const lgraph::SchemaInfo *schema_info = &_ctx->txn_->GetTxn()->GetSchemaInfo();
         _ctx->txn_.reset(nullptr);
-        // _ctx->ac_db_.reset(nullptr);
         _RewriteWithSchemaInference(root, schema_info);
         return 0;
     }
