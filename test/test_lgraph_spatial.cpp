@@ -47,8 +47,10 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
              FieldSpec("Point", FieldType::POINT, false),
              FieldSpec("string2line", FieldType::STRING, false),
              FieldSpec("LineString", FieldType::LINESTRING, true),
-             FieldSpec("string2Polygon", FieldType::POLYGON, true),
-             FieldSpec("Polygon", FieldType::POLYGON, true)}),
+             FieldSpec("string2Polygon", FieldType::STRING, true),
+             FieldSpec("Polygon", FieldType::POLYGON, true),
+             FieldSpec("string2Spatial", FieldType::STRING, true),
+             FieldSpec("Spatial", FieldType::SPATIAL, true)}),
         true, vo));
 
     EdgeOptions options;
@@ -66,31 +68,35 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     std::string Polygon_EWKB = "0103000020231C0000010000000500000000000000000000000"
     "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
     "00000000000000040000000000000000000000000000000000000000000000000";
-
+    std::string Spatial_EWKB = "0102000020E61000000300000000000000000000000000000000"
+    "000000000000000000004000000000000000400000000000000840000000000000F03F";
     VertexId v0 = txn.AddVertex(
     std::string("spatial"),
     std::vector<std::string>({"id", "string2Point", "Point",
-    "string2line", "LineString", "string2Polygon", "Polygon"}),
+    "string2line", "LineString", "string2Polygon", "Polygon", "string2Spatial", "Spatial"}),
     std::vector<std::string>({"1",
-    Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB}));
+    Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB,
+    Spatial_EWKB, Spatial_EWKB}));
 
     // 这里的primary_key不能相同;
     VertexId v1 = txn.AddVertex(
     std::string("spatial"),
     std::vector<std::string>({"id", "string2Point", "Point",
-    "string2line", "LineString", "string2Polygon", "Polygon"}),
+    "string2line", "LineString", "string2Polygon", "Polygon", "string2Spatial", "Spatial"}),
     std::vector<std::string>({"2",
-    Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB}));
+    Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB,
+    Spatial_EWKB, Spatial_EWKB}));
 
     // testting parse and set fielddata;
     VertexId v2 = txn.AddVertex(
     std::string("spatial"),
     std::vector<std::string>({"id", "string2Point", "Point",
-    "string2line", "LineString", "string2Polygon", "Polygon"}),
+    "string2line", "LineString", "string2Polygon", "Polygon", "string2Spatial", "Spatial"}),
     std::vector<FieldData>({FieldData::Int32(3), FieldData::String(Point_EWKB),
     FieldData::Point(Point_EWKB), FieldData::String(Line_EWKB),
     FieldData::LineString(Line_EWKB), FieldData::String(Polygon_EWKB),
-    FieldData::String(Polygon_EWKB)}));
+    FieldData::Polygon(Polygon_EWKB), FieldData::String(Spatial_EWKB),
+    FieldData::Spatial(Spatial_EWKB)}));
 
     // testing edge;
     txn.AddEdge(v0, v1, std::string("near"), std::vector<std::string>({"distance"}),
@@ -116,20 +122,22 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
             {FieldSpec("id", FieldType::INT32, false),
              FieldSpec("Point", FieldType::POINT, true),
              FieldSpec("line", FieldType::LINESTRING, true),
-             FieldSpec("Polygon", FieldType::POLYGON, true)}),
+             FieldSpec("Polygon", FieldType::POLYGON, true),
+             FieldSpec("Spatial", FieldType::SPATIAL, true)}),
         true, vo));
     {
         auto txn = lg.CreateWriteTxn();
         UT_EXPECT_ANY_THROW(txn.AddVertex(
             std::string("spatial"),
-            std::vector<std::string>({"id", "Point", "line", "Polygon"}),
+            std::vector<std::string>({"id", "Point", "line", "Polygon", "Spatial"}),
             std::vector<std::string>({"1",
             "aabbcsadsafasda",
             "01020000201234000003000000000000000000000000000000000000000"
             "00000000000004000000000000000400000000000000840000000000000F03F",
             "0103000020231C00000100000005000000000000000000000000000"
             "0000000000000000000000000000000000000001C40000000000000104000000000000"
-            "000400000000000000040000000000000000000000000000000000000000000000000"})));
+            "000400000000000000040000000000000000000000000000000000000000000000000",
+            "asdq348320#000!@"})));
         UT_EXPECT_ANY_THROW(
             txn.AddVertex(
                 std::string("spatial"),
@@ -138,7 +146,8 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
                 FieldData::LineString("01020000201234000003000000000000000000000000000000000000000"
                 "00000000000004000000000000000400000000000000840000000000000F03F"),
                 FieldData::Polygon("0000000000000000000000000000000000000001C40000"
-                "000000000104000")})));
+                "000000000104000"),
+                FieldData::Spatial("jdasdu9038r1dai0iq")})));
     }
 
     {
@@ -148,28 +157,33 @@ static void TestSampleDB(const std::string& dir, bool detach_property) {
             {FieldSpec("id", FieldType::INT32, false),
             FieldSpec("Point2string", FieldType::STRING, true),
              FieldSpec("line2string", FieldType::STRING, true),
-             FieldSpec("Polygon2string", FieldType::STRING, true)}),
+             FieldSpec("Polygon2string", FieldType::STRING, true),
+             FieldSpec("Spatial2string", FieldType::STRING, true)}),
         true, vo));
 
         auto txn = lg.CreateWriteTxn();
 
         txn.AddVertex(
             std::string("spatial_transform"),
-            std::vector<std::string>({"id", "Point2string", "line2string", "Polygon2string"}),
+            std::vector<std::string>({"id", "Point2string", "line2string", "Polygon2string",
+            "Spatial2string"}),
             std::vector<std::string>({"1",
             "aabbcsadsafasda",
             "01020000201234000003000000000000000000000000000000000000000"
             "00000000000004000000000000000400000000000000840000000000000F03F",
             "0103000020231C00000100000005000000000000000000000000000"
             "0000000000000000000000000000000000000001C40000000000000104000000000000"
-            "000400000000000000040000000000000000000000000000000000000000000000000"}));
+            "000400000000000000040000000000000000000000000000000000000000000000000",
+            "01020000201234000003000000000000000000000000000000000000000"
+            "00000000000004000000000000000400000000000000840000000000000F03F"}));
 
         size_t n_changed = 0;
         UT_EXPECT_ANY_THROW(lg.AlterLabelModFields(
             "spatial_transform",
             std::vector<FieldSpec>({FieldSpec("Point2string", FieldType::POINT, true),
                                     FieldSpec("LineString2string", FieldType::LINESTRING, true),
-                                    FieldSpec("Polygon2string", FieldType::POLYGON, true)}),
+                                    FieldSpec("Polygon2string", FieldType::POLYGON, true),
+                                    FieldSpec("Spatial2string", FieldType::SPATIAL, true)}),
                                     true, &n_changed));
     }
 }
@@ -355,10 +369,12 @@ TEST_P(TestSpatial, Spatial_Schema) {
              FieldSpec("Point", FieldType::POINT, false),
              FieldSpec("LineString", FieldType::LINESTRING, true),
              FieldSpec("Polygon", FieldType::POLYGON, true),
+             FieldSpec("Spatial", FieldType::SPATIAL, true),
              FieldSpec("string2Point", FieldType::STRING, true),
              FieldSpec("string2line", FieldType::STRING, false),
-             FieldSpec("string2Polygon", FieldType::STRING, true)}),
-        "id", "", {});
+             FieldSpec("string2Polygon", FieldType::STRING, true),
+             FieldSpec("string2Spatial", FieldType::SPATIAL, true)}),
+        "id", "", {}, {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     // add fields;
     {
@@ -377,7 +393,8 @@ TEST_P(TestSpatial, Spatial_Schema) {
         Schema s2(s1);
         std::vector<FieldSpec> mod = {FieldSpec("string2Point", FieldType::POINT, false),
                                       FieldSpec("string2line", FieldType::LINESTRING, false),
-                                      FieldSpec("string2Polygon", FieldType::POLYGON, false)};
+                                      FieldSpec("string2Polygon", FieldType::POLYGON, false),
+                                      FieldSpec("string2Spatial", FieldType::SPATIAL, false)};
         s2.ModFields(mod);
         UT_EXPECT_TRUE(!s2.HasBlob());
         auto fmap = s2.GetFieldSpecsAsMap();
@@ -392,7 +409,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
     // del fields;
     {
         Schema s2(s1);
-        std::vector<std::string> to_del = {"Point", "LineString", "Polygon"};
+        std::vector<std::string> to_del = {"Point", "LineString", "Polygon", "Spatial"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
         auto fmap = s2.GetFieldSpecsAsMap();
@@ -401,13 +418,14 @@ TEST_P(TestSpatial, Spatial_Schema) {
         UT_EXPECT_TRUE(fmap == old_fields);
     }
 
+    UT_LOG() << "Testing set spatial schema and add vertex";
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
     DBConfig conf;
     conf.dir = dir;
     CreateSampleDB(dir, GetParam());
+    UT_LOG() << "come here!";
     LightningGraph graph(conf);
-    UT_LOG() << "Testing set spatial schema and add vertex";
     {
         auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point")) == FieldData::Point
@@ -419,6 +437,9 @@ TEST_P(TestSpatial, Spatial_Schema) {
         ("0103000020231C0000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004000000"
         "00000000040000000000000000000000000000000000000000000000000"));
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Spatial")) == FieldData::Spatial
+        ("0102000020E610000003000000000000000000000000000000000000000"
+        "00000000000004000000000000000400000000000000840000000000000F03F"));
     }
 
     UT_LOG() << "testing add";
@@ -428,14 +449,16 @@ TEST_P(TestSpatial, Spatial_Schema) {
             "spatial",
             std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, true),
                                     FieldSpec("LineString2", FieldType::LINESTRING, true),
-                                    FieldSpec("Polygon2", FieldType::POLYGON, true)}),
+                                    FieldSpec("Polygon2", FieldType::POLYGON, true),
+                                    FieldSpec("Spatial2", FieldType::SPATIAL, true)}),
             std::vector<FieldData>({FieldData::Point
             ("0101000020231C0000000000000000F03F0000000000000040"),
-            FieldData(), FieldData()}), true, &n_changed));
+            FieldData(), FieldData(), FieldData()}), true, &n_changed));
         UT_EXPECT_EQ(n_changed, 3);
         auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point2")) == FieldData::Point
         ("0101000020231C0000000000000000F03F0000000000000040"));
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Spatial2")) == FieldData());
     }
 
     UT_LOG() << "Testing modify";
@@ -460,12 +483,13 @@ TEST_P(TestSpatial, Spatial_Schema) {
     {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("spatial", std::vector<std::string>
-                       ({"Point", "LineString", "Polygon"}), true, &n_changed));
+                       ({"Point", "LineString", "Polygon", "Spatial"}), true, &n_changed));
         UT_EXPECT_EQ(n_changed, 3);
         auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point")) == FieldData());
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("LineString")) == FieldData());
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Polygon")) == FieldData());
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Spatial")) == FieldData());
     }
 }
 
