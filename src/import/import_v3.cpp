@@ -631,17 +631,17 @@ void Importer::EdgeDataToSST() {
                     }
                 }
                 std::unique_ptr<import_v2::BlockParser> parser;
-                if (file.data_format == "CSV") {
+                if (file.data_format == "GraphAr") {
+                    parser.reset(new import_v2::GraphArParser(file));
+                } else if (file.data_format == "CSV") {
                     parser.reset(new import_v2::ColumnParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.delimiter,
                         config_.quiet ? 0 : 100));
-                } else if (file.data_format == "JSON") {
+                } else {
                     parser.reset(new import_v2::JsonLinesParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.quiet ? 0 : 100));
-                } else {
-                    parser.reset(new import_v2::GraphArParser(file));
                 }
                 bool has_tid = false;
                 TemporalFieldOrder tid_order = TemporalFieldOrder::ASC;

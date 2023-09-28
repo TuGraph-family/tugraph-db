@@ -11,6 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
+
 #include <filesystem>
 #include "fma-common/configuration.h"
 #include "fma-common/logger.h"
@@ -27,6 +28,9 @@ using namespace lgraph;
 using namespace import_v3;
 
 class TestImportGar : public TuGraphTest {};
+
+// The path "/test/resource/data/gar_test/ldbc/" is for TestGarConfig
+// The path "/test/resource/data/gar_test/ldbc_parquet" is for TestGarData
 
 TEST_F(TestImportGar, TestGarConfig) {
     // test parse gar config

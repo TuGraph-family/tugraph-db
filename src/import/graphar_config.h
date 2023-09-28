@@ -84,11 +84,11 @@ inline void CheckAdjListType(const GraphArchive::EdgeInfo& edge_info,
  */
 inline void WalkVertex(const GraphArchive::VertexInfo& ver_info, std::string& primary,
                        std::vector<Dict>& props, std::vector<std::string>& prop_names) {
-    auto ver_groups = ver_info.GetPropertyGroups();
-    for (auto ver_props : ver_groups) {
-        for (auto prop : ver_props.GetProperties()) {
+    auto& ver_groups = ver_info.GetPropertyGroups();
+    for (auto& ver_props : ver_groups) {
+        for (auto& prop : ver_props.GetProperties()) {
             if (prop.is_primary) primary = prop.name;
-            prop_names.emplace_back(prop.name);
+            prop_names.emplace_back(std::move(prop.name));
             std::string type_name;
             ParseType(prop.type, type_name);
             props.emplace_back(
@@ -109,10 +109,10 @@ inline void WalkEdge(const GraphArchive::EdgeInfo& edge_info, std::vector<Dict>&
                      std::vector<std::string>& prop_names) {
     GraphArchive::AdjListType adj_list_type = GraphArchive::AdjListType::ordered_by_dest;
     CheckAdjListType(edge_info, adj_list_type);
-    auto edge_groups = edge_info.GetPropertyGroups(adj_list_type).value();
-    for (auto edge_props : edge_groups) {
-        for (auto prop : edge_props.GetProperties()) {
-            prop_names.emplace_back(prop.name);
+    auto& edge_groups = edge_info.GetPropertyGroups(adj_list_type).value();
+    for (const auto& edge_props : edge_groups) {
+        for (const auto& prop : edge_props.GetProperties()) {
+            prop_names.emplace_back(std::move(prop.name));
             std::string type_name;
             ParseType(prop.type, type_name);
             props.emplace_back(
