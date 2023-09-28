@@ -116,13 +116,17 @@ class PythonWorkerProcess {
     // The following three methods all try to modify the process handle.
     // So only one successful invocation is allowed. Otherwise, later
     // invocation results in undefined behavior.
-    void Kill() {
+    void Kill(bool force = false) {
         if (killed_) return;
-        while (!process_->try_get_exit_status(exit_code_)) {
-            process_->kill(true);
-            fma_common::SleepS(0.1);
+        if (force) {
+            process_->kill(false);
+            while (!process_->try_get_exit_status(exit_code_)) {
+                fma_common::SleepS(0.1);
+                process_->kill(true);
+            }
+        } else {
+            process_->kill(false);
         }
-        killed_ = true;
     }
 
     int Wait() {
@@ -181,7 +185,11 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
     // Before deleting the process, worker thread is required to remove
     // the prointer from busy_processes from this set first.
     std::unordered_set<PythonWorkerProcess*> _busy_processes;
-    std::chrono::steady_clock::time_point _last_request_time;
+    fma_common::TimedTaskScheduler::TaskPtr _kill_task;
+    // marked processes are owned by plugin manager.
+    // After trying to kill a process, worker thread need to move it
+    // into this queue.
+    std::unordered_set<std::unique_ptr<PythonWorkerProcess>> _marked_processes;
 
     // just for test
     PythonPluginManagerImpl(const std::string& name, const std::string& db_dir, size_t db_size,
@@ -189,8 +197,23 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
         : graph_name_(name),
           db_dir_(db_dir),
           plugin_dir_(plugin_dir),
-          max_idle_seconds_(max_idle_seconds),
-          _last_request_time(std::chrono::steady_clock::now()) {}
+          max_idle_seconds_(max_idle_seconds) {
+        auto& scheduler = fma_common::TimedTaskScheduler::GetInstance();
+        _kill_task = scheduler.ScheduleReccurringTask(
+            max_idle_seconds * 1000, [this](fma_common::TimedTask*) {
+                std::lock_guard<std::mutex> l(_mtx);
+                CleanUpIdleProcessesNoLock();
+                auto it = _marked_processes.begin();
+                while (it != _marked_processes.end()) {
+                    if ((*it)->IsAlive()) {
+                        (*it)->Kill();
+                        it++;
+                    } else {
+                        it = _marked_processes.erase(it);
+                    }
+                }
+            });
+    }
 
  public:
     PythonPluginManagerImpl(LightningGraph* db, const std::string& graph_name,

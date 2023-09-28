@@ -121,6 +121,9 @@ class PluginManager:
                 success = False
                 try:
                     (success, output) = self.functions[function](db, input)
+                except (KeyboardInterrupt, SystemExit):
+                    logging.warn('process being killed')
+                    raise
                 except Exception as e:
                     success = False
                     output = "Exception occured in plugin: {}".format(e)
