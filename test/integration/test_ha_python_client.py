@@ -45,38 +45,7 @@ class TestHAPythonClient:
             assert "PLAY_IN" == json_object["label"]
         log.info("----------------testImportSchemaFromContent--------------------")
         self.client.callCypher("CALL db.dropDB()", "default", timeout=10)
-        schema = '''{"schema" :
-            [
-                {
-                    "label" : "Person",
-                    "type" : "VERTEX",
-                    "primary" : "name",
-                    "properties" : [
-                        {"name" : "name", "type":"STRING"},
-                        {"name" : "birthyear", "type":"INT16", "optional":true},
-                        {"name" : "phone", "type":"INT16","unique":true, "index":true}
-                    ]
-                },
-                {
-                    "label" : "Film",
-                    "type" : "VERTEX",
-                    "primary" : "title",
-                    "properties" : [
-                        {"name" : "title", "type":"STRING"}
-                    ]
-                },
-                {
-                    "label": "PLAY_IN",
-                    "type": "EDGE",
-                    "properties": [
-                        {"name": "role", "type": "STRING", "optional": true}
-                    ],
-                    "constraints": [ ["Person", "Film"] ]
-                }
-            ]
-        }
-        '''
-        ret, result = self.client.importSchemaFromContent(schema, "default", timeout=1000)
+        ret, result = self.client.importSchemaFromContent(IMPORT_SCHEMA, "default", timeout=1000)
         log.info("importSchemaFromContent : " + result)
         time.sleep(5)
         ret, result = self.client.callCypher("CALL db.vertexLabels()", "default", timeout=10)
@@ -101,31 +70,7 @@ class TestHAPythonClient:
             assert "COUNT(n)" in json_object.keys()
             assert json_object["COUNT(n)"] == 13
         log.info("----------------test_import_data_from_content--------------------")
-        person_desc = '''{"files": [
-            {
-                "columns": ["name", "birthyear", "phone"],
-                "format": "CSV",
-                "header": 0,
-                "label": "Person"
-            }]
-        }
-        '''
-        person = '''
-            Rachel Kempson,1910,10086
-            Michael Redgrave,1908,10087
-            Vanessa Redgrave,1937,10088
-            Corin Redgrave,1939,10089
-            Liam Neeson,1952,10090
-            Natasha Richardson,1963,10091
-            Richard Harris,1930,10092
-            Dennis Quaid,1954,10093
-            Lindsay Lohan,1986,10094
-            Jemma Redgrave,1965,10095
-            Roy Redgrave,1873,10096
-            John Williams,1932,10097
-            Christopher Nolan,1970,10098
-        '''
-        ret, result = self.client.importDataFromContent(person_desc, person, ",", True, 16, "default", timeout=1000)
+        ret, result = self.client.importDataFromContent(IMPORT_DATA_PERSON_DESC, IMPORT_DATA_PERSON, ",", True, 16, "default", timeout=1000)
         log.info("importDataFromContent : " + result)
         time.sleep(5)
         ret, result = self.client.callCypher("MATCH (n) RETURN COUNT(n)", "default", timeout=10)
@@ -190,6 +135,24 @@ class TestHAPythonClient:
             list_procedure_result_check(result)
 
     @pytest.mark.run(order=6)
+    def test_query_to_leader(self):
+        log.info("----------------test_query_to_leader--------------------")
+        self.client.callCypher("CALL db.dropDB()", "default", 10)
+        self.client.importSchemaFromContent(IMPORT_SCHEMA, "default", 1000)
+        self.client.importDataFromContent(IMPORT_DATA_PERSON_DESC, IMPORT_DATA_PERSON, ",", True, 16, "default", 1000)
+        ret, res = self.client.callCypherToLeader("MATCH (n) RETURN COUNT(n)", "default", 10)
+        json_object = json.loads(res)[0]
+        assert "COUNT(n)" in json_object.keys()
+        assert json_object["COUNT(n)"] == 13
+
+        self.client.loadProcedure("./sortstr.so", "CPP", "sortstr", "SO", "test sortstr", True, "v1",  "default")
+        ret, res = self.client.callProcedureToLeader("CPP", "sortstr", "gecfb", 1000, False, "default")
+        log.info("testCallProcedure : " + res)
+        json_object = json.loads(res)[0]
+        assert "result" in json_object.keys()
+        assert "bcefg" == json_object["result"]
+
+    @pytest.mark.run(order=7)
     def test_import_schema_from_file(self):
         def node_result_check(res):
             log.info("db.vertexLabels() : " + res)
@@ -225,7 +188,7 @@ class TestHAPythonClient:
                                                  "default", timeout=10, url=server)
             edge_result_check(result)
 
-    @pytest.mark.run(order=7)
+    @pytest.mark.run(order=8)
     def test_import_data_from_file(self):
         def node_result_check(res):
             log.info("MATCH (n) RETURN COUNT(n) : " + res)
@@ -255,14 +218,14 @@ class TestHAPythonClient:
                                                  "default", timeout=1000, url=server)
             edge_result_check(result)
 
-    @pytest.mark.run(order=8)
+    @pytest.mark.run(order=9)
     def test_cypher_after_import(self):
         log.info(self.client.callCypher("CREATE (p:Person{name:\"Test1\",birthyear:1988,phone:10000})",
                                          "default", timeout=10))
         time.sleep(5)
         execute_cypher_and_assert(self.client, '''MATCH (n:Person) WHERE n.name="Test1" RETURN n''', 21)
 
-    @pytest.mark.run(order=9)
+    @pytest.mark.run(order=10)
     def test_follower_restart(self):
         log.info("-------------------------stopping follower-------------------------")
         self.client.logout()
@@ -291,7 +254,7 @@ class TestHAPythonClient:
         execute_cypher_and_assert(self.client, '''MATCH (n:Person) WHERE n.name="Test2" RETURN n''', 22)
         self.client.logout()
 
-    @pytest.mark.run(order=10)
+    @pytest.mark.run(order=11)
     def test_leader_restart(self):
         log.info("-------------------------stopping leader-------------------------")
         os.system("kill -2 $(ps -ef | grep 27072 | grep -v grep | awk '{print $2}')")
