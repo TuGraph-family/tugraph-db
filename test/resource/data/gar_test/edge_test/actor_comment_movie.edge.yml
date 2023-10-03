@@ -1,0 +1,19 @@
+src_label: actor
+edge_label: comment
+dst_label: movie
+chunk_size: 1024
+src_chunk_size: 100
+dst_chunk_size: 100
+directed: false
+prefix: edge/actor_comment_movie/
+adj_lists:
+  - ordered: true
+    aligned_by: src
+    file_type: parquet
+    property_groups:
+      - file_type: parquet
+        properties:
+          - name: diffculty
+            data_type: string
+            is_primary: false
+version: gar/v1

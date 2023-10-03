@@ -22,12 +22,12 @@
 namespace lgraph {
 namespace import_v3 {
 
-typedef std::map<std::string, std::string> Dict;
+typedef std::vector<std::map<std::string, std::string>> Properties;
 
 /**
  * @brief  Parse the gar DataType to FieldType in config.
  *
- * @param   data_type  The GraphAr DataType of the vetex or  property.
+ * @param   data_type  The GraphAr DataType of the vetex or edge property.
  * @param   type_name  The FieldType string which used to make json object.
  */
 inline void ParseType(const GraphArchive::DataType& data_type, std::string& type_name) {
@@ -76,14 +76,14 @@ inline void CheckAdjListType(const GraphArchive::EdgeInfo& edge_info,
 /**
  * Traverse all properties of the vertex, get the primary key, the properties and the property
  * names. Keep the original order in yml config.
- * 
+ *
  * @param   ver_info  The gar vertex information.
  * @param   primary  The primary key of the vertex.
  * @param   props  All the properties of the vertex. One of it maybe {"name":"id","type":"INT64"}.
  * @param   prop_names  All the property names of the vertex. One of it maybe "id".
  */
 inline void WalkVertex(const GraphArchive::VertexInfo& ver_info, std::string& primary,
-                       std::vector<Dict>& props, std::vector<std::string>& prop_names) {
+                       Properties& props, std::vector<std::string>& prop_names) {
     auto& ver_groups = ver_info.GetPropertyGroups();
     for (auto& ver_props : ver_groups) {
         for (auto& prop : ver_props.GetProperties()) {
@@ -100,12 +100,12 @@ inline void WalkVertex(const GraphArchive::VertexInfo& ver_info, std::string& pr
 /**
  * Traverse all properties of the edge, get the properties and the property names.
  * Keep the original order in yml config. Similar to WalkVertex, but don't get primary.
- * 
+ *
  * @param   edge_info  The gar edge information.
  * @param   props  All the properties of the vertex. One of it maybe {"name":"id","type":"INT64"}.
  * @param   prop_names  All the property names of the vertex. One of it maybe "id".
  */
-inline void WalkEdge(const GraphArchive::EdgeInfo& edge_info, std::vector<Dict>& props,
+inline void WalkEdge(const GraphArchive::EdgeInfo& edge_info, Properties& props,
                      std::vector<std::string>& prop_names) {
     GraphArchive::AdjListType adj_list_type = GraphArchive::AdjListType::ordered_by_dest;
     CheckAdjListType(edge_info, adj_list_type);
@@ -122,6 +122,33 @@ inline void WalkEdge(const GraphArchive::EdgeInfo& edge_info, std::vector<Dict>&
 }
 
 /**
+ * Compare the properties of two edges to see if they are equal.
+ *
+ * @param   props1  The first edge properties.
+ * @param   props2  The second edge properties.
+ * @return  Result of the comparison.
+ */
+inline bool CheckEdgePropsEqual(Properties& props1, Properties& props2) {
+    if (props1.size() != props2.size()) {
+        return false;
+    }
+    std::sort(props1.begin(), props1.end(),
+              [](const auto& map1, const auto& map2) { return map1.at("name") < map2.at("name"); });
+    std::sort(props2.begin(), props2.end(),
+              [](const auto& map1, const auto& map2) { return map1.at("name") < map2.at("name"); });
+    auto it = props2.begin();
+    for (const auto& map1 : props1) {
+        auto map2 = *it;
+        ++it;
+        if (map1.at("name") != map2.at("name") || map1.at("type") != map2.at("type")) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * @brief   Read the gar yml file to construct the import config in json form.
  *
  * @param   gar_conf  The json object of the import config used in import_v3.
@@ -131,14 +158,13 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
     auto graph_info = GraphArchive::GraphInfo::Load(path).value();
     gar_conf["schema"] = {};
     gar_conf["files"] = {};
-    std::unordered_set<std::string> labels;
     auto vertex_infos = graph_info.GetVertexInfos();
     for (const auto& [key, value] : vertex_infos) {
         nlohmann::json schema_node;
         schema_node["label"] = value.GetLabel();
         schema_node["type"] = "VERTEX";
         std::string primary;
-        std::vector<Dict> properties;
+        Properties properties;
         std::vector<std::string> prop_names;
         WalkVertex(value, primary, properties, prop_names);
         schema_node["primary"] = primary;
@@ -154,18 +180,26 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
     }
 
     auto edge_infos = graph_info.GetEdgeInfos();
+    std::unordered_map<std::string, Properties> edge_labels;
     for (const auto& [key, edge_info] : edge_infos) {
         std::string label = edge_info.GetEdgeLabel();
-        auto result = labels.insert(label);
-        std::vector<Dict> properties;
+        Properties properties;
         std::vector<std::string> prop_names = {"SRC_ID", "DST_ID"};
         WalkEdge(edge_info, properties, prop_names);
-        if (result.second) {
+        if (!edge_labels.count(label)) {
+            edge_labels[label] = properties;
             nlohmann::json schema_node;
             schema_node["label"] = label;
             schema_node["type"] = "EDGE";
-            schema_node["properties"] = properties;
+            if (properties.size()) {
+                schema_node["properties"] = properties;
+            }
             gar_conf["schema"].push_back(schema_node);
+        } else {
+            if (!CheckEdgePropsEqual(properties, edge_labels[label])) {
+                FMA_LOG() << "Same edge label has different properties." << path;
+                throw std::runtime_error("The edge [" + label + "] is not supported.");
+            }
         }
 
         nlohmann::json file_node;

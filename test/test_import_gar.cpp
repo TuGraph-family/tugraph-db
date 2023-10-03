@@ -29,8 +29,21 @@ using namespace import_v3;
 
 class TestImportGar : public TuGraphTest {};
 
+// The path "/test/resource/data/gar_test/edge_test" is for TestEdgeLabel
 // The path "/test/resource/data/gar_test/ldbc/" is for TestGarConfig
 // The path "/test/resource/data/gar_test/ldbc_parquet" is for TestGarData
+
+TEST_F(TestImportGar, TestEdgeLabel) {
+    // reject the same edge label with different properties
+    Importer::Config config;
+    std::string tugraph_path = std::filesystem::path(__FILE__).parent_path().parent_path();
+    config.config_file = tugraph_path + "/test/resource/data/gar_test/edge_test/movie.graph.yml";
+    config.is_graphar = true;
+    config.delete_if_exists = true;
+
+    nlohmann::json conf;
+    UT_EXPECT_ANY_THROW(ParserGraphArConf(conf, config.config_file));
+}
 
 TEST_F(TestImportGar, TestGarConfig) {
     // test parse gar config
