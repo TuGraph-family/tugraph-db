@@ -1,5 +1,25 @@
 # Change Log for TuGraph
 
+# 4.0.1 (2023-9-28)
+
+**Breaking Changes:**
+
+1. Support Temporal order
+
+2. Add 5 algorithms
+
+**Improvements And Bug Fixes:**
+
+1. Python procedure can be killed immediately
+
+2. Extend label name length to 255 bytes
+
+3. Other bug fix
+
+**Interfaces Modification:**
+
+1. Fix temporal keyword in import.conf
+
 # 4.0.0 (2023-9-6)
 
 **Breaking Changes:**

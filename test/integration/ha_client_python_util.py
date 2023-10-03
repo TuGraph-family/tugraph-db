@@ -7,6 +7,61 @@ import shutil
 log = ""
 DEFAULT_ADMIN_NAME = "admin"
 DEFAULT_ADMIN_PASS = "73@TuGraph"
+IMPORT_SCHEMA = '''{"schema" :
+                [
+                    {
+                        "label" : "Person",
+                        "type" : "VERTEX",
+                        "primary" : "name",
+                        "properties" : [
+                            {"name" : "name", "type":"STRING"},
+                            {"name" : "birthyear", "type":"INT16", "optional":true},
+                            {"name" : "phone", "type":"INT16","unique":true, "index":true}
+                        ]
+                    },
+                    {
+                        "label" : "Film",
+                        "type" : "VERTEX",
+                        "primary" : "title",
+                        "properties" : [
+                            {"name" : "title", "type":"STRING"}
+                        ]
+                    },
+                    {
+                        "label": "PLAY_IN",
+                        "type": "EDGE",
+                        "properties": [
+                            {"name": "role", "type": "STRING", "optional": true}
+                        ],
+                        "constraints": [ ["Person", "Film"] ]
+                    }
+                ]
+            }
+            '''
+IMPORT_DATA_PERSON_DESC = '''{"files": [
+                                {
+                                    "columns": ["name", "birthyear", "phone"],
+                                    "format": "CSV",
+                                    "header": 0,
+                                    "label": "Person"
+                                }]
+                             }
+                          '''
+IMPORT_DATA_PERSON = '''
+                        Rachel Kempson,1910,10086
+                        Michael Redgrave,1908,10087
+                        Vanessa Redgrave,1937,10088
+                        Corin Redgrave,1939,10089
+                        Liam Neeson,1952,10090
+                        Natasha Richardson,1963,10091
+                        Richard Harris,1930,10092
+                        Dennis Quaid,1954,10093
+                        Lindsay Lohan,1986,10094
+                        Jemma Redgrave,1965,10095
+                        Roy Redgrave,1873,10096
+                        John Williams,1932,10097
+                        Christopher Nolan,1970,10098
+                    '''
 
 def importer(host, import_ort):
     client = start_ha_client(host, "29092")
