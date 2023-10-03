@@ -19,7 +19,7 @@ void DBManagementClient::DetectHeartbeat() {
     while (true) {
         DEBUG_LOG(ERROR) << "testing db management heart detection.";
 
-        fma_common::SleepS(5);
+        fma_common::SleepS(detect_freq_);
     }
 }
 }  // namespace lgraph

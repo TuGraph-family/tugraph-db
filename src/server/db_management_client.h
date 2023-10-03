@@ -20,7 +20,8 @@
 namespace lgraph {
 class DBManagementClient {
  private:
-   int heartbeat = 0;
+   int heartbeat_ = 0;
+   static const int detect_freq_ = 5;
  public:
    static void DetectHeartbeat();
 };
