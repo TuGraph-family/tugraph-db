@@ -44,6 +44,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         server/lgraph_server.cpp
         server/state_machine.cpp
         server/ha_state_machine.cpp
+        server/db_management_client.cpp
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
