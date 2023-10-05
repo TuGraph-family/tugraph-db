@@ -16,8 +16,32 @@
 
 namespace lgraph {
 void DBManagementClient::DetectHeartbeat() {
+    // Initialize brpc channel to db_management.
+    brpc::Channel channel;
+    brpc::ChannelOptions options;
+    options.protocol = "baidu_std";
+    options.connection_type = "";
+    options.timeout_ms = 100/*milliseconds*/;
+    options.max_retry = 3;
+    if (channel.Init("localhost:6091", "", &options) != 0) {
+        DEBUG_LOG(ERROR) << "Fail to initialize channel";
+        return;
+    }
+    com::antgroup::tugraph::HeartbeatService_Stub stub(&channel);
+
     while (true) {
         DEBUG_LOG(ERROR) << "testing db management heart detection.";
+        com::antgroup::tugraph::HeartbeatRequest request;
+        com::antgroup::tugraph::HeartbeatResponse response;
+        brpc::Controller cntl;
+        request.set_request_msg("this is a heartbeat request message.");
+        stub.detectHeartbeat(&cntl, &request, &response, NULL);
+        if (!cntl.Failed()) {
+            DEBUG_LOG(ERROR) << response.response_msg() << " "
+                << " latency=" << cntl.latency_us() << "us";
+        } else {
+            DEBUG_LOG(ERROR) << cntl.ErrorText();
+        }
 
         fma_common::SleepS(detect_freq_);
     }

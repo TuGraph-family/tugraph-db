@@ -16,6 +16,9 @@
 
 #include "tools/lgraph_log.h"
 #include "fma-common/utils.h"
+#include "protobuf/tugraph_management.pb.h"
+#include "gflags/gflags.h"
+#include "brpc/channel.h"
 
 namespace lgraph {
 class DBManagementClient {
