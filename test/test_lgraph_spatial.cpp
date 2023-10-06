@@ -293,21 +293,21 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_EQ(p.AsEWKB(), Point_EWKB);
         UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
 
-        SRID s = SRID::WSG84;
+        SRID s = SRID::WGS84;
         SRID s_ = SRID::CARTESIAN;
-        point<Wsg84> p_(1.0, 1.0, s);
-        UT_EXPECT_EQ(p_.AsEWKB(), point_EWKB);
+        Point<Wgs84> p_(1.0, 1.0, s);
+        UT_EXPECT_EQ(p_.AsEWKB(), Point_EWKB);
         UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POINT(1 1)");
 
-        point<Wsg84> p_c(1, 1, s_);
+        Point<Wgs84> p_c(1, 1, s_);
         UT_EXPECT_EQ(p_c.AsEWKT(), "SRID=7203;POINT(1 1)");
     }
 
     {
         UT_LOG() << "Testing distance";
         std::string point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
-        point<Wsg84> p1(point_EWKB);
-        point<Wsg84> p2(point_EWKB);
+        Point<Wgs84> p1(point_EWKB);
+        Point<Wgs84> p2(point_EWKB);
         UT_EXPECT_EQ(p1.Distance(p2), 0);
     }
 

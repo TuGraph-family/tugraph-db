@@ -848,11 +848,11 @@ int test_expression(cypher::RTContext *ctx) {
         {"with point(1, 1, 4326) as p1, point(1, 1, 4326) as p2 return Distance(p1, p2)", 1},
         {"with point(1.0, 2.0, 7203) as p,"
         "linestring_wkb('01020000000300000000000000000000000000000000"
-        "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203)"
+        "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203) "
         "as l return distance(l, p)", 1},
         {"with polygon('0103000020E6100000010000000500000000000000000000000000000000"
                        "00000000000000000000000000000000001C400000000000001040000000000000"
-                       "00400000000000000040000000000000000000000000000000000000000000000000')"
+                       "00400000000000000040000000000000000000000000000000000000000000000000') "
         "as p, linestring_wkt('LINESTRING(0 0,2 2,3 1)', 4326) as l return distance(p, l)", 1}
     };
     std::vector<std::string> scripts;
@@ -2347,6 +2347,36 @@ void TestCypherEmptyGraph(cypher::RTContext *ctx) {
     eval_script(ctx, "MATCH (n:Person) RETURN n.name LIMIT 1");
 }
 
+int test_spatial(cypher::RTContext *ctx) {
+    static const std::vector<std::string> scripts_ = {
+    "CALL db.createVertexLabel('TestDate', 'name', 'name', STRING, false, 'date', DATE, true)",
+    "CALL db.createVertexLabel('Location', 'name', 'name', STRING, false, 'geo', POINT, false)",
+    "CALL db.createEdgeLabel('lives', '[]')",
+    "CREATE (a:TestDate {name:'A', date:DATE('2023-07-23')})"
+    "CREATE (b:TestDate {name:'B', date:DATE('2023-07-24')})"
+    "CREATE (a)-[:lives]->(b)",
+    "CREATE (a_:Location {name:'A_', geo: POINT(1.0, 2.0)})"
+    "CREATE (b_:Location {name:'B_', geo: POINT(1.0, 2.0)})"
+    "CREATE (a_)-[:lives]->(b_)",
+    };
+    eval_scripts(ctx, scripts_);
+
+    static const std::vector<std::pair<std::string, int>> script_check = {
+    {"MATCH (n1:TestDate {name:'A'}), (n2:TestDate {name:'B'})\n"
+     "RETURN n1.date = n2.date", 1},
+    {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'})\n"
+     "RETURN DISTANCE(l1.geo, l2.geo) = 0", 1},
+    };
+    std::vector<std::string> scripts;
+    std::vector<int> check;
+    for (auto &s : script_check) {
+        scripts.emplace_back(s.first);
+        check.emplace_back(s.second);
+    }
+    eval_scripts_check(ctx, scripts, check);
+    return 0;
+}
+
 /* the following query causes stack chaos:
  * "MATCH (n:Person) RETURN properties(n) LIMIT 2"  */
 void debug_stack_chaos(cypher::RTContext *ctx) {
@@ -2410,6 +2440,7 @@ enum TestCase {
     TC_READONLY = 500,
     TC_EDGE_ID = 501,
     TC_EMPTY_GRAPH = 700,
+    TC_SPATIAL = 701,
 };
 
 struct ParamCypher {
@@ -2438,13 +2469,13 @@ TEST_P(TestCypher, Cypher) {
         " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
         "{}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
-        " {}-empty_graph;",
+        " {}-empty_graph; {}-spatial",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
         TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
-        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH);
+        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH, TC_SPATIAL);
     test_case = GetParam().tc;
     database = GetParam().d;
     int argc = _ut_argc;
@@ -2607,6 +2638,9 @@ TEST_P(TestCypher, Cypher) {
             case TC_EMPTY_GRAPH:
                 TestCypherEmptyGraph(&db);
                 break;
+            case TC_SPATIAL:
+                test_spatial(&db);
+                break;
             default:
                 break;
         }
@@ -2627,4 +2661,4 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
            ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
            ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},
-           ParamCypher{500, 0}, ParamCypher{501, 1}));
+           ParamCypher{500, 0}, ParamCypher{501, 1}, ParamCypher(701, 2)));

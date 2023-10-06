@@ -62,8 +62,8 @@ struct FieldDataHash {
             return std::hash<std::string>()(fd.AsBlob());
         case FieldType::POINT: {
             switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WSG84:
-                    return std::hash<std::string>()(fd.AsWsgPoint().AsEWKB());
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsPoint().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
                 default:
@@ -72,8 +72,8 @@ struct FieldDataHash {
         }
         case FieldType::LINESTRING: {
             switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WSG84:
-                    return std::hash<std::string>()(fd.AsWsgLineString().AsEWKB());
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsLineString().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
                 default:
@@ -82,8 +82,8 @@ struct FieldDataHash {
         }
         case FieldType::POLYGON: {
             switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WSG84:
-                    return std::hash<std::string>()(fd.AsWsgPolygon().AsEWKB());
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsPolygon().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
                 default:

@@ -14,7 +14,9 @@
  * TODO(shw):
  *   1. add more tests for the conversion between string type and spatial type in
  *      funciton ParseStringToValueOfFieldType and TryFieldDataToValueOfFieldType. 
- *   2. support the compression of EWKB, which is now the format of spatial type storage.
+ *   2. support the compression of EWKB in the storage of schema,
+ *      which is now the format of spatial type storage.
+ *      (it's not sure whether spatial data needed to be compressed)
  *   3. more comprehensive and readable comments.
  *   4. use FieldType2CType to simplify the realization of spatial data function;
  */
@@ -399,6 +401,8 @@ class Point : public SpatialBase {
     */
     explicit Point(const std::string& ewkb);
 
+    Point(double arg1, double arg2, SRID& srid);
+
     std::string AsEWKB() const override {
         return ewkb_;
     }
@@ -412,13 +416,15 @@ class Point : public SpatialBase {
     /**
      *  @brief return Point type data;
     */
-    bg::model::point<double, 2, SRID_Type> GetSpatialData();
+    bg::model::point<double, 2, SRID_Type> GetSpatialData() {
+        return point_;
+    }
 
-    double Distance(point<SRID_Type>& other);
+    double Distance(Point<SRID_Type>& other);
 
-    double Distance(linestring<SRID_Type>& other);
+    double Distance(LineString<SRID_Type>& other);
 
-    double Distance(polygon<SRID_Type>& other);
+    double Distance(Polygon<SRID_Type>& other);
 
     bool operator==(const Point<SRID_Type>& other);
 };
@@ -429,8 +435,8 @@ class Point : public SpatialBase {
 template<typename SRID_Type>
 class LineString : public SpatialBase {
     std::string ewkb_;
-    typedef bg::model::point<double, 2, SRID_Type> Point;
-    bg::model::linestring<Point> line_;
+    typedef bg::model::point<double, 2, SRID_Type> point;
+    bg::model::linestring<point> line_;
 
  public:
     LineString(SRID srid, SpatialType type, int construct_type, std::string& content);
@@ -452,13 +458,13 @@ class LineString : public SpatialBase {
         return line_;
     }
 
-    double Distance(point<SRID_Type>& other);
+    double Distance(Point<SRID_Type>& other);
 
-    double Distance(linestring<SRID_Type>& other);
+    double Distance(LineString<SRID_Type>& other);
 
-    double Distance(polygon<SRID_Type>& other);
+    double Distance(Polygon<SRID_Type>& other);
 
-    bool operator==(const linestring<SRID_Type>& other);
+    bool operator==(const LineString<SRID_Type>& other);
 };
 
 /**
@@ -467,8 +473,8 @@ class LineString : public SpatialBase {
 template<typename SRID_Type>
 class Polygon : public SpatialBase {
     std::string ewkb_;
-    typedef bg::model::point<double, 2, SRID_Type> Point;
-    bg::model::polygon<Point> polygon_;
+    typedef bg::model::point<double, 2, SRID_Type> point;
+    bg::model::polygon<point> polygon_;
 
  public:
     Polygon(SRID srid, SpatialType type, int construct_type, std::string& content);
@@ -490,12 +496,12 @@ class Polygon : public SpatialBase {
         return polygon_;
     }
 
-    double Distance(point<SRID_Type>& other);
+    double Distance(Point<SRID_Type>& other);
 
-    double Distance(linestring<SRID_Type>& other);
+    double Distance(LineString<SRID_Type>& other);
 
-    double Distance(polygon<SRID_Type>& other);
+    double Distance(Polygon<SRID_Type>& other);
 
-    bool operator==(const polygon<SRID_Type>& other);
+    bool operator==(const Polygon<SRID_Type>& other);
 };
 }  //  namespace lgraph_api
