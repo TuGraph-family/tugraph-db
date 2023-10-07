@@ -8,3 +8,6 @@ jobs:
     steps:
       - name: codeScan
         uses: TuGraph-family/alipay-cloud-devops-codescan@main
+        env:
+          parent_uid: ${{ secrets.ALI_PID }}
+          private_key: ${{ secrets.ALI_PK }}
