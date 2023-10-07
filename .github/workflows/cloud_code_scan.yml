@@ -1,6 +1,6 @@
 name: Alipay Cloud Devops Codescan
 on:
-  pull_request:
+  push:
 
 jobs:
   deployment:
