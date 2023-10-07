@@ -1,12 +1,16 @@
 name: Alipay Cloud Devops Codescan
 on:
+  push:
   pull_request:
+    branches:
+      - '*'
 
 jobs:
   deployment:
     runs-on: ubuntu-latest
     steps:
       - name: codeScan
+        if: ${{ github.repository == 'TuGraph-family/tugraph-db' }}
         uses: TuGraph-family/alipay-cloud-devops-codescan@main
         with:
           parent_uid: ${{ secrets.ALI_PID }}
