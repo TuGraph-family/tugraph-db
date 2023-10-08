@@ -23,9 +23,20 @@
 namespace lgraph {
 class DBManagementClient {
  private:
-   int heartbeat_ = 0;
+   bool heartbeat_ = false;
    static const int detect_freq_ = 5;
+   brpc::Channel channel_;
  public:
+   DBManagementClient();
+   static DBManagementClient& GetInstance();
+   void SetHeartbeat(bool heartbeat);
+   bool GetHeartbeat();
+   brpc::Channel& GetChannel();
    static void DetectHeartbeat();
+   void CreateJob();
+   void UpdateJob();
+   void ReadJob();
+   void ReadJobResult();
+   void DeleteJob();
 };
 }  // namespace lgraph
