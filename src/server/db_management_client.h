@@ -26,14 +26,17 @@ class DBManagementClient {
    bool heartbeat_ = false;
    static const int detect_freq_ = 5;
    brpc::Channel channel_;
+   com::antgroup::tugraph::JobManagementService_Stub job_stub_;
+   com::antgroup::tugraph::HeartbeatService_Stub heartbeat_stub_;
  public:
    DBManagementClient();
    static DBManagementClient& GetInstance();
    void SetHeartbeat(bool heartbeat);
    bool GetHeartbeat();
-   brpc::Channel& GetChannel();
+   com::antgroup::tugraph::HeartbeatService_Stub& GetHeartbeatStub();
+   com::antgroup::tugraph::JobManagementService_Stub& GetJobStub();
    static void DetectHeartbeat();
-   void CreateJob();
+   void CreateJob(std::int64_t start_time, std::string period, std::string name, std::string type, std::string user, std::int64_t create_time);
    void UpdateJob();
    void ReadJob();
    void ReadJobResult();

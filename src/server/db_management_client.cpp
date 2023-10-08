@@ -16,7 +16,10 @@
 
 namespace lgraph {
 
-DBManagementClient::DBManagementClient(){
+DBManagementClient::DBManagementClient()
+    : job_stub_(com::antgroup::tugraph::JobManagementService_Stub(&channel_)),
+      heartbeat_stub_(com::antgroup::tugraph::HeartbeatService_Stub(&channel_))
+    {
     // Initialize brpc channel to db_management.
     brpc::ChannelOptions options;
     options.protocol = "baidu_std";
@@ -37,8 +40,12 @@ bool DBManagementClient::GetHeartbeat() {
     return this->heartbeat_;
 }
 
-brpc::Channel& DBManagementClient::GetChannel() {
-    return this->channel_;
+com::antgroup::tugraph::HeartbeatService_Stub& DBManagementClient::GetHeartbeatStub() {
+    return this->heartbeat_stub_;
+}
+
+com::antgroup::tugraph::JobManagementService_Stub& DBManagementClient::GetJobStub() {
+    return this->job_stub_;
 }
 
 DBManagementClient& DBManagementClient::GetInstance() {
@@ -47,7 +54,7 @@ DBManagementClient& DBManagementClient::GetInstance() {
 }
 
 void DBManagementClient::DetectHeartbeat() {
-    com::antgroup::tugraph::HeartbeatService_Stub stub(&DBManagementClient::GetInstance().GetChannel());
+    com::antgroup::tugraph::HeartbeatService_Stub& stub = DBManagementClient::GetInstance().GetHeartbeatStub();
     while (true) {
         DEBUG_LOG(ERROR) << "testing db management heart detection.";
         com::antgroup::tugraph::HeartbeatRequest request;
@@ -68,46 +75,33 @@ void DBManagementClient::DetectHeartbeat() {
     }
 }
 
-void DBManagementClient::CreateJob() {
-    // // We will receive response synchronously, safe to put variables
-    // // on stack.
-    // com::antgroup::tugraph::JobManagementRequest request;
-    // com::antgroup::tugraph::JobManagementResponse response;
-    // brpc::Controller cntl;
+void DBManagementClient::CreateJob(std::int64_t start_time, std::string period, std::string name, std::string type, std::string user, std::int64_t create_time) {
+    com::antgroup::tugraph::JobManagementService_Stub& stub = DBManagementClient::GetInstance().GetJobStub();
+    com::antgroup::tugraph::JobManagementRequest request;
+    com::antgroup::tugraph::JobManagementResponse response;
+    brpc::Controller cntl;
 
-    // request.set_db_host("127.0.0.1");
-    // request.set_db_port("8888");
+    request.set_db_host("127.0.0.1");
+    request.set_db_port("8888");
 
-    // // test create_job_request
-    // request.set_allocated_create_job_request(new com::antgroup::tugraph::CreateJobRequest());
-    // request.mutable_create_job_request()->set_start_time(1694138458457);
-    // request.mutable_create_job_request()->set_period("IMMEDIATE");
-    // request.mutable_create_job_request()->set_procedure_name("Khop_test");
-    // request.mutable_create_job_request()->set_procedure_type("Khop");
-    // // request.mutable_create_job_request()->set_creator("lsl");
-    // request.mutable_create_job_request()->set_create_time(1694138458457);
+    // test create_job_request
+    request.set_allocated_create_job_request(new com::antgroup::tugraph::CreateJobRequest());
+    request.mutable_create_job_request()->set_start_time(start_time);
+    request.mutable_create_job_request()->set_period(period);
+    request.mutable_create_job_request()->set_procedure_name(name);
+    request.mutable_create_job_request()->set_procedure_type(type);
+    request.mutable_create_job_request()->set_user(user);
+    request.mutable_create_job_request()->set_create_time(create_time);
 
-
-    // cntl.set_log_id(log_id ++);  // set by user
-    // // Set attachment which is wired to network directly instead of
-    // // being serialized into protobuf messages.
-    // cntl.request_attachment().append(FLAGS_attachment);
-
-    // // Because `done'(last parameter) is NULL, this function waits until
-    // // the response comes back or error occurs(including timedout).
-    // stub.handleRequest(&cntl, &request, &response, NULL);
-    // if (!cntl.Failed()) {
-    //     LOG(INFO) << "Received response from " << cntl.remote_side()
-    //         << " to " << cntl.local_side()
-    //         << ": " << response.response_code() << " (attached="
-    //         << cntl.response_attachment() << ")"
-    //         << " latency=" << cntl.latency_us() << "us";
-    //     return response.create_job_response().job_id();
-    // } else {
-    //     LOG(WARNING) << cntl.ErrorText();
-    //     return -1;
-    // }
-    return;
+    stub.handleRequest(&cntl, &request, &response, NULL);
+    if (!cntl.Failed()) {
+        int job_id = response.create_job_response().job_id();
+        DEBUG_LOG(ERROR) << "JobId is : " << job_id;
+        return;
+    } else {
+        DEBUG_LOG(ERROR) << cntl.ErrorText();
+        throw;
+    }
 }
 
 void DBManagementClient::UpdateJob() {
