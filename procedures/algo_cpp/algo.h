@@ -132,6 +132,16 @@ size_t LocateCycleCore(OlapBase<Empty>& graph, size_t k);
 double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag);
 
 /**
+ * @brief    Compute the Maximal Independent Set Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in, out]   mis            The ParallelVector to store MIS value.
+ * @param[in, out]   mis_size       The size of MIS.
+ *
+ */
+void MISCore(OlapBase<Empty>& graph, ParallelVector<bool>& mis, size_t& mis_size);
+
+/**
  * @brief    Compute the degree correlation.
  *
  * @param[in]    graph    The graph to compute on.
@@ -282,6 +292,20 @@ size_t TriangleCore(OlapBase<Empty>& graph, ParallelVector<size_t>& num_triangle
 void SCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
 
 /**
+ * @brief    Compute the Speaker-listener Label Propagation Algorithm.
+ *
+ * @param[in]    graph          The graph to compute on.
+ * @param[in]    label_map      The ParallelVector to store label information.
+ * @param[in]    num_iterations The iterations of slpa algorithm.
+ * @param[in]    threshold      The minimum number of times the node's label that meets the
+ *                              requirements appears.
+ * @return   return the Modularity of graph.
+ */
+double SLPACore(OlapBase<Empty>& graph,
+                ParallelVector<std::vector<std::pair<size_t, size_t>>>& label_map,
+                int num_iterations, size_t threshold);
+
+/**
  * @brief    Compute the Single Pair Shortest Path algorithm.
  *
  * @param[in]    graph           The graph to compute on.
@@ -290,6 +314,28 @@ void SCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
  * @return    return the shortest path distance of search pair.
  */
 size_t SPSPCore(OlapBase<Empty>& graph, std::pair<size_t, size_t> search_pair);
+
+/**
+ * @brief    Compute the Trustrank algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        iterations     The iterations of Trustrank algorithm.
+ * @param[in,out]    curr           The ParallelVector to store trustrank.
+ * @param[in]        trust_list     Trust user input vertices.
+ *
+ */
+void TrustrankCore(OlapBase<Empty>& graph, size_t iterations, ParallelVector<double>& curr,
+                   std::vector<size_t> trust_list);
+
+/**
+ * @brief    Compute the Weighted Label Propagation Algorithm.
+ *
+ * @param[in]    graph          The graph to compute on.
+ * @param[in]    num_iterations The iterations of wlpa algorithm.
+ *
+ * @return   return the Modularity of graph.
+ */
+double WLPACore(OlapBase<double>& graph, int num_iterations);
 
 /**
  * @brief    Compute the Weighted Pagerank Algorithm.

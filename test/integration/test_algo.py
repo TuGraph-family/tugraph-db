@@ -410,6 +410,25 @@ class TestExec:
     def test_exec_lpa_python_standalone(self, algo):
         pass
 
+    MISEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/mis_embed ./testdb",
+        "result": ['''"MIS_size":499''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [MISEMBEDOPT], indirect=True)
+    def test_exec_mis_embed(self, importor, algo):
+        pass
+
+    MISSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/mis_standalone --type text --input_dir ./data/algo/fb_unweighted --make_symmetric 1",
+        "result": ["|mis|=499"]
+    }
+
+    @pytest.mark.parametrize("algo", [MISSTANDOPT], indirect=True)
+    def test_exec_mis_standalone(self, algo):
+        pass
+
     MOTIFEMBEDOPT = {
         "cmd": "OMP_NUM_THREADS=6 algo/motif_embed ./testdb",
         "result": ['''[6,57512]''']
@@ -538,6 +557,25 @@ class TestExec:
     def test_exec_scc_standalone(self, algo):
         pass
 
+    SLPAEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/slpa_embed ./testdb",
+        "result": ['''"modularity":0.8''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SLPAEMBEDOPT], indirect=True)
+    def test_exec_slpa_embed(self, importor, algo):
+        pass
+
+    SLPASTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/slpa_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["modularity: 0.8"]
+    }
+
+    @pytest.mark.parametrize("algo", [SLPASTANDOPT], indirect=True)
+    def test_exec_slpa_standalone(self, algo):
+        pass
+
     SPSPEMBEDOPT = {
         "cmd": "OMP_NUM_THREADS=6 algo/spsp_embed ./testdb",
         "result": ['''"length_list":[[0,1,1],[1,972,10]]''']
@@ -633,6 +671,25 @@ class TestExec:
     def test_exec_triangle_standalone(self, algo):
         pass
 
+    TRUSTRANKEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/trustrank_embed ./testdb",
+        "result": ['''"max_trustrank_id":3,"max_trustrank_val":0.05''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [TRUSTRANKEMBEDOPT], indirect=True)
+    def test_exec_trustrank_embed(self, importor, algo):
+        pass
+
+    TRUSTRANKSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/trustrank_standalone --type text --input_dir ./data/algo/fb_weighted --trustedUser_dir ./data/algo/roots_dir/",
+        "result": ["max rank value is [3] = 0.050122"]
+    }
+
+    @pytest.mark.parametrize("algo", [TRUSTRANKSTANDOPT], indirect=True)
+    def test_exec_trustrank_standalone(self, algo):
+        pass
+
     WCCEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/wcc_embed ./testdb",
         "result" : ['''"max_component":4039,"num_components":1''']
@@ -666,6 +723,25 @@ class TestExec:
     }
     @pytest.mark.parametrize("algo", [WCCPYTHONSTANDOPT], indirect=True)
     def test_exec_wcc_python_standalone(self, algo):
+        pass
+
+    WLPAEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/wlpa_embed ./testdb",
+        "result": ['''"modularity":0.8''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [WLPAEMBEDOPT], indirect=True)
+    def test_exec_wlpa_embed(self, importor, algo):
+        pass
+
+    WLPASTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/wlpa_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["modularity: 0.8"]
+    }
+
+    @pytest.mark.parametrize("algo", [WLPASTANDOPT], indirect=True)
+    def test_exec_wlpa_standalone(self, algo):
         pass
 
     WPAGERANKEMBEDOPT = {
