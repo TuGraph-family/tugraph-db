@@ -36,10 +36,10 @@ class DBManagementClient {
    com::antgroup::tugraph::HeartbeatService_Stub& GetHeartbeatStub();
    com::antgroup::tugraph::JobManagementService_Stub& GetJobStub();
    static void DetectHeartbeat();
-   void CreateJob(std::int64_t start_time, std::string period, std::string name, std::string type, std::string user, std::int64_t create_time);
-   void UpdateJob();
-   void ReadJob();
-   void ReadJobResult();
-   void DeleteJob();
+   int CreateJob(std::string host, std::string port, std::int64_t start_time, std::string period, std::string name, std::string type, std::string user, std::int64_t create_time);
+   void UpdateJob(std::string host, std::string port, int job_id, std::string status, std::int64_t runtime, std::string result);
+   std::vector<com::antgroup::tugraph::Job> ReadJob(std::string host, std::string port);
+   com::antgroup::tugraph::JobResult ReadJobResult(std::string host, std::string port, int job_id);
+   void DeleteJob(std::string host, std::string port, int job_id);
 };
 }  // namespace lgraph
