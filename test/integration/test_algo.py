@@ -332,6 +332,23 @@ class TestExec:
     def test_exec_lcc_python_standalone(self, algo):
         pass
 
+    LEIDENEMBEDOPT = {
+        "cmd" : "algo/leiden_embed ./testdb",
+        "result" : ['''final Q is 0.9''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LEIDENEMBEDOPT], indirect=True)
+    def test_exec_leiden_embed(self, importor, algo):
+        pass
+
+    LEIDENSTANDOPT = {
+        "cmd" : "algo/leiden_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result" : ["final Q is 0.9"]
+    }
+    @pytest.mark.parametrize("algo", [LEIDENSTANDOPT], indirect=True)
+    def test_exec_leiden_standalone(self, algo):
+        pass
+
     LCIMPORTOPT = {
         "cmd": "OMP_NUM_THREADS=6 ./lgraph_import -c ./data/algo/lc.conf -d ./locate_cycle_db --overwrite 1",
         "cleanup_dir": ["./locate_cycle_db", "./.import_tmp"]
@@ -650,6 +667,44 @@ class TestExec:
     }
     @pytest.mark.parametrize("algo", [SSSPPYTHONSTANDOPT], indirect=True)
     def test_exec_sssp_python_standalone(self, algo):
+        pass
+
+    SUBFRAPHISOMORPHISMEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/subgraph_isomorphism_embed ./testdb",
+        "result": ['''"match_subgraph_num":1612010''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SUBFRAPHISOMORPHISMEMBEDOPT], indirect=True)
+    def test_exec_subgraph_isomorphism_embed(self, importor, algo):
+        pass
+
+    SUBFRAPHISOMORPHISMSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/subgraph_isomorphism_standalone --type text --input_dir ./data/algo/fb_unweighted --query [[1,2],[2],[]]",
+        "result": ["match 1612010 subgraph"]
+    }
+
+    @pytest.mark.parametrize("algo", [SUBFRAPHISOMORPHISMSTANDOPT], indirect=True)
+    def test_exec_subgraph_isomorphism_standalone(self, algo):
+        pass
+
+    SYBILRANKEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/sybilrank_embed ./testdb",
+        "result": ['''"max_sybilrank":0.0008''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SYBILRANKEMBEDOPT], indirect=True)
+    def test_exec_sybilrank_embed(self, importor, algo):
+        pass
+
+    SYBILRANKSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/sybilrank_standalone --type text --input_dir ./data/algo/fb_unweighted --trust_seeds 0",
+        "result": ["max rank value is sybilrank[332] = 0.000849"]
+    }
+
+    @pytest.mark.parametrize("algo", [SYBILRANKSTANDOPT], indirect=True)
+    def test_exec_sybilrank_standalone(self, algo):
         pass
 
     TRIANGLEEMBEDOPT = {

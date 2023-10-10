@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <unordered_set>
 #include "lgraph/olap_base.h"
 
 using namespace lgraph_api;
@@ -109,6 +110,21 @@ void WCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
  * \return    return the clustering coefficient of graph.
  */
 double LCCCore(OlapBase<Empty>& graph, ParallelVector<double>& score);
+
+/**
+ * @brief    Compute the leiden algorithm.
+ *
+ * @param[in]       graph           The graph to compute on.
+ * @param[in,out]   label           The community of vertex.
+ * @param[in]       random_seed     The number of random seed for leiden algorithm.
+ * @param[in]       theta           Determine the degree of randomness in the selection
+ *                                  of a community and within a range of roughly [0.0005, 0.1]
+ * @param[in]       gamma           The resolution parameter.
+ *                                  Higher resolutions lead to more communities
+ * @param[in]       threshold       Terminate when active_vertices < num_vertices / threshold
+ */
+void LeidenCore(OlapBase<double>& graph, ParallelVector<size_t>& label, unsigned random_seed,
+                double theta, double gamma, size_t threshold);
 
 /**
  * @brief    Compute the number of rings of length k.
@@ -272,6 +288,30 @@ void MotifCore(OlapBase<Empty>& graph, ParallelVector<size_t>& motif_vertices, i
  * @param[in,out]   distance       The ParallelVector to store shostest distance.
  */
 void MSSPCore(OlapBase<double>& graph, std::vector<size_t> roots, ParallelVector<double>& distance);
+
+/**
+ * @brief    Compute the Subgraph Isomorphism Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        query          The outgoing adjacency list of subgraph.
+ * @param[in, out]   counts         The ParallelVector to store number of subgraph.
+ *
+ * @return   return total number of subgraph.
+ */
+size_t SubgraphIsomorphismCore(OlapBase<Empty>& graph,
+                               std::vector<std::unordered_set<size_t>>& query,
+                               ParallelVector<size_t>& counts);
+
+/**
+ * @brief    Compute the Sybil Rank Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        trust_seeds    The ParallelVector for trusted nodes.
+ * @param[in, out]   curr           The ParallelVector to store sybil rank value.
+ *
+ */
+void SybilRankCore(OlapBase<Empty>& graph, ParallelVector<size_t>& trust_seeds,
+                   ParallelVector<double>& curr);
 
 /**
  * @brief    Compute the Triangle Counting algorithm.
