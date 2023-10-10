@@ -21,56 +21,49 @@ using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
-    double start_time;
+    auto start_time = get_time();
 
     // prepare
     start_time = get_time();
-    size_t value_k = 10;
-    std::string output_file = "";
+    size_t value_k = 3;
+    std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
         parse_from_json(value_k, "value_k", input);
-        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();
-    auto vertex_convert = [&](VertexIterator& vit) -> bool {
-        // size_t vid = vit.GetId();
-        return true;
-    };
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED, vertex_convert);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
+    printf("|V| = %lu\n", olapondb.NumVertices());
+    printf("|E| = %lu\n", olapondb.NumEdges());
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    auto result = olapondb.AllocVertexArray<bool>();
-    size_t num_result_vertices = KCoreCore(olapondb, result, value_k);
+    std::vector<std::vector<size_t>> sub_neighbours;
+    sub_neighbours.resize(olapondb.NumVertices());
+    size_t left_edges = KTrussCore(olapondb, value_k, sub_neighbours);
     auto core_cost = get_time() - start_time;
 
     // output
     start_time = get_time();
-    if (output_file != "") {
-        FILE* fout = fopen(output_file.c_str(), "w");
-#pragma omp parallel for
-        for (size_t i = 0; i < olapondb.NumVertices(); i++) {
-            if (result[i]) {
-                fprintf(fout, "%ld, %d\n", i, result[i]);
-            }
-        }
-        fclose(fout);
-    }
-    double output_cost = get_time() - start_time;
+    printf("subgraph has %ld edges\n", left_edges);
+    auto output_cost = get_time() - start_time;
 
-    json output;
-    output["num_result_vertices"] = num_result_vertices;
-    output["num_vertices"] = olapondb.NumVertices();
-    output["num_edges"] = olapondb.NumEdges();
-    output["prepare_cost"] = prepare_cost;
-    output["core_cost"] = core_cost;
-    output["total_cost"] = prepare_cost + core_cost + output_cost;
-    response = output.dump();
+    // return
+    {
+        json output;
+        output["left_edges"] = left_edges;
+        output["num_vertices"] = olapondb.NumVertices();
+        output["num_edges"] = olapondb.NumEdges();
+        output["prepare_cost"] = prepare_cost;
+        output["core_cost"] = core_cost;
+        output["output_cost"] = output_cost;
+        output["total_cost"] = prepare_cost + core_cost + output_cost;
+        response = output.dump();
+    }
     return true;
 }

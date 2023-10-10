@@ -25,52 +25,44 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-    size_t value_k = 10;
-    std::string output_file = "";
+    std::string name = "ppr";
+    size_t iterations = 20;
+    size_t root = 0;
+
     try {
         json input = json::parse(request);
-        parse_from_json(value_k, "value_k", input);
-        parse_from_json(output_file, "output_file", input);
+        parse_from_json(iterations, "iterations", input);
+        parse_from_json(root, "root", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();
-    auto vertex_convert = [&](VertexIterator& vit) -> bool {
-        // size_t vid = vit.GetId();
-        return true;
-    };
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED, vertex_convert);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    auto result = olapondb.AllocVertexArray<bool>();
-    size_t num_result_vertices = KCoreCore(olapondb, result, value_k);
+    auto curr = olapondb.AllocVertexArray<double>();
+    PPRCore(olapondb, curr, root, iterations);
     auto core_cost = get_time() - start_time;
 
     // output
     start_time = get_time();
-    if (output_file != "") {
-        FILE* fout = fopen(output_file.c_str(), "w");
-#pragma omp parallel for
-        for (size_t i = 0; i < olapondb.NumVertices(); i++) {
-            if (result[i]) {
-                fprintf(fout, "%ld, %d\n", i, result[i]);
-            }
-        }
-        fclose(fout);
-    }
-    double output_cost = get_time() - start_time;
+    // TODO(any): write distance back to graph
+    auto output_cost = get_time() - start_time;
 
-    json output;
-    output["num_result_vertices"] = num_result_vertices;
-    output["num_vertices"] = olapondb.NumVertices();
-    output["num_edges"] = olapondb.NumEdges();
-    output["prepare_cost"] = prepare_cost;
-    output["core_cost"] = core_cost;
-    output["total_cost"] = prepare_cost + core_cost + output_cost;
-    response = output.dump();
+    // return
+    {
+        json output;
+        output["num_vertices"] = olapondb.NumVertices();
+        output["num_edges"] = olapondb.NumEdges();
+        output["prepare_cost"] = prepare_cost;
+        output["core_cost"] = core_cost;
+        output["output_cost"] = output_cost;
+        output["total_cost"] = prepare_cost + core_cost + output_cost;
+        response = output.dump();
+    }
     return true;
 }
