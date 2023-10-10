@@ -22,7 +22,8 @@
 #include "gtest/gtest.h"
 
 #include <boost/algorithm/string.hpp>
-#include "import/import_v2.h"
+#include "import/import_v3.h"
+#include "import/import_utils.h"
 #include "lgraph/lgraph.h"
 #include "db/galaxy.h"
 
@@ -30,10 +31,10 @@
 #include "./test_tools.h"
 using namespace fma_common;
 using namespace lgraph;
-using namespace import_v2;
+using namespace import_v3;
 using namespace lgraph_api;
 
-class TestImportV2 : public TuGraphTest {};
+class TestImportV3 : public TuGraphTest {};
 
 static void check_import_db(std::string database, size_t num_vertex, size_t num_edge,
                      const IndexSpec* is) {
@@ -77,6 +78,12 @@ static void CreateCsvFiles(const T& data) {
     }
 }
 
+static std::string Times(const std::string& s, unsigned int n) {
+    std::stringstream out;
+    while (n--) out << s;
+    return out.str();
+}
+
 // data must be a container of pair<std::string, std::string>, either map<string, string> or
 // vector<pair<string, string>>...
 template <typename T>
@@ -108,13 +115,7 @@ static void TestImportOnData(const std::vector<std::pair<std::string, std::strin
     }
 }
 
-static std::string Times(const std::string& s, unsigned int n) {
-    std::stringstream out;
-    while (n--) out << s;
-    return out.str();
-}
-
-class TestImportV2Consistent : public TuGraphTest {
+class TestImportV3Consistent : public TuGraphTest {
  public:
     std::shared_ptr<lgraph_api::Galaxy> GetImportDb(
         const std::vector<std::pair<std::string, std::string>>& data,
@@ -191,7 +192,7 @@ class TestImportV2Consistent : public TuGraphTest {
     }
 };
 
-struct V2DataSource {
+struct V3DataSource {
     std::string import_string_ids = R"(
 {
     "schema": [
@@ -392,7 +393,7 @@ struct V2DataSource {
     ]
 }
                     )";
-} v2_data;
+} v3_data;
 static const std::vector<std::pair<std::string, std::string>> data_import = {
     {"yago_copycat.conf",
      R"(
@@ -699,7 +700,7 @@ static const std::vector<std::pair<std::string, std::string>> data_mock_snb = {
 100002,300002,20200214
 )"}};
 
-TEST_F(TestImportV2, ImportV2) {
+TEST_F(TestImportV3, ImportV3) {
     // testing import with large string id
     {
         UT_LOG() << "Parsing large string ids";
@@ -710,7 +711,7 @@ TEST_F(TestImportV2, ImportV2) {
         Importer::Config config;
         config.delete_if_exists = true;
         CreateCsvFiles(std::map<std::string, std::string>(
-            {{"import.conf", v2_data.import_string_ids},
+            {{"import.conf", v3_data.import_string_ids},
              {"node.csv",
               UT_FMT("\"{}\"\n", std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1'))}}));
         SubProcess p(UT_FMT("./lgraph_import -c import.conf --continue_on_error 0 -d {}", dbdir));
@@ -768,7 +769,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", v2_data.import_conf_index}},
+                {"import.conf", v3_data.import_conf_index}},
             config);
 
         UT_EXPECT_ANY_THROW(
@@ -794,7 +795,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         UT_EXPECT_ANY_THROW(TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", v2_data.null_id_string},
+                {"import.conf", v3_data.null_id_string},
                 {"node.csv",
                  "id001,name001\n"
                  ",name002\n"}},
@@ -806,7 +807,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", v2_data.empty_string_field_ids},
+                {"import.conf", v3_data.empty_string_field_ids},
                 {"node.csv",
                  "\"id001\",\"name001\"\n"
                  "\"id002\",\"\"\n"}},
@@ -818,7 +819,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         UT_EXPECT_ANY_THROW(TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", v2_data.null_string_field},
+                {"import.conf", v3_data.null_string_field},
                 {"node.csv",
                  "\"id001\",\"name001\"\n"
                  "\"id002\",\n"}},
@@ -831,7 +832,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         config.continue_on_error = true;
         TestImportOnData(std::vector<std::pair<std::string, std::string>>{{"import.conf",
-                                                                           v2_data.missing_uid},
+                                                                           v3_data.missing_uid},
                                                                           {"node.csv",
                                                                            "\"id001\",\"name001\"\n"
                                                                            "\"id002\",\"name002\"\n"
@@ -848,7 +849,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.continue_on_error = true;
         TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", v2_data.missing_uid_skip},
+                {"import.conf", v3_data.missing_uid_skip},
                 {"node.csv",
                  "1,\"name001\",2,\"name002\"\n"
                  "1,\"name001\",1,\"name001\"\n"},
@@ -1544,7 +1545,7 @@ TEST_F(TestImportV2, ImportV2) {
     }
 }
 
-TEST_F(TestImportV2, ImportJson) {
+TEST_F(TestImportV3, ImportJson) {
     {
         UT_LOG() << "Test import json, with extra space at the end";
         Importer::Config config;
@@ -1987,12 +1988,12 @@ TEST_F(TestImportV2, ImportJson) {
                                                                           {"node.jsonl",
                                                                            R"(
     ["1","name1"]
-            
+
 ["2","name2"]
 
    ["3","name3"]
 ["4","name4"]
-               
+
                     )"}},
                          config, 4);
     }
@@ -2352,7 +2353,7 @@ R"([-1.79769e+300]
     }
 }
 
-TEST_F(TestImportV2, dirtyData) {
+TEST_F(TestImportV3, dirtyData) {
     {
         UT_LOG() << "Test dirty data";
         std::vector<std::pair<std::string, std::string>> data = {
@@ -2425,10 +2426,12 @@ TEST_F(TestImportV2, dirtyData) {
         config.delete_if_exists = true;
         config.continue_on_error = true;
         TestImportOnData(data, config, 11, 12);
+        config.keep_vid_in_memory = false;
+        TestImportOnData(data, config, 11, 12);
     }
 }
 
-TEST_F(TestImportV2, emptySST) {
+TEST_F(TestImportV3, emptySST) {
     {
         UT_LOG() << "Test empty sst";
         std::vector<std::pair<std::string, std::string>> data = {
@@ -2541,10 +2544,83 @@ TEST_F(TestImportV2, emptySST) {
         config.delete_if_exists = true;
         config.continue_on_error = true;
         TestImportOnData(data, config, 11, 12);
+        config.keep_vid_in_memory = false;
+        TestImportOnData(data, config, 11, 12);
     }
 }
 
-TEST_F(TestImportV2Consistent, DataConsistent) {
+template<class T>
+void encode_decode_test(T a, T b) {
+    std::string encoded_a, encoded_b;
+    encodeNumToStr<T>(a, encoded_a);
+    encodeNumToStr<T>(b, encoded_b);
+    if (a > b) {
+        EXPECT_GT(encoded_a, encoded_b);
+    } else if (a == b) {
+        EXPECT_EQ(encoded_a, encoded_b);
+    } else {
+        EXPECT_LT(encoded_a, encoded_b);
+    }
+    EXPECT_EQ(decodeStrToNum<T>(encoded_a.data()), a);
+    EXPECT_EQ(decodeStrToNum<T>(encoded_b.data()), b);
+}
+
+TEST_F(TestImportV3, numEncodeDecode) {
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(-100, 100);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int8_t>((int8_t)dist(mt), (int8_t)dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int16_t> dist((int16_t)-30000, (int16_t)30000);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int16_t>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int32_t> dist((int32_t)-2147483640, (int32_t)2147483640);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int32_t>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int64_t> dist(
+            (int64_t)-9223372036854775, (int64_t)9223372036854775);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<int64_t>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<float> dist((float)-3.40282e+30, (float)3.40282e+30);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<float>(dist(mt), dist(mt));
+        }
+    }
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<double> dist((double)-1.79769e+200, (double)1.79769e+200);
+        for (uint64_t i = 0; i < 100000l; ++i) {
+            encode_decode_test<double>(dist(mt), dist(mt));
+        }
+        // just for pass compile
+        std::string str("test");
+        AppendFieldData(str, FieldData(""));
+    }
+}
+
+TEST_F(TestImportV3Consistent, DataConsistent) {
     Importer::Config config;
     config.delete_if_exists = true;
     config.continue_on_error = true;
@@ -2774,7 +2850,7 @@ TEST_F(TestImportV2Consistent, DataConsistent) {
 					"name": "phone_g",
 					"type": "STRING",
 					"index": true,
-                    "global": false,
+                    "global": true,
 					"unique": false
 				},
                 {
