@@ -99,7 +99,7 @@ int DBManagementClient::CreateJob(std::string host, std::string port, std::int64
         return job_id;
     } else {
         DEBUG_LOG(ERROR) << "[CREATE JOB REQUEST]: " << cntl.ErrorText();
-        throw;
+        throw std::runtime_error("failed to connect to db management.");
     }
 }
 
@@ -123,7 +123,7 @@ void DBManagementClient::UpdateJob(std::string host, std::string port, int job_i
         DEBUG_LOG(INFO) << "[UPDATE JOB REQUEST]: " << "success";
     } else {
         DEBUG_LOG(ERROR) << "[UPDATE JOB REQUEST]: " << cntl.ErrorText();
-        throw;
+        throw std::runtime_error("failed to connect to db management.");
     }
 }
 
@@ -148,7 +148,7 @@ std::vector<com::antgroup::tugraph::Job> DBManagementClient::ReadJob(std::string
         return job_list;
     } else {
         DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
-        throw;
+        throw std::runtime_error("failed to connect to db management.");
     }
 }
 
@@ -170,7 +170,7 @@ com::antgroup::tugraph::JobResult DBManagementClient::ReadJobResult(std::string 
         return response.read_job_result_response().job_result();
     } else {
         DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
-        throw;
+        throw std::runtime_error("failed to connect to db management.");
     }
 }
 
@@ -192,7 +192,7 @@ void DBManagementClient::DeleteJob(std::string host, std::string port, int job_i
         return;
     } else {
         DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
-        throw;
+        throw std::runtime_error("failed to connect to db management.");
     }
 }
 }  // namespace lgraph

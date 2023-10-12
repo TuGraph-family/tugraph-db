@@ -33,6 +33,7 @@ add_executable(unit_test
         test_cypher.cpp
         test_cypher_plan.cpp
         test_data_type.cpp
+        test_db_management_client.cpp
         test_dense_string.cpp
         test_edge_index.cpp
         test_embed.cpp
