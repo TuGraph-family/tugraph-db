@@ -26,7 +26,7 @@ include(cmake/GenerateProtobuf.cmake)
 GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
         PROTO_SRCS PROTO_HEADERS
         ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto
-        ${CMAKE_CURRENT_LIST_DIR}/protobuf/tugraph_management.proto)
+        ${CMAKE_CURRENT_LIST_DIR}/protobuf/tugraph_db_management.proto)
 
 include_directories(${DEPS_INCLUDE_DIR})
 

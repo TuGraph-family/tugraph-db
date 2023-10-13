@@ -16,7 +16,7 @@
 
 #include "tools/lgraph_log.h"
 #include "fma-common/utils.h"
-#include "protobuf/tugraph_management.pb.h"
+#include "protobuf/tugraph_db_management.pb.h"
 #include "gflags/gflags.h"
 #include "brpc/channel.h"
 
