@@ -63,8 +63,6 @@ void DBManagementClient::DetectHeartbeat() {
         stub.detectHeartbeat(&cntl, &request, &response, NULL);
         if (!cntl.Failed()) {
             DBManagementClient::GetInstance().SetHeartbeat(true);
-            DEBUG_LOG(INFO) << response.response_msg() << " "
-                << " latency=" << cntl.latency_us() << "us";
         } else {
             DBManagementClient::GetInstance().SetHeartbeat(false);
             DEBUG_LOG(ERROR) << cntl.ErrorText();
