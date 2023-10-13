@@ -98,7 +98,8 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     cmd = "cd " + db_management_folder + " && " + "bash ut_start.sh";
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    fma_common::SleepS(120);
+    // sleep to wait db management start
+    fma_common::SleepS(300);
 
     // test crud
     try {

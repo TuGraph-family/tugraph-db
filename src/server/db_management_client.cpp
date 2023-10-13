@@ -56,7 +56,6 @@ void DBManagementClient::DetectHeartbeat() {
     com::antgroup::tugraph::HeartbeatService_Stub& stub =
         DBManagementClient::GetInstance().GetHeartbeatStub();
     while (true) {
-        DEBUG_LOG(ERROR) << "testing db management heart detection.";
         com::antgroup::tugraph::HeartbeatRequest request;
         com::antgroup::tugraph::HeartbeatResponse response;
         brpc::Controller cntl;
@@ -64,7 +63,7 @@ void DBManagementClient::DetectHeartbeat() {
         stub.detectHeartbeat(&cntl, &request, &response, NULL);
         if (!cntl.Failed()) {
             DBManagementClient::GetInstance().SetHeartbeat(true);
-            DEBUG_LOG(ERROR) << response.response_msg() << " "
+            DEBUG_LOG(INFO) << response.response_msg() << " "
                 << " latency=" << cntl.latency_us() << "us";
         } else {
             DBManagementClient::GetInstance().SetHeartbeat(false);
