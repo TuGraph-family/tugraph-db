@@ -29,22 +29,8 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
 
     // set up cmd
     std::string db_management_folder = "../../deps/tugraph-db-management/";
-    std::string sqlite_db_file = "tugraph_db_management.db";
-    std::string temp_folder = db_management_folder + "/ut_temp";
-
-    // set up sqlite db file
     std::string cmd;
     int rt;
-    // cmd = "touch ../../deps/tugraph-db-management/tugraph_db_management_ut_temp.db";
-    cmd = "mkdir " + temp_folder;
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = "mv " + db_management_folder + sqlite_db_file + " " + temp_folder + sqlite_db_file;
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = "touch " + db_management_folder + sqlite_db_file;
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
 
     // set up test veriables
     std::string exception_msg = "failed to connect to db management.";
@@ -151,14 +137,4 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     cmd = "cd " + db_management_folder + " && " + "bash ut_stop.sh ";
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-
-    // reset sqlite db file
-    cmd = "rm " + db_management_folder + sqlite_db_file;
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = "mv " + temp_folder + sqlite_db_file + " " + db_management_folder + sqlite_db_file;
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = "rm -rf " + temp_folder;
-    rt = system(cmd.c_str());
 }
