@@ -99,7 +99,7 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     // sleep to wait db management start
-    fma_common::SleepS(300);
+    fma_common::SleepS(600);
 
     // test crud
     try {
