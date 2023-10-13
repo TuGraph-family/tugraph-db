@@ -24,7 +24,7 @@ DBManagementClient::DBManagementClient()
     brpc::ChannelOptions options;
     options.protocol = "baidu_std";
     options.connection_type = "";
-    options.timeout_ms = 100/*milliseconds*/;
+    options.timeout_ms = 1000/*milliseconds*/;
     options.max_retry = 3;
     if (this->channel_.Init("localhost:6091", "", &options) != 0) {
         DEBUG_LOG(ERROR) << "Fail to initialize channel";

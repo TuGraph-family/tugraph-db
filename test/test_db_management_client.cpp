@@ -27,17 +27,22 @@ class TestDBManagementClient : public TuGraphTest {};
 TEST_F(TestDBManagementClient, DBManagementClient) {
     using namespace lgraph;
 
+    // set up cmd
+    std::string db_management_folder = "../../deps/tugraph-db-management/";
+    std::string sqlite_db_file = "tugraph_db_management.db";
+    std::string temp_folder = db_management_folder + "/ut_temp";
+
     // set up sqlite db file
     std::string cmd;
     int rt;
     // cmd = "touch ../../deps/tugraph-db-management/tugraph_db_management_ut_temp.db";
-    cmd = "mkdir ../../deps/tugraph-db-management/ut_temp";
+    cmd = "mkdir " + temp_folder;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    cmd = "mv ../../deps/tugraph-db-management/tugraph_db_management.db ../../deps/tugraph-db-management/ut_temp/tugraph_db_management.db";
+    cmd = "mv " + db_management_folder + sqlite_db_file + " " + temp_folder + sqlite_db_file;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    cmd = "touch ../../deps/tugraph-db-management/tugraph_db_management.db";
+    cmd = "touch " + db_management_folder + sqlite_db_file;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 
@@ -89,16 +94,65 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     }
 
     // start db management
+    cmd = "cd " + db_management_folder + " && " + "bash ut_start.sh";
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+    fma_common::SleepS(120);
 
     // test crud
+    try {
+        job_id = DBManagementClient::GetInstance().CreateJob(host, port, start_time, period, name, type, user, create_time);
+        UT_EXPECT_EQ(1, job_id);
+    } catch(std::exception& e) {
+        DEBUG_LOG(ERROR) << e.what();
+        UT_EXPECT_EQ(1, 0);
+    }
+    try {
+        DBManagementClient::GetInstance().UpdateJob(host, port, job_id, status, runtime, result);
+    } catch(std::exception& e) {
+        DEBUG_LOG(ERROR) << e.what();
+        UT_EXPECT_EQ(1, 0);
+    }
+    try {
+        std::vector<com::antgroup::tugraph::Job> jobs = DBManagementClient::GetInstance().ReadJob(host, port);
+        UT_EXPECT_EQ(1, jobs.size());
+    } catch(std::exception& e) {
+        DEBUG_LOG(ERROR) << e.what();
+        UT_EXPECT_EQ(1, 0);
+    }
+    try {
+        com::antgroup::tugraph::JobResult job_result = DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
+        UT_EXPECT_EQ(result, job_result.result());
+    } catch(std::exception& e) {
+        DEBUG_LOG(ERROR) << e.what();
+        UT_EXPECT_EQ(1, 0);
+    }
+    try {
+        DBManagementClient::GetInstance().DeleteJob(host, port, job_id);
+    } catch(std::exception& e) {
+        DEBUG_LOG(ERROR) << e.what();
+        UT_EXPECT_EQ(1, 0);
+    }
+    try {
+        std::vector<com::antgroup::tugraph::Job> jobs = DBManagementClient::GetInstance().ReadJob(host, port);
+        UT_EXPECT_EQ(0, jobs.size());
+    } catch(std::exception& e) {
+        DEBUG_LOG(ERROR) << e.what();
+        UT_EXPECT_EQ(1, 0);
+    }
+
+    // stop db management
+    cmd = "cd " + db_management_folder + " && " + "bash ut_stop.sh ";
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
 
     // reset sqlite db file
-    cmd = "rm ../../deps/tugraph-db-management/tugraph_db_management.db";
+    cmd = "rm " + db_management_folder + sqlite_db_file;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    cmd = "mv ../../deps/tugraph-db-management/ut_temp/tugraph_db_management.db ../../deps/tugraph-db-management/tugraph_db_management.db";
+    cmd = "mv " + temp_folder + sqlite_db_file + " " + db_management_folder + sqlite_db_file;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    cmd = "rm -rf ../../deps/tugraph-db-management/ut_temp";
+    cmd = "rm -rf " + temp_folder;
     rt = system(cmd.c_str());
 }
