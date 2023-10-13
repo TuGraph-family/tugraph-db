@@ -23,34 +23,37 @@
 namespace lgraph {
 class DBManagementClient {
  private:
-   bool heartbeat_ = false;
-   static const int detect_freq_ = 5;
-   brpc::Channel channel_;
-   com::antgroup::tugraph::JobManagementService_Stub job_stub_;
-   com::antgroup::tugraph::HeartbeatService_Stub heartbeat_stub_;
+  bool heartbeat_ = false;
+  static const int detect_freq_ = 5;
+  brpc::Channel channel_;
+  com::antgroup::tugraph::JobManagementService_Stub job_stub_;
+  com::antgroup::tugraph::HeartbeatService_Stub heartbeat_stub_;
+
  public:
-   DBManagementClient();
+  DBManagementClient();
 
-   static DBManagementClient& GetInstance();
+  static DBManagementClient& GetInstance();
 
-   void SetHeartbeat(bool heartbeat);
+  void SetHeartbeat(bool heartbeat);
 
-   bool GetHeartbeat();
-   
-   com::antgroup::tugraph::HeartbeatService_Stub& GetHeartbeatStub();
+  bool GetHeartbeat();
 
-   com::antgroup::tugraph::JobManagementService_Stub& GetJobStub();
+  com::antgroup::tugraph::HeartbeatService_Stub& GetHeartbeatStub();
 
-   static void DetectHeartbeat();
+  com::antgroup::tugraph::JobManagementService_Stub& GetJobStub();
 
-   int CreateJob(std::string host, std::string port, std::int64_t start_time, std::string period, std::string name, std::string type, std::string user, std::int64_t create_time);
-   
-   void UpdateJob(std::string host, std::string port, int job_id, std::string status, std::int64_t runtime, std::string result);
-   
-   std::vector<com::antgroup::tugraph::Job> ReadJob(std::string host, std::string port);
-   
-   com::antgroup::tugraph::JobResult ReadJobResult(std::string host, std::string port, int job_id);
-   
-   void DeleteJob(std::string host, std::string port, int job_id);
+  static void DetectHeartbeat();
+
+  int CreateJob(std::string host, std::string port, std::int64_t start_time, std::string period,
+                std::string name, std::string type, std::string user, std::int64_t create_time);
+
+  void UpdateJob(std::string host, std::string port, int job_id, std::string status,
+                 std::int64_t runtime, std::string result);
+
+  std::vector<com::antgroup::tugraph::Job> ReadJob(std::string host, std::string port);
+
+  com::antgroup::tugraph::JobResult ReadJobResult(std::string host, std::string port, int job_id);
+
+  void DeleteJob(std::string host, std::string port, int job_id);
 };
 }  // namespace lgraph

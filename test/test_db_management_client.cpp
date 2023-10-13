@@ -63,7 +63,8 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
 
     // test exception handle
     try {
-        DBManagementClient::GetInstance().CreateJob(host, port, start_time, period, name, type, user, create_time);
+        DBManagementClient::GetInstance()
+            .CreateJob(host, port, start_time, period, name, type, user, create_time);
         UT_EXPECT_EQ(1, 0);
     } catch(std::exception& e) {
         UT_EXPECT_EQ(e.what(), exception_msg);
@@ -101,7 +102,8 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
 
     // test crud
     try {
-        job_id = DBManagementClient::GetInstance().CreateJob(host, port, start_time, period, name, type, user, create_time);
+        job_id = DBManagementClient::GetInstance()
+            .CreateJob(host, port, start_time, period, name, type, user, create_time);
         UT_EXPECT_EQ(1, job_id);
     } catch(std::exception& e) {
         DEBUG_LOG(ERROR) << e.what();
@@ -114,14 +116,16 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
         UT_EXPECT_EQ(1, 0);
     }
     try {
-        std::vector<com::antgroup::tugraph::Job> jobs = DBManagementClient::GetInstance().ReadJob(host, port);
+        std::vector<com::antgroup::tugraph::Job> jobs =
+            DBManagementClient::GetInstance().ReadJob(host, port);
         UT_EXPECT_EQ(1, jobs.size());
     } catch(std::exception& e) {
         DEBUG_LOG(ERROR) << e.what();
         UT_EXPECT_EQ(1, 0);
     }
     try {
-        com::antgroup::tugraph::JobResult job_result = DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
+        com::antgroup::tugraph::JobResult job_result =
+            DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
         UT_EXPECT_EQ(result, job_result.result());
     } catch(std::exception& e) {
         DEBUG_LOG(ERROR) << e.what();
@@ -134,7 +138,8 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
         UT_EXPECT_EQ(1, 0);
     }
     try {
-        std::vector<com::antgroup::tugraph::Job> jobs = DBManagementClient::GetInstance().ReadJob(host, port);
+        std::vector<com::antgroup::tugraph::Job> jobs =
+            DBManagementClient::GetInstance().ReadJob(host, port);
         UT_EXPECT_EQ(0, jobs.size());
     } catch(std::exception& e) {
         DEBUG_LOG(ERROR) << e.what();
