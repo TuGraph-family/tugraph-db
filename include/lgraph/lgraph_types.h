@@ -249,6 +249,7 @@ inline const std::string to_string(FieldType v) {
    * @param DOUBLE
    * @param BOOLEAN
    * @param STRING
+   * @param POINT
    * @param MAP <string, FieldData>
    * @param NODE VertexIterator, VertexId
    * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
@@ -265,6 +266,9 @@ enum class LGraphType : uint16_t {
     DOUBLE = 0x13,
     BOOLEAN = 0x14,
     STRING = 0x15,
+    POINT = 0x16,
+    LINESTRING = 0x17,
+    POLYGON = 0x18,
     NODE = 0x21,
     RELATIONSHIP = 0x22,
     PATH = 0x23,
@@ -303,6 +307,8 @@ inline const std::string to_string(LGraphType type) {
         return "BOOLEAN";
     case LGraphType::STRING:
         return "STRING";
+    case LGraphType::POINT:
+        return "POINT";
     case LGraphType::NODE:
         return "NODE";
     case LGraphType::RELATIONSHIP:

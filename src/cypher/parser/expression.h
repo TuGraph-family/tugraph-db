@@ -23,6 +23,7 @@ namespace parser {
 
 struct Expression {
     typedef std::string EXPR_TYPE_STRING;
+    typedef std::string EXPR_TYPE_POINT;
     typedef MAP_MAP_LITERAL EXPR_TYPE_MAP;
     typedef std::vector<Expression> EXPR_TYPE_LIST;
     typedef lgraph::Filter EXPR_TYPE_FILTER;

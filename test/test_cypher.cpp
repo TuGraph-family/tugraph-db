@@ -2377,6 +2377,69 @@ int test_spatial(cypher::RTContext *ctx) {
     return 0;
 }
 
+int test_spatial_procedure(cypher::RTContext *ctx) {
+    static const std::vector<std::string> scripts_ = {
+    "CALL db.createVertexLabel('Location', 'name', 'name', STRING, false, 'geo', POINT, false)",
+    "CREATE (a_:Location {name:'A_', geo: POINT(1.0, 2.0)})"
+    "CREATE (b_:Location {name:'B_', geo: POINT(1.0, 2.0)})",
+    "CALL db.createVertexLabel"
+    "('Location_', 'name', 'name', STRING, false, 'geo', LINESTRING, false)",
+    "CREATE (c_:Location_ "
+    "{name:'C_', geo: LINESTRING('0102000020231C0000030000000000000000000000000"
+    "0000000000000000000000000004000000000000000400000000000000840000000000000F03F')})"
+    };
+    eval_scripts(ctx, scripts_);
+
+    static const std::vector<std::pair<std::string, int>> script_check = {
+    {"CALL spatial.point('0101000020E6100000000000000000F03F0000000000000040')",
+     1},    // 如何保存?
+    {"CALL spatial.point(1.0, 2.0)", 1},
+    {"CALL spatial.point(1.0, 2.0, 7203)", 1},
+    {"CALL spatial.pointWKB('0101000000000000000000F03F0000000000000040', 4326)", 1},
+    {"CALL spatial.pointWKT('POINT(1.0 1.0)')", 1},
+    {"CALL spatial.lineString('0102000020231C000003000000000000000000000000000000000000000"
+     "00000000000004000000000000000400000000000000840000000000000F03F')", 1},
+    {"CALL spatial.lineStringWKB('01020000000300000000000000000000000000000000"
+        "000000000000000000004000000000000000400000000000000840000000000000F03F')", 1},
+    {"CALL spatial.lineStringWKT('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
+    {"CALL spatial.polygon('0103000020E6100000010000000500000000000000000000000000000000"
+     "00000000000000000000000000000000001C400000000000001040000000000000"
+     "00400000000000000040000000000000000000000000000000000000000000000000')", 1},
+    {"CALL spatial.polygonWKB('0103000000010000000500000000000000000000000000000000000000000"
+     "00000000000000000000000001C4000000000000010400000000000000040"
+     "0000000000000040000000000000000000000000000000000000000000000000', 4326)", 1},
+    {"CALL spatial.polygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
+    {"CALL spatial.point(1.0, 2.0) YIELD point with point as p1\n"
+     "RETURN p1", 1},
+    {"CALL spatial.point(1.0, 2.0) YIELD point with point as p1\n"
+     "CALL spatial.point(2.0, 1.0) YIELD point with point, p1\n"
+     "CALL spatial.distance(p1, point) YIELD distance RETURN distance > 0", 1},
+    {"CALL spatial.lineStringWKB('01020000000300000000000000000000000000000000"
+     "000000000000000000004000000000000000400000000000000840000000000000F03F') YIELD\n"
+     "linestring with linestring\n"
+     "CALL spatial.polygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 4326) YIELD polygon with\n"
+     "linestring, polygon\n"
+     "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance", 1},
+    {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'}) with\n"
+     "l1.geo as g1, l2.geo as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
+    {"MATCH (l1:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
+     "l1.geo as g1, l3.geo as g3\n"
+     "CALL spatial.distance(g1, g3) YIELD distance RETURN distance", 1},
+    // {"CALL spatial.distance('0101000020E6100000000000000000F03F0000000000000040',"
+    // "'0101000020E6100000000000000000F03F0000000000000040')", 1},
+    };
+    std::vector<std::string> scripts;
+    std::vector<int> check;
+    for (auto &s : script_check) {
+        scripts.emplace_back(s.first);
+        check.emplace_back(s.second);
+    }
+    eval_scripts_check(ctx, scripts, check);
+
+    return 0;
+}
+
 /* the following query causes stack chaos:
  * "MATCH (n:Person) RETURN properties(n) LIMIT 2"  */
 void debug_stack_chaos(cypher::RTContext *ctx) {
@@ -2429,6 +2492,7 @@ enum TestCase {
     TC_CREATE_YAGO,
     TC_AGGREGATE,
     TC_ALGO,
+    TC_SPATIAL_PROCEDURE,
     TC_TOPN,
     TC_ERROR_REPORT = 201,
     TC_DEBUG_STACK_CHAOS,
@@ -2469,12 +2533,13 @@ TEST_P(TestCypher, Cypher) {
         " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
         "{}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
-        " {}-empty_graph; {}-spatial",
+        " {}-empty_graph;",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
-        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
+        TC_AGGREGATE, TC_ALGO, TC_SPATIAL_PROCEDURE, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
+        TC_FIX_CRASH_ISSUES,
         TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH, TC_SPATIAL);
     test_case = GetParam().tc;
     database = GetParam().d;
@@ -2602,6 +2667,8 @@ TEST_P(TestCypher, Cypher) {
             case TC_ALGO:
                 test_algo(&db);
                 break;
+            case TC_SPATIAL_PROCEDURE:
+                test_spatial_procedure(&db);
             case TC_TOPN:
                 test_topn(&db);
                 break;
@@ -2658,7 +2725,7 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{11, 1}, ParamCypher{12, 1}, ParamCypher{13, 1}, ParamCypher{14, 1},
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
            ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
-           ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
-           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
-           ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},
-           ParamCypher{500, 0}, ParamCypher{501, 1}, ParamCypher(701, 2)));
+           ParamCypher{106, 1}, ParamCypher{107, 2}, ParamCypher{108, 2}, ParamCypher{109, 2},
+           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{113, 1},
+           ParamCypher{301, 2}, ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1},
+           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}, ParamCypher(701, 2)));

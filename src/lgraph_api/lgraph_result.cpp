@@ -86,6 +86,15 @@ void Record::Insert(const std::string &key, const FieldData &value) {
     } else if (header[key] == LGraphType::STRING && value.type == FieldType::STRING) {
         record[key] =
             std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::STRING));
+    } else if (header[key] == LGraphType::POINT && value.type == FieldType::POINT) {
+        record[key] =
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::POINT));
+    } else if (header[key] == LGraphType::LINESTRING && value.type == FieldType::LINESTRING) {
+        record[key] =
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::LINESTRING));
+    } else if (header[key] == LGraphType::POLYGON && value.type == FieldType::POLYGON) {
+        record[key] =
+            std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::POLYGON));
     } else if (header[key] == LGraphType::PATH && value.type == FieldType::STRING) {
         record[key] =
             std::shared_ptr<ResultElement>(new ResultElement(value, LGraphType::PATH));
