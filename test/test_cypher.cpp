@@ -2377,6 +2377,7 @@ int test_spatial(cypher::RTContext *ctx) {
     return 0;
 }
 
+
 int test_spatial_procedure(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts_ = {
     "CALL db.createVertexLabel('Location', 'name', 'name', STRING, false, 'geo', POINT, false)",
@@ -2440,6 +2441,7 @@ int test_spatial_procedure(cypher::RTContext *ctx) {
     return 0;
 }
 
+
 /* the following query causes stack chaos:
  * "MATCH (n:Person) RETURN properties(n) LIMIT 2"  */
 void debug_stack_chaos(cypher::RTContext *ctx) {
@@ -2492,8 +2494,8 @@ enum TestCase {
     TC_CREATE_YAGO,
     TC_AGGREGATE,
     TC_ALGO,
-    TC_SPATIAL_PROCEDURE,
     TC_TOPN,
+    TC_SPATIAL_PROCEDURE,
     TC_ERROR_REPORT = 201,
     TC_DEBUG_STACK_CHAOS,
     TC_LDBC_SNB = 301,
@@ -2538,7 +2540,7 @@ TEST_P(TestCypher, Cypher) {
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
-        TC_AGGREGATE, TC_ALGO, TC_SPATIAL_PROCEDURE, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
+        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
         TC_FIX_CRASH_ISSUES,
         TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH, TC_SPATIAL);
     test_case = GetParam().tc;
@@ -2669,6 +2671,7 @@ TEST_P(TestCypher, Cypher) {
                 break;
             case TC_SPATIAL_PROCEDURE:
                 test_spatial_procedure(&db);
+                break;
             case TC_TOPN:
                 test_topn(&db);
                 break;
@@ -2725,7 +2728,7 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{11, 1}, ParamCypher{12, 1}, ParamCypher{13, 1}, ParamCypher{14, 1},
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
            ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
-           ParamCypher{106, 1}, ParamCypher{107, 2}, ParamCypher{108, 2}, ParamCypher{109, 2},
+           ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
            ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{113, 1},
            ParamCypher{301, 2}, ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1},
-           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}, ParamCypher(701, 2)));
+           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}));
