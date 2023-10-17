@@ -48,9 +48,37 @@ PythonPluginManagerImpl::PythonPluginManagerImpl(LightningGraph* db, const std::
                                               : max_idle_seconds) {
     fma_common::FilePath p(db->GetConfig().dir);
     db_dir_ = p.Dir();
+    auto& scheduler = fma_common::TimedTaskScheduler::GetInstance();
+    _kill_task = scheduler.ScheduleReccurringTask(
+        max_idle_seconds * 1000, [this](fma_common::TimedTask*) {
+            std::lock_guard<std::mutex> l(_mtx);
+            CleanUpIdleProcessesNoLock();
+            auto it = _marked_processes.begin();
+            while (it != _marked_processes.end()) {
+                if ((*it)->IsAlive()) {
+                    (*it)->Kill();
+                    it++;
+                } else {
+                    it = _marked_processes.erase(it);
+                }
+            }
+        });
 }
 
-PythonPluginManagerImpl::~PythonPluginManagerImpl() { KillAllProcesses(); }
+PythonPluginManagerImpl::~PythonPluginManagerImpl() {
+    _kill_task->Cancel();
+    KillAllProcesses();
+    std::lock_guard<std::mutex> l(_mtx);
+    auto it = _marked_processes.begin();
+    while (it != _marked_processes.end()) {
+        if ((*it)->IsAlive()) {
+            // kill process force
+            (*it)->Kill(true);
+        }
+        it++;
+    }
+    _marked_processes.clear();
+}
 
 void PythonPluginManagerImpl::LoadPlugin(const std::string& user, const std::string& name,
                                          PluginInfoBase* pinfo) {
@@ -156,6 +184,8 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
         // if master thread is killing this process
         if (TaskTracker::GetInstance().ShouldKillCurrentTask() || proc->ShouldKill()) {
             proc->Kill();
+            std::lock_guard<std::mutex> l(_mtx);
+            _marked_processes.insert(std::move(proc));
             throw lgraph_api::TaskKilledException();
         }
         // if process failed, break
@@ -175,29 +205,21 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
         if (fma_common::GetTime() - start_time >= timeout) {
             // timeout, kill process
             proc->Kill();
+            std::lock_guard<std::mutex> l(_mtx);
             output = proc->Stderr();
+            _marked_processes.insert(std::move(proc));
             throw TimeoutException(timeout);
         }
     }
     rollback.Cancel();
-    // now, check if we need to kill processes and put the process back to pool
+    // now, check if we need to put the process back to pool
     {
         std::lock_guard<std::mutex> l(_mtx);
         _busy_processes.erase(proc.get());
         CleanUpIdleProcessesNoLock();
         if (!proc->Killed()) {
-            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() -
-                                                                 _last_request_time)
-                    .count() >= max_idle_seconds_) {
-                // kill my process if the last request is long long ago
-                proc->Kill();
-            } else {
-                // add proc to free list
-                _free_processes.emplace_front(proc.release());
-            }
+            _free_processes.emplace_front(proc.release());
         }
-        // update last_used time
-        _last_request_time = std::chrono::steady_clock::now();
     }
     return ec;
 }
@@ -207,6 +229,7 @@ void PythonPluginManagerImpl::KillAllProcesses() {
     std::lock_guard<std::mutex> l(_mtx);
     for (auto& p : _free_processes) {
         p->Kill();
+        _marked_processes.insert(std::move(p));
     }
     _free_processes.clear();
     for (auto& p : _busy_processes) {
@@ -219,8 +242,8 @@ void PythonPluginManagerImpl::CleanUpIdleProcessesNoLock() {
     auto it = _free_processes.rbegin();
     while (it != _free_processes.rend() &&
            (*it)->GetIdleTimeInSeconds() >= (size_t)max_idle_seconds_) {
-        FMA_DBG() << "Killing old python process";
         (*it)->Kill();
+        _marked_processes.insert(std::move(*it));
         it++;
     }
     _free_processes.erase(it.base(), _free_processes.end());

@@ -22,7 +22,7 @@
 #include "gtest/gtest.h"
 
 #include <boost/algorithm/string.hpp>
-#include "import/import_v3.h"
+#include "import/import_v2.h"
 #include "lgraph/lgraph.h"
 #include "db/galaxy.h"
 
@@ -30,13 +30,12 @@
 #include "./test_tools.h"
 using namespace fma_common;
 using namespace lgraph;
-using namespace import_v3;
+using namespace import_v2;
 using namespace lgraph_api;
 
 class TestImportV2 : public TuGraphTest {};
-class TestImportV3 : public TuGraphTest {};
 
-void check_import_db(std::string database, size_t num_vertex, size_t num_edge,
+static void check_import_db(std::string database, size_t num_vertex, size_t num_edge,
                      const IndexSpec* is) {
     lgraph_api::Galaxy galaxy(database,
                               lgraph::_detail::DEFAULT_ADMIN_NAME,
@@ -65,7 +64,7 @@ void check_import_db(std::string database, size_t num_vertex, size_t num_edge,
 // data must be a container of pair<std::string, std::string>, either map<string, string> or
 // vector<pair<string, string>>...
 template <typename T>
-void CreateCsvFiles(const T& data) {
+static void CreateCsvFiles(const T& data) {
     fma_common::OutputFmaStream stream;
     for (auto& kv : data) {
         const std::string& file_name = kv.first;
@@ -81,7 +80,7 @@ void CreateCsvFiles(const T& data) {
 // data must be a container of pair<std::string, std::string>, either map<string, string> or
 // vector<pair<string, string>>...
 template <typename T>
-void ClearCsvFiles(const T& data) {
+static void ClearCsvFiles(const T& data) {
     fma_common::OutputFmaStream stream;
     for (auto& kv : data) {
         const std::string& file_name = kv.first;
@@ -90,17 +89,10 @@ void ClearCsvFiles(const T& data) {
     }
 }
 
-class ImporterTester : public Importer {
-    friend class TestImportV2_ImportV2_Test;
-
- public:
-    ImporterTester() : Importer(Config()) {}
-};
-
 // Test import
 // data is a vector of pairs<file_name, file_content>
 // the first pair must contain the config file name and content
-void TestImportOnData(const std::vector<std::pair<std::string, std::string>>& data,
+static void TestImportOnData(const std::vector<std::pair<std::string, std::string>>& data,
                       const Importer::Config& basic_config, size_t num_vertex = 0,
                       size_t num_edge = 0, const IndexSpec* is = nullptr, bool clear = true) {
     CreateCsvFiles(data);
@@ -116,13 +108,90 @@ void TestImportOnData(const std::vector<std::pair<std::string, std::string>>& da
     }
 }
 
-std::string Times(const std::string& s, unsigned int n) {
+static std::string Times(const std::string& s, unsigned int n) {
     std::stringstream out;
     while (n--) out << s;
     return out.str();
 }
 
-struct DataSource {
+class TestImportV2Consistent : public TuGraphTest {
+ public:
+    std::shared_ptr<lgraph_api::Galaxy> GetImportDb(
+        const std::vector<std::pair<std::string, std::string>>& data,
+        const Importer::Config& cfg) {
+        CreateCsvFiles(data);
+        Importer::Config config = cfg;
+        config.config_file = data[0].first;
+        Importer ipt(config);
+        ipt.DoImportOffline();
+        ClearCsvFiles(data);
+        std::shared_ptr<lgraph_api::Galaxy> galaxy = std::make_shared<lgraph_api::Galaxy>(
+            config.db_dir, lgraph::_detail::DEFAULT_ADMIN_NAME,
+            lgraph::_detail::DEFAULT_ADMIN_PASS, false, true);
+        return galaxy;
+    }
+    size_t GetVertexNum(lgraph_api::GraphDB& db) {
+        auto txn = db.CreateReadTxn();
+        size_t num_vertices = 0;
+        for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
+            num_vertices += 1;
+        }
+        return num_vertices;
+    }
+    size_t GetEdgeNum(lgraph_api::GraphDB& db) {
+        auto txn = db.CreateReadTxn();
+        size_t num_edges = 0;
+        for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
+            num_edges += vit.GetNumOutEdges();
+        }
+        return num_edges;
+    }
+    bool HasVertexIndex(lgraph_api::GraphDB& db, const std::string& label, const std::string& field,
+                        bool unique, bool global) {
+        auto txn = db.CreateReadTxn();
+        auto indexes = txn.ListVertexIndexes();
+        // TODO(jzj)
+        for (auto& i : indexes) {
+            if (i.label == label && i.field == field &&
+                i.unique == unique) {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool HasEdgeIndex(lgraph_api::GraphDB& db, const std::string& label, const std::string& field,
+                      bool unique, bool global) {
+        auto txn = db.CreateReadTxn();
+        auto indexes = txn.ListEdgeIndexes();
+        // TODO(jzj)
+        for (auto& i : indexes) {
+            if (i.label == label && i.field == field &&
+                i.unique == unique) {
+                return true;
+            }
+        }
+        return false;
+    }
+    size_t GetVertexIndexValueNum(lgraph_api::GraphDB& db, const std::string& label,
+                                  const std::string& field) {
+        auto txn = db.CreateReadTxn();
+        size_t count = 0;
+        for (auto it = txn.GetVertexIndexIterator(label, field, "", ""); it.IsValid(); it.Next()) {
+            ++count;
+        }
+        return count;
+    }
+    size_t GetEdgeIndexValueNum(lgraph_api::GraphDB& db, const std::string& label,
+                                const std::string& field) {
+        auto txn = db.CreateReadTxn();
+        size_t count = 0;
+        for (auto it = txn.GetEdgeIndexIterator(label, field, "", ""); it.IsValid(); it.Next())
+            ++count;
+        return count;
+    }
+};
+
+struct V2DataSource {
     std::string import_string_ids = R"(
 {
     "schema": [
@@ -323,7 +392,7 @@ struct DataSource {
     ]
 }
                     )";
-} store_data;
+} v2_data;
 static const std::vector<std::pair<std::string, std::string>> data_import = {
     {"yago_copycat.conf",
      R"(
@@ -336,7 +405,7 @@ static const std::vector<std::pair<std::string, std::string>> data_import = {
             "properties" : [
                 {"name" : "name", "type":"STRING"},
                 {"name" : "birthyear", "type":"INT16", "optional":true},
-                {"name" : "phone", "type":"INT16","unique":true, "index":true}
+                {"name" : "phone", "type":"INT16","unique":false, "index":true}
             ]
         },
         {
@@ -641,7 +710,7 @@ TEST_F(TestImportV2, ImportV2) {
         Importer::Config config;
         config.delete_if_exists = true;
         CreateCsvFiles(std::map<std::string, std::string>(
-            {{"import.conf", store_data.import_string_ids},
+            {{"import.conf", v2_data.import_string_ids},
              {"node.csv",
               UT_FMT("\"{}\"\n", std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1'))}}));
         SubProcess p(UT_FMT("./lgraph_import -c import.conf --continue_on_error 0 -d {}", dbdir));
@@ -699,7 +768,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", store_data.import_conf_index}},
+                {"import.conf", v2_data.import_conf_index}},
             config);
 
         UT_EXPECT_ANY_THROW(
@@ -725,7 +794,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         UT_EXPECT_ANY_THROW(TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", store_data.null_id_string},
+                {"import.conf", v2_data.null_id_string},
                 {"node.csv",
                  "id001,name001\n"
                  ",name002\n"}},
@@ -737,7 +806,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", store_data.empty_string_field_ids},
+                {"import.conf", v2_data.empty_string_field_ids},
                 {"node.csv",
                  "\"id001\",\"name001\"\n"
                  "\"id002\",\"\"\n"}},
@@ -749,7 +818,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         UT_EXPECT_ANY_THROW(TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", store_data.null_string_field},
+                {"import.conf", v2_data.null_string_field},
                 {"node.csv",
                  "\"id001\",\"name001\"\n"
                  "\"id002\",\n"}},
@@ -762,7 +831,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.delete_if_exists = true;
         config.continue_on_error = true;
         TestImportOnData(std::vector<std::pair<std::string, std::string>>{{"import.conf",
-                                                                           store_data.missing_uid},
+                                                                           v2_data.missing_uid},
                                                                           {"node.csv",
                                                                            "\"id001\",\"name001\"\n"
                                                                            "\"id002\",\"name002\"\n"
@@ -779,7 +848,7 @@ TEST_F(TestImportV2, ImportV2) {
         config.continue_on_error = true;
         TestImportOnData(
             std::vector<std::pair<std::string, std::string>>{
-                {"import.conf", store_data.missing_uid_skip},
+                {"import.conf", v2_data.missing_uid_skip},
                 {"node.csv",
                  "1,\"name001\",2,\"name002\"\n"
                  "1,\"name001\",1,\"name001\"\n"},
@@ -818,7 +887,7 @@ TEST_F(TestImportV2, ImportV2) {
         IndexSpec is_check;
         is_check.label = "Person";
         is_check.field = "phone";
-        is_check.unique = "true";
+        is_check.unique = false;
         TestImportOnData(data_import, config, 20, 26, &is_check);
     }
     {
@@ -2283,7 +2352,7 @@ R"([-1.79769e+300]
     }
 }
 
-TEST_F(TestImportV3, dirtyData) {
+TEST_F(TestImportV2, dirtyData) {
     {
         UT_LOG() << "Test dirty data";
         std::vector<std::pair<std::string, std::string>> data = {
@@ -2297,7 +2366,7 @@ TEST_F(TestImportV3, dirtyData) {
             "properties" : [
                 {"name" : "id", "type":"INT32"},
                 {"name" : "addr", "type":"STRING", "index": true},
-                {"name" : "name", "type":"STRING", "index": true, "unique":true}
+                {"name" : "name", "type":"STRING", "index": true}
             ]
         },
         {
@@ -2305,7 +2374,7 @@ TEST_F(TestImportV3, dirtyData) {
             "type" : "EDGE",
             "properties" : [
                 {"name" : "score", "type" : "INT32", "index": true},
-                {"name" : "weight", "type" : "FLOAT", "index": true, "unique":true}
+                {"name" : "weight", "type" : "FLOAT", "index": true}
             ]
         }
     ],
@@ -2355,13 +2424,11 @@ TEST_F(TestImportV3, dirtyData) {
         Importer::Config config;
         config.delete_if_exists = true;
         config.continue_on_error = true;
-        TestImportOnData(data, config, 10, 10);
-        config.keep_vid_in_memory = false;
-        TestImportOnData(data, config, 10, 10);
+        TestImportOnData(data, config, 11, 12);
     }
 }
 
-TEST_F(TestImportV3, emptySST) {
+TEST_F(TestImportV2, emptySST) {
     {
         UT_LOG() << "Test empty sst";
         std::vector<std::pair<std::string, std::string>> data = {
@@ -2375,7 +2442,7 @@ TEST_F(TestImportV3, emptySST) {
             "properties" : [
                 {"name" : "id", "type":"INT32"},
                 {"name" : "addr", "type":"STRING", "index": true},
-                {"name" : "name", "type":"STRING", "index": true, "unique":true}
+                {"name" : "name", "type":"STRING", "index": true}
             ]
         },
         {
@@ -2383,7 +2450,7 @@ TEST_F(TestImportV3, emptySST) {
             "type" : "EDGE",
             "properties" : [
                 {"name" : "score", "type" : "INT32", "index": true},
-                {"name" : "weight", "type" : "FLOAT", "index": true, "unique":true}
+                {"name" : "weight", "type" : "FLOAT", "index": true}
             ]
         }
     ],
@@ -2473,76 +2540,371 @@ TEST_F(TestImportV3, emptySST) {
         Importer::Config config;
         config.delete_if_exists = true;
         config.continue_on_error = true;
-        TestImportOnData(data, config, 10, 10);
-        config.keep_vid_in_memory = false;
-        TestImportOnData(data, config, 10, 10);
+        TestImportOnData(data, config, 11, 12);
     }
 }
 
-template<class T>
-void encode_decode_test(T a, T b) {
-    std::string encoded_a, encoded_b;
-    encodeNumToStr<T>(a, encoded_a);
-    encodeNumToStr<T>(b, encoded_b);
-    if (a > b) {
-        EXPECT_GT(encoded_a, encoded_b);
-    } else if (a == b) {
-        EXPECT_EQ(encoded_a, encoded_b);
-    } else {
-        EXPECT_LT(encoded_a, encoded_b);
-    }
-    EXPECT_EQ(decodeStrToNum<T>(encoded_a.data()), a);
-    EXPECT_EQ(decodeStrToNum<T>(encoded_b.data()), b);
+TEST_F(TestImportV2Consistent, DataConsistent) {
+    Importer::Config config;
+    config.delete_if_exists = true;
+    config.continue_on_error = true;
+    {
+        UT_LOG() << "Test vertex primary";
+        std::vector<std::pair<std::string, std::string>> data_files = {
+            {"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "user",
+            "type" : "VERTEX",
+            "primary" : "uid",
+            "properties" : [
+                {"name":"uid", "type":"STRING"},
+                {"name":"name", "type":"STRING", "index" : true, "unique" : false},
+                {"name":"phone", "type":"STRING", "index" : true, "unique" : false}
+            ]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "user.csv",
+            "format" : "CSV",
+            "label" : "user",
+            "columns" : ["uid", "name", "phone"]
+        }
+    ]
 }
+                    )"},
+            {"user.csv",
+             R"(user0001,aaa,1111
+            user0001,bbb,2222
+            user0001,ccc,3333
+            user0002,ddd,4444
+            user0002,eee,5555
+            user0001,fff,6666
+            user0002,ggg,7777
+            user0003,hhh,8888
+            user0003,lll,9999
+            user0004,mmm,0000)"}};
 
-TEST_F(TestImportV3, numEncodeDecode) {
-    {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(-100, 100);
-        for (uint64_t i = 0; i < 100000l; ++i) {
-            encode_decode_test<int8_t>((int8_t)dist(mt), (int8_t)dist(mt));
-        }
+        auto galaxy = GetImportDb(data_files, config);
+        lgraph_api::GraphDB db = galaxy->OpenGraph("default");
+        UT_EXPECT_EQ(GetVertexNum(db), 4);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", true, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "uid"), 4);
+        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", false, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "phone"), 4);
     }
+
     {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int16_t> dist((int16_t)-30000, (int16_t)30000);
-        for (uint64_t i = 0; i < 100000l; ++i) {
-            encode_decode_test<int16_t>(dist(mt), dist(mt));
+        UT_LOG() << "Test vertex index";
+        std::vector<std::pair<std::string, std::string>> data_files = {
+            {"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "user",
+            "type" : "VERTEX",
+            "primary" : "uid",
+            "properties" : [
+                {"name":"uid", "type":"STRING"},
+                {"name":"name", "type":"STRING", "index" : true, "unique" : false},
+                {"name":"phone", "type":"STRING", "index" : true, "unique" : false}
+            ]
         }
+    ],
+    "files" : [
+        {
+            "path" : "user.csv",
+            "format" : "CSV",
+            "label" : "user",
+            "columns" : ["uid", "name", "phone"]
+        }
+    ]
+}
+                    )"},
+            {"user.csv",
+             R"(user0001,aaa,1111
+            user0002,bbb,2222
+            user0003,ccc,3333
+            user0004,ddd,4444
+            user0005,eee,5555
+            user0006,fff,6666
+            user0007,ggg,7777
+            user0008,hhh,8888
+            user0009,lll,9999
+            user0010,mmm,0000
+            user0011,bbb,2222
+            user0012,ccc,3333
+            user0013,ddd,4444
+            user0014,eee,5555
+            user0015,fff,6666
+            user0016,ggg,7777
+            user0017,hhh,8888
+            user0018,lll,9999
+            user0019,bbb,2222
+            user0020,ccc,3333
+            user0021,ddd,4444
+            user0022,eee,5555
+            user0023,fff,6666
+            user0024,ggg,7777
+            user0025,hhh,8888
+            user0026,lll,9999)"}};
+
+        auto galaxy = GetImportDb(data_files, config);
+        lgraph_api::GraphDB db = galaxy->OpenGraph("default");
+        UT_EXPECT_EQ(GetVertexNum(db), 26);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", true, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "uid"), 26);
+        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", false, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "phone"), 26);
     }
+
     {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int32_t> dist((int32_t)-2147483640, (int32_t)2147483640);
-        for (uint64_t i = 0; i < 100000l; ++i) {
-            encode_decode_test<int32_t>(dist(mt), dist(mt));
-        }
-    }
-    {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int64_t> dist(
-            (int64_t)-9223372036854775, (int64_t)9223372036854775);
-        for (uint64_t i = 0; i < 100000l; ++i) {
-            encode_decode_test<int64_t>(dist(mt), dist(mt));
-        }
-    }
-    {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<float> dist((float)-3.40282e+30, (float)3.40282e+30);
-        for (uint64_t i = 0; i < 100000l; ++i) {
-            encode_decode_test<float>(dist(mt), dist(mt));
-        }
-    }
-    {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<double> dist((double)-1.79769e+200, (double)1.79769e+200);
-        for (uint64_t i = 0; i < 100000l; ++i) {
-            encode_decode_test<double>(dist(mt), dist(mt));
-        }
+        UT_LOG() << "Test edge unique index";
+        std::vector<std::pair<std::string, std::string>> data_files = {
+            {"import.conf", R"(
+{
+	"schema": [{
+			"label": "node1",
+			"type": "VERTEX",
+			"primary": "uid",
+			"properties": [{
+					"name": "uid",
+					"type": "STRING"
+				},
+				{
+					"name": "name",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				},
+				{
+					"name": "phone",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				},
+				{
+					"name": "id",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				},
+				{
+					"name": "address",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				}
+			]
+		}, {
+			"label": "node2",
+			"type": "VERTEX",
+			"primary": "uid",
+			"properties": [{
+					"name": "uid",
+					"type": "STRING"
+				},
+				{
+					"name": "name",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				},
+				{
+					"name": "phone",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				},
+				{
+					"name": "id",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				},
+				{
+					"name": "address",
+					"type": "STRING",
+					"index": true,
+					"unique": false
+				}
+			]
+		},
+		{
+			"label": "edge",
+			"type": "EDGE",
+            "temporal" : "uid",
+			"properties": [{
+					"name": "uid",
+					"type": "INT64"
+				},
+				{
+					"name": "name_g",
+					"type": "STRING",
+					"index": true,
+                    "global": true,
+					"unique": false
+				},
+                {
+                    "name": "address_g",
+                    "type": "STRING",
+                    "index": true,
+                    "global": true,
+                    "unique": false
+                },
+                {
+                    "name": "name",
+                    "type": "STRING",
+                    "index": true,
+                    "global": false,
+                    "unique": false
+                },
+				{
+					"name": "address",
+					"type": "STRING",
+					"index": true,
+                    "global": false,
+					"unique": false
+				},
+				{
+					"name": "phone_g",
+					"type": "STRING",
+					"index": true,
+                    "global": false,
+					"unique": false
+				},
+                {
+                    "name": "id_g",
+                    "type": "STRING",
+                    "index": true,
+                    "global": true,
+                    "unique": false
+                },
+                {
+                    "name": "phone",
+                    "type": "STRING",
+                    "index": true,
+                    "global": false,
+                    "unique": true
+                },
+                {
+                    "name": "id",
+                    "type": "STRING",
+                    "index": true,
+                    "global": false,
+                    "unique": true
+                }
+			]
+		}
+	],
+	"files": [{
+			"path": "node1.csv",
+			"format": "CSV",
+			"label": "node1",
+			"columns": ["uid", "name", "phone", "id", "address"]
+		},
+		{
+			"path": "node2.csv",
+			"format": "CSV",
+			"label": "node2",
+			"columns": ["uid", "name", "phone", "id", "address"]
+		},
+		{
+			"path": "edge.csv",
+			"format": "CSV",
+			"label": "edge",
+			"SRC_ID": "node1",
+			"DST_ID": "node2",
+			"columns": ["SRC_ID", "DST_ID", "uid", "name_g",  "address_g", "name", "address", "phone_g", "id_g", "phone", "id"]
+		}
+	]
+}
+                    )"},
+            {"node1.csv",
+             R"(node0001,node1_a,00,111,111
+                    node0003,node1_b,01,111,222
+                    node0005,node1_c,02,222,333
+                    node0007,node1_d,03,333,444
+                    node0009,node1_e,04,444,555
+                    node0011,node1_f,05,555,666
+                    node0013,node1_g,06,666,777
+                    node0015,node1_h,07,777,888
+                    node0017,node1_i,08,888,999
+                    node0019,node1_g,09,999,000)"},
+            {"node2.csv",
+             R"(node0002,node2_a,00,111,111
+                    node0004,node2_b,01,111,222
+                    node0006,node2_c,02,222,333
+                    node0008,node2_d,03,333,444
+                    node0010,node2_e,04,444,555
+                    node0012,node2_f,05,555,666
+                    node0014,node2_g,06,666,777
+                    node0016,node2_h,07,777,888
+                    node0018,node2_i,08,888,999
+                    node0020,node2_g,09,999,000)"},
+            {"edge.csv",
+             R"(node0001,node0002,1,00,00,00,00,00,00,00,00
+                    node0003,node0004,2,01,01,01,01,01,01,01,01
+                    node0005,node0006,3,02,02,02,02,02,02,02,02
+                    node0007,node0008,4,03,00,03,00,03,00,03,03
+                    node0009,node0010,5,04,01,04,01,04,01,04,04
+                    node0011,node0012,6,05,02,05,02,05,02,05,05
+                    node0013,node0014,7,06,00,06,00,06,00,06,06
+                    node0015,node0016,8,07,01,07,01,07,01,07,07
+                    node0017,node0018,9,08,02,08,02,08,02,08,08
+                    node0019,node0020,10,09,00,09,00,09,00,09,09
+                    node0001,node0002,11,00,01,00,01,10,01,09,00
+                    node0003,node0004,12,01,02,01,02,11,02,08,01
+                    node0005,node0006,13,02,00,02,00,12,00,07,02
+                    node0007,node0008,14,03,01,03,01,13,01,06,03
+                    node0009,node0010,15,04,02,04,02,14,02,05,04
+                    node0011,node0012,16,05,00,05,00,15,00,04,05
+                    node0013,node0014,17,06,01,06,01,16,01,03,06
+                    node0015,node0016,18,07,02,07,02,17,02,02,07
+                    node0017,node0018,19,08,00,08,00,18,00,01,08
+                    node0019,node0020,20,09,01,09,01,19,01,00,09)"},
+        };
+
+        auto galaxy = GetImportDb(data_files, config);
+        lgraph_api::GraphDB db = galaxy->OpenGraph("default");
+        UT_EXPECT_EQ(GetVertexNum(db), 20);
+        UT_EXPECT_EQ(GetEdgeNum(db), 10);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", true, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "uid"), 10);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "name", false, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "name"), 10);
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "phone", true, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "id", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "address", false, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "address"), 10);
+
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "uid", true, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "uid"), 10);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "name", false, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "name"), 10);
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "phone", true, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "id", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "address", false, false));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "address"), 10);
+
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name_g", false, true));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name_g"), 10);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address_g", false, true));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address_g"), 10);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name", false, false));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name"), 10);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address", false, false));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address"), 10);
+
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "phone_g", true, true));
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "id_g", true, true));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "phone", true, false));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "phone"), 10);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "id", true, false));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "id"), 10);
     }
 }

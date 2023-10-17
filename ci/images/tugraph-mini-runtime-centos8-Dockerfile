@@ -3,11 +3,6 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:8.4.2105
 
-# specifies the path of the object storage where the installation package resides
-ARG FILEPATH
-# specifies installation package name for tugraph
-ARG FILENAME
-
 RUN rm -rf /etc/yum.repos.d \
     && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
     && tar -xf yum.repos.d.tar.gz && mv yum.repos.d /etc/yum.repos.d && rm yum.repos.d.tar.gz
@@ -18,8 +13,15 @@ RUN yum update -y && yum install -y \
     wget
 
 # install tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
 RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 
+# set locale
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

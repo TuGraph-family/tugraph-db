@@ -69,6 +69,26 @@ class LGraphPythonClient {
         return {ret, result};
     }
 
+    std::pair<bool, std::string> CallProcedureToLeader(const std::string& procedure_type,
+                                               const std::string& procedure_name,
+                                               const std::string& param,
+                                               double procedure_time_out = 0.0,
+                                               bool in_process = false,
+                                               const std::string& graph = "default",
+                                               bool json_format = true) {
+        std::string result;
+        bool ret;
+        try {
+            ret = client->CallProcedureToLeader(result, procedure_type, procedure_name,
+                                        param, procedure_time_out,
+                                        in_process, graph, json_format);
+        } catch (lgraph::RpcException &e) {
+            ret = false;
+            result = e.what();
+        }
+        return {ret, result};
+    }
+
     std::pair<bool, std::string> ListProcedures(const std::string& procedure_type,
                                                 const std::string& version = "any",
                                                 const std::string& graph = "default",
@@ -177,6 +197,20 @@ class LGraphPythonClient {
         return {ret, result};
     }
 
+    std::pair<bool, std::string> CallCypherToLeader(const std::string& cypher,
+                                            const std::string& graph = "default",
+                                            bool json_format = true, double timeout = 0) {
+        std::string result;
+        bool ret;
+        try {
+            ret = client->CallCypherToLeader(result, cypher, graph, json_format, timeout);
+        } catch (lgraph::RpcException &e) {
+            ret = false;
+            result = e.what();
+        }
+        return {ret, result};
+    }
+
     std::pair<bool, std::string> CallGql(const std::string& gql,
                                             const std::string& graph = "default",
                                             bool json_format = true, double timeout = 0,
@@ -185,6 +219,20 @@ class LGraphPythonClient {
         bool ret;
         try {
             ret = client->CallGql(result, gql, graph, json_format, timeout, url);
+        } catch (lgraph::RpcException &e) {
+            ret = false;
+            result = e.what();
+        }
+        return {ret, result};
+    }
+
+    std::pair<bool, std::string> CallGqlToLeader(const std::string& gql,
+                                         const std::string& graph = "default",
+                                         bool json_format = true, double timeout = 0) {
+        std::string result;
+        bool ret;
+        try {
+            ret = client->CallGqlToLeader(result, gql, graph, json_format, timeout);
         } catch (lgraph::RpcException &e) {
             ret = false;
             result = e.what();

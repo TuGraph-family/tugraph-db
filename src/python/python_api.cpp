@@ -43,6 +43,15 @@
 
 namespace lgraph_api {
 namespace python {
+
+struct SignalsGuard {
+    SignalsGuard() {
+        if (PyErr_CheckSignals() != 0) {
+            throw pybind11::error_already_set();
+        }
+    }
+};
+
 inline FieldData ObjectToFieldData(const pybind11::object& o) {
     if (pybind11::isinstance<FieldData>(o)) {
         return o.cast<FieldData>();
@@ -131,7 +140,8 @@ void register_python_api(pybind11::module& m) {
         .def(pybind11::init<const std::string&, FieldType, bool>(),
              "Defines a FieldSpec with its name (type:str), type "
              "(type:FieldType) and nullable (type:bool).",
-             pybind11::arg("name"), pybind11::arg("type"), pybind11::arg("nullable"))
+             pybind11::arg("name"), pybind11::arg("type"), pybind11::arg("nullable"),
+             pybind11::call_guard<SignalsGuard>())
         .def_readwrite("name", &FieldSpec::name, "Name of this field.")
         .def_readwrite("type", &FieldSpec::type,
                        "Type of this field, INT8, INT16, ..., FLOAT, DOUBLE, STRING.")
@@ -142,11 +152,13 @@ void register_python_api(pybind11::module& m) {
         });
 
     pybind11::class_<EdgeUid>(m, "EdgeUid", "Edge identifier.")
-        .def(pybind11::init<>())
+        .def(pybind11::init<>(),
+             pybind11::call_guard<SignalsGuard>())
         .def(pybind11::init<int64_t, int64_t, uint16_t, int64_t, int64_t>(),
              "Defines a EdgeUid with (src_id, dst_id, label_id, primary_id, edge_id).",
              pybind11::arg("src_id"), pybind11::arg("dst_id"), pybind11::arg("label_id"),
-             pybind11::arg("primary_id"), pybind11::arg("edge_id"))
+             pybind11::arg("primary_id"), pybind11::arg("edge_id"),
+             pybind11::call_guard<SignalsGuard>())
         .def_readwrite("src", &EdgeUid::src, "Source vertex ID.")
         .def_readwrite("dst", &EdgeUid::dst, "Destination vertex ID.")
         .def_readwrite("lid", &EdgeUid::lid, "Label ID of the edge.")
@@ -164,11 +176,13 @@ void register_python_api(pybind11::module& m) {
         });
 
     pybind11::class_<IndexSpec>(m, "IndexSpec", "Index specification.")
-        .def(pybind11::init<>())
+        .def(pybind11::init<>(),
+             pybind11::call_guard<SignalsGuard>())
         .def(pybind11::init<const std::string&, const std::string&, bool>(),
              "Defines an IndexSpec with its label_name:str, field_name:str and "
              "is_unique:bool.",
-             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("is_unique"))
+             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("is_unique"),
+             pybind11::call_guard<SignalsGuard>())
         .def_readwrite("label", &IndexSpec::label, "Name of the label.")
         .def_readwrite("field", &IndexSpec::field, "Name of the field")
         .def_readwrite("unique", &IndexSpec::unique, "Whether the indexed values are unique.")
@@ -178,10 +192,12 @@ void register_python_api(pybind11::module& m) {
         });
 
     pybind11::class_<EdgeOptions>(m, "EdgeOptions", "Edge options.")
-        .def(pybind11::init<>())
+        .def(pybind11::init<>(),
+             pybind11::call_guard<SignalsGuard>())
         .def(pybind11::init<const std::vector<std::pair<std::string, std::string>>&>(),
              "Define EdgeOptions with edge constraints",
-             pybind11::arg("edge_constraints"))
+             pybind11::arg("edge_constraints"),
+             pybind11::call_guard<SignalsGuard>())
         .def_readwrite("edge_constraints", &EdgeOptions::edge_constraints, "Edge constraints.")
         .def_readwrite("temporal_field", &EdgeOptions::temporal_field, "Edge temporal field.")
         .def_readwrite("detach_property", &EdgeOptions::detach_property,
@@ -191,10 +207,12 @@ void register_python_api(pybind11::module& m) {
         });
 
     pybind11::class_<VertexOptions>(m, "VertexOptions", "Vertex options.")
-        .def(pybind11::init<>())
+        .def(pybind11::init<>(),
+             pybind11::call_guard<SignalsGuard>())
         .def(pybind11::init<const std::string&>(),
              "Define VertexOptions with primary field",
-             pybind11::arg("primary_field"))
+             pybind11::arg("primary_field"),
+             pybind11::call_guard<SignalsGuard>())
         .def_readwrite("primary_field", &VertexOptions::primary_field,
                        "Vertex primary field.")
         .def_readwrite("detach_property", &VertexOptions::detach_property,
@@ -204,18 +222,30 @@ void register_python_api(pybind11::module& m) {
         });
 
     pybind11::class_<FieldData> data(m, "FieldData", "FieldData is the data type of field value.");
-    data.def(pybind11::init<>(), "Constructs an empty FieldData (is_null() == true).")
-        .def(pybind11::init<bool>(), "Constructs an bool type FieldData.")
-        .def(pybind11::init<int8_t>(), "Constructs an int8 type FieldData.")
-        .def(pybind11::init<int16_t>(), "Constructs an int16 type FieldData.")
-        .def(pybind11::init<int32_t>(), "Constructs an int32 type FieldData.")
-        .def(pybind11::init<int64_t>(), "Constructs an int64 type FieldData.")
-        .def(pybind11::init<float>(), "Constructs an float type FieldData.")
-        .def(pybind11::init<double>(), "Constructs a double type FieldData.")
-        .def(pybind11::init<const std::string&>(), "Constructs a FielData contains binary bytes.")
-        .def("isNull", [](const FieldData& a) { return a.IsNull(); })
-        .def("get", [](const FieldData& a) -> pybind11::object { return FieldDataToPyObj(a); })
-        .def("set", [](FieldData& a, const pybind11::object& o) { a = ObjectToFieldData(o); })
+    data.def(pybind11::init<>(), "Constructs an empty FieldData (is_null() == true).",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<bool>(), "Constructs an bool type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<int8_t>(), "Constructs an int8 type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<int16_t>(), "Constructs an int16 type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<int32_t>(), "Constructs an int32 type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<int64_t>(), "Constructs an int64 type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<float>(), "Constructs an float type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<double>(), "Constructs a double type FieldData.",
+             pybind11::call_guard<SignalsGuard>())
+        .def(pybind11::init<const std::string&>(), "Constructs a FielData contains binary bytes.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("isNull", [](const FieldData& a) { return a.IsNull(); },
+            pybind11::call_guard<SignalsGuard>())
+        .def("get", [](const FieldData& a) -> pybind11::object { return FieldDataToPyObj(a); },
+            pybind11::call_guard<SignalsGuard>())
+        .def("set", [](FieldData& a, const pybind11::object& o) { a = ObjectToFieldData(o); },
+            pybind11::call_guard<SignalsGuard>())
         .def_static("Bool", &FieldData::Bool, "Make a BOOL value")
         .def_static("Int8", &FieldData::Int8, "Make a INT8 value")
         .def_static("Int16", &FieldData::Int16, "Make a INT16 value")
@@ -248,70 +278,101 @@ void register_python_api(pybind11::module& m) {
         .def_static(
             "Blob", [](const pybind11::bytes& str) { return FieldData::Blob(str); },
             "Make a BLOB value")
-        .def("AsBool", &FieldData::AsBool, "Get value as bool, throws exception on type mismatch")
-        .def("AsInt8", &FieldData::AsInt8, "Get value as int8, throws exception on type mismatch")
+        .def("AsBool", &FieldData::AsBool, "Get value as bool, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
+        .def("AsInt8", &FieldData::AsInt8, "Get value as int8, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def("AsInt16", &FieldData::AsInt16,
-             "Get value as int16, throws exception on type mismatch")
+             "Get value as int16, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def("AsInt32", &FieldData::AsInt32,
-             "Get value as int32, throws exception on type mismatch")
+             "Get value as int32, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def("AsInt64", &FieldData::AsInt64,
-             "Get value as int64, throws exception on type mismatch")
+             "Get value as int64, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def("AsFloat", &FieldData::AsFloat,
-             "Get value as float, throws exception on type mismatch")
+             "Get value as float, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def("AsDouble", &FieldData::AsDouble,
-             "Get value as double, throws exception on type mismatch")
+             "Get value as double, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "AsDate",
             [](const FieldData& a) {
                 return a.AsDate().operator lgraph_api::DateTime().ConvertToUTC().TimePoint();
             },
-            "Get value as date, throws exception on type mismatch")
+            "Get value as date, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AsDateTime",
             // python sees time_point as utc time and will always convert it to local time
             [](const FieldData& a) { return a.AsDateTime().ConvertToUTC().TimePoint(); },
-            "Get value as datetime, throws exception on type mismatch")
+            "Get value as datetime, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
         .def("AsString", &FieldData::AsString,
-             "Get value as string, throws exception on type mismatch")
+             "Get value as string, throws exception on type mismatch",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "AsBlob", [](const FieldData& a) { return pybind11::bytes(*a.data.buf); },
-            "Get value as double, throws exception on type mismatch")
+            "Get value as double, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "ToPython", [](const FieldData& fd) { return FieldDataToPyObj(fd); },
-            "Convert to corresponding Python type.")
+            "Convert to corresponding Python type.",
+            pybind11::call_guard<SignalsGuard>())
         .def_readonly("type", &FieldData::type)
-        .def("__repr__", [](const FieldData& a) { return a.ToString(); })
-        .def("__eq__", [](const FieldData& a, const FieldData& b) { return a == b; })
+        .def("__repr__", [](const FieldData& a) { return a.ToString(); },
+            pybind11::call_guard<SignalsGuard>())
+        .def("__eq__", [](const FieldData& a, const FieldData& b) { return a == b; },
+            pybind11::call_guard<SignalsGuard>())
         .def("__eq__", [](const FieldData& a,
-                          const pybind11::object& b) { return a == ObjectToFieldData(b); })
+                          const pybind11::object& b) { return a == ObjectToFieldData(b); },
+            pybind11::call_guard<SignalsGuard>())
         .def("__eq__", [](const pybind11::object& a,
-                          const FieldData& b) { return ObjectToFieldData(a) == b; })
-        .def("__gt__", [](const FieldData& a, const FieldData& b) { return a > b; })
+                          const FieldData& b) { return ObjectToFieldData(a) == b; },
+            pybind11::call_guard<SignalsGuard>())
+        .def("__gt__", [](const FieldData& a, const FieldData& b) { return a > b; },
+            pybind11::call_guard<SignalsGuard>())
         .def("__gt__",
-             [](const FieldData& a, const pybind11::object& b) { return a > ObjectToFieldData(b); })
+             [](const FieldData& a, const pybind11::object& b) { return a > ObjectToFieldData(b); },
+            pybind11::call_guard<SignalsGuard>())
         .def("__gt__",
-             [](const pybind11::object& a, const FieldData& b) { return ObjectToFieldData(a) > b; })
-        .def("__lt__", [](const FieldData& a, const FieldData& b) { return a < b; })
+             [](const pybind11::object& a, const FieldData& b) { return ObjectToFieldData(a) > b; },
+            pybind11::call_guard<SignalsGuard>())
+        .def("__lt__", [](const FieldData& a, const FieldData& b) { return a < b; },
+            pybind11::call_guard<SignalsGuard>())
         .def("__lt__",
-             [](const FieldData& a, const pybind11::object& b) { return a < ObjectToFieldData(b); })
+             [](const FieldData& a, const pybind11::object& b) { return a < ObjectToFieldData(b); },
+            pybind11::call_guard<SignalsGuard>())
         .def("__lt__",
-             [](const pybind11::object& a, const FieldData& b) { return ObjectToFieldData(a) < b; })
-        .def("__le__", [](const FieldData& a, const FieldData& b) { return a <= b; })
+             [](const pybind11::object& a, const FieldData& b) { return ObjectToFieldData(a) < b; },
+            pybind11::call_guard<SignalsGuard>())
+        .def("__le__", [](const FieldData& a, const FieldData& b) { return a <= b; },
+            pybind11::call_guard<SignalsGuard>())
         .def("__le__", [](const FieldData& a,
-                          const pybind11::object& b) { return a <= ObjectToFieldData(b); })
+                          const pybind11::object& b) { return a <= ObjectToFieldData(b); },
+            pybind11::call_guard<SignalsGuard>())
         .def("__le__", [](const pybind11::object& a,
-                          const FieldData& b) { return ObjectToFieldData(a) <= b; })
-        .def("__ge__", [](const FieldData& a, const FieldData& b) { return a >= b; })
+                          const FieldData& b) { return ObjectToFieldData(a) <= b; },
+            pybind11::call_guard<SignalsGuard>())
+        .def("__ge__", [](const FieldData& a, const FieldData& b) { return a >= b; },
+            pybind11::call_guard<SignalsGuard>())
         .def("__ge__", [](const FieldData& a,
-                          const pybind11::object& b) { return a >= ObjectToFieldData(b); })
+                          const pybind11::object& b) { return a >= ObjectToFieldData(b); },
+            pybind11::call_guard<SignalsGuard>())
         .def("__ge__", [](const pybind11::object& a,
-                          const FieldData& b) { return ObjectToFieldData(a) >= b; })
-        .def("__neq__", [](const FieldData& a, const FieldData& b) { return a != b; })
+                          const FieldData& b) { return ObjectToFieldData(a) >= b; },
+            pybind11::call_guard<SignalsGuard>())
+        .def("__neq__", [](const FieldData& a, const FieldData& b) { return a != b; },
+            pybind11::call_guard<SignalsGuard>())
         .def("__neq__", [](const FieldData& a,
-                           const pybind11::object& b) { return a != ObjectToFieldData(b); })
+                           const pybind11::object& b) { return a != ObjectToFieldData(b); },
+            pybind11::call_guard<SignalsGuard>())
         .def("__neq__", [](const pybind11::object& a, const FieldData& b) {
             return ObjectToFieldData(a) != b;
-        });
+        },
+            pybind11::call_guard<SignalsGuard>());
 
     pybind11::enum_<FieldType>(m, "FieldType", pybind11::arithmetic(), "Data type of FieldData.")
         .value("NUL", FieldType::NUL)
@@ -357,12 +418,14 @@ void register_python_api(pybind11::module& m) {
         "close the galaxy with Galaxy.Close() when you are done with it.");
     galaxy
         .def(
-            "__enter__", [&](Galaxy& r) -> Galaxy& { return r; }, "Init galaxy.")
+            "__enter__", [&](Galaxy& r) -> Galaxy& { return r; }, "Init galaxy.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](Galaxy& g, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { g.Close(); },
-            "Release memory of this galaxy.");
+            "Release memory of this galaxy.",
+            pybind11::call_guard<SignalsGuard>());
     galaxy.def(pybind11::init<const std::string&, bool, bool>(),
                "Initializes a galaxy instance stored in dir.\n"
                "dir: directory of the database\n"
@@ -371,15 +434,18 @@ void register_python_api(pybind11::module& m) {
                "create_if_not_exist: whether to create the database if dir does not exist",
                pybind11::arg("dir"), pybind11::arg("durable") = false,
                pybind11::arg("create_if_not_exist") = false,
-               pybind11::return_value_policy::move);
+               pybind11::return_value_policy::move,
+               pybind11::call_guard<SignalsGuard>());
     galaxy.def("SetCurrentUser", &Galaxy::SetCurrentUser,
                "Validate user password and set current user.\n"
                "user: user name\n"
                "password: password of the user",
-               pybind11::arg("user"), pybind11::arg("password"));
+               pybind11::arg("user"), pybind11::arg("password"),
+               pybind11::call_guard<SignalsGuard>());
     galaxy.def("SetUser", &Galaxy::SetUser,
                "Validate the given user and set current user given in the user.",
-               pybind11::arg("user"));
+               pybind11::arg("user"),
+               pybind11::call_guard<SignalsGuard>());
     galaxy.def("Close", &Galaxy::Close, "Closes this galaxy")
         .def("CreateGraph", &Galaxy::CreateGraph,
              "Creates a graph.\n"
@@ -387,10 +453,13 @@ void register_python_api(pybind11::module& m) {
              "description: description of the graph\n"
              "max_size: maximum size of the graph, default 1TB",
              pybind11::arg("name"), pybind11::arg("description") = "",
-             pybind11::arg("max_size") = lgraph::_detail::DEFAULT_GRAPH_SIZE)
-        .def("DeleteGraph", &Galaxy::DeleteGraph, "Deletes a graph")
+             pybind11::arg("max_size") = lgraph::_detail::DEFAULT_GRAPH_SIZE,
+             pybind11::call_guard<SignalsGuard>())
+        .def("DeleteGraph", &Galaxy::DeleteGraph, "Deletes a graph",
+             pybind11::call_guard<SignalsGuard>())
         .def("ListGraphs", &Galaxy::ListGraphs,
-             "Lists graphs and returns a dictionary of {name:(desc, max_size)}")
+             "Lists graphs and returns a dictionary of {name:(desc, max_size)}",
+             pybind11::call_guard<SignalsGuard>())
         .def("ModGraph", &Galaxy::ModGraph,
              "Modifies the information of the graph, returns true if successful, false if no such "
              "graph.\n"
@@ -400,56 +469,72 @@ void register_python_api(pybind11::module& m) {
              "mod_size: whether to modify max graph size\n"
              "new_max_size: new maximum size of the graph, in bytes",
              pybind11::arg("graph_name"), pybind11::arg("mod_desc"), pybind11::arg("description"),
-             pybind11::arg("mod_size"), pybind11::arg("new_max_size"))
+             pybind11::arg("mod_size"), pybind11::arg("new_max_size"),
+             pybind11::call_guard<SignalsGuard>())
         .def("CreateUser", &Galaxy::CreateUser,
              "Creates a new user account.\n"
              "name: name of the user\n"
              "password: password for the user\n"
              "desc: description of this user",
-             pybind11::arg("name"), pybind11::arg("password"), pybind11::arg("desc"))
-        .def("DeleteUser", &Galaxy::DeleteUser, "Deletes a user account")
+             pybind11::arg("name"), pybind11::arg("password"), pybind11::arg("desc"),
+             pybind11::call_guard<SignalsGuard>())
+        .def("DeleteUser", &Galaxy::DeleteUser, "Deletes a user account",
+             pybind11::call_guard<SignalsGuard>())
         .def("SetUserPass", &Galaxy::SetPassword,
              "Modifies user password.\n"
              "name: name of the user\n"
              "old_password: current password, not needed when modifying another user\n"
              "new_password: new password for the user",
              pybind11::arg("name"), pybind11::arg("old_password") = "",
-             pybind11::arg("new_password"))
+             pybind11::arg("new_password"),
+             pybind11::call_guard<SignalsGuard>())
         .def("SetUserRoles", &Galaxy::SetUserRoles,
              "Set the roles for the specified user.\n"
              "name: name of the user\n"
              "roles: list of roles for this user",
-             pybind11::arg("name"), pybind11::arg("roles"))
+             pybind11::arg("name"), pybind11::arg("roles"),
+             pybind11::call_guard<SignalsGuard>())
         .def("SetUserGraphAccess", &Galaxy::SetUserGraphAccess,
              "Set the access level of the specified user on the graph.\n"
              "user: name of the user\n"
              "graph: name of the graph\n"
              "access: access level of the user on that graph",
-             pybind11::arg("user"), pybind11::arg("graph"), pybind11::arg("access"))
-        .def("DisableUser", &Galaxy::DisableUser, "Disables a user")
-        .def("EnableUser", &Galaxy::EnableUser, "Enables a user")
-        .def("ListUsers", &Galaxy::ListUsers, "Lists all users and whether they are admin")
-        .def("GetUserInfo", &Galaxy::GetUserInfo, "Get information of the specified user")
+             pybind11::arg("user"), pybind11::arg("graph"), pybind11::arg("access"),
+             pybind11::call_guard<SignalsGuard>())
+        .def("DisableUser", &Galaxy::DisableUser, "Disables a user",
+             pybind11::call_guard<SignalsGuard>())
+        .def("EnableUser", &Galaxy::EnableUser, "Enables a user",
+             pybind11::call_guard<SignalsGuard>())
+        .def("ListUsers", &Galaxy::ListUsers, "Lists all users and whether they are admin",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetUserInfo", &Galaxy::GetUserInfo, "Get information of the specified user",
+             pybind11::call_guard<SignalsGuard>())
         .def("CreateRole", &Galaxy::CreateRole,
              "Create a role.\n"
              "name: name of the role\n"
              "desc: description of the role",
-             pybind11::arg("name"), pybind11::arg("desc"))
-        .def("DeleteRole", &Galaxy::DeleteRole, "Deletes the specified role")
+             pybind11::arg("name"), pybind11::arg("desc"),
+             pybind11::call_guard<SignalsGuard>())
+        .def("DeleteRole", &Galaxy::DeleteRole, "Deletes the specified role",
+             pybind11::call_guard<SignalsGuard>())
         .def("SetRoleDesc", &Galaxy::SetRoleDesc,
              "Set description of the specified role.\n"
              "name: name of the role\n"
              "desc: description of the role",
-             pybind11::arg("name"), pybind11::arg("desc"))
+             pybind11::arg("name"), pybind11::arg("desc"),
+             pybind11::call_guard<SignalsGuard>())
         .def("SetRoleAccessRights", &Galaxy::SetRoleAccessRights,
-             "Set access rights for the specified role")
+             "Set access rights for the specified role",
+             pybind11::call_guard<SignalsGuard>())
         .def("SetRoleAccessRightsIncremental", &Galaxy::SetRoleAccessRightsIncremental,
-             "Set access rights for the specified role, only affects the specified graphs")
+             "Set access rights for the specified role, only affects the specified graphs",
+             pybind11::call_guard<SignalsGuard>())
         .def("OpenGraph", &Galaxy::OpenGraph,
              "Opens a graph and returns a GraphDB instance.\n"
              "graph: name of the graph\n"
              "read_only: whether to open the graph in read-only mode",
-             pybind11::arg("graph"), pybind11::arg("read_only") = false);
+             pybind11::arg("graph"), pybind11::arg("read_only") = false,
+             pybind11::call_guard<SignalsGuard>());
 
     pybind11::class_<GraphDB> graph_db(
         m, "GraphDB",
@@ -462,32 +547,42 @@ void register_python_api(pybind11::module& m) {
         "is using the DB before you close the DB.");
     graph_db
         .def(
-            "__enter__", [&](GraphDB& r) -> GraphDB& { return r; }, "Init GraphDB.")
+            "__enter__", [&](GraphDB& r) -> GraphDB& { return r; }, "Init GraphDB.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](GraphDB& g, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { g.Close(); },
-            "Release memory of this GraphDB.");
-    graph_db.def("Close", &GraphDB::Close, "Closes the DB.")
+            "Release memory of this GraphDB.",
+            pybind11::call_guard<SignalsGuard>());
+    graph_db.def("Close", &GraphDB::Close, "Closes the DB.",
+                 pybind11::call_guard<SignalsGuard>())
         .def("CreateWriteTxn", &GraphDB::CreateWriteTxn,
              "Create a write transaction.\n",
              pybind11::arg("optimistic") = false,
-             pybind11::return_value_policy::move)
-        .def("CreateReadTxn", &GraphDB::CreateReadTxn, pybind11::return_value_policy::move)
-        .def("Flush", &GraphDB::Flush, "Flushes written data into disk.")
+             pybind11::return_value_policy::move,
+             pybind11::call_guard<SignalsGuard>())
+        .def("CreateReadTxn", &GraphDB::CreateReadTxn, pybind11::return_value_policy::move,
+             pybind11::call_guard<SignalsGuard>())
+        .def("Flush", &GraphDB::Flush, "Flushes written data into disk.",
+             pybind11::call_guard<SignalsGuard>())
         .def("DropAllData", &GraphDB::DropAllData,
              "Drop all the data in this DB.\n"
-             "All vertices, edges, labels and indexes will be dropped.")
+             "All vertices, edges, labels and indexes will be dropped.",
+             pybind11::call_guard<SignalsGuard>())
         .def("DropAllVertex", &GraphDB::DropAllVertex,
              "Drops all the vertices and edges in this DB.\n"
              "Labels and indexes (though index contents will be cleared due to "
-             "deletion of vertices) will be preserved.")
+             "deletion of vertices) will be preserved.",
+             pybind11::call_guard<SignalsGuard>())
         .def("EstimateNumVertices", &GraphDB::EstimateNumVertices,
              "Gets an estimation of the number of vertices.\n"
-             "This can be inaccurate if there were vertex removals.")
+             "This can be inaccurate if there were vertex removals.",
+             pybind11::call_guard<SignalsGuard>())
         .def("AddVertexLabel", &GraphDB::AddVertexLabel, "Add a vertex label.",
              pybind11::arg("label_name"), pybind11::arg("field_specs"),
-             pybind11::arg("options"))
+             pybind11::arg("options"),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "DeleteVertexLabel",
             [](GraphDB& db, const std::string& label) {
@@ -495,9 +590,11 @@ void register_python_api(pybind11::module& m) {
                 if (db.DeleteVertexLabel(label, &n)) return n;
                 throw lgraph::InputError("No such label.");
             },
-            "Deletes a vertex label", pybind11::arg("label_name"))
+            "Deletes a vertex label", pybind11::arg("label_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def("AlterEdgeLabelModifyConstraints", &GraphDB::AlterLabelModEdgeConstraints,
-             "Modify edge constraints", pybind11::arg("label_name"), pybind11::arg("constraints"))
+             "Modify edge constraints", pybind11::arg("label_name"), pybind11::arg("constraints"),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "AlterVertexLabelDelFields",
             [](GraphDB& db, const std::string& label, const std::vector<std::string>& del_fields) {
@@ -508,7 +605,8 @@ void register_python_api(pybind11::module& m) {
             "Delete fields from a vertex label\n"
             "label: name of the label\n"
             "del_fields: list of field names",
-            pybind11::arg("label"), pybind11::arg("del_fields"))
+            pybind11::arg("label"), pybind11::arg("del_fields"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AlterVertexLabelAddFields",
             [](GraphDB& db, const std::string& label, const std::vector<FieldSpec>& add_fields,
@@ -521,7 +619,8 @@ void register_python_api(pybind11::module& m) {
             "label: name of the label\n"
             "add_fields: list of FieldSpec for the newly added fields\n"
             "default_values: default values of the added fields",
-            pybind11::arg("label"), pybind11::arg("add_fields"), pybind11::arg("default_values"))
+            pybind11::arg("label"), pybind11::arg("add_fields"), pybind11::arg("default_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AlterVertexLabelModFields",
             [](GraphDB& db, const std::string& label, const std::vector<FieldSpec>& mod_fields) {
@@ -532,10 +631,12 @@ void register_python_api(pybind11::module& m) {
             "Modify fields in a vertex label\n"
             "label: name of the label\n"
             "mod_fields: list of FieldSpec for the modified fields",
-            pybind11::arg("label"), pybind11::arg("mod_fields"))
+            pybind11::arg("label"), pybind11::arg("mod_fields"),
+            pybind11::call_guard<SignalsGuard>())
         .def("AddEdgeLabel", &GraphDB::AddEdgeLabel, "Adds an edge label.",
              pybind11::arg("label_name"), pybind11::arg("field_specs"),
-             pybind11::arg("options"))
+             pybind11::arg("options"),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "DeleteEdgeLabel",
             [](GraphDB& db, const std::string& label) {
@@ -543,7 +644,8 @@ void register_python_api(pybind11::module& m) {
                 if (db.DeleteEdgeLabel(label, &n)) return n;
                 throw lgraph::InputError("No such label.");
             },
-            "Deletes an edge label", pybind11::arg("label_name"))
+            "Deletes an edge label", pybind11::arg("label_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AlterEdgeLabelDelFields",
             [](GraphDB& db, const std::string& label, const std::vector<std::string>& del_fields) {
@@ -554,7 +656,8 @@ void register_python_api(pybind11::module& m) {
             "Delete fields from an edge label\n"
             "label: name of the label\n"
             "del_fields: list of field names",
-            pybind11::arg("label"), pybind11::arg("del_fields"))
+            pybind11::arg("label"), pybind11::arg("del_fields"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AlterEdgeLabelAddFields",
             [](GraphDB& db, const std::string& label, const std::vector<FieldSpec>& add_fields,
@@ -567,7 +670,8 @@ void register_python_api(pybind11::module& m) {
             "label: name of the label\n"
             "add_fields: list of FieldSpec for the newly added fields\n"
             "default_values: default values of the added fields",
-            pybind11::arg("label"), pybind11::arg("add_fields"), pybind11::arg("default_values"))
+            pybind11::arg("label"), pybind11::arg("add_fields"), pybind11::arg("default_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AlterEdgeLabelModFields",
             [](GraphDB& db, const std::string& label, const std::vector<FieldSpec>& mod_fields) {
@@ -578,16 +682,22 @@ void register_python_api(pybind11::module& m) {
             "Modify fields in an edge label\n"
             "label: name of the label\n"
             "mod_fields: list of FieldSpec for the modified fields",
-            pybind11::arg("label"), pybind11::arg("mod_fields"))
+            pybind11::arg("label"), pybind11::arg("mod_fields"),
+            pybind11::call_guard<SignalsGuard>())
         .def("AddVertexIndex", &GraphDB::AddVertexIndex, "Adds an index.",
-             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("is_unique"))
+             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("is_unique"),
+             pybind11::call_guard<SignalsGuard>())
         .def("IsVertexIndexed", &GraphDB::IsVertexIndexed,
              "Tells whether the specified field is indexed.", pybind11::arg("label_name"),
-             pybind11::arg("field_name"))
+             pybind11::arg("field_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("DeleteVertexIndex", &GraphDB::DeleteVertexIndex, "Deletes the specified index.",
-             pybind11::arg("label_name"), pybind11::arg("field_name"))
-        .def("GetDescription", &GraphDB::GetDescription, "Gets description of the graph.")
-        .def("GetMaxSize", &GraphDB::GetMaxSize, "Gets maximum size of the graph.");
+             pybind11::arg("label_name"), pybind11::arg("field_name"),
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetDescription", &GraphDB::GetDescription, "Gets description of the graph.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetMaxSize", &GraphDB::GetMaxSize, "Gets maximum size of the graph.",
+             pybind11::call_guard<SignalsGuard>());
 
     pybind11::class_<Transaction>(
         m, "Transaction",
@@ -603,12 +713,14 @@ void register_python_api(pybind11::module& m) {
         "Transactions also track the created iterators and releases all the "
         "iterators during destruction.")
         .def(
-            "__enter__", [&](Transaction& r) -> Transaction& { return r; }, "Init Transaction.")
+            "__enter__", [&](Transaction& r) -> Transaction& { return r; }, "Init Transaction.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](Transaction& t, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { t.Abort(); },
-            "Aborts this transaction if it has not been committed.")
+            "Aborts this transaction if it has not been committed.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "VertexToString",
             [](Transaction& a, int64_t vid) {
@@ -616,7 +728,8 @@ void register_python_api(pybind11::module& m) {
                 return vit.ToString();
             },
             "Returns the string representation of the vertex specified by vid.",
-            pybind11::arg("vid"))
+            pybind11::arg("vid"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "DumpGraph",
             [](Transaction& a) {
@@ -626,19 +739,26 @@ void register_python_api(pybind11::module& m) {
                 }
                 std::cout << "}\n";
             },
-            "Prints the string representation of the WHOLE graph to stdout.")
-        .def("Commit", &Transaction::Commit)
-        .def("Abort", &Transaction::Abort)
-        .def("IsValid", &Transaction::IsValid)
-        .def("IsReadOnly", &Transaction::IsReadOnly)
+            "Prints the string representation of the WHOLE graph to stdout.",
+            pybind11::call_guard<SignalsGuard>())
+        .def("Commit", &Transaction::Commit,
+             pybind11::call_guard<SignalsGuard>())
+        .def("Abort", &Transaction::Abort,
+             pybind11::call_guard<SignalsGuard>())
+        .def("IsValid", &Transaction::IsValid,
+             pybind11::call_guard<SignalsGuard>())
+        .def("IsReadOnly", &Transaction::IsReadOnly,
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIterator", [](Transaction& a) { return a.GetVertexIterator(); },
             "Returns a VertexIterator pointing to the first vertex in the graph.",
-            pybind11::return_value_policy::move)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIterator", [](Transaction& a, int64_t id) { return a.GetVertexIterator(id); },
             "Returns a VertexIterator pointing to the vertex specified by vid.",
-            pybind11::arg("vid"), pybind11::return_value_policy::move)
+            pybind11::arg("vid"), pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIterator",
             [](Transaction& a, int64_t id, bool nearest) {
@@ -646,14 +766,16 @@ void register_python_api(pybind11::module& m) {
             },
             "Gets VertexIterator with vertex id.\n"
             "If nearest==true, go to the first vertex with id >= vid.",
-            pybind11::arg("vid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
+            pybind11::arg("vid"), pybind11::arg("nearest"), pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetOutEdgeIterator",
             [](Transaction& txn, EdgeUid euid, bool nearest) {
                 return txn.GetOutEdgeIterator(euid, nearest);
             },
             "Gets an OutEdgeIterator pointing to the edge identified by euid.",
-            pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
+            pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetOutEdgeIterator",
             [](Transaction& txn, int64_t src, int64_t dst, int16_t label_id) {
@@ -661,7 +783,8 @@ void register_python_api(pybind11::module& m) {
             },
             "Gets an OutEdgeIterator from src to dst with label specified by label_id.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
-            pybind11::return_value_policy::move)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetInEdgeIterator",
             [](Transaction& txn, EdgeUid euid, bool nearest) {
@@ -669,7 +792,8 @@ void register_python_api(pybind11::module& m) {
             },
             "Gets an InEdgeIterator pointing to the in-edge of vertex dst with "
             "EdgeUid==euid.",
-            pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move)
+            pybind11::arg("euid"), pybind11::arg("nearest"), pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetInEdgeIterator",
             [](Transaction& txn, int64_t src, int64_t dst, int16_t label_id) {
@@ -677,45 +801,58 @@ void register_python_api(pybind11::module& m) {
             },
             "Gets an InEdgeIterator from src to dst with label specified by label_id.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
-            pybind11::return_value_policy::move)
-        .def("GetNumVertexLabels", &Transaction::GetNumVertexLabels)
-        .def("GetNumEdgeLabels", &Transaction::GetNumEdgeLabels)
-        .def("ListVertexLabels", &Transaction::ListVertexLabels)
-        .def("ListEdgeLabels", &Transaction::ListEdgeLabels)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
+        .def("GetNumVertexLabels", &Transaction::GetNumVertexLabels,
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetNumEdgeLabels", &Transaction::GetNumEdgeLabels,
+             pybind11::call_guard<SignalsGuard>())
+        .def("ListVertexLabels", &Transaction::ListVertexLabels,
+             pybind11::call_guard<SignalsGuard>())
+        .def("ListEdgeLabels", &Transaction::ListEdgeLabels,
+             pybind11::call_guard<SignalsGuard>())
         .def("GetVertexLabelId", &Transaction::GetVertexLabelId,
              "Gets the vertex label id associated with this label.\n"
              "GraphDB assigns integer ids to each label. "
              "Using label id instead of label name can have performance benefits.",
-             pybind11::arg("label_name"))
+             pybind11::arg("label_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetEdgeLabelId", &Transaction::GetEdgeLabelId,
              "Gets the edge label id associated with this label.\n"
              "GraphDB assigns integer ids to each label. "
              "Using label id instead of label name can have performance benefits.",
-             pybind11::arg("label_name"))
+             pybind11::arg("label_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetVertexSchema", &Transaction::GetVertexSchema,
-             "Gets the schema specification of the vertex label.", pybind11::arg("label_name"))
+             "Gets the schema specification of the vertex label.", pybind11::arg("label_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetEdgeSchema", &Transaction::GetEdgeSchema,
-             "Gets the schema specification of the edge label.", pybind11::arg("label_name"))
+             "Gets the schema specification of the edge label.", pybind11::arg("label_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetVertexFieldId", &Transaction::GetVertexFieldId,
              "Gets the vertex field id associated with this (label_id, field_name).\n"
              "GraphDB assigns integer ids to each field of the same label. "
              "Using field id instead of field name can have performance benefits.",
-             pybind11::arg("label_id"), pybind11::arg("field_name"))
+             pybind11::arg("label_id"), pybind11::arg("field_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetVertexFieldIds", &Transaction::GetVertexFieldIds,
              "Gets the vertex field ids associated with this (label_id, [field_names]).\n"
              "GraphDB assigns integer ids to each field of the same label. "
              "Using field id instead of field name can have performance benefits.",
-             pybind11::arg("label_id"), pybind11::arg("field_names"))
+             pybind11::arg("label_id"), pybind11::arg("field_names"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetEdgeFieldId", &Transaction::GetEdgeFieldId,
              "Gets the edge field id associated with this (label_id, field_name).\n"
              "GraphDB assigns integer ids to each field of the same label. "
              "Using field id instead of field name can have performance benefits.",
-             pybind11::arg("label_id"), pybind11::arg("field_name"))
+             pybind11::arg("label_id"), pybind11::arg("field_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetEdgeFieldId", &Transaction::GetEdgeFieldIds,
              "Gets the edge field ids associated with this (label_id, field_names).\n"
              "GraphDB assigns integer ids to each field of the same label. "
              "Using field id instead of field name can have performance benefits.",
-             pybind11::arg("label_id"), pybind11::arg("field_names"))
+             pybind11::arg("label_id"), pybind11::arg("field_names"),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "AddVertex",
             [](Transaction& a, const std::string& label_name,
@@ -728,7 +865,8 @@ void register_python_api(pybind11::module& m) {
             "Returns the id of the newly added vertex.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("label_name"), pybind11::arg("field_names"),
-            pybind11::arg("field_value_strings"))
+            pybind11::arg("field_value_strings"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddVertex",
             [](Transaction& a, const std::string& label_name,
@@ -741,7 +879,8 @@ void register_python_api(pybind11::module& m) {
             "Returns the id of the newly added vertex.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("label_name"), pybind11::arg("field_names"),
-            pybind11::arg("field_values"))
+            pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddVertex",
             [](Transaction& a, size_t label_id, const std::vector<size_t>& field_ids,
@@ -752,7 +891,8 @@ void register_python_api(pybind11::module& m) {
             "values.\n"
             "Returns the id of the newly added vertex.\n"
             "Fields that are not in field_ids are considered null.",
-            pybind11::arg("label_id"), pybind11::arg("field_ids"), pybind11::arg("field_values"))
+            pybind11::arg("label_id"), pybind11::arg("field_ids"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddVertex",
             [](Transaction& a, const std::string& label_name, const pybind11::dict& value_dict) {
@@ -765,7 +905,8 @@ void register_python_api(pybind11::module& m) {
             "specified in value_dict.\n"
             "Returns the id of the newly added vertex.\n"
             "Fields that are not specified in the dict are considered null.",
-            pybind11::arg("label_name"), pybind11::arg("value_dict"))
+            pybind11::arg("label_name"), pybind11::arg("value_dict"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddEdge",
             [](Transaction& a, int64_t src, int64_t dst, const std::string& label_name,
@@ -778,7 +919,8 @@ void register_python_api(pybind11::module& m) {
             "Returns the id of the newly added edge.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_name"),
-            pybind11::arg("field_names"), pybind11::arg("field_value_strings"))
+            pybind11::arg("field_names"), pybind11::arg("field_value_strings"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddEdge",
             [](Transaction& a, int64_t src, int64_t dst, const std::string& label_name,
@@ -791,7 +933,8 @@ void register_python_api(pybind11::module& m) {
             "Returns the id of the newly added edge.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_name"),
-            pybind11::arg("field_names"), pybind11::arg("field_values"))
+            pybind11::arg("field_names"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddEdge",
             [](Transaction& a, int64_t src, int64_t dst, size_t label_id,
@@ -803,7 +946,8 @@ void register_python_api(pybind11::module& m) {
             "Returns the id of the newly added edge.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
-            pybind11::arg("field_ids"), pybind11::arg("field_values"))
+            pybind11::arg("field_ids"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "AddEdge",
             [](Transaction& a, int64_t src, int64_t dst, std::string& label,
@@ -818,7 +962,8 @@ void register_python_api(pybind11::module& m) {
             "Returns the id of the newly added edge.\n"
             "Fields that are not in value_dict are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_name"),
-            pybind11::arg("value_dict"))
+            pybind11::arg("value_dict"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "UpsertEdge",
             [](Transaction& a, int64_t src, int64_t dst, const std::string& label_name,
@@ -833,7 +978,8 @@ void register_python_api(pybind11::module& m) {
             "Returns True if the edge is created, False if the edge is updated.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_name"),
-            pybind11::arg("field_names"), pybind11::arg("field_value_strings"))
+            pybind11::arg("field_names"), pybind11::arg("field_value_strings"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "UpsertEdge",
             [](Transaction& a, int64_t src, int64_t dst, size_t label_id,
@@ -847,7 +993,8 @@ void register_python_api(pybind11::module& m) {
             "Returns True if the edge is created, False if the edge is updated.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_id"),
-            pybind11::arg("field_ids"), pybind11::arg("field_values"))
+            pybind11::arg("field_ids"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "UpsertEdge",
             [](Transaction& a, int64_t src, int64_t dst, const std::string& label_name,
@@ -862,7 +1009,8 @@ void register_python_api(pybind11::module& m) {
             "Returns True if the edge is created, False if the edge is updated.\n"
             "Fields that are not in field_names are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_name"),
-            pybind11::arg("field_names"), pybind11::arg("field_values"))
+            pybind11::arg("field_names"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "UpsertEdge",
             [](Transaction& a, int64_t src, int64_t dst, std::string& label,
@@ -879,9 +1027,11 @@ void register_python_api(pybind11::module& m) {
             "Returns True if the edge is created, False if the edge is updated.\n"
             "Fields that are not in value_dict are considered null.",
             pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("label_name"),
-            pybind11::arg("value_dict"))
+            pybind11::arg("value_dict"),
+            pybind11::call_guard<SignalsGuard>())
         .def("ListVertexIndexes", &Transaction::ListVertexIndexes,
-             "Gets the list of all the vertex indexes in the DB.")
+             "Gets the list of all the vertex indexes in the DB.",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIndexIterator",
             [](Transaction& a, size_t label_id, size_t field_id, const FieldData& key_start,
@@ -897,7 +1047,8 @@ void register_python_api(pybind11::module& m) {
             "key_start is a FieldData containing the minimum indexed value.\n"
             "key_end is a FieldData containing the maximum indexed value.",
             pybind11::arg("label_id"), pybind11::arg("field_id"), pybind11::arg("key_start"),
-            pybind11::arg("key_end"), pybind11::return_value_policy::move)
+            pybind11::arg("key_end"), pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIndexIterator",
             [](Transaction& a, size_t label_id, size_t field_id, const FieldData& value) {
@@ -909,7 +1060,8 @@ void register_python_api(pybind11::module& m) {
             "field_id specifies the id of the indexed field.\n"
             "value is a FieldData containing the indexed value.",
             pybind11::arg("label_id"), pybind11::arg("field_id"), pybind11::arg("value"),
-            pybind11::return_value_policy::move)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIndexIterator",
             [](Transaction& a, const std::string& label, const std::string& field,
@@ -928,7 +1080,8 @@ void register_python_api(pybind11::module& m) {
             "value.",
             pybind11::arg("label_name"), pybind11::arg("field_name"),
             pybind11::arg("key_start_string"), pybind11::arg("key_end_string"),
-            pybind11::return_value_policy::move)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIndexIterator",
             [](Transaction& a, const std::string& label, const std::string& field,
@@ -944,7 +1097,8 @@ void register_python_api(pybind11::module& m) {
             "key_start is a FieldData containing the minimum indexed value.\n"
             "key_end is a FieldData containing the maximum indexed value.",
             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("key_start"),
-            pybind11::arg("key_end"), pybind11::return_value_policy::move)
+            pybind11::arg("key_end"), pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIndexIterator",
             [](Transaction& a, const std::string& label, const std::string& field,
@@ -957,7 +1111,8 @@ void register_python_api(pybind11::module& m) {
             "field_id specifies the name of the indexed field.\n"
             "value_string is the string representation of the indexed value.",
             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("value_string"),
-            pybind11::return_value_policy::move)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexIndexIterator",
             [](Transaction& a, const std::string& label, const std::string& field,
@@ -970,10 +1125,12 @@ void register_python_api(pybind11::module& m) {
             "field_id specifies the name of the indexed field.\n"
             "value is a FieldData containing the indexed value.",
             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("value"),
-            pybind11::return_value_policy::move)
+            pybind11::return_value_policy::move,
+            pybind11::call_guard<SignalsGuard>())
         .def("IsVertexIndexed", &Transaction::IsVertexIndexed,
              "Tells whether the specified field is indexed.", pybind11::arg("label_name"),
-             pybind11::arg("field_name"))
+             pybind11::arg("field_name"),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexByUniqueIndex",
             [](Transaction& txn, const std::string& label_name, const std::string& field_name,
@@ -987,7 +1144,8 @@ void register_python_api(pybind11::module& m) {
             "field_value_string specifies the string representation of the "
             "indexed field value.",
             pybind11::arg("label_name"), pybind11::arg("field_name"),
-            pybind11::arg("field_value_string"))
+            pybind11::arg("field_value_string"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexByUniqueIndex",
             [](Transaction& txn, const std::string& label_name, const std::string& field_name,
@@ -1000,7 +1158,8 @@ void register_python_api(pybind11::module& m) {
             "label_name specifies the name of the indexed label.\n"
             "field_name specifies the name of the indexed field.\n"
             "field_value specifies the indexed field value.",
-            pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("field_value"))
+            pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("field_value"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetVertexByUniqueIndex",
             [](Transaction& txn, size_t label_id, size_t field_id, const FieldData& field_value) {
@@ -1011,7 +1170,8 @@ void register_python_api(pybind11::module& m) {
             "label_id specifies the id of the indexed label.\n"
             "field_id specifies the id of the indexed field.\n"
             "field_value is a FieldData specifying the indexed field value.",
-            pybind11::arg("label_id"), pybind11::arg("field_id"), pybind11::arg("field_value"));
+            pybind11::arg("label_id"), pybind11::arg("field_id"), pybind11::arg("field_value"),
+            pybind11::call_guard<SignalsGuard>());
 
     // Vertex iterator
     pybind11::class_<VertexIterator>(
@@ -1020,90 +1180,109 @@ void register_python_api(pybind11::module& m) {
         "through multiple vertices.\n"
         "Vertexes are sorted in ascending order of the their ids.")
         .def(
-            "__enter__", [&](VertexIterator& r) -> VertexIterator& { return r; }, "Init iterator.")
+            "__enter__", [&](VertexIterator& r) -> VertexIterator& { return r; }, "Init iterator.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](VertexIterator& r, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { r.Close(); },
-            "Delete iterator")
-        .def("Next", &VertexIterator::Next, "Goes to the next vertex with id>{current_vid}.")
+            "Delete iterator",
+            pybind11::call_guard<SignalsGuard>())
+        .def("Next", &VertexIterator::Next, "Goes to the next vertex with id>{current_vid}.",
+             pybind11::call_guard<SignalsGuard>())
         .def("Goto", &VertexIterator::Goto,
              "Goes to the vertex specified by vid.\n"
              "If nearest==true, go to the nearest vertex with id>=vid.",
-             pybind11::arg("vid"), pybind11::arg("nearest"))
+             pybind11::arg("vid"), pybind11::arg("nearest"),
+             pybind11::call_guard<SignalsGuard>())
         .def("GetId", &VertexIterator::GetId,
              "Gets the integer id of this vertex.\n"
-             "GraphDB assigns an integer id for each vertex.")
+             "GraphDB assigns an integer id for each vertex.",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetOutEdgeIterator", [](VertexIterator& vit) { return vit.GetOutEdgeIterator(); },
             "Gets an OutEgdeIterator pointing to the first out-going edge of "
-            "this edge.")
+            "this edge.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetOutEdgeIterator",
             [](VertexIterator& vit, const EdgeUid& euid, bool nearest) {
                 return vit.GetOutEdgeIterator(euid, nearest);
             },
             "Gets an OutEgdeIterator pointing to the out-edge of this vertex "
-            "with EdgeUid==euid.")
+            "with EdgeUid==euid.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetInEdgeIterator", [](VertexIterator& vit) { return vit.GetInEdgeIterator(); },
             "Gets an InEgdeIterator pointing to the first in-coming edge of this "
-            "edge.")
+            "edge.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetInEdgeIterator",
             [](VertexIterator& vit, const EdgeUid euid, bool nearest) {
                 return vit.GetInEdgeIterator(euid, nearest);
             },
             "Gets an InEgdeIterator pointing to the in-edge of this vertex with "
-            "EdgeUid==euid.")
-        .def("IsValid", &VertexIterator::IsValid)
+            "EdgeUid==euid.",
+            pybind11::call_guard<SignalsGuard>())
+        .def("IsValid", &VertexIterator::IsValid,
+             pybind11::call_guard<SignalsGuard>())
         .def("GetLabel", &VertexIterator::GetLabel, "Gets the label name of current vertex.",
-             pybind11::return_value_policy::copy)
-        .def("GetLabelId", &VertexIterator::GetLabelId, "Gets the label id of current vertex.")
+             pybind11::return_value_policy::copy,
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetLabelId", &VertexIterator::GetLabelId, "Gets the label id of current vertex.",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetField",
             [](VertexIterator& vit, const std::string& field_name) {
                 return FieldDataToPyObj(vit.GetField(field_name));
             },
             "Gets the field value of the field specified by field_name.",
-            pybind11::arg("field_name"))
+            pybind11::arg("field_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__getitem__",
             [](VertexIterator& vit, const std::string& field_name) {
                 return FieldDataToPyObj(vit.GetField(field_name));
             },
             "Gets the field value of the field specified by field_name.",
-            pybind11::arg("field_name"))
+            pybind11::arg("field_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetField",
             [](VertexIterator& vit, size_t field_id) {
                 return FieldDataToPyObj(vit.GetField(field_id));
             },
-            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"))
+            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__getitem__",
             [](VertexIterator& vit, size_t field_id) {
                 return FieldDataToPyObj(vit.GetField(field_id));
             },
-            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"))
+            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetFields",
             [](VertexIterator& vit, const std::vector<std::string>& field_names) {
                 return FieldDataVectorToPyList(vit.GetFields(field_names));
             },
             "Gets the field values of the fields specified by field_names.",
-            pybind11::arg("field_names"))
+            pybind11::arg("field_names"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetFields",
             [](VertexIterator& vit, const std::vector<size_t>& field_ids) {
                 return FieldDataVectorToPyList(vit.GetFields(field_ids));
             },
             "Gets the field values of the fields specified by field_ids.",
-            pybind11::arg("field_ids"))
+            pybind11::arg("field_ids"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetAllFields",
             [](VertexIterator& vit) { return FieldDataMapToPyDict(vit.GetAllFields()); },
-            "Gets all the field values and return as a dict.")
+            "Gets all the field values and return as a dict.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetField",
             [](VertexIterator& vit, const std::string& field_name,
@@ -1112,7 +1291,8 @@ void register_python_api(pybind11::module& m) {
                 return vit.SetField(field_name, field_value);
             },
             "Sets the specified field", pybind11::arg("field_name"),
-            pybind11::arg("field_value_object"))
+            pybind11::arg("field_value_object"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](VertexIterator& vit, const std::vector<std::string>& field_names,
@@ -1123,7 +1303,8 @@ void register_python_api(pybind11::module& m) {
             "string representation.\n"
             "field_names specifies the names of the fields to set.\n"
             "field_value_strings are the field values in string representation.",
-            pybind11::arg("field_names"), pybind11::arg("field_value_strings"))
+            pybind11::arg("field_names"), pybind11::arg("field_value_strings"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](VertexIterator& vit, const std::vector<std::string>& field_names,
@@ -1133,7 +1314,8 @@ void register_python_api(pybind11::module& m) {
             "Sets the fields specified by field_names with new values.\n"
             "field_names specifies the names of the fields to set.\n"
             "field_values are the FieldData containing field values.",
-            pybind11::arg("field_names"), pybind11::arg("field_values"))
+            pybind11::arg("field_names"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](VertexIterator& vit, const pybind11::dict& value_dict) {
@@ -1144,7 +1326,8 @@ void register_python_api(pybind11::module& m) {
             },
             "Sets the fields with values as specified in value_dict.\n"
             "value_dict specifies the field_name:value dict.",
-            pybind11::arg("value_dict"))
+            pybind11::arg("value_dict"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](VertexIterator& vit, const std::vector<size_t>& field_ids,
@@ -1154,7 +1337,8 @@ void register_python_api(pybind11::module& m) {
             "Sets the fields specified by field_ids with field values.\n"
             "field_ids specifies the ids of the fields to set.\n"
             "field_values are the field values to be set.",
-            pybind11::arg("field_ids"), pybind11::arg("field_values"))
+            pybind11::arg("field_ids"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "ListSrcVids",
             [](VertexIterator& vit, size_t n_limit) {
@@ -1166,7 +1350,8 @@ void register_python_api(pybind11::module& m) {
             "n_limit specifies the maximum number of src vids to return.\n"
             "Returns a tuple containing a list of vids and a bool value "
             "indicating whether the limit is exceeded.",
-            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max())
+            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max(),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "ListDstVids",
             [](VertexIterator& vit, size_t n_limit) {
@@ -1178,7 +1363,8 @@ void register_python_api(pybind11::module& m) {
             "n_limit specifies the maximum number of vids to return.\n"
             "Returns a tuple containing a list of vids and a bool value "
             "indicating whether the limit is exceeded.",
-            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max())
+            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max(),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetNumInEdges",
             [](VertexIterator& vit, size_t n_limit) {
@@ -1190,7 +1376,8 @@ void register_python_api(pybind11::module& m) {
             "n_limit specifies the maximum number of edges to scan.\n"
             "Returns a tuple containing the number of in-edges and a bool value "
             "indicating whether the limit is exceeded.",
-            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max())
+            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max(),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetNumOutEdges",
             [](VertexIterator& vit, size_t n_limit) {
@@ -1202,7 +1389,8 @@ void register_python_api(pybind11::module& m) {
             "n_limit specifies the maximum number of vids to scan."
             "Returns a tuple containing the number of out-edges and a bool value "
             "indicating whether the limit is exceeded.",
-            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max())
+            pybind11::arg("n_limit") = std::numeric_limits<size_t>::max(),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "Delete",
             [](::lgraph_api::VertexIterator& vit) {
@@ -1211,10 +1399,12 @@ void register_python_api(pybind11::module& m) {
                 return std::make_tuple(ni, no);
             },
             "Deletes current vertex.\n"
-            "The iterator will point to the next vertex if there is any.")
+            "The iterator will point to the next vertex if there is any.",
+            pybind11::call_guard<SignalsGuard>())
         .def("ToString", &VertexIterator::ToString,
              "Returns the string representation of current vertex, including "
-             "properties and edges.");
+             "properties and edges.",
+             pybind11::call_guard<SignalsGuard>());
 
     // OutEdgeIterator
     pybind11::class_<OutEdgeIterator>(
@@ -1224,70 +1414,88 @@ void register_python_api(pybind11::module& m) {
         "Out-going edges are sorted in (src, lid, dst, eid) order.")
         .def(
             "__enter__", [&](OutEdgeIterator& r) -> OutEdgeIterator& { return r; },
-            "Init iterator.")
+            "Init iterator.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](OutEdgeIterator& r, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { r.Close(); },
-            "Delete iterator")
+            "Delete iterator",
+            pybind11::call_guard<SignalsGuard>())
         .def("Goto", &OutEdgeIterator::Goto, "Goes to the out edge specified by euid.\n",
-             pybind11::arg("euid"), pybind11::arg("nearest") = false)
+             pybind11::arg("euid"), pybind11::arg("nearest") = false,
+             pybind11::call_guard<SignalsGuard>())
         .def("Next", &OutEdgeIterator::Next,
              "Goes to the next out edge from current source vertex.\n"
-             "If there is no more out edge left, the iterator becomes invalid.")
-        .def("IsValid", &OutEdgeIterator::IsValid, "Tells whether the iterator is valid.")
-        .def("GetUid", &OutEdgeIterator::GetUid, "Returns the EdgeUid of the edge.")
-        .def("GetSrc", &OutEdgeIterator::GetSrc, "Returns the id of the source vertex.")
-        .def("GetDst", &OutEdgeIterator::GetDst, "Returns the id of the destination vertex.")
+             "If there is no more out edge left, the iterator becomes invalid.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("IsValid", &OutEdgeIterator::IsValid, "Tells whether the iterator is valid.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetUid", &OutEdgeIterator::GetUid, "Returns the EdgeUid of the edge.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetSrc", &OutEdgeIterator::GetSrc, "Returns the id of the source vertex.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetDst", &OutEdgeIterator::GetDst, "Returns the id of the destination vertex.",
+             pybind11::call_guard<SignalsGuard>())
         .def("GetEdgeId", &OutEdgeIterator::GetEdgeId,
              "Returns the id of current edge. Edge id is unique across the same "
-             "(src, dst) set.")
+             "(src, dst) set.",
+             pybind11::call_guard<SignalsGuard>())
         .def("GetLabel", &OutEdgeIterator::GetLabel, "Returns the name of the edge label.",
-             pybind11::return_value_policy::copy)
-        .def("GetLabelId", &OutEdgeIterator::GetLabelId, "Returns the id of the edge label.")
+             pybind11::return_value_policy::copy,
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetLabelId", &OutEdgeIterator::GetLabelId, "Returns the id of the edge label.",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetField",
             [](OutEdgeIterator& eit, const std::string& field_name) {
                 return FieldDataToPyObj(eit.GetField(field_name));
             },
             "Gets the field value of the field specified by field_name.",
-            pybind11::arg("field_name"))
+            pybind11::arg("field_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__getitem__",
             [](OutEdgeIterator& eit, const std::string& field_name) {
                 return FieldDataToPyObj(eit.GetField(field_name));
             },
             "Gets the field value of the field specified by field_name.",
-            pybind11::arg("field_name"))
+            pybind11::arg("field_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetField",
             [](OutEdgeIterator& eit, size_t field_id) {
                 return FieldDataToPyObj(eit.GetField(field_id));
             },
-            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"))
+            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__getitem__",
             [](OutEdgeIterator& eit, size_t field_id) {
                 return FieldDataToPyObj(eit.GetField(field_id));
             },
-            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"))
+            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetFields",
             [](OutEdgeIterator& eit, const std::vector<std::string>& field_names) {
                 return FieldDataVectorToPyList(eit.GetFields(field_names));
             },
             "Gets field values of the fields specified by field_names.",
-            pybind11::arg("field_names"))
+            pybind11::arg("field_names"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetFields",
             [](OutEdgeIterator& eit, const std::vector<size_t>& field_ids) {
                 return FieldDataVectorToPyList(eit.GetFields(field_ids));
             },
-            "Gets field values of the fields specified by field_ids.", pybind11::arg("field_ids"))
+            "Gets field values of the fields specified by field_ids.", pybind11::arg("field_ids"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetAllFields",
             [](OutEdgeIterator& vit) { return FieldDataMapToPyDict(vit.GetAllFields()); },
-            "Gets all the field values and return as a dict.")
+            "Gets all the field values and return as a dict.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetField",
             [](OutEdgeIterator& eit, const std::string& field_name,
@@ -1296,7 +1504,8 @@ void register_python_api(pybind11::module& m) {
                 return eit.SetField(field_name, field_value);
             },
             "Sets the specified field", pybind11::arg("field_name"),
-            pybind11::arg("field_value_object"))
+            pybind11::arg("field_value_object"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](OutEdgeIterator& eit, const std::vector<std::string>& field_names,
@@ -1307,7 +1516,8 @@ void register_python_api(pybind11::module& m) {
             "string representation.\n"
             "field_names specifies the names of the fields to set.\n"
             "field_value_strings are the field values in string representation.",
-            pybind11::arg("field_names"), pybind11::arg("field_value_strings"))
+            pybind11::arg("field_names"), pybind11::arg("field_value_strings"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](OutEdgeIterator& eit, const std::vector<std::string>& field_names,
@@ -1318,7 +1528,8 @@ void register_python_api(pybind11::module& m) {
             "string representation.\n"
             "field_names specifies the names of the fields to set.\n"
             "field_values are FieldData containing the field values.",
-            pybind11::arg("field_names"), pybind11::arg("field_values"))
+            pybind11::arg("field_names"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](OutEdgeIterator& eit, const pybind11::dict& value_dict) {
@@ -1329,7 +1540,8 @@ void register_python_api(pybind11::module& m) {
             },
             "Sets the field values as specified in value_dict.\n"
             "value_dict specifies the field_name:value dictionary.",
-            pybind11::arg("value_dict"))
+            pybind11::arg("value_dict"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](OutEdgeIterator& eit, const std::vector<size_t>& field_ids,
@@ -1339,12 +1551,15 @@ void register_python_api(pybind11::module& m) {
             "Sets the fields specified by field_ids with field values.\n"
             "field_ids specifies the ids of the fields to set.\n"
             "field_values are the field values to be set.",
-            pybind11::arg("field_ids"), pybind11::arg("field_values"))
+            pybind11::arg("field_ids"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def("Delete", &OutEdgeIterator::Delete,
              "Deletes current edge.\n"
-             "The iterator will point to the next out edge if there is any.")
+             "The iterator will point to the next out edge if there is any.",
+             pybind11::call_guard<SignalsGuard>())
         .def("ToString", &OutEdgeIterator::ToString,
-             "Returns the string representation of current edge.");
+             "Returns the string representation of current edge.",
+             pybind11::call_guard<SignalsGuard>());
 
     // InEdgeIterator
     pybind11::class_<InEdgeIterator>(
@@ -1353,70 +1568,88 @@ void register_python_api(pybind11::module& m) {
         "the destination vertex.\n"
         "Incoming edges are sorted in (dst, label, src, eid) order.")
         .def(
-            "__enter__", [&](InEdgeIterator& r) -> InEdgeIterator& { return r; }, "Init iterator.")
+            "__enter__", [&](InEdgeIterator& r) -> InEdgeIterator& { return r; }, "Init iterator.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](InEdgeIterator& r, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { r.Close(); },
-            "Delete iterator")
+            "Delete iterator",
+            pybind11::call_guard<SignalsGuard>())
         .def("Goto", &InEdgeIterator::Goto, "Goes to the in edge specified by euid.\n",
-             pybind11::arg("euid"), pybind11::arg("nearest"))
+             pybind11::arg("euid"), pybind11::arg("nearest"),
+             pybind11::call_guard<SignalsGuard>())
         .def("Next", &InEdgeIterator::Next,
              "Goes to the next in edge to current destination vertex.\n"
-             "If there is no more in edge left, the iterator becomes invalid.")
-        .def("IsValid", &InEdgeIterator::IsValid, "Tells whether the iterator is valid.")
-        .def("GetUid", &InEdgeIterator::GetUid, "Returns the EdgeUid of the edge.")
-        .def("GetSrc", &InEdgeIterator::GetSrc, "Returns the id of the source vertex.")
-        .def("GetDst", &InEdgeIterator::GetDst, "Returns the id of the destination vertex.")
+             "If there is no more in edge left, the iterator becomes invalid.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("IsValid", &InEdgeIterator::IsValid, "Tells whether the iterator is valid.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetUid", &InEdgeIterator::GetUid, "Returns the EdgeUid of the edge.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetSrc", &InEdgeIterator::GetSrc, "Returns the id of the source vertex.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetDst", &InEdgeIterator::GetDst, "Returns the id of the destination vertex.",
+             pybind11::call_guard<SignalsGuard>())
         .def("GetEdgeId", &InEdgeIterator::GetEdgeId,
              "Returns the id of current edge. Edge id is unique across the same "
-             "(src, dst) set.")
+             "(src, dst) set.",
+             pybind11::call_guard<SignalsGuard>())
         .def("GetLabel", &InEdgeIterator::GetLabel, "Returns the name of the edge label.",
-             pybind11::return_value_policy::copy)
-        .def("GetLabelId", &InEdgeIterator::GetLabelId, "Returns the id of the edge label.")
+             pybind11::return_value_policy::copy,
+             pybind11::call_guard<SignalsGuard>())
+        .def("GetLabelId", &InEdgeIterator::GetLabelId, "Returns the id of the edge label.",
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "GetField",
             [](InEdgeIterator& eit, const std::string& field_name) {
                 return FieldDataToPyObj(eit.GetField(field_name));
             },
             "Gets the field value of the field specified by field_name.",
-            pybind11::arg("field_name"))
+            pybind11::arg("field_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__getitem__",
             [](InEdgeIterator& eit, const std::string& field_name) {
                 return FieldDataToPyObj(eit.GetField(field_name));
             },
             "Gets the field value of the field specified by field_name.",
-            pybind11::arg("field_name"))
+            pybind11::arg("field_name"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetField",
             [](InEdgeIterator& eit, size_t field_id) {
                 return FieldDataToPyObj(eit.GetField(field_id));
             },
-            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"))
+            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__getitem__",
             [](InEdgeIterator& eit, size_t field_id) {
                 return FieldDataToPyObj(eit.GetField(field_id));
             },
-            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"))
+            "Gets the field value of the field specified by field_id.", pybind11::arg("field_id"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetFields",
             [](InEdgeIterator& eit, const std::vector<std::string>& field_names) {
                 return FieldDataVectorToPyList(eit.GetFields(field_names));
             },
             "Gets field values of the fields specified by field_names.",
-            pybind11::arg("field_names"))
+            pybind11::arg("field_names"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetFields",
             [](InEdgeIterator& eit, const std::vector<size_t>& field_ids) {
                 return FieldDataVectorToPyList(eit.GetFields(field_ids));
             },
-            "Gets field values of the fields specified by field_ids.", pybind11::arg("field_ids"))
+            "Gets field values of the fields specified by field_ids.", pybind11::arg("field_ids"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "GetAllFields",
             [](InEdgeIterator& vit) { return FieldDataMapToPyDict(vit.GetAllFields()); },
-            "Gets all the field values and return as a dict.")
+            "Gets all the field values and return as a dict.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetField",
             [](InEdgeIterator& eit, const std::string& field_name,
@@ -1425,7 +1658,8 @@ void register_python_api(pybind11::module& m) {
                 return eit.SetField(field_name, field_value);
             },
             "Sets the specified field", pybind11::arg("field_name"),
-            pybind11::arg("field_value_object"))
+            pybind11::arg("field_value_object"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](InEdgeIterator& eit, const std::vector<std::string>& field_names,
@@ -1436,7 +1670,8 @@ void register_python_api(pybind11::module& m) {
             "string representation.\n"
             "field_names specifies the names of the fields to set.\n"
             "field_value_strings are the field values in string representation.",
-            pybind11::arg("field_names"), pybind11::arg("field_value_strings"))
+            pybind11::arg("field_names"), pybind11::arg("field_value_strings"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](InEdgeIterator& vit, const std::vector<std::string>& field_names,
@@ -1446,7 +1681,8 @@ void register_python_api(pybind11::module& m) {
             "Sets the fields specified by field_names with new values.\n"
             "field_names specifies the names of the fields to set.\n"
             "field_values are the FieldData containing field values.",
-            pybind11::arg("field_names"), pybind11::arg("field_values"))
+            pybind11::arg("field_names"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](InEdgeIterator& vit, const pybind11::dict& value_dict) {
@@ -1457,7 +1693,8 @@ void register_python_api(pybind11::module& m) {
             },
             "Sets the fields with values as specified in value_dict.\n"
             "value_dict specifies the field_name:value dict.",
-            pybind11::arg("value_dict"))
+            pybind11::arg("value_dict"),
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "SetFields",
             [](InEdgeIterator& eit, const std::vector<size_t>& field_ids,
@@ -1467,12 +1704,15 @@ void register_python_api(pybind11::module& m) {
             "Sets the fields specified by field_ids with field values.\n"
             "field_ids specifies the ids of the fields to set.\n"
             "field_values are the field values to be set.",
-            pybind11::arg("field_ids"), pybind11::arg("field_values"))
+            pybind11::arg("field_ids"), pybind11::arg("field_values"),
+            pybind11::call_guard<SignalsGuard>())
         .def("Delete", &InEdgeIterator::Delete,
              "Deletes current edge.\n"
-             "The iterator will point to the next out edge if there is any.")
+             "The iterator will point to the next out edge if there is any.",
+             pybind11::call_guard<SignalsGuard>())
         .def("ToString", &InEdgeIterator::ToString,
-             "Returns the string representation of current edge.");
+             "Returns the string representation of current edge.",
+             pybind11::call_guard<SignalsGuard>());
 
     // VertexIndexIterator
     pybind11::class_<VertexIndexIterator>(
@@ -1481,23 +1721,29 @@ void register_python_api(pybind11::module& m) {
         "Vertex ids are sorted in ascending order of (index_value, vertex_id).")
         .def(
             "__enter__", [&](VertexIndexIterator& r) -> VertexIndexIterator& { return r; },
-            "Init iterator.")
+            "Init iterator.",
+            pybind11::call_guard<SignalsGuard>())
         .def(
             "__exit__",
             [&](VertexIndexIterator& r, pybind11::object exc_type, pybind11::object exc_value,
                 pybind11::object traceback) { r.Close(); },
-            "Delete iterator")
+            "Delete iterator",
+            pybind11::call_guard<SignalsGuard>())
         .def("Next", &VertexIndexIterator::Next,
              "Goes to the next indexed vid.\n"
              "If there is no more vertex within the specified key range, the "
-             "iterator becomes invalid.")
-        .def("IsValid", &VertexIndexIterator::IsValid, "Tells whether this iterator is valid.")
+             "iterator becomes invalid.",
+             pybind11::call_guard<SignalsGuard>())
+        .def("IsValid", &VertexIndexIterator::IsValid, "Tells whether this iterator is valid.",
+             pybind11::call_guard<SignalsGuard>())
         .def("GetIndexValue", &VertexIndexIterator::GetIndexValue,
              "Gets the indexed value.\n"
              "Since vertex ids are sorted in (index_value, vertex_id) order, "
-             "calling Next() may change the current indexed value.")
+             "calling Next() may change the current indexed value.",
+             pybind11::call_guard<SignalsGuard>())
         .def("GetVid", &VertexIndexIterator::GetVid,
-             "Gets the id of the vertex currently pointed to.");
+             "Gets the id of the vertex currently pointed to.",
+             pybind11::call_guard<SignalsGuard>());
     //====================================
     // Register SigSpec
     //====================================
@@ -1524,7 +1770,8 @@ void register_python_api(pybind11::module& m) {
         .def_readwrite("type", &lgraph_api::Parameter::type, "type of the parameter");
 
     pybind11::class_<lgraph_api::SigSpec>(m, "SigSpec")
-        .def(pybind11::init<const std::vector<Parameter>&, const std::vector<Parameter>&>())
+        .def(pybind11::init<const std::vector<Parameter>&, const std::vector<Parameter>&>(),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "serialize",
             [](lgraph_api::SigSpec& sig_spec) -> std::string {
@@ -1536,7 +1783,8 @@ void register_python_api(pybind11::module& m) {
                 buffer.DetachBuf((void **)&owned_buffer, &size);
                 return {owned_buffer, size };
             },
-            "Serialize SigSpec into string")
+            "Serialize SigSpec into string",
+            pybind11::call_guard<SignalsGuard>())
         .def_readwrite("input_list", &lgraph_api::SigSpec::input_list,
                        "input parameter list of the signature")
         .def_readwrite("result_list", &lgraph_api::SigSpec::result_list,
@@ -1554,10 +1802,13 @@ void register_lgraph_plugin(pybind11::module& m) {
                 boost::interprocess::message_queue mq(boost::interprocess::open_only,
                                                       pipename.c_str());
                 lgraph::python_plugin::TaskInput input;
-                input.ReadFromMessageQueue(mq, 0);
+                while (!input.ReadFromMessageQueue(mq, 100)) {
+                    SignalsGuard signalsGuard;
+                }
                 return input;
             },
-            "Read TaskInput from message queue")
+            "Read TaskInput from message queue",
+            pybind11::call_guard<SignalsGuard>())
         .def_readonly("user", &lgraph::python_plugin::TaskInput::user, "user to be used")
         .def_readonly("graph", &lgraph::python_plugin::TaskInput::graph, "Graph to be used")
         .def_readonly("plugin_dir", &lgraph::python_plugin::TaskInput::plugin_dir,
@@ -1566,7 +1817,8 @@ void register_lgraph_plugin(pybind11::module& m) {
         .def(
             "get_input",
             [](const lgraph::python_plugin::TaskInput& in) { return pybind11::bytes(in.input); },
-            "The input byte array")
+            "The input byte array",
+            pybind11::call_guard<SignalsGuard>())
         .def_readonly("read_only", &lgraph::python_plugin::TaskInput::read_only);
 
     pybind11::class_<lgraph::python_plugin::TaskOutput>(m, "TaskOutput")
@@ -1581,7 +1833,8 @@ void register_lgraph_plugin(pybind11::module& m) {
                 out.output = output;
                 out.WriteToMessageQueue(mq);
             },
-            "Write TaskOutput to stdout");
+            "Write TaskOutput to stdout",
+            pybind11::call_guard<SignalsGuard>());
 }
 
 class EdgeListWriter {
@@ -1625,9 +1878,11 @@ void register_gemini_adapter(pybind11::module& m) {
              "Open a new file for writing out a list of edges.\n"
              "`binary` denotes whether the output should be in binary (true) or "
              "text (false) format.",
-             pybind11::arg("path"), pybind11::arg("binary") = true)
+             pybind11::arg("path"), pybind11::arg("binary") = true,
+             pybind11::call_guard<SignalsGuard>())
         .def("EmitEdge", &EdgeListWriter::EmitEdge, "Append an edge to the opened file.",
-             pybind11::arg("src"), pybind11::arg("dst"))
+             pybind11::arg("src"), pybind11::arg("dst"),
+             pybind11::call_guard<SignalsGuard>())
         .def(
             "EmitWeightedEdge",
             [](EdgeListWriter& self, size_t src, size_t dst, const pybind11::object& weight) {
@@ -1643,8 +1898,10 @@ void register_gemini_adapter(pybind11::module& m) {
             },
             "Append a weighted edge to the opened file.\n"
             "Only {bool, int, float} weights are supported.",
-            pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("weight"))
-        .def("Close", &EdgeListWriter::Close, "Close the edge list file.");
+            pybind11::arg("src"), pybind11::arg("dst"), pybind11::arg("weight"),
+            pybind11::call_guard<SignalsGuard>())
+        .def("Close", &EdgeListWriter::Close, "Close the edge list file.",
+             pybind11::call_guard<SignalsGuard>());
 }
 
 // Declare the python api with pybind11

@@ -331,6 +331,21 @@ class RpcClient {
                     double timeout = 0, const std::string& url = "");
 
     /**
+     * @brief   Execute a cypher query to leader
+     *
+     * @param [out] result      The result.
+     * @param [in]  cypher      inquire statement.
+     * @param [in]  graph       (Optional) the graph to query.
+     * @param [in]  json_format (Optional) Returns the format， true is json，Otherwise, binary
+     *                          format.
+     * @param [in]  timeout     (Optional) Maximum execution time, overruns will be interrupted.
+     * @returns True if it succeeds, false if it fails.
+     */
+    bool CallCypherToLeader(std::string& result, const std::string& cypher,
+                    const std::string& graph = "default", bool json_format = true,
+                    double timeout = 0);
+
+    /**
      * @brief   Execute a gql query
      *
      * @param [out] result      The result.
@@ -347,7 +362,22 @@ class RpcClient {
                     double timeout = 0, const std::string& url = "");
 
     /**
-     * @brief   Execute a built-in procedure
+     * @brief   Execute a gql query to leader
+     *
+     * @param [out] result      The result.
+     * @param [in]  gql         inquire statement.
+     * @param [in]  graph       (Optional) the graph to query.
+     * @param [in]  json_format (Optional) Returns the format， true is json，Otherwise, binary
+     *                          format.
+     * @param [in]  timeout     (Optional) Maximum execution time, overruns will be interrupted.
+     * @returns True if it succeeds, false if it fails.
+     */
+    bool CallGqlToLeader(std::string& result, const std::string& gql,
+                 const std::string& graph = "default", bool json_format = true,
+                 double timeout = 0);
+
+    /**
+     * @brief   Execute a user-defined procedure
      *
      * @param [out] result              The result.
      * @param [in]  procedure_type      the procedure type, currently supported CPP and PY.
@@ -358,7 +388,7 @@ class RpcClient {
      * @param [in]  in_process          (Optional) support in future.
      * @param [in]  graph               (Optional) the graph to query.
      * @param [in]  json_format         (Optional) Returns the format， true is json，Otherwise,
-     * binary format.
+     *                                  binary format.
      * @param [in]  url                 (Optional) Node address of calling procedure.
      * @returns True if it succeeds, false if it fails.
      */
@@ -367,6 +397,26 @@ class RpcClient {
                        double procedure_time_out = 0.0, bool in_process = false,
                        const std::string& graph = "default", bool json_format = true,
                        const std::string& url = "");
+
+    /**
+     * @brief   Execute a user-defined procedure to leader
+     *
+     * @param [out] result              The result.
+     * @param [in]  procedure_type      the procedure type, currently supported CPP and PY.
+     * @param [in]  procedure_name      procedure name.
+     * @param [in]  param               the execution parameters.
+     * @param [in]  procedure_time_out  (Optional) Maximum execution time, overruns will be
+     *                                  interrupted.
+     * @param [in]  in_process          (Optional) support in future.
+     * @param [in]  graph               (Optional) the graph to query.
+     * @param [in]  json_format         (Optional) Returns the format， true is json，Otherwise,
+     *                                  binary format.
+     * @returns True if it succeeds, false if it fails.
+     */
+    bool CallProcedureToLeader(std::string& result, const std::string& procedure_type,
+                       const std::string& procedure_name, const std::string& param,
+                       double procedure_time_out = 0.0, bool in_process = false,
+                       const std::string& graph = "default", bool json_format = true);
 
     /**
      * @brief   Load a built-in procedure

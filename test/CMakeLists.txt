@@ -54,6 +54,7 @@ add_executable(unit_test
         test_import_parse_delimiter.cpp
         test_import_planner.cpp
         test_import_v2.cpp
+        test_import_v3.cpp
         test_type_convert.cpp
         test_json_convert.cpp
         test_lgraph.cpp
@@ -114,9 +115,9 @@ add_executable(unit_test
         test_olap_vertex_traversal.cpp
         test_lgraph_log.cpp
         test_detach_property.cpp
-        test_ha.cpp
+        test_ha_base.cpp
         test_global_ha_config.cpp
-        test_ha_consistency.cpp
+        test_ha.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
 )

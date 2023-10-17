@@ -3,11 +3,6 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
-# specifies the path of the object storage where the installation package resides
-ARG FILEPATH
-# specifies installation package name for tugraph
-ARG FILENAME
-
 RUN yum -x filesystem update -y && yum install -y \
     git \
     gcc \
@@ -70,6 +65,10 @@ RUN cd opt \
     && rm apache-maven-*.tar.gz
 
 # install tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
 RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
@@ -91,6 +90,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6
     && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
     && npm config set registry https://registry.npmmirror.com \
     && rm -rf /node-v16.6.0-linux-x64.tar.gz \
+    && npm install -g npm@latest \
     && npm install --global yarn \
     && ln -s /node-v16.6.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
     && yarn config set registry https://registry.npmmirror.com
@@ -110,3 +110,8 @@ ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

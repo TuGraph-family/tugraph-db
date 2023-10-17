@@ -53,6 +53,16 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("url") = "",
           pybind11::return_value_policy::move);
 
+    c.def("callCypherToLeader", &LGraphPythonClient::CallCypherToLeader,
+          "Execute a cypher query\n"
+          "cypher          [in] inquire statement.\n"
+          "graph           [in] the graph to query.\n"
+          "json_format     [in] Returns the format， true is json，Otherwise, binary format\n"
+          "timeout         [in] Maximum execution time, overruns will be interrupted\n",
+          pybind11::arg("cypher"), pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
+          pybind11::return_value_policy::move);
+
     c.def("callGql", &LGraphPythonClient::CallGql,
           "Execute a cypher query\n"
           "gql             [in] inquire statement.\n"
@@ -63,6 +73,16 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("gql"), pybind11::arg("graph") = "default",
           pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
           pybind11::arg("url") = "",
+          pybind11::return_value_policy::move);
+
+    c.def("callGqlToLeader", &LGraphPythonClient::CallGqlToLeader,
+          "Execute a cypher query\n"
+          "gql             [in] inquire statement.\n"
+          "graph           [in] the graph to query.\n"
+          "json_format     [in] Returns the format， true is json，Otherwise, binary format\n"
+          "timeout         [in] Maximum execution time, overruns will be interrupted\n",
+          pybind11::arg("gql"), pybind11::arg("graph") = "default",
+          pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
     c.def("loadProcedure", &LGraphPythonClient::LoadProcedure,
@@ -98,6 +118,21 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("procedure_time_out") = 0.0, pybind11::arg("in_process") = false,
           pybind11::arg("graph") = "default", pybind11::arg("json_format") = true,
           pybind11::arg("url") = "", pybind11::return_value_policy::move);
+
+    c.def("callProcedureToLeader", &LGraphPythonClient::CallProcedureToLeader,
+          "Execute a user-defined procedure\n"
+          "procedure_type         [in] the procedure type, currently supported CPP and PY\n"
+          "procedure_name         [in] procedure name\n"
+          "param                  [in] the execution parameters\n"
+          "procedure_time_out     [in] Maximum execution time, overruns will be interrupted\n"
+          "in_process             [in] support in future\n"
+          "graph                  [in] the graph to query.\n"
+          "json_format            [in] Returns the format， true is json，Otherwise, "
+          "                            binary format\n",
+          pybind11::arg("procedure_type"), pybind11::arg("procedure_name"), pybind11::arg("param"),
+          pybind11::arg("procedure_time_out") = 0.0, pybind11::arg("in_process") = false,
+          pybind11::arg("graph") = "default", pybind11::arg("json_format") = true,
+          pybind11::return_value_policy::move);
 
     c.def("listProcedures", &LGraphPythonClient::ListProcedures,
           "Execute built-in procedures\n"
