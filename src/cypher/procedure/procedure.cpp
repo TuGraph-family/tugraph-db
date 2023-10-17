@@ -2990,7 +2990,7 @@ void SpatialFunc::Distance(RTContext *ctx, const cypher::Record *record,
                     args[1].ToString()));
 
     auto s1 = record->symbol_table->symbols.find(args[0].String());
-    auto s2 = record->symbol_table->symbols.find(args[0].String());
+    auto s2 = record->symbol_table->symbols.find(args[1].String());
     if (s1 == record->symbol_table->symbols.end() ||
         s2 == record->symbol_table->symbols.end())
         CYPHER_TODO();
