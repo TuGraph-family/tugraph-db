@@ -59,7 +59,7 @@ message CreateJobResponse {
 }
 
 message ReadJobRequest {
-
+      optional int32 job_id = 1;
 }
 
 message ReadJobResponse {
@@ -120,10 +120,12 @@ message JobManagementResponse {
 
 message HeartbeatRequest {
       required string request_msg = 1;
+      required int32 heartbeat_count = 2;
 };
 
 message HeartbeatResponse {
       required string response_msg = 1;
+      required int32 heartbeat_count = 2;
 };
 
 service JobManagementService {

@@ -47,6 +47,13 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     std::int64_t runtime = 100;
     std::string result = "this is only a test of result";
 
+    // init dbmanagement client
+    try {
+        DBManagementClient::GetInstance().InitChannel("localhost:6091");
+    } catch(std::exception& e) {
+        UT_EXPECT_EQ(1, 0);
+    }
+
     // test exception handle
     try {
         DBManagementClient::GetInstance()
@@ -55,24 +62,28 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     } catch(std::exception& e) {
         UT_EXPECT_EQ(e.what(), exception_msg);
     }
+
     try {
         DBManagementClient::GetInstance().UpdateJob(host, port, job_id, status, runtime, result);
         UT_EXPECT_EQ(1, 0);
     } catch(std::exception& e) {
         UT_EXPECT_EQ(e.what(), exception_msg);
     }
+
     try {
         DBManagementClient::GetInstance().ReadJob(host, port);
         UT_EXPECT_EQ(1, 0);
     } catch(std::exception& e) {
         UT_EXPECT_EQ(e.what(), exception_msg);
     }
+
     try {
         DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
         UT_EXPECT_EQ(1, 0);
     } catch(std::exception& e) {
         UT_EXPECT_EQ(e.what(), exception_msg);
     }
+
     try {
         DBManagementClient::GetInstance().DeleteJob(host, port, job_id);
         UT_EXPECT_EQ(1, 0);
@@ -85,49 +96,42 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     // sleep to wait db management start
-    fma_common::SleepS(600);
+    fma_common::SleepS(300);
 
     // test crud
     try {
+        // create a new job
         job_id = DBManagementClient::GetInstance()
             .CreateJob(host, port, start_time, period, name, type, user, create_time);
         UT_EXPECT_EQ(1, job_id);
-    } catch(std::exception& e) {
-        DEBUG_LOG(ERROR) << e.what();
-        UT_EXPECT_EQ(1, 0);
-    }
-    try {
+        // test jobid self increment
+        job_id = DBManagementClient::GetInstance()
+            .CreateJob(host, port, start_time, period, name, type, user, create_time);
+        UT_EXPECT_EQ(2, job_id);
+
+        // update this job
         DBManagementClient::GetInstance().UpdateJob(host, port, job_id, status, runtime, result);
-    } catch(std::exception& e) {
-        DEBUG_LOG(ERROR) << e.what();
-        UT_EXPECT_EQ(1, 0);
-    }
-    try {
-        std::vector<com::antgroup::tugraph::Job> jobs =
+
+        // read all jobs status
+        std::vector<db_management::Job> jobs =
             DBManagementClient::GetInstance().ReadJob(host, port);
-        UT_EXPECT_EQ(1, jobs.size());
-    } catch(std::exception& e) {
-        DEBUG_LOG(ERROR) << e.what();
-        UT_EXPECT_EQ(1, 0);
-    }
-    try {
-        com::antgroup::tugraph::JobResult job_result =
+        UT_EXPECT_EQ(2, jobs.size());
+        // read job by jobid
+        db_management::Job job =
+            DBManagementClient::GetInstance().ReadJob(host, port, job_id);
+        UT_EXPECT_EQ(2, job.job_id());
+
+        // read job result by id
+        db_management::JobResult job_result =
             DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
         UT_EXPECT_EQ(result, job_result.result());
-    } catch(std::exception& e) {
-        DEBUG_LOG(ERROR) << e.what();
-        UT_EXPECT_EQ(1, 0);
-    }
-    try {
+
+        // delete job
         DBManagementClient::GetInstance().DeleteJob(host, port, job_id);
-    } catch(std::exception& e) {
-        DEBUG_LOG(ERROR) << e.what();
-        UT_EXPECT_EQ(1, 0);
-    }
-    try {
-        std::vector<com::antgroup::tugraph::Job> jobs =
-            DBManagementClient::GetInstance().ReadJob(host, port);
-        UT_EXPECT_EQ(0, jobs.size());
+
+        // test if deleted successfully
+        jobs = DBManagementClient::GetInstance().ReadJob(host, port);
+        UT_EXPECT_EQ(1, jobs.size());
     } catch(std::exception& e) {
         DEBUG_LOG(ERROR) << e.what();
         UT_EXPECT_EQ(1, 0);

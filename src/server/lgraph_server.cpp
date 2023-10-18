@@ -260,6 +260,11 @@ int LGraphServer::Start() {
             GENERAL_LOG(INFO) << "Listening for RPC on port " << config_->rpc_port;
         }
         // start db management service
+        try {
+            DBManagementClient::GetInstance().InitChannel("localhost:6091");
+        } catch(std::exception& e) {
+            GENERAL_LOG(ERROR) << "Failed to init db management channel";
+        }
         std::thread heartbeat_detect(&DBManagementClient::DetectHeartbeat);
         heartbeat_detect.detach();
 #endif

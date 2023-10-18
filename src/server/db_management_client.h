@@ -21,26 +21,29 @@
 #include "brpc/channel.h"
 
 namespace lgraph {
+namespace db_management = com::antgroup::tugraph;
 class DBManagementClient {
  private:
   bool heartbeat_ = false;
   static const int detect_freq_ = 5;
   brpc::Channel channel_;
-  com::antgroup::tugraph::JobManagementService_Stub job_stub_;
-  com::antgroup::tugraph::HeartbeatService_Stub heartbeat_stub_;
+  db_management::JobManagementService_Stub job_stub_;
+  db_management::HeartbeatService_Stub heartbeat_stub_;
 
  public:
   DBManagementClient();
 
   static DBManagementClient& GetInstance();
 
+  void InitChannel(std::string sever);
+
   void SetHeartbeat(bool heartbeat);
 
   bool GetHeartbeat();
 
-  com::antgroup::tugraph::HeartbeatService_Stub& GetHeartbeatStub();
+  db_management::HeartbeatService_Stub& GetHeartbeatStub();
 
-  com::antgroup::tugraph::JobManagementService_Stub& GetJobStub();
+  db_management::JobManagementService_Stub& GetJobStub();
 
   static void DetectHeartbeat();
 
@@ -50,9 +53,11 @@ class DBManagementClient {
   void UpdateJob(std::string host, std::string port, int job_id, std::string status,
                  std::int64_t runtime, std::string result);
 
-  std::vector<com::antgroup::tugraph::Job> ReadJob(std::string host, std::string port);
+  std::vector<db_management::Job> ReadJob(std::string host, std::string port);
 
-  com::antgroup::tugraph::JobResult ReadJobResult(std::string host, std::string port, int job_id);
+  db_management::Job ReadJob(std::string host, std::string port, int job_id);
+
+  db_management::JobResult ReadJobResult(std::string host, std::string port, int job_id);
 
   void DeleteJob(std::string host, std::string port, int job_id);
 };

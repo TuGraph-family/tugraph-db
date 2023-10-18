@@ -17,21 +17,29 @@
 namespace lgraph {
 
 DBManagementClient::DBManagementClient()
-    : job_stub_(com::antgroup::tugraph::JobManagementService_Stub(&channel_)),
-      heartbeat_stub_(com::antgroup::tugraph::HeartbeatService_Stub(&channel_)) {
-    // Initialize brpc channel to db_management.
+    : job_stub_(db_management::JobManagementService_Stub(&channel_)),
+      heartbeat_stub_(db_management::HeartbeatService_Stub(&channel_)) {
+}
+
+void DBManagementClient::InitChannel(std::string server) {
+     // Initialize brpc channel to db_management.
     brpc::ChannelOptions options;
     options.protocol = "baidu_std";
     options.connection_type = "";
-    options.timeout_ms = 1000/*milliseconds*/;
+    options.timeout_ms = 1000;
     options.max_retry = 3;
-    if (this->channel_.Init("localhost:6091", "", &options) != 0) {
+    if (this->channel_.Init(server.c_str(), "", &options) != 0) {
         DEBUG_LOG(ERROR) << "Fail to initialize channel";
-        throw;
+        std::runtime_error("failed to initialize channel.");
     }
 }
 
 void DBManagementClient::SetHeartbeat(bool heartbeat) {
+    if (this->heartbeat_ == false && heartbeat == true) {
+        GENERAL_LOG(INFO) << "connected to db management";
+    } else if (this->heartbeat_ == true && heartbeat == false) {
+        GENERAL_LOG(INFO) << "lost connection to db management";
+    }
     this->heartbeat_ = heartbeat;
 }
 
@@ -39,11 +47,11 @@ bool DBManagementClient::GetHeartbeat() {
     return this->heartbeat_;
 }
 
-com::antgroup::tugraph::HeartbeatService_Stub& DBManagementClient::GetHeartbeatStub() {
+db_management::HeartbeatService_Stub& DBManagementClient::GetHeartbeatStub() {
     return this->heartbeat_stub_;
 }
 
-com::antgroup::tugraph::JobManagementService_Stub& DBManagementClient::GetJobStub() {
+db_management::JobManagementService_Stub& DBManagementClient::GetJobStub() {
     return this->job_stub_;
 }
 
@@ -53,11 +61,11 @@ DBManagementClient& DBManagementClient::GetInstance() {
 }
 
 void DBManagementClient::DetectHeartbeat() {
-    com::antgroup::tugraph::HeartbeatService_Stub& stub =
+    db_management::HeartbeatService_Stub& stub =
         DBManagementClient::GetInstance().GetHeartbeatStub();
     while (true) {
-        com::antgroup::tugraph::HeartbeatRequest request;
-        com::antgroup::tugraph::HeartbeatResponse response;
+        db_management::HeartbeatRequest request;
+        db_management::HeartbeatResponse response;
         brpc::Controller cntl;
         request.set_request_msg("this is a heartbeat request message.");
         stub.detectHeartbeat(&cntl, &request, &response, NULL);
@@ -75,16 +83,16 @@ void DBManagementClient::DetectHeartbeat() {
 int DBManagementClient::CreateJob(std::string host, std::string port, std::int64_t start_time,
                                   std::string period, std::string name, std::string type,
                                   std::string user, std::int64_t create_time) {
-    com::antgroup::tugraph::JobManagementService_Stub& stub =
+    db_management::JobManagementService_Stub& stub =
         DBManagementClient::GetInstance().GetJobStub();
-    com::antgroup::tugraph::JobManagementRequest request;
-    com::antgroup::tugraph::JobManagementResponse response;
+    db_management::JobManagementRequest request;
+    db_management::JobManagementResponse response;
     brpc::Controller cntl;
 
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_create_job_request(new com::antgroup::tugraph::CreateJobRequest());
+    request.set_allocated_create_job_request(new db_management::CreateJobRequest());
     request.mutable_create_job_request()->set_start_time(start_time);
     request.mutable_create_job_request()->set_period(period);
     request.mutable_create_job_request()->set_procedure_name(name);
@@ -106,16 +114,16 @@ int DBManagementClient::CreateJob(std::string host, std::string port, std::int64
 void DBManagementClient::UpdateJob(std::string host, std::string port, int job_id,
                                    std::string status, std::int64_t runtime,
                                    std::string result) {
-    com::antgroup::tugraph::JobManagementService_Stub& stub =
+    db_management::JobManagementService_Stub& stub =
         DBManagementClient::GetInstance().GetJobStub();
-    com::antgroup::tugraph::JobManagementRequest request;
-    com::antgroup::tugraph::JobManagementResponse response;
+    db_management::JobManagementRequest request;
+    db_management::JobManagementResponse response;
     brpc::Controller cntl;
 
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_update_job_request(new com::antgroup::tugraph::UpdateJobRequest());
+    request.set_allocated_update_job_request(new db_management::UpdateJobRequest());
     request.mutable_update_job_request()->set_job_id(job_id);
     request.mutable_update_job_request()->set_status(status);
     request.mutable_update_job_request()->set_runtime(runtime);
@@ -130,23 +138,23 @@ void DBManagementClient::UpdateJob(std::string host, std::string port, int job_i
     }
 }
 
-std::vector<com::antgroup::tugraph::Job> DBManagementClient::ReadJob(std::string host,
-                                                                     std::string port) {
-    com::antgroup::tugraph::JobManagementService_Stub& stub =
+std::vector<db_management::Job> DBManagementClient::ReadJob(std::string host,
+                                                            std::string port) {
+    db_management::JobManagementService_Stub& stub =
         DBManagementClient::GetInstance().GetJobStub();
-    com::antgroup::tugraph::JobManagementRequest request;
-    com::antgroup::tugraph::JobManagementResponse response;
+    db_management::JobManagementRequest request;
+    db_management::JobManagementResponse response;
     brpc::Controller cntl;
 
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_read_job_request(new com::antgroup::tugraph::ReadJobRequest());
+    request.set_allocated_read_job_request(new db_management::ReadJobRequest());
 
     stub.handleRequest(&cntl, &request, &response, NULL);
     if (!cntl.Failed()) {
         DEBUG_LOG(INFO) << "[READ JOB REQUEST]: " << "success";
-        std::vector<com::antgroup::tugraph::Job> job_list;
+        std::vector<db_management::Job> job_list;
         for (int i = 0; i < response.read_job_response().job_size(); i++) {
             job_list.push_back(response.read_job_response().job(i));
         }
@@ -157,19 +165,47 @@ std::vector<com::antgroup::tugraph::Job> DBManagementClient::ReadJob(std::string
     }
 }
 
-com::antgroup::tugraph::JobResult DBManagementClient::ReadJobResult(std::string host,
-                                                                    std::string port, int job_id) {
-    com::antgroup::tugraph::JobManagementService_Stub& stub =
+db_management::Job DBManagementClient::ReadJob(std::string host,
+                                                            std::string port,
+                                                            int job_id) {
+    db_management::JobManagementService_Stub& stub =
         DBManagementClient::GetInstance().GetJobStub();
-    com::antgroup::tugraph::JobManagementRequest request;
-    com::antgroup::tugraph::JobManagementResponse response;
+    db_management::JobManagementRequest request;
+    db_management::JobManagementResponse response;
+    brpc::Controller cntl;
+
+    // build create_job_request
+    request.set_db_host(host);
+    request.set_db_port(port);
+    request.set_allocated_read_job_request(new db_management::ReadJobRequest());
+    request.mutable_read_job_request()->set_job_id(job_id);
+
+    stub.handleRequest(&cntl, &request, &response, NULL);
+    if (!cntl.Failed()) {
+        DEBUG_LOG(INFO) << "[READ JOB REQUEST]: " << "success";
+        std::vector<db_management::Job> job_list;
+        db_management::Job job;
+        job = response.read_job_response().job(0);
+        return job;
+    } else {
+        DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("failed to connect to db management.");
+    }
+}
+
+db_management::JobResult DBManagementClient::ReadJobResult(std::string host,
+                                                                    std::string port, int job_id) {
+    db_management::JobManagementService_Stub& stub =
+        DBManagementClient::GetInstance().GetJobStub();
+    db_management::JobManagementRequest request;
+    db_management::JobManagementResponse response;
     brpc::Controller cntl;
 
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
     request.set_allocated_read_job_result_request(
-            new com::antgroup::tugraph::ReadJobResultRequest());
+            new db_management::ReadJobResultRequest());
     request.mutable_read_job_result_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
@@ -177,22 +213,22 @@ com::antgroup::tugraph::JobResult DBManagementClient::ReadJobResult(std::string 
         DEBUG_LOG(INFO) << "[READ JOB RESULT REQUEST]: " << "success";
         return response.read_job_result_response().job_result();
     } else {
-        DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
+        DEBUG_LOG(ERROR) << "[READ JOB RESULT REQUEST]: " << cntl.ErrorText();
         throw std::runtime_error("failed to connect to db management.");
     }
 }
 
 void DBManagementClient::DeleteJob(std::string host, std::string port, int job_id) {
-    com::antgroup::tugraph::JobManagementService_Stub& stub =
+    db_management::JobManagementService_Stub& stub =
         DBManagementClient::GetInstance().GetJobStub();
-    com::antgroup::tugraph::JobManagementRequest request;
-    com::antgroup::tugraph::JobManagementResponse response;
+    db_management::JobManagementRequest request;
+    db_management::JobManagementResponse response;
     brpc::Controller cntl;
 
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_delete_job_request(new com::antgroup::tugraph::DeleteJobRequest());
+    request.set_allocated_delete_job_request(new db_management::DeleteJobRequest());
     request.mutable_delete_job_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
@@ -200,7 +236,7 @@ void DBManagementClient::DeleteJob(std::string host, std::string port, int job_i
         DEBUG_LOG(INFO) << "[DELETE JOB REQUEST]: " << "success";
         return;
     } else {
-        DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
+        DEBUG_LOG(ERROR) << "[DELETE JOB REQUEST]: " << cntl.ErrorText();
         throw std::runtime_error("failed to connect to db management.");
     }
 }
