@@ -2999,7 +2999,7 @@ void SpatialFunc::Distance(RTContext *ctx, const cypher::Record *record,
     CYPHER_THROW_ASSERT(s1_.IsSpatial() && s2_.IsSpatial());
 
     ::lgraph_api::SRID srid1 = s1_.constant.scalar.GetSRID();
-    ::lgraph_api::SRID srid2 = s1_.constant.scalar.GetSRID();
+    ::lgraph_api::SRID srid2 = s2_.constant.scalar.GetSRID();
     CYPHER_THROW_ASSERT(srid1 == srid2);
 
     double d = 0;

@@ -2386,7 +2386,7 @@ int test_spatial_procedure(cypher::RTContext *ctx) {
     "CALL db.createVertexLabel"
     "('Location_', 'name', 'name', STRING, false, 'geo', LINESTRING, false)",
     "CREATE (c_:Location_ "
-    "{name:'C_', geo: LINESTRING('0102000020231C0000030000000000000000000000000"
+    "{name:'C_', geo: LINESTRING('0102000020E6100000030000000000000000000000000"
     "0000000000000000000000000004000000000000000400000000000000840000000000000F03F')})"
     };
     eval_scripts(ctx, scripts_);
@@ -2529,18 +2529,18 @@ TEST_P(TestCypher, Cypher) {
         "Test case: {}-file script; {}-interactive; {}-find; {}-query; {}-hint;"
         " {}-multi-match; {}-optional-match; {}-union; {}-function; {}-parameter;"
         " {}-var-len-edge; {}-uniqueness; {}-function filter; {}-expression; {}-with; "
-        "{}-list-comprehension"
+        " {}-list-comprehension"
         " {}-profile; {}-unwind; {}-procedure; {}-add; {}-set; {}-del; {}-remove; {}-order by; "
-        "{}-merge;"
-        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
-        "{}-optimization; {}-fix_crash_issues;"
+        " {}-merge;"
+        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-spatial_procedure; {}-error report; "
+        " {}-snb; {}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
-        " {}-empty_graph;",
+        " {}-empty_graph; {}-spatial",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
-        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
+        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_SPATIAL_PROCEDURE, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
         TC_FIX_CRASH_ISSUES,
         TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH, TC_SPATIAL);
     test_case = GetParam().tc;
