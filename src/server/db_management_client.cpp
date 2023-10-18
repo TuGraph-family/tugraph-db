@@ -47,6 +47,14 @@ bool DBManagementClient::GetHeartbeat() {
     return this->heartbeat_;
 }
 
+void DBManagementClient::SetHeartbeatCount(int heartbeat_count) {
+    this->heartbeat_count_ = heartbeat_count;
+}
+
+int DBManagementClient::GetHeartbeatCount() {
+    return this->heartbeat_count_;
+}
+
 db_management::HeartbeatService_Stub& DBManagementClient::GetHeartbeatStub() {
     return this->heartbeat_stub_;
 }
@@ -67,13 +75,22 @@ void DBManagementClient::DetectHeartbeat() {
         db_management::HeartbeatRequest request;
         db_management::HeartbeatResponse response;
         brpc::Controller cntl;
+        int heartbeat_count = DBManagementClient::GetInstance().GetHeartbeatCount();
         request.set_request_msg("this is a heartbeat request message.");
+        request.set_heartbeat_count(heartbeat_count);
         stub.detectHeartbeat(&cntl, &request, &response, NULL);
         if (!cntl.Failed()) {
-            DBManagementClient::GetInstance().SetHeartbeat(true);
+            if (response.heartbeat_count() == heartbeat_count + 1) {
+                DBManagementClient::GetInstance().SetHeartbeat(true);
+                DBManagementClient::GetInstance().SetHeartbeatCount(heartbeat_count + 1);
+            } else {
+                DBManagementClient::GetInstance().SetHeartbeat(false);
+                DBManagementClient::GetInstance().SetHeartbeatCount(0);
+            }
         } else {
             DBManagementClient::GetInstance().SetHeartbeat(false);
             DEBUG_LOG(ERROR) << cntl.ErrorText();
+            DBManagementClient::GetInstance().SetHeartbeatCount(0);
         }
 
         fma_common::SleepS(detect_freq_);

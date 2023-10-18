@@ -28,6 +28,7 @@ class DBManagementClient {
   // TODO(qsp): kill all process after ut
  private:
   bool heartbeat_ = false;
+  int heartbeat_count_ = 0;
   static const int detect_freq_ = 5;
   brpc::Channel channel_;
   db_management::JobManagementService_Stub job_stub_;
@@ -61,6 +62,20 @@ class DBManagementClient {
     * @returns   true if connected, false if not.
     */
   bool GetHeartbeat();
+
+  /**
+    * @brief   Set heartbeat count of db management.
+    *
+    * @param   heartbeat_count  count of heartbeat.
+    */
+  void SetHeartbeatCount(int heartbeat_count);
+
+  /**
+    * @brief   Get heartbeat count of db management.
+    *
+    * @returns   heartbeat count.
+    */
+  int GetHeartbeatCount();
 
   /**
     * @brief   Get brpc stub for heart detection.
