@@ -883,7 +883,7 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.plugin.getPluginInfo", BuiltinProcedure::DbPluginGetPluginInfo,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}},
                                   {"plugin_name", {1, lgraph_api::LGraphType::STRING}}},
-              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, false,
+              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, true,
               true),
 
     Procedure("db.plugin.listPlugin", BuiltinProcedure::DbPluginListPlugin,

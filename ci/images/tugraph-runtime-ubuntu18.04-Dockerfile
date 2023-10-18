@@ -3,11 +3,6 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/ubuntu:18.04
 
-# specifies the path of the object storage where the installation package resides
-ARG FILEPATH
-# specifies installation package name for tugraph
-ARG FILENAME
-
 RUN rm -rf /et/apt/sources.list \
     && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list \
     && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse" >> /etc/apt/sources.list \
@@ -76,6 +71,11 @@ RUN cd opt \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
+# install tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
 RUN dpkg -i ${FILENAME} && rm /${FILENAME}
 
@@ -83,3 +83,6 @@ ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:$PATH
+
+ENV LANG     zh_CN.UTF-8
+ENV LC_ALL   zh_CN.UTF-8

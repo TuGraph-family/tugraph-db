@@ -1645,6 +1645,10 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "bcefg", "result"), true);
+    ret = client.CallProcedureToLeader(str, "CPP", "test_procedure1", "bcefg");
+    UT_EXPECT_TRUE(ret);
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(HasElement(json_val, "bcefg", "result"), true);
 
     ret = client.CallProcedure(str, "CPP", "test_procedure2",
                                "{\"scan_edges\":true, \"times\":2}", 100.10);
@@ -1715,6 +1719,23 @@ void test_cypher(lgraph::RpcClient& client) {
     bool ret = client.CallCypher(str, "match (n) return count(n)");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 6);
+    ret = client.CallCypherToLeader(str, "match (n) return count(n)");
+    UT_EXPECT_TRUE(ret);
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 6);
+}
+
+void test_gql(lgraph::RpcClient& client) {
+    UT_LOG() << "test CallGQL";
+    std::string str;
+    bool ret = client.CallGql(str, "match (n) return count(n)");
+    UT_EXPECT_TRUE(ret);
+    web::json::value json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 6);
+    ret = client.CallGqlToLeader(str, "match (n) return count(n)");
+    UT_EXPECT_TRUE(ret);
+    json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 6);
 }
 
@@ -1917,6 +1938,7 @@ void* test_rpc_client(void*) {
     {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
         test_cypher(client3);
+        test_gql(client3);
         test_label(client3);
         test_relationshipTypes(client3);
         test_index(client3);

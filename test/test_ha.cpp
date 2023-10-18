@@ -1,26 +1,12 @@
-﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
-
-#include <omp.h>
-#include <mutex>
-#include <condition_variable>
-#include <utility>
+/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 #include "gtest/gtest.h"
-
-// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
-// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
-// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
-// files, and e.g. use '_XPLATSTR' instead.
-#define _TURN_OFF_PLATFORM_STRING
-#include "cpprest/http_client.h"
-
-#include "fma-common/logger.h"
 #include "./ut_utils.h"
 #include "lgraph/lgraph.h"
-#include "client/cpp/restful/rest_client.h"
 #include "lgraph/lgraph_rpc_client.h"
-#include "server/lgraph_server.h"
+#include "fma-common/configuration.h"
+#include <boost/algorithm/string.hpp>
 
-void build_ha_so() {
+void build_so(const std::string& so_name, const std::string& so_path) {
     const std::string INCLUDE_DIR = "../../include";
     const std::string DEPS_INCLUDE_DIR = "../../deps/install/include";
     const std::string LIBLGRAPH = "./liblgraph.so";
@@ -40,260 +26,241 @@ void build_ha_so() {
         "-o {} {} {} -shared";
 #endif
     std::string cmd;
-    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./sortstr.so",
-                 "../../test/test_procedures/sortstr.cpp", LIBLGRAPH);
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./scan_graph.so",
-                 "../../test/test_procedures/scan_graph.cpp", LIBLGRAPH);
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./echo_binary.so",
-                 "../../test/test_procedures/echo_binary.cpp", LIBLGRAPH);
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./add_label.so",
-                 "../../test/test_procedures/add_label_v.cpp", LIBLGRAPH);
+    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, so_name,
+                  so_path, LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 }
 
-class UnitTestBase {
-    std::map<std::string, std::function<int()>> tests_;
-
- public:
-    UnitTestBase() = default;
-    virtual ~UnitTestBase() = default;
-    void Run(const std::string& includes, const std::string& excludes) {
-        auto incs = fma_common::Split(includes, ",");
-        std::set<std::string> included(incs.begin(), incs.end());
-        auto excs = fma_common::Split(excludes, ",");
-        std::set<std::string> excluded(excs.begin(), excs.end());
-
-        std::set<std::string> tests;
-        if (included.empty())
-            for (auto& kv : tests_) tests.insert(kv.first);
-        else
-            tests = included;
-        for (auto& t : excluded) {
-            if (tests.erase(t) == 0) {
-                FMA_WARN() << "Excluded test [" << t << "] is not in the test list.";
+bool HasElement(const nlohmann::json& val, const std::string& value, const std::string& field) {
+    if (val.is_array()) {
+        for (const auto & i : val) {
+            if (i.contains(field)) {
+                if (i.at(field).get<std::string>() == value) {
+                    return true;
+                }
             }
         }
-        for (auto& t : tests) {
-            auto it = tests_.find(t);
-            UT_EXPECT_TRUE(it != tests_.end());
-            // run test
-            UT_LOG() << "\n------------------";
-            UT_LOG() << "Testing " << t;
-            UT_LOG() << "------------------";
-            int r = it->second();
-            UT_LOG() << "\n========";
-            if (r == 0)
-                UT_LOG() << "SUCCESS";
-            else
-                UT_LOG() << "FAIL";
-            UT_LOG() << "========";
+    } else if (val.is_object()) {
+        if (!val.contains(field)) return false;
+        if (val.at(field).get<std::string>() == value) {
+            return true;
         }
     }
-
- protected:
-    void RegisterTest(const std::string& name, const std::function<int()>& func) {
-        auto it = tests_.find(name);
-        UT_EXPECT_TRUE(it == tests_.end());
-        tests_.emplace_hint(it, name, func);
-    }
-};
-
-#define FMA_REG_TEST(method_name) RegisterTest(#method_name, [this]() { return method_name(); })
-
-bool read_only_plugin = false;
-bool use_rest = true;
-size_t n_ops = 300;
-std::string plugin_name = "scan";  // NOLINT
-
-class HaUnitTest : public UnitTestBase {
- public:
-    std::unique_ptr<lgraph::LGraphServer> server_;
-    std::shared_ptr<lgraph::GlobalConfig> config_;
-    std::vector<std::unique_ptr<RestClient>> rests_;
-    std::vector<std::unique_ptr<lgraph::RpcClient>> rpcs_;
-
-    explicit HaUnitTest(std::shared_ptr<lgraph::GlobalConfig> config, int n_clients = 16)
-        : config_(std::move(config)), rests_(n_clients), rpcs_(n_clients) {
-        omp_set_num_threads(n_clients);
-        FMA_REG_TEST(AddLabel);
-        FMA_REG_TEST(AddGraph);
-        FMA_REG_TEST(Plugin);
-        FMA_REG_TEST(GetHaInfo);
-    }
-
-    int AddLabel() {
-        UT_EXPECT_TRUE(rests_[0]->AddVertexLabel(
-            "default", "v",
-            std::vector<lgraph_api::FieldSpec>{{"id", lgraph_api::FieldType::STRING, false}},
-            "id"));
-        // FMA_ASSERT(rests_[0]->AddVertexIndex("default", "v", "id", true));
-        int64_t vid;
-#pragma omp parallel for
-        for (size_t i = 0; i < 1; i++) {
-            vid = rests_[omp_get_thread_num()]->AddVertex(
-                "default", "v", std::vector<std::string>{"id"}, std::vector<std::string>{"001"});
-        }
-        auto fields = rests_[0]->GetVertexFields("default", vid);
-        UT_EXPECT_EQ(fields["id"].AsString(), "001");
-        return 0;
-    }
-
-    int GetHaInfo() {
-        using namespace web;
-        using namespace http;
-        using namespace client;
-        auto* hclient = static_cast<http_client*>(rests_[0]->GetClient());
-        const std::string db_name = "default";
-        UT_LOG() << "\n=====get token of admin=====";
-        web::json::value body;
-        body[_TU("user")] = web::json::value::string(_TU("admin"));
-        body[_TU("password")] = web::json::value::string(_TU("73@TuGraph"));
-        auto response = hclient->request(methods::POST, _TU("/login"), body).get();
-        UT_EXPECT_EQ(response.status_code(), status_codes::OK);
-        auto token = response.extract_json().get().at(_TU("jwt")).as_string();
-        std::string author;
-        author = "Bearer " + ToStdString(token);
-
-        http_request request;
-        request.headers().clear();
-        request.headers().add(_TU("Authorization"), _TU(author));
-        request.headers().add(_TU("Content-Type"), _TU("application/json"));
-        request.set_request_uri(_TU("/info/peers"));
-        request.set_method(methods::GET);
-        response = hclient->request(request).get();
-        UT_LOG() << _TS(response.to_string());
-        UT_LOG() << "+++++++++++++++++++++++++++++++++++++";
-        UT_EXPECT_EQ(response.status_code(), status_codes::OK);
-
-        request.headers().clear();
-        request.headers().add(_TU("Authorization"), _TU(author));
-        request.headers().add(_TU("Content-Type"), _TU("application/json"));
-        request.set_request_uri(_TU("/info/leader"));
-        request.set_method(methods::GET);
-        response = hclient->request(request).get();
-        UT_LOG() << _TS(response.to_string());
-        UT_LOG() << "--------------------------------------";
-        UT_EXPECT_EQ(response.status_code(), status_codes::OK);
-        return 0;
-    }
-
-    int AddGraph() {
-        rests_[0]->EvalCypher("default", "call dbms.graph.createGraph('g2','desc for g2',1)");
-        auto js = rests_[0]->EvalCypher("default", "call dbms.graph.listGraphs()");
-        UT_LOG() << js.serialize();
-        return 0;
-    }
-
-    int Plugin() {
-        // AddLabel();
-        build_ha_so();
-
-        auto ReadCode = [](const std::string& path) {
-            std::string ret;
-            fma_common::InputFmaStream ifs(path);
-            ret.resize(ifs.Size());
-            ifs.Read(&ret[0], ret.size());
-            return ret;
-        };
-
-        std::string plugin_path, plugin_param;
-        if (plugin_name == "scan") {
-            plugin_path = "./scan_graph.so";
-            plugin_param = "{\"scan_edges\":true, \"times\":1}";
-        } else if (plugin_name == "echo") {
-            plugin_path = "./echo_binary.so";
-            plugin_param = "";
-        } else if (plugin_name == "bfs") {
-            plugin_path = "./breadth_first_search.so";
-            // plugin_param = "{\"root_id\":\"Liam Neeson\", \"label\":\"Person\",
-            // \"field\":\"name\"}";
-            plugin_param = "{\"root_id\":\"001\", \"label\":\"v\", \"field\":\"id\"}";
-        }
-
-        rests_[0]->LoadPlugin("default", lgraph_api::PluginCodeType::SO,
-                              lgraph::PluginDesc(plugin_name,
-                                                 lgraph::plugin::PLUGIN_CODE_TYPE_CPP,
-                                                 plugin_name,
-                                                 lgraph::plugin::PLUGIN_VERSION_1,
-                                                 read_only_plugin, ""),
-                              ReadCode(plugin_path));
-
-#pragma omp parallel for
-        for (int i = 0; i < (int)n_ops; i++) {
-            if (use_rest) {
-                UT_LOG() << rests_[omp_get_thread_num()]->ExecutePlugin("default", true,
-                                                                         plugin_name, plugin_param);
-            } else {
-                std::string res;
-                UT_LOG() << rpcs_[omp_get_thread_num()]->CallProcedure(
-                    res, "CPP", plugin_name, plugin_param, 0, false, "default");
-            }
-        }
-
-        return 0;
-    }
-};
+    return false;
+}
 
 class TestHA : public TuGraphTest {
-    std::shared_ptr<lgraph::GlobalConfig> config = std::make_shared<lgraph::GlobalConfig>();
-
  protected:
     void SetUp() override {
-        using namespace fma_common;
-        using namespace lgraph;
-        std::string dir = "./testdb";
-        uint16_t http_port = 7091;
-        uint16_t rpc_port = 8091;
-        int n_clients = 16;
-
-        config->db_dir = dir;
-        config->bind_host = "127.0.0.1";
-        config->ha_conf = "127.0.0.1:8091";
-        config->http_port = http_port;
-        config->rpc_port = rpc_port;
-        config->enable_ha = true;
-        config->verbose = 1;
-        t.reset(new HaUnitTest(config, n_clients));
-
-        fma_common::file_system::RemoveDir(t->config_->db_dir);
-        // GraphFactory::create_yago(config_->db_dir);
-        t->server_.reset();
-        t->server_ = std::make_unique<lgraph::LGraphServer>(t->config_);
-        t->server_->Start();
-        for (auto& c : t->rests_) {
-            c.reset();
-            c = std::make_unique<RestClient>(FMA_FMT("http://{}:{}",
-                                           t->config_->bind_host, t->config_->http_port));
-            c->Login(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
+        build_so("./add_vertex_v.so", "../../test/test_procedures/add_vertex_v.cpp");
+        FILE *fp;
+        char buf[100] = {0};
+        fp = popen("hostname -I", "r");
+        if (fp) {
+            fread(buf, 1, sizeof(buf) - 1, fp);
+            pclose(fp);
         }
-        if (!use_rest) {
-            for (auto& c : t->rpcs_) {
-                c = std::make_unique<lgraph::RpcClient>(FMA_FMT("{}:{}",
-                                                      t->config_->bind_host, t->config_->rpc_port),
-                                              lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                              lgraph::_detail::DEFAULT_ADMIN_PASS);
-            }
+        host = std::string(buf);
+        boost::trim(host);
+        int len = host.find(' ');
+        if (len != std::string::npos) {
+            host = host.substr(0, len);
         }
+#ifndef __SANITIZE_ADDRESS__
+        std::string cmd_f =
+            "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
+            "./lgraph_server ./resource {} "
+            "&& cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+            "true --enable_ha true --ha_node_offline_ms 5000 "
+            "--ha_node_remove_ms 10000 "
+            "--rpc_port {} --directory ./db --log_dir "
+            "./log  --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
+#else
+        std::string cmd_f =
+            "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
+            "./lgraph_server ./resource {} "
+            "&& cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+            "true --enable_ha true --ha_node_offline_ms 5000 "
+            "--ha_node_remove_ms 10000 "
+            "--rpc_port {} --directory ./db --log_dir "
+            "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+#endif
+
+        int rt;
+        std::string cmd = FMA_FMT(cmd_f.c_str(), "ha1", "ha1", "ha1", host, "27072", "29092",
+                                  host + ":29092," + host + ":29093," + host + ":29094");
+        rt = system(cmd.c_str());
+        UT_EXPECT_EQ(rt, 0);
+        fma_common::SleepS(5);
+        cmd = FMA_FMT(cmd_f.c_str(), "ha2", "ha2", "ha2", host, "27073", "29093",
+                      host + ":29092," + host + ":29093," + host + ":29094");
+        rt = system(cmd.c_str());
+        UT_EXPECT_EQ(rt, 0);
+        fma_common::SleepS(5);
+        cmd = FMA_FMT(cmd_f.c_str(), "ha3", "ha3", "ha3", host, "27074", "29094",
+                      host + ":29092," + host + ":29093," + host + ":29094");
+        rt = system(cmd.c_str());
+        UT_EXPECT_EQ(rt, 0);
+        fma_common::SleepS(5);
     }
     void TearDown() override {
-        for (auto& c : t->rests_) c.reset();
-        for (auto& c : t->rpcs_) c.reset();
-        t->server_->Stop();
-        t->server_.reset();
-        fma_common::file_system::RemoveDir(t->config_->db_dir);
+        std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
+        for (int i = 1; i < 4; ++i) {
+            std::string dir = "ha" + std::to_string(i);
+            std::string cmd = FMA_FMT(cmd_f.c_str(), dir);
+            int rt = system(cmd.c_str());
+            UT_EXPECT_EQ(rt, 0);
+            cmd = FMA_FMT("rm -rf {}", dir);
+            rt = system(cmd.c_str());
+            UT_EXPECT_EQ(rt, 0);
+        }
+        int rt = system("rm -rf add_vertex_v.so");
+        UT_EXPECT_EQ(rt, 0);
     }
-    std::shared_ptr<HaUnitTest> t;
+
+ public:
+    std::string host;
 };
 
-TEST_F(TestHA, HA) {
-    std::string includes;
-    std::string excludes;
-    t->Run(includes, excludes);
+TEST_F(TestHA, HAClient) {
+    std::string schema =
+        "{\"schema\" :\n"
+        "[  \n"
+        "{ \n"
+        "\"label\" : \"Person\",             \n"
+        "\"type\" : \"VERTEX\",             \n"
+        "\"primary\" : \"name\",             \n"
+        "\"properties\" : [                 \n"
+        "    {\"name\" : \"name\", \"type\":\"STRING\"},                 \n"
+        "    {\"name\" : \"birthyear\", \"type\":\"INT16\", "
+        "\"optional\":true},                 \n"
+        "    {\"name\" : \"phone\", \"type\":\"INT16\",\"unique\":true, "
+        "\"index\":true}             \n"
+        "]         \n"
+        "                    },        \n"
+        "                    {            \n"
+        "\"label\" : \"Film\",            \n"
+        "\"type\" : \"VERTEX\",            \n"
+        "\"primary\" : \"title\",            \n"
+        "\"properties\" : [                \n"
+        "    {\"name\" : \"title\", \"type\":\"STRING\"}             \n"
+        "]        \n"
+        "                    },       \n"
+        "                    {\t        \n"
+        "\"label\": \"PLAY_IN\",\t        \n"
+        "\"type\": \"EDGE\",\t        \n"
+        "\"properties\": [\n"
+        "    {\"name\": \"role\", \"type\": \"STRING\", \"optional\": "
+        "true}\n"
+        "],\t        \n"
+        "\"constraints\": [ [\"Person\", \"Film\"] ]       \n"
+        "}    \n"
+        "]\n"
+        "}";
+    std::string data_desc =
+        "{\"files\": [    \n"
+        "   {        \n"
+        "       \"columns\": [\"name\", \"birthyear\", \"phone\"],\n"
+        "       \"format\": \"CSV\",        \n"
+        "       \"header\": 0,        \n"
+        "       \"label\": \"Person\"    \n"
+        "   }]\n"
+        "}";
+    std::string data_person =
+        "Rachel Kempson,1910,10086\n"
+        "Michael Redgrave,1908,10087\n"
+        "Vanessa Redgrave,1937,10088\n"
+        "Corin Redgrave,1939,10089\n"
+        "Liam Neeson,1952,10090\n"
+        "Natasha Richardson,1963,10091\n"
+        "Richard Harris,1930,10092\n"
+        "Dennis Quaid,1954,10093\n"
+        "Lindsay Lohan,1986,10094\n"
+        "Jemma Redgrave,1965,10095\n"
+        "Roy Redgrave,1873,10096\n"
+        "John Williams,1932,10097\n"
+        "Christopher Nolan,1970,10098";
+    build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
+    lgraph::RpcClient client(this->host + ":29092", "admin", "73@TuGraph");
+    std::string result;
+    bool ret = client.CallCypher(result, "CALL db.dropDB()");
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.CallCypher(result, "CALL dbms.procedures()");
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.ListProcedures(result, "CPP");
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.ImportSchemaFromContent(result, schema) &&
+          client.ImportDataFromContent(result, data_desc, data_person, ",");
+    UT_EXPECT_TRUE(ret);
+
+    ret = client.CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
+    UT_EXPECT_TRUE(ret);
+    nlohmann::json res = nlohmann::json::parse(result);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 13);
+
+    ret = client.CallGqlToLeader(result, "MATCH (n) RETURN COUNT(n)");
+    UT_EXPECT_TRUE(ret);
+    res = nlohmann::json::parse(result);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 13);
+
+    std::string code_so_path = "./sortstr.so";
+    ret = client.LoadProcedure(result, code_so_path, "CPP", "test_plugin1", "SO",
+                               "this is a test plugin", true, "v1");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypherToLeader(result,
+                                    "CALL db.plugin.getPluginInfo('CPP','test_plugin1', false)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallProcedureToLeader(result, "CPP", "test_plugin1", "gecfb");
+    UT_EXPECT_TRUE(ret);
+    nlohmann::json json_val = nlohmann::json::parse(result);
+    UT_EXPECT_TRUE(HasElement(json_val, "bcefg", "result"));
+
+    client.CallCypher(result, "CALL db.dropDB()");
+    client.Logout();
+}
+
+TEST_F(TestHA, HAConsistency) {
+    std::thread thread = std::thread([this] {
+        lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
+        std::string result;
+        rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
+        rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
+        rpcClient.Logout();
+    });
+    fma_common::SleepS(5);
+    std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
+    std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
+    int rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+    fma_common::SleepS(5);
+#ifndef __SANITIZE_ADDRESS__
+    cmd_f =
+        "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+        "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
+        "--rpc_port {} --directory ./db --log_dir "
+        "./log  --ha_conf {} -c lgraph_ha.json -d start";
+#else
+    cmd_f =
+        "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+        "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
+        "--rpc_port {} --directory ./db --log_dir "
+        "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+#endif
+    cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
+                  host + ":29092," + host + ":29093," + host + ":29094");
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+    fma_common::SleepS(10);
+    if (thread.joinable()) thread.join();
+    lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
+    fma_common::SleepS(30);
+    std::string result;
+    rpcClient.CallCypher(result, "MATCH (n) RETURN COUNT(n)", "default", true, 0, host + ":29094");
+    nlohmann::json res = nlohmann::json::parse(result);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 3000000);
+    rpcClient.Logout();
 }

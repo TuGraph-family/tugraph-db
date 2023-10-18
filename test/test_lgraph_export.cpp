@@ -123,7 +123,7 @@ TEST_F(TestLGraphExport, LGraphExport) {
             "primary" : "name",
             "properties" : [
                 {"name": "name", "type":"STRING"},
-                {"name": "id", "type":"INT32", "index":true, "unique":true}
+                {"name": "id", "type":"INT32"}
             ]
         },
         {

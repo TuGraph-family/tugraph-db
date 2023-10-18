@@ -53,7 +53,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
             }
         }
     } catch (std::exception &e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
+        return false;
     }
 
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);

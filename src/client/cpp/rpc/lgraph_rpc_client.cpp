@@ -601,6 +601,17 @@ bool RpcClient::CallCypher(std::string &result, const std::string &cypher,
     return DoubleCheckQuery(fun);
 }
 
+bool RpcClient::CallCypherToLeader(std::string& result, const std::string& cypher,
+                                   const std::string& graph, bool json_format, double timeout) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->CallCypher(result, cypher, graph, json_format, timeout);
+    } else {
+        return DoubleCheckQuery([&] {
+            return leader_client->CallCypher(result, cypher, graph, json_format, timeout);
+        });
+    }
+}
+
 bool RpcClient::CallGql(std::string &result, const std::string &gql,
                            const std::string &graph, bool json_format,
                            double timeout, const std::string& url) {
@@ -616,6 +627,17 @@ bool RpcClient::CallGql(std::string &result, const std::string &gql,
     return DoubleCheckQuery(fun);
 }
 
+bool RpcClient::CallGqlToLeader(std::string& result, const std::string& gql,
+                                const std::string& graph, bool json_format, double timeout) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->CallGql(result, gql, graph, json_format, timeout);
+    } else {
+        return DoubleCheckQuery([&] {
+            return leader_client->CallGql(result, gql, graph, json_format, timeout);
+        });
+    }
+}
+
 bool RpcClient::CallProcedure(std::string &result, const std::string &procedure_type,
                              const std::string &procedure_name, const std::string &param,
                              double procedure_time_out, bool in_process, const std::string &graph,
@@ -627,7 +649,7 @@ bool RpcClient::CallProcedure(std::string &result, const std::string &procedure_
     bool is_read_procedure = false;
     for (auto &op : user_defined_procedures) {
         if (op["plugins"]["name"] == procedure_name) {
-            is_read_procedure = op["plugins"]["read_only"];
+            is_read_procedure = op["plugins"]["read_only"]; break;
         }
     }
     auto fun = [&]{
@@ -640,6 +662,21 @@ bool RpcClient::CallProcedure(std::string &result, const std::string &procedure_
                             procedure_time_out, in_process, graph, json_format);
     };
     return DoubleCheckQuery(fun);
+}
+
+bool RpcClient::CallProcedureToLeader(std::string& result, const std::string& procedure_type,
+                                      const std::string& procedure_name, const std::string& param,
+                                      double procedure_time_out, bool in_process,
+                                      const std::string& graph, bool json_format) {
+    if (client_type == SINGLE_CONNECTION) {
+        return base_client->CallProcedure(result, procedure_type, procedure_name, param,
+                                          procedure_time_out, in_process, graph, json_format);
+    } else {
+        return DoubleCheckQuery([&] {
+            return leader_client->CallProcedure(result, procedure_type, procedure_name, param,
+                                                procedure_time_out, in_process, graph, json_format);
+        });
+    }
 }
 
 bool RpcClient::LoadProcedure(std::string &result, const std::string &source_file,
@@ -799,18 +836,22 @@ void RpcClient::RefreshClientPool() {
 
 bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
                              const std::string &query, const std::string &graph) {
+    bool isReadQuery = true;
     if (boost::to_upper_copy(query).find("CALL ") != std::string::npos) {
         for (auto &op : user_defined_procedures) {
             if (op["graph"] == graph &&
                 query.find(op["plugins"]["name"]) != std::string::npos) {
-                return op["plugins"]["read_only"];
+                isReadQuery = isReadQuery && op["plugins"]["read_only"];
+                break;
             }
         }
         for (auto &procedure : built_in_procedures) {
             if (query.find(procedure["name"]) != std::string::npos) {
-                return procedure["read_only"];
+                isReadQuery = isReadQuery && procedure["read_only"];
+                break;
             }
         }
+        return isReadQuery;
     }
     std::string tmp = query;
     std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);

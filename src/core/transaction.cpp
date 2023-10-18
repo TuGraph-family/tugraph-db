@@ -556,7 +556,7 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                                         const FieldData& key_end) {
     VertexIndex* index = GetVertexIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError("VertexIndex is not created for this field");
+        throw InputError(FMA_FMT("VertexIndex is not created for {}:{}", label, field));
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -591,7 +591,7 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                                         const std::string& key_end = "") {
     VertexIndex* index = GetVertexIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError("VertexIndex is not created for this field");
+        throw InputError(FMA_FMT("VertexIndex is not created for {}:{}", label, field));
     }
     Value ks, ke;
     if (!key_start.empty()) {
@@ -609,7 +609,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const FieldData& key_end) {
     EdgeIndex* index = GetEdgeIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError("EdgeIndex is not created for this field");
+        throw InputError(FMA_FMT("EdgeIndex is not created for {}:{}", label, field));
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -644,7 +644,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const std::string& key_end = "") {
     EdgeIndex* index = GetEdgeIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError("EdgeIndex is not created for this field");
+        throw InputError(FMA_FMT("EdgeIndex is not created for {}:{}", label, field));
     }
     Value ks, ke;
     if (!key_start.empty()) {

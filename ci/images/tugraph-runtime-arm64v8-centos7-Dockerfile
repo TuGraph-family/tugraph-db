@@ -1,12 +1,7 @@
 # Docker hub image
 FROM arm64v8/centos:7
 
-# specifies the path of the object storage where the installation package resides
-ARG FILEPATH
-# specifies installation package name for tugraph
-ARG FILENAME
-
-RUN yum update -y && yum install -y \
+RUN yum -x filesystem update -y && yum install -y \
     git \
     gcc \
     gcc-c++ \
@@ -16,8 +11,7 @@ RUN yum update -y && yum install -y \
     bzip2 \
     openssl-static \
     java-1.8.0-openjdk* \
-    libcurl-devel \
-    centos-release-scl-rh
+    libcurl-devel
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
@@ -65,9 +59,27 @@ RUN cd opt \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
+# install node.js && yarn
+# if it is not accessible, replace it with the link below
+# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6.0-linux-arm64.tar.gz \
+    && tar xvf node-v16.6.0-linux-arm64.tar.gz && cd node-v16.6.0-linux-arm64/ \
+    && ln -s /node-v16.6.0-linux-arm64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.6.0-linux-arm64/bin/node /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com \
+    && rm -rf /node-v16.6.0-linux-arm64.tar.gz \
+    && npm install --global yarn \
+    && ln -s /node-v16.6.0-linux-arm64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
+    && yarn config set registry https://registry.npmmirror.com
+
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
+
 # install tugraph
-RUN wget ${FILEPATH}/${FILENAME}
-RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
+RUN wget ${FILEPATH}/${FILENAME} \
+    && rpm -ivh ${FILENAME} && rm /${FILENAME}
 
 # install tugraph demo
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
@@ -78,29 +90,23 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-de
     && cp -r tugraph-demo/wandering_earth /var/lib/lgraph/data/upload_files/admin/wandering_earth \
     && cp tugraph-demo/setup.sh /setup.sh
 
-# install node.js, yarn
-RUN yum install -y rh-nodejs14-nodejs \
-    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/node /usr/local/bin/ \
-    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/npm /usr/local/bin/ \
-    && npm config set registry https://registry.npmmirror.com \
-    && npm install --global yarn \
-    && ln -s /opt/rh/rh-nodejs14/root/usr/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
-    && yarn config set registry https://registry.npmmirror.com
-
-
 # install tugraph-db-web dependencies
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-db-browser.tar.gz \
     && mkdir -p /var/lib/web \
     && mv tugraph-db-browser.tar.gz /var/lib/web \
     && cd /var/lib/web \
-    && tar xf tugraph-db-browser.tar.gz \
+    && tar xf tugraph-db-browser.tar.gz --no-same-owner \
     && rm tugraph-db-browser.tar.gz \
-    && cd tugraph-db-browser/server \
-    && chown root:root . && cd .. \
+    && cd tugraph-db-browser \
     && yarn run bootstrap \
-    && yarn run server-build
+    && yarn run build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
-    LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/aarch64/server:$LD_LIBRARY_PATH \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

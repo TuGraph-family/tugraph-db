@@ -1171,7 +1171,8 @@ inline void CheckKeySizeForIndex<std::string>(const std::string& str) {
 template <typename T>
 void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_info,
                                      LabelId label_id, size_t field_id, bool is_unique,
-                                     VertexId start_vid, VertexId end_vid, bool is_vertex) {
+                                     VertexId start_vid, VertexId end_vid, bool is_vertex,
+                                     bool is_global) {
     if (is_vertex) {
         SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
         auto v_schema = schema_manager->GetSchema(label_id);
@@ -1207,7 +1208,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 for (size_t i = 1; i < key_vids.size(); i++) {
                     if (key_vids[i].key == key_vids[i - 1].key)
                         throw InputError(FMA_FMT(
-                            "Duplicate keys [{}] found for vids {} and {}.", key_vids[i].key,
+                            "Duplicate vertex keys [{}] found for vids {} and {}.", key_vids[i].key,
                             key_vids[i - 1].vid, key_vids[i].vid));
                 }
             }
@@ -1283,14 +1284,28 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 // then uniqueness will be checked when we insert the
                 // keys into index, and this is not required,
                 // but still good to find duplicates early
-                for (size_t i = 1; i < key_euids.size(); i++) {
-                    if (key_euids[i].key == key_euids[i - 1].key)
-                        throw InputError(FMA_FMT(
-                            "Duplicate keys [{}] found for vid {} dst{} eid (),"
-                            "and {} {} {}.",
-                            key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
-                            key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                if (is_global) {
+                    for (size_t i = 1; i < key_euids.size(); i++) {
+                        if (key_euids[i].key == key_euids[i - 1].key)
+                            throw InputError(FMA_FMT(
+                                "Duplicate edge index keys [{}] found for vid {} dst{} eid {},"
+                                "and {} {} {}.",
+                                key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
+                                key_euids[i].euid.eid, key_euids[i - 1].euid.src,
+                                key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                    }
+                } else {
+                    for (size_t i = 1; i < key_euids.size(); i++) {
+                        if (key_euids[i].key == key_euids[i - 1].key &&
+                            key_euids[i].euid.src == key_euids[i - 1].euid.src &&
+                            key_euids[i].euid.dst == key_euids[i - 1].euid.dst)
+                            throw InputError(FMA_FMT(
+                                "Duplicate edge index keys-vid [{}] found for vid {} dst{} eid {},"
+                                "and {} {} {}.",
+                                key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
+                                key_euids[i].euid.eid, key_euids[i - 1].euid.src,
+                                key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                    }
                 }
             }
             // now insert into index table
@@ -1740,43 +1755,43 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     switch (extractor->Type()) {
     case FieldType::BOOL:
         BatchBuildIndex<int8_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                is_vertex);
+                                is_vertex, is_global);
         break;
     case FieldType::INT8:
         BatchBuildIndex<int8_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                is_vertex);
+                                is_vertex, is_global);
         break;
     case FieldType::INT16:
         BatchBuildIndex<int16_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex);
+                                 is_vertex, is_global);
         break;
     case FieldType::INT32:
         BatchBuildIndex<int32_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex);
+                                 is_vertex, is_global);
         break;
     case FieldType::INT64:
         BatchBuildIndex<int64_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex);
+                                 is_vertex, is_global);
         break;
     case FieldType::DATE:
         BatchBuildIndex<int32_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex);
+                                 is_vertex, is_global);
         break;
     case FieldType::DATETIME:
         BatchBuildIndex<int64_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex);
+                                 is_vertex, is_global);
         break;
     case FieldType::FLOAT:
         BatchBuildIndex<float>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                               is_vertex);
+                               is_vertex, is_global);
         break;
     case FieldType::DOUBLE:
         BatchBuildIndex<double>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                is_vertex);
+                                is_vertex, is_global);
         break;
     case FieldType::STRING:
         BatchBuildIndex<ConstStringRef>(txn, new_schema.get(), lid, fid, is_unique, start_vid,
-                                        end_vid, is_vertex);
+                                        end_vid, is_vertex, is_global);
         break;
     case FieldType::BLOB:
         throw InputError(std::string("Field of type ") +
