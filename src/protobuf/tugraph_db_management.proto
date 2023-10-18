@@ -29,33 +29,33 @@ enum ResponseCode {
 message Job {
       required string db_id = 1;
       required int32 job_id = 2;
-      required int64 start_time = 4;
-      required string period = 5;
-      required string procedure_name = 6;
-      required string procedure_type = 7;
-      required string status = 8;
-      required int64 runtime = 3;
+      required int64 start_time = 3;
+      required string period = 4;
+      required string procedure_name = 5;
+      required string procedure_type = 6;
+      required string status = 7;
+      required int64 runtime = 8;
       required string user = 9;
       required int64 create_time = 10;
 }
 
 message JobResult {
-      required int32 job_id = 2;
-      required string result = 1;
+      required int32 job_id = 1;
+      required string result = 2;
 }
 
 message CreateJobRequest {
-      required int64 start_time = 3;
-      required string period = 4;
-      required string procedure_name = 5;
-      required string procedure_type = 6;
-      required string user = 7;
-      required int64 create_time = 8;
+      required int64 start_time = 1;
+      required string period = 2;
+      required string procedure_name = 3;
+      required string procedure_type = 4;
+      required string user = 5;
+      required int64 create_time = 6;
 }
 
 message CreateJobResponse {
-      required int32 job_id = 2;
-      required ResponseCode response_code = 1;
+      required int32 job_id = 1;
+      required ResponseCode response_code = 2;
 }
 
 message ReadJobRequest {
@@ -96,25 +96,25 @@ message DeleteJobResponse {
 }
 
 message JobManagementRequest {
-      required string db_host = 5;
-      required string db_port = 6;
+      required string db_host = 1;
+      required string db_port = 2;
       oneof Req {
-            CreateJobRequest create_job_request = 1;
-            ReadJobRequest read_job_request = 2;
-            ReadJobResultRequest read_job_result_request = 7;
-            UpdateJobRequest update_job_request = 3;
-            DeleteJobRequest delete_job_request = 4;
+            CreateJobRequest create_job_request = 3;
+            ReadJobRequest read_job_request = 4;
+            ReadJobResultRequest read_job_result_request = 5;
+            UpdateJobRequest update_job_request = 6;
+            DeleteJobRequest delete_job_request = 7;
       };
 };
 
 message JobManagementResponse {
-      required ResponseCode response_code = 5;
+      required ResponseCode response_code = 1;
       oneof Resp {
-            CreateJobResponse create_job_response = 1;
-            ReadJobResponse read_job_response = 2;
-            ReadJobResultResponse read_job_result_response = 6;
-            UpdateJobResponse update_job_response = 3;
-            DeleteJobResponse delete_job_response = 4;
+            CreateJobResponse create_job_response = 2;
+            ReadJobResponse read_job_response = 3;
+            ReadJobResultResponse read_job_result_response = 4;
+            UpdateJobResponse update_job_response = 5;
+            DeleteJobResponse delete_job_response = 6;
       };
 };
 
