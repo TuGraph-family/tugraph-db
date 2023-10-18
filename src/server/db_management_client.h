@@ -23,9 +23,9 @@
 namespace lgraph {
 namespace db_management = com::antgroup::tugraph;
 class DBManagementClient {
-  // TODO: get host and port from license
-  // TODO: change name of ReadJobResult
-  // TODO: kill all process after ut
+  // TODO(qsp): get host and port from license
+  // TODO(qsp): change name of ReadJobResult
+  // TODO(qsp): kill all process after ut
  private:
   bool heartbeat_ = false;
   static const int detect_freq_ = 5;
@@ -61,7 +61,7 @@ class DBManagementClient {
     * @returns   true if connected, false if not.
     */
   bool GetHeartbeat();
-  
+
   /**
     * @brief   Get brpc stub for heart detection.
     c
