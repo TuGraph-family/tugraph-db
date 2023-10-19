@@ -49,7 +49,7 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
 
     // init dbmanagement client
     try {
-        DBManagementClient::GetInstance().InitChannel("localhost:6091");
+        DBManagementClient::GetInstance().InitChannel("localhost:5091");
     } catch(std::exception& e) {
         UT_EXPECT_EQ(1, 0);
     }
