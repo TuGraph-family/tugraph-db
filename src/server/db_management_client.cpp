@@ -89,7 +89,6 @@ void DBManagementClient::DetectHeartbeat() {
             }
         } else {
             DBManagementClient::GetInstance().SetHeartbeat(false);
-            DEBUG_LOG(ERROR) << cntl.ErrorText();
             DBManagementClient::GetInstance().SetHeartbeatCount(0);
         }
 
