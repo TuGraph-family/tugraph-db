@@ -180,7 +180,7 @@ SpatialType ExtractType(const std::string& ewkb);
 *          01:       1byte  the way of encoding, 00 represents big-endian, 01 represents little-endian
 *          01000000: 4bytes spatial data type, the little endian of 00000001, represents Point. 
 *                    02 LineString 03 Polygon 
-*          then every 4 bytes represent a data, every 8 bytes represent a point;
+*          then each 4 bytes represent a datum, each 8 bytes represent a point;
 *           
 *          LineString: 01 02000000 03000000 0000000000000000 0000000000000000
 *          0000000000000040 0000000000000040 0000000000000840 000000000000F03F

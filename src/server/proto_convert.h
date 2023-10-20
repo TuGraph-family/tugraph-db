@@ -60,8 +60,6 @@ struct FieldDataConvert {
         case ProtoFieldData::kBlob:
             return FieldData::Blob(std::move(*fd.release_blob()));
         case ProtoFieldData::kPoint:
-            // TODO(shw): 这里有必要在spatial中实现std::string&& 移动语义吗
-            //       string类型应该只涉及传参，不涉及深浅拷贝。
             return FieldData::Point(std::move(*fd.release_point()));
         case ProtoFieldData::kLinestring:
             return FieldData::LineString(std::move(*fd.release_linestring()));

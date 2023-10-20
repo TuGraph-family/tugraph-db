@@ -50,8 +50,15 @@ TEST_F(TestTypeConvert, TypeConvert) {
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(blobs), FieldType::STRING).AsString(), blobs);
     std::string s = "to lbr data";
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(s), FieldType::STRING).AsString(), s);
-    std::string point = "0101000020E6100000000000000000F03F000000000000F03F";
-    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point), FieldType::POINT).AsWgsPoint() ==
-    ::lgraph_api::Point<::lgraph_api::Wgs84>(point));
-    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point), FieldType::POINT).ToString(), point);
+    std::string point_wgs = "0101000020E6100000000000000000F03F000000000000F03F";
+    std::string point_cartesian = "0101000020231C0000000000000000F03F000000000000F03F";
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point_wgs), FieldType::POINT).AsWgsPoint() ==
+    ::lgraph_api::Point<::lgraph_api::Wgs84>(point_wgs));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point_wgs), FieldType::POINT).ToString(),
+    point_wgs);
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point_cartesian),
+    FieldType::POINT).AsCartesianPoint() ==
+    ::lgraph_api::Point<::lgraph_api::Cartesian>(point_cartesian));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point_cartesian), FieldType::POINT).ToString(),
+    point_cartesian);
 }

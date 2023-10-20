@@ -78,7 +78,6 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     Point_EWKB, Point_EWKB, Line_EWKB, Line_EWKB, Polygon_EWKB, Polygon_EWKB,
     Spatial_EWKB, Spatial_EWKB}));
 
-    // 这里的primary_key不能相同;
     VertexId v1 = txn.AddVertex(
     std::string("spatial"),
     std::vector<std::string>({"id", "string2Point", "Point",
@@ -107,6 +106,8 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     txn.Commit();
 }
 
+// test whether spatial data error(wrong ewkb format)
+// can be handled at schema level;
 static void TestSampleDB(const std::string& dir, bool detach_property) {
     using namespace lgraph;
     lgraph::DBConfig conf;
@@ -194,63 +195,58 @@ TEST_P(TestSpatial, Spatial) {
     {
         UT_LOG() << "Testing encode and decode";
 
+        // testing point wkb format
         Spatial<Wgs84> Point_w(SRID::WGS84, SpatialType::POINT, 0,
         "0101000000000000000000F03F0000000000000040");
-        // 输出全部为大写字母
+        // output ewkb format are in capital
         UT_EXPECT_EQ(Point_w.AsEWKB(), "0101000020E6100000000000000000F03F0000000000000040");
         UT_EXPECT_EQ(Point_w.AsEWKT(), "SRID=4326;POINT(1 2)");
-
-        // testing wrong wkb format;
         UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, "1111111"));
 
+        // testing point wkt format
         Spatial<Cartesian> Point_c(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(1.0 1.0)");
         UT_EXPECT_EQ(Point_c.AsEWKB(), "0101000020231C0000000000000000F03F000000000000F03F");
         UT_EXPECT_EQ(Point_c.AsEWKT(), "SRID=7203;POINT(1 1)");
-
-        // testing wrong wkt format;
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POINT, 1,
         "POINT(1.0 2.0 3.0)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(a)"));
 
+        // testing linestring wkb format
+        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::LINESTRING, 0, "1111111"));
         Spatial<Wgs84> line_w(SRID::WGS84, SpatialType::LINESTRING, 0, "01020000000300000000000000"
         "000000000000000000000000000000000000004000000000000000400000000000000840000000000000F03F");
-
         UT_EXPECT_EQ(line_w.AsEWKB(), "0102000020E610000003000000000000000000000000000000000000000"
         "00000000000004000000000000000400000000000000840000000000000F03F");
-
         UT_EXPECT_EQ(line_w.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
 
-        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::LINESTRING, 0, "1111111"));
-
+        // testing linestring wkt format
         Spatial<Cartesian> line_c(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINESTRING(0 0,2 2,3 1)");
         UT_EXPECT_EQ(line_c.AsEWKB(), "0102000020231C00000300000000000000000000000000000000000"
         "000000000000000004000000000000000400000000000000840000000000000F03F");
         UT_EXPECT_EQ(line_c.AsEWKT(), "SRID=7203;LINESTRING(0 0,2 2,3 1)");
-
         UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::LINESTRING, 1,
         "LINESTRING(1.0 2.0 a)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINE(0 0,2 2,3 1)"));
 
+        // testing polygon wkb format
         Spatial<Wgs84> Polygon_w(SRID::WGS84, SpatialType::POLYGON, 0,
         "0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000");
-
         UT_EXPECT_EQ(Polygon_w.AsEWKB(), "0103000020E6100000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004000000"
         "00000000040000000000000000000000000000000000000000000000000");
-
         UT_EXPECT_EQ(Polygon_w.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
-        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 1, "abcde"));
+        UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 0, "abcde"));
 
+        // testing polygon wkt format;
         Spatial<Cartesian> Polygon_c(SRID::CARTESIAN, SpatialType::POLYGON, 1,
         "POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_EQ(Polygon_c.AsEWKB(), "0103000020231C0000010000000500000000000000000000000"
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004000000"
         "00000000040000000000000000000000000000000000000000000000000");
-
         UT_EXPECT_EQ(Polygon_c.AsEWKT(), "SRID=7203;POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::WGS84, SpatialType::POLYGON, 1,
         "POLYGON(122)"));
@@ -268,7 +264,6 @@ TEST_P(TestSpatial, Spatial) {
 
         std::string EWKB2 = "0102000020231C00000300000000000000000000000000000000000000"
         "000000000000004000000000000000400000000000000840000000000000F03F";
-
         Spatial<Cartesian> l(EWKB2);
         UT_EXPECT_EQ(l.AsEWKB(), EWKB2);
         UT_EXPECT_EQ(l.AsEWKT(), "SRID=7203;LINESTRING(0 0,2 2,3 1)");
@@ -276,14 +271,13 @@ TEST_P(TestSpatial, Spatial) {
         std::string EWKB3 = "0103000020E610000001000000050000000000000000000000"
         "00000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F"
         "000000000000F03F000000000000000000000000000000000000000000000000";
-
         Spatial<Wgs84> p_(EWKB3);
         UT_EXPECT_EQ(p_.AsEWKB(), EWKB3);
         UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 1,1 1,1 0,0 0))");
     }
 
     {
-        UT_LOG() << "Testing constructor";
+        UT_LOG() << "Testing srid template and parameter dismatch";
         std::string Point_EWKB = "0101000020E6100000000000000000F03F000000000000F03F";
         std::string line_WKT = "LINESTRING(0 0,2 2,3 1)";
         Point<Wgs84> p(Point_EWKB);
@@ -310,7 +304,6 @@ TEST_P(TestSpatial, Spatial) {
         UT_LOG() << "Testing LineString big endian";
         std::string big_LineString_wkb = "0102000000030000000000000000000000000000"
         "0000000000000000000000004000000000000000400000000000000840000000000000F03F";
-        // std::string little_LineString_wkb = big_LineString_wkb;
         std::string big_LineString_EWKB = "0102000020E61000000300000000000000000000000"
         "000000000000000000000000000004000000000000000400000000000000840000000000000F03F";
         std::string little_LineString_EWKB = big_LineString_EWKB;

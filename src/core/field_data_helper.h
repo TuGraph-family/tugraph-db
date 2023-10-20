@@ -41,9 +41,6 @@ inline size_t ParseT<::lgraph_api::DateTime>(const char* b, const char* e,
     return ::lgraph_api::DateTime::Parse(b, e, d);
 }
 
-
-
-
 }  // namespace TextParserUtils
 }  // namespace fma_common
 
@@ -924,9 +921,7 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::POINT:
         {
-             // can only convert string to Point
-             // Point类型为fixed_length, string类型为variable, 应该不可以直接copy!;
-             // 怎么处理?
+            // can only convert string to Point
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
             if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::POINT))
@@ -956,7 +951,7 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::SPATIAL:
         {
-            // can only convert string to Polygon
+            // can only convert string to spatial
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
             ::lgraph_api::SpatialType s;
@@ -1144,11 +1139,10 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
             }
         }
     case FieldType::SPATIAL:
-        // 暂时这么实现;
         {
             std::string ewkb = v.AsString();
             ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
-            switch (s) {     // 这里是否要加ewkb, 写法有待确认;
+            switch (s) {
                 case ::lgraph_api::SRID::NUL:
                     throw std::runtime_error("cannot convert to spatial data!");
                 case ::lgraph_api::SRID::WGS84:

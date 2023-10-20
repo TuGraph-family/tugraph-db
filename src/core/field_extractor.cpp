@@ -46,8 +46,8 @@ void FieldExtractor::_ParseStringAndSet<FieldType::STRING>(Value& record,
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
                                                           const std::string& data) const {
-    // return _SetFixedSizeValue()
     FMA_DBG_ASSERT(!is_vfield_);
+    // check whether the point data is valid;
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POINT))
         throw ParseStringException(Name(), data, FieldType::POINT);
     // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
@@ -60,7 +60,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
                                                           const std::string& data) const {
-    // 检查data是否合规!
+    // check whether the linestring data is valid;
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::LINESTRING))
         throw ParseStringException(Name(), data, FieldType::LINESTRING);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
@@ -326,7 +326,6 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
             std::string ret(GetDataSize(record), 0);
             GetCopyRaw(record, &ret[0], ret.size());
             return ret;
-            // throw std::runtime_error("do not support spatial now!");
         }
     case lgraph_api::NUL:
         break;
