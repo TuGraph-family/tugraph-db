@@ -35,11 +35,6 @@ RUN yum -x filesystem update -y && yum install -y \
     which \
     java-11-openjdk-devel
 
-# set locale
-RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
-ENV LANG     zh_CN.utf8
-ENV LC_ALL   zh_CN.utf8
-
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
 # http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
@@ -323,3 +318,8 @@ ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

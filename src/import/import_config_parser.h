@@ -321,6 +321,10 @@ struct LabelDesc {
             FMA_FMT("field name [{}] not found in label [{}]", field_name, name));
     }
 
+    std::vector<ColumnSpec> GetColumnSpecs() const {
+        return columns;
+    }
+
     ColumnSpec Find(std::string field_name) const {
         for (size_t i = 0; i < columns.size(); ++i) {
             if (columns[i].name == field_name) return columns[i];

@@ -279,13 +279,13 @@ TEST_F(TestVertexIndex, addIndexDetach) {
                                            FieldData(str_fd), FieldData(float(i))});
     }
     txn.Commit();
-    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "int32", false, true));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "string", false, true));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "float", false, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "int32", false, true, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "string", false, true, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "float", false, true, true));
 
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "int32", false, false));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "string", false, false));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "float", false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "int32", false, false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "string", false, false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "float", false, false, false));
 
     txn = db.CreateReadTxn();
     // vertex

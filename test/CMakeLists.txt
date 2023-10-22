@@ -55,6 +55,7 @@ add_executable(unit_test
         test_import_parse_delimiter.cpp
         test_import_planner.cpp
         test_import_v2.cpp
+        test_import_v3.cpp
         test_type_convert.cpp
         test_json_convert.cpp
         test_lgraph.cpp

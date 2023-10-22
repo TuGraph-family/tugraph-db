@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <unordered_set>
 #include "lgraph/olap_base.h"
 
 using namespace lgraph_api;
@@ -23,7 +24,7 @@ using namespace lgraph_api::olap;
  * @brief    Estimate the betweenness centrality of all vertices in the graph.
  *
  * @param[in]   graph    The graph to compute on.
- * @param[in]   samples    The number of samples.
+ * @param[in]   samples  The number of samples.
  * @param[in]   score    The vector to store betweenness centrality.
  *
  * @return    return the graph node of max betweenness centrality.
@@ -73,11 +74,22 @@ size_t CNCore(OlapBase<Empty>& graph, std::pair<size_t, size_t> search_pair);
 void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<double>& curr);
 
 /**
+ * @brief    Compute the Personalized PageRank algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in,out]    curr           The ParallelVector to store ppr value.
+ * @param[in]        root           The id of the vertex for which the ppr is to be calculated.
+ * @param[in]        iterations     The iterations of Personalized PageRank algorithm.
+ *
+ */
+void PPRCore(OlapBase<Empty>& graph, ParallelVector<double>& curr, size_t root, size_t iterations);
+
+/**
  * \brief   Perform a SSSP from root vertex and return the result.
  *
- * \param               graph    The graph to compute on.
- * \param               root    The root vertex id to start sssp from.
- * \param   [in,out]    distance   The ParallelVector to store distance.
+ * \param               graph     The graph to compute on.
+ * \param               root      The root vertex id to start sssp from.
+ * \param   [in,out]    distance  The ParallelVector to store distance.
  */
 void SSSPCore(OlapBase<double>& graph, size_t root, ParallelVector<double>& distance);
 
@@ -90,7 +102,7 @@ void SSSPCore(OlapBase<double>& graph, size_t root, ParallelVector<double>& dist
 void WCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
 
 /**
- * \brief    Comoute the clustering coefficient of all vertices in the graph.
+ * \brief    Compute the clustering coefficient of all vertices in the graph.
  *
  * \param    graph    The graph to compute on.
  * \param    score    The vector to store clustering coefficient.
@@ -100,15 +112,50 @@ void WCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
 double LCCCore(OlapBase<Empty>& graph, ParallelVector<double>& score);
 
 /**
- * \brief    Comoute the label propagation algorithm.
+ * @brief    Compute the leiden algorithm.
  *
- * \param    graph    The graph to compute on.
+ * @param[in]       graph           The graph to compute on.
+ * @param[in,out]   label           The community of vertex.
+ * @param[in]       random_seed     The number of random seed for leiden algorithm.
+ * @param[in]       theta           Determine the degree of randomness in the selection
+ *                                  of a community and within a range of roughly [0.0005, 0.1]
+ * @param[in]       gamma           The resolution parameter.
+ *                                  Higher resolutions lead to more communities
+ * @param[in]       threshold       Terminate when active_vertices < num_vertices / threshold
+ */
+void LeidenCore(OlapBase<double>& graph, ParallelVector<size_t>& label, unsigned random_seed,
+                double theta, double gamma, size_t threshold);
+
+/**
+ * @brief    Compute the number of rings of length k.
+ *
+ * @param[in]   graph    The graph to compute on, should be an *directed* graph.
+ * @param[in]   k        The length of rings.
+ *
+ * @return   the number of rings of length k.
+ */
+size_t LocateCycleCore(OlapBase<Empty>& graph, size_t k);
+
+/**
+ * \brief    Compute the label propagation algorithm.
+ *
+ * \param    graph             The graph to compute on.
  * \param    num_iterations    The iterations of label propagation algorithm.
- * \param    sync_flag    synchronous mode -> 1, Asynchronous mode -> 0.
+ * \param    sync_flag         Synchronous mode -> 1, Asynchronous mode -> 0.
  *
  * \return    The value of modularity.
  */
 double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag);
+
+/**
+ * @brief    Compute the Maximal Independent Set Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in, out]   mis            The ParallelVector to store MIS value.
+ * @param[in, out]   mis_size       The size of MIS.
+ *
+ */
+void MISCore(OlapBase<Empty>& graph, ParallelVector<bool>& mis, size_t& mis_size);
 
 /**
  * @brief    Compute the degree correlation.
@@ -173,6 +220,17 @@ void HITSCore(OlapBase<Empty>& graph, ParallelVector<double>& authority,
 double JiCore(OlapBase<Empty>& graph, std::pair<size_t, size_t> search_pair);
 
 /**
+ * @brief    Compute the k-cliques algorithm.
+ *
+ * @param[in]    graph           The graph to compute on.
+ * @param[in]    value_k         The size of to cliques.
+ * @param[in]    cliques_cnt     The number of to cliques of each vertex.
+ *
+ * @return    return the number of cliques.
+ */
+size_t KCliquesCore(OlapBase<Empty>& graph, int value_k, ParallelVector<size_t>& cliques_cnt);
+
+/**
  * @brief    Compute the k-core algorithm.
  *
  * @param[in]    graph      The graph to compute on.
@@ -183,6 +241,18 @@ double JiCore(OlapBase<Empty>& graph, std::pair<size_t, size_t> search_pair);
  * @return    return the number of result.
  */
 size_t KCoreCore(OlapBase<Empty>& graph, ParallelVector<bool>& result, size_t value_k);
+
+/**
+ * @brief    Compute the k-truss algorithm.
+ *
+ * @param[in]    graph           The graph to compute on.
+ * @param[in]    value_k         The size of truss.
+ * @param[in]    sub_neighbours  The neighbours in k-truss subgraph.
+ *
+ * @return    return number of edges in k-truss subgraph.
+ */
+size_t KTrussCore(OlapBase<Empty>& graph, size_t value_k,
+                  std::vector<std::vector<size_t>>& sub_neighbours);
 
 /**
  * @brief    Compute the Louvain Algorithm.
@@ -213,11 +283,35 @@ void MotifCore(OlapBase<Empty>& graph, ParallelVector<size_t>& motif_vertices, i
 /**
  * @brief    Compute Multiple-source Shortest Paths algorithm.
  *
- * @param[in]    graph          The graph to compute on.
- * @param[in]    root           The set of root vertex.
- * @param[in,out]    distance       The ParallelVector to store shostest distance.
+ * @param[in]       graph          The graph to compute on.
+ * @param[in]       root           The set of root vertex.
+ * @param[in,out]   distance       The ParallelVector to store shostest distance.
  */
 void MSSPCore(OlapBase<double>& graph, std::vector<size_t> roots, ParallelVector<double>& distance);
+
+/**
+ * @brief    Compute the Subgraph Isomorphism Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        query          The outgoing adjacency list of subgraph.
+ * @param[in, out]   counts         The ParallelVector to store number of subgraph.
+ *
+ * @return   return total number of subgraph.
+ */
+size_t SubgraphIsomorphismCore(OlapBase<Empty>& graph,
+                               std::vector<std::unordered_set<size_t>>& query,
+                               ParallelVector<size_t>& counts);
+
+/**
+ * @brief    Compute the Sybil Rank Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        trust_seeds    The ParallelVector for trusted nodes.
+ * @param[in, out]   curr           The ParallelVector to store sybil rank value.
+ *
+ */
+void SybilRankCore(OlapBase<Empty>& graph, ParallelVector<size_t>& trust_seeds,
+                   ParallelVector<double>& curr);
 
 /**
  * @brief    Compute the Triangle Counting algorithm.
@@ -232,10 +326,24 @@ size_t TriangleCore(OlapBase<Empty>& graph, ParallelVector<size_t>& num_triangle
 /**
  * @brief    Compute the strongly connected components algorithm.
  *
- * @param[in]        graph           The graph to compute on.
- * @param[in,out]    label           The community of vertex.
+ * @param[in]        graph       The graph to compute on.
+ * @param[in,out]    label       The community of vertex.
  */
 void SCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
+
+/**
+ * @brief    Compute the Speaker-listener Label Propagation Algorithm.
+ *
+ * @param[in]    graph          The graph to compute on.
+ * @param[in]    label_map      The ParallelVector to store label information.
+ * @param[in]    num_iterations The iterations of slpa algorithm.
+ * @param[in]    threshold      The minimum number of times the node's label that meets the
+ *                              requirements appears.
+ * @return   return the Modularity of graph.
+ */
+double SLPACore(OlapBase<Empty>& graph,
+                ParallelVector<std::vector<std::pair<size_t, size_t>>>& label_map,
+                int num_iterations, size_t threshold);
 
 /**
  * @brief    Compute the Single Pair Shortest Path algorithm.
@@ -246,3 +354,35 @@ void SCCCore(OlapBase<Empty>& graph, ParallelVector<size_t>& label);
  * @return    return the shortest path distance of search pair.
  */
 size_t SPSPCore(OlapBase<Empty>& graph, std::pair<size_t, size_t> search_pair);
+
+/**
+ * @brief    Compute the Trustrank algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        iterations     The iterations of Trustrank algorithm.
+ * @param[in,out]    curr           The ParallelVector to store trustrank.
+ * @param[in]        trust_list     Trust user input vertices.
+ *
+ */
+void TrustrankCore(OlapBase<Empty>& graph, size_t iterations, ParallelVector<double>& curr,
+                   std::vector<size_t> trust_list);
+
+/**
+ * @brief    Compute the Weighted Label Propagation Algorithm.
+ *
+ * @param[in]    graph          The graph to compute on.
+ * @param[in]    num_iterations The iterations of wlpa algorithm.
+ *
+ * @return   return the Modularity of graph.
+ */
+double WLPACore(OlapBase<double>& graph, int num_iterations);
+
+/**
+ * @brief    Compute the Weighted Pagerank Algorithm.
+ *
+ * @param[in]        graph          The graph to compute on.
+ * @param[in]        num_iterations The iterations of Weighted Pagerank Algorithm.
+ * @param[in,out]    curr           The ParallelVector to store pagerank value.
+ *
+ */
+void WPageRankCore(OlapBase<double>& graph, int num_iterations, ParallelVector<double>& curr);

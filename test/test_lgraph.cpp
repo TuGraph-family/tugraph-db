@@ -759,12 +759,12 @@ TEST_F(TestLGraph, LGraph) {
             {"DATETIME", FieldType::DATETIME, false}, {"FLOAT", FieldType::FLOAT, false},
             {"DOUBLE", FieldType::DOUBLE, false},     {"STRING1", FieldType::STRING, false}};
         UT_EXPECT_TRUE(db1.AddLabel("vl", e_q, true, VertexOptions("date")));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DATETIME", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "BOOL", true, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DATETIME", true, true, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "BOOL", true, true, true));
         // UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "date", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "FLOAT", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DOUBLE", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "STRING1", false, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "FLOAT", true, true, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DOUBLE", true, true, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "STRING1", false, true, true));
         size_t n_mod = 20000;
         db1.DelLabel("v1", true, &n_mod);
     }

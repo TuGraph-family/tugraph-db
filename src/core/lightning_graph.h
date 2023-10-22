@@ -193,7 +193,7 @@ class LightningGraph {
     // adds an index, blocks until the index is ready
     // returns true if success, false if index already exists.
     bool BlockingAddIndex(const std::string& label, const std::string& field,
-                          bool is_unique, bool is_vertex, bool is_global = false,
+                          bool is_unique, bool is_vertex, bool is_global = true,
                           bool known_vid_range = false, VertexId start_vid = 0,
                           VertexId end_vid = 0);
 
@@ -310,7 +310,7 @@ class LightningGraph {
     template <typename T>
     void BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
                          size_t field_id, bool is_unique, VertexId start_vid, VertexId end_vid,
-                         bool is_vertex = true);
+                         bool is_vertex = true, bool is_global = true);
 
     void Open();
 };
