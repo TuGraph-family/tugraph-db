@@ -4,3 +4,6 @@
 [submodule "deps/tugraph-db-client-java"]
 	path = deps/tugraph-db-client-java
 	url = https://github.com/TuGraph-family/tugraph-db-client-java.git
+[submodule "deps/tugraph-db-management"]
+	path = deps/tugraph-db-management
+	url = https://github.com/TuGraph-family/tugraph-db-management.git

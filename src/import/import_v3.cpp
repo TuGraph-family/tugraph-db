@@ -19,6 +19,7 @@
 #include "import/dense_string.h"
 #include "import/import_config_parser.h"
 #include "import/blob_writer.h"
+#include "import/import_utils.h"
 #include "import/graphar_config.h"
 #include "db/galaxy.h"
 
@@ -42,83 +43,6 @@ void Importer::OnErrorOffline(const std::string& msg) {
         FMA_WARN() << "If you wish to ignore the errors, use "
                       "--continue_on_error true";
         exit(-1);
-    }
-}
-
-void Importer::AppendFieldData(std::string& ret, const FieldData& data) {
-    switch (data.GetType()) {
-    case FieldType::NUL:
-        FMA_ASSERT(false);
-        break;
-    case FieldType::BOOL:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::BOOL>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::FLOAT:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::FLOAT>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::DOUBLE:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::DOUBLE>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::DATE:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::DATE>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::DATETIME:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::DATETIME>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::INT64:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::INT64>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::INT32:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::INT32>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::INT16:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::INT16>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::INT8:
-        {
-            auto val = field_data_helper::GetStoredValue<FieldType::INT8>(data);
-            encodeNumToStr(val, ret);
-        }
-        break;
-    case FieldType::STRING:
-        {
-            const auto& val = field_data_helper::GetStoredValue<FieldType::STRING>(data);
-            ret.append(val);
-        }
-        break;
-    case FieldType::BLOB:
-        {
-            const auto& val = field_data_helper::GetStoredValue<FieldType::BLOB>(data);
-            ret.append(val);
-        }
-        break;
-    default:
-        FMA_ASSERT(false);
-        break;
     }
 }
 
@@ -213,7 +137,7 @@ void Importer::DoImportOffline() {
         // add index
         for (auto& v : schemaDesc_.label_desc) {
             for (auto& spec : v.columns) {
-                if (v.is_vertex && spec.index && !spec.primary) {
+                if (v.is_vertex && spec.index && !spec.unique) {
                     // create index, ID column has creadted
                     if (db_->AddVertexIndex(v.name, spec.name, spec.unique)) {
                         FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
@@ -222,14 +146,29 @@ void Importer::DoImportOffline() {
                         throw InputError(FMA_FMT("Vertex index [label:{}, field:{}] already exists",
                                                  v.name, spec.name));
                     }
-                } else if (!v.is_vertex && spec.index) {
+                } else if (v.is_vertex && spec.index && spec.unique &&
+                           v.GetPrimaryField().name != spec.name) {
+                    throw InputError(
+                        FMA_FMT("offline import does not support to create a unique "
+                                "index [label:{}, field:{}]. You should create an index for "
+                                "an attribute column after the import is complete",
+                                v.name, spec.name));
+                } else if ((!v.is_vertex && spec.index && !spec.global && spec.unique) ||
+                           (!v.is_vertex && spec.index && !spec.unique)) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
                         FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
                                              v.name, spec.name, spec.unique);
                     } else {
-                        throw InputError(FMA_FMT("Edge index [label:{}, field:{}] already exists",
-                                                 v.name, spec.name));
+                        throw InputError(
+                            FMA_FMT("Edge index [label:{}, field:{}] already exists",
+                                    v.name, spec.name));
                     }
+                } else if (!v.is_vertex && spec.index && spec.global && spec.unique) {
+                    throw InputError(
+                        FMA_FMT("offline import does not support to create a unique "
+                                "index [label:{}, field:{}]. You should create an index for "
+                                "an attribute column after the import is complete",
+                                v.name, spec.name));
                 }
                 if (spec.fulltext) {
                     bool ok = db_->AddFullTextIndex(v.is_vertex, v.name, spec.name);
@@ -277,7 +216,6 @@ void Importer::VertexDataToSST() {
         uint16_t key_col_id = 0;
         Schema* schema = nullptr;
         std::vector<size_t> field_ids;
-        std::vector<std::pair<size_t, LabelId>> unique_index_info;
         std::vector<std::vector<FieldData>> block;
         LabelId label_id = 0;
     };
@@ -315,15 +253,6 @@ void Importer::VertexDataToSST() {
                 }
                 uint16_t key_col_id = file.FindIdxExcludeSkip(
                     schemaDesc_.FindVertexLabel(file.label).GetPrimaryField().name);
-                std::vector<std::pair<size_t, LabelId>> unique_index_info;
-                for (size_t i = 0; i < prop_names.size(); i++) {
-                    auto prop_name = prop_names[i];
-                    auto col = schemaDesc_.FindVertexLabel(file.label).Find(prop_name);
-                    if (col.index && col.unique && !col.primary) {
-                        unique_index_info.emplace_back(file.FindIdxExcludeSkip(prop_name),
-                                                       field_ids[i]);
-                    }
-                }
                 std::unique_ptr<import_v2::BlockParser> parser;
                 if (file.data_format == "GraphAr") {
                     parser.reset(new import_v2::GraphArParser(file));
@@ -349,7 +278,6 @@ void Importer::VertexDataToSST() {
                     dataBlock->block = std::move(block);
                     dataBlock->start_vid = start_vid;
                     dataBlock->key_col_id = key_col_id;
-                    dataBlock->unique_index_info = unique_index_info;
                     dataBlock->schema = schema;
                     dataBlock->field_ids = field_ids;
                     dataBlock->label_id = boost::endian::native_to_big(label_id);
@@ -387,37 +315,6 @@ void Importer::VertexDataToSST() {
                                     key_col.string().size() > lgraph::_detail::MAX_KEY_SIZE) {
                                     OnErrorOffline("Id string too long: " +
                                                    key_col.string().substr(0, 1024));
-                                    continue;
-                                }
-                                bool unique_index_ok = true;
-                                for (auto info : dataBlock->unique_index_info) {
-                                    const FieldData& unique_index_col = line[info.first];
-                                    if (unique_index_col.IsNull() ||
-                                        unique_index_col.is_empty_buf()) {
-                                        OnErrorOffline("Invalid unique index key");
-                                        continue;
-                                    }
-                                    if (unique_index_col.IsString() &&
-                                        unique_index_col.string().size() >
-                                            lgraph::_detail::MAX_KEY_SIZE) {
-                                        OnErrorOffline("Unique index string key is too long: " +
-                                                       unique_index_col.string().substr(0, 1024));
-                                        continue;
-                                    }
-                                    std::string unique_key;
-                                    unique_key.append((const char*)&dataBlock->label_id,
-                                                      sizeof(dataBlock->label_id));
-                                    auto fd_id = info.second;
-                                    unique_key.append((const char*)&fd_id, sizeof(fd_id));
-                                    AppendFieldData(unique_key, unique_index_col);
-                                    if (!unique_index_keys_.insert(unique_key, 0)) {
-                                        OnErrorOffline("Duplicate unique index field: " +
-                                                       unique_index_col.ToString());
-                                        unique_index_ok = false;
-                                        break;
-                                    }
-                                }
-                                if (!unique_index_ok) {
                                     continue;
                                 }
 
@@ -519,8 +416,6 @@ void Importer::VertexDataToSST() {
             exit(-1);
         }
     }
-    // free memory
-    cuckoohash_map<std::string, char>().swap(unique_index_keys_);
     if (!config_.keep_vid_in_memory) {
         auto begin = fma_common::GetTime();
         std::vector<std::string> ingest_files;
@@ -611,7 +506,8 @@ void Importer::EdgeDataToSST() {
                 LabelId label_id;
                 LabelId src_label_id, dst_label_id;
                 std::vector<size_t> field_ids;
-                std::vector<std::pair<size_t, LabelId>> unique_index_info;
+                std::vector<size_t> unique_index_info;
+                cuckoohash_map<std::string, char> unique_index_keys;
                 Schema* schema;
                 {
                     auto txn = db_->CreateReadTxn();
@@ -625,9 +521,8 @@ void Importer::EdgeDataToSST() {
                 for (size_t i = 0; i < prop_names.size(); i++) {
                     auto prop_name = prop_names[i];
                     auto col = schemaDesc_.FindEdgeLabel(file.label).Find(prop_name);
-                    if (col.index && col.unique) {
-                        unique_index_info.emplace_back(file.FindIdxExcludeSkip(prop_name),
-                                                       field_ids[i]);
+                    if (col.index && col.unique && !col.global) {
+                        unique_index_info.push_back(file.FindIdxExcludeSkip(prop_name));
                     }
                 }
                 std::unique_ptr<import_v2::BlockParser> parser;
@@ -681,6 +576,7 @@ void Importer::EdgeDataToSST() {
                     boost::asio::post(*generate_sst_threads_, [this, &blob_writer, &sst_file_id,
                                                                &pending_tasks, field_ids,
                                                                unique_index_info,
+                                                               &unique_index_keys,
                                                                edgeDataBlock =
                                                                    std::move(edgeDataBlock)]() {
                         try {
@@ -714,37 +610,6 @@ void Importer::EdgeDataToSST() {
                                 vid_iter = rocksdb_vids_->NewIterator(ros);
                             }
                             for (auto& line : edgeDataBlock->block) {
-                                bool unique_index_ok = true;
-                                for (const auto& info : unique_index_info) {
-                                    const FieldData& unique_index_col = line[info.first];
-                                    if (unique_index_col.IsNull() ||
-                                        unique_index_col.is_empty_buf()) {
-                                        OnErrorOffline("Invalid unique index key");
-                                        continue;
-                                    }
-                                    if (unique_index_col.IsString() &&
-                                        unique_index_col.string().size() >
-                                            lgraph::_detail::MAX_KEY_SIZE) {
-                                        OnErrorOffline("Unique index string key is too long: " +
-                                                       unique_index_col.string().substr(0, 1024));
-                                        continue;
-                                    }
-                                    std::string unique_key;
-                                    unique_key.append((const char*)&edgeDataBlock->label_id,
-                                                      sizeof(edgeDataBlock->label_id));
-                                    auto fd_id = info.second;
-                                    unique_key.append((const char*)&fd_id, sizeof(fd_id));
-                                    AppendFieldData(unique_key, unique_index_col);
-                                    if (!unique_index_keys_.insert(unique_key, 0)) {
-                                        OnErrorOffline("Duplicate unique index field: " +
-                                                       unique_index_col.ToString());
-                                        unique_index_ok = false;
-                                        break;
-                                    }
-                                }
-                                if (!unique_index_ok) {
-                                    continue;
-                                }
                                 const FieldData& src_fd = line[edgeDataBlock->src_id_pos];
                                 const FieldData& dst_fd = line[edgeDataBlock->dst_id_pos];
                                 int64_t tid =
@@ -802,6 +667,41 @@ void Importer::EdgeDataToSST() {
                                         continue;
                                     }
                                 }
+                                bool unique_index_ok = true;
+                                for (const auto& info : unique_index_info) {
+                                    const FieldData& unique_index_col = line[info];
+                                    if (unique_index_col.IsNull() ||
+                                        unique_index_col.is_empty_buf()) {
+                                        OnErrorOffline("Invalid unique index key");
+                                        continue;
+                                    }
+                                    if (unique_index_col.IsString() &&
+                                        unique_index_col.string().size() >
+                                            lgraph::_detail::MAX_KEY_SIZE) {
+                                        OnErrorOffline("Unique index string key is too long: "
+                                                       + unique_index_col.string().substr(0, 1024));
+                                        continue;
+                                    }
+                                    std::string unique_key;
+                                    unique_key.append((const char*)&info, sizeof(info));
+                                    unique_key.append(
+                                        (const char*)&(src_vid < dst_vid ? src_vid : dst_vid),
+                                        sizeof(VertexId));
+                                    unique_key.append(
+                                        (const char*)&(src_vid > dst_vid ? src_vid : dst_vid),
+                                        sizeof(VertexId));
+                                    AppendFieldData(unique_key, unique_index_col);
+                                    if (!unique_index_keys.insert(unique_key, 0)) {
+                                        OnErrorOffline("Duplicate unique index field: " +
+                                                       unique_index_col.ToString());
+                                        unique_index_ok = false;
+                                        break;
+                                    }
+                                }
+                                if (!unique_index_ok) {
+                                    continue;
+                                }
+
                                 for (size_t i = first_id_pos; i < second_id_pos - 1; i++) {
                                     line[i] = std::move(line[i + 1]);
                                 }
@@ -880,8 +780,6 @@ void Importer::EdgeDataToSST() {
     if (!exceptions_.empty()) {
         std::rethrow_exception(exceptions_.front());
     }
-    // free memory
-    cuckoohash_map<std::string, char>().swap(unique_index_keys_);
     auto t2 = fma_common::GetTime();
     FMA_LOG() << "Convert edge data to sst files, time: " << t2 - t1 << "s";
 }

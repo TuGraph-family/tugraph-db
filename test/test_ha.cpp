@@ -211,7 +211,8 @@ TEST_F(TestHA, HAClient) {
     ret = client.LoadProcedure(result, code_so_path, "CPP", "test_plugin1", "SO",
                                "this is a test plugin", true, "v1");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(result, "CALL db.plugin.getPluginInfo('CPP','test_plugin1', false)");
+    ret = client.CallCypherToLeader(result,
+                                    "CALL db.plugin.getPluginInfo('CPP','test_plugin1', false)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallProcedureToLeader(result, "CPP", "test_plugin1", "gecfb");
     UT_EXPECT_TRUE(ret);

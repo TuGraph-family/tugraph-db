@@ -1,4 +1,3 @@
-# Docker hub image
 FROM arm64v8/centos:7
 
 RUN yum update -y && yum install -y \
@@ -8,6 +7,7 @@ RUN yum update -y && yum install -y \
     make \
     wget \
     bzip2 \
+    bzip2-devel \
     openssl-static \
     libtool \
     libtool-ltdl \
@@ -27,12 +27,9 @@ RUN yum update -y && yum install -y \
     kde-l10n-Chinese \
     glibc-common \
     libcurl-devel \
-    centos-release-scl-rh
-
-# set locale
-RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
-ENV LANG     zh_CN.utf8
-ENV LC_ALL   zh_CN.utf8
+    centos-release-scl-rh \
+    witch \
+    java-11-openjdk-devel
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
@@ -116,10 +113,13 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1
     && rm -rf /leveldb*
 
 # install node.js
-RUN yum install -y rh-nodejs14-nodejs \
-    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/node /usr/local/bin/ \
-    && ln -s /opt/rh/rh-nodejs14/root/usr/bin/npm /usr/local/bin/ \
+#  https://nodejs.org/dist/v16.6.0/node-v16.6.0-linux-arm64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6.0-linux-arm64.tar.gz \
+    && tar xvf node-v16.6.0-linux-arm64.tar.gz && cd node-v16.6.0-linux-arm64/ \
+    && ln -s /node-v16.6.0-linux-arm64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.6.0-linux-arm64/bin/node /usr/local/bin/ \
     && npm config set registry https://registry.npmmirror.com \
+    && rm -rf /node-v16.6.0-linux-arm64.tar.gz \
     && npm install -g npm@latest
 
 # install lcov
@@ -218,7 +218,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/braft-v1.1
 # if it is not accessible, replace it with the link below
 # https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5.3.0.tar.gz \
-   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 && ./autogen.sh && make -j4 && make install \
+   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./autogen.sh && make -j4 && make install \
    && rm -rf /jemalloc*
 
 # rocksdb
@@ -229,17 +229,93 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7
   && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=OFF -DWITH_JEMALLOC=ON \
   && make -j6 && make install && rm -rf /rocksdb*
 
-# antlr4
+# install antlr4-4.13.0
 # if it is not accessible, replace it with the link below
-# https://github.com/antlr/antlr4/archive/refs/tags/4.12.0.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.12.0.tar.gz \
-  && tar zxf antlr4-4.12.0.tar.gz && cd antlr4-4.12.0/runtime/Cpp/ && mkdir build && cd build \
-  && cmake $CMAKE_OPT -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DANTLR4_INSTALL=1 .. \
-  && make -j4 && make install && rm -rf /antlr4*
+# https://github.com/antlr/antlr4/archive/refs/tags/4.13.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.13.0.tar.gz \
+    && tar zxf antlr4-4.13.0.tar.gz && cd antlr4-4.13.0/runtime/Cpp/ \
+    && mkdir -p build && cd build \
+    && cmake -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-fPIC -DANTLR4_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make ${JFLAG} && make install \
+    && cd ../../../ && JAVA_HOME=/usr/lib/jvm/java-11-openjdk PATH=/opt/apache-maven-3.8.7/bin:$PATH mvn package -DskipTests \
+    && cp tool/target/antlr4-4.13.0-complete.jar /usr/local/bin \
+    && chmod 755 /usr/local/bin/antlr4-4.13.0-complete.jar \
+    && rm -rf /antlr4-4.13.0*
+
+# install openssl 1.0.2u
+# if it is not accessible, replace it with the link below
+# https://www.openssl.org/source/old/1.0.2/openssl-1.0.2u.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openssl-1.0.2u.tar.gz \
+    && tar zxf openssl-1.0.2u.tar.gz && cd openssl-1.0.2u \
+    && ./config -fPIC --prefix=/usr \
+    && make ${JFLAG} && make install \
+    && cp libssl.a /usr/lib64/ && cp libcrypto.a /usr/lib64/ \
+    && rm -rf /openssl-1.0.2u*
+
+# install glog-0.3.5
+# if it is not accessible, replace it with the link below
+# https://github.com/google/glog/archive/refs/tags/v0.3.5.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/glog-0.3.5.tar.gz \
+    && tar zxf glog-0.3.5.tar.gz && cd glog-0.3.5 \
+    && mkdir -p build && cd build \
+    && cmake -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make ${JFLAG} && make install \
+    && rm -rf /glog-0.3.5*
+
+# Using 3rd-party package stored in oss to accelerate Apache arrow building
+ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/absl-20211102.0.tar.gz \
+    ARROW_AWSSDK_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-sdk-cpp-1.8.133.tar.gz \
+    ARROW_AWS_CHECKSUMS_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-checksums-v0.1.12.tar.gz \
+    ARROW_AWS_C_COMMON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-c-common-v0.6.9.tar.gz \
+    ARROW_AWS_C_EVENT_STREAM_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-c-event-stream-v0.1.5.tar.gz \
+    ARROW_BOOST_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/boost-1.75.0.tar.gz \
+    ARROW_BROTLI_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/brotli-v1.0.9.tar.gz \
+    ARROW_BZIP2_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/bzip2-1.0.8.tar.gz \
+    ARROW_CARES_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/cares-1.17.2.tar.gz \
+    ARROW_CRC32C_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/crc32c-1.1.2.tar.gz \
+    ARROW_GBENCHMARK_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/gbenchmark-v1.6.0.tar.gz \
+    ARROW_GFLAGS_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/gflags-v2.2.2.tar.gz \
+    ARROW_GLOG_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/glog-v0.5.0.tar.gz \
+    ARROW_GOOGLE_CLOUD_CPP_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/google-cloud-cpp-v1.42.0.tar.gz \
+    ARROW_GRPC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/grpc-v1.46.3.tar.gz \
+    ARROW_GTEST_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/gtest-1.11.0.tar.gz \
+    ARROW_JEMALLOC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/jemalloc-5.3.0.tar.bz2 \
+    ARROW_LZ4_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/lz4-v1.9.4.tar.gz \
+    ARROW_MIMALLOC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/mimalloc-v2.0.6.tar.gz \
+    ARROW_NLOHMANN_JSON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/nlohmann-json-v3.10.5.tar.gz \
+    ARROW_OPENTELEMETRY_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/opentelemetry-cpp-v1.4.1.tar.gz \
+    ARROW_OPENTELEMETRY_PROTO_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/opentelemetry-proto-v0.17.0.tar.gz \
+    ARROW_ORC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/orc-1.9.0.tar.gz \
+    ARROW_PROTOBUF_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/protobuf-v21.3.tar.gz \
+    ARROW_RAPIDJSON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/rapidjson-232389d4f1012dddec4ef84861face2d2ba85709.tar.gz \
+    ARROW_RE2_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/re2-2022-06-01.tar.gz \
+    ARROW_SNAPPY_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/snappy-1.1.9.tar.gz \
+    ARROW_THRIFT_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/thrift-0.16.0.tar.gz \
+    ARROW_UCX_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/ucx-1.12.1.tar.gz \
+    ARROW_UTF8PROC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/utf8proc-v2.7.0.tar.gz \
+    ARROW_XSIMD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/xsimd-9.0.1.tar.gz \
+    ARROW_ZLIB_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zlib-1.2.13.tar.gz \
+    ARROW_ZSTD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zstd-1.5.5.tar.gz
+
+# install Apache arrow
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/apache-arrow-13.0.0.tar.gz \
+  && tar xf apache-arrow-13.0.0.tar.gz && cd apache-arrow-13.0.0/cpp && mkdir build && cd build \
+  && cmake .. -DARROW_DATASET=ON -DARROW_PARQUET=ON -DARROW_ORC=ON -DARROW_CSV=ON && make ${JFLAG} \
+  && make install && rm -rf /apache-arrow-*
+
+# install GraphAr
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/GraphAr-0.8.0.tar.gz \
+  && tar xf GraphAr-0.8.0.tar.gz && cd GraphAr-0.8.0/cpp && mkdir build && cd build \
+  && cmake .. && make ${JFLAG} && make install && rm -rf /GraphAr-*
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
-    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0/jre/lib/aarch64/server:$LD_LIBRARY_PATH \
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
+    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

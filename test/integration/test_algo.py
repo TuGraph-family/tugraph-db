@@ -222,6 +222,25 @@ class TestExec:
     def test_exec_ji_standalone(self, algo):
         pass
 
+    KCLIQUESEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/kcliques_embed ./testdb",
+        "result": ['''discovered 1612010 3-cliques''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KCLIQUESEMBEDOPT], indirect=True)
+    def test_exec_kcliques_embed(self, importor, algo):
+        pass
+
+    KCLIQUESSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/kcliques_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["found 1612010 3-cliques"]
+    }
+
+    @pytest.mark.parametrize("algo", [KCLIQUESSTANDOPT], indirect=True)
+    def test_exec_kcliques_standalone(self, algo):
+        pass
+
     KCOREEMBEDOPT = {
         "cmd": "OMP_NUM_THREADS=6 algo/kcore_embed ./testdb",
         "result": ['''"num_result_vertices":2987''']
@@ -259,6 +278,25 @@ class TestExec:
     def test_exec_khopwithin_embed(self, importor, algo):
         pass
 
+    KTRUSSEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/ktruss_embed ./testdb",
+        "result": ['''"left_edges":88156''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [KTRUSSEMBEDOPT], indirect=True)
+    def test_exec_ktruss_embed(self, importor, algo):
+        pass
+
+    KTRUSSSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/ktruss_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["last_edge:88156"]
+    }
+
+    @pytest.mark.parametrize("algo", [KTRUSSSTANDOPT], indirect=True)
+    def test_exec_ktruss_standalone(self, algo):
+        pass
+
     LCCEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/lcc_embed ./testdb",
         "result" : ['''"average_lcc":0.60554''']
@@ -292,6 +330,47 @@ class TestExec:
     }
     @pytest.mark.parametrize("algo", [LCCPYTHONSTANDOPT], indirect=True)
     def test_exec_lcc_python_standalone(self, algo):
+        pass
+
+    LEIDENEMBEDOPT = {
+        "cmd" : "algo/leiden_embed ./testdb",
+        "result" : ['''final Q is 0.9''']
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LEIDENEMBEDOPT], indirect=True)
+    def test_exec_leiden_embed(self, importor, algo):
+        pass
+
+    LEIDENSTANDOPT = {
+        "cmd" : "algo/leiden_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result" : ["final Q is 0.9"]
+    }
+    @pytest.mark.parametrize("algo", [LEIDENSTANDOPT], indirect=True)
+    def test_exec_leiden_standalone(self, algo):
+        pass
+
+    LCIMPORTOPT = {
+        "cmd": "OMP_NUM_THREADS=6 ./lgraph_import -c ./data/algo/lc.conf -d ./locate_cycle_db --overwrite 1",
+        "cleanup_dir": ["./locate_cycle_db", "./.import_tmp"]
+    }
+
+    LCEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/locate_cycle_embed ./locate_cycle_db",
+        "result": ['''"num_rings":4''']
+    }
+
+    @pytest.mark.parametrize("importor", [LCIMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [LCEMBEDOPT], indirect=True)
+    def test_exec_lc_embed(self, importor, algo):
+        pass
+
+    LCSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/locate_cycle_standalone --type text --input_dir ./data/algo/locate_cycle_unweighted",
+        "result": ["the num of rings is: 4"]
+    }
+
+    @pytest.mark.parametrize("algo", [LCSTANDOPT], indirect=True)
+    def test_exec_lc_standalone(self, algo):
         pass
 
     LOUVAINEMBEDOPT = {
@@ -346,6 +425,25 @@ class TestExec:
     }
     @pytest.mark.parametrize("algo", [LPAPYTHONSTANDOPT], indirect=True)
     def test_exec_lpa_python_standalone(self, algo):
+        pass
+
+    MISEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/mis_embed ./testdb",
+        "result": ['''"MIS_size":499''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [MISEMBEDOPT], indirect=True)
+    def test_exec_mis_embed(self, importor, algo):
+        pass
+
+    MISSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/mis_standalone --type text --input_dir ./data/algo/fb_unweighted --make_symmetric 1",
+        "result": ["|mis|=499"]
+    }
+
+    @pytest.mark.parametrize("algo", [MISSTANDOPT], indirect=True)
+    def test_exec_mis_standalone(self, algo):
         pass
 
     MOTIFEMBEDOPT = {
@@ -438,6 +536,25 @@ class TestExec:
     def test_exec_pagerank_python_standalone(self, algo):
         pass
 
+    PPREMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/ppr_embed ./testdb",
+        "result": ["pr[0] = 0.15"]
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [PPREMBEDOPT], indirect=True)
+    def test_exec_ppr_embed(self, importor, algo):
+        pass
+
+    PPRSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/ppr_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["pr[0] = 0.15"]
+    }
+
+    @pytest.mark.parametrize("algo", [PPRSTANDOPT], indirect=True)
+    def test_exec_ppr_standalone(self, algo):
+        pass
+
     SCCEMBEDOPT = {
         "cmd": "OMP_NUM_THREADS=6 algo/scc_embed ./testdb",
         "result": ['''"max_component":1,"num_components":4039''']
@@ -455,6 +572,25 @@ class TestExec:
 
     @pytest.mark.parametrize("algo", [SCCSTANDOPT], indirect=True)
     def test_exec_scc_standalone(self, algo):
+        pass
+
+    SLPAEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/slpa_embed ./testdb",
+        "result": ['''"modularity":0.8''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SLPAEMBEDOPT], indirect=True)
+    def test_exec_slpa_embed(self, importor, algo):
+        pass
+
+    SLPASTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/slpa_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["modularity: 0.8"]
+    }
+
+    @pytest.mark.parametrize("algo", [SLPASTANDOPT], indirect=True)
+    def test_exec_slpa_standalone(self, algo):
         pass
 
     SPSPEMBEDOPT = {
@@ -533,6 +669,44 @@ class TestExec:
     def test_exec_sssp_python_standalone(self, algo):
         pass
 
+    SUBFRAPHISOMORPHISMEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/subgraph_isomorphism_embed ./testdb",
+        "result": ['''"match_subgraph_num":1612010''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SUBFRAPHISOMORPHISMEMBEDOPT], indirect=True)
+    def test_exec_subgraph_isomorphism_embed(self, importor, algo):
+        pass
+
+    SUBFRAPHISOMORPHISMSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/subgraph_isomorphism_standalone --type text --input_dir ./data/algo/fb_unweighted --query [[1,2],[2],[]]",
+        "result": ["match 1612010 subgraph"]
+    }
+
+    @pytest.mark.parametrize("algo", [SUBFRAPHISOMORPHISMSTANDOPT], indirect=True)
+    def test_exec_subgraph_isomorphism_standalone(self, algo):
+        pass
+
+    SYBILRANKEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/sybilrank_embed ./testdb",
+        "result": ['''"max_sybilrank":0.0008''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [SYBILRANKEMBEDOPT], indirect=True)
+    def test_exec_sybilrank_embed(self, importor, algo):
+        pass
+
+    SYBILRANKSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/sybilrank_standalone --type text --input_dir ./data/algo/fb_unweighted --trust_seeds 0",
+        "result": ["max rank value is sybilrank[332] = 0.000849"]
+    }
+
+    @pytest.mark.parametrize("algo", [SYBILRANKSTANDOPT], indirect=True)
+    def test_exec_sybilrank_standalone(self, algo):
+        pass
+
     TRIANGLEEMBEDOPT = {
         "cmd": "OMP_NUM_THREADS=6 algo/triangle_embed ./testdb",
         "result": ['''"discovered_triangles":1612010''']
@@ -550,6 +724,25 @@ class TestExec:
 
     @pytest.mark.parametrize("algo", [TRIANGLESTANDOPT], indirect=True)
     def test_exec_triangle_standalone(self, algo):
+        pass
+
+    TRUSTRANKEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/trustrank_embed ./testdb",
+        "result": ['''"max_trustrank_id":3,"max_trustrank_val":0.05''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [TRUSTRANKEMBEDOPT], indirect=True)
+    def test_exec_trustrank_embed(self, importor, algo):
+        pass
+
+    TRUSTRANKSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/trustrank_standalone --type text --input_dir ./data/algo/fb_weighted --trustedUser_dir ./data/algo/roots_dir/",
+        "result": ["max rank value is [3] = 0.050122"]
+    }
+
+    @pytest.mark.parametrize("algo", [TRUSTRANKSTANDOPT], indirect=True)
+    def test_exec_trustrank_standalone(self, algo):
         pass
 
     WCCEMBEDOPT = {
@@ -585,4 +778,42 @@ class TestExec:
     }
     @pytest.mark.parametrize("algo", [WCCPYTHONSTANDOPT], indirect=True)
     def test_exec_wcc_python_standalone(self, algo):
+        pass
+
+    WLPAEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/wlpa_embed ./testdb",
+        "result": ['''"modularity":0.8''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [WLPAEMBEDOPT], indirect=True)
+    def test_exec_wlpa_embed(self, importor, algo):
+        pass
+
+    WLPASTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/wlpa_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["modularity: 0.8"]
+    }
+
+    @pytest.mark.parametrize("algo", [WLPASTANDOPT], indirect=True)
+    def test_exec_wlpa_standalone(self, algo):
+        pass
+
+    WPAGERANKEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/wpagerank_embed ./testdb",
+        "result": ['''"max_wpr_vi":1911''']
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [WPAGERANKEMBEDOPT], indirect=True)
+    def test_exec_wpagerank__embed(self, importor, algo):
+        pass
+
+    WPAGERANKSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/wpagerank_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["max rank value is [1911] = 0.004525"]
+    }
+
+    @pytest.mark.parametrize("algo", [WPAGERANKSTANDOPT], indirect=True)
+    def test_exec_wpagerank__standalone(self, algo):
         pass

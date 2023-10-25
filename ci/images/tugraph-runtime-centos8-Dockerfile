@@ -3,11 +3,6 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:8.4.2105
 
-# specifies the path of the object storage where the installation package resides
-ARG FILEPATH
-# specifies installation package name for tugraph
-ARG FILENAME
-
 RUN rm -rf /etc/yum.repos.d \
     && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
     && tar -xf yum.repos.d.tar.gz && mv yum.repos.d /etc/yum.repos.d && rm yum.repos.d.tar.gz
@@ -69,6 +64,10 @@ RUN cd opt \
     && rm apache-maven-*.tar.gz
 
 # install tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
 RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
@@ -76,3 +75,7 @@ ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

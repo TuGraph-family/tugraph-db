@@ -17,6 +17,7 @@
 #include "db/galaxy.h"
 #include "import/import_v2.h"
 #include "import/blob_writer.h"
+#include "import/import_utils.h"
 
 using lgraph::import::LabelGraph;
 
@@ -131,7 +132,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
     auto import_index = [&](){
         for (auto& v : schema.label_desc) {
             for (auto& spec : v.columns) {
-                if (v.is_vertex && spec.index && !spec.primary) {
+                if (v.is_vertex && spec.index && !spec.unique) {
                     // create index, ID column has creadted
                     if (db.AddVertexIndex(v.name, spec.name, spec.unique)) {
                         FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
@@ -141,7 +142,15 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                             FMA_FMT("Vertex index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
-                } else if (!v.is_vertex && spec.index) {
+                } else if (v.is_vertex && spec.index && spec.unique
+                           && v.GetPrimaryField().name != spec.name) {
+                    throw InputError(
+                        FMA_FMT("offline import does not support to create a unique "
+                                "index [label:{}, field:{}]. You should create an index for "
+                                "an attribute column after the import is complete",
+                                v.name, spec.name));
+                } else if ((!v.is_vertex && spec.index && !spec.global && spec.unique) ||
+                           (!v.is_vertex && spec.index && !spec.unique)) {
                     if (db.AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
                         FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
                                              v.name, spec.name, spec.unique);
@@ -150,6 +159,12 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                             FMA_FMT("Edge index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
+                } else if (!v.is_vertex && spec.index && spec.global && spec.unique) {
+                    throw InputError(
+                        FMA_FMT("offline import does not support to create a unique "
+                                "index [label:{}, field:{}]. You should create an index for "
+                                "an attribute column after the import is complete",
+                                v.name, spec.name));
                 }
                 if (spec.fulltext) {
                     bool ok = db.AddFullTextIndex(v.is_vertex, v.name, spec.name);
@@ -539,6 +554,13 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
             schema = *txn.GetSchemaInfo().e_schema_manager.GetSchema(label_id);
             txn.Abort();
         }
+        std::vector<size_t> unique_index_pos;
+        for (auto & cs : ld.GetColumnSpecs()) {
+            if (cs.index && cs.unique && !cs.global) {
+                unique_index_pos.push_back(desc->FindIdxExcludeSkip(cs.name));
+            }
+        }
+        cuckoohash_map<std::string, char> unique_index_keys;
         // stitcher takes vectors of vector<FieldData>, which contains field
         // values, and returns a pair of (vectors of out-edges) and (vector of
         // in-edges)
@@ -587,6 +609,41 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 resolve_success = false;
                                 OnMissingUidOffline(desc->path, dst_id.ToString(), fts, edge,
                                                     config_.continue_on_error);
+                            }
+                        }
+                        {
+                            for (const auto& pos : unique_index_pos) {
+                                const FieldData& unique_index_col = edge[pos];
+                                if (unique_index_col.IsNull() ||
+                                    unique_index_col.is_empty_buf()) {
+                                    OnErrorOffline("Invalid unique index key",
+                                                   config_.continue_on_error);
+                                    continue;
+                                }
+                                if (unique_index_col.IsString() &&
+                                    unique_index_col.string().size() >
+                                        lgraph::_detail::MAX_KEY_SIZE) {
+                                    OnErrorOffline("Unique index string key is too long: "
+                                                   + unique_index_col.string().substr(0, 1024),
+                                                   config_.continue_on_error);
+                                    continue;
+                                }
+                                std::string unique_key;
+                                unique_key.append((const char*)&pos, sizeof(pos));
+                                unique_key.append(
+                                    (const char*)&(src_vid < dst_vid ? src_vid : dst_vid),
+                                    sizeof(VertexId));
+                                unique_key.append(
+                                    (const char*)&(src_vid > dst_vid ? src_vid : dst_vid),
+                                    sizeof(VertexId));
+                                lgraph::import_v3::AppendFieldData(unique_key, unique_index_col);
+                                if (!unique_index_keys.insert(unique_key, 0)) {
+                                    OnErrorOffline("Duplicate unique index field: " +
+                                                   unique_index_col.ToString(),
+                                                   config_.continue_on_error);
+                                    resolve_success = false;
+                                    break;
+                                }
                             }
                         }
                         if (resolve_success) {

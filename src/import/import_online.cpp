@@ -313,7 +313,6 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     // OnlineImportEdgesOfSameVertex
     LGRAPH_PSORT(edges.begin(), edges.end());
     n = edges.size();
-
     std::vector<OnlineImportEdgesOfSameVertex> edges_of_vertex;
     for (size_t L = 0, R; L < n; L = R) {
         for (R = L; R < n && edges[R].vid1 == edges[L].vid1; R++) {

@@ -33,6 +33,7 @@ add_executable(unit_test
         test_cypher.cpp
         test_cypher_plan.cpp
         test_data_type.cpp
+        test_db_management_client.cpp
         test_dense_string.cpp
         test_edge_index.cpp
         test_embed.cpp
@@ -54,6 +55,7 @@ add_executable(unit_test
         test_import_parse_delimiter.cpp
         test_import_planner.cpp
         test_import_v2.cpp
+        test_import_v3.cpp
         test_import_gar.cpp
         test_type_convert.cpp
         test_json_convert.cpp

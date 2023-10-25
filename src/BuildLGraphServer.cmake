@@ -25,7 +25,8 @@ endif ()
 include(cmake/GenerateProtobuf.cmake)
 GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
         PROTO_SRCS PROTO_HEADERS
-        ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto)
+        ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto
+        ${CMAKE_CURRENT_LIST_DIR}/protobuf/tugraph_db_management.proto)
 
 include_directories(${DEPS_INCLUDE_DIR})
 
@@ -44,6 +45,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         server/lgraph_server.cpp
         server/state_machine.cpp
         server/ha_state_machine.cpp
+        server/db_management_client.cpp
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
@@ -52,7 +54,8 @@ add_library(${TARGET_SERVER_LIB} STATIC
         restful/server/stdafx.cpp
         http/http_server.cpp
         http/import_manager.cpp
-        http/import_task.cpp)
+        http/import_task.cpp
+        ${PROTO_SRCS})
 
 target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}

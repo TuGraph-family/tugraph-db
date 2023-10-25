@@ -32,6 +32,7 @@
 #include "restful/server/rest_server.h"
 #include "server/state_machine.h"
 #include "server/ha_state_machine.h"
+#include "server/db_management_client.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"
@@ -258,6 +259,14 @@ int LGraphServer::Start() {
             }
             GENERAL_LOG(INFO) << "Listening for RPC on port " << config_->rpc_port;
         }
+        // start db management service
+        try {
+            DBManagementClient::GetInstance().InitChannel("localhost:6091");
+        } catch(std::exception& e) {
+            GENERAL_LOG(ERROR) << "Failed to init db management channel";
+        }
+        std::thread heartbeat_detect(&DBManagementClient::DetectHeartbeat);
+        heartbeat_detect.detach();
 #endif
         state_machine_->Start();
         if (config_->unlimited_token == 1) {
