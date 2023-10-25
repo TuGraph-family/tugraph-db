@@ -55,8 +55,6 @@ struct TypeCast<std::string> {
     static std::string AsType(void* p, size_t s) { return std::string((char*)p, s); }
 };
 
-// spatial类型不能简单使用memcopy构造;
-// 这里需要先进行正确性判断吗?
 template <>
 struct TypeCast<lgraph_api::Point<lgraph_api::Wgs84>> {
     static lgraph_api::Point<lgraph_api::Wgs84> AsType(void* p, size_t s) {
@@ -414,7 +412,7 @@ class Value {
     }
 
     /**
-     * Gets the Pointer to memory block.
+     * Gets the pointer to memory block.
      *
      * \return  Memory block referred to by this
      */

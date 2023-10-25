@@ -798,39 +798,6 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     }
 }
 
-cypher::FieldData BuiltinFunction::Point(RTContext *ctx, const Record &record,
-                                            const std::vector<ArithExprNode> &args) {
-    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
-    CYPHER_THROW_ASSERT(args.size() == 2);
-    // Point(string) Returns a Point by parsing a string.
-    auto r = args[1].Evaluate(ctx, record);
-    if (!r.IsString()) CYPHER_ARGUMENT_ERROR();
-    auto pt = ::lgraph::FieldData::Point(r.constant.scalar.AsString());
-    return cypher::FieldData(pt);
-}
-
-cypher::FieldData BuiltinFunction::LineString(RTContext *ctx, const Record &record,
-                                            const std::vector<ArithExprNode> &args) {
-    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
-    CYPHER_THROW_ASSERT(args.size() == 2);
-    // LineString(string) Returns a LineString by parsing a string.
-    auto r = args[1].Evaluate(ctx, record);
-    if (!r.IsString()) CYPHER_ARGUMENT_ERROR();
-    auto l = ::lgraph::FieldData::LineString(r.constant.scalar.AsString());
-    return cypher::FieldData(l);
-}
-
-cypher::FieldData BuiltinFunction::Polygon(RTContext *ctx, const Record &record,
-                                            const std::vector<ArithExprNode> &args) {
-    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
-    CYPHER_THROW_ASSERT(args.size() == 2);
-    // Polygon(string) Returns a Point by parsing a string.
-    auto r = args[1].Evaluate(ctx, record);
-    if (!r.IsString()) CYPHER_ARGUMENT_ERROR();
-    auto pl = ::lgraph::FieldData::Polygon(r.constant.scalar.AsString());
-    return cypher::FieldData(pl);
-}
-
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
                                        const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();

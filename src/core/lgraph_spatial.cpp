@@ -28,7 +28,7 @@ bool Endian(const std::string& ewkb) {
     return false;
 }
 
-void EndianTansfer(std::string& input) {
+void EndianTransfer(std::string& input) {
     size_t size = input.size();
     if (size % 2 || size <= 2)
         throw InputError("invalid endian transfer data!");
@@ -55,7 +55,7 @@ std::string Srid2Hex(SRID srid_type, size_t width) {
     }
 
     s_hex = s_hex.substr(s_hex.length() - width, s_hex.length());
-    EndianTansfer(s_hex);   // little endian in default;
+    EndianTransfer(s_hex);   // little endian in default;
 
     return s_hex;
 }
@@ -73,7 +73,7 @@ void WkbEndianTransfer(std::string& wkb) {
 
     // transfer the next 4 bytes which represents the type of spatial data;
     std::string t = wkb.substr(2, 8);
-    EndianTansfer(t);
+    EndianTransfer(t);
     output += t;
     size_t start = 10;
     SpatialType s = ExtractType(wkb);
@@ -82,14 +82,14 @@ void WkbEndianTransfer(std::string& wkb) {
     if (s == SpatialType::LINESTRING ||
         s == SpatialType::POLYGON) {
         std::string t = wkb.substr(start, 8);
-        EndianTansfer(t);
+        EndianTransfer(t);
         output += t;
         start += 8;
     }
     // for Polygon, we need extra 4 bytes to represent the number of Point
     if (s == SpatialType::POLYGON) {
         std::string t = wkb.substr(start, 8);
-        EndianTansfer(t);
+        EndianTransfer(t);
         output += t;
         start += 8;
     }
@@ -97,7 +97,7 @@ void WkbEndianTransfer(std::string& wkb) {
     // transfer the next n * 8 byte(each represent a Point data);
     while (start < wkb.size()) {
         std::string data = wkb.substr(start, 16);
-        EndianTansfer(data);
+        EndianTransfer(data);
         output += data;
         start += 16;
     }
@@ -115,13 +115,13 @@ std::string EwkbEndianTransfer(const std::string& ewkb) {
     output += tmp;
 
     tmp = ewkb.substr(2, 4);   // transfer the next 2 bytes which represents type;
-    EndianTansfer(tmp);
+    EndianTransfer(tmp);
     output += tmp;
     tmp = ewkb.substr(6, 4);  // transfer the next 2 bytes which represents dimension;
-    EndianTansfer(tmp);
+    EndianTransfer(tmp);
     output += tmp;
     tmp = ewkb.substr(10, 8);  // transfer the next 4 bytes which represents srid;
-    EndianTansfer(tmp);
+    EndianTransfer(tmp);
     output += tmp;
 
     SpatialType s = ExtractType(ewkb);
@@ -131,21 +131,21 @@ std::string EwkbEndianTransfer(const std::string& ewkb) {
     if (s == SpatialType::LINESTRING ||
         s == SpatialType::POLYGON) {
         std::string t = ewkb.substr(start, 8);
-        EndianTansfer(t);
+        EndianTransfer(t);
         output += t;
         start += 8;
     }
     // for Polygon, we need extra 4 bytes to represent the number of Point
     if (s == SpatialType::POLYGON) {
         std::string t = ewkb.substr(start, 8);
-        EndianTansfer(t);
+        EndianTransfer(t);
         output += t;
         start += 8;
     }
     // transfer the next n * 8 byte(each represent a Point data);
     while (start < ewkb.size()) {
         std::string data = ewkb.substr(start, 16);
-        EndianTansfer(data);
+        EndianTransfer(data);
         output += data;
         start += 16;
     }
@@ -169,7 +169,7 @@ std::string SetExtension(const std::string& wkb, SRID srid_type) {
 
     // if the wkb is in big endian, we need transform it;
     if (!en)
-        EndianTansfer(s_hex);
+        EndianTransfer(s_hex);
     // insert the srid information into EWKB format;
     ewkb.insert(10, s_hex);
 
@@ -184,7 +184,7 @@ SRID ExtractSRID(const std::string& ewkb) {
     std::string srid = ewkb.substr(10, 8);
     // transfer the little endian data into big endian for convenient;
     if (Endian(ewkb)) {
-        EndianTansfer(srid);
+        EndianTransfer(srid);
     }
 
     std::stringstream ioss(srid);
@@ -212,7 +212,7 @@ SpatialType ExtractType(const std::string& ewkb) {
         type = type.substr(0, 4);
     // transfer the little endian into big endian for convenient;
     if (Endian(ewkb)) {
-        EndianTansfer(type);
+        EndianTransfer(type);
     }
 
     int Type = 0;

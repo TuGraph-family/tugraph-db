@@ -105,7 +105,7 @@ bool Endian(const std::string& ewkb);
 *
 * @param [in,out] input little/big endian hex format string;
 */
-void EndianTansfer(std::string& input);
+void EndianTransfer(std::string& input);
 
 /**
 * @brief  transfer the srid_type(enum class) into hex format(little endian in default);

@@ -56,7 +56,6 @@ typedef lgraph_api::LineString<lgraph_api::Cartesian> LineStringCartesian;
 typedef lgraph_api::Polygon<lgraph_api::Wgs84> PolygonWgs84;
 typedef lgraph_api::Polygon<lgraph_api::Cartesian> PolygonCartesian;
 
-
 //===============================
 // type name and sizes
 //===============================
@@ -239,7 +238,7 @@ struct FieldType2CType<FieldType::DATETIME> {
     typedef DateTime type;
 };
 
-// 这里有template的问题;
+// TODO(shw): how to correlate spatial fieldtype with ctype?
 template <>
 struct FieldType2CType<FieldType::POINT> {
 };
