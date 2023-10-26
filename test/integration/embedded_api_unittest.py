@@ -50,6 +50,34 @@ class LGraphUnitTests:
         assert (fd == FieldData.Date(datetime.datetime(2020, 11, 12)))
         assert (fd.AsDate() == datetime.datetime(2020, 11, 12))
 
+    def test_spatial(self):
+        add = 'aaa'
+        point_str = "0101000020231C0000000000000000F03F000000000000F03F"
+        linestring_str = "0102000020E61000000300000000000000000000000000000000"\
+        "000000000000000000004000000000000000400000000000000840000000000000F03F"
+        polygon_str = "0103000020231C0000010000000500000000000000000000000"\
+        "00000000000000000000000000000000000000000001C40000000000000104000000000"\
+        "000000400000000000000040000000000000000000000000000000000000000000000000"
+        FMA_EXPECT_EXCEPTION('FieldData.Point(point_str + add)', globals(), locals())
+        point = FieldData.Point(point_str)
+        FMA_EXPECT_EXCEPTION('point.AsPolygon()', globals(), locals())
+        assert(point.AsPoint() == point_str)
+        FMA_EXPECT_EXCEPTION('FieldData.LineString(add + linestring_str)', globals(), locals())
+        linestring = FieldData.LineString(linestring_str)
+        FMA_EXPECT_EXCEPTION('linestring.AsPoint()', globals(), locals())
+        assert(linestring.AsLineString() == linestring_str)
+        FMA_EXPECT_EXCEPTION('FieldData.Polygon(linestring_str)', globals(), locals())
+        polygon = FieldData.Polygon(polygon_str)
+        FMA_EXPECT_EXCEPTION('polygon.AsLineString()', globals(), locals())
+        assert(polygon.AsPolygon() == polygon_str)
+
+        spatial1 = FieldData.Spatial(point_str)
+        spatial2 = FieldData.Spatial(linestring_str)
+        spatial3 = FieldData.Spatial(polygon_str)
+        assert(spatial1.AsSpatial(), point_str)
+        assert(spatial2.AsSpatial(), linestring_str)
+        assert(spatial3.AsSpatial(), polygon_str)
+
     def test_db(self):
         with Galaxy("./testdb", True, True) as galaxy:
             galaxy.SetCurrentUser("admin", "73@TuGraph")
@@ -366,4 +394,5 @@ if __name__ == '__main__':
     embedded = LGraphUnitTests()
     embedded.test_field_data()
     embedded.test_datetime()
+    embedded.test_spatial()
     embedded.test_db()
