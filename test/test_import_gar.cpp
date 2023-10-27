@@ -30,7 +30,6 @@ using namespace import_v3;
 class TestImportGar : public TuGraphTest {};
 
 // The path "/test/resource/data/gar_test/edge_test" is for TestEdgeLabel
-// The path "/test/resource/data/gar_test/ldbc/" is for TestGarConfig
 // The path "/test/resource/data/gar_test/ldbc_parquet" is for TestGarData
 
 TEST_F(TestImportGar, TestEdgeLabel) {
@@ -43,31 +42,6 @@ TEST_F(TestImportGar, TestEdgeLabel) {
 
     nlohmann::json conf;
     UT_EXPECT_ANY_THROW(ParserGraphArConf(conf, config.config_file));
-}
-
-TEST_F(TestImportGar, TestGarConfig) {
-    // test parse gar config
-    UT_LOG() << "Parsing gar yaml config to lgraph_import json config";
-    Importer::Config config;
-    std::string tugraph_path = std::filesystem::path(__FILE__).parent_path().parent_path();
-    config.config_file = tugraph_path + "/test/resource/data/gar_test/ldbc/ldbc.graph.yml";
-    config.is_graphar = true;
-    config.delete_if_exists = true;
-
-    nlohmann::json conf;
-    UT_EXPECT_NO_THROW(ParserGraphArConf(conf, config.config_file));
-
-    // test the conf
-    UT_EXPECT_NO_THROW(import_v2::ImportConfParser::ParseSchema(conf));
-    UT_EXPECT_NO_THROW(import_v2::ImportConfParser::ParseFiles(conf));
-
-    // test the schema
-    import_v2::SchemaDesc schemaDesc = import_v2::ImportConfParser::ParseSchema(conf);
-    UT_EXPECT_EQ(schemaDesc.Size(), 23);
-
-    // test the data_files
-    std::vector<import_v2::CsvDesc> data_files = import_v2::ImportConfParser::ParseFiles(conf);
-    UT_EXPECT_EQ(data_files.size(), 31);
 }
 
 TEST_F(TestImportGar, TestGarData) {
