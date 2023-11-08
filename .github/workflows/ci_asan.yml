@@ -1,7 +1,6 @@
-name: ci
+name: ci_asan
 
 on:
-  push:
   pull_request:
     branches:
       - '*'
@@ -33,7 +32,7 @@ jobs:
           file: ci/gh-actions/ubuntu-latest/Dockerfile
           context: .
           tags: ${{ env.TEST_TAG }}
-          build-args: '{"BUILD_TYPE":"no_asan"}'
+          build-args: '{"BUILD_TYPE":"asan"}'
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
       - name: Check disk space

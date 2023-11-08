@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+ASAN=$1
+
 cd $WORKSPACE
 
 # cpplint check
@@ -13,8 +15,26 @@ SKIP_WEB=1 bash ./build_deps.sh -j2
 # build tugraph
 cd $WORKSPACE
 mkdir build && cd build
+if [[ "$ASAN" == "asan" ]]; then
+echo 'build with asan ...'
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON
+else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage
+fi
 make -j2
+
+# unittest
+mkdir -p $WORKSPACE/testresult/gtest/
+cd $WORKSPACE/build/output
+OMP_NUM_THREADS=8 ./fma_unit_test -t all
+if [[ "$ASAN" == "asan" ]]; then
+    export LSAN_OPTIONS=suppressions=$WORKSPACE/test/asan.suppress
+fi
+OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
+rm -rf testdb* .import_tmp
+if [[ "$ASAN" == "asan" ]]; then
+  exit 0
+fi
 
 # build java
 cd $WORKSPACE/deps/tugraph-db-client-java/
@@ -26,12 +46,6 @@ cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/out
 cd $WORKSPACE/test/test_rpc_client
 sh ./cpp/CppClientTest/compile.sh
 cp -r ./cpp/CppClientTest/build/clienttest $WORKSPACE/build/output/
-
-# unittest
-mkdir -p $WORKSPACE/testresult/gtest/
-cd $WORKSPACE/build/output
-OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
-rm -rf testdb* .import_tmp
 
 #cd $WORKSPACE/src/client/python/TuGraphClient
 # install TuGraphClient
