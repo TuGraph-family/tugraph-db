@@ -32,7 +32,8 @@ jobs:
           file: ci/gh-actions/ubuntu-latest/Dockerfile
           context: .
           tags: ${{ env.TEST_TAG }}
-          build-args: '{"BUILD_TYPE":"asan"}'
+          build-args: |
+            BUILD_TYPE=asan
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
       - name: Check disk space
