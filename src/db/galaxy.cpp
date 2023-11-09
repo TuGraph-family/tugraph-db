@@ -85,12 +85,35 @@ static inline void CheckPasswordString(const std::string& password) {
     if (!lgraph::IsValidPassword(password)) throw lgraph::InputError("Invalid password string.");
 }
 
-std::string lgraph::Galaxy::GetUserToken(const std::string& user,
-                                         const std::string& password) const {
+std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::string& password) {
     CheckUserName(user);
     _HoldWriteLock(acl_lock_);
-    bool r = acl_->ValidateUser(user, password);
-    if (!r) return "";
+
+    // judge user/password error times
+    if (!acl_->ValidateUser(user, password)) {
+        if ((fabs(retry_login_time - 0.0) < std::numeric_limits<double>::epsilon())
+            || (fma_common::GetTime() - retry_login_time) >= RETRY_WAIT_TIME) {
+            if (fabs(retry_login_time - 0.0) >= std::numeric_limits<double>::epsilon()) {
+                login_failed_times_.erase(user);
+                retry_login_time = 0.0;
+            }
+
+            auto& failed_times = login_failed_times_[user];
+            if (++failed_times >= MAX_LOGIN_FAILED_TIMES) {
+                retry_login_time = fma_common::GetTime();
+            }
+            throw lgraph_api::BadRequestException("Bad user/password.");
+        } else {
+            throw lgraph_api::BadRequestException(
+                "Too many login failures, please try again in a minute");
+        }
+        return "";
+    }
+
+    // login success, clear login_failed_times_
+    login_failed_times_.erase(user);
+    retry_login_time = 0.0;
+
     auto user_token_num = acl_->GetUserTokenNum(user);
     if (user_token_num >= MAX_TOKEN_NUM_PER_USER)
         throw AuthError("User has reached the maximum number of tokens.");

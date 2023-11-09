@@ -1512,33 +1512,11 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     }
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
     _HoldReadLock(galaxy_->GetReloadLock());
-    if ((fabs(galaxy_->retry_login_time - 0.0) < std::numeric_limits<double>::epsilon()) ||
-        fma_common::GetTime() - galaxy_->retry_login_time >= RETRY_WAIT_TIME) {
-        std::string token = galaxy_->GetUserToken(username, password);
-        if ((fabs(galaxy_->retry_login_time - 0.0) >= std::numeric_limits<double>::epsilon())) {
-            galaxy_->login_failed_times_.erase(username);
-            galaxy_->retry_login_time = 0.0;
-        }
-        if (token.empty()) {
-            if (galaxy_->login_failed_times_.find(username) !=
-                    galaxy_->login_failed_times_.end()) {
-                galaxy_->login_failed_times_[username]++;
-            } else {
-                galaxy_->login_failed_times_[username] = 1;
-            }
-            if (galaxy_->login_failed_times_[username] >= MAX_LOGIN_FAILED_TIMES) {
-                galaxy_->retry_login_time = fma_common::GetTime();
-            }
-            return RespondUnauthorized(request, "Bad user/password.");
-        }
-        web::json::value response;
-        response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
-        response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
-        return RespondSuccess(request, response);
-    } else {
-        return RespondUnauthorized(request,
-            "Too many login failures, please try again in a minute");
-    }
+    std::string token = galaxy_->GetUserToken(username, password);
+    web::json::value response;
+    response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
+    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
+    return RespondSuccess(request, response);
 }
 
 // /refresh
