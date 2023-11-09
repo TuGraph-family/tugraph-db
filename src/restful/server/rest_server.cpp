@@ -1937,15 +1937,15 @@ void RestServer::HandlePostIndex(const std::string& user, const std::string& tok
     greq->set_graph(_TS(paths[1]));
 
     AddIndexRequest* req = greq->mutable_add_index_request();
-    bool is_unique;
+    int type;
     if (!ExtractStringField(body, RestStrings::LABEL, *req->mutable_label()) ||
         !ExtractStringField(body, RestStrings::FIELD, *req->mutable_field()) ||
-        !ExtractBoolField(body, RestStrings::ISUNIQUE, is_unique)) {
+        !ExtractIntField(body, RestStrings::INDEXTYPE, type)) {
         BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::SingleApi, true,
                       "POST " + _TS(relative_path));
         return RespondBadJSON(request);
     }
-    req->set_is_unique(is_unique);
+    req->set_type(type);
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS)
         return RespondSuccess(request);

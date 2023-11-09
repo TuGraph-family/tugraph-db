@@ -18,17 +18,21 @@
 namespace lgraph {
 VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvTable& table,
                                          const Value& key_start,
-                                         const Value& key_end, VertexId vid, bool unique)
+                                         const Value& key_end, VertexId vid, IndexType type)
     : IteratorBase(txn),
       index_(idx),
-      it_(table.GetClosestIterator(
-          txn->GetTxn(), unique ? key_start : _detail::PatchKeyWithVid(key_start, vid))),
-      key_end_(unique ? Value::MakeCopy(key_end)
+      it_(table.GetClosestIterator(txn->GetTxn(),
+                                   type == IndexType::GlobalUniqueIndex ? key_start
+                                   : _detail::PatchKeyWithVid(key_start, vid))),
+      key_end_(type == IndexType::GlobalUniqueIndex ? Value::MakeCopy(key_end)
                : _detail::PatchKeyWithVid(key_end, -1)),
       iv_(),
       valid_(false),
       pos_(0),
-      unique_(unique) {
+      type_(type) {
+    if (type == IndexType::PairUniqueIndex) {
+        return;
+    }
     if (!it_->IsValid() || KeyOutOfRange()) {
         return;
     }
@@ -37,16 +41,21 @@ VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvT
 
 VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, KvTransaction* txn, KvTable& table,
                                          const Value& key_start,
-                                         const Value& key_end, VertexId vid, bool unique)
+                                         const Value& key_end, VertexId vid, IndexType type)
     : IteratorBase(nullptr),
       index_(idx),
       it_(table.GetClosestIterator(
-          *txn, unique ? key_start : _detail::PatchKeyWithVid(key_start, vid))),
-      key_end_(unique ? Value::MakeCopy(key_end) : _detail::PatchKeyWithVid(key_end, -1)),
+          *txn, type ==  IndexType::GlobalUniqueIndex ? key_start :
+                                                     _detail::PatchKeyWithVid(key_start, vid))),
+      key_end_(type == IndexType::GlobalUniqueIndex ?
+                  Value::MakeCopy(key_end) : _detail::PatchKeyWithVid(key_end, -1)),
       iv_(),
       valid_(false),
       pos_(0),
-      unique_(unique) {
+      type_(type) {
+    if (type == IndexType::PairUniqueIndex) {
+        return;
+    }
     if (!it_->IsValid() || KeyOutOfRange()) {
         return;
     }
@@ -64,7 +73,7 @@ VertexIndexIterator::VertexIndexIterator(VertexIndexIterator&& rhs)
       valid_(rhs.valid_),
       pos_(rhs.pos_),
       vid_(rhs.vid_),
-      unique_(rhs.unique_) {
+      type_(rhs.type_) {
     rhs.valid_ = false;
 }
 

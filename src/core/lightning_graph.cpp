@@ -228,8 +228,8 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(primary_field);
         FMA_DBG_ASSERT(extractor);
         std::unique_ptr<VertexIndex> index;
-        index_manager_->AddVertexIndex(txn.GetTxn(), label, primary_field, extractor->Type(), true,
-                                       index);
+        index_manager_->AddVertexIndex(txn.GetTxn(), label, primary_field, extractor->Type(),
+                                       IndexType::GlobalUniqueIndex, index);
         index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), index.release());
     }
@@ -1002,7 +1002,7 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
  * \return  True if it succeeds, false if the index already exists. Throws exception on error.
  */
 bool LightningGraph::_AddEmptyIndex(const std::string& label, const std::string& field,
-                                    bool is_unique, bool is_vertex, bool is_global) {
+                                    IndexType type, bool is_vertex) {
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
@@ -1014,14 +1014,14 @@ bool LightningGraph::_AddEmptyIndex(const std::string& label, const std::string&
         return false;  // index already exist
     if (is_vertex) {
         std::unique_ptr<VertexIndex> index;
-        index_manager_->AddVertexIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
+        index_manager_->AddVertexIndex(txn.GetTxn(), label, field, extractor->Type(), type,
                                        index);
         index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), index.release());
     } else {
         std::unique_ptr<EdgeIndex> edge_index;
-        index_manager_->AddEdgeIndex(txn.GetTxn(), label, field, extractor->Type(), is_unique,
-                                     is_global, edge_index);
+        index_manager_->AddEdgeIndex(txn.GetTxn(), label, field, extractor->Type(),
+                                     type, edge_index);
         edge_index->SetReady();
         schema->MarkEdgeIndexed(extractor->GetFieldId(), edge_index.release());
     }
@@ -1170,9 +1170,8 @@ inline void CheckKeySizeForIndex<std::string>(const std::string& str) {
 
 template <typename T>
 void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_info,
-                                     LabelId label_id, size_t field_id, bool is_unique,
-                                     VertexId start_vid, VertexId end_vid, bool is_vertex,
-                                     bool is_global) {
+                                     LabelId label_id, size_t field_id, IndexType type,
+                                     VertexId start_vid, VertexId end_vid, bool is_vertex) {
     if (is_vertex) {
         SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
         auto v_schema = schema_manager->GetSchema(label_id);
@@ -1197,46 +1196,52 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 key_vids.emplace_back(key, it.GetId());
             }
             LGRAPH_PSORT(key_vids.begin(), key_vids.end());
-            // check uniqueness
-            if (is_unique) {
-                // if there is only one block, we use AppendKv,
-                // so checking for duplicate is required
-                // if there are multiple blocks,
-                // then uniqueness will be checked when we insert the
-                // keys into index, and this is not required,
-                // but still good to find duplicates early
-                for (size_t i = 1; i < key_vids.size(); i++) {
-                    if (key_vids[i].key == key_vids[i - 1].key)
-                        throw InputError(FMA_FMT(
-                            "Duplicate vertex keys [{}] found for vids {} and {}.", key_vids[i].key,
-                            key_vids[i - 1].vid, key_vids[i].vid));
-                }
-            }
             // now insert into index table
             if (max_block_size >= (size_t)(end_vid - start_vid)) {
                 // block size large enough, so there is only one pass, use AppendKv
-                if (is_unique) {
-                    for (auto& kv : key_vids)
-                        index->_AppendVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
-                                                       (VertexId)kv.vid);
-                } else {
-                    T key = key_vids.empty() ? T() : key_vids.front().key;
-                    std::vector<VertexId> vids;
-                    for (size_t i = 0; i < key_vids.size(); ++i) {
-                        auto& kv = key_vids[i];
-                        if (key != kv.key) {
-                            // write out a bunch of vids
+                switch (type) {
+                case IndexType::GlobalUniqueIndex:
+                    {
+                        // if there is only one block, we use AppendKv,
+                        // so checking for duplicate is required
+                        // if there are multiple blocks,
+                        // then uniqueness will be checked when we insert the
+                        // keys into index, and this is not required,
+                        // but still good to find duplicates early
+                        for (size_t i = 1; i < key_vids.size(); i++) {
+                            if (key_vids[i].key == key_vids[i - 1].key)
+                                throw InputError(FMA_FMT(
+                                    "Duplicate vertex keys [{}] found for vids {} and {}.",
+                                    key_vids[i].key, key_vids[i - 1].vid, key_vids[i].vid));
+                        }
+                        for (auto& kv : key_vids)
+                            index->_AppendVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
+                                                           (VertexId)kv.vid);
+                        break;
+                    }
+                case IndexType::NonuniqueIndex:
+                    {
+                        T key = key_vids.empty() ? T() : key_vids.front().key;
+                        std::vector<VertexId> vids;
+                        for (size_t i = 0; i < key_vids.size(); ++i) {
+                            auto& kv = key_vids[i];
+                            if (key != kv.key) {
+                                // write out a bunch of vids
+                                index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(),
+                                                                        GetKeyConstRef(key), vids);
+                                key = kv.key;
+                                vids.clear();
+                            }
+                            vids.push_back(kv.vid);
+                        }
+                        if (!vids.empty()) {
                             index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(),
                                                                     GetKeyConstRef(key), vids);
-                            key = kv.key;
-                            vids.clear();
                         }
-                        vids.push_back(kv.vid);
+                        break;
                     }
-                    if (!vids.empty()) {
-                        index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
-                                                                vids);
-                    }
+                case IndexType::PairUniqueIndex:
+                    throw InputError("vertex index do not support pair-unique attributes");
                 }
             } else {
                 // multiple blocks, use regular index calls
@@ -1276,62 +1281,70 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 }
             }
             LGRAPH_PSORT(key_euids.begin(), key_euids.end());
-            // check uniqueness
-            if (is_unique) {
-                // if there is only one block, we use AppendKv,
-                // so checking for duplicate is required
-                // if there are multiple blocks,
-                // then uniqueness will be checked when we insert the
-                // keys into index, and this is not required,
-                // but still good to find duplicates early
-                if (is_global) {
-                    for (size_t i = 1; i < key_euids.size(); i++) {
-                        if (key_euids[i].key == key_euids[i - 1].key)
-                            throw InputError(FMA_FMT(
-                                "Duplicate edge index keys [{}] found for vid {} dst{} eid {},"
-                                "and {} {} {}.",
-                                key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
-                                key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                                key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
-                    }
-                } else {
-                    for (size_t i = 1; i < key_euids.size(); i++) {
-                        if (key_euids[i].key == key_euids[i - 1].key &&
-                            key_euids[i].euid.src == key_euids[i - 1].euid.src &&
-                            key_euids[i].euid.dst == key_euids[i - 1].euid.dst)
-                            throw InputError(FMA_FMT(
-                                "Duplicate edge index keys-vid [{}] found for vid {} dst{} eid {},"
-                                "and {} {} {}.",
-                                key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
-                                key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                                key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
-                    }
-                }
-            }
             // now insert into index table
             if (max_block_size >= (size_t)(end_vid - start_vid)) {
                 // block size large enough, so there is only one pass, use AppendKv
-                if (is_unique) {
-                    for (auto& kv : key_euids)
-                        edge_index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
-                                                      (EdgeUid)kv.euid);
-                } else {
-                    T key = key_euids.empty() ? T() : key_euids.front().key;
-                    std::vector<EdgeUid> euids;
-                    for (size_t i = 0; i < key_euids.size(); ++i) {
-                        auto& kv = key_euids[i];
-                        if (key != kv.key) {
-                            // write out a bunch of vids
+                switch (type) {
+                case IndexType::GlobalUniqueIndex:
+                    {
+                        // if there is only one block, we use AppendKv,
+                        // so checking for duplicate is required
+                        // if there are multiple blocks,
+                        // then uniqueness will be checked when we insert the
+                        // keys into index, and this is not required,
+                        // but still good to find duplicates early
+                        for (size_t i = 1; i < key_euids.size(); i++) {
+                            if (key_euids[i].key == key_euids[i - 1].key)
+                                throw InputError(FMA_FMT(
+                                    "Duplicate edge index keys [{}] found for vid {} dst{} eid {},"
+                                    "and {} {} {}.",
+                                    key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
+                                    key_euids[i].euid.eid, key_euids[i - 1].euid.src,
+                                    key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                        }
+                        for (auto& kv : key_euids)
+                            edge_index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
+                                                          (EdgeUid)kv.euid);
+                        break;
+                    }
+                case IndexType::PairUniqueIndex:
+                    {
+                        for (size_t i = 1; i < key_euids.size(); i++) {
+                            if (key_euids[i].key == key_euids[i - 1].key &&
+                                key_euids[i].euid.src == key_euids[i - 1].euid.src &&
+                                key_euids[i].euid.dst == key_euids[i - 1].euid.dst)
+                                throw InputError(FMA_FMT(
+                                    "Duplicate edge index keys-vid [{}] found for vid {} "
+                                    "dst{} eid {}, and {} {} {}.",
+                                    key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
+                                    key_euids[i].euid.eid, key_euids[i - 1].euid.src,
+                                    key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                        }
+                        for (auto& kv : key_euids)
+                            edge_index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
+                                                          (EdgeUid)kv.euid);
+                        break;
+                    }
+                case IndexType::NonuniqueIndex:
+                    {
+                        T key = key_euids.empty() ? T() : key_euids.front().key;
+                        std::vector<EdgeUid> euids;
+                        for (size_t i = 0; i < key_euids.size(); ++i) {
+                            auto& kv = key_euids[i];
+                            if (key != kv.key) {
+                                // write out a bunch of vids
+                                edge_index->_AppendNonUniqueIndexEntry(txn.GetTxn(),
+                                                                       GetKeyConstRef(key), euids);
+                                key = kv.key;
+                                euids.clear();
+                            }
+                            euids.push_back(kv.euid);
+                        }
+                        if (!euids.empty()) {
                             edge_index->_AppendNonUniqueIndexEntry(txn.GetTxn(),
                                                                    GetKeyConstRef(key), euids);
-                            key = kv.key;
-                            euids.clear();
                         }
-                        euids.push_back(kv.euid);
-                    }
-                    if (!euids.empty()) {
-                        edge_index->_AppendNonUniqueIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
-                                                               euids);
+                        break;
                     }
                 }
             } else {
@@ -1600,8 +1613,8 @@ void LightningGraph::RefreshCount() {
 }
 
 bool LightningGraph::BlockingAddIndex(const std::string& label, const std::string& field,
-                                      bool is_unique, bool is_vertex, bool is_global,
-                                      bool known_vid_range, VertexId start_vid, VertexId end_vid) {
+                                      IndexType type, bool is_vertex, bool known_vid_range,
+                                      VertexId start_vid, VertexId end_vid) {
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
@@ -1623,7 +1636,8 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
 
-    if (extractor->IsOptional() && is_unique) {
+    if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
+                                    type == IndexType::PairUniqueIndex)) {
         throw InputError(
             FMA_FMT("Unique index cannot be added to an optional field [{}:{}]", label, field));
     }
@@ -1633,7 +1647,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
         bool success = index_manager_->AddVertexIndex(txn.GetTxn(), label, field,
-                                   extractor->Type(), is_unique, vertex_index);
+                                   extractor->Type(), type, vertex_index);
         if (!success)
             throw InputError(FMA_FMT("build index {}-{} failed", label, field));
 
@@ -1689,7 +1703,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     } else {
         std::unique_ptr<EdgeIndex> edge_index;
         bool success = index_manager_->AddEdgeIndex(txn.GetTxn(), label, field,
-                                       extractor->Type(), is_unique, is_global, edge_index);
+                                       extractor->Type(), type, edge_index);
         if (!success)
             throw InputError(FMA_FMT("build index {}-{} failed", label, field));
 
@@ -1756,44 +1770,44 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     size_t fid = schema->GetFieldId(field);
     switch (extractor->Type()) {
     case FieldType::BOOL:
-        BatchBuildIndex<int8_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                is_vertex, is_global);
+        BatchBuildIndex<int8_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                is_vertex);
         break;
     case FieldType::INT8:
-        BatchBuildIndex<int8_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                is_vertex, is_global);
+        BatchBuildIndex<int8_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                is_vertex);
         break;
     case FieldType::INT16:
-        BatchBuildIndex<int16_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex, is_global);
+        BatchBuildIndex<int16_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                 is_vertex);
         break;
     case FieldType::INT32:
-        BatchBuildIndex<int32_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex, is_global);
+        BatchBuildIndex<int32_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                 is_vertex);
         break;
     case FieldType::INT64:
-        BatchBuildIndex<int64_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex, is_global);
+        BatchBuildIndex<int64_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                 is_vertex);
         break;
     case FieldType::DATE:
-        BatchBuildIndex<int32_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex, is_global);
+        BatchBuildIndex<int32_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                 is_vertex);
         break;
     case FieldType::DATETIME:
-        BatchBuildIndex<int64_t>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                 is_vertex, is_global);
+        BatchBuildIndex<int64_t>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                 is_vertex);
         break;
     case FieldType::FLOAT:
-        BatchBuildIndex<float>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                               is_vertex, is_global);
+        BatchBuildIndex<float>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                               is_vertex);
         break;
     case FieldType::DOUBLE:
-        BatchBuildIndex<double>(txn, new_schema.get(), lid, fid, is_unique, start_vid, end_vid,
-                                is_vertex, is_global);
+        BatchBuildIndex<double>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                is_vertex);
         break;
     case FieldType::STRING:
-        BatchBuildIndex<ConstStringRef>(txn, new_schema.get(), lid, fid, is_unique, start_vid,
-                                        end_vid, is_vertex, is_global);
+        BatchBuildIndex<ConstStringRef>(txn, new_schema.get(), lid, fid, type, start_vid,
+                                        end_vid, is_vertex);
         break;
     case FieldType::BLOB:
         throw InputError(std::string("Field of type ") +
@@ -1830,7 +1844,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
     next_vertex_id = first_vertex;
     std::deque<KeyVid<T>> key_vids;
     std::deque<KeyEUid<T>> key_euids;
-    if (!_AddEmptyIndex(spec.label, spec.field, spec.unique, is_vertex, spec.global) && is_vertex) {
+    if (!_AddEmptyIndex(spec.label, spec.field, spec.type, is_vertex) && is_vertex) {
         throw InputError(FMA_FMT("Failed to create index {}:{}: index already exists",
                                  spec.label, spec.field));
     }
@@ -1867,39 +1881,49 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
         FMA_LOG() << "Dumping index";
         txn = CreateWriteTxn();
         auto index = txn.GetVertexIndex(spec.label, spec.field);
-        if (spec.unique) {
-            for (size_t i = 0; i < key_vids.size(); i++) {
-                if (i != 0 && i % batch_commit_size == 0) {
-                    txn.Commit();
-                    FMA_LOG() << "committed " << i << " keys";
-                    txn = CreateWriteTxn();
+        switch (spec.type) {
+        case IndexType::GlobalUniqueIndex:
+            {
+                for (size_t i = 0; i < key_vids.size(); i++) {
+                    if (i != 0 && i % batch_commit_size == 0) {
+                        txn.Commit();
+                        FMA_LOG() << "committed " << i << " keys";
+                        txn = CreateWriteTxn();
+                    }
+                    auto& kv = key_vids[i];
+                    index->_AppendVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
+                                                   (VertexId)kv.vid);
                 }
-                auto& kv = key_vids[i];
-                index->_AppendVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
-                                               (VertexId)kv.vid);
+                break;
             }
-        } else {
-            T key = key_vids.empty() ? T() : key_vids.front().key;
-            std::vector<VertexId> vids;
-            for (size_t i = 0; i < key_vids.size(); ++i) {
-                if (i != 0 && i % batch_commit_size == 0) {
-                    txn.Commit();
-                    FMA_LOG() << "committed " << i << " keys";
-                    txn = CreateWriteTxn();
+        case IndexType::NonuniqueIndex:
+            {
+                T key = key_vids.empty() ? T() : key_vids.front().key;
+                std::vector<VertexId> vids;
+                for (size_t i = 0; i < key_vids.size(); ++i) {
+                    if (i != 0 && i % batch_commit_size == 0) {
+                        txn.Commit();
+                        FMA_LOG() << "committed " << i << " keys";
+                        txn = CreateWriteTxn();
+                    }
+                    auto& kv = key_vids[i];
+                    if (key != kv.key) {
+                        // write out a bunch of vids
+                        index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
+                                                                vids);
+                        key = kv.key;
+                        vids.clear();
+                    }
+                    vids.push_back(kv.vid);
                 }
-                auto& kv = key_vids[i];
-                if (key != kv.key) {
-                    // write out a bunch of vids
-                    index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(key),
-                                                            vids);
-                    key = kv.key;
-                    vids.clear();
+                if (!key_vids.empty()) {
+                    index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(),
+                                                            GetKeyConstRef(key), vids);
                 }
-                vids.push_back(kv.vid);
+                break;
             }
-            if (!key_vids.empty()) {
-                index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(key), vids);
-            }
+        case IndexType::PairUniqueIndex:
+            throw InputError("vertex index do not support pair-unique attributes");
         }
         txn.Commit();
         index->SetReady();
@@ -1946,36 +1970,45 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
         FMA_LOG() << "Dumping index";
         txn = CreateWriteTxn();
         auto index = txn.GetEdgeIndex(spec.label, spec.field);
-        if (spec.unique) {
-            for (size_t i = 0; i < key_euids.size(); i++) {
-                if (i != 0 && i % batch_commit_size == 0) {
-                    txn.Commit();
-                    FMA_LOG() << "committed " << i << " keys";
-                    txn = CreateWriteTxn();
+        switch (spec.type) {
+        case IndexType::GlobalUniqueIndex:
+        case IndexType::PairUniqueIndex:
+            {
+                for (size_t i = 0; i < key_euids.size(); i++) {
+                    if (i != 0 && i % batch_commit_size == 0) {
+                        txn.Commit();
+                        FMA_LOG() << "committed " << i << " keys";
+                        txn = CreateWriteTxn();
+                    }
+                    auto& kv = key_euids[i];
+                    index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
+                                             (EdgeUid)kv.euid);
                 }
-                auto& kv = key_euids[i];
-                index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key), (EdgeUid)kv.euid);
+                break;
             }
-        } else {
-            T key = key_euids.empty() ? T() : key_euids.front().key;
-            std::vector<EdgeUid> euids;
-            for (size_t i = 0; i < key_euids.size(); ++i) {
-                if (i != 0 && i % batch_commit_size == 0) {
-                    txn.Commit();
-                    FMA_LOG() << "committed " << i << " keys";
-                    txn = CreateWriteTxn();
+        case IndexType::NonuniqueIndex:
+            {
+                T key = key_euids.empty() ? T() : key_euids.front().key;
+                std::vector<EdgeUid> euids;
+                for (size_t i = 0; i < key_euids.size(); ++i) {
+                    if (i != 0 && i % batch_commit_size == 0) {
+                        txn.Commit();
+                        FMA_LOG() << "committed " << i << " keys";
+                        txn = CreateWriteTxn();
+                    }
+                    auto& kv = key_euids[i];
+                    if (key != kv.key) {
+                        // write out a bunch of vids
+                        index->_AppendNonUniqueIndexEntry(txn.GetTxn(), GetKeyConstRef(key), euids);
+                        key = kv.key;
+                        euids.clear();
+                    }
+                    euids.push_back(kv.euid);
                 }
-                auto& kv = key_euids[i];
-                if (key != kv.key) {
-                    // write out a bunch of vids
+                if (!key_euids.empty()) {
                     index->_AppendNonUniqueIndexEntry(txn.GetTxn(), GetKeyConstRef(key), euids);
-                    key = kv.key;
-                    euids.clear();
                 }
-                euids.push_back(kv.euid);
-            }
-            if (!key_euids.empty()) {
-                index->_AppendNonUniqueIndexEntry(txn.GetTxn(), GetKeyConstRef(key), euids);
+                break;
             }
         }
         txn.Commit();
@@ -2117,8 +2150,7 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
                 auto& specs = label_indexes[label];
                 FMA_WARN() << "Label " << label << " specified, but no vertex of that type exists.";
                 for (auto& spec : specs) {
-                    _AddEmptyIndex(spec.spec.label, spec.spec.field,
-                                   spec.spec.unique, is_vertex, spec.spec.global);
+                    _AddEmptyIndex(spec.spec.label, spec.spec.field, spec.spec.type, is_vertex);
                 }
             }
         }

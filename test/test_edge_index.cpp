@@ -41,8 +41,9 @@ int TestEdgeIndexImpl() {
     // test integer keys
     {
         auto idx_tab =
-            EdgeIndex::OpenTable(*txn, *store, "int32_index_test", FieldType::INT32, false, true);
-        EdgeIndex idx(std::move(idx_tab), FieldType::INT32, false, true);
+            EdgeIndex::OpenTable(*txn, *store, "int32_index_test", FieldType::INT32,
+                                 lgraph::IndexType::NonuniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
         // add many eids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             for (int j = 1; j <= 100; ++j) {
@@ -138,9 +139,10 @@ int TestEdgeIndexImpl() {
     }
     // test Fullkeys
     {
-        auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "stringss_index_test",
-                                            FieldType::STRING, true, true);
-        EdgeIndex idx(std::move(idx_tab), FieldType::STRING, true, true);
+        auto idx_tab =
+            EdgeIndex::OpenTable(*txn, *store, "stringss_index_test", FieldType::STRING,
+                                 lgraph::IndexType::PairUniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::PairUniqueIndex);
         // add many euids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             UT_EXPECT_TRUE(
@@ -196,8 +198,9 @@ int TestEdgeIndexImpl() {
     // test string keys
     {
         auto idx_tab =
-            EdgeIndex::OpenTable(*txn, *store, "string_index_test", FieldType::STRING, false, true);
-        EdgeIndex idx(std::move(idx_tab), FieldType::STRING, false, true);
+            EdgeIndex::OpenTable(*txn, *store, "string_index_test", FieldType::STRING,
+                                 lgraph::IndexType::NonuniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
         // add many euids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef("a"), {i, i + 2, 1, 0, 1}));
@@ -301,8 +304,8 @@ int TestEdgeIndexImpl() {
         // index with non-unique keys
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "string_index_non_unqiue",
-                                                   FieldType::STRING, false, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, false, true);
+                                         FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
             // add many vids; should split after some point
             for (int64_t i = 0; i < 500; i += 1) {
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef("1"), {i, i + 2, 1, 0, 1}));
@@ -320,8 +323,8 @@ int TestEdgeIndexImpl() {
         {
             auto idx_tab =
                 EdgeIndex::OpenTable(*txn, *store, "int32_index_unqiue",
-                                     FieldType::INT32, false, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, false, true);
+                                     FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
             // add many vids; should split after some point
             for (int32_t i = 0; i < 100; i += 1) {
                 for (int j = 1; j <= 100; ++j) {
@@ -358,12 +361,14 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     std::vector<FieldSpec> e_fds = {{"name", FieldType::STRING, false},
                                     {"comments", FieldType::STRING, true},
                                     {"weight", FieldType::INT32, false}};
+
     UT_EXPECT_TRUE(db.AddLabel("v1", v_fds, true, VertexOptions("name")));
     UT_EXPECT_TRUE(db.AddLabel("e1", e_fds, false, EdgeOptions()));
+
     // add edge index
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", false, false, true));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", false, false, true));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "weight", false, false, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "name", lgraph::IndexType::NonuniqueIndex, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "comments", lgraph::IndexType::NonuniqueIndex, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "weight", lgraph::IndexType::NonuniqueIndex, false));
 
     Transaction txn = db.CreateWriteTxn();
     std::vector<std::string> v1_properties = {"name", "title", "description", "type"};
@@ -380,7 +385,6 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
         std::string("v1"), v1_properties,
         std::vector<std::string>{"name4", "title4", "desc4", "4"});
     txn.Commit();
-
     // add edge
     txn = db.CreateWriteTxn();
     std::vector<std::string> e1_properties = {"name", "comments", "weight"};
@@ -397,7 +401,6 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     txn.AddEdge(v_id2, v_id2, std::string("e1"), e1_properties,
                 std::vector<std::string>{"name6", "comments6", "20"});
     txn.Commit();
-
     txn = db.CreateReadTxn();
     auto counts_befor = txn.countDetail();
     UT_EXPECT_EQ(counts_befor.size(), 2);
@@ -409,7 +412,6 @@ TEST_F(TestEdgeIndex, DeleteVertex) {
     auto counts_after = txn.countDetail();
     UT_EXPECT_EQ(counts_befor, counts_after);
     txn.Abort();
-
     txn = db.CreateWriteTxn();
     size_t n_in = 0;
     size_t n_out = 0;
@@ -438,14 +440,14 @@ int TestEdgeIndexValue() {
         // test EdgeIndexValue
         EdgeIndexValue eiv;
         for (size_t i = 1; i <= 100; ++i) {
-            eiv.InsertEUid(i, i + 1, 1, i, i, true);
+            eiv.InsertEUid(i, i + 1, 1, i, i);
             UT_EXPECT_EQ(eiv.GetEUidCount(), i);
             bool found = false;
-            eiv.SearchEUid(i, i + 1, 1, i, i, true, found);
+            eiv.SearchEUid(i, i + 1, 1, i, i, found);
             UT_EXPECT_TRUE(found);
         }
         UT_EXPECT_TRUE(eiv.TooLarge());
-        Value v = eiv.CreateKey(Value(), true);
+        Value v = eiv.CreateKey(Value());
         UT_EXPECT_EQ(v.Size(), 24);
         UT_EXPECT_EQ(fetch_n_bytes(v.Data(), 5), 100);
         UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 5, 5), 101);
@@ -458,58 +460,58 @@ int TestEdgeIndexValue() {
             UT_EXPECT_EQ(src, i + 1);
             VertexId dst = eiv.GetNthDstVid(i);
             UT_EXPECT_EQ(dst, i + 2);
-            LabelId lid = eiv.GetNthLid(i, true);
+            LabelId lid = eiv.GetNthLid(i);
             UT_EXPECT_EQ(lid, 1);
-            TemporalId tid = eiv.GetNthTid(i, true);
+            TemporalId tid = eiv.GetNthTid(i);
             UT_EXPECT_EQ(tid, i + 1);
-            EdgeId eid = eiv.GetNthEid(i, true);
+            EdgeId eid = eiv.GetNthEid(i);
             UT_EXPECT_EQ(eid, i + 1);
         }
 
-        EdgeIndexValue right = eiv.SplitRightHalf(true);
+        EdgeIndexValue right = eiv.SplitRightHalf();
         UT_EXPECT_EQ(right.GetEUidCount(), 50);
         UT_EXPECT_EQ(eiv.GetEUidCount(), 50);
 
         for (size_t i = 1; i < 50; ++i) {
-            uint8_t ret = eiv.DeleteEUidIfExist(i, i + 1, 1, i, i, true);
+            uint8_t ret = eiv.DeleteEUidIfExist(i, i + 1, 1, i, i);
             UT_EXPECT_EQ(ret, 1);
         }
-        UT_EXPECT_EQ(eiv.DeleteEUidIfExist(50, 51, 1, 50, 50, true), 2);
+        UT_EXPECT_EQ(eiv.DeleteEUidIfExist(50, 51, 1, 50, 50), 2);
         UT_EXPECT_EQ(eiv.GetEUidCount(), 0);
 
         EdgeIndexValue giv;
         for (size_t i = 1; i <= 100; ++i) {
-            giv.InsertEUid(i, i + 1, 1, i, i, true);
+            giv.InsertEUid(i, i + 1, 1, i, i);
             UT_EXPECT_EQ(giv.GetEUidCount(), i);
             bool found = false;
-            giv.SearchEUid(i, i + 1, 1, i, i, true, found);
+            giv.SearchEUid(i, i + 1, 1, i, i, found);
             UT_EXPECT_TRUE(found);
         }
 
-        Value g = giv.CreateKey(Value(), false);
-        UT_EXPECT_EQ(g.Size(), 14);
+        Value g = giv.CreateKey(Value());
+        UT_EXPECT_EQ(g.Size(), 24);
         UT_EXPECT_EQ(fetch_n_bytes(v.Data(), 5), 100);
         UT_EXPECT_EQ(fetch_n_bytes(v.Data() + 5, 5), 101);
 
         UT_EXPECT_TRUE(giv.TooLarge());
         for (size_t i = 0; i < 100; ++i) {
-            LabelId lid = giv.GetNthLid(i, true);
+            LabelId lid = giv.GetNthLid(i);
             UT_EXPECT_EQ(lid, 1);
-            TemporalId tid = giv.GetNthTid(i, true);
+            TemporalId tid = giv.GetNthTid(i);
             UT_EXPECT_EQ(tid, i + 1);
-            EdgeId eid = giv.GetNthEid(i, true);
+            EdgeId eid = giv.GetNthEid(i);
             UT_EXPECT_EQ(eid, i + 1);
         }
 
-        EdgeIndexValue gright = giv.SplitRightHalf(true);
+        EdgeIndexValue gright = giv.SplitRightHalf();
         UT_EXPECT_EQ(gright.GetEUidCount(), 50);
         UT_EXPECT_EQ(giv.GetEUidCount(), 50);
 
         for (size_t i = 1; i < 50; ++i) {
-            uint8_t ret = giv.DeleteEUidIfExist(i, i + 1, 1, i, i, true);
+            uint8_t ret = giv.DeleteEUidIfExist(i, i + 1, 1, i, i);
             UT_EXPECT_EQ(ret, 1);
         }
-        UT_EXPECT_EQ(giv.DeleteEUidIfExist(50, 51, 1, 50, 50, true), 2);
+        UT_EXPECT_EQ(giv.DeleteEUidIfExist(50, 51, 1, 50, 50), 2);
         UT_EXPECT_EQ(giv.GetEUidCount(), 0);
     }
     return 0;
@@ -521,14 +523,12 @@ int TestEdgeIndexCRUD() {
         memcpy(&val, p, nbytes);
         return val;
     };
-
     auto int_unique_global_to_string = [&](const char* p, size_t s) {
         int32_t key = fetch_n_bytes(p, s);
         std::string ret = std::to_string(key);
         return ret;
     };
-
-    auto int_nonunique_global_to_string = [&](const char* p, size_t s) {
+    auto int_normal_to_string = [&](const char* p, size_t s) {
         int64_t key = fetch_n_bytes(p, s - 24);
         std::string ret = std::to_string(key);
         int64_t src_vid = fetch_n_bytes(p + s - 24, 5);
@@ -543,30 +543,13 @@ int TestEdgeIndexCRUD() {
         ret.append(std::to_string(eid));
         return ret;
     };
-
-    auto int_unique_nonglobal_to_string = [&] (const char* p, size_t s) {
+    auto int_pair_unique_to_string = [&] (const char* p, size_t s) {
         int64_t key = fetch_n_bytes(p, s - 10);
         std::string ret = std::to_string(key);
         int64_t src_vid = fetch_n_bytes(p + s - 10, 5);
         ret.append(std::to_string(src_vid));
         int64_t dst_vid = fetch_n_bytes(p + s - 5, 5);
         ret.append(std::to_string(dst_vid));
-        return ret;
-    };
-
-    auto int_nonunique_nonglobal_to_string = [&] (const char* p, size_t s) {
-        int64_t key = fetch_n_bytes(p, s - 24);
-        std::string ret = std::to_string(key);
-        int64_t vid1 = fetch_n_bytes(p + s - 24, 5);
-        ret.append(std::to_string(vid1));
-        int64_t vid2 = fetch_n_bytes(p + s - 19, 5);
-        ret.append(std::to_string(vid2));
-        int64_t lid = fetch_n_bytes(p + s - 14, 2);
-        ret.append(std::to_string(lid));
-        int64_t tid = fetch_n_bytes(p + s - 12, 8);
-        ret.append(std::to_string(tid));
-        int64_t eid = fetch_n_bytes(p + s - 4, 4);
-        ret.append(std::to_string(eid));
         return ret;
     };
     {
@@ -580,9 +563,11 @@ int TestEdgeIndexCRUD() {
 
         // test integer unique global key
         {
-            auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "UniqueGlobalInt32",
-                                                FieldType::INT32, true, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, true, true);
+            auto idx_tab =
+                EdgeIndex::OpenTable(*txn, *store, "UniqueGlobalInt32", FieldType::INT32,
+                                     lgraph::IndexType::GlobalUniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32,
+                          lgraph::IndexType::GlobalUniqueIndex);
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {0, 0, 0, 0, 0}));
             std::string eidx;
             idx.Dump(*txn, int_unique_global_to_string, eidx);
@@ -593,11 +578,11 @@ int TestEdgeIndexCRUD() {
         {
             auto idx_tab =
                 EdgeIndex::OpenTable(*txn, *store, "NonUniqueGlobalInt32",
-                                     FieldType::INT32, false, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, false, true);
+                                     FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {0, 0, 0, 0, 0}));
             std::string eidx;
-            idx.Dump(*txn, int_nonunique_global_to_string, eidx);
+            idx.Dump(*txn, int_normal_to_string, eidx);
             UT_EXPECT_TRUE(eidx.substr(0, 6) == "100000");
         }
 
@@ -605,11 +590,11 @@ int TestEdgeIndexCRUD() {
         {
             auto idx_tab =
                 EdgeIndex::OpenTable(*txn, *store, "UniqueNonGlobalInt32",
-                                     FieldType::INT32, true, false);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, true, false);
+                                     FieldType::INT32, lgraph::IndexType::PairUniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::PairUniqueIndex);
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {3, 2, 0, 0, 0}));
             std::string eidx;
-            idx.Dump(*txn, int_unique_nonglobal_to_string, eidx);
+            idx.Dump(*txn, int_pair_unique_to_string, eidx);
             UT_EXPECT_TRUE(eidx.substr(0, 3) == "123");
         }
 
@@ -617,18 +602,19 @@ int TestEdgeIndexCRUD() {
         {
             auto idx_tab =
                 EdgeIndex::OpenTable(*txn, *store, "NonUniqueNonGlobalInt32",
-                                     FieldType::INT32, false, false);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, false, false);
+                                     FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {9, 8, 7, 6, 5}));
             std::string eidx;
-            idx.Dump(*txn, int_nonunique_nonglobal_to_string, eidx);
+            idx.Dump(*txn, int_normal_to_string, eidx);
             UT_EXPECT_TRUE(eidx.substr(0, 6) == "189765");
         }
         // test unique global int32_t crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "UniqueGlobalAdd",
-                                     FieldType::INT32, true, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, true, true);
+                                     FieldType::INT32, lgraph::IndexType::GlobalUniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32,
+                          lgraph::IndexType::GlobalUniqueIndex);
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, 1, i, i);
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(i), edgeUid));
@@ -646,8 +632,7 @@ int TestEdgeIndexCRUD() {
                                                                 Value::ConstRef(200));
             size_t vaild_keys = 0;
             while (it_all.IsValid()) {
-                ++vaild_keys;
-                it_all.Next();
+                ++vaild_keys, it_all.Next();
             }
             UT_EXPECT_EQ(vaild_keys, 100);
 
@@ -671,8 +656,9 @@ int TestEdgeIndexCRUD() {
         // test unique global string crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "UniqueGlobalAddString",
-                                                   FieldType::STRING, true, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, true, true);
+                                         FieldType::STRING, lgraph::IndexType::GlobalUniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::STRING,
+                          lgraph::IndexType::GlobalUniqueIndex);
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, 1, i, i);
                 std::string key("test_key" + std::to_string(i));
@@ -717,8 +703,8 @@ int TestEdgeIndexCRUD() {
         // test unique non-global int32 crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "UniqueNonGlobalAddInt32",
-                                                   FieldType::INT32, true, false);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, true, false);
+                                         FieldType::INT32, lgraph::IndexType::PairUniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::PairUniqueIndex);
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, 1, i, i);
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), edgeUid));
@@ -776,8 +762,9 @@ int TestEdgeIndexCRUD() {
         //  test unique non-global string crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "UniqueNonGlobalAddString",
-                                                   FieldType::STRING, true, false);
-            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, true, false);
+                                          FieldType::STRING, lgraph::IndexType::PairUniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::STRING,
+                          lgraph::IndexType::PairUniqueIndex);
             std::string key("test_key");
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, 1, i, i);
@@ -837,8 +824,9 @@ int TestEdgeIndexCRUD() {
         // test non-unique global int32 crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "NonUniqueGlobalAddInt32",
-                                                   FieldType::INT32, false, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, false, true);
+                                         FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, i, i, i);
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), edgeUid));
@@ -936,8 +924,8 @@ int TestEdgeIndexCRUD() {
         // test non-unique global string crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "NonUniqueGlobalAddString",
-                                                   FieldType::STRING, false, true);
-            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, false, true);
+                                         FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, i, i, i);
                 std::string key("test_key");
@@ -1034,8 +1022,8 @@ int TestEdgeIndexCRUD() {
         // test non-unique non-global int32 crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "NonUniqueNONGlobalAddInt32",
-                                                   FieldType::INT32, false, false);
-            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, false, false);
+                                          FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, i, i, i);
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), edgeUid));
@@ -1196,8 +1184,8 @@ int TestEdgeIndexCRUD() {
         // test non-unique non-global string crd
         {
             auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "NonUniqueNONGlobalAddString",
-                                                   FieldType::STRING, false, false);
-            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, false, false);
+                                          FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+            EdgeIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
             for (int32_t i = 0; i < 100; ++i) {
                 std::string key("test_key");
                 EdgeUid edgeUid(i, i + 1, i, i, i);
@@ -1314,7 +1302,6 @@ int TestEdgeIndexCRUD() {
                 it_none.Next();
             }
             UT_EXPECT_EQ(all_keys, 0);
-
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, i, i, i);
                 std::string key("test_key" + std::to_string(i));
@@ -1329,7 +1316,6 @@ int TestEdgeIndexCRUD() {
                 UT_EXPECT_EQ(it_add.GetTemporalId(), i);
                 UT_EXPECT_EQ(it_add.GetEid(), i);
             }
-
             for (int32_t i = 0; i < 100; ++i) {
                 EdgeUid edgeUid(i, i + 1, i, i, i);
                 std::string key("test_key" + std::to_string(i));
@@ -1361,7 +1347,6 @@ int TestEdgeIndexCRUD() {
             }
             UT_EXPECT_EQ(del_keys, 0);
         }
-
         txn->Commit();
     }
     return 0;

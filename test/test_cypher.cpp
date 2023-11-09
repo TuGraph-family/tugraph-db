@@ -1237,7 +1237,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL dbms.security.deleteRole('test_role')",
         "CALL dbms.security.deleteUser('guest1')",
         "CALL db.plugin.listPlugin('CPP', 'any')",
-        "CALL db.listLabelIndexes('Person')",
+        "CALL db.listLabelIndexes('Person', 'vertex')",
         "CALL dbms.security.getUserPermissions('admin')",
         "CALL dbms.graph.getGraphInfo('default')",
 #ifndef __SANITIZE_ADDRESS__

@@ -132,34 +132,37 @@ void lgraph::import_v2::Importer::DoImportOffline() {
     auto import_index = [&](){
         for (auto& v : schema.label_desc) {
             for (auto& spec : v.columns) {
-                if (v.is_vertex && spec.index && !spec.unique) {
+                if (v.is_vertex && spec.index && !spec.primary &&
+                    spec.idxType == lgraph::IndexType::NonuniqueIndex) {
                     // create index, ID column has creadted
-                    if (db.AddVertexIndex(v.name, spec.name, spec.unique)) {
-                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
-                                             v.name, spec.name, spec.unique);
+                    if (db.AddVertexIndex(v.name, spec.name, spec.idxType)) {
+                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                             v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
                             FMA_FMT("Vertex index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
-                } else if (v.is_vertex && spec.index && spec.unique
-                           && v.GetPrimaryField().name != spec.name) {
+                } else if (v.is_vertex && spec.index && !spec.primary &&
+                           (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
+                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
                     throw InputError(
                         FMA_FMT("offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name));
-                } else if ((!v.is_vertex && spec.index && !spec.global && spec.unique) ||
-                           (!v.is_vertex && spec.index && !spec.unique)) {
-                    if (db.AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
-                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
-                                             v.name, spec.name, spec.unique);
+                } else if (!v.is_vertex && spec.index &&
+                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                    if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
+                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                             v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
                             FMA_FMT("Edge index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
-                } else if (!v.is_vertex && spec.index && spec.global && spec.unique) {
+                } else if (!v.is_vertex && spec.index &&
+                           spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
                     throw InputError(
                         FMA_FMT("offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
@@ -556,7 +559,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
         }
         std::vector<size_t> unique_index_pos;
         for (auto & cs : ld.GetColumnSpecs()) {
-            if (cs.index && cs.unique && !cs.global) {
+            if (cs.index && (cs.idxType == lgraph::IndexType::PairUniqueIndex)) {
                 unique_index_pos.push_back(desc->FindIdxExcludeSkip(cs.name));
             }
         }
@@ -753,7 +756,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
     // build index
     FMA_DBG() << "Building index for " << label;
     // make index
-    db->_AddEmptyIndex(label, key_field, true, true);
+    db->_AddEmptyIndex(label, key_field, lgraph::IndexType::GlobalUniqueIndex, true);
     switch (key_type) {
     case FieldType::NUL:
         FMA_ASSERT(false);

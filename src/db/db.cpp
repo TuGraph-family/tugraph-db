@@ -187,15 +187,15 @@ void lgraph::AccessControlledDB::RefreshCount() {
 
 
 bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const std::string& field,
-                                                bool is_unique) {
+                                                IndexType type) {
     CheckFullAccess();
-    return graph_->BlockingAddIndex(label, field, is_unique, true);
+    return graph_->BlockingAddIndex(label, field, type, true);
 }
 
 bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const std::string& field,
-                                          bool is_unique, bool is_global) {
+                                          IndexType type) {
     CheckFullAccess();
-    return graph_->BlockingAddIndex(label, field, is_unique, false, is_global);
+    return graph_->BlockingAddIndex(label, field, type, false);
 }
 
 bool lgraph::AccessControlledDB::AddFullTextIndex(bool is_vertex, const std::string& label,

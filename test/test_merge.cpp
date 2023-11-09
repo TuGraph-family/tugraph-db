@@ -181,8 +181,8 @@ TEST_P(TestMerge, Merge) {
         label_e,
         vector<FieldSpec>{{"since", FieldType::INT32, false}, {"weight", FieldType::DOUBLE, false}},
         {});
-    UT_ASSERT(!db.AddVertexIndex(label_v, "name", false));
-    db.AddVertexIndex(label_v, "gender", false);
+    UT_ASSERT(!db.AddVertexIndex(label_v, "name", lgraph::IndexType::NonuniqueIndex));
+    db.AddVertexIndex(label_v, "gender", lgraph::IndexType::NonuniqueIndex);
     auto txn = db.CreateWriteTxn();
     int64_t vid[8];
     vid[0] = txn.AddVertex(label_v, vector<string>{"name", "age", "gender"},

@@ -372,7 +372,7 @@ class SchemaManager {
                 IndexSpec is;
                 is.label = schema.GetLabel();
                 is.field = extractor->Name();
-                is.unique = index->IsUnique();
+                is.type = index->GetType();
                 indexes.push_back(std::move(is));
             }
         }
@@ -390,7 +390,7 @@ class SchemaManager {
                 IndexSpec is;
                 is.label = schema.GetLabel();
                 is.field = extractor->Name();
-                is.unique = edge_index->IsUnique();
+                is.type = edge_index->GetType();
                 indexes.push_back(std::move(is));
             }
         }
@@ -412,7 +412,7 @@ class SchemaManager {
             IndexSpec is;
             is.label = label;
             is.field = extractor->Name();
-            is.unique = index->IsUnique();
+            is.type = index->GetType();
             indexes.push_back(std::move(is));
         }
         return indexes;
@@ -433,7 +433,7 @@ class SchemaManager {
             IndexSpec is;
             is.label = label;
             is.field = extractor->Name();
-            is.unique = edge_index->IsUnique();
+            is.type = edge_index->GetType();
             indexes.push_back(std::move(is));
         }
         return indexes;

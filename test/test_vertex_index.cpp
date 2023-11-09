@@ -39,8 +39,9 @@ int TestVertexIndexImpl() {
     // test integer keys
     {
         auto idx_tab =
-            VertexIndex::OpenTable(*txn, *store, "int32_index_test", FieldType::INT32, false);
-        VertexIndex idx(std::move(idx_tab), FieldType::INT32, false);
+            VertexIndex::OpenTable(*txn, *store, "int32_index_test", FieldType::INT32,
+                                   lgraph::IndexType::NonuniqueIndex);
+        VertexIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
         // add many vids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), i));
@@ -112,8 +113,9 @@ int TestVertexIndexImpl() {
     // test string keys
     {
         auto idx_tab =
-            VertexIndex::OpenTable(*txn, *store, "string_index_test", FieldType::STRING, false);
-        VertexIndex idx(std::move(idx_tab), FieldType::STRING, false);
+            VertexIndex::OpenTable(*txn, *store, "string_index_test", FieldType::STRING,
+                                   lgraph::IndexType::NonuniqueIndex);
+        VertexIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
         // add many vids; should split after some point
         for (int64_t i = 1; i < 500; i += 2) {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef("a"), i));
@@ -199,8 +201,9 @@ int TestVertexIndexImpl() {
         // index with non-unique keys
         {
             auto idx_tab = VertexIndex::OpenTable(*txn, *store, "string_index_non_unqiue",
-                                                     FieldType::STRING, false);
-            VertexIndex idx(std::move(idx_tab), FieldType::STRING, false);
+                                           FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+            VertexIndex idx(std::move(idx_tab), FieldType::STRING,
+                            lgraph::IndexType::NonuniqueIndex);
             // add many vids; should split after some point
             for (int64_t i = 0; i < 500; i += 1) {
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef("1"), i));
@@ -217,8 +220,10 @@ int TestVertexIndexImpl() {
         // index with non-unique keys
         {
             auto idx_tab =
-                VertexIndex::OpenTable(*txn, *store, "int32_index_unqiue", FieldType::INT32, false);
-            VertexIndex idx(std::move(idx_tab), FieldType::INT32, false);
+                VertexIndex::OpenTable(*txn, *store, "int32_index_unqiue", FieldType::INT32,
+                                       lgraph::IndexType::NonuniqueIndex);
+            VertexIndex idx(std::move(idx_tab), FieldType::INT32,
+                            lgraph::IndexType::NonuniqueIndex);
             // add many vids; should split after some point
             for (int32_t i = 0; i < 100; i += 1) {
                 UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(i), i));
@@ -281,13 +286,13 @@ TEST_F(TestVertexIndex, addIndexDetach) {
                                            FieldData(str_fd), FieldData(float(i))});
     }
     txn.Commit();
-    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "int32", false, true, true));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "string", false, true, true));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "float", false, true, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "int32", lgraph::IndexType::NonuniqueIndex, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "string", lgraph::IndexType::NonuniqueIndex, true));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("v1", "float", lgraph::IndexType::NonuniqueIndex, true));
 
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "int32", false, false, false));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "string", false, false, false));
-    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "float", false, false, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "int32", lgraph::IndexType::NonuniqueIndex, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "string", lgraph::IndexType::NonuniqueIndex, false));
+    UT_EXPECT_TRUE(db.BlockingAddIndex("e1", "float", lgraph::IndexType::NonuniqueIndex, false));
 
     txn = db.CreateReadTxn();
     // vertex
@@ -323,8 +328,8 @@ TEST_F(TestVertexIndex, addIndexDetach) {
         int32_t i = 0;
         for (auto iter = txn.GetEdgeIndexIterator("e1", "int32"); iter.IsValid(); iter.Next()) {
             UT_EXPECT_EQ(iter.GetKeyData(), FieldData::Int32(i));
-            UT_EXPECT_EQ(iter.GetSrcVid(), i < (i+1)%100000 ? i : (i+1)%100000);
-            UT_EXPECT_EQ(iter.GetDstVid(), i > (i+1)%100000 ? i : (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetSrcVid(), i);
+            UT_EXPECT_EQ(iter.GetDstVid(), (i+1)%100000);
             i++;
         }
     }
@@ -334,8 +339,8 @@ TEST_F(TestVertexIndex, addIndexDetach) {
             auto str_fd = std::to_string(i);
             str_fd = std::string(5 - str_fd.size(), '0') + str_fd;
             UT_EXPECT_EQ(iter.GetKeyData(), FieldData::String(str_fd));
-            UT_EXPECT_EQ(iter.GetSrcVid(), i < (i+1)%100000 ? i : (i+1)%100000);
-            UT_EXPECT_EQ(iter.GetDstVid(), i > (i+1)%100000 ? i : (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetSrcVid(), i);
+            UT_EXPECT_EQ(iter.GetDstVid(), (i+1)%100000);
             i++;
         }
     }
@@ -343,8 +348,8 @@ TEST_F(TestVertexIndex, addIndexDetach) {
         int32_t i = 0;
         for (auto iter = txn.GetEdgeIndexIterator("e1", "float"); iter.IsValid(); iter.Next()) {
             UT_EXPECT_EQ(iter.GetKeyData(), FieldData::Float(i));
-            UT_EXPECT_EQ(iter.GetSrcVid(), i < (i+1)%100000 ? i : (i+1)%100000);
-            UT_EXPECT_EQ(iter.GetDstVid(), i > (i+1)%100000 ? i : (i+1)%100000);
+            UT_EXPECT_EQ(iter.GetSrcVid(), i);
+            UT_EXPECT_EQ(iter.GetDstVid(), (i+1)%100000);
             i++;
         }
     }

@@ -495,7 +495,8 @@ class Transaction {
         Schema* schema = sm.GetSchema(label);
         if (!schema)
             throw InputError(
-                fma_common::StringFormatter::Format("Label \"{}\" does not exist.", label));
+                fma_common::StringFormatter::Format("{} Label \"{}\" does not exist.",
+                                                    is_vertex ? "vertex" : "edge", label));
         return schema->GetFieldSpecs();
     }
 

@@ -464,14 +464,19 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
-                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                  {"label_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"unique", {3, lgraph_api::LGraphType::BOOLEAN}},
+                  {"pair_unique", {4, lgraph_api::LGraphType::BOOLEAN}},
               }),
 
-    Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes, Procedure::SIG_SPEC{},
+    Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"label_type", {1, lgraph_api::LGraphType::LIST}}},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
                   {"unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                  {"pair_unique", {3, lgraph_api::LGraphType::BOOLEAN}},
               }),
 
     Procedure("db.propertyKeys", BuiltinProcedure::DbPropertyKeys, Procedure::SIG_SPEC{},
@@ -553,14 +558,14 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.addIndex", BuiltinProcedure::DbAddVertexIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                                  {"is_unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.addEdgeIndex", BuiltinProcedure::DbAddEdgeIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                                  {"is_unique", {2, lgraph_api::LGraphType::BOOLEAN}},
-                                  {"is_global", {3, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"pair_unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.addFullTextIndex", BuiltinProcedure::DbAddFullTextIndex,

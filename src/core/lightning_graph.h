@@ -188,14 +188,13 @@ class LightningGraph {
      * \return  True if it succeeds, false if the index already exists. Throws exception on error.
      */
     bool _AddEmptyIndex(const std::string& label, const std::string& field,
-                        bool is_unique, bool is_vertex, bool is_global = false);
+                        IndexType type, bool is_vertex);
 
     // adds an index, blocks until the index is ready
     // returns true if success, false if index already exists.
     bool BlockingAddIndex(const std::string& label, const std::string& field,
-                          bool is_unique, bool is_vertex, bool is_global = true,
-                          bool known_vid_range = false, VertexId start_vid = 0,
-                          VertexId end_vid = 0);
+                          IndexType type, bool is_vertex, bool known_vid_range = false,
+                          VertexId start_vid = 0, VertexId end_vid = 0);
 
     bool AddFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);
 
@@ -309,8 +308,8 @@ class LightningGraph {
 
     template <typename T>
     void BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
-                         size_t field_id, bool is_unique, VertexId start_vid, VertexId end_vid,
-                         bool is_vertex = true, bool is_global = true);
+                         size_t field_id, IndexType type, VertexId start_vid, VertexId end_vid,
+                         bool is_vertex = true);
 
     void Open();
 };

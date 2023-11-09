@@ -98,10 +98,9 @@ class AccessControlledDB {
         const std::vector<std::pair<std::string, std::string>>& constraints);
     bool ClearEdgeConstraints(const std::string& label);
 
-    bool AddVertexIndex(const std::string& label, const std::string& field, bool is_unique);
+    bool AddVertexIndex(const std::string& label, const std::string& field, IndexType type);
 
-    bool AddEdgeIndex(const std::string& label, const std::string& field,
-                      bool is_unique, bool is_global);
+    bool AddEdgeIndex(const std::string& label, const std::string& field, IndexType type);
 
     bool DeleteVertexIndex(const std::string& label, const std::string& field);
 

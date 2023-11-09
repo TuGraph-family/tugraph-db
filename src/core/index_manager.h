@@ -39,25 +39,23 @@ struct IndexEntry {
         : label(std::move(rhs.label)),
           field(std::move(rhs.field)),
           table_name(std::move(rhs.table_name)),
-          is_unique(rhs.is_unique),
-          is_global(rhs.is_global) {}
+          type(rhs.type) {}
 
     std::string label;
     std::string field;
     std::string table_name;
-    bool is_unique = false;
-    bool is_global = false;
+    IndexType type;
 
     template <typename StreamT>
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, table_name) +
-               BinaryWrite(buf, is_unique) + BinaryWrite(buf, is_global);
+               BinaryWrite(buf, type);
     }
 
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, table_name) +
-               BinaryRead(buf, is_unique) + BinaryRead(buf, is_global);
+               BinaryRead(buf, type);
     }
 };
 }  // namespace _detail
@@ -152,11 +150,10 @@ class IndexManager {
     }
 
     bool AddVertexIndex(KvTransaction& txn, const std::string& label, const std::string& field,
-                        FieldType dt, bool is_unique, std::unique_ptr<VertexIndex>& index);
+                        FieldType dt, IndexType type, std::unique_ptr<VertexIndex>& index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
-                      FieldType dt, bool is_unique, bool is_global,
-                      std::unique_ptr<EdgeIndex>& index);
+                      FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);
 
     bool AddFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                           const std::string& field);
@@ -182,7 +179,7 @@ class IndexManager {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
-                is.unique = ent.is_unique;
+                is.type = ent.type;
                 indexes.emplace_back(std::move(is));
             }
             if (index_name.size() > e_index_len &&
@@ -190,7 +187,7 @@ class IndexManager {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
-                is.unique = ent.is_unique;
+                is.type = ent.type;
                 indexes.emplace_back(std::move(is));
             }
         }

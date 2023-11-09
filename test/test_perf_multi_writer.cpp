@@ -96,7 +96,7 @@ void TestLGraphApiMultiWriter() {
                       std::vector<FieldSpec>(
                           {{"id", FieldType::INT32, false}, {"name", FieldType::STRING, false}}),
                       VertexOptions("id"));
-    db.AddVertexIndex("vertex", "name", false);
+    db.AddVertexIndex("vertex", "name", lgraph::IndexType::NonuniqueIndex);
 
     {
         auto t0 = fma_common::GetTime();
