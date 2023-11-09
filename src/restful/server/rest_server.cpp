@@ -1513,6 +1513,9 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
+    if (!galaxy_->JudgeUserTokenNum(username)) {
+        throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
+    }
     web::json::value response;
     response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
     response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
@@ -3035,11 +3038,11 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         std::string user;
         if (fpc != RestPathCases::LOGIN) user = GetUser(request, &token);
         if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
-            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime
-            && !galaxy_->JudgeRefreshTime(token)) {
-            galaxy_->UnBindTokenUser(token);
-            FMA_WARN() << "The token is invalid.";
-            throw AuthError("The token is invalid.");
+            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
+            if (!galaxy_->JudgeRefreshTime(token)) {
+                FMA_WARN() << "token has already expire";
+                throw AuthError("token has already expire");
+            }
         }
         FMA_DBG_STREAM(logger_) << "\n----------------"
                                 << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"

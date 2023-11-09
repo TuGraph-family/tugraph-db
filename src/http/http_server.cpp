@@ -460,6 +460,9 @@ void HttpService::DoLoginRequest(const brpc::Controller* cntl, std::string& res)
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_PASSWORD, password);
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
+    if (!galaxy_->JudgeUserTokenNum(username)) {
+        throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
+    }
     nlohmann::json js;
     js[HTTP_AUTHORIZATION] = token;
     res = js.dump();

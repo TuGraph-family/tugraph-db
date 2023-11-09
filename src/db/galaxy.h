@@ -111,6 +111,9 @@ class Galaxy {
     // judge token
     bool JudgeRefreshTime(const std::string& token);
 
+    // judge token num
+    bool JudgeUserTokenNum(const std::string& user);
+
     // modify tokenmanager time
     void ModifyTokenTime(const std::string& token,
                          const int refresh_time = 0, const int expire_time = 0);

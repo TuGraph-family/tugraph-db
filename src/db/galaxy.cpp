@@ -114,13 +114,18 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::str
     login_failed_times_.erase(user);
     retry_login_time = 0.0;
 
-    auto user_token_num = acl_->GetUserTokenNum(user);
-    if (user_token_num >= MAX_TOKEN_NUM_PER_USER)
-        throw AuthError("User has reached the maximum number of tokens.");
-
     std::string jwt = token_manager_.IssueFirstToken();
     acl_->BindTokenUser("", jwt, user);
     return jwt;
+}
+
+bool lgraph::Galaxy::JudgeUserTokenNum(const std::string& user) {
+    _HoldReadLock(acl_lock_);
+    auto user_token_num = acl_->GetUserTokenNum(user);
+    if (user_token_num >= MAX_TOKEN_NUM_PER_USER) {
+        return false;
+    }
+    return true;
 }
 
 std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) const {
@@ -154,7 +159,11 @@ bool lgraph::Galaxy::UnBindUserAllToken(const std::string& user) {
 }
 
 bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {
-    return token_manager_.JudgeRefreshTime(token);
+    if (!token_manager_.JudgeRefreshTime(token)) {
+        UnBindTokenUser(token);
+        return false;
+    }
+    return true;
 }
 
 void lgraph::Galaxy::ModifyTokenTime(const std::string& token,
