@@ -150,12 +150,14 @@ size_t LocateCycleCore(OlapBase<Empty>& graph, size_t k);
  * \brief    Compute the label propagation algorithm.
  *
  * \param    graph             The graph to compute on.
+ * \param    label             The ParallelVector to store label information.
  * \param    num_iterations    The iterations of label propagation algorithm.
  * \param    sync_flag         Synchronous mode -> 1, Asynchronous mode -> 0.
  *
  * \return    The value of modularity.
  */
-double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag);
+double LPACore(OlapBase<Empty>& graph, ParallelVector<size_t>& label,
+        int num_iterations, bool sync_flag);
 
 /**
  * @brief    Compute the Maximal Independent Set Algorithm.
