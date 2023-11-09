@@ -21,6 +21,16 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
 /**
+ * @brief    Compute the shortest path length between any two vertices in the graph.
+ *
+ * @param[in]       graph       The graph to compute on.
+ * @param[in,out]   result      The vector to store the shortest path result in the graph.
+ * @param[in]       max_tuple   The tuple to store maximum and shortest path information.
+ */
+void APSPCore(OlapBase<double>& graph, std::vector<std::tuple<size_t, size_t, double>> result,
+              std::tuple<size_t, size_t, double>& max_tuple);
+
+/**
  * @brief    Estimate the betweenness centrality of all vertices in the graph.
  *
  * @param[in]   graph    The graph to compute on.

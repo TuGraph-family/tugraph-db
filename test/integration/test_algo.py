@@ -9,15 +9,33 @@ ERCMD = {"cmd":"./unit_test_er -t RPC"}
 
 
 class TestExec:
+    APSPEMBEDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/apsp_embed ./testdb",
+        "result": ["max_distance is distance[1412,3143] = 17"]
+    }
+
+    IMPORTOPT = {
+        "cmd": "./lgraph_import -c ./data/algo/fb.conf -d ./testdb --overwrite 1 && mkdir louvain_output",
+        "cleanup_dir": ["./testdb", "./.import_tmp"]
+    }
+
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [APSPEMBEDOPT], indirect=True)
+    def test_exec_apsp_embed(self, importor, algo):
+        pass
+
+    APSPSTANDOPT = {
+        "cmd": "OMP_NUM_THREADS=6 algo/apsp_standalone --type text --input_dir ./data/algo/fb_weighted",
+        "result": ["max_distance is distance[1412,3143] = 17"]
+    }
+
+    @pytest.mark.parametrize("algo", [APSPSTANDOPT], indirect=True)
+    def test_exec_apsp_standalone(self, algo):
+        pass
 
     BFSEMBEDOPT = {
         "cmd" : "OMP_NUM_THREADS=6 algo/bfs_embed ./testdb",
         "result" : ["found_vertices = 3829"]
-    }
-
-    IMPORTOPT = {
-        "cmd" : "./lgraph_import -c ./data/algo/fb.conf -d ./testdb --overwrite 1 && mkdir louvain_output",
-        "cleanup_dir" : ["./testdb", "./.import_tmp", "louvain_output"]
     }
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
