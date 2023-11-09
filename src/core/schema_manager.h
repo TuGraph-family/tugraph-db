@@ -31,7 +31,7 @@ namespace lgraph {
  *  A maximum of 2^16 labels can be created. Schemas cannot be deleted.
  */
 class SchemaManager {
-    KvTable table_;
+    std::shared_ptr<KvTable> table_;
     std::vector<Schema> schemas_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     bool label_in_record_ = true;
@@ -46,7 +46,8 @@ class SchemaManager {
      *
      * \return  A kvstore::Table.
      */
-    static KvTable OpenTable(KvTransaction& txn, KvStore& store, const std::string& name) {
+    static std::unique_ptr<KvTable> OpenTable(
+        KvTransaction& txn, KvStore& store, const std::string& name) {
         return store.OpenTable(txn, name, true, ComparatorDesc::DefaultComparator());
     }
 
@@ -58,23 +59,24 @@ class SchemaManager {
      *
      * throws exception if the data in the table is corrupted
      */
-    SchemaManager(KvTransaction& txn, const KvTable& table, bool label_in_record) {
-        table_ = table;
+    SchemaManager(KvTransaction& txn, std::shared_ptr<KvTable> table, bool label_in_record) {
+        table_ = std::move(table);
         label_in_record_ = label_in_record;
         // load schemas from table
-        size_t n = table_.GetKeyCount(txn);
+        size_t n = table_->GetKeyCount(txn);
         schemas_.resize(n);
-        auto it = table_.GetIterator(txn);
-        while (it.IsValid()) {
-            LabelId id = it.GetKey().AsType<LabelId>();
-            Value v = it.GetValue();
+        auto it = table_->GetIterator(txn);
+        it->GotoFirstKey();
+        while (it->IsValid()) {
+            LabelId id = it->GetKey().AsType<LabelId>();
+            Value v = it->GetValue();
             using namespace fma_common;
             BinaryBuffer buf(v.Data(), v.Size());
             schemas_[id].SetStoreLabelInRecord(label_in_record_);
             if (!BinaryRead(buf, schemas_[id])) {
                 throw ::lgraph::InternalError("Invalid schema read from DB.");
             }
-            it.Next();
+            it->Next();
         }
         for (size_t i = 0; i < schemas_.size(); i++) {
             name_to_idx_[schemas_[i].GetLabel()] = i;
@@ -224,7 +226,7 @@ class SchemaManager {
         using namespace fma_common;
         BinaryBuffer buf;
         BinaryWrite(buf, *ls);
-        bool r = table_.SetValue(txn, Value::ConstRef(ls->GetLabelId()),
+        bool r = table_->SetValue(txn, Value::ConstRef(ls->GetLabelId()),
                                  Value(buf.GetBuf(), buf.GetSize()));
         FMA_DBG_ASSERT(r);
         return true;
@@ -255,7 +257,7 @@ class SchemaManager {
         using namespace fma_common;
         BinaryBuffer buf;
         BinaryWrite(buf, schema);
-        bool r = table_.SetValue(txn, Value::ConstRef(schema.GetLabelId()),
+        bool r = table_->SetValue(txn, Value::ConstRef(schema.GetLabelId()),
                                  Value(buf.GetBuf(), buf.GetSize()));
         FMA_DBG_ASSERT(r);
         return true;
@@ -278,7 +280,7 @@ class SchemaManager {
         {
             BinaryBuffer buf;
             BinaryWrite(buf, *news);
-            bool r = table_.SetValue(txn, Value::ConstRef(news->GetLabelId()),
+            bool r = table_->SetValue(txn, Value::ConstRef(news->GetLabelId()),
                                      Value(buf.GetBuf(), buf.GetSize()));
             FMA_DBG_ASSERT(r);
         }
@@ -356,7 +358,7 @@ class SchemaManager {
     void Clear(KvTransaction& txn) {
         schemas_.clear();
         name_to_idx_.clear();
-        table_.Drop(txn);
+        table_->Drop(txn);
     }
 
     std::vector<IndexSpec> ListVertexIndexes() const {

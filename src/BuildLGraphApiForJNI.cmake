@@ -39,10 +39,10 @@ set(LGRAPH_CORE_SRC
         core/graph_vertex_iterator.cpp
         core/index_manager.cpp
         core/iterator_base.cpp
-        core/kv_store_iterator.cpp
-        core/kv_store_mdb.cpp
-        core/kv_store_table.cpp
-        core/kv_store_transaction.cpp
+        core/lmdb_iterator.cpp
+        core/lmdb_store.cpp
+        core/lmdb_table.cpp
+        core/lmdb_transaction.cpp
         core/kv_table_comparators.cpp
         core/lgraph_date_time.cpp
         core/lightning_graph.cpp

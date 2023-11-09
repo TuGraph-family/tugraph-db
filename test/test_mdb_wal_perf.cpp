@@ -114,10 +114,11 @@ TEST_F(TestMdbWalPerf, KvStore) {
                  << n_threads_*n_txns_ << " transaction,"
                  << n_threads_*n_txns_*n_kv_per_txn_ << " kvs";
         AutoCleanDir _("./testkv");
-        KvStore store("./testkv", 1 << 30, enable_wal_, true, rotate_time_ms_, batch_time_ms_);
-        auto txn = store.CreateWriteTxn();
-        auto table = store.OpenTable(txn, "default", true, ComparatorDesc::DefaultComparator());
-        txn.Commit();
+        auto store = std::make_unique<LMDBKvStore>("./testkv", 1 << 30, enable_wal_,
+                                                   true, rotate_time_ms_, batch_time_ms_);
+        auto txn = store->CreateWriteTxn();
+        auto table = store->OpenTable(*txn, "default", true, ComparatorDesc::DefaultComparator());
+        txn->Commit();
         std::string vstr(val_size_, 'a');
         Value value = Value::ConstRef(vstr);
         double t1 = fma_common::GetTime();
@@ -127,11 +128,11 @@ TEST_F(TestMdbWalPerf, KvStore) {
                 RandomSeed seed = thr;
                 Value key = GenRandomNewKey(seed);
                 for (size_t t = 0; t < n_txns_; t++) {
-                    auto txn = store.CreateWriteTxn(optimistic_);
+                    auto txn = store->CreateWriteTxn(optimistic_);
                     for (size_t k = 0; k < n_kv_per_txn_; k++) {
-                        table.SetValue(txn, key, value);
+                        table->SetValue(*txn, key, value);
                     }
-                    txn.Commit();
+                    txn->Commit();
                 }
             });
         }

@@ -237,7 +237,7 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         Schema* schema = sm->GetSchema(label);
         FMA_DBG_ASSERT(schema);
         if (schema->DetachProperty()) {
-            KvTable table;
+            std::unique_ptr<KvTable> table;
             if (is_vertex) {
                 std::string prefix = _detail::VERTEX_PROPERTY_TABLE_PREFIX;
                 table = store_->OpenTable(txn.GetTxn(), prefix + label, true,
@@ -1644,10 +1644,10 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
             VertexIndex* index = extractor->GetVertexIndex();
             uint64_t count = 0;
-            for (auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
-                 kv_iter.IsValid(); kv_iter.Next()) {
-                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter.GetKey());
-                auto prop = kv_iter.GetValue();
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                auto prop = kv_iter->GetValue();
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
                     throw InternalError(FMA_FMT(
                         "Failed to index vertex [{}] with field value [{}:{}]",
@@ -1658,6 +1658,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                     FMA_LOG() << "index count: " << count;
                 }
             }
+            kv_iter.reset();
             FMA_LOG() << "index count: " << count;
             txn.Commit();
             schema_.Assign(new_schema.release());
@@ -1699,11 +1700,11 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 FMA_FMT("start building edge index for {}:{} in detached model", label, field);
             uint64_t count = 0;
             EdgeIndex* index = extractor->GetEdgeIndex();
-            for (auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
-                 kv_iter.IsValid(); kv_iter.Next()) {
-                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter.GetKey());
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
                 euid.lid = schema->GetLabelId();
-                auto prop = kv_iter.GetValue();
+                auto prop = kv_iter->GetValue();
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop),
                                 {euid.src, euid.dst, euid.lid, euid.tid, euid.eid})) {
                     throw InternalError(FMA_FMT(
@@ -1715,6 +1716,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                     FMA_LOG() << "index count: " << count;
                 }
             }
+            kv_iter.reset();
             FMA_LOG() << "index count: " << count;
             txn.Commit();
             schema_.Assign(new_schema.release());
@@ -2328,33 +2330,33 @@ ScopedRef<SchemaInfo> LightningGraph::GetSchemaInfo() { return schema_.GetScoped
 
 void LightningGraph::Open() {
     Close();
-    store_.reset(
-        new KvStore(config_.dir, config_.db_size, config_.durable, config_.create_if_not_exist));
-    KvTransaction txn = store_->CreateWriteTxn();
+    store_.reset(new LMDBKvStore(
+        config_.dir, config_.db_size, config_.durable, config_.create_if_not_exist));
+    auto txn = store_->CreateWriteTxn();
     // load meta info
     meta_table_ =
-        store_->OpenTable(txn, _detail::META_TABLE, true, ComparatorDesc::DefaultComparator());
+        store_->OpenTable(*txn, _detail::META_TABLE, true, ComparatorDesc::DefaultComparator());
     // load schema info
-    KvTable v_s_tbl = SchemaManager::OpenTable(txn, *store_, _detail::V_SCHEMA_TABLE);
-    SchemaManager vs(txn, v_s_tbl, true);
+    auto v_s_tbl = SchemaManager::OpenTable(*txn, *store_, _detail::V_SCHEMA_TABLE);
+    SchemaManager vs(*txn, std::move(v_s_tbl), true);
     for (auto& label : vs.GetAllLabels()) {
         auto s = vs.GetSchema(label);
         FMA_ASSERT(s);
         if (s->DetachProperty()) {
             std::string prefix = _detail::VERTEX_PROPERTY_TABLE_PREFIX;
-            auto t = store_->OpenTable(txn, prefix + label,
+            auto t = store_->OpenTable(*txn, prefix + label,
                                        true, ComparatorDesc::DefaultComparator());
             s->SetPropertyTable(std::move(t));
         }
     }
-    KvTable e_s_tbl = SchemaManager::OpenTable(txn, *store_, _detail::E_SCHEMA_TABLE);
-    SchemaManager es(txn, e_s_tbl, false);
+    auto e_s_tbl = SchemaManager::OpenTable(*txn, *store_, _detail::E_SCHEMA_TABLE);
+    SchemaManager es(*txn, std::move(e_s_tbl), false);
     for (auto& label : es.GetAllLabels()) {
         auto s = es.GetSchema(label);
         FMA_ASSERT(s);
         if (s->DetachProperty()) {
             std::string prefix = _detail::EDGE_PROPERTY_TABLE_PREFIX;
-            auto t = store_->OpenTable(txn, prefix + label,
+            auto t = store_->OpenTable(*txn, prefix + label,
                                        true, ComparatorDesc::DefaultComparator());
             s->SetPropertyTable(std::move(t));
         }
@@ -2362,16 +2364,17 @@ void LightningGraph::Open() {
     es.RefreshEdgeConstraintsLids(vs);
     schema_.Assign(new SchemaInfo{std::move(vs), std::move(es)});
     // open graph
-    KvTable g_tbl = graph::Graph::OpenTable(txn, *store_, _detail::GRAPH_TABLE);
-    graph_.reset(new graph::Graph(txn, g_tbl, &meta_table_));
+    auto g_tbl = graph::Graph::OpenTable(*txn, *store_, _detail::GRAPH_TABLE);
+    graph_.reset(new graph::Graph(*txn, std::move(g_tbl), meta_table_));
     // load index
-    KvTable i_tbl = IndexManager::OpenIndexListTable(txn, *store_, _detail::INDEX_TABLE);
-    index_manager_.reset(new IndexManager(txn, &schema_.GetScopedRef()->v_schema_manager,
-                                          &schema_.GetScopedRef()->e_schema_manager, i_tbl, this));
+    auto i_tbl = IndexManager::OpenIndexListTable(*txn, *store_, _detail::INDEX_TABLE);
+    index_manager_.reset(new IndexManager(
+        *txn, &schema_.GetScopedRef()->v_schema_manager,
+        &schema_.GetScopedRef()->e_schema_manager, std::move(i_tbl), this));
     // blob manager
-    KvTable b_tbl = BlobManager::OpenTable(txn, *store_, _detail::BLOB_TABLE);
-    blob_manager_.reset(new BlobManager(txn, b_tbl));
-    txn.Commit();
+    auto b_tbl = BlobManager::OpenTable(*txn, *store_, _detail::BLOB_TABLE);
+    blob_manager_.reset(new BlobManager(*txn, std::move(b_tbl)));
+    txn->Commit();
     if (config_.load_plugins) {
         plugin_manager_.reset(new PluginManager(
             this, config_.name, config_.dir + "/" + _detail::CPP_PLUGIN_DIR,
@@ -2417,11 +2420,11 @@ Transaction LightningGraph::ForkTxn(Transaction& txn) {
 bool LightningGraph::CheckDbSecret(const std::string& expected) {
     auto txn = store_->CreateWriteTxn(false);
     Value key = Value::ConstRef(lgraph::_detail::DB_SECRET_KEY);
-    Value v = meta_table_.GetValue(txn, key);
+    Value v = meta_table_->GetValue(*txn, key);
     if (v.Empty()) {
         // no such value, this is a newly created DB
-        meta_table_.SetValue(txn, key, Value::ConstRef(expected));
-        txn.Commit();
+        meta_table_->SetValue(*txn, key, Value::ConstRef(expected));
+        txn->Commit();
         return true;
     } else {
         return v.AsString() == expected;

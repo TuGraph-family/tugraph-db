@@ -243,7 +243,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
     friend class VertexIndex;
 
     VertexIndex* index_;
-    KvIterator it_;
+    std::unique_ptr<KvIterator> it_;
     Value key_end_;
     Value curr_key_;  // current indexed key, excluding vid
     VertexIndexValue iv_;   // VertexIndexValue, if this is non-unique index
@@ -275,7 +275,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
 
     bool KeyOutOfRange() {
         if (key_end_.Empty() || (!unique_ && key_end_.Size() == _detail::VID_SIZE)) return false;
-        return it_.GetTable().CompareKey(it_.GetTxn(), it_.GetKey(), key_end_) > 0;
+        return it_->GetTable().CompareKey(it_->GetTxn(), it_->GetKey(), key_end_) > 0;
     }
 
     /**
@@ -285,7 +285,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * \return  True if it succeeds, false if it fails.
      */
     bool PrevKV() {
-        if (!it_.Prev()) {
+        if (!it_->Prev()) {
             return false;
         }
         LoadContentFromIt();
@@ -300,10 +300,10 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      */
     bool KeyEquals(const Value& key) {
         if (unique_) {
-            const Value& k = it_.GetKey();
+            const Value& k = it_->GetKey();
             return key.Size() == k.Size() && (memcmp(k.Data(), key.Data(), k.Size()) == 0);
         } else {
-            auto key_vid = it_.GetKey();
+            auto key_vid = it_->GetKey();
             if (key_vid.Size() - _detail::VID_SIZE != key.Size()) {
                 return false;
             }
@@ -318,10 +318,10 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
         pos_ = 0;
         curr_key_.Copy(GetKey());
         if (!unique_) {
-            iv_ = VertexIndexValue(it_.GetValue());
+            iv_ = VertexIndexValue(it_->GetValue());
             vid_ = iv_.GetNthVid(pos_);
         } else {
-            vid_ = _detail::GetVid(it_.GetValue().Data());
+            vid_ = _detail::GetVid(it_->GetValue().Data());
         }
     }
 
@@ -358,7 +358,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
         // otherwise try moving to the next VertexIndex Value,
         // and check if it is still within the range
         valid_ = false;
-        if (!it_.Next() || KeyOutOfRange()) {
+        if (!it_->Next() || KeyOutOfRange()) {
             return false;
         }
         LoadContentFromIt();
@@ -372,9 +372,9 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      */
     Value GetKey() const {
         if (unique_) {
-            return _detail::ReturnKeyEvenIfLong(it_.GetKey());
+            return _detail::ReturnKeyEvenIfLong(it_->GetKey());
         } else {
-            Value key_vid = it_.GetKey();
+            Value key_vid = it_->GetKey();
             return _detail::ReturnKeyEvenIfLong(
                 Value(key_vid.Data(), key_vid.Size() - _detail::VID_SIZE));
         }
@@ -399,11 +399,11 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * @return  True if KvIterator was modified.
      */
     void RefreshContentIfKvIteratorModified() override {
-        if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
+        if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
             valid_ = false;
             // now it_ points to a valid position, but not necessary the right one
-            it_.GotoClosestKey(unique_ ? curr_key_ : _detail::PatchKeyWithVid(curr_key_, vid_));
-            FMA_DBG_ASSERT(it_.IsValid());
+            it_->GotoClosestKey(unique_ ? curr_key_ : _detail::PatchKeyWithVid(curr_key_, vid_));
+            FMA_DBG_ASSERT(it_->IsValid());
             if (KeyOutOfRange()) return;
             if (unique_) {
                 // found the right key
@@ -411,7 +411,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
                 return;
             } else {
                 // non-unique, need to find correct pos_
-                iv_ = VertexIndexValue(it_.GetValue());
+                iv_ = VertexIndexValue(it_->GetValue());
                 pos_ = iv_.SearchVid(vid_, valid_);
                 if (pos_ >= iv_.GetVidCount()) return;
                 valid_ = true;
@@ -435,15 +435,16 @@ class VertexIndex {
     friend class Transaction;
     friend int ::TestVertexIndexImpl();
 
-    KvTable table_;
+    std::shared_ptr<KvTable> table_;
     FieldType key_type_;
     std::atomic<bool> ready_;
     std::atomic<bool> disabled_;
     bool unique_;
 
  public:
-    VertexIndex(const KvTable& table, FieldType key_type, bool unique)
-        : table_(table), key_type_(key_type), ready_(false), disabled_(false), unique_(unique) {}
+    VertexIndex(std::shared_ptr<KvTable> table, FieldType key_type, bool unique)
+        : table_(std::move(table)), key_type_(key_type),
+          ready_(false), disabled_(false), unique_(unique) {}
 
     VertexIndex(const VertexIndex& rhs)
         : table_(rhs.table_),
@@ -458,8 +459,8 @@ class VertexIndex {
 
     VertexIndex& operator=(VertexIndex&& rhs) = delete;
 
-    static KvTable OpenTable(KvTransaction& txn, KvStore& store, const std::string& name,
-                             FieldType dt, bool unique) {
+    static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,
+                                              const std::string& name, FieldType dt, bool unique) {
         ComparatorDesc desc;
         desc.comp_type = unique ? ComparatorDesc::SINGLE_TYPE : ComparatorDesc::TYPE_AND_VID;
         desc.data_type = dt;
@@ -469,7 +470,7 @@ class VertexIndex {
     void _AppendVertexIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
         FMA_DBG_ASSERT(unique_);
         FMA_DBG_CHECK_LE(k.Size(), _detail::MAX_KEY_SIZE);
-        table_.AppendKv(txn, k, Value::ConstRef(vid));
+        table_->AppendKv(txn, k, Value::ConstRef(vid));
     }
 
     /**
@@ -490,14 +491,14 @@ class VertexIndex {
             end = end <= vids.size() ? end : vids.size();
             VertexIndexValue idv(vids.begin() + i, vids.begin() + end);
             Value key = idv.CreateKey(k);
-            table_.AppendKv(txn, key, idv.GetBuf());
+            table_->AppendKv(txn, key, idv.GetBuf());
         }
     }
 
 #define _GET_UNM_INDEX_ITER_WITH_EMPTY_START_KEY(ft)                         \
     do {                                                                     \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();          \
-        return VertexIndexIterator(this, &txn, table_, Value::ConstRef(d),   \
+        return VertexIndexIterator(this, &txn, *table_, Value::ConstRef(d),   \
                                    std::forward<V2>(key_end),                \
                                    vid, unique_);                            \
     } while (0)
@@ -537,7 +538,7 @@ class VertexIndex {
                 _GET_UNM_INDEX_ITER_WITH_EMPTY_START_KEY(DOUBLE);
             case FieldType::STRING:
                 {
-                    return VertexIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
+                    return VertexIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
                                          _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
                                          unique_);
                     break;
@@ -546,11 +547,11 @@ class VertexIndex {
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
             default:
                 FMA_ASSERT(false);
-                return VertexIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
+                return VertexIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
                                      std::forward<V2>(key_end), vid, unique_);
             }
         } else {
-            return VertexIndexIterator(this, &txn, table_,
+            return VertexIndexIterator(this, &txn, *table_,
                                        _detail::CutKeyIfLong(std::forward<V1>(key_start)),
                                        _detail::CutKeyIfLong(std::forward<V2>(key_end)),
                                        vid, unique_);
@@ -560,7 +561,7 @@ class VertexIndex {
 #define _GET_INDEX_ITER_WITH_EMPTY_START_KEY(ft)                            \
     do {                                                                    \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();         \
-        return VertexIndexIterator(this, txn, table_, Value::ConstRef(d),   \
+        return VertexIndexIterator(this, txn, *table_, Value::ConstRef(d),   \
                                    std::forward<V2>(key_end),               \
                                    vid, unique_);                           \
     } while (0)
@@ -590,7 +591,7 @@ class VertexIndex {
                 _GET_INDEX_ITER_WITH_EMPTY_START_KEY(DOUBLE);
             case FieldType::STRING:
                 {
-                    return VertexIndexIterator(this, txn, table_, std::forward<V1>(key_start),
+                    return VertexIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
                                          _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
                                          unique_);
                     break;
@@ -599,11 +600,11 @@ class VertexIndex {
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
             default:
                 FMA_ASSERT(false);
-                return VertexIndexIterator(this, txn, table_, std::forward<V1>(key_start),
+                return VertexIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
                                      std::forward<V2>(key_end), vid, unique_);
             }
         } else {
-            return VertexIndexIterator(this, txn, table_,
+            return VertexIndexIterator(this, txn, *table_,
                                        _detail::CutKeyIfLong(std::forward<V1>(key_start)),
                                        _detail::CutKeyIfLong(std::forward<V2>(key_end)),
                                                              vid, unique_);
@@ -620,9 +621,10 @@ class VertexIndex {
 
     void Dump(KvTransaction& txn,
               const std::function<std::string(const char* p, size_t s)>& key_to_string) {
-        for (auto it = table_.GetIterator(txn); it.IsValid(); it.Next()) {
-            const Value& k = it.GetKey();
-            VertexIndexValue iv(it.GetValue());
+        auto it = table_->GetIterator(txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            const Value& k = it->GetKey();
+            VertexIndexValue iv(it->GetValue());
             std::string line = key_to_string(k.Data(), k.Size() - _detail::VID_SIZE);
             line.append(" -> ");
             if (unique_) {
@@ -637,10 +639,10 @@ class VertexIndex {
         }
     }
 
-    size_t GetNumKeys(KvTransaction& txn) { return table_.GetKeyCount(txn); }
+    size_t GetNumKeys(KvTransaction& txn) { return table_->GetKeyCount(txn); }
 
  private:
-    void Clear(KvTransaction& txn) { table_.Drop(txn); }
+    void Clear(KvTransaction& txn) { table_->Drop(txn); }
 
     void SetReady() { ready_.store(true, std::memory_order_release); }
 
@@ -667,18 +669,18 @@ class VertexIndex {
             return false;
         }
         if (unique_) {
-            it.it_.DeleteKey();
+            it.it_->DeleteKey();
             return true;
         } else {
             uint8_t ret = it.iv_.DeleteVidIfExist(vid);
             if (ret == 1) {
                 // the key does not change after deletion
-                it.it_.SetValue(it.iv_.GetBuf());
+                it.it_->SetValue(it.iv_.GetBuf());
             } else if (ret == 2) {
                 // the key changes after deletion
-                it.it_.DeleteKey();
+                it.it_->DeleteKey();
                 if (it.iv_.GetVidCount()) {
-                    bool r = it.it_.AddKeyValue(it.iv_.CreateKey(key), it.iv_.GetBuf());
+                    bool r = it.it_->AddKeyValue(it.iv_.CreateKey(key), it.iv_.GetBuf());
                     FMA_DBG_ASSERT(r);
                 }
             } else {
@@ -725,7 +727,7 @@ class VertexIndex {
         }
         Value key = _detail::CutKeyIfLong(k);
         if (unique_) {
-            return table_.AddKV(txn, key, Value::ConstRef(vid));
+            return table_->AddKV(txn, key, Value::ConstRef(vid));
         }
         VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
         if (!it.IsValid() || it.KeyOutOfRange()) {
@@ -734,7 +736,7 @@ class VertexIndex {
                 VertexIndexValue iv;
                 uint8_t r = iv.InsertVid(vid);
                 FMA_DBG_CHECK_NEQ(r, 0);
-                bool r2 = table_.AddKV(txn, iv.CreateKey(key), iv.GetBuf());
+                bool r2 = table_->AddKV(txn, iv.CreateKey(key), iv.GetBuf());
                 FMA_DBG_ASSERT(r2);
                 return true;
             }
@@ -744,22 +746,22 @@ class VertexIndex {
         if (it.iv_.TooLarge()) {
             VertexIndexValue right = it.iv_.SplitRightHalf();
             // remove the original VertexIndexValue
-            it.it_.DeleteKey();
+            it.it_->DeleteKey();
             // insert the left half VertexIndexValue
-            bool r = table_.AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
+            bool r = table_->AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
             FMA_DBG_ASSERT(r);
             // insert the right half VertexIndexValue
-            r = table_.AddKV(txn, right.CreateKey(key), right.GetBuf());
+            r = table_->AddKV(txn, right.CreateKey(key), right.GetBuf());
             FMA_DBG_ASSERT(r);
         } else {
             if (ret == 1) {
                 // the key does not change, so just update the VertexIndexValue
-                it.it_.SetValue(it.iv_.GetBuf());
+                it.it_->SetValue(it.iv_.GetBuf());
             } else if (ret == 2) {
                 // the key changes so we need to remove the original VertexIndexValue
-                it.it_.DeleteKey();
+                it.it_->DeleteKey();
                 // then insert the VertexIndexValue with an updated key
-                bool r = table_.AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
+                bool r = table_->AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
                 FMA_DBG_ASSERT(r);
             } else {
                 // vid already exists

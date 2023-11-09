@@ -21,16 +21,15 @@ VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvT
                                          const Value& key_end, VertexId vid, bool unique)
     : IteratorBase(txn),
       index_(idx),
-      it_(txn->GetTxn(), table, unique ?
-           key_start : _detail::PatchKeyWithVid(key_start, vid),
-          true),
+      it_(table.GetClosestIterator(
+          txn->GetTxn(), unique ? key_start : _detail::PatchKeyWithVid(key_start, vid))),
       key_end_(unique ? Value::MakeCopy(key_end)
                : _detail::PatchKeyWithVid(key_end, -1)),
       iv_(),
       valid_(false),
       pos_(0),
       unique_(unique) {
-    if (!it_.IsValid() || KeyOutOfRange()) {
+    if (!it_->IsValid() || KeyOutOfRange()) {
         return;
     }
     LoadContentFromIt();
@@ -41,16 +40,17 @@ VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, KvTransaction* txn, K
                                          const Value& key_end, VertexId vid, bool unique)
     : IteratorBase(nullptr),
       index_(idx),
-      it_(*txn, table, unique ?
-          key_start : _detail::PatchKeyWithVid(key_start, vid), true),
+      it_(table.GetClosestIterator(
+          *txn, unique ? key_start : _detail::PatchKeyWithVid(key_start, vid))),
       key_end_(unique ? Value::MakeCopy(key_end) : _detail::PatchKeyWithVid(key_end, -1)),
       iv_(),
       valid_(false),
       pos_(0),
       unique_(unique) {
-    if (!it_.IsValid() || KeyOutOfRange()) {
+    if (!it_->IsValid() || KeyOutOfRange()) {
         return;
     }
+
     LoadContentFromIt();
 }
 
@@ -69,7 +69,7 @@ VertexIndexIterator::VertexIndexIterator(VertexIndexIterator&& rhs)
 }
 
 void VertexIndexIterator::CloseImpl() {
-    it_.Close();
+    it_->Close();
     valid_ = false;
 }
 }  // namespace lgraph

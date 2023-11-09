@@ -48,8 +48,8 @@ class LightningGraph {
     DBConfig config_;
 
     std::unique_ptr<KvStore> store_ = nullptr;
-    KvTable meta_table_;
-    KvTable blob_table_;
+    std::shared_ptr<KvTable> meta_table_;
+    std::unique_ptr<KvTable> blob_table_;
     std::unique_ptr<graph::Graph> graph_ = nullptr;
     std::unique_ptr<IndexManager> index_manager_ = nullptr;
     std::unique_ptr<PluginManager> plugin_manager_ = nullptr;

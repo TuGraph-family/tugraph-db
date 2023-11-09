@@ -43,7 +43,7 @@ class SingleLanguagePluginManager {
     std::string language_;
     std::string graph_name_;
     std::string plugin_dir_;
-    KvTable table_;
+    std::unique_ptr<KvTable> table_;
     std::map<std::string, PluginInfoBase*> procedures_;
     std::unique_ptr<PluginManagerImplBase> impl_;
 

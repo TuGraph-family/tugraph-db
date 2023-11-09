@@ -115,7 +115,7 @@ class IndexManager {
     }
 
     LightningGraph* db_;
-    KvTable index_list_table_;
+    std::unique_ptr<KvTable> index_list_table_;
 
  public:
     DISABLE_COPY(IndexManager);
@@ -132,7 +132,7 @@ class IndexManager {
      * \param [in,out]  db If non-null, the database.
      */
     IndexManager(KvTransaction& txn, SchemaManager* v_schema_info, SchemaManager* e_schema_info,
-                 const KvTable& index_list_table, LightningGraph* db);
+                 std::unique_ptr<KvTable> index_list_table, LightningGraph* db);
 
     ~IndexManager();
 
@@ -146,7 +146,7 @@ class IndexManager {
      *
      * \return  A KvTable.
      */
-    static KvTable OpenIndexListTable(KvTransaction& txn, KvStore& store,
+    static std::unique_ptr<KvTable> OpenIndexListTable(KvTransaction& txn, KvStore& store,
                                       const std::string& table_name) {
         return store.OpenTable(txn, table_name, true, ComparatorDesc::DefaultComparator());
     }
@@ -174,11 +174,12 @@ class IndexManager {
         IndexSpec is;
         size_t v_index_len = strlen(_detail::VERTEX_INDEX);
         size_t e_index_len = strlen(_detail::EDGE_INDEX);
-        for (auto it = index_list_table_.GetIterator(txn); it.IsValid(); it.Next()) {
-            std::string index_name = it.GetKey().AsString();
+        auto it = index_list_table_->GetIterator(txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            std::string index_name = it->GetKey().AsString();
             if (index_name.size() > v_index_len &&
                 index_name.substr(index_name.size() - v_index_len) == _detail::VERTEX_INDEX) {
-                _detail::IndexEntry ent = LoadIndex(it.GetValue());
+                _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
                 is.unique = ent.is_unique;
@@ -186,7 +187,7 @@ class IndexManager {
             }
             if (index_name.size() > e_index_len &&
                 index_name.substr(index_name.size() - e_index_len) == _detail::EDGE_INDEX) {
-                _detail::IndexEntry ent = LoadIndex(it.GetValue());
+                _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
                 is.unique = ent.is_unique;

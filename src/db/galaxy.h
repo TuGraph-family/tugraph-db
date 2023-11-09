@@ -73,8 +73,8 @@ class Galaxy {
     std::unique_ptr<GraphManager> graphs_;
     mutable KillableRWLock graphs_lock_;
     TokenManager token_manager_;
-    KvTable db_info_table_;
-    KvTable ip_whitelist_table_;
+    std::unique_ptr<KvTable> db_info_table_;
+    std::unique_ptr<KvTable> ip_whitelist_table_;
     std::unordered_set<std::string> ip_whitelist_;
     mutable KillableRWLock ip_whitelist_rw_lock_;
 

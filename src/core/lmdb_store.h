@@ -26,19 +26,18 @@
 
 #include "core/data_type.h"
 #include "core/defs.h"
-#include "core/kv_store_exception.h"
-#include "core/kv_store_iterator.h"
-#include "core/kv_store_table.h"
-#include "core/kv_store_transaction.h"
-
+#include "core/lmdb_exception.h"
+#include "core/lmdb_iterator.h"
+#include "core/lmdb_table.h"
+#include "core/lmdb_transaction.h"
 
 namespace lgraph {
 
 class Wal;
 
-class KvStore {
-    friend class KvTable;
-    friend class KvTransaction;
+class LMDBKvStore final : public KvStore {
+    friend class LMDBKvTable;
+    friend class LMDBKvTransaction;
     friend class Wal;
 
     MDB_env* env_ = nullptr;
@@ -48,7 +47,7 @@ class KvStore {
     size_t db_size_;
     bool durable_;
 
-    std::queue<KvTransaction*> queue_;
+    std::queue<LMDBKvTransaction*> queue_;
     std::mutex queue_mutex_;
     std::condition_variable queue_cv_;
     std::atomic<bool> finished_;
@@ -71,8 +70,8 @@ class KvStore {
     static std::atomic<int64_t> last_op_id_;
 
  public:
-    DISABLE_COPY(KvStore);
-    DISABLE_MOVE(KvStore);
+    DISABLE_COPY(LMDBKvStore);
+    DISABLE_MOVE(LMDBKvStore);
 
     /**
      * Constructor
@@ -83,7 +82,7 @@ class KvStore {
      *                          making the store durable. Otherwise, fsync will not be called, and
      *                          you may lose some data if the OS crashes or power is lost.
      */
-    KvStore(const std::string& path,
+    LMDBKvStore(const std::string& path,
 #ifdef USE_VALGRIND
             size_t db_size = (size_t)1 << 30,
 #else
@@ -94,7 +93,7 @@ class KvStore {
             size_t wal_log_rotate_interval_ms = 60 * 1000,
             size_t wal_batch_commit_interval_ms = 10);
 
-    ~KvStore();
+    ~LMDBKvStore() override;
 
     /**
      * Creates read transaction. A read-only transaction can only read, but not write any table. Any
@@ -102,7 +101,7 @@ class KvStore {
      *
      * \return  The new read transaction.
      */
-    KvTransaction CreateReadTxn();
+    std::unique_ptr<KvTransaction> CreateReadTxn() override;
 
     /**
      * Creates write transaction.
@@ -112,7 +111,7 @@ class KvStore {
      *
      * \return  The new write transaction.
      */
-    KvTransaction CreateWriteTxn(bool optimistic = false);
+    std::unique_ptr<KvTransaction> CreateWriteTxn(bool optimistic = false) override;
 
     /**
      * Opens a table and adds it to the OpendTable list. If create_if_not_exist is true, then the
@@ -127,19 +126,19 @@ class KvStore {
      *
      * \return  A Table object.
      */
-    KvTable OpenTable(KvTransaction& txn,
+    std::unique_ptr<KvTable> OpenTable(KvTransaction& txn,
         const std::string& table_name,
         bool create_if_not_exist,
-        const ComparatorDesc& desc);
+        const ComparatorDesc& desc) override;
 
     /*
     * Just for test. Should only be used in KvStore unit tests. This call will not be recorded
     * for replayed in WAL.
     */
-    KvTable _OpenTable_(KvTransaction& txn,
+    std::unique_ptr<KvTable> _OpenTable_(KvTransaction& txn,
         const std::string& table_name,
         bool create_if_not_exist,
-        const KeySortFunc& func);
+        const KeySortFunc& func) override;
 
     /**
      * Deletes a table in the KvStore.
@@ -149,7 +148,7 @@ class KvStore {
      *
      * \return  An ErrorCode. OK, WRITE_IN_READ_TXN.
      */
-    bool DeleteTable(KvTransaction& txn, const std::string& table_name);
+    bool DeleteTable(KvTransaction& txn, const std::string& table_name) override;
 
     /**
      * Get the names of all the tables in the KvStore.
@@ -158,26 +157,26 @@ class KvStore {
      *
      * \return  A std::vector&lt;std::string&gt;
      */
-    std::vector<std::string> ListAllTables(KvTransaction& txn);
+    std::vector<std::string> ListAllTables(KvTransaction& txn) override;
 
     /**
      * Flushes this db to disk. Useful if the kv store is opened with durable=false.
      *
      * \return  An ErrorCode.
      */
-    void Flush();
+    void Flush() override;
 
-    void DropAll(KvTransaction& txn);
+    void DropAll(KvTransaction& txn) override;
 
-    void DumpStat(KvTransaction& txn, size_t& memory_size, size_t& height);
+    void DumpStat(KvTransaction& txn, size_t& memory_size, size_t& height) override;
 
-    size_t Backup(const std::string& path, bool compact = false);
+    size_t Backup(const std::string& path, bool compact = false) override;
 
-    void Snapshot(KvTransaction& txn, const std::string& path, bool compaction = false);
+    void Snapshot(KvTransaction& txn, const std::string& path, bool compaction = false) override;
 
-    void LoadSnapshot(const std::string& snapshot_path);
+    void LoadSnapshot(const std::string& snapshot_path) override;
 
-    void WarmUp(size_t* size);
+    void WarmUp(size_t* size) override;
 
     static int64_t GetLastOpIdOfAllStores() { return last_op_id_.load(std::memory_order_acquire); }
 
@@ -197,12 +196,5 @@ class KvStore {
     }
 
     Wal* GetWal() const { return wal_.get();}
-};
-
-struct KvTypes {
-    typedef KvStore Store;
-    typedef KvTransaction Transaction;
-    typedef KvTable Table;
-    typedef KvIterator Iterator;
 };
 }  // namespace lgraph

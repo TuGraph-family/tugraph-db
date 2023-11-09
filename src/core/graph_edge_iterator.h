@@ -548,21 +548,21 @@ class EdgeIteratorImpl {
             GetPeersFromEdgeValue(ev, start_from_first, start_lid, start_vid, n_edges, edge_left,
                                   vids, n_limit);
         } else {
-            KvIterator tmp(it);
+            auto tmp = it.Fork();
             if (ET == PackType::OUT_EDGE && start_from_first)
-                tmp.Next();
+                tmp->Next();
             else
-                tmp.GotoClosestKey(
+                tmp->GotoClosestKey(
                     KeyPacker::CreateEdgeKey(ET, EdgeUid(vid1, start_vid, start_lid, 0, 0)));
             bool set_pos_to_zero = start_from_first;
-            while (tmp.IsValid()) {
-                const Value& k = tmp.GetKey();
+            while (tmp->IsValid()) {
+                const Value& k = tmp->GetKey();
                 if (KeyPacker::GetFirstVid(k) != vid1 || KeyPacker::GetNodeType(k) != ET) break;
-                const EdgeValue& ev(EdgeValue(tmp.GetValue()));
+                const EdgeValue& ev(EdgeValue(tmp->GetValue()));
                 GetPeersFromEdgeValue(ev, set_pos_to_zero, start_lid, start_vid, n_edges, edge_left,
                                       vids, n_limit);
                 set_pos_to_zero = true;
-                tmp.Next();
+                tmp->Next();
             }
         }
         std::vector<VertexId> ret(vids.begin(), vids.end());
@@ -585,18 +585,18 @@ class EdgeIteratorImpl {
             return n;
         } else {
             size_t n = 0;
-            KvIterator tmp(it);
-            tmp.GotoClosestKey(KeyPacker::CreateEdgeKey(ET, EdgeUid(vid1, 0, 0, 0, 0)));
-            while (tmp.IsValid()) {
-                const Value& k = tmp.GetKey();
+            auto tmp = it.Fork();
+            tmp->GotoClosestKey(KeyPacker::CreateEdgeKey(ET, EdgeUid(vid1, 0, 0, 0, 0)));
+            while (tmp->IsValid()) {
+                const Value& k = tmp->GetKey();
                 if (KeyPacker::GetFirstVid(k) != vid1 || KeyPacker::GetNodeType(k) != ET) break;
-                const EdgeValue oev(tmp.GetValue());
+                const EdgeValue oev(tmp->GetValue());
                 n += (size_t)oev.GetEdgeCount();
                 if (n > limit) {
                     if (limit_exceeded) *limit_exceeded = true;
                     return limit;
                 }
-                tmp.Next();
+                tmp->Next();
             }
             return n;
         }
@@ -843,7 +843,7 @@ class EdgeIterator : public ::lgraph::IteratorBase {
     friend int ::TestPerfGraphNoncontinuous(bool track_incoming, bool durable);
 
  protected:
-    KvIterator it_;
+    std::unique_ptr<KvIterator> it_;
     EdgeIteratorImpl<ET> impl_;
 
     /**
@@ -865,11 +865,11 @@ class EdgeIterator : public ::lgraph::IteratorBase {
      * @param           closest         If goto closest position.
      */
     EdgeIterator(KvTransaction* txn, KvTable& table, const EdgeUid& euid, bool closest)
-        : IteratorBase(nullptr), it_(*txn, table), impl_(it_) {
+        : IteratorBase(nullptr), it_(table.GetIterator(*txn)), impl_(*it_) {
         impl_.Goto(euid, closest);
     }
 
-    KvIterator& GetIt() { return it_; }
+    KvIterator& GetIt() { return *it_; }
 
     DISABLE_COPY(EdgeIterator);
     EdgeIterator& operator=(EdgeIterator&& rhs) = delete;
@@ -881,7 +881,7 @@ class EdgeIterator : public ::lgraph::IteratorBase {
         : IteratorBase(std::move(rhs)), it_(std::move(rhs.it_)), impl_(std::move(rhs.impl_)) {
         // it_ is moved, but impl_ keeps the pointer of rhs.it_, so we
         // need to reset the pointer here
-        impl_.SetItPtr(&it_);
+        impl_.SetItPtr(it_.get());
     }
 
     /**
@@ -951,7 +951,7 @@ class EdgeIterator : public ::lgraph::IteratorBase {
     bool IsValid() const { return impl_.IsValid(); }
 
     void RefreshContentIfKvIteratorModified() override {
-        if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
+        if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
             impl_.RefreshIteratorAndContent();
         }
     }

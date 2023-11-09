@@ -105,6 +105,7 @@ add_executable(unit_test
         test_static_vector.cpp
         test_task_tracker.cpp
         test_token_manager.cpp
+        test_schema_common.cpp
         test_transaction.cpp
         test_txn_fork.cpp
         test_type_convert.cpp

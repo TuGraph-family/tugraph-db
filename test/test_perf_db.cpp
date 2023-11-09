@@ -70,10 +70,10 @@ int TestPerfDbNoncontinuous(bool durable, bool track_in) {
 
     // create lgraph, cleaning
     {
-        KvStore store("./testdb", (size_t)1 << 40, durable);
-        auto txn = store.CreateWriteTxn();
-        store.DropAll(txn);
-        txn.Commit();
+        auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 40, durable);
+        auto txn = store->CreateWriteTxn();
+        store->DropAll(*txn);
+        txn->Commit();
     }
     DBConfig config;
     config.dir = "./testdb";
