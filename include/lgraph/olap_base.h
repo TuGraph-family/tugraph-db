@@ -327,6 +327,8 @@ class ParallelVector {
 
     size_t Capacity() { return capacity_; }
 
+    bool Destroyed() { return destroyed_; }
+
     /**
      * @brief   Change ParallelVector size.
      *          Note the new size should be larger than or equal to elder size.
