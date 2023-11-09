@@ -57,7 +57,8 @@ static const std::vector<std::pair<std::string, std::string>> data_import = {
             "type" : "VERTEX",
             "primary" : "id",
             "properties" : [
-                {"name" : "id", "type":"INT32"}
+                {"name" : "id", "type":"INT32"},
+                {"name" : "value", "type" : "STRING", "optional": true}
             ]
         },
         {
@@ -307,6 +308,67 @@ TEST_F(TestOlapOnDB, OlapOnDB) {
     UT_EXPECT_EQ(unparallel_two.NumEdges(), 60);
     UT_EXPECT_EQ(unparallel_two.MappedVid(unparallel_two.OriginalVid(17)), 17);
 
+    std::string vertex_label = "node";
+    std::string edge_label = "edge";
+    OlapOnDB<Empty> filter_graph(db, txn, SNAPSHOT_PARALLEL,
+                [&vertex_label](VertexIterator& vit) {
+                return vit.GetLabel() == vertex_label;
+            }, [&edge_label](OutEdgeIterator& eit, Empty& edata) {
+                return eit.GetLabel() == edge_label;
+            });
+    UT_EXPECT_EQ(filter_graph.OutDegree(0), 5);
+    UT_EXPECT_EQ(filter_graph.InDegree(0), 0);
+    UT_EXPECT_EQ(filter_graph.OutDegree(6), 0);
+    UT_EXPECT_EQ(filter_graph.InDegree(6), 2);
+    UT_EXPECT_EQ(filter_graph.OutDegree(13), 2);
+    UT_EXPECT_EQ(filter_graph.InDegree(13), 3);
+    UT_EXPECT_EQ(filter_graph.OutDegree(20), 0);
+    UT_EXPECT_EQ(filter_graph.InDegree(20), 2);
+    UT_EXPECT_EQ(filter_graph.NumVertices(), 21);
+    UT_EXPECT_EQ(filter_graph.NumEdges(), 35);
+    txn.Commit();
+
+    // WriteToGraphDB
+    ParallelVector<size_t> parent = filter_graph.AllocVertexArray<size_t>();
+    for (int i = 0; i < parent.Size(); i++) {
+        parent[i] = i;
+    }
+    filter_graph.WriteToGraphDB(parent, "value");
+    txn = db.CreateReadTxn();
+    auto vit = txn.GetVertexIterator();
+    vit.Goto(2);
+    UT_EXPECT_EQ(vit.GetField("value").ToString(), "2");
+    vit.Goto(20);
+    UT_EXPECT_EQ(vit.GetField("value").ToString(), "20");
+
+    // WriteToFile
+    std::string file_path = "./test_write_to_db.csv";
+    filter_graph.WriteToFile(parent, file_path);
+
+    vertex_label = "id";
+    edge_label = "";
+    UT_EXPECT_THROW_MSG(
+    OlapOnDB<Empty>(db, txn, SNAPSHOT_PARALLEL,
+                [&vertex_label](VertexIterator& vit) {
+                if (vertex_label == "") return true;
+                return vit.GetLabel() == vertex_label;
+            }, [&edge_label](OutEdgeIterator& eit, Empty& edata) {
+                if (edge_label == "") return true;
+                return eit.GetLabel() == edge_label;
+            }), "The graph vertex cannot be empty");
+
+    vertex_label = "";
+    edge_label = "id";
+    UT_EXPECT_THROW_MSG(
+    OlapOnDB<Empty>(db, txn, SNAPSHOT_PARALLEL,
+                [&vertex_label](VertexIterator& vit) {
+                if (vertex_label == "") return true;
+                return vit.GetLabel() == vertex_label;
+            }, [&edge_label](OutEdgeIterator& eit, Empty& edata) {
+                if (edge_label == "") return true;
+                return eit.GetLabel() == edge_label;
+            }), "The graph edge cannot be empty");
+
     // test ConstructWithDegree()
     OlapOnDB<Empty> test_db_three(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
     UT_EXPECT_EQ(test_db_three.OutDegree(0), 5);
@@ -355,6 +417,6 @@ TEST_F(TestOlapOnDB, OlapOnDB) {
     }
     write_txn.Commit();
     std::vector<std::string> del_filename = {"test_olap_on_db.conf",
-                            "test_vertices.csv", "test_weighted.csv"};
+                            "test_vertices.csv", "test_weighted.csv", "test_write_to_db.csv"};
     ClearCsvFiles(del_filename);
 }
