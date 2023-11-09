@@ -15,6 +15,7 @@ cd $WORKSPACE
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Coverage
 make -j2
+make unit_test fma_unit_test -j2
 
 # build java client
 cd $WORKSPACE/deps/tugraph-db-client-java/
