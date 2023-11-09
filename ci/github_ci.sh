@@ -16,11 +16,16 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Coverage
 make -j2
 
-# build java
+# build java client
 cd $WORKSPACE/deps/tugraph-db-client-java/
 sh local_build.sh
 cp rpc-client-test/target/tugraph-db-java-rpc-client-test-*.jar $WORKSPACE/build/output/
 cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
+
+# build tugraph db management
+cd $WORKSPACE/deps/tugraph-db-management/
+sh local_build.sh
+cp target/tugraph-db-management-*.jar $WORKSPACE/build/output/
 
 # build cpp client test
 cd $WORKSPACE/test/test_rpc_client
