@@ -20,6 +20,10 @@
 #include "gflags/gflags.h"
 #include "brpc/channel.h"
 
+namespace brpc {
+DECLARE_bool(usercode_in_pthread);
+}
+
 namespace lgraph {
 namespace db_management = lgraph::management;
 class DBManagementClient {

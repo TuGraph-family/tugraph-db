@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     auto ret = RUN_ALL_TESTS();
 #ifdef __SANITIZE_ADDRESS__
     // For address sanitizer: wait gc thread to release memory object
-    fma_common::SleepS(2);
+    fma_common::SleepS(20);
 #endif
     return ret;
 }

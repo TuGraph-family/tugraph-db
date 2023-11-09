@@ -4,8 +4,8 @@
 # Larger runner will support soon(current in Beta).
 
 set -ex
-WITH_PROCEDURE=${1:-"OFF"}
-ASAN=$2
+ASAN=$1
+WITH_PROCEDURE=${2:-"OFF"}
 
 # set $WORKSPACE to root dir
 pwd

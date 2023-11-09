@@ -4,7 +4,6 @@
 
 set -ex
 BUILD_OUTPUT_TAR_URL=$1
-ASAN=$2
 
 # set $WORKSPACE to root dir
 pwd

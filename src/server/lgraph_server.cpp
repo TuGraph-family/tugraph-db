@@ -273,13 +273,17 @@ int LGraphServer::Start() {
         }
         GENERAL_LOG(INFO) << "Server started.";
 
-        // start db management service
-        try {
-            DBManagementClient::GetInstance().InitChannel("localhost:6091");
-        } catch(std::exception& e) {
-            GENERAL_LOG(WARNING) << "Failed to init db management channel";
-        }
-        heartbeat_detect = std::thread([](){DBManagementClient::DetectHeartbeat();});
+#ifndef __SANITIZE_ADDRESS__
+        heartbeat_detect = std::thread([](){
+            // start db management service
+            try {
+                DBManagementClient::GetInstance().InitChannel("localhost:6091");
+            } catch(std::exception& e) {
+                GENERAL_LOG(WARNING) << "Failed to init db management channel";
+            }
+            DBManagementClient::DetectHeartbeat();
+        });
+#endif
     } catch (std::exception &e) {
         _kill_signal_.Notify();
         GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();

@@ -66,6 +66,7 @@ db_management::JobManagementService_Stub& DBManagementClient::GetJobStub() {
 }
 
 DBManagementClient& DBManagementClient::GetInstance() {
+    brpc::FLAGS_usercode_in_pthread = true;
     static DBManagementClient instance;
     return instance;
 }
@@ -110,7 +111,6 @@ int DBManagementClient::CreateJob(std::string host, std::string port, std::int64
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_create_job_request(new db_management::CreateJobRequest());
     request.mutable_create_job_request()->set_start_time(start_time);
     request.mutable_create_job_request()->set_period(period);
     request.mutable_create_job_request()->set_procedure_name(name);
@@ -141,7 +141,6 @@ void DBManagementClient::UpdateJob(std::string host, std::string port, int job_i
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_update_job_status_request(new db_management::UpdateJobStatusRequest());
     request.mutable_update_job_status_request()->set_job_id(job_id);
     request.mutable_update_job_status_request()->set_status(status);
     request.mutable_update_job_status_request()->set_runtime(runtime);
@@ -167,7 +166,7 @@ std::vector<db_management::Job> DBManagementClient::ReadJob(std::string host,
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_get_job_status_request(new db_management::GetJobStatusRequest());
+    request.mutable_get_job_status_request();
 
     stub.handleRequest(&cntl, &request, &response, NULL);
     if (!cntl.Failed()) {
@@ -195,7 +194,6 @@ db_management::Job DBManagementClient::ReadJob(std::string host,
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_get_job_status_request(new db_management::GetJobStatusRequest());
     request.mutable_get_job_status_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
@@ -222,8 +220,6 @@ db_management::AlgoResult DBManagementClient::ReadJobResult(std::string host,
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_get_algo_result_request(
-            new db_management::GetAlgoResultRequest());
     request.mutable_get_algo_result_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
@@ -246,7 +242,6 @@ void DBManagementClient::DeleteJob(std::string host, std::string port, int job_i
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_delete_job_request(new db_management::DeleteJobRequest());
     request.mutable_delete_job_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
