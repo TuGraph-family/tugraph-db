@@ -66,6 +66,10 @@
 #define PYTHON_LIB_VERSION "unknown"
 #endif
 
+#ifndef LGRAPH_PYTHON_PLUGIN_LIFETIME_S
+#define LGRAPH_PYTHON_PLUGIN_LIFETIME_S 12 * 60 * 60
+#endif
+
 namespace lgraph {
 /** internal tables in the db
  */
