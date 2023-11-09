@@ -16,7 +16,7 @@
 // under the License.
 
 syntax="proto2";
-package com.antgroup.tugraph;
+package lgraph.management;
 
 option cc_generic_services = true;
 option java_outer_classname = "TuGraphDBManagement";
@@ -39,7 +39,7 @@ message Job {
       required int64 create_time = 10;
 }
 
-message JobResult {
+message AlgoResult {
       required int32 job_id = 1;
       required string result = 2;
 }
@@ -58,32 +58,32 @@ message CreateJobResponse {
       required ResponseCode response_code = 2;
 }
 
-message ReadJobRequest {
+message GetJobStatusRequest {
       optional int32 job_id = 1;
 }
 
-message ReadJobResponse {
+message GetJobStatusResponse {
       repeated Job job = 2;
       required ResponseCode response_code = 1;
 }
 
-message ReadJobResultRequest {
+message GetAlgoResultRequest {
       required int32 job_id = 1;
 }
 
-message ReadJobResultResponse {
-      required JobResult job_result = 1;
+message GetAlgoResultResponse {
+      required AlgoResult algo_result = 1;
       required ResponseCode response_code = 2;
 }
 
-message UpdateJobRequest {
+message UpdateJobStatusRequest {
       required int32 job_id = 1;
       required string status = 2;
       optional int64 runtime = 3;
       optional string result = 4;
 }
 
-message UpdateJobResponse {
+message UpdateJobStatusResponse {
       required ResponseCode response_code = 1;
 }
 
@@ -100,9 +100,9 @@ message JobManagementRequest {
       required string db_port = 2;
       oneof Req {
             CreateJobRequest create_job_request = 3;
-            ReadJobRequest read_job_request = 4;
-            ReadJobResultRequest read_job_result_request = 5;
-            UpdateJobRequest update_job_request = 6;
+            GetJobStatusRequest get_job_status_request = 4;
+            GetAlgoResultRequest get_algo_result_request = 5;
+            UpdateJobStatusRequest update_job_status_request = 6;
             DeleteJobRequest delete_job_request = 7;
       };
 };
@@ -111,9 +111,9 @@ message JobManagementResponse {
       required ResponseCode response_code = 1;
       oneof Resp {
             CreateJobResponse create_job_response = 2;
-            ReadJobResponse read_job_response = 3;
-            ReadJobResultResponse read_job_result_response = 4;
-            UpdateJobResponse update_job_response = 5;
+            GetJobStatusResponse get_job_status_response = 3;
+            GetAlgoResultResponse get_algo_result_response = 4;
+            UpdateJobStatusResponse update_job_status_response = 5;
             DeleteJobResponse delete_job_response = 6;
       };
 };

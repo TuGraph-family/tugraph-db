@@ -21,7 +21,7 @@
 #include "brpc/channel.h"
 
 namespace lgraph {
-namespace db_management = com::antgroup::tugraph;
+namespace db_management = lgraph::management;
 class DBManagementClient {
   // TODO(qsp): get host and port from license
   // TODO(qsp): change name of ReadJobResult
@@ -29,12 +29,14 @@ class DBManagementClient {
  private:
   bool heartbeat_ = false;
   int heartbeat_count_ = 0;
-  static const int detect_freq_ = 5;
+  static const int detect_freq_ = 3;
   brpc::Channel channel_;
   db_management::JobManagementService_Stub job_stub_;
   db_management::HeartbeatService_Stub heartbeat_stub_;
 
  public:
+  static bool exit_flag;
+
   DBManagementClient();
 
   /**
@@ -171,7 +173,7 @@ class DBManagementClient {
     *
     * @returns   job result.
     */
-  db_management::JobResult ReadJobResult(std::string host, std::string port, int job_id);
+  db_management::AlgoResult ReadJobResult(std::string host, std::string port, int job_id);
 
   /**
     * @brief   delete a job record with given job_id in db management.

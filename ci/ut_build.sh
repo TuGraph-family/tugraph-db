@@ -15,6 +15,12 @@ echo $BUILD_OUTPUT_TAR_URL
 wget -q -t 3 $BUILD_OUTPUT_TAR_URL -O output.tar.gz
 tar -zxf output.tar.gz
 rm -rf output.tar.gz
+
+# build tugraph db management
+cd ${ACB_BUILD_DIR}/code-repo/deps/tugraph-db-management/
+sh local_build.sh
+cp target/tugraph-db-management-*.jar ${ACB_BUILD_DIR}/code-repo/build/output/
+
 # build unit_test
 cd ${ACB_BUILD_DIR}/code-repo/build
 make unit_test fma_unit_test -j6

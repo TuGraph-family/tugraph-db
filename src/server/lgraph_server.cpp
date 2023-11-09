@@ -259,17 +259,6 @@ int LGraphServer::Start() {
             }
             GENERAL_LOG(INFO) << "Listening for RPC on port " << config_->rpc_port;
         }
-
-//        std::thread heartbeat_detect([](){
-//            // start db management service
-//            try {
-//                DBManagementClient::GetInstance().InitChannel("localhost:6091");
-//            } catch(std::exception& e) {
-//                GENERAL_LOG(ERROR) << "Failed to init db management channel";
-//            }
-//            DBManagementClient::DetectHeartbeat();
-//        });
-//        heartbeat_detect.detach();
 #endif
         state_machine_->Start();
         if (config_->unlimited_token == 1) {
@@ -283,6 +272,14 @@ int LGraphServer::Start() {
             http_service_->Start(config_.get());
         }
         GENERAL_LOG(INFO) << "Server started.";
+
+        // start db management service
+        try {
+            DBManagementClient::GetInstance().InitChannel("localhost:6091");
+        } catch(std::exception& e) {
+            GENERAL_LOG(WARNING) << "Failed to init db management channel";
+        }
+        heartbeat_detect = std::thread([](){DBManagementClient::DetectHeartbeat();});
     } catch (std::exception &e) {
         _kill_signal_.Notify();
         GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
@@ -309,6 +306,9 @@ int LGraphServer::Stop(bool force_exit) {
     // otherwise, try to stop the services, exit forcefully if necessary
     try {
         GENERAL_LOG(INFO) << "Stopping TuGraph...";
+        DBManagementClient::exit_flag = true;
+        if (heartbeat_detect.joinable())
+            heartbeat_detect.join();
         // the kaishaku watches the server, if exit flag is set and the server cannot be shutdown
         // normally after three seconds, it kills the process
         std::thread kaishaku;
