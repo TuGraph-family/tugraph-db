@@ -114,6 +114,7 @@ class TestHA : public TuGraphTest {
             cmd = FMA_FMT("rm -rf {}", dir);
             rt = system(cmd.c_str());
             UT_EXPECT_EQ(rt, 0);
+            fma_common::SleepS(10);
         }
         int rt = system("rm -rf add_vertex_v.so");
         UT_EXPECT_EQ(rt, 0);
@@ -256,6 +257,7 @@ TEST_F(TestHA, HAConsistency) {
     UT_EXPECT_EQ(rt, 0);
     fma_common::SleepS(20);
     if (thread.joinable()) thread.join();
+    fma_common::SleepS(20);
     lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
     fma_common::SleepS(30);
     std::string result;
