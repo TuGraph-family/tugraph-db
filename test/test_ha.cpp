@@ -114,8 +114,8 @@ class TestHA : public TuGraphTest {
             cmd = FMA_FMT("rm -rf {}", dir);
             rt = system(cmd.c_str());
             UT_EXPECT_EQ(rt, 0);
-            fma_common::SleepS(10);
         }
+        fma_common::SleepS(10);
         int rt = system("rm -rf add_vertex_v.so");
         UT_EXPECT_EQ(rt, 0);
     }
