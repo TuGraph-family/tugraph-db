@@ -30,11 +30,11 @@ mkdir -p testresult/gtest
 
 # unittest
 cd $MY_WORKSPACE/build/output
-OMP_NUM_THREADS=8 ./fma_unit_test -t all
+OMP_NUM_THREADS=4 ./fma_unit_test -t all
 if [[ "$ASAN" == "asan" ]]; then
     export LSAN_OPTIONS=suppressions=$MY_WORKSPACE/test/asan.suppress
 fi
-OMP_NUM_THREADS=8 ./unit_test --gtest_output=xml:$MY_WORKSPACE/testresult/gtest/
+OMP_NUM_THREADS=4 ./unit_test --gtest_output=xml:$MY_WORKSPACE/testresult/gtest/
 rm -rf testdb* .import_tmp
 
 if [[ "$ASAN" == "asan" ]]; then
