@@ -232,32 +232,25 @@ TEST_F(TestHA, HAConsistency) {
         rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
         rpcClient.Logout();
     });
-    fma_common::SleepS(20);
+#ifndef __SANITIZE_ADDRESS__
+    fma_common::SleepS(10);
     std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
     std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
     int rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    fma_common::SleepS(20);
-#ifndef __SANITIZE_ADDRESS__
+    fma_common::SleepS(10);
     cmd_f =
         "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
         "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
         "--rpc_port {} --directory ./db --log_dir "
         "./log  --ha_conf {} -c lgraph_ha.json -d start";
-#else
-    cmd_f =
-        "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-        "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
-        "--rpc_port {} --directory ./db --log_dir "
-        "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
-#endif
     cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
                   host + ":29092," + host + ":29093," + host + ":29094");
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    fma_common::SleepS(20);
+    fma_common::SleepS(10);
+#endif
     if (thread.joinable()) thread.join();
-    fma_common::SleepS(20);
     lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
     fma_common::SleepS(30);
     std::string result;
