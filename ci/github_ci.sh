@@ -32,11 +32,11 @@ cp target/tugraph-db-management-*.jar $WORKSPACE/build/output/
 # unittest
 mkdir -p $WORKSPACE/testresult/gtest/
 cd $WORKSPACE/build/output
-OMP_NUM_THREADS=4 ./fma_unit_test -t all
+OMP_NUM_THREADS=2 ./fma_unit_test -t all
 if [[ "$ASAN" == "asan" ]]; then
     export LSAN_OPTIONS=suppressions=$WORKSPACE/test/asan.suppress
 fi
-OMP_NUM_THREADS=4 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
+OMP_NUM_THREADS=2 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
 rm -rf testdb* .import_tmp
 if [[ "$ASAN" == "asan" ]]; then
   exit 0
