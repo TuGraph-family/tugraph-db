@@ -311,6 +311,7 @@ int LGraphServer::Stop(bool force_exit) {
     try {
         GENERAL_LOG(INFO) << "Stopping TuGraph...";
         DBManagementClient::exit_flag = true;
+        DBManagementClient::hb_cond_.notify_all();
         if (heartbeat_detect.joinable())
             heartbeat_detect.join();
         // the kaishaku watches the server, if exit flag is set and the server cannot be shutdown

@@ -17,6 +17,8 @@
 namespace lgraph {
 
 bool DBManagementClient::exit_flag = false;
+std::mutex DBManagementClient::hb_mutex_;
+std::condition_variable DBManagementClient::hb_cond_;
 
 DBManagementClient::DBManagementClient()
     : job_stub_(db_management::JobManagementService_Stub(&channel_)),
@@ -72,9 +74,12 @@ DBManagementClient& DBManagementClient::GetInstance() {
 }
 
 void DBManagementClient::DetectHeartbeat() {
+    std::unique_lock<std::mutex> l(hb_mutex_);
     db_management::HeartbeatService_Stub& stub =
         DBManagementClient::GetInstance().GetHeartbeatStub();
     while (!exit_flag) {
+        hb_cond_.wait_for(l, std::chrono::seconds(detect_freq_));
+        if (exit_flag) return;
         db_management::HeartbeatRequest request;
         db_management::HeartbeatResponse response;
         brpc::Controller cntl;
@@ -94,8 +99,6 @@ void DBManagementClient::DetectHeartbeat() {
             DBManagementClient::GetInstance().SetHeartbeat(false);
             DBManagementClient::GetInstance().SetHeartbeatCount(0);
         }
-
-        fma_common::SleepS(detect_freq_);
     }
 }
 
