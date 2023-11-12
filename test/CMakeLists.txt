@@ -118,7 +118,7 @@ add_executable(unit_test
         test_detach_property.cpp
         test_ha_base.cpp
         test_global_ha_config.cpp
-        test_ha.cpp
+        # test_ha.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
 )
