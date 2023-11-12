@@ -233,12 +233,12 @@ TEST_F(TestHA, HAConsistency) {
         rpcClient.Logout();
     });
 #ifndef __SANITIZE_ADDRESS__
-    fma_common::SleepS(10);
+    fma_common::SleepS(5);
     std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
     std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
     int rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    fma_common::SleepS(10);
+    fma_common::SleepS(5);
     cmd_f =
         "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
         "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
@@ -252,7 +252,7 @@ TEST_F(TestHA, HAConsistency) {
 #endif
     if (thread.joinable()) thread.join();
     lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
-    fma_common::SleepS(30);
+    fma_common::SleepS(50);
     std::string result;
     rpcClient.CallCypher(result, "MATCH (n) RETURN COUNT(n)", "default", true, 0, host + ":29094");
     nlohmann::json res = nlohmann::json::parse(result);
