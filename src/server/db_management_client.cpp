@@ -78,7 +78,7 @@ void DBManagementClient::DetectHeartbeat() {
     db_management::HeartbeatService_Stub& stub =
         DBManagementClient::GetInstance().GetHeartbeatStub();
     while (!exit_flag) {
-        hb_cond_.wait_for(l, std::chrono::seconds(detect_freq_));
+        hb_cond_.wait_for(l, std::chrono::seconds(3));
         if (exit_flag) return;
         db_management::HeartbeatRequest request;
         db_management::HeartbeatResponse response;
