@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <condition_variable>
 #include "tools/lgraph_log.h"
 #include "fma-common/utils.h"
 #include "protobuf/tugraph_db_management.pb.h"
@@ -40,6 +41,8 @@ class DBManagementClient {
 
  public:
   static bool exit_flag;
+  static std::mutex hb_mutex_;
+  static std::condition_variable hb_cond_;
 
   DBManagementClient();
 
