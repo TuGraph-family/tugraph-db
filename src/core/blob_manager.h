@@ -14,59 +14,63 @@
 
 #pragma once
 
+#include <gtest/gtest_prod.h>
 #include <atomic>
 #include "core/kv_store.h"
+class TestBlobManager_BlobManager_Test;
 
 namespace lgraph {
 class BlobManager {
-    KvTable table_;
+    FRIEND_TEST(::TestBlobManager, BlobManager);
+    std::unique_ptr<KvTable> table_;
 
  public:
     typedef int64_t BlobKey;
 
-    static KvTable OpenTable(KvTransaction& txn, KvStore& store, const std::string& name) {
+    static std::unique_ptr<KvTable> OpenTable(
+        KvTransaction& txn, KvStore& store, const std::string& name) {
         ComparatorDesc desc;
         desc.comp_type = ComparatorDesc::SINGLE_TYPE;
         desc.data_type = FieldType::INT64;
         return store.OpenTable(txn, name, true, desc);
     }
 
-    BlobManager(KvTransaction& txn, const KvTable& t) : table_(t) {}
+    BlobManager(KvTransaction& txn, std::unique_ptr<KvTable> t) : table_(std::move(t)) {}
 
     // add a new blob and return its key
     BlobKey Add(KvTransaction& txn, const Value& v) {
         BlobKey key = GetNextBlobKey(txn);
-        table_.AppendKv(txn, Value::ConstRef(key), v);
+        table_->AppendKv(txn, Value::ConstRef(key), v);
         return key;
     }
 
     // get a blob
     Value Get(KvTransaction& txn, const BlobKey& key) {
-        auto it = table_.GetIterator(txn, Value::ConstRef(key));
-        FMA_DBG_CHECK(it.IsValid());
-        return it.GetValue();
+        auto it = table_->GetIterator(txn, Value::ConstRef(key));
+        FMA_DBG_CHECK(it->IsValid());
+        return it->GetValue();
     }
 
     // replace existing blob
     void Replace(KvTransaction& txn, const BlobKey& key, const Value& v) {
-        auto it = table_.GetIterator(txn, Value::ConstRef(key));
-        FMA_DBG_CHECK(it.IsValid());
-        return it.SetValue(v);
+        auto it = table_->GetIterator(txn, Value::ConstRef(key));
+        FMA_DBG_CHECK(it->IsValid());
+        return it->SetValue(v);
     }
 
     // delete blob
     void Delete(KvTransaction& txn, const BlobKey& key) {
-        auto it = table_.GetIterator(txn, Value::ConstRef(key));
-        FMA_DBG_CHECK(it.IsValid());
-        it.DeleteKey();
+        auto it = table_->GetIterator(txn, Value::ConstRef(key));
+        FMA_DBG_CHECK(it->IsValid());
+        it->DeleteKey();
     }
 
     BlobKey GetNextBlobKey(KvTransaction& txn) {
-        auto it = table_.GetIterator(txn);
-        it.GotoLastKey();
+        auto it = table_->GetIterator(txn);
+        it->GotoLastKey();
         BlobKey key = 0;
-        if (it.IsValid()) {
-            key = it.GetKey().AsType<BlobKey>() + 1;
+        if (it->IsValid()) {
+            key = it->GetKey().AsType<BlobKey>() + 1;
         }
         return key;
     }
@@ -78,7 +82,7 @@ class BlobManager {
         for (auto& kv : blobs) {
             FMA_DBG_ASSERT(kv.first > last_key);
             last_key = kv.first;
-            table_.AppendKv(txn, Value::ConstRef(kv.first), kv.second);
+            table_->AppendKv(txn, Value::ConstRef(kv.first), kv.second);
         }
     }
 

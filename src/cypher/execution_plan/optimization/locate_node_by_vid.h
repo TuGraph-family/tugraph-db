@@ -64,7 +64,7 @@ class LocateNodeByVid : public OptPass {
             auto op_node_by_id_seek = new NodeByIdSeek(target_vids, node, symtab);
             op_node_by_id_seek->parent = op_post;
             op_post->RemoveChild(op_filter);
-            delete op_filter;
+            OpBase::FreeStream(op_filter);
             op_filter = nullptr;
             op_post->AddChild(op_node_by_id_seek);
         }

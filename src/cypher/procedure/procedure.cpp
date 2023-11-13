@@ -68,6 +68,15 @@ cypher::VEC_STR ProcedureTitles(const std::string &procedure_name,
     return titles;
 }
 
+static bool ParseIsVertex(const parser::Expression &arg) {
+    if (arg.type == parser::Expression::STRING) {
+        if (fma_common::StringEqual(arg.String(), "vertex", false)) return true;
+        if (fma_common::StringEqual(arg.String(), "edge", false)) return false;
+    }
+    throw lgraph::InputError("Wrong argument given for label type: must be 'vertex' or 'edge'.");
+    return false;
+}
+
 void BuiltinProcedure::DbSubgraph(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 1, "This function takes 1 argrument. e.g. db.DbSubGraph(vids)");
@@ -152,12 +161,48 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
                                            "given. Usage: db.indexes()",
                                            args.size()))
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    auto indexes = ctx->txn_->GetTxn()->ListVertexIndexes();
-    for (auto &i : indexes) {
+    auto vertex_indexes = ctx->txn_->GetTxn()->ListVertexIndexes();
+    for (auto &i : vertex_indexes) {
         Record r;
         r.AddConstant(lgraph::FieldData(i.label));
         r.AddConstant(lgraph::FieldData(i.field));
-        r.AddConstant(lgraph::FieldData(i.unique));
+        r.AddConstant(lgraph::FieldData("vertex"));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::IndexType::GlobalUniqueIndex:
+            unique = true;
+            break;
+        case lgraph::IndexType::PairUniqueIndex:
+            pair_unique = true;
+            break;
+        case lgraph::IndexType::NonuniqueIndex:
+            // just to pass the compilation
+            break;
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
+        records->emplace_back(r.Snapshot());
+    }
+    auto edge_indexes = ctx->txn_->GetTxn()->ListEdgeIndexes();
+    for (auto &i : edge_indexes) {
+        Record r;
+        r.AddConstant(lgraph::FieldData(i.label));
+        r.AddConstant(lgraph::FieldData(i.field));
+        r.AddConstant(lgraph::FieldData("edge"));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::IndexType::GlobalUniqueIndex:
+            unique = true;
+            break;
+        case lgraph::IndexType::PairUniqueIndex:
+            pair_unique = true;
+            break;
+        case lgraph::IndexType::NonuniqueIndex:
+            // just to pass the compilation
+            break;
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
         records->emplace_back(r.Snapshot());
     }
 }
@@ -165,22 +210,42 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
 void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
                                           const VEC_EXPR &args, const VEC_STR &yield_items,
                                           std::vector<cypher::Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 1, FMA_FMT("Function requires 1 arguments, but {} are "
-                                               "given. Usage: db.listLabelIndexes(label_name)",
+    CYPHER_ARG_CHECK(args.size() == 2, FMA_FMT("Function requires 2 arguments, but {} are "
+                                      "given. Usage: db.listLabelIndexes(label_name, label_type)",
                                                args.size()))
 
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      FMA_FMT("{} has to be a string ", args[0].String()))
-
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
+                     FMA_FMT("{} has to be a string ", args[0].String()))
     auto label = args[0].String();
+    bool is_vertex = ParseIsVertex(args[1]);
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    auto indexes = ctx->txn_->GetTxn()->ListVertexIndexByLabel(label);
+    std::vector<lgraph::IndexSpec> indexes;
+    if (is_vertex) {
+        indexes = ctx->txn_->GetTxn()->ListVertexIndexByLabel(label);
+    } else {
+        indexes = ctx->txn_->GetTxn()->ListEdgeIndexByLabel(label);
+    }
     for (auto &i : indexes) {
         if (i.label != label) continue;
         Record r;
         r.AddConstant(lgraph::FieldData(i.label));
         r.AddConstant(lgraph::FieldData(i.field));
-        r.AddConstant(lgraph::FieldData(i.unique));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::IndexType::GlobalUniqueIndex:
+            unique = true;
+            break;
+        case lgraph::IndexType::PairUniqueIndex:
+            pair_unique = true;
+            break;
+        case lgraph::IndexType::NonuniqueIndex:
+            // just to pass the compilation
+            break;
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
         records->emplace_back(r.Snapshot());
     }
 }
@@ -311,15 +376,6 @@ static ::std::vector<::lgraph::FieldSpec> ParseFieldSpecs(const VEC_EXPR &args, 
         ret.emplace_back(list[0].String(), ft, list[2].Bool());
     }
     return ret;
-}
-
-static bool ParseIsVertex(const parser::Expression &arg) {
-    if (arg.type == parser::Expression::STRING) {
-        if (fma_common::StringEqual(arg.String(), "vertex", false)) return true;
-        if (fma_common::StringEqual(arg.String(), "edge", false)) return false;
-    }
-    throw lgraph::InputError("Wrong argument given for label type: must be 'vertex' or 'edge'.");
-    return false;
 }
 
 static std::vector<std::string> ParseStringList(const parser::Expression &arg,
@@ -578,7 +634,7 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
                                          const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_ARG_CHECK(
         args.size() % SPEC_MEMBER_SIZE == 2,
-        "e.g. db.createEdgeLabel(label_name, extra, field_name, field_type, is_unique)")
+        "e.g. db.createEdgeLabel(label_name, extra, field_name, field_type, is_optional)")
     std::string label;
     std::vector<lgraph::FieldSpec> fds;
     std::vector<std::pair<std::string, std::string>> edge_constraints;
@@ -601,18 +657,20 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
 void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                         const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 3,
-                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, is_unique)")
+                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, unique)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string")
-    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "is_unique type should be boolean")
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "unique type should be boolean")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     auto label = args[0].String();
     auto field = args[1].String();
     auto unique = args[2].Bool();
+    lgraph::IndexType type = unique ? lgraph::IndexType::GlobalUniqueIndex
+                                    : lgraph::IndexType::NonuniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    bool success = ac_db.AddVertexIndex(label, field, unique);
+    bool success = ac_db.AddVertexIndex(label, field, type);
     if (!success) {
         throw lgraph::IndexExistException(label, field);
     }
@@ -621,20 +679,33 @@ void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, co
 void BuiltinProcedure::DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 4,
-                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, is_unique)")
+                     "need 3 parameters, e.g. "
+                     "db.addEdgeIndex(label_name, field_name, unique, pair_unique)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string")
-    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "is_unique type should be boolean")
-    CYPHER_ARG_CHECK(args[3].type == parser::Expression::BOOL, "is_global type should be boolean")
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "unique type should be boolean")
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::BOOL, "pair_unique type should be boolean")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     auto label = args[0].String();
     auto field = args[1].String();
     auto unique = args[2].Bool();
-    auto global = args[3].Bool();
+    auto pair_unique = args[3].Bool();
+    if (unique && pair_unique) {
+        throw lgraph::InputError(
+            "pair_unique and unique configuration cannot occur simultaneously)");
+    }
+    lgraph::IndexType type;
+    if (unique) {
+         type = lgraph::IndexType::GlobalUniqueIndex;
+    } else if (pair_unique) {
+         type = lgraph::IndexType::PairUniqueIndex;
+    } else {
+         type = lgraph::IndexType::NonuniqueIndex;
+    }
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    bool success = ac_db.AddEdgeIndex(label, field, unique, global);
+    bool success = ac_db.AddEdgeIndex(label, field, type);
     if (!success) {
         throw lgraph::IndexExistException(label, field);
     }

@@ -13,7 +13,7 @@
  */
 
 #if (!LGRAPH_USE_MOCK_KV)
-#include "core/kv_store_iterator.h"
+#include "core/lmdb_iterator.h"
 #include "core/wal.h"
 
 namespace lgraph {
@@ -32,7 +32,7 @@ static const int OP_DELETE = -1;
 static const int OP_GET_FOR_UPDATE = 0;
 static const int OP_PUT = 1;
 
-int KvIterator::Compare() {
+int LMDBKvIterator::Compare() {
     if (main_status_ != delta_status_) return main_status_ - delta_status_;
     if (main_status_ != 0) return main_status_;
     MDB_val delta_key;
@@ -41,7 +41,7 @@ int KvIterator::Compare() {
     return table_->compare_key_(&key_, &delta_key);
 }
 
-void KvIterator::MoveForwardMain() {
+void LMDBKvIterator::MoveForwardMain() {
     int ec;
     if (main_status_ == ST_MAXIMUM) return;
     if (main_status_ == ST_MINIMUM) {
@@ -64,7 +64,7 @@ void KvIterator::MoveForwardMain() {
         THROW_ERR(ec);
 }
 
-void KvIterator::MoveForwardDelta() {
+void LMDBKvIterator::MoveForwardDelta() {
     if (delta_status_ == ST_MAXIMUM) return;
     if (delta_status_ == ST_MINIMUM) {
         iter_ = delta_->write_set_.begin();
@@ -80,7 +80,7 @@ void KvIterator::MoveForwardDelta() {
     delta_status_ = ST_MAXIMUM;
 }
 
-void KvIterator::MoveBackwardMain() {
+void LMDBKvIterator::MoveBackwardMain() {
     int ec;
     if (main_status_ == ST_MINIMUM) return;
     if (main_status_ == ST_MAXIMUM) {
@@ -103,7 +103,7 @@ void KvIterator::MoveBackwardMain() {
         THROW_ERR(ec);
 }
 
-void KvIterator::MoveBackwardDelta() {
+void LMDBKvIterator::MoveBackwardDelta() {
     if (delta_status_ == ST_MINIMUM) return;
     if (delta_status_ == ST_MAXIMUM) {
         if (!delta_->write_set_.empty()) {
@@ -121,7 +121,7 @@ void KvIterator::MoveBackwardDelta() {
     delta_status_ = ST_MINIMUM;
 }
 
-void KvIterator::Fix() {
+void LMDBKvIterator::Fix() {
     if (current_mode_ == DIR_FORWARD) {
         while (main_status_ == ST_NORMAL && delta_status_ == ST_NORMAL) {
             int cmp_res = Compare();
@@ -160,9 +160,9 @@ void KvIterator::Fix() {
     current_cursor_ = (main_status_ == 0) ? IT_MAIN : IT_DELTA;
 }
 
-KvIterator::~KvIterator() { Close(); }
+LMDBKvIterator::~LMDBKvIterator() { LMDBKvIterator::Close(); }
 
-void KvIterator::Close() {
+void LMDBKvIterator::Close() {
     if (cursor_) {
         FMA_DBG_ASSERT(txn_->IsValid());
         mdb_cursor_close(cursor_);
@@ -171,7 +171,8 @@ void KvIterator::Close() {
     }
 }
 
-KvIterator::KvIterator(KvTransaction& txn, KvTable& table, const Value& key, bool closest) {
+LMDBKvIterator::LMDBKvIterator(LMDBKvTransaction& txn, LMDBKvTable& table,
+                               const Value& key, bool closest) {
     ThrowIfTaskKilled();
     txn_ = &txn;
     table_ = &table;
@@ -180,16 +181,16 @@ KvIterator::KvIterator(KvTransaction& txn, KvTable& table, const Value& key, boo
         delta_ = &txn.GetDelta(table);
     }
     if (key.Empty()) {
-        GotoFirstKey();
+        LMDBKvIterator::GotoFirstKey();
     } else {
         if (closest)
-            GotoClosestKey(key);
+            LMDBKvIterator::GotoClosestKey(key);
         else
-            GotoKey(key);
+            LMDBKvIterator::GotoKey(key);
     }
 }
 
-KvIterator::KvIterator(KvTransaction& txn, KvTable& table) {
+LMDBKvIterator::LMDBKvIterator(LMDBKvTransaction& txn, LMDBKvTable& table) {
     ThrowIfTaskKilled();
     txn_ = &txn;
     table_ = &table;
@@ -205,7 +206,7 @@ KvIterator::KvIterator(KvTransaction& txn, KvTable& table) {
     valid_ = false;
 }
 
-KvIterator::KvIterator(const KvIterator& rhs)
+LMDBKvIterator::LMDBKvIterator(const LMDBKvIterator& rhs)
     : txn_(rhs.txn_),
       table_(rhs.table_),
       cursor_(nullptr),
@@ -225,7 +226,7 @@ KvIterator::KvIterator(const KvIterator& rhs)
     }
 }
 
-KvIterator::KvIterator(KvIterator&& rhs) {
+LMDBKvIterator::LMDBKvIterator(LMDBKvIterator&& rhs) noexcept {
     cursor_ = std::move(rhs.cursor_);
     rhs.cursor_ = nullptr;
     txn_ = std::move(rhs.txn_);
@@ -242,7 +243,7 @@ KvIterator::KvIterator(KvIterator&& rhs) {
     current_cursor_ = std::move(rhs.current_cursor_);
 }
 
-KvIterator& KvIterator::operator=(KvIterator&& rhs) {
+LMDBKvIterator& LMDBKvIterator::operator=(LMDBKvIterator&& rhs) noexcept {
     if (this == &rhs) return *this;
     if (cursor_) {
         mdb_cursor_close(cursor_);
@@ -268,13 +269,17 @@ KvIterator& KvIterator::operator=(KvIterator&& rhs) {
     return *this;
 }
 
-bool KvIterator::UnderlyingPointerModified() {
+std::unique_ptr<KvIterator> LMDBKvIterator::Fork() {
+    return std::make_unique<LMDBKvIterator>(*this);
+}
+
+bool LMDBKvIterator::UnderlyingPointerModified() {
     if (txn_->read_only_) return false;
     if (txn_->optimistic_) return true;
     return valid_ && (mdb_cursor_modified(cursor_) == 1);
 }
 
-bool KvIterator::RefreshAfterModify() {
+bool LMDBKvIterator::RefreshAfterModify() {
     if (txn_->read_only_) return false;
     if (txn_->optimistic_) return true;
     if (!valid_ || !UnderlyingPointerModified()) return valid_;
@@ -284,7 +289,7 @@ bool KvIterator::RefreshAfterModify() {
     return valid_;
 }
 
-bool KvIterator::Next() {
+bool LMDBKvIterator::Next() {
     ThrowIfTaskKilled();
     if (txn_->read_only_ || !txn_->optimistic_) {
         int ec = mdb_cursor_get(cursor_, &key_, &value_, MDB_NEXT);
@@ -306,10 +311,10 @@ bool KvIterator::Next() {
         MoveForwardDelta();
     }
     Fix();
-    return IsValid();
+    return LMDBKvIterator::IsValid();
 }
 
-bool KvIterator::Prev() {
+bool LMDBKvIterator::Prev() {
     ThrowIfTaskKilled();
     if (txn_->read_only_ || !txn_->optimistic_) {
         if (!valid_) return GotoLastKey();
@@ -332,10 +337,10 @@ bool KvIterator::Prev() {
         MoveBackwardDelta();
     }
     Fix();
-    return IsValid();
+    return LMDBKvIterator::IsValid();
 }
 
-bool KvIterator::GotoKey(const Value& key) {
+bool LMDBKvIterator::GotoKey(const Value& key) {
     ThrowIfTaskKilled();
     key_ = key.MakeMdbVal();
     int ec;
@@ -355,10 +360,10 @@ bool KvIterator::GotoKey(const Value& key) {
         main_status_ = (ec == MDB_SUCCESS) ? ST_NORMAL : ST_MAXIMUM;
     }
     Fix();
-    return IsValid();
+    return LMDBKvIterator::IsValid();
 }
 
-bool KvIterator::GotoClosestKey(const Value& key) {
+bool LMDBKvIterator::GotoClosestKey(const Value& key) {
     ThrowIfTaskKilled();
     key_ = key.MakeMdbVal();
     int ec = mdb_cursor_get(cursor_, &key_, &value_, MDB_SET_RANGE);
@@ -373,10 +378,10 @@ bool KvIterator::GotoClosestKey(const Value& key) {
     delta_status_ = (iter_ != delta_->write_set_.end()) ? ST_NORMAL : ST_MAXIMUM;
     current_mode_ = DIR_FORWARD;
     Fix();
-    return IsValid();
+    return LMDBKvIterator::IsValid();
 }
 
-bool KvIterator::GotoLastKey() {
+bool LMDBKvIterator::GotoLastKey() {
     ThrowIfTaskKilled();
     int ec = mdb_cursor_get(cursor_, &key_, &value_, MDB_LAST);
     if (txn_->read_only_ || !txn_->optimistic_) {
@@ -395,10 +400,10 @@ bool KvIterator::GotoLastKey() {
     }
     current_mode_ = DIR_BACKWARD;
     Fix();
-    return IsValid();
+    return LMDBKvIterator::IsValid();
 }
 
-bool KvIterator::GotoFirstKey() {
+bool LMDBKvIterator::GotoFirstKey() {
     ThrowIfTaskKilled();
     int ec = mdb_cursor_get(cursor_, &key_, &value_, MDB_FIRST);
     if (txn_->read_only_ || !txn_->optimistic_) {
@@ -412,10 +417,10 @@ bool KvIterator::GotoFirstKey() {
     delta_status_ = (iter_ != delta_->write_set_.end()) ? ST_NORMAL : ST_MAXIMUM;
     current_mode_ = DIR_FORWARD;
     Fix();
-    return IsValid();
+    return LMDBKvIterator::IsValid();
 }
 
-Value KvIterator::GetKey() const {
+Value LMDBKvIterator::GetKey() const {
     if (txn_->read_only_ || !txn_->optimistic_) {
         return Value(key_);
     } else {
@@ -427,7 +432,7 @@ Value KvIterator::GetKey() const {
     }
 }
 
-Value KvIterator::GetValue(bool for_update) {
+Value LMDBKvIterator::GetValue(bool for_update) {
     if (txn_->read_only_ || !txn_->optimistic_) {
         return Value((char*)value_.mv_data + sizeof(size_t), value_.mv_size - sizeof(size_t));
     } else {
@@ -445,7 +450,7 @@ Value KvIterator::GetValue(bool for_update) {
     }
 }
 
-void KvIterator::SetValue(const Value& value) {
+void LMDBKvIterator::SetValue(const Value& value) {
     ThrowIfTaskKilled();
     if (txn_->read_only_ || !txn_->optimistic_) {
         Value tmpv(sizeof(size_t) + value.Size());
@@ -493,7 +498,7 @@ void KvIterator::SetValue(const Value& value) {
     Fix();
 }
 
-bool KvIterator::AddKeyValue(const Value& key, const Value& value, bool overwrite) {
+bool LMDBKvIterator::AddKeyValue(const Value& key, const Value& value, bool overwrite) {
     ThrowIfTaskKilled();
     if (txn_->read_only_ || !txn_->optimistic_) {
         key_ = key.MakeMdbVal();
@@ -524,11 +529,11 @@ bool KvIterator::AddKeyValue(const Value& key, const Value& value, bool overwrit
     if (!overwrite && existing) return false;
     size_t version = table_->GetVersion(*txn_, key);
     delta_->Put(key, version, value);
-    GotoKey(key);
+    LMDBKvIterator::GotoKey(key);
     return true;
 }
 
-void KvIterator::DeleteKey() {
+void LMDBKvIterator::DeleteKey() {
     ThrowIfTaskKilled();
     if (txn_->read_only_ || !txn_->optimistic_) {
         Value tmpk = Value::MakeCopy(key_);
@@ -565,10 +570,10 @@ void KvIterator::DeleteKey() {
             delta_->Delete(key, version);
         }
     }
-    GotoClosestKey(key);
+    LMDBKvIterator::GotoClosestKey(key);
 }
 
-bool KvIterator::IsValid() const {
+bool LMDBKvIterator::IsValid() const {
     if (txn_->read_only_ || !txn_->optimistic_) {
         return valid_;
     } else {

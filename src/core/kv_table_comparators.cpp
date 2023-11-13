@@ -14,7 +14,7 @@
 
 #include "core/data_type.h"
 #include "core/field_data_helper.h"
-#include "core/kv_store_exception.h"
+#include "core/lmdb_exception.h"
 #include "core/kv_table_comparators.h"
 
 namespace lgraph {

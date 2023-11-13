@@ -41,11 +41,13 @@
 namespace lgraph {
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
 PythonPluginManagerImpl::PythonPluginManagerImpl(LightningGraph* db, const std::string& graph_name,
-                                                 const std::string& dir, int max_idle_seconds)
+                                                 const std::string& dir, int max_idle_seconds,
+                                                 int max_plugin_lifetime_seconds)
     : graph_name_(graph_name),
       plugin_dir_(dir),
       max_idle_seconds_(max_idle_seconds <= 0 ? std::numeric_limits<int>::max()
-                                              : max_idle_seconds) {
+                                              : max_idle_seconds),
+      max_plugin_lifetime_seconds_(max_plugin_lifetime_seconds) {
     fma_common::FilePath p(db->GetConfig().dir);
     db_dir_ = p.Dir();
     auto& scheduler = fma_common::TimedTaskScheduler::GetInstance();
@@ -218,7 +220,15 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
         _busy_processes.erase(proc.get());
         CleanUpIdleProcessesNoLock();
         if (!proc->Killed()) {
-            _free_processes.emplace_front(proc.release());
+//            _free_processes.emplace_front(proc.release());
+            if (proc->GetLiveTimeInSeconds() < (size_t)max_plugin_lifetime_seconds_) {
+                _free_processes.emplace_front(std::move(proc));
+            } else {
+                DEBUG_LOG(DEBUG) << "proc lives " << proc->GetLiveTimeInSeconds()
+                                 << " s and is not reused";
+                proc->Kill();
+                _marked_processes.insert(std::move(proc));
+            }
         }
     }
     return ec;

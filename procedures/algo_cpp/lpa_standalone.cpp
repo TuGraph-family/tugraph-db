@@ -70,7 +70,8 @@ int main(int argc, char** argv) {
 
     // core
     start_time = get_time();
-    double modularity = LPACore(graph, num_iterations, sync_flag);
+    ParallelVector<size_t> label = graph.AllocVertexArray<size_t>();
+    double modularity = LPACore(graph, label, num_iterations, sync_flag);
     memUsage.print();
     memUsage.reset();
     auto core_cost = get_time() - start_time;
@@ -78,7 +79,11 @@ int main(int argc, char** argv) {
 
     // output
     start_time = get_time();
+    if (output_file != "") {
+        graph.Write<size_t>(config, label, graph.NumVertices(), config.name);
+    }
     auto output_cost = get_time() - start_time;
+
     printf("modularity: %lf\n", modularity);
     printf("output_cost = %.2lf(s)\n", output_cost);
     printf("total_cost = %.2lf(s)\n", prepare_cost + core_cost + output_cost);

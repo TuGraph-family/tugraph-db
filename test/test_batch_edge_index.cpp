@@ -28,7 +28,7 @@ class TestBatchEdgeIndex : public TuGraphTest {
         pad = "73@TuGraph";
         db_path = "./testdb";
         graph = "default";
-        indexes_str = "knows:weight:false:true,knows:since:false:false";
+        indexes_str = "knows:weight:0,knows:since:0";
         n_dump_key = 10;
         dump_only = false;
         verbose = 1;
@@ -95,17 +95,17 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     for (auto& str : indx) {
         // parse index specifier
         auto tokens = fma_common::Split(str, ":");
-        if (tokens.size() != 4) {
+        if (tokens.size() != 3) {
             UT_ERR() << "Failed to parse index specifier: " << str;
         }
         lgraph::IndexSpec spec;
         spec.label = fma_common::Strip(tokens[0], "\t ");
         spec.field = fma_common::Strip(tokens[1], "\t ");
+        int type;
         size_t r =
-            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), spec.unique);
-        size_t g =
-            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[3], "\t "), spec.global);
-        if (spec.label.empty() || spec.field.empty() || !r || !g) {
+            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), type);
+        spec.type = static_cast<lgraph::IndexType>(type);
+        if (spec.label.empty() || spec.field.empty() || !r) {
             UT_ERR() << "Failed to parse index specifier: " << str;
         }
         idx_specs.emplace_back(std::move(spec));
@@ -113,7 +113,7 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     UT_LOG() << "We will build the following indexes: ";
     for (auto& spec : idx_specs) {
         UT_LOG() << "\tlabel =" << spec.label << ", field =" << spec.field
-                 << ", unique =" << spec.unique << ", global = " << spec.global;
+                 << ", type =" << static_cast<int>(spec.type);
     }
 
     lgraph::Galaxy::Config conf;

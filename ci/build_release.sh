@@ -5,7 +5,7 @@
 
 ASAN=$1
 
-set -e
+set -ex
 
 # set $WORKSPACE to root dir
 pwd
@@ -23,8 +23,5 @@ else
 cmake .. -DCMAKE_BUILD_TYPE=Release
 fi
 
-make package -j6
+make -j6
 
-# build java
-cd ${ACB_BUILD_DIR}/code-repo/deps/tugraph-db-client-java/
-sh local_build.sh

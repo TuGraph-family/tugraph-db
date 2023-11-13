@@ -403,6 +403,7 @@ struct ArithOperandNode {
         if (type == AR_OPERAND_CONSTANT) {
             return Entry(constant);
         } else if (type == AR_OPERAND_VARIADIC) {
+            CYPHER_THROW_ASSERT(record.values.size() > (size_t)variadic.alias_idx);
             const auto &entry = record.values[variadic.alias_idx];
             switch (entry.type) {
             case Entry::NODE:

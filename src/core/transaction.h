@@ -68,7 +68,7 @@ class Transaction {
     friend class ::lgraph::import_v2::ImportOnline;
     friend class ::lgraph::import_v3::Importer;
 
-    KvTransaction txn_;
+    std::unique_ptr<KvTransaction> txn_;
     bool read_only_ = false;
 
     LightningGraph* db_ = nullptr;
@@ -495,7 +495,8 @@ class Transaction {
         Schema* schema = sm.GetSchema(label);
         if (!schema)
             throw InputError(
-                fma_common::StringFormatter::Format("Label \"{}\" does not exist.", label));
+                fma_common::StringFormatter::Format("{} Label \"{}\" does not exist.",
+                                                    is_vertex ? "vertex" : "edge", label));
         return schema->GetFieldSpecs();
     }
 
@@ -634,7 +635,7 @@ class Transaction {
     typename std::enable_if<IS_FIELD_TYPE(FieldT), std::vector<FieldData>>::type GetEdgeFields(
         const EdgeUid& uid, const std::vector<FieldT>& fds) {
         _detail::CheckEdgeUid(uid);
-        auto eit = graph_->GetUnmanagedOutEdgeIterator(&txn_, uid, false);
+        auto eit = graph_->GetUnmanagedOutEdgeIterator(txn_.get(), uid, false);
         if (!eit.IsValid()) throw InputError("Edge does not exist");
         return GetEdgeFields(eit, fds);
     }
@@ -651,7 +652,7 @@ class Transaction {
      *
      * \return  True if valid, false if not.
      */
-    bool IsValid() const { return txn_.IsValid(); }
+    bool IsValid() const { return txn_ != nullptr; }
 
     /**
      * Adds a vertex to the DB.
@@ -954,7 +955,7 @@ class Transaction {
         Value prop = eit.GetProperty();
         auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
         if (schema->DetachProperty()) {
-            prop = schema->GetDetachedEdgeProperty(txn_, eit.GetUid());
+            prop = schema->GetDetachedEdgeProperty(*txn_, eit.GetUid());
         }
         return fma_common::StringFormatter::Format(
             "E[{}]: DST = {}, EP = {}", eit.GetEdgeId(), eit.GetDst(),
@@ -1024,7 +1025,7 @@ class Transaction {
 
     const SchemaInfo& GetSchemaInfo() const { return *curr_schema_; }
 
-    KvTransaction& GetTxn() { return txn_; }
+    KvTransaction& GetTxn() { return *txn_; }
 
     /**
      * Registers a new iterator.
@@ -1054,10 +1055,10 @@ class Transaction {
     }
 
     void IncreaseCount(bool is_vertex, LabelId lid, int64_t delta) {
-        graph_->IncreaseCount(txn_, is_vertex, lid, delta);
+        graph_->IncreaseCount(*txn_, is_vertex, lid, delta);
     }
 
-    size_t GetLooseNumVertex() { return graph_->GetLooseNumVertex(txn_); }
+    size_t GetLooseNumVertex() { return graph_->GetLooseNumVertex(*txn_); }
 
     void GetStartAndEndVid(VertexId& start, VertexId& end);
 
@@ -1088,7 +1089,7 @@ class Transaction {
 
     void CommitFullTextIndex();
 
-    size_t GetTxnId() { return txn_.TxnId(); }
+    size_t GetTxnId() { return txn_->TxnId(); }
 };
 
 }  // namespace lgraph

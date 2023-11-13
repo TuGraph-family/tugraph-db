@@ -273,7 +273,8 @@ class ParallelVector {
     ParallelVector(const ParallelVector<T> &rhs) = delete;
 
     //    ParallelVector(ParallelVector<T> &&rhs) = default;
-    ParallelVector(ParallelVector<T> &&rhs) {
+    ParallelVector(ParallelVector<T> &&rhs)
+        : destroyed_(true), capacity_(0), data_(nullptr), size_(0) {
         Swap(rhs);
     }
 
@@ -325,6 +326,8 @@ class ParallelVector {
     size_t Size() { return size_; }
 
     size_t Capacity() { return capacity_; }
+
+    bool Destroyed() { return destroyed_; }
 
     /**
      * @brief   Change ParallelVector size.

@@ -1,5 +1,5 @@
 // ===============================================================
-//                     Proto version: 1.2.0
+//                     Proto version: 2.2.0
 // Increment the version number if the proto definition is updated
 // ===============================================================
 syntax="proto2";
@@ -122,7 +122,7 @@ message GetLabelResponse {
 message AddIndexRequest {
     required string label = 1;
     required string field = 2;
-    required bool is_unique = 3;
+    required int32 type = 3;
 };
 
 message AddIndexResponse {};

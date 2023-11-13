@@ -15,8 +15,8 @@
 #if (!LGRAPH_USE_MOCK_KV)
 #include <chrono>
 
-#include "core/kv_store_transaction.h"
-#include "core/kv_store_table.h"
+#include "core/lmdb_transaction.h"
+#include "core/lmdb_table.h"
 #include "core/kv_store.h"
 #include "core/wal.h"
 
@@ -24,7 +24,7 @@ using namespace std::chrono_literals;
 
 namespace lgraph {
 
-DeltaStore::DeltaStore(const KvTable& table) : write_set_(table) {}
+DeltaStore::DeltaStore(const LMDBKvTable& table) : write_set_(table) {}
 
 void DeltaStore::Put(const Value& key, size_t version, const Value& value) {
     std::string packed_value(sizeof(size_t) + sizeof(int8_t) + value.Size(), 0);
@@ -80,7 +80,7 @@ std::pair<int8_t, Value> DeltaStore::Get(const Value& key) {
     return std::make_pair(-1, Value());
 }
 
-DeltaStore& KvTransaction::GetDelta(KvTable& table) {
+DeltaStore& LMDBKvTransaction::GetDelta(LMDBKvTable& table) {
     MDB_dbi dbi = table.GetDbi();
     auto it = deltas_.find(dbi);
     if (it != deltas_.end()) return it->second;
@@ -90,7 +90,7 @@ DeltaStore& KvTransaction::GetDelta(KvTable& table) {
         .first->second;
 }
 
-KvTransaction::KvTransaction(KvStore& store, bool read_only, bool optimistic) {
+LMDBKvTransaction::LMDBKvTransaction(LMDBKvStore& store, bool read_only, bool optimistic) {
     store_ = &store;
     wal_ = store_->GetWal();
     read_only_ = read_only;
@@ -108,7 +108,7 @@ KvTransaction::KvTransaction(KvStore& store, bool read_only, bool optimistic) {
     }
 }
 
-KvTransaction::KvTransaction(KvTransaction&& rhs) {
+LMDBKvTransaction::LMDBKvTransaction(LMDBKvTransaction&& rhs) noexcept {
     txn_ = rhs.txn_;
     read_only_ = rhs.read_only_;
     optimistic_ = rhs.optimistic_;
@@ -119,9 +119,9 @@ KvTransaction::KvTransaction(KvTransaction&& rhs) {
     rhs.txn_ = nullptr;
 }
 
-KvTransaction& KvTransaction::operator=(KvTransaction&& rhs) {
+LMDBKvTransaction& LMDBKvTransaction::operator=(LMDBKvTransaction&& rhs) noexcept {
     if (this == &rhs) return *this;
-    Abort();
+    LMDBKvTransaction::Abort();
     txn_ = rhs.txn_;
     store_ = rhs.store_;
     wal_ = rhs.wal_;
@@ -132,24 +132,24 @@ KvTransaction& KvTransaction::operator=(KvTransaction&& rhs) {
     return *this;
 }
 
-KvTransaction::~KvTransaction() { Abort(); }
+LMDBKvTransaction::~LMDBKvTransaction() { LMDBKvTransaction::Abort(); }
 
-KvTransaction KvTransaction::Fork() {
+std::unique_ptr<KvTransaction> LMDBKvTransaction::Fork() {
     if (!read_only_) throw KvException("Write transactions cannot be forked.");
-    KvTransaction txn;
-    txn.store_ = store_;
-    txn.wal_ = wal_;
-    txn.read_only_ = true;
-    txn.optimistic_ = false;
-    THROW_ON_ERR(MdbTxnFork(txn_, &txn.txn_));
+    auto txn = std::make_unique<LMDBKvTransaction>();
+    txn->store_ = store_;
+    txn->wal_ = wal_;
+    txn->read_only_ = true;
+    txn->optimistic_ = false;
+    THROW_ON_ERR(MdbTxnFork(txn_, &txn->txn_));
     return txn;
 }
 
-void KvTransaction::Commit() {
+void LMDBKvTransaction::Commit() {
     if (txn_) {
         if (read_only_ || !optimistic_) {
             if (!read_only_) {
-                mdb_txn_set_last_op_id(txn_, KvStore::GetLastOpIdOfAllStores());
+                mdb_txn_set_last_op_id(txn_, LMDBKvStore::GetLastOpIdOfAllStores());
                 if (wal_) {
                     std::future<void> future;
                     if (wal_) future = wal_->WriteTxnCommit(version_, false);
@@ -186,7 +186,7 @@ void KvTransaction::Commit() {
     }
 }
 
-void KvTransaction::Abort() {
+void LMDBKvTransaction::Abort() {
     deltas_.clear();
     if (txn_) {
         if (!read_only_ && !optimistic_ && wal_) wal_->WriteTxnAbort(version_);

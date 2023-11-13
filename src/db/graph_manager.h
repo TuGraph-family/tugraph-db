@@ -61,7 +61,7 @@ class GraphManager {
  private:
     typedef GCRefCountedPtr<LightningGraph> GcDb;
 
-    KvTable table_;
+    std::shared_ptr<KvTable> table_;
     std::unordered_map<std::string, GcDb> graphs_;
     std::string parent_dir_;
     Config config_;

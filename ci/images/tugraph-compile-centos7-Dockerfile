@@ -13,6 +13,7 @@ RUN yum -x filesystem update -y && yum install -y \
     make \
     wget \
     bzip2 \
+    bzip2-devel \
     openssl-static \
     libtool \
     libtool-ltdl \

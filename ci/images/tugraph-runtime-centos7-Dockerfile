@@ -74,11 +74,11 @@ RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
 # install tugraph demo
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
-    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph/data/upload_files/admin \
-    && cp -r tugraph-demo/movie /var/lib/lgraph/data/upload_files/admin/movie \
-    && cp -r tugraph-demo/the_three_body /var/lib/lgraph/data/upload_files/admin/the_three_body \
-    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph/data/upload_files/admin/three_kingdoms \
-    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph/data/upload_files/admin/wandering_earth \
+    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph_demos \
+    && cp -r tugraph-demo/movie /var/lib/lgraph_demos/movie \
+    && cp -r tugraph-demo/the_three_body /var/lib/lgraph_demos/the_three_body \
+    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph_demos/three_kingdoms \
+    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph_demos/wandering_earth \
     && cp tugraph-demo/setup.sh /setup.sh
 
 # install node.js && yarn

@@ -47,6 +47,7 @@ class PythonWorkerProcess {
     int exit_code_ = 0;
 
     std::chrono::steady_clock::time_point last_used_;
+    std::chrono::steady_clock::time_point started_at_;
 
     void PrintMessageToLog(const char* bytes, size_t n) {
         std::lock_guard<std::mutex> _l(err_lock_);
@@ -78,7 +79,9 @@ class PythonWorkerProcess {
 
  public:
     explicit PythonWorkerProcess(const std::string& db_dir)
-        : should_kill_(false), killed_(false), last_used_(std::chrono::steady_clock::now()) {
+        : should_kill_(false), killed_(false),
+          last_used_(std::chrono::steady_clock::now()),
+          started_at_(std::chrono::steady_clock::now()) {
         p2c_name_ = GeneratePipeName("p2c");
         c2p_name_ = GeneratePipeName("c2p");
         boost::interprocess::message_queue::remove(p2c_name_.c_str());
@@ -165,6 +168,12 @@ class PythonWorkerProcess {
             .count();
     }
 
+    size_t GetLiveTimeInSeconds() const {
+        return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() -
+                                                                started_at_)
+            .count();
+    }
+
     void UpdateLastUsedTime() { last_used_ = std::chrono::steady_clock::now(); }
 };
 
@@ -175,6 +184,7 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
     std::string plugin_dir_;
 
     int max_idle_seconds_ = 600;
+    int max_plugin_lifetime_seconds_ = LGRAPH_PYTHON_PLUGIN_LIFETIME_S;
     std::mutex _mtx;
     // free processes are owned by plugin manager
     std::list<std::unique_ptr<PythonWorkerProcess>> _free_processes;
@@ -193,11 +203,13 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
 
     // just for test
     PythonPluginManagerImpl(const std::string& name, const std::string& db_dir, size_t db_size,
-                            const std::string& plugin_dir, int max_idle_seconds = 600)
+                            const std::string& plugin_dir, int max_idle_seconds = 600,
+                            int max_plugin_lifetime_seconds = LGRAPH_PYTHON_PLUGIN_LIFETIME_S)
         : graph_name_(name),
           db_dir_(db_dir),
           plugin_dir_(plugin_dir),
-          max_idle_seconds_(max_idle_seconds) {
+          max_idle_seconds_(max_idle_seconds),
+          max_plugin_lifetime_seconds_(max_plugin_lifetime_seconds) {
         auto& scheduler = fma_common::TimedTaskScheduler::GetInstance();
         _kill_task = scheduler.ScheduleReccurringTask(
             max_idle_seconds * 1000, [this](fma_common::TimedTask*) {
@@ -217,7 +229,8 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
 
  public:
     PythonPluginManagerImpl(LightningGraph* db, const std::string& graph_name,
-                            const std::string& plugin_dir, int max_idle_seconds = 600);
+                            const std::string& plugin_dir, int max_idle_seconds = 600,
+                            int max_plugin_lifetime_seconds = LGRAPH_PYTHON_PLUGIN_LIFETIME_S);
 
     ~PythonPluginManagerImpl();
 

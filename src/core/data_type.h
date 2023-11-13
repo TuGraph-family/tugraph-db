@@ -36,6 +36,7 @@
 namespace lgraph {
 typedef lgraph_api::FieldType FieldType;
 typedef lgraph_api::FieldData FieldData;
+typedef lgraph_api::IndexType IndexType;
 typedef lgraph_api::IndexSpec IndexSpec;
 typedef lgraph_api::FieldSpec FieldSpec;
 typedef lgraph_api::EdgeUid EdgeUid;

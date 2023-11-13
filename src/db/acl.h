@@ -198,9 +198,9 @@ class AclManager {
     std::unordered_map<std::string, std::string> token_mapping_;
 
     // user -> UserInfo
-    KvTable user_tbl_;
+    std::shared_ptr<KvTable> user_tbl_;
     // role -> RoleInfo
-    KvTable role_tbl_;
+    std::shared_ptr<KvTable> role_tbl_;
 
  protected:
     UserInfo GetUserInfoFromKv(KvTransaction& txn, const std::string& user);

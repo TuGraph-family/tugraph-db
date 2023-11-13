@@ -113,35 +113,35 @@ int TestPerfGraphContinuous(bool durable) {
     UT_LOG() << "Begining test " << __func__;
 
     // open store
-    KvStore store("./testdb", (size_t)1 << 40, durable);
+    auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 40, durable);
     // clear old data
-    auto txn = store.CreateWriteTxn();
-    store.DropAll(txn);
-    txn.Commit();
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
 
     // open table
-    txn = store.CreateWriteTxn();
-    auto graph_table = Graph::OpenTable(txn, store, "graph");
-    KvTable meta_table =
-        store.OpenTable(txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    auto graph_table = Graph::OpenTable(*txn, *store, "graph");
+    auto meta_table =
+        store->OpenTable(*txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
+    txn->Commit();
 
     // create graph
-    txn = store.CreateWriteTxn();
-    Graph graph(txn, graph_table, &meta_table);
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    Graph graph(*txn, std::move(graph_table), std::move(meta_table));
+    txn->Commit();
 
     // add vertex
     VertexId vid;
     Value v_prop(prop, v_prop_size);
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
-            vid = graph.AddVertex(txn, v_prop);
+            vid = graph.AddVertex(*txn, v_prop);
             UT_EXPECT_EQ(int64_t(vid), txn_batch * k + i);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_add_v = fma_common::GetTime() - t1;
 
@@ -150,23 +150,23 @@ int TestPerfGraphContinuous(bool durable) {
     Value e_prop(prop + 256, e_prop_size);
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             for (size_t j = 0; j < ne; j++) {
                 int64_t src = txn_batch * k + i;
                 int64_t dst = (src + j + 1) % nv;
-                eid = graph.AddEdge(txn, src, 0, dst, e_prop);
+                eid = graph.AddEdge(*txn, src, 0, dst, e_prop);
                 UT_EXPECT_EQ(eid.eid, 0);  // id of multi-edge
             }
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_add_e = fma_common::GetTime() - t1;
 
     UT_LOG() << "graph created";
-    txn = store.CreateReadTxn();
-    PeekGraph(txn, graph);
-    txn.Abort();
+    txn = store->CreateReadTxn();
+    PeekGraph(*txn, graph);
+    txn->Abort();
 
     PrintReport();
     return 0;
@@ -176,35 +176,35 @@ int TestPerfGraphNoncontinuous(bool durable) {
     UT_LOG() << "Begining test " << __func__;
 
     // open store
-    KvStore store("./testdb", (size_t)1 << 40, durable);
+    auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 40, durable);
     // clear old data
-    auto txn = store.CreateWriteTxn();
-    store.DropAll(txn);
-    txn.Commit();
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
 
     // open table
-    txn = store.CreateWriteTxn();
-    auto graph_table = Graph::OpenTable(txn, store, "graph");
-    KvTable meta_table =
-        store.OpenTable(txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    auto graph_table = Graph::OpenTable(*txn, *store, "graph");
+    auto meta_table =
+        store->OpenTable(*txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
+    txn->Commit();
 
     // create graph
-    txn = store.CreateWriteTxn();
-    Graph graph(txn, graph_table, &meta_table);
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    Graph graph(*txn, std::move(graph_table), std::move(meta_table));
+    txn->Commit();
 
     // add vertex
     VertexId vid;
     Value v_prop(prop, v_prop_size);
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
-            vid = graph.AddVertex(txn, v_prop);
+            vid = graph.AddVertex(*txn, v_prop);
             UT_EXPECT_EQ(int64_t(vid), txn_batch * k + i);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_add_v = fma_common::GetTime() - t1;
 
@@ -216,12 +216,12 @@ int TestPerfGraphNoncontinuous(bool durable) {
     Value e_prop(prop + 256, e_prop_size);
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             for (size_t j = 0; j < ne; j++) {
                 int64_t src = rand_id(re);
                 int64_t dst = rand_id(re);
-                eid = graph.AddEdge(txn, src, 0, dst, e_prop);
+                eid = graph.AddEdge(*txn, src, 0, dst, e_prop);
 
                 UT_EXPECT_EQ(eid.src, src);
                 UT_EXPECT_EQ(eid.dst, dst);
@@ -229,35 +229,35 @@ int TestPerfGraphNoncontinuous(bool durable) {
                 UT_EXPECT_GE(eid.eid, 0);
             }
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_add_e = fma_common::GetTime() - t1;
     UT_LOG() << "add vertex & edge done";
-    txn = store.CreateReadTxn();
-    PeekGraph(txn, graph);
-    txn.Abort();
+    txn = store->CreateReadTxn();
+    PeekGraph(*txn, graph);
+    txn->Abort();
 
     // read vertex
     vid = 0;
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateReadTxn();
+        txn = store->CreateReadTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             vid = rand_id(re);
-            auto it = graph.GetUnmanagedVertexIterator(&txn, vid);
+            auto it = graph.GetUnmanagedVertexIterator(txn.get(), vid);
             auto vp = it.GetProperty();
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_read_v = fma_common::GetTime() - t1;
 
     // read vertex & edge
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateReadTxn();
+        txn = store->CreateReadTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             vid = rand_id(re);
-            auto it = graph.GetUnmanagedVertexIterator(&txn, vid);
+            auto it = graph.GetUnmanagedVertexIterator(txn.get(), vid);
             auto vp = it.GetProperty();
             auto eit = it.GetOutEdgeIterator();
             while (eit.IsValid()) {
@@ -266,7 +266,7 @@ int TestPerfGraphNoncontinuous(bool durable) {
                 eit.Next();
             }
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_read_ve = fma_common::GetTime() - t1;
     UT_LOG() << "read vertex & edge done";
@@ -274,16 +274,16 @@ int TestPerfGraphNoncontinuous(bool durable) {
     // update vertex
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             vid = rand_id(re);
-            auto it = graph.GetUnmanagedVertexIterator(&txn, vid);
+            auto it = graph.GetUnmanagedVertexIterator(txn.get(), vid);
             auto vp = it.GetProperty();
             Value vv = Value::MakeCopy(vp);
             (*(char*)vv.Data())++;
-            graph.SetVertexProperty(txn, vid, vv);
+            graph.SetVertexProperty(*txn, vid, vv);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_update_v = fma_common::GetTime() - t1;
     UT_LOG() << "graph update vertex done";
@@ -293,10 +293,10 @@ int TestPerfGraphNoncontinuous(bool durable) {
     // will become illegal afterwards!
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             vid = rand_id(re);
-            auto it = graph.GetUnmanagedVertexIterator(&txn, vid);
+            auto it = graph.GetUnmanagedVertexIterator(txn.get(), vid);
             auto vp = it.GetProperty();
             Value vv = Value::MakeCopy(vp);
             (*(char*)vv.Data())++;
@@ -313,23 +313,23 @@ int TestPerfGraphNoncontinuous(bool durable) {
                 eit.Next();
             }
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_update_ve = fma_common::GetTime() - t1;
     UT_LOG() << "graph update vertex & edge done";
-    txn = store.CreateReadTxn();
-    PeekGraph(txn, graph);
-    txn.Abort();
+    txn = store->CreateReadTxn();
+    PeekGraph(*txn, graph);
+    txn->Abort();
 
     // delete a quarter vertex
     t1 = fma_common::GetTime();
     for (size_t k = 0; k < nv / txn_batch / 4; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (size_t i = 0; i < txn_batch; i++) {
             vid = rand_id(re);
-            graph.DeleteVertex(txn, vid);
+            graph.DeleteVertex(*txn, vid);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t_delete_qtr = fma_common::GetTime() - t1;
 

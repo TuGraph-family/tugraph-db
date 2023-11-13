@@ -175,20 +175,26 @@ void register_python_api(pybind11::module& m) {
                                                        a.eid);
         });
 
+    pybind11::enum_<lgraph_api::IndexType>(m, "IndexType")
+        .value("NonuniqueIndex", IndexType::NonuniqueIndex, "NonuniqueIndex")
+        .value("GlobalUniqueIndex", IndexType::GlobalUniqueIndex, "GlobalUniqueIndex")
+        .value("PairUniqueIndex", IndexType::PairUniqueIndex, "PairUniqueIndex")
+        .export_values();
+
     pybind11::class_<IndexSpec>(m, "IndexSpec", "Index specification.")
         .def(pybind11::init<>(),
              pybind11::call_guard<SignalsGuard>())
-        .def(pybind11::init<const std::string&, const std::string&, bool>(),
+        .def(pybind11::init<const std::string&, const std::string&, IndexType>(),
              "Defines an IndexSpec with its label_name:str, field_name:str and "
-             "is_unique:bool.",
-             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("is_unique"),
+             "type:int.",
+             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("type"),
              pybind11::call_guard<SignalsGuard>())
         .def_readwrite("label", &IndexSpec::label, "Name of the label.")
         .def_readwrite("field", &IndexSpec::field, "Name of the field")
-        .def_readwrite("unique", &IndexSpec::unique, "Whether the indexed values are unique.")
+        .def_readwrite("type", &IndexSpec::type, "Index type. eg Unique index or not")
         .def("__repr__", [](const IndexSpec& a) {
-            return fma_common::StringFormatter::Format("(label:{}, field:{}, unique:{})", a.label,
-                                                       a.field, a.unique);
+            return fma_common::StringFormatter::Format("(label:{}, field:{}, type:{})", a.label,
+                                                       a.field, static_cast<int>(a.type));
         });
 
     pybind11::class_<EdgeOptions>(m, "EdgeOptions", "Edge options.")
@@ -685,7 +691,7 @@ void register_python_api(pybind11::module& m) {
             pybind11::arg("label"), pybind11::arg("mod_fields"),
             pybind11::call_guard<SignalsGuard>())
         .def("AddVertexIndex", &GraphDB::AddVertexIndex, "Adds an index.",
-             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("is_unique"),
+             pybind11::arg("label_name"), pybind11::arg("field_name"), pybind11::arg("type"),
              pybind11::call_guard<SignalsGuard>())
         .def("IsVertexIndexed", &GraphDB::IsVertexIndexed,
              "Tells whether the specified field is indexed.", pybind11::arg("label_name"),

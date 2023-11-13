@@ -15,7 +15,7 @@
 #include "fma-common/file_system.h"
 
 #include "lmdb/lmdb.h"
-#include "core/kv_store_exception.h"
+#include "core/lmdb_exception.h"
 #include "core/wal.h"
 
 namespace lgraph {

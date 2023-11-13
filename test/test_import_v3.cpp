@@ -56,7 +56,7 @@ static void check_import_db(std::string database, size_t num_vertex, size_t num_
     if (is) {
         auto indexes = txn.ListVertexIndexes();
         for (auto& i : indexes) {
-            if (i.label == is->label && i.field == is->field && i.unique == is->unique) return;
+            if (i.label == is->label && i.field == is->field && i.type == is->type) return;
         }
         UT_ASSERT(false);
     }
@@ -148,26 +148,25 @@ class TestImportV3Consistent : public TuGraphTest {
         return num_edges;
     }
     bool HasVertexIndex(lgraph_api::GraphDB& db, const std::string& label, const std::string& field,
-                        bool unique, bool global) {
+                        lgraph::IndexType type) {
         auto txn = db.CreateReadTxn();
         auto indexes = txn.ListVertexIndexes();
-        // TODO(jzj)
         for (auto& i : indexes) {
             if (i.label == label && i.field == field &&
-                i.unique == unique) {
+                i.type == type) {
                 return true;
             }
         }
         return false;
     }
     bool HasEdgeIndex(lgraph_api::GraphDB& db, const std::string& label, const std::string& field,
-                      bool unique, bool global) {
+                      lgraph::IndexType type) {
         auto txn = db.CreateReadTxn();
         auto indexes = txn.ListEdgeIndexes();
         // TODO(jzj)
         for (auto& i : indexes) {
             if (i.label == label && i.field == field &&
-                i.unique == unique) {
+                i.type == type) {
                 return true;
             }
         }
@@ -186,8 +185,9 @@ class TestImportV3Consistent : public TuGraphTest {
                                 const std::string& field) {
         auto txn = db.CreateReadTxn();
         size_t count = 0;
-        for (auto it = txn.GetEdgeIndexIterator(label, field, "", ""); it.IsValid(); it.Next())
+        for (auto it = txn.GetEdgeIndexIterator(label, field, "", ""); it.IsValid(); it.Next()) {
             ++count;
+        }
         return count;
     }
 };
@@ -888,7 +888,7 @@ TEST_F(TestImportV3, ImportV3) {
         IndexSpec is_check;
         is_check.label = "Person";
         is_check.field = "phone";
-        is_check.unique = false;
+        is_check.type = lgraph::IndexType::NonuniqueIndex;
         TestImportOnData(data_import, config, 20, 26, &is_check);
     }
     {
@@ -2666,10 +2666,10 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
         UT_EXPECT_EQ(GetVertexNum(db), 4);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "uid"), 4);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "phone"), 4);
     }
 
@@ -2731,10 +2731,10 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
         UT_EXPECT_EQ(GetVertexNum(db), 26);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "uid"), 26);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "phone"), 26);
     }
 
@@ -2822,57 +2822,49 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
 					"name": "name_g",
 					"type": "STRING",
 					"index": true,
-                    "global": true,
 					"unique": false
 				},
                 {
                     "name": "address_g",
                     "type": "STRING",
                     "index": true,
-                    "global": true,
                     "unique": false
                 },
                 {
                     "name": "name",
                     "type": "STRING",
                     "index": true,
-                    "global": false,
                     "unique": false
                 },
 				{
 					"name": "address",
 					"type": "STRING",
 					"index": true,
-                    "global": false,
 					"unique": false
 				},
 				{
 					"name": "phone_g",
 					"type": "STRING",
 					"index": true,
-                    "global": true,
 					"unique": false
 				},
                 {
                     "name": "id_g",
                     "type": "STRING",
                     "index": true,
-                    "global": true,
                     "unique": false
                 },
                 {
                     "name": "phone",
                     "type": "STRING",
                     "index": true,
-                    "global": false,
-                    "unique": true
+                    "pair_unique": true
                 },
                 {
                     "name": "id",
                     "type": "STRING",
                     "index": true,
-                    "global": false,
-                    "unique": true
+                    "pair_unique": true
                 }
 			]
 		}
@@ -2949,38 +2941,38 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
         UT_EXPECT_EQ(GetVertexNum(db), 20);
         UT_EXPECT_EQ(GetEdgeNum(db), 10);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "uid"), 10);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "name", false, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "name", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "name"), 10);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "phone", true, false));
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "id", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "address", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "phone", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "id", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "address", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "address"), 10);
 
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "uid"), 10);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "name", false, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "name", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "name"), 10);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "phone", true, false));
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "id", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "address", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "phone", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "id", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "address", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "address"), 10);
 
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name_g", false, true));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name_g", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name_g"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address_g", false, true));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address_g", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address_g"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name", false, false));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address", false, false));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address"), 10);
 
-        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "phone_g", true, true));
-        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "id_g", true, true));
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "phone", true, false));
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "phone_g", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "id_g", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "phone", lgraph::IndexType::PairUniqueIndex));
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "phone"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "id", true, false));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "id", lgraph::IndexType::PairUniqueIndex));
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "id"), 10);
     }
 }

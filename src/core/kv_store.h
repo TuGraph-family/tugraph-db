@@ -23,5 +23,5 @@ typedef MockKvTransaction KvTransaction;
 typedef MockKvTable KvTable;
 }  // namespace lgraph
 #else
-#include "core/kv_store_mdb.h"
+#include "core/lmdb_store.h"
 #endif

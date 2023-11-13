@@ -1524,33 +1524,14 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     }
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
     _HoldReadLock(galaxy_->GetReloadLock());
-    if ((fabs(galaxy_->retry_login_time - 0.0) < std::numeric_limits<double>::epsilon()) ||
-        fma_common::GetTime() - galaxy_->retry_login_time >= RETRY_WAIT_TIME) {
-        std::string token = galaxy_->GetUserToken(username, password);
-        if ((fabs(galaxy_->retry_login_time - 0.0) >= std::numeric_limits<double>::epsilon())) {
-            galaxy_->login_failed_times_.erase(username);
-            galaxy_->retry_login_time = 0.0;
-        }
-        if (token.empty()) {
-            if (galaxy_->login_failed_times_.find(username) !=
-                    galaxy_->login_failed_times_.end()) {
-                galaxy_->login_failed_times_[username]++;
-            } else {
-                galaxy_->login_failed_times_[username] = 1;
-            }
-            if (galaxy_->login_failed_times_[username] >= MAX_LOGIN_FAILED_TIMES) {
-                galaxy_->retry_login_time = fma_common::GetTime();
-            }
-            return RespondUnauthorized(request, "Bad user/password.");
-        }
-        web::json::value response;
-        response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
-        response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
-        return RespondSuccess(request, response);
-    } else {
-        return RespondUnauthorized(request,
-            "Too many login failures, please try again in a minute");
+    std::string token = galaxy_->GetUserToken(username, password);
+    if (!galaxy_->JudgeUserTokenNum(username)) {
+        throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
     }
+    web::json::value response;
+    response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
+    response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
+    return RespondSuccess(request, response);
 }
 
 // /refresh
@@ -1968,15 +1949,15 @@ void RestServer::HandlePostIndex(const std::string& user, const std::string& tok
     greq->set_graph(_TS(paths[1]));
 
     AddIndexRequest* req = greq->mutable_add_index_request();
-    bool is_unique;
+    int type;
     if (!ExtractStringField(body, RestStrings::LABEL, *req->mutable_label()) ||
         !ExtractStringField(body, RestStrings::FIELD, *req->mutable_field()) ||
-        !ExtractBoolField(body, RestStrings::ISUNIQUE, is_unique)) {
+        !ExtractIntField(body, RestStrings::INDEXTYPE, type)) {
         BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::SingleApi, true,
                       "POST " + _TS(relative_path));
         return RespondBadJSON(request);
     }
-    req->set_is_unique(is_unique);
+    req->set_type(type);
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS)
         return RespondSuccess(request);
@@ -3069,11 +3050,11 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         std::string user;
         if (fpc != RestPathCases::LOGIN) user = GetUser(request, &token);
         if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
-            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime
-            && !galaxy_->JudgeRefreshTime(token)) {
-            galaxy_->UnBindTokenUser(token);
-            FMA_WARN() << "The token is invalid.";
-            throw AuthError("The token is invalid.");
+            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
+            if (!galaxy_->JudgeRefreshTime(token)) {
+                FMA_WARN() << "token has already expire";
+                throw AuthError("token has already expire");
+            }
         }
         FMA_DBG_STREAM(logger_) << "\n----------------"
                                 << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"

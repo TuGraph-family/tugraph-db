@@ -22,7 +22,7 @@
 #include "fma-common/type_traits.h"
 
 #include "core/data_type.h"
-#include "core/kv_store_exception.h"
+#include "core/lmdb_exception.h"
 #include "core/value.h"
 
 namespace lgraph {
