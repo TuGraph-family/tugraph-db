@@ -18,6 +18,7 @@
 #include "fma-common/utils.h"
 #include "fma-common/file_system.h"
 #include "./ut_utils.h"
+#include "lgraph/lgraph_types.h"
 
 #include "gtest/gtest.h"
 
@@ -263,7 +264,7 @@ TEST_F(TestC, IndexSpec) {
 
     lgraph_api_index_spec_set_field(is, "world");
     CHECK_AND_FREESTR(lgraph_api_index_spec_get_field(is), "world");
-    lgraph_api_index_spec_set_unique(is, true);
+    lgraph_api_index_spec_set_type(is, lgraph_api_global_unique_index_type);
     ASSERT_TRUE(lgraph_api_index_spec_get_unique(is));
     lgraph_api_index_spec_destroy(is);
 }
@@ -754,7 +755,8 @@ TEST_F(TestC, Graph) {
     lgraph_api_transaction_destroy(wtxn);
 
     // build a index of "age" field for "Person" vertex
-    ret = lgraph_api_graph_db_add_vertex_index(graphdb, "Person", "age", false, &errptr);
+    ret = lgraph_api_graph_db_add_vertex_index(graphdb, "Person", "age",
+                                               lgraph_api_normal_index_type, &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     ASSERT_TRUE(ret);
     // test "age" field is indexed
@@ -763,7 +765,8 @@ TEST_F(TestC, Graph) {
     ASSERT_TRUE(ret);
 
     // build a index of "years" for "knows" edge
-    ret = lgraph_api_graph_db_add_edge_index(graphdb, "knows", "years", false, true, &errptr);
+    ret = lgraph_api_graph_db_add_edge_index(graphdb, "knows", "years",
+                                             lgraph_api_normal_index_type, &errptr);
     ASSERT_EQ(std::string(errptr == nullptr ? "" : errptr), "");
     ASSERT_TRUE(ret);
     // test "years" field is indexed

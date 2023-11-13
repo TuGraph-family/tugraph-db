@@ -23,7 +23,7 @@ class TestHAStart:
     def group_restart(self):
         for i in range(27072, 27075):
             os.system("kill -2 $(ps -ef | grep " + str(i) + " | grep -v grep | awk '{print $2}')")
-            time.sleep(1)
+            time.sleep(5)
         os.system(f"cd ha1 && ./lgraph_server --host {self.host} --port 27072 --enable_rpc "
                   f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
                   f"--rpc_port 29092 --directory ./db --log_dir "
@@ -124,7 +124,7 @@ class TestHAStart:
         client.logout()
 
         self.group_restart()
-        time.sleep(10)
+        time.sleep(20)
         client = start_ha_client(self.host, "29092")
         log.info("----------------test_bootstrap_restart--------------------")
         get_node_edge_and_test(client)

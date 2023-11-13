@@ -21,6 +21,16 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
 /**
+ * @brief    Compute the shortest path length between any two vertices in the graph.
+ *
+ * @param[in]       graph       The graph to compute on.
+ * @param[in,out]   result      The vector to store the shortest path result in the graph.
+ * @param[in]       max_tuple   The tuple to store maximum and shortest path information.
+ */
+void APSPCore(OlapBase<double>& graph, std::vector<std::tuple<size_t, size_t, double>> result,
+              std::tuple<size_t, size_t, double>& max_tuple);
+
+/**
  * @brief    Estimate the betweenness centrality of all vertices in the graph.
  *
  * @param[in]   graph    The graph to compute on.
@@ -140,12 +150,14 @@ size_t LocateCycleCore(OlapBase<Empty>& graph, size_t k);
  * \brief    Compute the label propagation algorithm.
  *
  * \param    graph             The graph to compute on.
+ * \param    label             The ParallelVector to store label information.
  * \param    num_iterations    The iterations of label propagation algorithm.
  * \param    sync_flag         Synchronous mode -> 1, Asynchronous mode -> 0.
  *
  * \return    The value of modularity.
  */
-double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag);
+double LPACore(OlapBase<Empty>& graph, ParallelVector<size_t>& label,
+        int num_iterations, bool sync_flag);
 
 /**
  * @brief    Compute the Maximal Independent Set Algorithm.

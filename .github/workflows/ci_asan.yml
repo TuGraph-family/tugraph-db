@@ -1,7 +1,6 @@
-name: ci
+name: ci_asan
 
 on:
-  push:
   pull_request:
     branches:
       - '*'
@@ -34,7 +33,7 @@ jobs:
           context: .
           tags: ${{ env.TEST_TAG }}
           build-args: |
-            BUILD_TYPE=no_asan
+            BUILD_TYPE=asan
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
       - name: Check disk space

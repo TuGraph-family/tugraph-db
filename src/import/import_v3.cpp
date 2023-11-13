@@ -137,33 +137,36 @@ void Importer::DoImportOffline() {
         // add index
         for (auto& v : schemaDesc_.label_desc) {
             for (auto& spec : v.columns) {
-                if (v.is_vertex && spec.index && !spec.unique) {
+                if (v.is_vertex && spec.index && !spec.primary &&
+                    spec.idxType == lgraph::IndexType::NonuniqueIndex) {
                     // create index, ID column has creadted
-                    if (db_->AddVertexIndex(v.name, spec.name, spec.unique)) {
-                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
-                                             v.name, spec.name, spec.unique);
+                    if (db_->AddVertexIndex(v.name, spec.name, spec.idxType)) {
+                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                             v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(FMA_FMT("Vertex index [label:{}, field:{}] already exists",
                                                  v.name, spec.name));
                     }
-                } else if (v.is_vertex && spec.index && spec.unique &&
-                           v.GetPrimaryField().name != spec.name) {
+                } else if (v.is_vertex && spec.index && !spec.primary &&
+                           (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
+                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
                     throw InputError(
                         FMA_FMT("offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name));
-                } else if ((!v.is_vertex && spec.index && !spec.global && spec.unique) ||
-                           (!v.is_vertex && spec.index && !spec.unique)) {
-                    if (db_->AddEdgeIndex(v.name, spec.name, spec.unique, spec.global)) {
-                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
-                                             v.name, spec.name, spec.unique);
+                } else if (!v.is_vertex && spec.index &&
+                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                    if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
+                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                             v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
                             FMA_FMT("Edge index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
-                } else if (!v.is_vertex && spec.index && spec.global && spec.unique) {
+                } else if (!v.is_vertex && spec.index &&
+                           spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
                     throw InputError(
                         FMA_FMT("offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
@@ -521,7 +524,7 @@ void Importer::EdgeDataToSST() {
                 for (size_t i = 0; i < prop_names.size(); i++) {
                     auto prop_name = prop_names[i];
                     auto col = schemaDesc_.FindEdgeLabel(file.label).Find(prop_name);
-                    if (col.index && col.unique && !col.global) {
+                    if (col.index && (col.idxType == lgraph::IndexType::PairUniqueIndex)) {
                         unique_index_info.push_back(file.FindIdxExcludeSkip(prop_name));
                     }
                 }
@@ -821,7 +824,8 @@ void Importer::VertexPrimaryIndexToLmdb() {
             auto& label = schema->GetLabel();
             auto& primary_field = schema->GetPrimaryField();
             txn.Abort();
-            db_->GetLightningGraph()->_AddEmptyIndex(label, primary_field, true, true);
+            db_->GetLightningGraph()->_AddEmptyIndex(label, primary_field,
+                                                     lgraph::IndexType::GlobalUniqueIndex, true);
             txn = db_->CreateWriteTxn();
             vertexIndex = txn.GetVertexIndex(label, primary_field);
         }

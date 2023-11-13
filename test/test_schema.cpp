@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "core/schema.h"
-#include "core/kv_store_transaction.h"
+#include "core/lmdb_transaction.h"
 #include "lgraph/lgraph.h"
 #include "./test_tools.h"
 using namespace lgraph;
@@ -138,7 +138,6 @@ TEST_F(TestSchema, DumpRecord) {
     Schema schema(false);
     Schema schema_1(true);
     Schema schema_lg = schema;
-    KvTransaction kv_store;
     FieldSpec fd_0("name", FieldType::STRING, false);
     FieldSpec fd_1("uid", FieldType::INT32, false);
     FieldSpec fd_2("weight", FieldType::FLOAT, false);

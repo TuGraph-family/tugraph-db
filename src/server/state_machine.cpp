@@ -710,7 +710,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
             const auto& ireq = req.add_index_request();
             BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi, true,
                           req.DebugString());
-            bool success = db->AddVertexIndex(ireq.label(), ireq.field(), ireq.is_unique());
+            bool success = db->AddVertexIndex(ireq.label(), ireq.field(),
+                                              static_cast<IndexType>(ireq.type()));
             if (success) {
                 return RespondSuccess(resp);
             } else {

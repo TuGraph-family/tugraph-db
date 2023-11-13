@@ -49,15 +49,17 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
             {{"id", STRING, false}, {"type", FieldType::INT8, false}, {"content", STRING, true}}),
         VertexOptions("id")));
     db.Flush();
-    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "id", false), false);
+    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "id", lgraph::IndexType::NonuniqueIndex), false);
     UT_EXPECT_ANY_THROW(db.DeleteVertexIndex("vertex", "id"));
-    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "type", false), true);
+    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "type", lgraph::IndexType::NonuniqueIndex), true);
     UT_EXPECT_EQ(db.DeleteVertexIndex("vertex", "type"), true);
     UT_EXPECT_ANY_THROW(db.DeleteVertexIndex("vertex", "id"));
-    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "id", false), false);
-    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "content", false), true);
-    UT_EXPECT_ANY_THROW(db.AddVertexIndex("vertex_err", "content", false));
-    UT_EXPECT_ANY_THROW(db.AddVertexIndex("vertex", "content_err", false));
+    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "id", lgraph::IndexType::NonuniqueIndex), false);
+    UT_EXPECT_EQ(db.AddVertexIndex("vertex", "content", lgraph::IndexType::NonuniqueIndex), true);
+    UT_EXPECT_ANY_THROW(db.AddVertexIndex("vertex_err", "content",
+                                          lgraph::IndexType::NonuniqueIndex));
+    UT_EXPECT_ANY_THROW(db.AddVertexIndex("vertex", "content_err",
+                                          lgraph::IndexType::NonuniqueIndex));
     UT_EXPECT_ANY_THROW(db.DeleteVertexIndex("vertex", "content_err"));
     UT_EXPECT_EQ(db.IsVertexIndexed("vertex", "id"), true);
     UT_EXPECT_ANY_THROW(UT_EXPECT_EQ(db.IsVertexIndexed("vertex", "ssid"), true));

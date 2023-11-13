@@ -239,7 +239,7 @@ class VertexIterator : public ::lgraph::IteratorBase {
     friend class ::lgraph::LightningGraph;
     friend int ::TestPerfGraphNoncontinuous(bool track_incoming, bool durable);
 
-    KvIterator it_;
+    std::unique_ptr<KvIterator> it_;
     VertexIteratorImpl impl_;
 
     DISABLE_COPY(VertexIterator);
@@ -267,7 +267,7 @@ class VertexIterator : public ::lgraph::IteratorBase {
      * @return  True if underlying KvIterator was modified.
      */
     void RefreshContentIfKvIteratorModified() override {
-        if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
+        if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
             impl_.RefreshIteratorAndContent();
         }
     }
@@ -306,9 +306,9 @@ class VertexIterator : public ::lgraph::IteratorBase {
         EdgeUid e = euid;
         e.src = GetId();
         if (GetTxn())
-            return OutEdgeIterator(GetTxn(), it_.GetTable(), e, closest);
+            return OutEdgeIterator(GetTxn(), it_->GetTable(), e, closest);
         else
-            return OutEdgeIterator(&it_.GetTxn(), it_.GetTable(), e, closest);
+            return OutEdgeIterator(&it_->GetTxn(), it_->GetTable(), e, closest);
     }
 
     /**
@@ -324,9 +324,9 @@ class VertexIterator : public ::lgraph::IteratorBase {
         EdgeUid e = euid;
         e.dst = GetId();
         if (GetTxn())
-            return InEdgeIterator(GetTxn(), it_.GetTable(), e, closest);
+            return InEdgeIterator(GetTxn(), it_->GetTable(), e, closest);
         else
-            return InEdgeIterator(&it_.GetTxn(), it_.GetTable(), e, closest);
+            return InEdgeIterator(&it_->GetTxn(), it_->GetTable(), e, closest);
     }
 
     bool IsValid() const { return impl_.IsValid(); }
@@ -372,7 +372,7 @@ class VertexIterator : public ::lgraph::IteratorBase {
 #endif
     void LoadContentFromIt() { impl_.LoadContentFromIt(); }
 
-    KvIterator& GetIt() { return it_; }
+    KvIterator& GetIt() { return *it_; }
 
     /**
      * Sets the property of current vertex.

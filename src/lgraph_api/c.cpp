@@ -29,7 +29,6 @@
 #include "lgraph/lgraph_edge_iterator.h"
 #include "lgraph/lgraph_galaxy.h"
 #include "lgraph/lgraph_txn.h"
-#include "lgraph/lgraph_types.h"
 #include "lgraph/lgraph_vertex_index_iterator.h"
 #include "lgraph/lgraph_vertex_iterator.h"
 
@@ -101,6 +100,7 @@ struct lgraph_api_graph_db_t {
 struct lgraph_api_galaxy_t {
     Galaxy repr;
 };
+
 }
 
 /* DateTime(not exhausted)*/
@@ -300,15 +300,18 @@ const char* lgraph_api_index_spec_get_label(lgraph_api_index_spec_t* is) {
 const char* lgraph_api_index_spec_get_field(lgraph_api_index_spec_t* is) {
     return strdup(is->repr.field.c_str());
 }
-bool lgraph_api_index_spec_get_unique(lgraph_api_index_spec_t* is) { return is->repr.unique; }
+bool lgraph_api_index_spec_get_unique(lgraph_api_index_spec_t* is) {
+    return is->repr.type == IndexType::GlobalUniqueIndex ||
+           is->repr.type == IndexType::PairUniqueIndex;
+}
 void lgraph_api_index_spec_set_label(lgraph_api_index_spec_t* is, const char* label) {
     is->repr.label = label;
 }
 void lgraph_api_index_spec_set_field(lgraph_api_index_spec_t* is, const char* field) {
     is->repr.field = field;
 }
-void lgraph_api_index_spec_set_unique(lgraph_api_index_spec_t* is, bool unique) {
-    is->repr.unique = unique;
+void lgraph_api_index_spec_set_type(lgraph_api_index_spec_t* is, int type) {
+    is->repr.type = static_cast<IndexType>(type);
 }
 
 lgraph_api_edge_uid_t* lgraph_api_create_edge_euid(int64_t src, int64_t dst, uint16_t lid,
@@ -2267,9 +2270,10 @@ bool lgraph_api_graph_db_alter_edge_label_mod_fields(
 }
 
 bool lgraph_api_graph_db_add_vertex_index(lgraph_api_graph_db_t* graphdb, const char* label,
-                                          const char* field, bool is_unique, char** errptr) {
+                                          const char* field, int type,
+                                          char** errptr) {
     try {
-        graphdb->repr.AddVertexIndex(label, field, is_unique);
+        graphdb->repr.AddVertexIndex(label, field, static_cast<IndexType>(type));
         return true;
     } catch (const std::exception& e) {
         *errptr = strdup(e.what());
@@ -2278,10 +2282,10 @@ bool lgraph_api_graph_db_add_vertex_index(lgraph_api_graph_db_t* graphdb, const 
 }
 
 bool lgraph_api_graph_db_add_edge_index(lgraph_api_graph_db_t* graphdb, const char* label,
-                                        const char* field, bool is_unique, bool is_global,
+                                        const char* field, int type,
                                         char** errptr) {
     try {
-        graphdb->repr.AddEdgeIndex(label, field, is_unique, is_global);
+        graphdb->repr.AddEdgeIndex(label, field, static_cast<IndexType>(type));
         return true;
     } catch (const std::exception& e) {
         *errptr = strdup(e.what());

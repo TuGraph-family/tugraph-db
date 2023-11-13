@@ -85,19 +85,47 @@ static inline void CheckPasswordString(const std::string& password) {
     if (!lgraph::IsValidPassword(password)) throw lgraph::InputError("Invalid password string.");
 }
 
-std::string lgraph::Galaxy::GetUserToken(const std::string& user,
-                                         const std::string& password) const {
+std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::string& password) {
     CheckUserName(user);
     _HoldWriteLock(acl_lock_);
-    bool r = acl_->ValidateUser(user, password);
-    if (!r) return "";
-    auto user_token_num = acl_->GetUserTokenNum(user);
-    if (user_token_num >= MAX_TOKEN_NUM_PER_USER)
-        throw AuthError("User has reached the maximum number of tokens.");
+
+    // judge user/password error times
+    if (!acl_->ValidateUser(user, password)) {
+        if ((fabs(retry_login_time - 0.0) < std::numeric_limits<double>::epsilon())
+            || (fma_common::GetTime() - retry_login_time) >= RETRY_WAIT_TIME) {
+            if (fabs(retry_login_time - 0.0) >= std::numeric_limits<double>::epsilon()) {
+                login_failed_times_.erase(user);
+                retry_login_time = 0.0;
+            }
+
+            auto& failed_times = login_failed_times_[user];
+            if (++failed_times >= MAX_LOGIN_FAILED_TIMES) {
+                retry_login_time = fma_common::GetTime();
+            }
+            throw lgraph_api::BadRequestException("Bad user/password.");
+        } else {
+            throw lgraph_api::BadRequestException(
+                "Too many login failures, please try again in a minute");
+        }
+        return "";
+    }
+
+    // login success, clear login_failed_times_
+    login_failed_times_.erase(user);
+    retry_login_time = 0.0;
 
     std::string jwt = token_manager_.IssueFirstToken();
     acl_->BindTokenUser("", jwt, user);
     return jwt;
+}
+
+bool lgraph::Galaxy::JudgeUserTokenNum(const std::string& user) {
+    _HoldReadLock(acl_lock_);
+    auto user_token_num = acl_->GetUserTokenNum(user);
+    if (user_token_num >= MAX_TOKEN_NUM_PER_USER) {
+        return false;
+    }
+    return true;
 }
 
 std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) const {
@@ -131,7 +159,11 @@ bool lgraph::Galaxy::UnBindUserAllToken(const std::string& user) {
 }
 
 bool lgraph::Galaxy::JudgeRefreshTime(const std::string& token) {
-    return token_manager_.JudgeRefreshTime(token);
+    if (!token_manager_.JudgeRefreshTime(token)) {
+        UnBindTokenUser(token);
+        return false;
+    }
+    return true;
 }
 
 void lgraph::Galaxy::ModifyTokenTime(const std::string& token,
@@ -166,7 +198,8 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
-    auto txn = store_->CreateWriteTxn(false);
+    auto wt = store_->CreateWriteTxn(false);
+    auto& txn = *wt;
     bool r = gm_new->CreateGraph(txn, graph, config);
     if (!r) return r;
     acl_new->AddGraph(txn, curr_user, graph);
@@ -186,7 +219,8 @@ bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
     auto gref = graphs_->GetGraphRef(graph);
-    auto txn = store_->CreateWriteTxn(false);
+    auto wt = store_->CreateWriteTxn(false);
+    auto& txn = *wt;
     acl_new->DelGraph(txn, curr_user, graph);
     auto db = gm_new->DelGraph(txn, graph);
     if (!db) return false;
@@ -209,7 +243,8 @@ bool lgraph::Galaxy::ModGraph(const std::string& curr_user, const std::string& g
                               const GraphManager::ModGraphActions& actions) {
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot modify graph configs.");
-    auto txn = store_->CreateWriteTxn(false);
+    auto wt = store_->CreateWriteTxn(false);
+    auto& txn = *wt;
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
     bool r = gm_new->ModGraph(txn, graph_name, actions);
@@ -235,7 +270,8 @@ template <typename FT>
 bool lgraph::Galaxy::ModifyACL(const FT& func) {
     _HoldWriteLock(acl_lock_);
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
-    auto txn = store_->CreateWriteTxn();
+    auto wt = store_->CreateWriteTxn();
+    auto& txn = *wt;
     bool r = func(acl_new.get(), txn);
     if (!r) return r;
     txn.Commit();
@@ -269,27 +305,27 @@ std::map<std::string, lgraph::AclManager::UserInfo> lgraph::Galaxy::ListUsers(
     const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
     auto txn = store_->CreateReadTxn();
-    return acl_->ListUsers(txn, curr_user);
+    return acl_->ListUsers(*txn, curr_user);
 }
 
 lgraph::AclManager::UserInfo lgraph::Galaxy::GetUserInfo(const std::string& curr_user,
                                                          const std::string& user) {
     _HoldReadLock(acl_lock_);
     auto txn = store_->CreateReadTxn();
-    return acl_->GetUserInfo(txn, curr_user, user);
+    return acl_->GetUserInfo(*txn, curr_user, user);
 }
 
 size_t lgraph::Galaxy::GetUserMemoryLimit(const std::string& curr_user, const std::string& user) {
     _HoldReadLock(acl_lock_);
     auto txn = store_->CreateReadTxn();
-    return acl_->GetUserMemoryLimit(txn, curr_user, user);
+    return acl_->GetUserMemoryLimit(*txn, curr_user, user);
 }
 
 std::unordered_map<std::string, lgraph::AccessLevel> lgraph::Galaxy::ListUserGraphs(
     const std::string& curr_user, const std::string& user) const {
     _HoldReadLock(acl_lock_);
     auto txn = store_->CreateReadTxn();
-    return acl_->ListUserGraphs(txn, curr_user, user);
+    return acl_->ListUserGraphs(*txn, curr_user, user);
 }
 
 bool lgraph::Galaxy::CreateRole(const std::string& curr_user, const std::string& role,
@@ -332,14 +368,14 @@ std::map<std::string, lgraph::AclManager::RoleInfo> lgraph::Galaxy::ListRoles(
     const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
     auto txn = store_->CreateReadTxn();
-    return acl_->ListRoles(txn, curr_user);
+    return acl_->ListRoles(*txn, curr_user);
 }
 
 lgraph::AclManager::RoleInfo lgraph::Galaxy::GetRoleInfo(const std::string& curr_user,
                                                          const std::string& role) {
     _HoldReadLock(acl_lock_);
     auto txn = store_->CreateReadTxn();
-    return acl_->GetRoleInfo(txn, curr_user, role);
+    return acl_->GetRoleInfo(*txn, curr_user, role);
 }
 
 lgraph::AccessControlledDB lgraph::Galaxy::OpenGraph(const std::string& user,
@@ -403,10 +439,10 @@ size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
             continue;
         new_ips.insert(ip);
         char c = 'd';  // dummy
-        bool r = ip_whitelist_table_.AddKV(txn, Value::ConstRef(ip), Value::ConstRef(c));
+        bool r = ip_whitelist_table_->AddKV(*txn, Value::ConstRef(ip), Value::ConstRef(c));
         FMA_DBG_ASSERT(r);
     }
-    txn.Commit();
+    txn->Commit();
     ip_whitelist_.insert(new_ips.begin(), new_ips.end());
     return new_ips.size();
 }
@@ -422,10 +458,10 @@ size_t lgraph::Galaxy::RemoveIpsFromWhitelist(const std::string& curr_user,
         if (ip_whitelist_.find(ip) == ip_whitelist_.end() || to_remove.find(ip) != to_remove.end())
             continue;
         to_remove.insert(ip);
-        bool r = ip_whitelist_table_.DeleteKey(txn, Value::ConstRef(ip));
+        bool r = ip_whitelist_table_->DeleteKey(*txn, Value::ConstRef(ip));
         FMA_DBG_ASSERT(r);
     }
-    txn.Commit();
+    txn->Commit();
     for (auto& ip : to_remove) ip_whitelist_.erase(ip);
     return to_remove.size();
 }
@@ -433,9 +469,10 @@ size_t lgraph::Galaxy::RemoveIpsFromWhitelist(const std::string& curr_user,
 void lgraph::Galaxy::LoadIpWhitelist(KvTransaction& txn) {
     _HoldWriteLock(ip_whitelist_rw_lock_);
     ip_whitelist_.clear();
-    for (auto it = ip_whitelist_table_.GetIterator(txn); it.IsValid(); it.Next()) {
+    auto it = ip_whitelist_table_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
         // key is ip, value is dummy byte
-        ip_whitelist_.insert(it.GetKey().AsString());
+        ip_whitelist_.insert(it->GetKey().AsString());
     }
 }
 
@@ -511,34 +548,36 @@ void lgraph::Galaxy::ReloadFromDisk(bool create_if_not_exist) {
     graphs_.reset();
     acl_.reset();
     store_.reset();
-    KvStore::SetLastOpIdOfAllStores(-1);
-    store_.reset(new KvStore(GetMetaStoreDir(config_.dir), (size_t)1 << 30, config_.durable,
+    LMDBKvStore::SetLastOpIdOfAllStores(-1);
+    store_.reset(new LMDBKvStore(GetMetaStoreDir(config_.dir), (size_t)1 << 30, config_.durable,
                              create_if_not_exist));
     auto txn = store_->CreateWriteTxn(false);
     db_info_table_ =
-        store_->OpenTable(txn, _detail::META_TABLE, true, ComparatorDesc::DefaultComparator());
-    CheckTuGraphVersion(txn);
+        store_->OpenTable(*txn, _detail::META_TABLE, true, ComparatorDesc::DefaultComparator());
+    CheckTuGraphVersion(*txn);
     // load configs
-    LoadConfigTable(txn);
+    LoadConfigTable(*txn);
     // load ip whitelist
-    ip_whitelist_table_ = store_->OpenTable(txn, _detail::IP_WHITELIST_TABLE, true,
+    ip_whitelist_table_ = store_->OpenTable(*txn, _detail::IP_WHITELIST_TABLE, true,
                                             ComparatorDesc::DefaultComparator());
-    LoadIpWhitelist(txn);
+    LoadIpWhitelist(*txn);
     // now load contents
     GraphManager::Config gmc(*global_config_);
     gmc.load_plugins = config_.load_plugins;
     graphs_.reset(new GraphManager());
-    graphs_->Init(store_.get(), txn, _detail::GRAPH_CONFIG_TABLE_NAME, config_.dir, gmc);
+    graphs_->Init(store_.get(), *txn, _detail::GRAPH_CONFIG_TABLE_NAME, config_.dir, gmc);
     acl_.reset(new AclManager());
-    acl_->Init(store_.get(), txn, _detail::USER_TABLE_NAME, _detail::ROLE_TABLE_NAME);
+    acl_->Init(store_.get(), *txn, _detail::USER_TABLE_NAME, _detail::ROLE_TABLE_NAME);
     if (graphs_->GraphExists(_detail::DEFAULT_GRAPH_DB_NAME))
-        acl_->AddGraph(txn, _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_GRAPH_DB_NAME);
-    txn.Commit();
+        acl_->AddGraph(*txn, _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_GRAPH_DB_NAME);
+    txn->Commit();
 }
 
-int64_t lgraph::Galaxy::GetRaftLogIndex() const { return KvStore::GetLastOpIdOfAllStores(); }
+int64_t lgraph::Galaxy::GetRaftLogIndex() const { return LMDBKvStore::GetLastOpIdOfAllStores(); }
 
-void lgraph::Galaxy::SetRaftLogIndexBeforeWrite(int64_t id) { KvStore::SetLastOpIdOfAllStores(id); }
+void lgraph::Galaxy::SetRaftLogIndexBeforeWrite(int64_t id) {
+    LMDBKvStore::SetLastOpIdOfAllStores(id);
+}
 
 void lgraph::Galaxy::WarmUp(const std::string& user, const std::vector<std::string>& graphs) {
     for (auto& name : graphs) {
@@ -603,7 +642,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
                     throw InputError("Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->enable_audit_log) {
-                    db_info_table_.SetValue(txn, Value::ConstRef(key), Value::ConstRef(b));
+                    db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
                     need_reload_galaxy = true;
                 }
                 break;
@@ -614,7 +653,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
                     throw InputError("Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->durable) {
-                    db_info_table_.SetValue(txn, Value::ConstRef(key), Value::ConstRef(b));
+                    db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
                     need_reload_galaxy = true;
                 }
                 break;
@@ -625,7 +664,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
                     throw InputError("Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->txn_optimistic) {
-                    db_info_table_.SetValue(txn, Value::ConstRef(key), Value::ConstRef(b));
+                    db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
                     need_reload_galaxy = true;
                 }
                 break;
@@ -636,7 +675,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
                     throw InputError("Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->enable_ip_check) {
-                    db_info_table_.SetValue(txn, Value::ConstRef(key), Value::ConstRef(b));
+                    db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
                     need_reload_galaxy = true;
                 }
                 break;
@@ -645,19 +684,19 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
             FMA_DBG_ASSERT(false);
         }
     }
-    txn.Commit();
+    txn->Commit();
     return need_reload_galaxy;
 }
 
 void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
     for (auto& kv : _detail::config_key_to_enums) {
-        auto it = db_info_table_.GetIterator(txn, Value::ConstRef(kv.first));
-        if (!it.IsValid()) continue;
+        auto it = db_info_table_->GetIterator(txn, Value::ConstRef(kv.first));
+        if (!it->IsValid()) continue;
         switch (kv.second) {
         case _detail::OPT_ENUMS::ENABLE_AUDIT_LOG:
             {
                 // enable/disable audit log
-                bool b = it.GetValue().AsType<bool>();
+                bool b = it->GetValue().AsType<bool>();
                 AuditLogger::SetEnable(b);
                 if (b != global_config_->enable_audit_log) {
                     FMA_INFO_STREAM(logger_)
@@ -668,7 +707,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
             }
         case _detail::OPT_ENUMS::DURABLE:
             {
-                bool b = it.GetValue().AsType<bool>();
+                bool b = it->GetValue().AsType<bool>();
                 config_.durable = b;
                 if (b != global_config_->durable) {
                     FMA_INFO_STREAM(logger_) << "Option \"durable\" is overwritten by value in DB";
@@ -678,7 +717,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
             }
         case _detail::OPT_ENUMS::OPTIMISTIC:
             {
-                bool b = it.GetValue().AsType<bool>();
+                bool b = it->GetValue().AsType<bool>();
                 config_.optimistic_txn = b;
                 if (b != global_config_->txn_optimistic) {
                     FMA_INFO_STREAM(logger_)
@@ -689,7 +728,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
             }
         case _detail::OPT_ENUMS::ENABLE_IP_CHECK:
             {
-                bool b = it.GetValue().AsType<bool>();
+                bool b = it->GetValue().AsType<bool>();
                 if (b != global_config_->enable_ip_check) {
                     FMA_INFO_STREAM(logger_)
                         << "Option \"enable_ip_check\" is overwritten by value in DB";
@@ -704,24 +743,24 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
 }
 
 std::tuple<int, int, int> lgraph::Galaxy::GetAndSetTuGraphVersionIfNecessary(KvTransaction& txn) {
-    auto it = db_info_table_.GetIterator(txn, Value::ConstRef(_detail::VER_MAJOR_KEY));
-    if (!it.IsValid()) {
+    auto it = db_info_table_->GetIterator(txn, Value::ConstRef(_detail::VER_MAJOR_KEY));
+    if (!it->IsValid()) {
         // no version info, set it
-        db_info_table_.SetValue(txn, Value::ConstRef(_detail::VER_MAJOR_KEY),
+        db_info_table_->SetValue(txn, Value::ConstRef(_detail::VER_MAJOR_KEY),
                                 Value::ConstRef(lgraph::_detail::VER_MAJOR));
-        db_info_table_.SetValue(txn, Value::ConstRef(_detail::VER_MINOR_KEY),
+        db_info_table_->SetValue(txn, Value::ConstRef(_detail::VER_MINOR_KEY),
                                 Value::ConstRef(lgraph::_detail::VER_MINOR));
-        db_info_table_.SetValue(txn, Value::ConstRef(_detail::VER_PATCH_KEY),
+        db_info_table_->SetValue(txn, Value::ConstRef(_detail::VER_PATCH_KEY),
                                 Value::ConstRef(lgraph::_detail::VER_PATCH));
         return std::make_tuple(_detail::VER_MAJOR, _detail::VER_MINOR, _detail::VER_PATCH);
     } else {
-        int major = it.GetValue().AsType<int>();
-        it.GotoKey(Value::ConstRef(_detail::VER_MINOR_KEY));
-        FMA_DBG_ASSERT(it.IsValid());
-        int minor = it.GetValue().AsType<int>();
-        it.GotoKey(Value::ConstRef(_detail::VER_PATCH_KEY));
-        FMA_DBG_ASSERT(it.IsValid());
-        int patch = it.GetValue().AsType<int>();
+        int major = it->GetValue().AsType<int>();
+        it->GotoKey(Value::ConstRef(_detail::VER_MINOR_KEY));
+        FMA_DBG_ASSERT(it->IsValid());
+        int minor = it->GetValue().AsType<int>();
+        it->GotoKey(Value::ConstRef(_detail::VER_PATCH_KEY));
+        FMA_DBG_ASSERT(it->IsValid());
+        int patch = it->GetValue().AsType<int>();
         return std::make_tuple(major, minor, patch);
     }
 }
@@ -748,8 +787,8 @@ void lgraph::Galaxy::BootstrapRaftLogIndex(int64_t log_id) {
     SetRaftLogIndexBeforeWrite(log_id);
     // need to write something so that raft log id can be written to db
     auto txn = store_->CreateWriteTxn(false);
-    db_info_table_.SetValue(txn, Value::ConstRef("_dummy_"), Value::ConstRef(log_id), true);
-    txn.Commit();
+    db_info_table_->SetValue(*txn, Value::ConstRef("_dummy_"), Value::ConstRef(log_id), true);
+    txn->Commit();
 }
 
 bool lgraph::Galaxy::ModRoleDisable(const std::string& role, bool disable) {
@@ -809,7 +848,7 @@ lgraph::AclManager::FieldAccess lgraph::Galaxy::GetRoleFieldAccessLevel(const st
     auto txn = store_->CreateWriteTxn();
     lgraph::AclManager::FieldAccess merged_access;
     for (auto& role : roles) {
-        auto access = acl_->GetRoleFieldAccessLevel(txn, role, graph);
+        auto access = acl_->GetRoleFieldAccessLevel(*txn, role, graph);
         for (auto& access_kv : access) {
             auto it = merged_access.find(access_kv.first);
             if (it == merged_access.end() ||

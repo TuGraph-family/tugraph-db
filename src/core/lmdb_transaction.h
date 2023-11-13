@@ -20,32 +20,33 @@
 
 #include "fma-common/logger.h"
 #include "fma-common/type_traits.h"
-#include "core/kv_store_exception.h"
-#include "core/kv_store_table.h"
+#include "core/kv_engine.h"
+#include "core/lmdb_exception.h"
+#include "core/lmdb_table.h"
 #include "core/lmdb_profiler.h"
 #include "core/lmdb/lmdb.h"
 
 
 namespace lgraph {
-class KvIterator;
+class LMDBKvIterator;
 
-class KvTable;
+class LMDBKvTable;
 
 class KvTransaction;
 
-class KvStore;
+class LMDBKvStore;
 
 class Wal;
 
 class DeltaStore {
-    friend class KvTable;
-    friend class KvIterator;
-    friend class KvStore;
+    friend class LMDBKvTable;
+    friend class LMDBKvIterator;
+    friend class LMDBKvStore;
 
-    std::map<std::string, std::string, KvTable> write_set_;
+    std::map<std::string, std::string, LMDBKvTable> write_set_;
 
  public:
-    explicit DeltaStore(const KvTable& table);
+    explicit DeltaStore(const LMDBKvTable& table);
 
     DeltaStore(const DeltaStore& rhs) = delete;
 
@@ -60,11 +61,10 @@ class DeltaStore {
     std::pair<int8_t, Value> Get(const Value& key);
 };
 
-class KvTransaction {
-    friend class KvIterator;
-    friend class KvStore;
-    friend class KvTable;
-    friend class KvTransactionValidator;
+class LMDBKvTransaction final : public KvTransaction {
+    friend class LMDBKvIterator;
+    friend class LMDBKvStore;
+    friend class LMDBKvTable;
 
     MDB_txn* txn_ = nullptr;
     bool read_only_ = true;
@@ -78,53 +78,53 @@ class KvTransaction {
     int8_t commit_status_ = 0;
     int commit_ec_ = 0;
 
-    KvStore* store_ = nullptr;
+    LMDBKvStore* store_ = nullptr;
     Wal* wal_ = nullptr;
 
-    DeltaStore& GetDelta(KvTable& table);
+    DeltaStore& GetDelta(LMDBKvTable& table);
 
     Wal* GetWal() const { return wal_; }
 
  public:
     MDB_txn* GetTxn() { return txn_; }
-    KvTransaction() {}
+    LMDBKvTransaction() = default;
 
-    DISABLE_COPY(KvTransaction);
+    DISABLE_COPY(LMDBKvTransaction);
 
-    KvTransaction(KvStore& store, bool read_only, bool optimistic);
+    LMDBKvTransaction(LMDBKvStore& store, bool read_only, bool optimistic);
 
-    KvTransaction(KvTransaction&& rhs);
+    LMDBKvTransaction(LMDBKvTransaction&& rhs) noexcept;
 
-    KvTransaction& operator=(KvTransaction&& rhs);
+    LMDBKvTransaction& operator=(LMDBKvTransaction&& rhs) noexcept;
 
-    ~KvTransaction();
+    ~LMDBKvTransaction() override;
 
     /**
      * Gets the fork of this transaction. Can only be used in read transactions.
      *
      * \return  A KvTransaction.
      */
-    KvTransaction Fork();
+    std::unique_ptr<KvTransaction> Fork() override;
 
     bool IsReadOnly() const { return read_only_; }
 
-    bool IsOptimistic() const { return optimistic_; }
+    bool IsOptimistic() const override { return optimistic_; }
 
     /**
      * Commits the transaction. All KvIterators will be invalidated.
      */
-    void Commit();
+    void Commit() override;
 
     /**
      * Aborts the transaction. All KvIterators will be invalidated.
      */
-    void Abort();
+    void Abort() override;
 
-    bool IsValid() const { return txn_ != nullptr; }
+    bool IsValid() const override { return txn_ != nullptr; }
 
-    size_t TxnId() { return mdb_txn_id(txn_); }
+    size_t TxnId() override { return mdb_txn_id(txn_); }
 
-    int64_t LastOpId() const { return mdb_txn_last_op_id(txn_); }
+    int64_t LastOpId() const override { return mdb_txn_last_op_id(txn_); }
 };
 }  // namespace lgraph
 #endif

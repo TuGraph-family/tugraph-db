@@ -61,8 +61,8 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
              FieldSpec("age", FieldType::FLOAT, true), FieldSpec("img", FieldType::BLOB, true),
              FieldSpec("desc", FieldType::STRING, true), FieldSpec("img2", FieldType::BLOB, true)}),
         true, vo));
-    lg.BlockingAddIndex("person", "name", false, true, true);
-    lg.BlockingAddIndex("person", "age", false, true, true);
+    lg.BlockingAddIndex("person", "name", lgraph::IndexType::NonuniqueIndex, true);
+    lg.BlockingAddIndex("person", "age", lgraph::IndexType::NonuniqueIndex, true);
     EdgeOptions options;
     options.temporal_field = "ts";
     options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
@@ -71,7 +71,7 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
                                std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
                                                        FieldSpec("ts", FieldType::INT64, true)}),
                                false, options));
-    lg.BlockingAddIndex("knows", "weight", false, false, false);
+    lg.BlockingAddIndex("knows", "weight", lgraph::IndexType::NonuniqueIndex, false);
     auto txn = lg.CreateWriteTxn();
     VertexId v0 =
         txn.AddVertex(std::string("person"),

@@ -47,25 +47,25 @@ static inline bool IsBuiltinRole(const std::string& role) {
 lgraph::AclManager::UserInfo lgraph::AclManager::GetUserInfoFromKv(KvTransaction& txn,
                                                                    const std::string& user) {
     if (user.empty()) throw InputError("Invalid user name.");
-    auto value = user_tbl_.GetValue(txn, Value::ConstRef(user));
+    auto value = user_tbl_->GetValue(txn, Value::ConstRef(user));
     return DeserializeFromValue<UserInfo>(value);
 }
 
 void lgraph::AclManager::StoreUserInfoToKv(KvTransaction& txn, const std::string& user,
                                            const UserInfo& info) {
-    user_tbl_.SetValue(txn, Value::ConstRef(user), SerializeToValue(info));
+    user_tbl_->SetValue(txn, Value::ConstRef(user), SerializeToValue(info));
 }
 
 lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfoFromKv(KvTransaction& txn,
                                                                    const std::string& role) {
     if (role.empty()) throw InputError("Illegal role name.");
-    auto value = role_tbl_.GetValue(txn, Value::ConstRef(role));
+    auto value = role_tbl_->GetValue(txn, Value::ConstRef(role));
     return DeserializeFromValue<RoleInfo>(value);
 }
 
 void lgraph::AclManager::StoreRoleInfoToKv(KvTransaction& txn, const std::string& role,
                                            const RoleInfo& info) {
-    role_tbl_.SetValue(txn, Value::ConstRef(role), SerializeToValue(info));
+    role_tbl_->SetValue(txn, Value::ConstRef(role), SerializeToValue(info));
 }
 
 static inline bool IsAdminRoleInfo(const lgraph::AclManager::RoleInfo& rinfo) {
@@ -109,14 +109,15 @@ void lgraph::AclManager::CachedUserInfo::UpdateAclInfo(
 std::unordered_map<std::string, lgraph::AclManager::RoleInfo> lgraph::AclManager::GetAllRolesFromKv(
     KvTransaction& txn) {
     std::unordered_map<std::string, RoleInfo> ret;
-    for (auto it = role_tbl_.GetIterator(txn); it.IsValid(); it.Next())
-        ret.emplace(it.GetKey().AsString(), DeserializeFromValue<RoleInfo>(it.GetValue()));
+    auto it = role_tbl_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next())
+        ret.emplace(it->GetKey().AsString(), DeserializeFromValue<RoleInfo>(it->GetValue()));
     return ret;
 }
 
 bool lgraph::AclManager::CreateRoleInternal(KvTransaction& txn, const std::string& role_name,
                                             const std::string& desc, bool is_primary) {
-    if (role_tbl_.HasKey(txn, Value::ConstRef(role_name))) return false;
+    if (role_tbl_->HasKey(txn, Value::ConstRef(role_name))) return false;
     RoleInfo rinfo;
     rinfo.desc = desc;
     rinfo.disabled = false;
@@ -128,10 +129,10 @@ bool lgraph::AclManager::CreateRoleInternal(KvTransaction& txn, const std::strin
 bool lgraph::AclManager::DeleteRoleInternal(KvTransaction& txn, const std::string& role,
                                             bool deleting_user) {
     // delete key from role table
-    auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-    if (!it.IsValid()) return false;
-    RoleInfo rinfo = DeserializeFromValue<RoleInfo>(it.GetValue());
-    it.Close();
+    auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+    if (!it->IsValid()) return false;
+    auto rinfo = DeserializeFromValue<RoleInfo>(it->GetValue());
+    it->Close();
     if (rinfo.is_primary && !deleting_user)
         throw InputError("Cannot delete a primary role that is still in use.");
     // now update user info and refresh the whole acl table
@@ -158,7 +159,7 @@ bool lgraph::AclManager::DeleteRoleInternal(KvTransaction& txn, const std::strin
         StoreRoleInfoToKv(txn, role, rinfo);
     } else {
         // primary role not in use any more, or not primary
-        role_tbl_.DeleteKey(txn, Value::ConstRef(role));
+        role_tbl_->DeleteKey(txn, Value::ConstRef(role));
     }
     return true;
 }
@@ -229,7 +230,7 @@ template <typename T>
 void lgraph::AclManager::CheckRolesExist(KvTransaction& txn, const T& roles) {
     for (auto& r : roles) {
         if (!IsValidLGraphName(r)) throw InputError("Invalid role name: " + r);
-        if (!role_tbl_.HasKey(txn, Value::ConstRef(r)))
+        if (!role_tbl_->HasKey(txn, Value::ConstRef(r)))
             throw InputError(FMA_FMT("Role {} does not exist.", r));
     }
 }
@@ -303,7 +304,7 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
     ait->second.UpdateAuthInfo(uinfo);
     if (need_refresh_acl_table) {
         bool was_admin = ait->second.is_admin;
-        ait->second.UpdateAclInfo(txn, role_tbl_, uinfo);
+        ait->second.UpdateAclInfo(txn, *role_tbl_, uinfo);
         if (curr_user == user && was_admin && !ait->second.is_admin) {
             throw InputError("User cannot remove itself from admin group.");
         }
@@ -323,7 +324,7 @@ bool lgraph::AclManager::DelUser(KvTransaction& txn, const std::string& curr_use
     auto uit = user_cache_.find(user);
     if (uit == user_cache_.end()) return false;
     user_cache_.erase(uit);
-    user_tbl_.DeleteKey(txn, Value::ConstRef(user));
+    user_tbl_->DeleteKey(txn, Value::ConstRef(user));
     auto r = DeleteRoleInternal(txn, user, true);
     FMA_DBG_ASSERT(r);
     return true;
@@ -399,8 +400,8 @@ bool lgraph::AclManager::ModRole(KvTransaction& txn, const std::string& curr_use
     const std::string& role = request.role();
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     {
-        auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-        if (!it.IsValid()) return false;
+        auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+        if (!it->IsValid()) return false;
     }
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
     bool need_refresh_acl_table = false;
@@ -457,10 +458,11 @@ bool lgraph::AclManager::ModRole(KvTransaction& txn, const std::string& curr_use
     if (need_refresh_acl_table) {
         // refresh user acl one by one
         std::unordered_map<std::string, RoleInfo> roles = GetAllRolesFromKv(txn);
-        for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-            UserInfo uinfo = DeserializeFromValue<UserInfo>(it.GetValue());
+        auto it = user_tbl_->GetIterator(txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            UserInfo uinfo = DeserializeFromValue<UserInfo>(it->GetValue());
             auto& uroles = uinfo.roles;
-            const std::string& user = it.GetKey().AsString();
+            const std::string& user = it->GetKey().AsString();
             if (uroles.find(role) != uroles.end()) {
                 user_cache_[user].UpdateAclInfo(roles, uinfo);
             }
@@ -497,7 +499,7 @@ lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfo(KvTransaction& txn,
             throw AuthError("User is not an admin and does not have the specified role.");
     }
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
-    auto v = role_tbl_.GetValue(txn, Value::ConstRef(role));
+    auto v = role_tbl_->GetValue(txn, Value::ConstRef(role));
     if (v.Empty())
         throw InputError(FMA_FMT("Role [{}] does not exist.", role));
     else
@@ -510,7 +512,7 @@ void lgraph::AclManager::AddGraph(KvTransaction& txn, const std::string& curr_us
     if (!IsValidGraphName(graph)) throw InputError("Invalid graph name.");
     // add graph to admin role
     RoleInfo rinfo = DeserializeFromValue<RoleInfo>(
-        role_tbl_.GetValue(txn, Value::ConstRef(_detail::ADMIN_ROLE)));
+        role_tbl_->GetValue(txn, Value::ConstRef(_detail::ADMIN_ROLE)));
     rinfo.graph_access.emplace_hint(rinfo.graph_access.end(), graph, AccessLevel::FULL);
     StoreRoleInfoToKv(txn, _detail::ADMIN_ROLE, rinfo);
     // update admin users cache
@@ -529,14 +531,15 @@ void lgraph::AclManager::DelGraph(KvTransaction& txn, const std::string& curr_us
     if (graph == _detail::META_GRAPH) throw InputError("Builtin graph cannot be deleted.");
     if (!IsValidGraphName(graph)) throw InputError("Invalid graph name.");
     // remove graph from roles
-    for (auto it = role_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-        RoleInfo rinfo = DeserializeFromValue<RoleInfo>(it.GetValue());
+    auto it = role_tbl_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        RoleInfo rinfo = DeserializeFromValue<RoleInfo>(it->GetValue());
         auto& access = rinfo.graph_access;
         auto ait = access.find(graph);
         if (ait == access.end()) continue;
         // role affected, need to update
         access.erase(ait);
-        it.SetValue(SerializeToValue(rinfo));
+        it->SetValue(SerializeToValue(rinfo));
     }
     // remove graph from cache
     for (auto& kv : user_cache_) {
@@ -555,7 +558,7 @@ void lgraph::AclManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
                                         const std::string& role_tbl_name) {
     user_cache_.clear();
     role_tbl_ = store->OpenTable(txn, role_tbl_name, true, ComparatorDesc::DefaultComparator());
-    if (role_tbl_.GetKeyCount(txn) == 0) {
+    if (role_tbl_->GetKeyCount(txn) == 0) {
         // empty role table, create a default admin role
         RoleInfo rinfo;
         rinfo.desc = _detail::ADMIN_ROLE_DESC;
@@ -564,7 +567,7 @@ void lgraph::AclManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
         StoreRoleInfoToKv(txn, _detail::ADMIN_ROLE, rinfo);
     }
     user_tbl_ = store->OpenTable(txn, user_tbl_name, true, ComparatorDesc::DefaultComparator());
-    if (user_tbl_.GetKeyCount(txn) == 0) {
+    if (user_tbl_->GetKeyCount(txn) == 0) {
         // empty user table, create a default admin user
         UserInfo uinfo;
         uinfo.auth_method = _detail::BUILTIN_AUTH;
@@ -576,8 +579,9 @@ void lgraph::AclManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
     // populate cache tables
     auto roles = GetAllRolesFromKv(txn);
     std::vector<std::pair<std::string, UserInfo>> users;
-    for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-        users.emplace_back(it.GetKey().AsString(), DeserializeFromValue<UserInfo>(it.GetValue()));
+    auto it = user_tbl_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        users.emplace_back(it->GetKey().AsString(), DeserializeFromValue<UserInfo>(it->GetValue()));
     }
     for (auto& kv : users) {
         const std::string& user = kv.first;
@@ -592,8 +596,8 @@ bool lgraph::AclManager::ModRoleDisable(KvTransaction& txn, const std::string& r
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     {
-        auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-        if (!it.IsValid()) return false;
+        auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+        if (!it->IsValid()) return false;
     }
 
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
@@ -602,10 +606,11 @@ bool lgraph::AclManager::ModRoleDisable(KvTransaction& txn, const std::string& r
         StoreRoleInfoToKv(txn, role, rinfo);
         // refresh user acl one by one
         std::unordered_map<std::string, RoleInfo> roles = GetAllRolesFromKv(txn);
-        for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-            UserInfo uinfo = DeserializeFromValue<UserInfo>(it.GetValue());
+        auto it = user_tbl_->GetIterator(txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            auto uinfo = DeserializeFromValue<UserInfo>(it->GetValue());
             auto& uroles = uinfo.roles;
-            const std::string& user = it.GetKey().AsString();
+            const std::string& user = it->GetKey().AsString();
             if (uroles.find(role) != uroles.end()) {
                 user_cache_[user].UpdateAclInfo(roles, uinfo);
             }
@@ -620,18 +625,19 @@ bool lgraph::AclManager::ModRoleDesc(KvTransaction& txn, const std::string& role
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     if (desc.size() > _detail::MAX_DESC_LEN) throw InputError("Role description too long.");
     {
-        auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-        if (!it.IsValid()) return false;
+        auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+        if (!it->IsValid()) return false;
     }
 
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
     rinfo.desc = desc;
     StoreRoleInfoToKv(txn, role, rinfo);
     std::unordered_map<std::string, RoleInfo> roles = GetAllRolesFromKv(txn);
-    for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-        UserInfo uinfo = DeserializeFromValue<UserInfo>(it.GetValue());
+    auto it = user_tbl_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        auto uinfo = DeserializeFromValue<UserInfo>(it->GetValue());
         auto& uroles = uinfo.roles;
-        const std::string& user = it.GetKey().AsString();
+        const std::string& user = it->GetKey().AsString();
         if (uroles.find(role) != uroles.end()) {
             user_cache_[user].UpdateAclInfo(roles, uinfo);
         }
@@ -645,8 +651,8 @@ bool lgraph::AclManager::ModAllRoleAccessLevel(
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     {
-        auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-        if (!it.IsValid()) return false;
+        auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+        if (!it->IsValid()) return false;
     }
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
     rinfo.graph_access.clear();
@@ -656,10 +662,11 @@ bool lgraph::AclManager::ModAllRoleAccessLevel(
 
     StoreRoleInfoToKv(txn, role, rinfo);
     std::unordered_map<std::string, RoleInfo> roles = GetAllRolesFromKv(txn);
-    for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-        UserInfo uinfo = DeserializeFromValue<UserInfo>(it.GetValue());
+    auto it = user_tbl_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        auto uinfo = DeserializeFromValue<UserInfo>(it->GetValue());
         auto& uroles = uinfo.roles;
-        const std::string& user = it.GetKey().AsString();
+        const std::string& user = it->GetKey().AsString();
         if (uroles.find(role) != uroles.end()) {
             user_cache_[user].UpdateAclInfo(roles, uinfo);
         }
@@ -672,8 +679,8 @@ bool lgraph::AclManager::ModRoleAccessLevel(KvTransaction& txn, const std::strin
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     {
-        auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-        if (!it.IsValid()) return false;
+        auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+        if (!it->IsValid()) return false;
     }
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
     for (auto& kv : acs) {
@@ -685,10 +692,11 @@ bool lgraph::AclManager::ModRoleAccessLevel(KvTransaction& txn, const std::strin
     }
     StoreRoleInfoToKv(txn, role, rinfo);
     std::unordered_map<std::string, RoleInfo> roles = GetAllRolesFromKv(txn);
-    for (auto it = user_tbl_.GetIterator(txn); it.IsValid(); it.Next()) {
-        UserInfo uinfo = DeserializeFromValue<UserInfo>(it.GetValue());
+    auto it = user_tbl_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        UserInfo uinfo = DeserializeFromValue<UserInfo>(it->GetValue());
         auto& uroles = uinfo.roles;
-        const std::string& user = it.GetKey().AsString();
+        const std::string& user = it->GetKey().AsString();
         if (uroles.find(role) != uroles.end()) {
             user_cache_[user].UpdateAclInfo(roles, uinfo);
         }
@@ -701,8 +709,8 @@ bool lgraph::AclManager::ModRoleFieldAccessLevel(KvTransaction& txn, const std::
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
     if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
     {
-        auto it = role_tbl_.GetIterator(txn, Value::ConstRef(role));
-        if (!it.IsValid()) return false;
+        auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
+        if (!it->IsValid()) return false;
     }
     RoleInfo rinfo = GetRoleInfoFromKv(txn, role);
     for (auto& kv : acs) {
@@ -743,7 +751,7 @@ bool lgraph::AclManager::ModUserDisable(KvTransaction& txn, const std::string& c
     uinfo.disabled = disable;
     ait->second.UpdateAuthInfo(uinfo);
     bool was_admin = ait->second.is_admin;
-    ait->second.UpdateAclInfo(txn, role_tbl_, uinfo);
+    ait->second.UpdateAclInfo(txn, *role_tbl_, uinfo);
     if (curr_user == user && was_admin && !ait->second.is_admin) {
         throw InputError("User cannot remove itself from admin group.");
     }
@@ -824,7 +832,7 @@ bool lgraph::AclManager::DeleteUserRoles(KvTransaction& txn, const std::string& 
     ait->second.UpdateAuthInfo(uinfo);
     if (need_refresh_acl_table) {
         bool was_admin = ait->second.is_admin;
-        ait->second.UpdateAclInfo(txn, role_tbl_, uinfo);
+        ait->second.UpdateAclInfo(txn, *role_tbl_, uinfo);
         if (current_user == user && was_admin && !ait->second.is_admin) {
             throw InputError("User cannot remove itself from admin group.");
         }
@@ -851,7 +859,7 @@ bool lgraph::AclManager::RebuildUserRoles(KvTransaction& txn, const std::string&
         throw InputError("User cannot remove itself from admin.");
     ait->second.UpdateAuthInfo(uinfo);
     bool was_admin = ait->second.is_admin;
-    ait->second.UpdateAclInfo(txn, role_tbl_, uinfo);
+    ait->second.UpdateAclInfo(txn, *role_tbl_, uinfo);
     if (current_user == user && was_admin && !ait->second.is_admin) {
         throw InputError("User cannot remove itself from admin group.");
     }
@@ -876,7 +884,7 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
     uinfo.roles.insert(user);  // user always has a primary role
     ait->second.UpdateAuthInfo(uinfo);
     bool was_admin = ait->second.is_admin;
-    ait->second.UpdateAclInfo(txn, role_tbl_, uinfo);
+    ait->second.UpdateAclInfo(txn, *role_tbl_, uinfo);
     if (current_user == user && was_admin && !ait->second.is_admin) {
         throw InputError("User cannot remove itself from admin group.");
     }

@@ -41,12 +41,18 @@ class Project : public OpBase {
         const auto &return_body = stmt->return_clause ? std::get<1>(*stmt->return_clause)
                                                       : std::get<1>(*stmt->with_clause);
         const auto &return_items = std::get<0>(return_body);
+        std::unordered_set<std::string> distinct_alias;
         for (auto &item : return_items) {
             auto &expr = std::get<0>(item);
             auto &var = std::get<1>(item);
             ArithExprNode ae(expr, sym_tab_);
             return_elements_.emplace_back(ae);
-            return_alias_.emplace_back(var.empty() ? expr.ToString(false) : var);
+            auto alias = var.empty() ? expr.ToString(false) : var;
+            if (distinct_alias.find(alias) != distinct_alias.end()) {
+                throw lgraph::CypherException("Duplicate alias: " + alias);
+            }
+            distinct_alias.emplace(alias);
+            return_alias_.emplace_back(alias);
             if (!var.empty()) modifies.emplace_back(var);
         }
     }

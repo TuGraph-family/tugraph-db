@@ -17,6 +17,7 @@ RUN yum update -y && yum install -y \
     make \
     wget \
     bzip2 \
+    bzip2-devel \
     zlib-devel.x86_64 \
     libtool \
     libtool-ltdl \

@@ -340,48 +340,48 @@ Value Schema::CreateRecordWithLabelId() const {
 }
 
 void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
-    property_table_.AppendKv(
+    property_table_->AppendKv(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
 }
 
 Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    return property_table_.GetValue(
+    return property_table_->GetValue(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
 }
 
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
-    auto ret = property_table_.SetValue(
+    auto ret = property_table_->SetValue(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
     FMA_ASSERT(ret);
 }
 
 void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    auto ret = property_table_.DeleteKey(
+    auto ret = property_table_->DeleteKey(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
     FMA_ASSERT(ret);
 }
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    return property_table_.GetValue(
+    return property_table_->GetValue(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
 }
 
 void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
-    auto ret = property_table_.SetValue(
+    auto ret = property_table_->SetValue(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
     FMA_ASSERT(ret);
 }
 
 void Schema::AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
-    auto ret = property_table_.AddKV(
+    auto ret = property_table_->AddKV(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
     FMA_ASSERT(ret);
 }
 
 void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    auto ret = property_table_.DeleteKey(
+    auto ret = property_table_->DeleteKey(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
     FMA_ASSERT(ret);
 }

@@ -47,12 +47,17 @@ find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 # target
 add_subdirectory(deps/geax-front-end)
 add_subdirectory(src)
-add_subdirectory(test)
 add_subdirectory(toolkits)
-add_subdirectory(procedures)
 add_subdirectory(release)
-add_subdirectory(learn)
+if (BUILD_PROCEDURE)
+    add_subdirectory(learn)
+    add_subdirectory(procedures)
+endif (BUILD_PROCEDURE)
 
-# fix dependency
+# unit_test
+add_subdirectory(test)
 set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog)
 add_dependencies(unit_test ${LGRAPH_TOOLKITS} lgraph_server)
+
+set_target_properties(unit_test PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(fma_unit_test PROPERTIES EXCLUDE_FROM_ALL TRUE)

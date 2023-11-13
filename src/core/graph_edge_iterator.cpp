@@ -21,7 +21,7 @@ namespace graph {
 template <PackType ET>
 EdgeIterator<ET>::EdgeIterator(::lgraph::Transaction* txn, KvTable& table, const EdgeUid& euid,
                                bool closest)
-    : IteratorBase(txn), it_(txn->GetTxn(), table), impl_(it_) {
+    : IteratorBase(txn), it_(table.GetIterator(txn->GetTxn())), impl_(*it_) {
     impl_.Goto(euid, closest);
 }
 

@@ -13,7 +13,6 @@
  */
 
 #include <iostream>
-#include <fstream>
 #include <filesystem>
 
 #include "./ut_utils.h"
@@ -28,7 +27,6 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     using namespace lgraph;
 
     // set up cmd
-    std::string db_management_folder = "../../deps/tugraph-db-management/";
     std::string cmd;
     int rt;
 
@@ -92,11 +90,12 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     }
 
     // start db management
-    cmd = "cd " + db_management_folder + " && " + "bash ut_start.sh";
+    cmd = "nohup java -jar tugraph-db-management-0.0.1-SNAPSHOT.jar --spring.profiles.active=ut "
+          "> log.txt 2>&1 & echo $! > pidfile.txt";
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     // sleep and wait db management start
-    fma_common::SleepS(300);
+    fma_common::SleepS(60);
 
     // test crud
     try {
@@ -122,7 +121,7 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
         UT_EXPECT_EQ(2, job.job_id());
 
         // read job result by id
-        db_management::JobResult job_result =
+        db_management::AlgoResult job_result =
             DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
         UT_EXPECT_EQ(result, job_result.result());
 
@@ -138,7 +137,7 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
     }
 
     // stop db management
-    cmd = "cd " + db_management_folder + " && " + "bash ut_stop.sh ";
+    cmd = "kill -9 `cat pidfile.txt`";
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 }

@@ -169,7 +169,11 @@ extern LGRAPH_LIBRARY_API void lgraph_api_field_spec_set_type(lgraph_api_field_s
 extern LGRAPH_LIBRARY_API bool lgraph_api_field_spec_get_optional(lgraph_api_field_spec_t* fs);
 extern LGRAPH_LIBRARY_API void lgraph_api_field_spec_set_optional(lgraph_api_field_spec_t* fs,
                                                                   bool optional);
-
+enum {
+    lgraph_api_normal_index_type = 0,
+    lgraph_api_global_unique_index_type = 1,
+    lgraph_api_pair_unique_index_type = 2
+};
 /* IndexSpec */
 extern LGRAPH_LIBRARY_API lgraph_api_index_spec_t* lgraph_api_create_index_spec();
 extern LGRAPH_LIBRARY_API void lgraph_api_index_spec_destroy(lgraph_api_index_spec_t* is);
@@ -180,8 +184,8 @@ extern LGRAPH_LIBRARY_API void lgraph_api_index_spec_set_label(lgraph_api_index_
                                                                const char* label);
 extern LGRAPH_LIBRARY_API void lgraph_api_index_spec_set_field(lgraph_api_index_spec_t* is,
                                                                const char* field);
-extern LGRAPH_LIBRARY_API void lgraph_api_index_spec_set_unique(lgraph_api_index_spec_t* is,
-                                                                bool unique);
+extern LGRAPH_LIBRARY_API void lgraph_api_index_spec_set_type(lgraph_api_index_spec_t* is,
+                                                              int type);
 
 /* EdgeUid */
 extern LGRAPH_LIBRARY_API lgraph_api_edge_uid_t* lgraph_api_create_edge_euid(
@@ -755,12 +759,12 @@ extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_alter_edge_label_mod_fields(
 extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_add_vertex_index(lgraph_api_graph_db_t* graphdb,
                                                                     const char* label,
                                                                     const char* field,
-                                                                    bool is_unique, char** errptr);
+                                                                    int type,
+                                                                    char** errptr);
 extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_add_edge_index(lgraph_api_graph_db_t* graphdb,
                                                                   const char* label,
                                                                   const char* field,
-                                                                  bool is_unique,
-                                                                  bool is_global,
+                                                                  int type,
                                                                   char** errptr);
 extern LGRAPH_LIBRARY_API bool lgraph_api_graph_db_is_vertex_indexed(lgraph_api_graph_db_t* graphdb,
                                                                      const char* label,

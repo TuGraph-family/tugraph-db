@@ -47,9 +47,9 @@ class Tester : public lgraph::PythonPluginManagerImpl {
         : lgraph::PythonPluginManagerImpl(db, "default", dir) {}
 
     Tester(const std::string& db_dir, size_t db_size, const std::string& plugin_dir,
-           int max_idle_seconds)
+           int max_idle_seconds, int max_plugin_lifetime_seconds)
         : lgraph::PythonPluginManagerImpl("default", db_dir, db_size, plugin_dir,
-                                          max_idle_seconds) {}
+                                          max_idle_seconds, max_plugin_lifetime_seconds) {}
 
     size_t GetNFree() {
         std::lock_guard<std::mutex> l(_mtx);
@@ -158,6 +158,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
     std::string db_dir = "./testdb";
     int n_processes = 3;
     int max_idle_seconds = 2;
+    int max_plugin_lifetime_seconds = 10 * max_idle_seconds;
     int argc = _ut_argc;
     char** argv = _ut_argv;
     Configuration config;
@@ -165,6 +166,8 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
     config.Add(plugin_dir, "plugin", true).Comment("Plugin dir");
     config.Add(n_processes, "n,processes", true).Comment("Number of processes");
     config.Add(max_idle_seconds, "i,idle", true).Comment("Max idle seconds for python process");
+    config.Add(max_plugin_lifetime_seconds, "lifetime", true)
+        .Comment("Max life time for python process to be reused");
     config.ParseAndFinalize(argc, argv);
     fma_common::file_system::RemoveDir(db_dir);
 
@@ -174,7 +177,8 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
 
     {
         UT_WARN() << "Testing load plugin";
-        Tester manager(db_dir, (size_t)1 << 30, plugin_dir, max_idle_seconds);
+        Tester manager(db_dir, (size_t)1 << 30, plugin_dir, max_idle_seconds,
+                       max_plugin_lifetime_seconds);
         fma_common::FileSystem::GetFileSystem("./").Mkdir(plugin_dir);
         WriteEchoPlugin(plugin_dir + "/echo.so");
         auto* pinfo = manager.CreatePluginInfo();
@@ -254,6 +258,10 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         manager.DoCall(nullptr, user, &db, "sleep", pinfo, std::to_string(2 * max_idle_seconds),
                        3 * max_idle_seconds, true, output);
         UT_EXPECT_EQ(manager.GetNFree(), 1);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo,
+                       std::to_string(max_plugin_lifetime_seconds),
+                       1 + max_plugin_lifetime_seconds, true, output);
+        UT_EXPECT_EQ(manager.GetNFree(), 0);
         std::string path("sleep");
         auto res = manager.GetPluginPath(path);
         UT_LOG() << res;

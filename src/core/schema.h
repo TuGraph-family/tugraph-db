@@ -83,7 +83,7 @@ class Schema {
     std::unordered_set<size_t> fulltext_fields_;
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
-    KvTable property_table_;
+    std::shared_ptr<KvTable> property_table_;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
@@ -184,8 +184,8 @@ class Schema {
     void SetEdgeConstraints(const EdgeConstraints& edge_constraints) {
         edge_constraints_ = edge_constraints;
     }
-    void SetPropertyTable(KvTable&& t) { property_table_ = std::move(t); }
-    KvTable& GetPropertyTable() { return property_table_; }
+    void SetPropertyTable(std::shared_ptr<KvTable> t) { property_table_ = std::move(t); }
+    KvTable& GetPropertyTable() { return *property_table_; }
     void AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property);
     Value GetDetachedVertexProperty(KvTransaction& txn, VertexId vid);
     void SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property);

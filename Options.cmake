@@ -94,6 +94,11 @@ if (BUILD_JAVASDK)
     message("Build lgraph4jni.so for javasdk.")
 endif (BUILD_JAVASDK)
 
+option(BUILD_PROCEDURE "Build procedure & learn" ON)
+if (BUILD_PROCEDURE)
+    message("Build procedures.")
+endif (BUILD_PROCEDURE)
+
 # disable krb5
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENSSL_NO_KRB5=1")
 

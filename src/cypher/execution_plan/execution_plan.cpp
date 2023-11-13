@@ -671,8 +671,8 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             traversal_root->children[0]->type == OpType::ARGUMENT) {
             if (traversal_root->children.size() != 2) CYPHER_TODO();
             OpBase *new_root = traversal_root->children[1];
-            traversal_root->RemoveChild(traversal_root->children[0]);
-            traversal_root->RemoveChild(traversal_root->children[1]);
+            traversal_root->RemoveChild(new_root);
+            OpBase::FreeStream(traversal_root);
             traversal_root = new_root;
         }
     }
@@ -934,6 +934,8 @@ void ExecutionPlan::_MergeFilter(OpBase *&root) {
         for (auto child : root->children[0]->children) new_root->AddChild(child);
         new_root->parent = root->parent;
         root = new_root;
+        delete filter;
+        delete child_filter;
         _MergeFilter(root);
     } else {
         for (auto &child : root->children) _MergeFilter(child);

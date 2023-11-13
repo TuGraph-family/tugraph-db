@@ -14,35 +14,37 @@
 
 #pragma once
 
-#include "core/kv_store_exception.h"
-#include "core/kv_store_transaction.h"
+#include "core/lmdb_exception.h"
+#include "core/kv_engine.h"
+#include "core/lmdb_transaction.h"
 #include "core/kv_table_comparators.h"
 #include "core/task_tracker.h"
 #include "core/value.h"
 
 namespace lgraph {
 
-class KvTransaction;
+class LMDBKvTransaction;
 
-class KvIterator;
+class LMDBKvIterator;
 
-class KvStore;
+class LMDBKvStore;
 
-class KvTable {
-    MDB_dbi dbi_;
+class LMDBKvTable final : public KvTable {
+    MDB_dbi dbi_ = 0;
     std::string name_;
 
-    friend class KvStore;
-    friend class KvIterator;
-    friend class KvTransaction;
+    friend class LMDBKvStore;
+    friend class LMDBKvIterator;
+    friend class LMDBKvTransaction;
     MDB_dbi& GetDbi() { return dbi_; }
 
     std::function<int(const MDB_val*, const MDB_val*)> compare_key_;
 
-    size_t GetVersion(KvTransaction& txn, const Value& key);
+    size_t GetVersion(LMDBKvTransaction& txn, const Value& key);
 
  public:
-    KvTable() {}
+    LMDBKvTable() = default;
+    ~LMDBKvTable() override = default;
 
     /**
      * Constructor
@@ -53,7 +55,7 @@ class KvTable {
      * \param           key_is_uint         Is the key a uint32 or uint64?
      * \param           comparator_desc     Describes the comparator. Ignored if key_is_uint==True
      */
-    KvTable(KvTransaction& txn,
+     LMDBKvTable(LMDBKvTransaction& txn,
         const std::string& name,
         bool create_if_not_exist,
         const ComparatorDesc& comparator_desc);
@@ -66,7 +68,7 @@ class KvTable {
      *
      * \return  True if key exists, false if not.
      */
-    bool HasKey(KvTransaction& txn, const Value& key);
+    bool HasKey(KvTransaction& txn, const Value& key) override;
 
     /**
      * Gets a value corresponding to the key
@@ -77,7 +79,7 @@ class KvTable {
      *
      * \return  The value. An empty value is returned if the key does not exist.
      */
-    Value GetValue(KvTransaction& txn, const Value& key, bool for_update = false);
+    Value GetValue(KvTransaction& txn, const Value& key, bool for_update = false) override;
 
     /**
      * Gets number of k-v pairs in the table.
@@ -86,7 +88,7 @@ class KvTable {
      *
      * \return  The kv pair count.
      */
-    size_t GetKeyCount(KvTransaction& txn);
+    size_t GetKeyCount(KvTransaction& txn) override;
 
     /**
      * Sets the value corresponding to the key. If the key does not exist, then it is created.
@@ -100,7 +102,7 @@ class KvTable {
      * \return  true if success, false if key already exist and overwrite_if_exist=false
      */
     bool SetValue(KvTransaction& txn, const Value& key, const Value& value,
-                  bool overwrite_if_exist = true);
+                  bool overwrite_if_exist = true) override;
 
     /**
      * Adds a key-value pair to the table.
@@ -111,7 +113,7 @@ class KvTable {
      *
      * \return  true if success, false if key already exists
      */
-    bool AddKV(KvTransaction& txn, const Value& key, const Value& value);
+    bool AddKV(KvTransaction& txn, const Value& key, const Value& value) override;
 
     /**
      * Appends a kv to the end of the table. The key MUST sort behind the last key in table.
@@ -120,7 +122,7 @@ class KvTable {
      * \param          key      The key.
      * \param          value    The value.
      */
-    void AppendKv(KvTransaction& txn, const Value& key, const Value& value);
+    void AppendKv(KvTransaction& txn, const Value& key, const Value& value) override;
 
     /**
      * Deletes the key and corresponding value.
@@ -130,17 +132,16 @@ class KvTable {
      *
      * \return  True if it succeeds, false if the key does not exist.
      */
-    bool DeleteKey(KvTransaction& txn, const Value& key);
+    bool DeleteKey(KvTransaction& txn, const Value& key) override;
 
     /**
-     * Gets an iterator place at the first key of the table. If there is no key, returns an invalid
-     * iterator.
+     * Gets an iterator.
      *
      * \param [in,out]  txn The transaction.
      *
      * \return  The iterator.
      */
-    KvIterator GetIterator(KvTransaction& txn);
+    std::unique_ptr<KvIterator> GetIterator(KvTransaction& txn) override;
 
     /**
      * Gets an iterator placed at key. If key does not exist, returns an invalid iterator.
@@ -150,39 +151,29 @@ class KvTable {
      *
      * \return  The iterator.
      */
-    KvIterator GetIterator(KvTransaction& txn, const Value& key);
+    std::unique_ptr<KvIterator> GetIterator(KvTransaction& txn, const Value& key) override;
 
-    KvIterator GetClosestIterator(KvTransaction& txn, const Value& key);
+    std::unique_ptr<KvIterator> GetClosestIterator(KvTransaction& txn, const Value& key) override;
 
-    int CompareKey(KvTransaction& txn, const Value& k1, const Value& k2) const;
-
-    void Dump(KvTransaction& txn,
-              const std::function<void(const Value& key, void* context)>& begin_key,
-              const std::function<void(const Value& value, void* context)>& dump_value,
-              const std::function<void(const Value& key, void* context)>& finish_key,
-              void* context);
-
-    void Print(KvTransaction& txn, const std::function<std::string(const Value& key)>& print_key,
-               const std::function<std::string(const Value& key)>& print_value);
+    int CompareKey(KvTransaction& txn, const Value& k1, const Value& k2) const override;
 
     /**
      * Drops this table. Please make sure no other thread will access this table after this call.
      *
      * \param [in,out]  txn             The transaction.
      */
-    void Drop(KvTransaction& txn);
+    void Drop(KvTransaction& txn) override;
 
     /**
      * Gets the name of the table.
      *
      * \return  A reference to a std::string.
      */
-    const std::string& Name() const { return name_; }
+    const std::string& Name() const override { return name_; }
 
     /**
      * Heterogeneous key comparators
      */
-
     using is_transparent = void;
 
     bool operator()(const std::string& a, const std::string& b) const {
