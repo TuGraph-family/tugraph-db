@@ -224,19 +224,15 @@ TEST_F(TestHA, HAClient) {
 }
 
 TEST_F(TestHA, HAConsistency) {
-    std::thread thread = std::thread([this] {
-        lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
-        std::string result;
-        rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
-        rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
-        rpcClient.Logout();
-    });
-    fma_common::SleepS(5);
     std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
     std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
     int rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     fma_common::SleepS(5);
+    lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
+    std::string result;
+    rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
+    rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
 #ifndef __SANITIZE_ADDRESS__
     cmd_f =
         "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
@@ -254,11 +250,7 @@ TEST_F(TestHA, HAConsistency) {
                   host + ":29092," + host + ":29093," + host + ":29094");
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    fma_common::SleepS(10);
-    if (thread.joinable()) thread.join();
-    lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
     fma_common::SleepS(30);
-    std::string result;
     rpcClient.CallCypher(result, "MATCH (n) RETURN COUNT(n)", "default", true, 0, host + ":29094");
     nlohmann::json res = nlohmann::json::parse(result);
     UT_EXPECT_EQ(res[0]["COUNT(n)"], 300000);
