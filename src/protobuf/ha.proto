@@ -1,5 +1,5 @@
 // ===============================================================
-//                     Proto version: 1.1.1
+//                     Proto version: 2.2.0
 // Increment the version number if the proto definition is updated
 // ===============================================================
 syntax="proto2";
@@ -114,7 +114,7 @@ message GetLabelResponse {
 message AddIndexRequest {
     required string label = 1;
     required string field = 2;
-    required bool is_unique = 3;
+    required int32 type = 3;
 };
 
 message AddIndexResponse {};
@@ -484,31 +484,38 @@ message AclResponse {
 };
 
 //--------------------------------
-// cypher
+// graph query
 //--------------------------------
+enum ProtoGraphQueryType {
+    CYPHER = 0;
+    GQL = 1;
+};
+
 message Header {
     required string name = 1;
     required int32 type = 2;
 };
 
-message CypherResult {
+message GraphQueryRequest {
+    required ProtoGraphQueryType type = 1;
+    required string query = 2;
+    repeated string param_names = 3;
+    optional ListOfProtoFieldData param_values = 4;
+    required bool result_in_json_format = 5;
+    optional string graph = 6;
+    optional double timeout = 7;
+};
+
+message GraphQueryResult {
     repeated Header header = 1;
     repeated ListOfProtoFieldData result = 2;
     required double elapsed = 3;
 };
 
-message CypherRequest {
-    required string query = 1;
-    repeated string param_names = 2;
-    optional ListOfProtoFieldData param_values = 3;
-    required bool result_in_json_format = 4;
-    optional string graph = 5;
-    optional double timeout = 6;
-};
-message CypherResponse {
+message GraphQueryResponse {
     oneof Result {
         string json_result = 1;
-        CypherResult binary_result = 2;
+        GraphQueryResult binary_result = 2;
     }
 };
 
@@ -590,6 +597,8 @@ message PluginRequest {
     enum PluginType {
         CPP = 1;
         PYTHON = 2;
+        JAVA = 3; // not supported yet
+        ANY = 4;
     };
 
     required PluginType type = 1;
@@ -600,6 +609,7 @@ message PluginRequest {
         ListPluginRequest list_plugin_request = 5;
     };
     required string graph = 6;
+    optional string version = 7;
 };
 
 message PluginResponse {
@@ -687,7 +697,7 @@ message LGraphRequest {
     optional string user = 4;
     oneof Req {
         GraphApiRequest graph_api_request = 11;
-        CypherRequest cypher_request = 12;
+        GraphQueryRequest graph_query_request = 12;
         PluginRequest plugin_request = 13;
         HARequest ha_request = 14;
         ImportRequest import_request = 15;
@@ -716,7 +726,7 @@ message LGraphResponse {
     optional int64 server_version = 4;
     oneof Resp {
         GraphApiResponse graph_api_response = 11;
-        CypherResponse cypher_response = 12;
+        GraphQueryResponse graph_query_response = 12;
         PluginResponse plugin_response = 13;
         HAResponse ha_response = 14;
         ImportResponse import_response = 15;
@@ -751,6 +761,7 @@ enum LogApiType {
     Security = 1;
     Plugin = 2;
     Cypher = 3;
+    Gql = 4;
 };
 
 message LogMessage {
@@ -767,4 +778,13 @@ message LogMessage {
 
 service LGraphRPCService {
     rpc HandleRequest(LGraphRequest) returns (LGraphResponse);
+};
+
+// For http2 server over RPC
+
+message HttpRequest {};
+message HttpResponse {};
+
+service LGraphHttpService {
+    rpc Query(HttpRequest) returns (HttpResponse);
 };

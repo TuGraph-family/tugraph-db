@@ -1,0 +1,286 @@
+REPLACE (n:node1{@id:6000100, p_long:521, p_double:13.14, p_string:"beijing"});
+match (n:node1 {@id:6000100}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:6000100}) set n.p_long=0;
+match (n:node1 {@id:6000100}) return n.@id, n.p_long, n.p_double, n.p_string;
+
+REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015200, @dst_id:600015300, @timestamp:0}]->();
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string ;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() set e.p_long=0 ;
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string ;
+
+REPLACE (n:node1{@id:600013400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600013500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set n1.p_long = 1024;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set n1.p_long = 1024, n1.p_double = 1024, n1.p_string = "1024";
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set e.p_long = 2048;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set e.p_long = 2048, e.p_double = 2048, e.p_string = "2048";
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set n2.p_long = 4096;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set n2.p_long = 4096, n2.p_double = 4096, n2.p_string = "4096";
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set n1.p_long = 10240, e.p_long = 20480, n2.p_long = 40960;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) set n1.p_long = 10240, n1.p_double = 10240, n1.p_string = "10240", e.p_long = 20480, e.p_double = 20480, e.p_string = "20480", n2.p_long = 40960, n2.p_double = 40960, n2.p_string = "40960";
+match (n1:node1{@id:600013400})-[e:edge_n1_n2]->(n2:node2{@id:600013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023502, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023503, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023504, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023505, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023506, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023507, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023508, p_long:520, p_double:2.33, p_string:"hangzhou"});
+REPLACE (n:node1{@id:600023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600023509, p_long:520, p_double:2.33, p_string:"hangzhou"});
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set n1.p_long = 1024;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set n1.p_long = 1024, n1.p_double = 1024, n1.p_string = "1024";
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set e.p_long = 2048;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set e.p_long = 2048, e.p_double = 2048, e.p_string = "2048";
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set n2.p_long = 4096;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set n2.p_long = 4096, n2.p_double = 4096, n2.p_string = "4096";
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set n1.p_long = 10240, e.p_long = 20480, n2.p_long = 40960;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) set n1.p_long = 10240, n1.p_double = 10240, n1.p_string = "10240", e.p_long = 20480, e.p_double = 20480, e.p_string = "20480", n2.p_long = 40960, n2.p_double = 40960, n2.p_string = "40960";
+match (n1:node1{@id:600023400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set n1.p_long = 1024;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set n1.p_long = 1024, n1.p_double = 1024, n1.p_string = "1024";
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set e.p_long = 2048;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set e.p_long = 2048, e.p_double = 2048, e.p_string = "2048";
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set n2.p_long = 4096;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set n2.p_long = 4096, n2.p_double = 4096, n2.p_string = "4096";
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set n1.p_long = 10240, e.p_long = 20480, n2.p_long = 40960;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) set n1.p_long = 10240, n1.p_double = 10240, n1.p_string = "10240", e.p_long = 20480, e.p_double = 20480, e.p_string = "20480", n2.p_long = 40960, n2.p_double = 40960, n2.p_string = "40960";
+match (n1:node1{@id:600043400})-[e:edge_n1_n2]->(n2) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+
+REPLACE (n:node1{@id:600015100, p_long:521, p_double:13.14, p_string:"beijing"});
+match (n:node1 {@id:600015100}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:600015100}) SET n.p_long=0;
+match (n:node1 {@id:600015100}) return n.@id, n.p_long, n.p_double, n.p_string;
+REPLACE (n:node1{@id:600015101, p_long:520, p_double:2.33, p_string:"hangzhou"});
+match (n:node1 {@id:600015101}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:600015101}) SET n.p_long=1, n.p_double=2, n.p_string="beijing";
+match (n:node1 {@id:600015101}) return n.@id, n.p_long, n.p_double, n.p_string;
+REPLACE (a:node1{@id:600015102, p_long:521, p_double:13.14, p_string:"beijing"}), (b:node1{@id:600015103, p_long:520, p_double:2.33, p_string:"hangzhou"}), (c:node1{@id:600015104, p_long:666, p_double:3.1415, p_string:"shanghai"});
+match (n:node1 where @id in (15102, 15103, 15104)) return n.@id, n.p_long, n.p_double, n.p_string order by n.@id;
+REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015200, @dst_id:600015300, @timestamp:0}]->();
+REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015200, @dst_id:600015300, @timestamp:1}]->();
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=0;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:1}]->() SET e.p_long=1;
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+REPLACE ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015201, @dst_id:600015301, @timestamp:1}]-();
+match (n1:node1{@id:600015201})-[e:edge_n1_n2]->(n2:node2{@id:600015301}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+MATCH ()<-[e:edge_n1_n2{@src_id:600015201, @dst_id:600015301, @timestamp:1}]-() SET e.p_long=1, e.p_double=2, e.p_string="beijing";
+match (n1:node1{@id:600015201})-[e:edge_n1_n2]->(n2:node2{@id:600015301}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+REPLACE ()<-[a:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015202, @dst_id:600015302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:600015203, @dst_id:600015302, @timestamp:3}]-();
+match (n1:node1 where @id in (202, 203))-[e:edge_n1_n2]->(n2:node2{@id:600015302}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string order by e.@src_id;
+REPLACE (n:node1{@id:600015400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+match (n:node1 {@id:600015400}) return n.@id, n.p_long, n.p_double, n.p_string;
+match (n:node2 {@id:600015500}) return n.@id, n.p_long, n.p_double, n.p_string;
+match (n1:node1{@id:600015400})-[e:edge_n1_n2]->(n2:node2{@id:600015500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+MATCH (n1:node1{@id:600015401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:600015501}) SET n1.p_long=0, e.p_long=1, n2.p_long=2;
+match (n:node1 {@id:600015401}) return n.@id, n.p_long, n.p_double, n.p_string;
+match (n:node2 {@id:600015501}) return n.@id, n.p_long, n.p_double, n.p_string;
+match (n1:node1{@id:600015400})-[e:edge_n1_n2]->(n2:node2{@id:600015500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+
+MATCH (a:node1{@id:600015102}), (b:node1{@id:600015103}), (c:node1{@id:600015104}) SET a.p_long=0, b.p_long=0, c.p_long=0;
+MATCH ()<-[a:edge_n1_n2{@src_id:600015202, @dst_id:600015302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{@src_id:600015203, @dst_id:600015302, @timestamp:3}]-() SET a.p_long=0, b.p_long=0;
+
+
+MATCH ()-[e:edge_n1_n2{@src_id:-600014347, @dst_id:-600014348, @timestamp:0}]->() SET e.p_long = 1;
+MATCH (n:node1{@id:60001513349, p_long:-521, p_double:-13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:-1000, p_double:-12.34, p_string:"distance", @timestamp:-1504282000}]->(n2:node2{@id:-600013350, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+REPLACE (n:node1{@id:60001513346, p_long:521, p_double:1314, p_string:"beijing"});
+match (n:node1 {@id:60001513346}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:60001513346}) SET n.p_long = 1;
+match (n:node1 {@id:60001513346}) return n.@id, n.p_long, n.p_double, n.p_string;
+REPLACE (n:node1{@id:60009223372036854775806, p_long:521, p_double:13.14, p_string:"beijing"});
+match (n:node1 {@id:60009223372036854775806}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:60009223372036854775806}) SET n.p_long = 1;
+match (n:node1 {@id:60009223372036854775806}) return n.@id, n.p_long, n.p_double, n.p_string;
+
+MATCH (n:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015519, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n:node1{p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015216, @timestamp:6}]->() SET e.p_long=1;
+MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @dst_id:600015317, @timestamp:6}]->() SET e.p_long=1;
+MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015218, @dst_id:600015318}]->() SET e.p_long=1;
+
+MATCH (n:node1{@id:600015420, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n{@id:600015420})-[e:edge_n1_n2{@timestamp:0}]->(:node2{@id:600015520}) SET n.p_long=1;
+MATCH (:node1{@id:600015421})-[e{@timestamp:0}]->(:node2{@id:600015512}) SET e.p_long=1;
+MATCH (:node1{@id:600015422})-[e:edge_n1_n2{@timestamp:0}]->(m{@id:600015522}) SET e.p_long=1;
+
+MATCH (n{@id:600015123}) SET n.p_long=1;
+MATCH ()-[e{@src_id:600015232, @dst_id:600015332, @timestamp:0}]->() SET e.p_long=1;
+
+REPLACE (:node1{@id:600015100, p_long:521, p_double:13.14, p_string:"beijing"});
+match (n:node1 {@id:600015100}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:600015100}) SET n.p_long=1;
+match (n:node1 {@id:600015100}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH (n:node1{@id:600015100}) SET n.p_long=1;
+match (n:node1 {@id:600015100}) return n.@id, n.p_long, n.p_double, n.p_string;
+REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015200, @dst_id:600015300, @timestamp:0}]->();
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=1;
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=1;
+match (n1:node1{@id:600015200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:600015300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+
+--error
+MATCH (n:node1:node2{@id:600015127, p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+--error
+MATCH ()-[e:edge_n1_n2:edge_n2_n3{p_long:521, p_double:13.14, p_string:"beijing", @src_id:600015230, @dst_id:600015330, @timestamp:30}]->() SET n.p_long=1;
+--error
+MATCH (n:node1:node2{@id:600015470, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015570, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+--error
+MATCH (n:node1{@id:600015471, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2:edge_n2_n3{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015571, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+--error
+MATCH (n:node1{@id:600015472, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"", @timestamp:0}]->(n2:node2:node1{@id:600015572, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n:node1|node2{@id:600015473, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015573, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015474, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2|edge_n2_n3{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015574, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015475, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2|node1{@id:600015575, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n:node1|node2{@id:600015127, p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH ()-[e:edge_n1_n2|edge_n2_n3{p_long:521, p_double:13.14, p_string:"beijing", @src_id:600015231, @dst_id:600015331, @timestamp:31}]->() SET e.p_long=1;
+
+MATCH (n:node1{@id:600015128, p_long:521, p_double:13.14, p_string:"beijing", @node_type:"illegal"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015129, p_long:521, p_double:13.14, p_string:"beijing", @src_id:6000151000}) SET n.p_long=1;
+MATCH (n:node1{@id:600015130, p_long:521, p_double:13.14, p_string:"beijing", @dst_id:6000151000}) SET n.p_long=1;
+MATCH (n:node1{@id:600015131, p_long:521, p_double:13.14, p_string:"beijing", @timestamp:0}) SET n.p_long=1;
+MATCH (n:node1{@id:600015132, p_long:521, p_double:13.14, p_string:"beijing", @edge_type:"illegal"}) SET n.p_long=1;
+MATCH ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:600015232, @dst_id:600015332, @timestamp:32, @edge_type:"illegal"}]->() SET e.p_long=1;
+MATCH ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:600015233, @dst_id:600015333, @timestamp:33, @id:600015233}]->() SET e.p_long=1;
+MATCH ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:600015234, @dst_id:600015334, @timestamp:34, @node_type:"illegal"}]->() SET e.p_long=1;
+MATCH (n:node1{@id:600015479, p_long:521, p_double:13.14, p_string:"beijing", @src_id:600015400})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015579, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015480, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015580, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:600015400}) SET n.p_long=1;
+MATCH (n:node1{@id:600015481, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @id:600015400}]->(n2:node2{@id:600015581, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:600015400}) SET n.p_long=1;
+MATCH (n:node1{@id:600015482, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @node_type:"illegal"}]->(n2:node2{@id:600015582, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:600015400}) SET n.p_long=1;
+
+MATCH (n:node1{@id:600015476, p_long:521, p_double:13.14, p_string:"beijing", @node_type:"illegal"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015576, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015477, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015577, p_long:520, p_double:2.33, p_string:"hangzhou", @node_type:"illegal"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015478, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @edge_type:"illegal"}]->(n2:node2{@id:600015578, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n:edge_n1_n2{@id:600015100, p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+
+MATCH ()-[e:node1{p_long:1000, p_double:12.34, p_string:"distance", @src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=1;
+MATCH (n:edge_n1_n2{@id:600015484})-[e:edge_n1_n2{@timestamp:0}]->(n2:node2{@id:600015584}) SET n.p_long=1;
+MATCH (n:node1{@id:600015484})-[e:node1{@timestamp:0}]->(n2:node2{@id:600015584}) SET e.p_long=1;
+MATCH (n:node1{@id:600015484})-[e:edge_n1_n2{@timestamp:0}]->(n2:edge_n1_n2{@id:600015584}) SET n.p_long=1;
+MATCH (n:node2{@id:600015484})-[e:edge_n1_n2{@timestamp:0}]->(n2:node3{@id:600015584}) SET n.p_long=1;
+MATCH (n:node1{@id:600015485})<-[e:edge_n2_n1{@timestamp:1}]-(n1:node1{@id:600015585}) SET n.p_long=1;
+
+MATCH (n:node_not_exist{@id:60001513100, p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH ()-[e:edge_not_exist{p_long:15200, p_double:12.34, p_string:"distance", @src_id:60001513200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=1;
+MATCH (n1:node_not_exist{@id:60001513300})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:60001513301}) SET n1.p_long=1;
+MATCH (n1:node1{@id:60001513302})<-[e:edge_not_exist{@timestamp:1}]-(n2:node2{@id:60001513303}) SET n1.p_long=1;
+MATCH (n1:node1{@id:60001513304})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node_not_exist{@id:60001513305}) SET n1.p_long=1;
+
+--error
+MATCH (n:1234{@id:'14330', p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+
+MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:-60009223372036854775809, @dst_id:60001514340, @timestamp:12.8}]-() SET e.p_long=1;
+MATCH (n:node1{@id:-1000, p_long:521.0, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:60001513339, @dst_id:60001514330, @timestamp:-1}]-() SET e.p_long=1;
+
+MATCH (n:node1{@id:'14331'}) SET n.p_long=1;
+MATCH (n:node1{@id:'14331', p_long:521, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH (n:node1{@id:60001513332, p_long:'hello world', p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH (n:node1{@id:60001513335, p_long:521, p_double:13.14, p_string:123}) SET n.p_long=1;
+MATCH (n:node1{@id:60001513336, p_long:521.0, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:60001513337.0, @dst_id:60001514337, @timestamp:1}]-() SET e.p_long=1;
+MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:60001513338, @dst_id:60001514338.0, @timestamp:1}]-() SET e.p_long=1;
+MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:60001513340, @dst_id:60001514340, @timestamp:12.8}]-() SET e.p_long=1;
+MATCH (n:node1{@id:6000159223372036854775809, p_long:521.0, p_double:13.14, p_string:"beijing"}) SET n.p_long=1;
+MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:6000159223372036854775809, @dst_id:60001514340, @timestamp:12.8}]-() SET e.p_long=1;
+
+MATCH (n:node1{@id:60001514341, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:45.67, @timestamp:0}]->(n2:node2{@id:60001514342, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n1:node1{@id:60001521102})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:60001521202}) SET n1.p_long=0, e.p_long=1, n2.p_long=2;
+
+MATCH (n:node1{@id:60001521100}) SET n.p_long=0;
+match (n:node1 {@id:60001521100}) return n.@id, n.p_long, n.p_double, n.p_string;
+MATCH ()-[e:edge_n1_n2{@src_id:60001521101, @dst_id:60001521201, @timestamp:0}]->() SET e.p_long=0;
+match (n1:node1{@id:60001521101})-[e:edge_n1_n2]->(n2) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+
+--error
+MATCH (n:node1{@id:600015100}) SET p_long=0;
+--error
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET p_long=0;
+--error
+MATCH (n1:node1{@id:600015401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:600015501}) SET p_long=0, e.p_long=1, n2.p_long=2;
+
+MATCH (n:node1{@id:600015100}) SET e.p_long=0;
+MATCH (:node1{@id:600015100}) SET e.p_long=0;
+MATCH (n:node1{@id:600015100}) SET node1.p_long=0;
+MATCH (n1:node1{@id:600015401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:600015501}) SET n3.p_long=0, e.p_long=1, n2.p_long=2;
+MATCH (n1:node1{@id:600015401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:600015501}) SET node1.p_long=0, e.p_long=1, n2.p_long=2;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET n.p_long=0 ;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET edge_n1_n2.p_long=0;
+
+MATCH ()-[:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=0;
+MATCH ()-[:edge_n1_n2{@src_id:600015206, @dst_id:600015306, @timestamp:6}]->() SET edge_n1_n2.p_long=1;
+
+MATCH (:node1{@id:600015108}) SET node1.p_long=1;
+
+MATCH (a:node1{@id:600015116}), (:node1{@id:600015117}), (c:node1{@id:600015118}) SET a.p_long=1;
+MATCH ()<-[e:edge_n1_n2{@src_id:600015212, @dst_id:600015312, @timestamp:12}]-(), ()<-[:edge_n1_n2{@src_id:600015213, @dst_id:600015312, @timestamp:15}]-() SET e.p_long=1;
+
+MATCH (:node1{@id:600015412})-[e:edge_n1_n2{@timestamp:0}]->(:node2{@id:600015512}) SET e.p_long=1;
+
+MATCH (n:node1{@id:600015125}) SET n.p_long=521, n.p_double=13.14, n.p_string="beijing", n.extra_prop="none";
+MATCH (n:node1{@id:600015100}) SET n.p_long=521, n.p_double=13.14, n.p_wrong="beijing";
+MATCH ()-[e:edge_n1_n2{@src_id:600015228, @dst_id:600015328, @timestamp:28}]->() SET e.p_long=1000, e.p_double=12.34, e.p_string="distance", e.extra_prop="none";
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=1000, e.p_double=12.34, e.p_wrong="distance";
+
+MATCH (n:node1{@id:600015452, p_long:521, p_double:13.14, p_string:"beijing", extra_prop:"none"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015552, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015453, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, extra_prop:"none"}]->(n2:node2{@id:600015553, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+MATCH (n:node1{@id:600015454, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:600015554, p_long:520, p_double:2.33, p_string:"hangzhou", extra_prop:"none"}) SET n.p_long=1;
+MATCH (n:node1{@id:6000154700, p_long:521, p_double:13.14, p_wrong:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:6000155700, p_long:520, p_double:2.33, p_string:"hangzhou"}) SET n.p_long=1;
+
+MATCH (n:node1{@id:600015483})-[e:edge_n1_n2]->(n2:node2)-[:edge_n2_n3]->(n3:node3) SET n3.p_long=521, n3.p_double=13.14, n3.p_string="beijing";
+
+MATCH (n:node1{@id:600015483})-[e:edge_n1_n2]->(n2:node2)-[e1:edge_n2_n3]->(n3:node3) SET n3.p_long=521, n3.p_double=13.14, n3.p_string="beijing";
+
+--error
+MATCH (a:node1{@id:600015881}), (b:node1{@id:600015882}), (c:node1{@id:600015883}), ()<-[e:edge_n1_n2{@src_id:600015884, @dst_id:600015885, @timestamp:2}]-(), ()<-[e1:edge_n1_n2{@src_id:600015886, @dst_id:600015887, @timestamp:3}]-(), (n1:node1{@id:600015888})-[e2:edge_n1_n2{@timestamp:0}]->(n2:node2{@id:600015889}) SET a.p_long=521, a.p_double=13.14, a.p_string="beijing", b.p_long=520, b.p_double=2.33, b.p_string="hangzhou", c.p_long:666, c.p_double:3.1415, c.p_string:"shanghai", e.p_long:1000, e.p_double:12.34, e.p_string:"distance", e1.p_long:520, e1.p_double:2.33, e1.p_string:"hangzhou";
+
+MATCH (:node1{@id:600015406})-[:edge_n1_n2{@timestamp:0}]->(:node2{@id:600015506}) SET node1.p_long=1;
+
+MATCH (a:node1{@id:600015102}), (b:node1{@id:600015103}), (c:node1{@id:600015104}) SET a.p_long=1, b.p_long=2, c.p_long=3;
+MATCH ()<-[a:edge_n1_n2{@src_id:600015202, @dst_id:600015302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{@src_id:600015203, @dst_id:600015302, @timestamp:3}]-() SET a.p_long=1, b.p_long=2;
+
+MATCH (n:node1{@id:600015401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:600015501}) SET n.p_long=1;
+MATCH (n1:node1{@id:600015400})-[e:edge_n1_n2{@timestamp:0}]->(n2:node2{@id:600015500}) SET n1.p_long=1, e.p_long=2, n2.p_long=3;
+MATCH (n1:node1{@id:600015400})-[e:edge_n1_n2{@timestamp:0}]->(n2:node2{@id:600015500}) SET n1.p_long=4, e.p_long=4, n2.p_long=4;
+
+MATCH (n:node1{@id:60001}) WHERE e.salary = 0 SET n.p_long=1;
+
+MATCH (c:company{@id:60001}) ORDER BY c.salary DESC LIMIT 10 SET c.p_long=1;
+MATCH (c:company{@id:60001}) LIMIT 10 SET c.p_long=1;
+
+MATCH (n:node1{@id:60001523100}) SET n.p_long=1 + 1;
+MATCH ()-[e:edge_n1_n2{@src_id:600015200, @dst_id:600015300, @timestamp:0}]->() SET e.p_long=1 + 1;
+MATCH (n1:node1{@id:600015401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:600015501}) SET n1.p_long=0+1, e.p_long=1+2, n2.p_long=2+0;

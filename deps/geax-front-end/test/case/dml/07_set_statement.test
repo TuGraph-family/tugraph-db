@@ -1,0 +1,40 @@
+# 1 update_node
+# 2 update_edge
+# 3 update_node_and_edge
+# 4 update_multi_prop
+# 5 update_where
+# 6 update_and_orderby_and_limit
+
+## update_node
+MATCH (n:node1{@id:1}) set n.age=30
+MATCH (n:node1{@id:1}) set n.@id=2
+MATCH (n:node1{@id:1}) set n.name='jason', n.age=30
+MATCH (n:person where @id in (1,2,3)) set n.age=30
+MATCH (n:person where @id in (1,2,3)) set n.age=30, n.hobby='listen to music'
+MATCH (n:person where @id in (1,2,3)) set n={age:30, hobby:'listen to music'}
+
+## update_edge
+MATCH ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]->() set e.salary=1000
+MATCH ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]->() set e.@src_id=2
+MATCH ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]->() set e.salary=1000, e.work_years=2
+MATCH ()-[e:n1_2_n2{@src_id:1, @dst_id:2, @timestamp:0}]->() set e={salary:1000, work_years:2}
+
+## update_node_and_edge
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) set n2.name='unknown'
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) set n2.name='unknown', n1.age=0
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) set n2={name:'unknown'}, n1={age:0}
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) set n2.name='unknown', n1={age:0}
+
+## update_multi_prop
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) set e.salary=1000
+MATCH (n1:node1{@id:1})-[e1:n1_2_n2]->(n2)-[e2:n2_2_n3]->(n3) set e1.salary=1000, e2.stock=0
+MATCH (n1:node1{@id:1})-[e1:n1_2_n2]->(n2)-[e2:n2_2_n3]->(n3) set e1={salary:1000}, e2={stock:0}
+
+## update_where
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) WHERE e.salary = 0 set e.salary=100
+--error
+MATCH (n1:node1{@id:1})-[e:n1_2_n2]->(n2) set e.salary=100 WHERE e.salary = 0
+
+## update_and_orderby_and_limit
+MATCH (c:company{@id:1})-[r:relation]->(p:person) LIMIT 10 set r.@timestamp=0;
+MATCH (c:company{@id:1})-[r:relation]->(p:person) ORDER BY e.salary DESC LIMIT 10 set p.salary=0;

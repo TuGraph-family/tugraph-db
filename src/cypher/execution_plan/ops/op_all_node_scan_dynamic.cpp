@@ -12,4 +12,4 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "op_all_node_scan_dynamic.h"
+#include "cypher/execution_plan/ops/op_all_node_scan_dynamic.h"

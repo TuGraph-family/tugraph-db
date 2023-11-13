@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 project(TuGraph C CXX)
 
 message("Community version.")
@@ -29,13 +29,35 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 
-# target
-add_subdirectory(src)
-add_subdirectory(test)
-add_subdirectory(toolkits)
-add_subdirectory(plugins)
-add_subdirectory(release)
+# third-party
+if(NOT DEFINED TUGRAPH_THIRD_PARTY_DIR)
+    set(TUGRAPH_THIRD_PARTY_DIR "/usr/local;/usr")
+endif()
+if (NOT DEFINED GEAX_THIRD_PARTY_DIR)
+    set(GEAX_THIRD_PARTY_DIR ${TUGRAPH_THIRD_PARTY_DIR})
+endif()
 
-# fix dependency
+# modules
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(OpenSSL REQUIRED)
+# boost
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
+
+# target
+add_subdirectory(deps/geax-front-end)
+add_subdirectory(src)
+add_subdirectory(toolkits)
+add_subdirectory(release)
+if (BUILD_PROCEDURE)
+    add_subdirectory(learn)
+    add_subdirectory(procedures)
+endif (BUILD_PROCEDURE)
+
+# unit_test
+add_subdirectory(test)
 set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog)
 add_dependencies(unit_test ${LGRAPH_TOOLKITS} lgraph_server)
+
+set_target_properties(unit_test PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(fma_unit_test PROPERTIES EXCLUDE_FROM_ALL TRUE)

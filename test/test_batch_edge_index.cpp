@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
-#include "fma-common/unit_test_utils.h"
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 #include "core/lightning_graph.h"
@@ -29,7 +28,7 @@ class TestBatchEdgeIndex : public TuGraphTest {
         pad = "73@TuGraph";
         db_path = "./testdb";
         graph = "default";
-        indexes_str = "knows:weight:false,knows:since:false";
+        indexes_str = "knows:weight:0,knows:since:0";
         n_dump_key = 10;
         dump_only = false;
         verbose = 1;
@@ -102,8 +101,10 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
         lgraph::IndexSpec spec;
         spec.label = fma_common::Strip(tokens[0], "\t ");
         spec.field = fma_common::Strip(tokens[1], "\t ");
+        int type;
         size_t r =
-            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), spec.unique);
+            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), type);
+        spec.type = static_cast<lgraph::IndexType>(type);
         if (spec.label.empty() || spec.field.empty() || !r) {
             UT_ERR() << "Failed to parse index specifier: " << str;
         }
@@ -111,8 +112,8 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     }
     UT_LOG() << "We will build the following indexes: ";
     for (auto& spec : idx_specs) {
-        UT_LOG() << "\tlabel=" << spec.label << ", field=" << spec.field
-                 << ", unique=" << spec.unique;
+        UT_LOG() << "\tlabel =" << spec.label << ", field =" << spec.field
+                 << ", type =" << static_cast<int>(spec.type);
     }
 
     lgraph::Galaxy::Config conf;

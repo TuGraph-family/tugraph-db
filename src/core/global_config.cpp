@@ -45,6 +45,18 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
     AddOption(options, "optimistic transaction", txn_optimistic);
     AddOption(options, "Backup log enable", enable_backup_log);
     AddOption(options, "Whether the token is unlimited", unlimited_token);
+    AddOption(options, "HA enable", enable_ha);
+    if (enable_ha) {
+        AddOption(options, "HA init group", ha_conf);
+        AddOption(options, "HA log dir", ha_log_dir);
+        AddOption(options, "HA election timeout(ms)", ha_election_timeout_ms);
+        AddOption(options, "HA snapshot interval(s)", ha_snapshot_interval_s);
+        AddOption(options, "HA heartbeat interval(ms)", ha_heartbeat_interval_ms);
+        AddOption(options, "HA wait unreachable(ms)", ha_node_offline_ms);
+        AddOption(options, "HA wait dead(ms)", ha_node_remove_ms);
+        AddOption(options, "HA node join(s)", ha_node_join_group_s);
+        AddOption(options, "Bootstrap Role", ha_bootstrap_role);
+    }
     return options;
 }
 
@@ -100,6 +112,18 @@ std::map<std::string, lgraph::FieldData> lgraph::GlobalConfig::ToFieldDataMap() 
         v["fulltext_analyzer"] = FieldData(ft_index_options.fulltext_analyzer);
         v["fulltext_commit_interval"] = FieldData(ft_index_options.fulltext_commit_interval);
         v["fulltext_refresh_interval"] = FieldData(ft_index_options.fulltext_refresh_interval);
+    }
+    v["enable_ha"] = FieldData(enable_ha);
+    if (enable_ha) {
+        v["ha_conf"] = FieldData(ha_conf);
+        v["ha_log_dir"] = FieldData(ha_log_dir);
+        v["ha_election_timeout_ms"] = FieldData(ha_election_timeout_ms);
+        v["ha_snapshot_interval_s"] = FieldData(ha_snapshot_interval_s);
+        v["ha_heartbeat_interval_ms"] = FieldData(ha_heartbeat_interval_ms);
+        v["ha_node_offline_ms"] = FieldData(ha_node_offline_ms);
+        v["ha_node_remove_ms"] = FieldData(ha_node_remove_ms);
+        v["ha_node_join_group_s"] = FieldData(ha_node_join_group_s);
+        v["ha_bootstrap_role"] = FieldData(ha_bootstrap_role);
     }
     return v;
 }
@@ -160,12 +184,24 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     backup_log_dir = "";
     snapshot_dir = "";
     thread_limit = 0;
-    unlimited_token = 0;
+    unlimited_token = false;
+    enable_realtime_count = true;
     // fulltext index
     ft_index_options.enable_fulltext_index = false;
     ft_index_options.fulltext_commit_interval = 0;
     ft_index_options.fulltext_refresh_interval = 0;
     ft_index_options.fulltext_analyzer = "StandardAnalyzer";
+
+    // HA
+    enable_ha = false;
+    ha_bootstrap_role = 0;
+    ha_log_dir = "";
+    ha_election_timeout_ms = 500;
+    ha_snapshot_interval_s = 3600 * 24;
+    ha_heartbeat_interval_ms = 1000;
+    ha_node_offline_ms = 600 * 1000;
+    ha_node_remove_ms = 1200 * 1000;
+    ha_node_join_group_s = 10;
 
     // parse options
     fma_common::Configuration argparser;
@@ -227,6 +263,9 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Maximum number of threads to use");
     argparser.Add(unlimited_token, "unlimited_token", true)
         .Comment("Unlimited token for TuGraph.");
+    argparser.Add(enable_realtime_count, "realtime vertex and edge count", true)
+        .Comment("Whether to enable realtime vertex and edge count.");
+
 #if LGRAPH_ENABLE_FULLTEXT_INDEX
     argparser.Add(ft_index_options.enable_fulltext_index, "enable_fulltext_index", true)
         .Comment("Whether to enable fulltext index.");
@@ -240,6 +279,26 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Add(ft_index_options.fulltext_refresh_interval, "fulltext_refresh_interval", true)
         .Comment("FullText index reader refresh interval");
 #endif
+    argparser.Add(ha_log_dir, "ha_log_dir", true)
+        .Comment("Directory where the HA log is stored, required in HA mode.");
+    argparser.Add(enable_ha, "enable_ha", true).Comment("Whether to enable HA mode.");
+    argparser.Add(ha_bootstrap_role, "ha_bootstrap_role", true)
+        .Comment("Bootstrap role, 0 for no bootstrap, 1 for bootstrap_leader, "
+            "2 for bootstrap_follower")
+        .SetMin(0)
+        .SetMax(2);
+    argparser.Add(ha_conf, "ha_conf", true)
+        .Comment("Initial list of machines in the form of host1:port1,host2:port2");
+    argparser.Add(ha_snapshot_interval_s, "ha_snapshot_interval_s", true)
+        .Comment("Snapshot interval in seconds.");
+    argparser.Add(ha_heartbeat_interval_ms, "ha_heartbeat_interval_ms", true)
+        .Comment("Interval for heartbeat in ms.");
+    argparser.Add(ha_node_offline_ms, "ha_node_offline_ms", true)
+        .Comment("Peer considered failed and marked OFFLINE after this duration.");
+    argparser.Add(ha_node_remove_ms, "ha_node_remove_ms", true)
+        .Comment("Node considered completly dead and removed from list after this duration.");
+    argparser.Add(ha_node_join_group_s, "ha_node_join_group_s", true)
+        .Comment("Node joined replicated group during this duration.");
 
     return argparser;
 }

@@ -1,0 +1,11 @@
+new_local_repository(
+    name = "cuda_toolkit",
+    path = "/usr/local/cuda/include",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+cc_library(
+    name = "headers",
+    hdrs = glob(["*.h", "**/*.h", "**/*.hpp"]),
+)
+""",
+)

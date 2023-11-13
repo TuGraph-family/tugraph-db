@@ -18,7 +18,7 @@
 #pragma once
 
 #include "parser/clause.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -59,8 +59,9 @@ class OpRemove : public OpBase {
                 if (it == record->symbol_table->symbols.end()) CYPHER_TODO();
                 auto &entry = record->values[it->second.id];
                 if (entry.type != Entry::NODE) CYPHER_TODO();
-                ctx->txn_->GetTxn()->SetVertexProperty(entry.node->PullVid(), std::vector<std::string>{key},
-                                             std::vector<lgraph::FieldData>{lgraph::FieldData()});
+                ctx->txn_->GetTxn()->SetVertexProperty(
+                    entry.node->PullVid(), std::vector<std::string>{key},
+                    std::vector<lgraph::FieldData>{lgraph::FieldData()});
             } else {
                 CYPHER_TODO();
             }
@@ -85,6 +86,5 @@ class OpRemove : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

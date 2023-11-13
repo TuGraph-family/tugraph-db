@@ -1,16 +1,11 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 #include <limits>
@@ -40,15 +35,15 @@ class InEdgeIterator;
 /**
  * @brief   VertexIterator can be used to iterate through vertices in the DB. Vertices are sorted
  *          according to vertex id in the DB.
- *          
+ *
  *          A VertexIterator is valid iff it points to a valid vertex. Calling method functions
  *          on an invalid VertexIterator throws an InvalidIteratorError, except for the IsValid()
  *          and Goto() functions.
- *          
+ *
  *          The following operations invalidates a VertexIterator:
- *          1. Constructing an VertexIterator for non-existing vertex.  
- *          2. Calling Goto() with the id of a non-existing vertex.  
- *          3. Calling Next() on the last vertex.  
+ *          1. Constructing an VertexIterator for non-existing vertex.
+ *          2. Calling Goto() with the id of a non-existing vertex.
+ *          3. Calling Next() on the last vertex.
  *          4. Calling Delete() on the last vertex.
  */
 class VertexIterator {

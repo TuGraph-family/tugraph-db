@@ -20,6 +20,7 @@
 
 #include "fma-common/fma_stream.h"
 #include "lgraph/lgraph_types.h"
+#include "core/data_type.h"
 #include "core/field_data_helper.h"
 #include "core/lightning_graph.h"
 #include "import/import_exception.h"
@@ -54,7 +55,9 @@ enum KeyWord {
     SKIP,
     HEADER,
     OPTIONAL_,  // OPTIONAL is a macro in windows SDK
-    FORMAT
+    FORMAT,
+    ASC,        // TemporalFieldOrder::ASC
+    DESC        // TemporalFieldOrder::DESC
 };
 
 class KeyWordFunc {
@@ -83,6 +86,8 @@ class KeyWordFunc {
             {KeyWord::HEADER, "HEADER"},
             {KeyWord::OPTIONAL_, "OPTIONAL"},
             {KeyWord::FORMAT, "FORMAT"},
+            {KeyWord::ASC, "ASC"},
+            {KeyWord::DESC, "DESC"},
         };
         return m;
     }
@@ -164,6 +169,17 @@ class KeyWordFunc {
         return ft;
     }
 
+    static TemporalFieldOrder GetTemporalFieldOrderFromStr(const std::string& s) {
+        KeyWord kw = GetKeyWordFromStr(s);
+        if (kw == KeyWord::ASC) {
+            return TemporalFieldOrder::ASC;
+        } else if (kw == KeyWord::DESC) {
+            return TemporalFieldOrder::DESC;
+        } else {
+            throw std::runtime_error(FMA_FMT("keyword [{}] is not a TemporalFieldOrder", s));
+        }
+    }
+
     static const std::string& GetStrFromKeyWord(const KeyWord& kw) {
         return KeyWordToStrMap().at(kw);
     }
@@ -178,13 +194,24 @@ struct ColumnSpec {
     FieldType type = FieldType::NUL;  // type of the data
     bool optional = false;
     bool index = false;
-    bool unique = false;
+    IndexType idxType = IndexType::NonuniqueIndex;
     bool primary = false;
+    bool temporal = false;
+    TemporalFieldOrder temporal_order = TemporalFieldOrder::ASC;
     bool fulltext = false;
 
     inline bool CheckValid() const {
-        if (primary && !(index && unique)) throw InputError("primary should be index and unique");
-        if (index && optional) throw InputError("index/primary should not be optional");
+        if (primary && !(index && idxType == IndexType::GlobalUniqueIndex)) throw InputError(
+            FMA_FMT("primary {} should be index and unique", name));
+        if ((idxType == IndexType::GlobalUniqueIndex || idxType == IndexType::PairUniqueIndex)
+            && optional) throw InputError(
+            FMA_FMT("unique/primary index {} should not be optional", name));
+        if (type == FieldType ::BLOB && index) throw InputError(
+            FMA_FMT("BLOB field {} should not be indexed", name));
+        if (type != FieldType::STRING && fulltext) throw InputError(
+            FMA_FMT("fulltext index {} only supports STRING type", name));
+        if (type != FieldType::INT64 && temporal) throw InputError(
+            FMA_FMT("edge label [{}] temporal field [{}] should be INT64", name));
         return true;
     }
 
@@ -193,21 +220,30 @@ struct ColumnSpec {
           type(FieldType::NUL),
           optional(false),
           index(false),
-          unique(false),
-          primary(false) {}
+          idxType(IndexType::NonuniqueIndex),
+          primary(false),
+          temporal(false),
+          temporal_order(TemporalFieldOrder::ASC),
+          fulltext(false) {}
     ColumnSpec(std::string name_, FieldType type_, bool is_id_, bool optional_ = false,
-               bool index_ = false, bool unique_ = false)
+               bool index_ = false, IndexType idxType_ = IndexType::NonuniqueIndex,
+               bool temporal_ = false, TemporalFieldOrder temporal_order_ = TemporalFieldOrder::ASC,
+               bool fulltext_ = false)
         : name(std::move(name_)),
           type(type_),
           optional(optional_),
           index(index_),
-          unique(unique_),
-          primary(is_id_) {}
+          idxType(idxType_),
+          primary(is_id_),
+          temporal(temporal_),
+          temporal_order(temporal_order_),
+          fulltext(fulltext_) {}
 
     bool operator==(const ColumnSpec& rhs) const {
         // do not compare is_id/skip
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
-               index == rhs.index && unique == rhs.unique;
+               index == rhs.index && idxType == rhs.idxType &&
+               temporal == rhs.temporal && fulltext == rhs.fulltext;
     }
 
     bool operator<(const ColumnSpec& rhs) const { return name < rhs.name; }
@@ -222,8 +258,19 @@ struct ColumnSpec {
         conf["name"] = this->name;
         conf["primary"] = this->primary;
         conf["index"] = this->index;
-        conf["unique"] = this->unique;
+        conf["temporal"] = this->temporal;
         conf["optional"] = this->optional;
+        switch (idxType) {
+        case IndexType::GlobalUniqueIndex:
+            conf["indexType"] = "GlobalUniqueIndex";
+            break;
+        case IndexType::PairUniqueIndex:
+            conf["indexType"] = "PairUniqueIndex";
+            break;
+        case IndexType::NonuniqueIndex:
+            conf["indexType"] = "NonuniqueIndex";
+            break;
+        }
         return conf.dump(4);
     }
 
@@ -238,6 +285,7 @@ struct LabelDesc {
     std::vector<ColumnSpec> columns;
     EdgeConstraints edge_constraints;
     bool is_vertex;
+    bool detach_property{false};
     LabelDesc() {}
     std::string ToString() const {
         std::string prefix = is_vertex ? "vertex" : "edge";
@@ -279,6 +327,10 @@ struct LabelDesc {
             FMA_FMT("field name [{}] not found in label [{}]", field_name, name));
     }
 
+    std::vector<ColumnSpec> GetColumnSpecs() const {
+        return columns;
+    }
+
     ColumnSpec Find(std::string field_name) const {
         for (size_t i = 0; i < columns.size(); ++i) {
             if (columns[i].name == field_name) return columns[i];
@@ -287,17 +339,36 @@ struct LabelDesc {
             FMA_FMT("field name [{}] not found in label [{}]", field_name, name));
     }
 
-    ColumnSpec GetPrimaryColumn() const {
+    ColumnSpec GetPrimaryField() const {
+        if (!is_vertex) throw std::runtime_error("No primary column found");
         for (auto it = columns.begin(); it != columns.end(); ++it) {
             if (it->primary) return *it;
         }
         throw std::runtime_error("No primary column found");
     }
 
-    bool HasPrimaryColumn() const {
+    bool HasPrimaryField() const {
+        if (!is_vertex) return false;
         bool ret = false;
         for (auto it = columns.begin(); it != columns.end(); ++it) {
             if (it->primary) return true;
+        }
+        return ret;
+    }
+
+    ColumnSpec GetTemporalField() const {
+        if (is_vertex) throw std::runtime_error("No temporal column found");
+        for (auto it = columns.begin(); it != columns.end(); ++it) {
+            if (it->temporal) return *it;
+        }
+        throw std::runtime_error("No temporal column found");
+    }
+
+    bool HasTemporalField() const {
+        if (is_vertex) return false;
+        bool ret = false;
+        for (auto it = columns.begin(); it != columns.end(); ++it) {
+            if (it->temporal) return true;
         }
         return ret;
     }
@@ -368,24 +439,13 @@ struct LabelDesc {
     bool CheckValid() const {
         bool find_primary = false;
         for (auto it = columns.begin(); it != columns.end(); ++it) {
+            it->CheckValid();
             if (it->primary && is_vertex) {
                 if (find_primary) {
                     throw InputError(
                         FMA_FMT("vertex label [{}] should has no more than one primary.", name));
                 }
                 find_primary = true;
-            }
-            if (!is_vertex && it->primary) {
-                if (it->type != FieldType::INT64)
-                    throw InputError(FMA_FMT("edge label [{}] primary field [{}] should be INT64",
-                                             name, it->name));
-            }
-            if (it->type == FieldType::BLOB && it->index)
-                throw InputError(
-                    FMA_FMT("vertex label [{}]'s BLOB field is indexed, which should not", name));
-            if (it->fulltext && it->type != FieldType::STRING) {
-                throw InputError(
-                    FMA_FMT("label [{}] ：fulltext index only supports STRING type", name));
             }
         }
         if (is_vertex && !find_primary) {
@@ -683,7 +743,7 @@ struct SchemaDesc {
                     for (const auto& index : indexes) {
                         size_t col = ld.FindIdx(index.field);
                         ld.columns[col].index = true;
-                        ld.columns[col].unique = index.unique;
+                        ld.columns[col].idxType = index.type;
                         if (index.field == primary) ld.columns[col].primary = true;
                     }
                 } else {
@@ -691,7 +751,7 @@ struct SchemaDesc {
                     for (const auto& index : edge_indexes) {
                         size_t col = ld.FindIdx(index.field);
                         ld.columns[col].index = true;
-                        ld.columns[col].unique = index.unique;
+                        ld.columns[col].idxType = index.type;
                     }
                     ld.edge_constraints = txn.GetEdgeConstraints(name);
                 }
@@ -709,7 +769,7 @@ class ImportConfParser {
     static SchemaDesc ParseSchema(const nlohmann::json& conf) {
         SchemaDesc sd;
         if (!conf.contains("schema")) {
-            return sd;
+            throw InputError("Missing `schema` definition");
         }
         if (!conf["schema"].is_array()) {
             throw InputError("\"schema\" is not array");
@@ -720,13 +780,27 @@ class ImportConfParser {
                 throw InputError(R"(Missing "label" or "type" definition)");
             }
             ld.name = s["label"];
-            ld.is_vertex = s["type"] == "VERTEX" ? true : false;
+            ld.is_vertex = s["type"] == "VERTEX";
             if (ld.is_vertex) {
                 if (!s.contains("primary") || !s.contains("properties")) {
                     throw InputError(FMA_FMT(
                         R"(Label[{}]: Missing "primary" or "properties" definition)", ld.name));
                 }
+                if (s.contains("temporal")) {
+                    throw InputError(FMA_FMT(
+                        R"(Label[{}]: "temporal" is not supported in Vertex)", ld.name));
+                }
+                for (auto & p : s["properties"]) {
+                    if (p.contains("pair_unique")) {
+                        throw InputError(FMA_FMT(
+                            R"(Label[{}]: "pair_unique index" is not supported in Vertex)", ld.name));
+                    }
+                }
             } else {
+                if (s.contains("primary")) {
+                    throw InputError(FMA_FMT(
+                        R"(Label[{}]: "primary" is not supported in Edge)", ld.name));
+                }
                 if (s.contains("constraints")) {
                     if (!s["constraints"].is_array())
                         throw InputError(
@@ -736,6 +810,17 @@ class ImportConfParser {
                             throw InputError(FMA_FMT(
                                 R"(Label[{}]: "constraints" element size should be 2)", ld.name));
                         ld.edge_constraints.push_back(std::make_pair(p[0], p[1]));
+                    }
+                }
+                if (s.contains("properties")) {
+                    for (auto& p : s["properties"]) {
+                        if (p.contains("pair_unique") && p["pair_unique"]
+                            && p.contains("unique") && p["unique"]) {
+                            throw InputError(
+                                FMA_FMT("Label[{}]: pair_unique and unique configuration cannot"
+                                        " occur simultaneously)",
+                                        ld.name));
+                        }
                     }
                 }
             }
@@ -762,15 +847,35 @@ class ImportConfParser {
                     if (s.contains("primary") && cs.name == s["primary"]) {
                         cs.primary = true;
                         if (ld.is_vertex) {
-                            cs.unique = true;
+                            cs.idxType = IndexType::GlobalUniqueIndex;
                             cs.index = true;
+                        }
+                    }
+                    if (s.contains("temporal") && cs.name == s["temporal"]) {
+                        cs.temporal = true;
+                        if (s.contains("temporal_order")) {
+                            cs.temporal_order =
+                                KeyWordFunc::GetTemporalFieldOrderFromStr(s["temporal_order"]);
+                        } else {
+                            cs.temporal_order = TemporalFieldOrder::ASC;
                         }
                     }
                     if (p.contains("index")) {
                         cs.index = p["index"];
                     }
                     if (p.contains("unique")) {
-                        cs.unique = p["unique"];
+                        if (p["unique"]) {
+                            cs.idxType = IndexType::GlobalUniqueIndex;
+                        } else {
+                            cs.idxType = IndexType::NonuniqueIndex;
+                        }
+                    }
+                    if (p.contains("pair_unique")) {
+                        if (p["pair_unique"]) {
+                            cs.idxType = IndexType::PairUniqueIndex;
+                        } else {
+                            cs.idxType = IndexType::NonuniqueIndex;
+                        }
                     }
                     if (p.contains("optional")) {
                         cs.optional = p["optional"];
@@ -781,6 +886,13 @@ class ImportConfParser {
 
                     ld.columns.push_back(cs);
                 }
+            }
+            if (s.contains("detach_property")) {
+                if (!s["detach_property"].is_boolean()) {
+                    throw InputError(FMA_FMT(
+                        "Label[{}]: \"detach_property\" is not boolean", ld.name));
+                }
+                ld.detach_property = s["detach_property"];
             }
             sd.label_desc.push_back(ld);
         }

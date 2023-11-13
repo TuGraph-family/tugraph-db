@@ -66,7 +66,7 @@ int test_file_script(const std::string &file, cypher::RTContext *ctx) {
         for (auto &p : s.parts) p.symbol_table.DumpTable();
     }
     cypher::ExecutionPlan execution_plan;
-    execution_plan.Build(stmt, visitor.CommandType());
+    execution_plan.Build(stmt, visitor.CommandType(), ctx);
     execution_plan.Validate(ctx);
     execution_plan.DumpGraph();
     execution_plan.DumpPlan(0, false);
@@ -91,7 +91,7 @@ int test_interactive(cypher::RTContext *ctx) {
             parser.addErrorListener(&CypherErrorListener::INSTANCE);
             visitor.visit(parser.oC_Cypher());
             cypher::ExecutionPlan execution_plan;
-            execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
+            execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
             execution_plan.Validate(ctx);
             execution_plan.Execute(ctx);
             UT_LOG() << "Result:\n" << ctx->result_->Dump(false);
@@ -115,7 +115,7 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
-        execution_plan.Build(visitor.GetQuery(), visitor.CommandType());
+        execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         execution_plan.Validate(ctx);
         execution_plan.DumpGraph();
         execution_plan.DumpPlan(0, false);
@@ -285,8 +285,14 @@ int test_query(cypher::RTContext *ctx) {
         {"MATCH (n:Person) WHERE n.birthyear > 1900 AND n.birthyear < 2000 RETURN count(n)", 1},
         {"MATCH (n:Person) RETURN n.birthyear, count(n)", 13},
         {"MATCH (f:Film)<-[:ACTED_IN]-(p:Person)-[:BORN_IN]->(c:City) "
-         "RETURN c.name, count(f) AS sum ORDER BY sum DESC", 3},
-    };
+         "RETURN c.name, count(f) AS sum ORDER BY sum DESC",
+         3},
+        /* test schema rewrite optimization */
+        {"MATCH p=(n1)-[r1]->(n2)-[r2]->(m:Person) return count(p)", 1},
+        {"MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City),p2=(n3)-[r3]->(m2:Film) return count(p1)", 1},
+        {"MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City) with count(p1) as cp match "
+         "p1=(n1)-[r1]->(m1:Film) return count(p1)",
+         1}};
     std::vector<std::string> scripts;
     std::vector<int> check;
     for (auto &s : script_check) {
@@ -781,10 +787,19 @@ int test_expression(cypher::RTContext *ctx) {
         /* list test */
         {"UNWIND [2, 3, 4, 5] AS number WITH number WHERE number IN [2, 3, 8] RETURN number", 2},
         /* datetime, bool, binary */
+        {"RETURN date() AS d", 1},
+        {"RETURN date('2017-05-03')", 1},
+        {"RETURN date('2017-05-01')", 1},
+        {"RETURN date('2017-05-01') < date('2017-05-03')", 1},
+        {"RETURN date('2017-05-03') > date('2017-05-01')", 1},
+        {"RETURN date('2017-05-01') = date('2017-05-01')", 1},
         {"RETURN datetime() AS timePoint", 1},
         {"RETURN datetime('2017-05-03 10:40:32') AS timePoint", 1},
         {"RETURN datetime('2017-05-01 10:00:00') > datetime('2017-05-03 08:00:00')", 1},
         {"RETURN datetime('2017-05-01 10:00:00') < datetime('2017-05-03 08:00:00')", 1},
+        {"RETURN datetime('2017-05-01 10:00:00.000001') > datetime('2017-05-01 10:00:00')", 1},
+        {"RETURN datetime('2017-05-01 10:00:00.000002') > datetime('2017-05-01 10:00:00.000001')",
+        1},
         {"WITH datetime('2017-05-01 10:00:00') AS t1, datetime('2017-05-03 08:00:00') AS t2 RETURN "
          "t1>t2,t1<t2",
          1},
@@ -794,14 +809,18 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN bin('MjAyMAo=') = bin('MjAyMAo=')", 1},
         {"WITH bin('MjAyMAo=') AS bin1, bin('MjAxOQo=') AS bin2 RETURN bin1>bin2,bin1<bin2", 1},
         /* datetime components */
+        {"RETURN dateComponent(12345, 'year'), datetimeComponent(12345, 'month'), "
+        "datetimeComponent(12345, 'day')",
+        1},
         {"RETURN datetimeComponent(1582705717, 'year'),datetimeComponent(1582705717, "
          "'month'),datetimeComponent(1582705717, 'day')",
          1},
         {"RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, "
-         "'minute'),datetimeComponent(1582705717, 'second')",
+         "'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717,"
+         " 'microsecond')",
          1},
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
-         "'second')",
+         "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
     };
     std::vector<std::string> scripts;
@@ -1126,7 +1145,7 @@ int test_procedure(cypher::RTContext *ctx) {
         encode = lgraph_api::encode_base64(text);
         plugin_scripts.push_back(
             "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
-            "','CPP','" + i.first + "', true)");
+            "','CPP','" + i.first + "', true, 'v1')");
     }
     eval_scripts(ctx, plugin_scripts);
 
@@ -1217,20 +1236,21 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL dbms.security.listUsers()",
         "CALL dbms.security.deleteRole('test_role')",
         "CALL dbms.security.deleteUser('guest1')",
-        "CALL db.plugin.listPlugin('CPP')",
-        // add by glc
-        "CALL db.listLabelIndexes('Person')",
+        "CALL db.plugin.listPlugin('CPP', 'any')",
+        "CALL db.listLabelIndexes('Person', 'vertex')",
         "CALL dbms.security.getUserPermissions('admin')",
         "CALL dbms.graph.getGraphInfo('default')",
-        "CALL db.plugin.listPlugin('PY')",
+#ifndef __SANITIZE_ADDRESS__
+        "CALL db.plugin.listPlugin('PY', 'any')",
         "CALL db.plugin.loadPlugin('PY','countPerson','ZGVmIFByb2Nlc3MoZGIsIGlucHV0KToKIC"
         "AgIHR4biA9IGRiLkNyZWF0ZVJlYWRUeG4oKQogICAgaXQgPSB0eG4uR2V0VmVydGV4SXRlcmF0b3IoKQogICAgbiA"
         "9IDAKICAgIHdoaWxlIGl0LklzVmFsaWQoKToKICAgICAgICBpZiBpdC5HZXRMYWJlbCgpID09ICdQZXJzb24nOgog"
         "ICAgICAgICAgICBuID0gbiArIDEKICAgICAgICBpdC5OZXh0KCkKICAgIHJldHVybiAoVHJ1ZSwgc3RyKG4pKQ=='"
-        ",'PY','count person',true)",
-        "CALL db.plugin.listPlugin('PY')",
+        ",'PY','count person',true, 'v1')",
+        "CALL db.plugin.listPlugin('PY', 'any')",
         "CALL db.plugin.getPluginInfo('PY','countPerson')",
         "CALL db.plugin.getPluginInfo('PY','countPerson',true)",
+#endif
         "CALL dbms.task.listTasks()",
         "CALL plugin.cpp.scan_graph({scan_edges:true,times:2})",
         "CALL plugin.cpp.standard({})",
@@ -1282,6 +1302,9 @@ int test_procedure(cypher::RTContext *ctx) {
         "return node, r, n LIMIT 1"
         "/* V[0] E[0_2_0_0] E[0_2_0_0] V[2] */",
         "CALL dbms.procedures() YIELD name, signature WHERE name='db.subgraph' RETURN signature",
+        "CALL dbms.meta.count()",
+        "CALL dbms.meta.countDetail()",
+        "CALL dbms.meta.refreshCount()",
     };
     eval_scripts(ctx, scripts);
 
@@ -1301,7 +1324,7 @@ int test_procedure(cypher::RTContext *ctx) {
         f.close();
         std::string encoded = lgraph_api::encode_base64(text);
         call_signatured_plugins_scripts.emplace_back(
-            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true)",
+            FMA_FMT("CALL db.plugin.loadPlugin('CPP','{}','{}','CPP','{}', true, 'v2')",
                     name, encoded, name));
     };
 
@@ -1324,6 +1347,20 @@ int test_procedure(cypher::RTContext *ctx) {
         "WITH length, nodeIds "
         "UNWIND nodeIds AS id "
         "RETURN id, length");
+
+    add_signatured_plugins("peek_some_node_salt",
+        "../../test/test_procedures/peek_some_node_salt.cpp");
+    call_signatured_plugins_scripts.emplace_back(
+        "CALL plugin.cpp.peek_some_node_salt(10) "
+        "YIELD node, salt WITH node, salt "
+        "MATCH(node)-[r]->(n) RETURN node, r, n, salt");
+
+    add_signatured_plugins("custom_path_process",
+        "../../test/test_procedures/custom_path_process.cpp");
+    call_signatured_plugins_scripts.emplace_back(
+        "MATCH p = (n {name:\"Rachel Kempson\"})-[*0..3]->() "
+        "CALL plugin.cpp.custom_path_process(nodes(p)) YIELD idSum "
+        "RETURN idSum");
 
     add_signatured_plugins("custom_algo", "../../test/test_procedures/custom_algo.cpp");
     call_signatured_plugins_scripts.emplace_back(
@@ -1369,10 +1406,10 @@ int test_add(cypher::RTContext *ctx) {
 int test_set(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts = {
         "CALL db.createVertexLabel('Person', 'name', 'name', STRING, false, 'age', INT16, true, "
-        "'eyes', STRING, true)",
+        "'eyes', STRING, true, 'date', DATE, true)",
         "CALL db.createEdgeLabel('KNOWS', '[]', 'weight', INT16, true)",
         R"(
-CREATE (a:Person {name:'A', age:13})
+CREATE (a:Person {name:'A', age:13, date:DATE('2023-07-23')})
 CREATE (b:Person {name:'B', age:33, eyes:'blue'})
 CREATE (c:Person {name:'C', age:44, eyes:'blue'})
 CREATE (d:Person {name:'D', eyes:'brown'})
@@ -2162,15 +2199,19 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
         "(m:Person {name:'Liam Neeson'}), "
         "(o:Person {name:'Liam Neeson'}) "
         "WHERE custom.myadd('asd')='1' RETURN 1");
-    // issue #312
+    // issue #312 & #463
     auto graph = ctx->graph_;
     ctx->graph_ = "";
     expected_exception_any(ctx, "MATCH (n) RETURN n LIMIT 5");
     expected_exception_any(ctx, "CALL db.vertexLabels");
     expected_exception_any(ctx, "CALL db.warmup");
     eval_script(ctx, "CALL dbms.graph.listGraphs()");
+    expected_exception_any(ctx, "MATCH p=(n)-[e]->(m) RETURN p LIMIT 5");
     ctx->graph_ = graph;
-    // issue #312 end
+    // issue #312 & #464 end
+    // issue #473
+    expected_exception_any(ctx, "MATCH (movie)<-[r]-(n) WITH n,n MATCH (n1) RETURN n1 LIMIT 1");
+    expected_exception_any(ctx, "MATCH (movie)<-[r]-(n) return n,n limit 1");
     return 0;
 }
 
@@ -2252,10 +2293,22 @@ int test_edge_id_query(cypher::RTContext *ctx) {
 
 void TestCypherDetermineReadonly() {
     std::string dummy;
-    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("match (n) return n limit 100", dummy, dummy),
-                 true);
-    UT_EXPECT_EQ(cypher::Scheduler::DetermineReadOnly("CALL dbms.listGraphs()", dummy, dummy),
-                 true);
+    UT_EXPECT_EQ(
+        cypher::Scheduler::DetermineReadOnly(
+            nullptr,
+            lgraph_api::GraphQueryType::CYPHER,
+            "match (n) return n limit 100",
+            dummy,
+            dummy),
+        true);
+    UT_EXPECT_EQ(
+        cypher::Scheduler::DetermineReadOnly(
+            nullptr,
+            lgraph_api::GraphQueryType::CYPHER,
+            "CALL dbms.listGraphs()",
+            dummy,
+            dummy),
+        true);
 }
 
 void TestCypherEmptyGraph(cypher::RTContext *ctx) {
@@ -2369,7 +2422,8 @@ TEST_P(TestCypher, Cypher) {
     char **argv = _ut_argv;
     fma_common::Configuration config;
     config.Add(test_case, "tc", true).Comment(str);
-    config.Add(database, "d", true).Comment("Select database: 0-current, 1-new yago, 2-empty");
+    config.Add(database, "d", true)
+        .Comment("Select database: 0-current, 1-new yago, 2-empty, 3-yago with constraints");
     config.Add(file, "f", true).Comment("File path");
     config.Add(verbose, "v", true).Comment("Verbose: 0-WARNING, 1-INFO, 2-DEBUG");
     config.ExitAfterHelp();
@@ -2388,8 +2442,11 @@ TEST_P(TestCypher, Cypher) {
     } else if (database == 1) {
         fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
         GraphFactory::create_yago("./testdb");
+    } else if (database == 2) {
+        fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
     } else {
         fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
+        GraphFactory::create_yago_with_constraints("./testdb");
     }
     lgraph::Galaxy::Config gconf;
     gconf.dir = "./testdb";
@@ -2401,132 +2458,131 @@ TEST_P(TestCypher, Cypher) {
                          lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
                          lgraph::AclManager::FieldAccess());
     db.param_tab_ = g_param_tab;
-    try {
+
+    auto no_throw_test_case = [&] {
         switch (test_case) {
-        case TC_FILE_SCRIPT:
-            test_file_script(file, &db);
-            break;
-        case TC_INTERACTIVE:
-            test_interactive(&db);
-            break;
-        case TC_FIND:
-            test_find(&db);
-            break;
-        case TC_QUERY:
-            test_query(&db);
-            break;
-        case TC_HINT:
-            test_hint(&db);
-            break;
-        case TC_MULTI_MATCH:
-            test_multi_match(&db);
-            break;
-        case TC_OPTIONAL_MATCH:
-            test_optional_match(&db);
-            break;
-        case TC_UNION:
-            test_union(&db);
-            break;
-        case TC_FUNCTION:
-            test_function(&db);
-            break;
-        case TC_PARAMETER:
-            test_parameter(&db);
-            break;
-        case TC_VAR_LEN_EDGE:
-            test_var_len_expand(&db);
-            break;
-        case TC_UNIQUENESS:
-            test_uniqueness(&db);
-            break;
-        case TC_FUNC_FILTER:
-            test_func_filter(&db);
-            break;
-        case TC_EXPRESSION:
-            test_expression(&db);
-            break;
-        case TC_WITH:
-            test_with(&db);
-            break;
-        case TC_LIST_COMPREHENSION:
-            test_list_comprehension(&db);
-            break;
-        case TC_PROFILE:
-            test_profile(&db);
-            break;
-        case TC_UNWIND:
-            test_unwind(&db);
-            break;
-        case TC_PROCEDURE:
-            test_procedure(&db);
-            break;
-        case TC_ADD:
-            test_add(&db);
-            break;
-        case TC_SET:
-            test_set(&db);
-            break;
-        case TC_DELETE:
-            test_delete(&db);
-            break;
-        case TC_REMOVE:
-            test_remove(&db);
-            break;
-        case TC_ORDER_BY:
-            test_order_by(&db);
-            break;
-        case TC_CREATE_YAGO:
-            test_create_yago(&db);
-            break;
-        case TC_AGGREGATE:
-            test_aggregate(&db);
-            break;
-        case TC_ALGO:
-            test_algo(&db);
-            break;
-        case TC_TOPN:
-            test_topn(&db);
-            break;
-        case TC_MERGE:
-            test_merge(&db);
-            break;
-        case TC_ERROR_REPORT:
-            test_error_report(&db);
-            break;
-        case TC_DEBUG_STACK_CHAOS:
-            debug_stack_chaos(&db);
-            break;
-        case TC_LDBC_SNB:
-            test_ldbc_snb(&db);
-            break;
-        case TC_OPT:
-            test_opt(&db);
-            break;
-        case TC_FIX_CRASH_ISSUES:
-            test_fix_crash_issues(&db);
-            break;
-        case TC_UNDEFINED_VAR:
-            test_undefined_var(&db);
-            break;
-        case TC_CREATE_LABEL:
-            test_create_label(&db);
-            break;
-        case TC_READONLY:
-            TestCypherDetermineReadonly();
-            break;
-        case TC_EDGE_ID:
-            test_edge_id_query(&db);
-            break;
-        case TC_EMPTY_GRAPH:
-            TestCypherEmptyGraph(&db);
-            break;
-        default:
-            break;
+            case TC_FILE_SCRIPT:
+                test_file_script(file, &db);
+                break;
+            case TC_INTERACTIVE:
+                test_interactive(&db);
+                break;
+            case TC_FIND:
+                test_find(&db);
+                break;
+            case TC_QUERY:
+                test_query(&db);
+                break;
+            case TC_HINT:
+                test_hint(&db);
+                break;
+            case TC_MULTI_MATCH:
+                test_multi_match(&db);
+                break;
+            case TC_OPTIONAL_MATCH:
+                test_optional_match(&db);
+                break;
+            case TC_UNION:
+                test_union(&db);
+                break;
+            case TC_FUNCTION:
+                test_function(&db);
+                break;
+            case TC_PARAMETER:
+                test_parameter(&db);
+                break;
+            case TC_VAR_LEN_EDGE:
+                test_var_len_expand(&db);
+                break;
+            case TC_UNIQUENESS:
+                test_uniqueness(&db);
+                break;
+            case TC_FUNC_FILTER:
+                test_func_filter(&db);
+                break;
+            case TC_EXPRESSION:
+                test_expression(&db);
+                break;
+            case TC_WITH:
+                test_with(&db);
+                break;
+            case TC_LIST_COMPREHENSION:
+                test_list_comprehension(&db);
+                break;
+            case TC_PROFILE:
+                test_profile(&db);
+                break;
+            case TC_UNWIND:
+                test_unwind(&db);
+                break;
+            case TC_PROCEDURE:
+                test_procedure(&db);
+                break;
+            case TC_ADD:
+                test_add(&db);
+                break;
+            case TC_SET:
+                test_set(&db);
+                break;
+            case TC_DELETE:
+                test_delete(&db);
+                break;
+            case TC_REMOVE:
+                test_remove(&db);
+                break;
+            case TC_ORDER_BY:
+                test_order_by(&db);
+                break;
+            case TC_CREATE_YAGO:
+                test_create_yago(&db);
+                break;
+            case TC_AGGREGATE:
+                test_aggregate(&db);
+                break;
+            case TC_ALGO:
+                test_algo(&db);
+                break;
+            case TC_TOPN:
+                test_topn(&db);
+                break;
+            case TC_MERGE:
+                test_merge(&db);
+                break;
+            case TC_ERROR_REPORT:
+                test_error_report(&db);
+                break;
+            case TC_DEBUG_STACK_CHAOS:
+                debug_stack_chaos(&db);
+                break;
+            case TC_LDBC_SNB:
+                test_ldbc_snb(&db);
+                break;
+            case TC_OPT:
+                test_opt(&db);
+                break;
+            case TC_FIX_CRASH_ISSUES:
+                test_fix_crash_issues(&db);
+                break;
+            case TC_UNDEFINED_VAR:
+                test_undefined_var(&db);
+                break;
+            case TC_CREATE_LABEL:
+                test_create_label(&db);
+                break;
+            case TC_READONLY:
+                TestCypherDetermineReadonly();
+                break;
+            case TC_EDGE_ID:
+                test_edge_id_query(&db);
+                break;
+            case TC_EMPTY_GRAPH:
+                TestCypherEmptyGraph(&db);
+                break;
+            default:
+                break;
         }
-    } catch (std::exception &e) {
-        UT_LOG() << e.what();
-        UT_EXPECT_TRUE(false);
-    }
+    };
+    UT_EXPECT_NO_THROW(no_throw_test_case());
     fma_common::SleepS(1);  // Waiting for memory reclaiming by async task
 }
 
@@ -2534,7 +2590,7 @@ using namespace ::testing;
 
 INSTANTIATE_TEST_CASE_P(
     TestCypher, TestCypher,
-    Values(ParamCypher{3, 1}, ParamCypher{4, 1}, ParamCypher{5, 1}, ParamCypher{6, 1},
+    Values(ParamCypher{3, 1}, ParamCypher{4, 3}, ParamCypher{5, 1}, ParamCypher{6, 1},
            ParamCypher{7, 1}, ParamCypher{8, 1}, ParamCypher{9, 1}, ParamCypher{10, 1},
            ParamCypher{11, 1}, ParamCypher{12, 1}, ParamCypher{13, 1}, ParamCypher{14, 1},
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},

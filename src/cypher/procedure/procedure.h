@@ -17,12 +17,13 @@
 //
 #pragma once
 
+#include <iostream>
+#include <utility>
+
 #include "parser/data_typedef.h"
 #include "execution_plan/runtime_context.h"
 #include "graph/graph.h"
 #include "lgraph/lgraph_types.h"
-#include <iostream>
-#include <utility>
 
 namespace cypher {
 
@@ -66,7 +67,7 @@ static const int SPEC_MEMBER_SIZE = 3;
 
 typedef std::vector<parser::Expression> VEC_EXPR;
 typedef std::vector<std::string> VEC_STR;
-// TODO: procedure context // NOLINT
+// TODO(anyone) procedure context
 typedef std::function<void(RTContext *, const Record *, const VEC_EXPR &, const VEC_STR &,
                            std::vector<Record> *records)>
     SA_FUNC;
@@ -144,12 +145,20 @@ class BuiltinProcedure {
                                   const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbAddEdgeConstraints(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                    const VEC_STR &yield_items, std::vector<Record> *records);
-    static void DbClearEdgeConstraints(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                      const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbClearEdgeConstraints(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsProcedures(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsMetaCountDetail(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                    const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsMetaCount(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                              const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbmsMetaRefreshCount(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsSecurityChangePassword(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
@@ -199,6 +208,9 @@ class BuiltinProcedure {
 
     static void DbmsGraphListGraphs(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                     const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsGraphListUserGraphs(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                        const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsGraphGetGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records);
@@ -346,6 +358,9 @@ class AlgoFunc {
 
     static void PageRank(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void Jaccard(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                        const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -362,22 +377,24 @@ struct Procedure {
               bool ro = true, bool st = false)
         : proc_name(std::move(name)), function(std::move(func)), read_only(ro), separate_txn(st) {
         std::vector<lgraph_api::Parameter> input_list;
-        std::transform(args.cbegin(), args.cend(), std::back_inserter(input_list), [](auto arg) -> lgraph_api::Parameter {
-            return {
-                .name = arg.first,
-                .index = arg.second.first,
-                .type = arg.second.second,
-            };
-        });
+        std::transform(args.cbegin(), args.cend(), std::back_inserter(input_list),
+                       [](auto arg) -> lgraph_api::Parameter {
+                           return {
+                               .name = arg.first,
+                               .index = arg.second.first,
+                               .type = arg.second.second,
+                           };
+                       });
 
         std::vector<lgraph_api::Parameter> yield_items;
-        std::transform(results.cbegin(), results.cend(), std::back_inserter(yield_items), [](auto result) -> lgraph_api::Parameter {
-            return {
-                .name = result.first,
-                .index = result.second.first,
-                .type = result.second.second,
-            };
-        });
+        std::transform(results.cbegin(), results.cend(), std::back_inserter(yield_items),
+                       [](auto result) -> lgraph_api::Parameter {
+                           return {
+                               .name = result.first,
+                               .index = result.second.first,
+                               .type = result.second.second,
+                           };
+                       });
 
         signature = {
             .input_list = std::move(input_list),
@@ -435,36 +452,38 @@ struct Procedure {
 static std::vector<Procedure> global_procedures = {
     Procedure("db.subgraph", BuiltinProcedure::DbSubgraph,
               Procedure::SIG_SPEC{{"vids", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{
-                  {"subgraph", {0, lgraph_api::LGraphType::STRING}}
-              }),
+              Procedure::SIG_SPEC{{"subgraph", {0, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.vertexLabels", BuiltinProcedure::DbVertexLabels, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"label", {0, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.edgeLabels", BuiltinProcedure::DbEdgeLabels, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"edgeLabels", {0, lgraph_api::LGraphType::STRING}}}),
+              Procedure::SIG_SPEC{{"label", {0, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.indexes", BuiltinProcedure::DbIndexes, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
-                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                  {"label_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"unique", {3, lgraph_api::LGraphType::BOOLEAN}},
+                  {"pair_unique", {4, lgraph_api::LGraphType::BOOLEAN}},
               }),
 
-    Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes, Procedure::SIG_SPEC{},
+    Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"label_type", {1, lgraph_api::LGraphType::LIST}}},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
                   {"unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                  {"pair_unique", {3, lgraph_api::LGraphType::BOOLEAN}},
               }),
 
     Procedure("db.propertyKeys", BuiltinProcedure::DbPropertyKeys, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"propertyKey", {0, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.warmup", BuiltinProcedure::DbWarmUp, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"time_used", {0, lgraph_api::LGraphType::STRING}}}, true,
-              true),
+              Procedure::SIG_SPEC{{"time_used", {0, lgraph_api::LGraphType::STRING}}}, true, true),
 
     Procedure("db.createVertexLabel", BuiltinProcedure::DbCreateVertexLabel,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
@@ -539,13 +558,14 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.addIndex", BuiltinProcedure::DbAddVertexIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                                  {"is_unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.addEdgeIndex", BuiltinProcedure::DbAddEdgeIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                                  {"is_unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"pair_unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.addFullTextIndex", BuiltinProcedure::DbAddFullTextIndex,
@@ -571,8 +591,8 @@ static std::vector<Procedure> global_procedures = {
                                   {"field", {2, lgraph_api::LGraphType::STRING}}}),
 
     Procedure("db.addEdgeConstraints", BuiltinProcedure::DbAddEdgeConstraints,
-          Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
-                              {"constraints", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"constraints", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.clearEdgeConstraints", BuiltinProcedure::DbClearEdgeConstraints,
@@ -585,6 +605,18 @@ static std::vector<Procedure> global_procedures = {
                                   {"read_only", {2, lgraph_api::LGraphType::BOOLEAN}}},
               true, false),
 
+    Procedure("dbms.meta.countDetail", BuiltinProcedure::DbmsMetaCountDetail, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"is_vertex", {0, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"label", {1, lgraph_api::LGraphType::STRING}},
+                                  {"count", {2, lgraph_api::LGraphType::INTEGER}}},
+              true, false),
+    Procedure("dbms.meta.count", BuiltinProcedure::DbmsMetaCount, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"type", {1, lgraph_api::LGraphType::STRING}},
+                                  {"number", {2, lgraph_api::LGraphType::INTEGER}}},
+              true, false),
+    Procedure("dbms.meta.refreshCount", BuiltinProcedure::DbmsMetaRefreshCount,
+              Procedure::SIG_SPEC{}, Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}},
+              false, true),
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
                   {"current_password", {0, lgraph_api::LGraphType::STRING}},
@@ -634,8 +666,8 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("dbms.security.deleteAllowedHosts", BuiltinProcedure::DbmsSecurityHostWhitelistDelete,
               Procedure::SIG_SPEC{{"hosts", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"record_affected", {0, lgraph_api::LGraphType::INTEGER}}},
-              false, true),
+              Procedure::SIG_SPEC{{"record_affected", {0, lgraph_api::LGraphType::INTEGER}}}, false,
+              true),
 
     Procedure("dbms.security.addAllowedHosts", BuiltinProcedure::DbmsSecurityHostWhitelistAdd,
               Procedure::SIG_SPEC{{"hosts", {0, lgraph_api::LGraphType::LIST}}},
@@ -658,6 +690,12 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("dbms.graph.listGraphs", BuiltinProcedure::DbmsGraphListGraphs, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"configuration", {1, lgraph_api::LGraphType::MAP}}},
+              true, true),
+
+    Procedure("dbms.graph.listUserGraphs", BuiltinProcedure::DbmsGraphListUserGraphs,
+              Procedure::SIG_SPEC{{"user_name", {0, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"configuration", {1, lgraph_api::LGraphType::MAP}}},
               true, true),
@@ -728,6 +766,15 @@ static std::vector<Procedure> global_procedures = {
               },
               Procedure::SIG_SPEC{{"node", {0, lgraph_api::LGraphType::NODE}},
                                   {"pr", {1, lgraph_api::LGraphType::FLOAT}}}),
+
+    Procedure("algo.jaccard", AlgoFunc::Jaccard,
+              Procedure::SIG_SPEC{
+                  {"lhs", {0, lgraph_api::LGraphType::ANY}},
+                  {"rhs", {0, lgraph_api::LGraphType::ANY}},
+              },
+              Procedure::SIG_SPEC{
+                  {"similarity", {0, lgraph_api::LGraphType::FLOAT}},
+              }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},
@@ -829,7 +876,8 @@ static std::vector<Procedure> global_procedures = {
                                   {"plugin_content", {2, lgraph_api::LGraphType::STRING}},
                                   {"code_type", {3, lgraph_api::LGraphType::STRING}},
                                   {"plugin_description", {4, lgraph_api::LGraphType::STRING}},
-                                  {"read_only", {5, lgraph_api::LGraphType::BOOLEAN}}},
+                                  {"read_only", {5, lgraph_api::LGraphType::BOOLEAN}},
+                                  {"version", {6, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.plugin.deletePlugin", BuiltinProcedure::DbPluginDeletePlugin,
@@ -840,13 +888,14 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.plugin.getPluginInfo", BuiltinProcedure::DbPluginGetPluginInfo,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}},
                                   {"plugin_name", {1, lgraph_api::LGraphType::STRING}}},
-              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}},
-              false, true),
+              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, true,
+              true),
 
     Procedure("db.plugin.listPlugin", BuiltinProcedure::DbPluginListPlugin,
-              Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}}},
-              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}},
-              false, true),
+              Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}},
+                                  {"plugin_version", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, false,
+              true),
 
     Procedure("db.plugin.listUserPlugins", BuiltinProcedure::DbPluginListUserPlugins,
               Procedure::SIG_SPEC{},
@@ -900,9 +949,9 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"task_id", {0, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
-    Procedure(
-        "db.monitor.tuGraphInfo", BuiltinProcedure::DbMonitorTuGraphInfo, Procedure::SIG_SPEC{},
-        Procedure::SIG_SPEC{{"request", {0, lgraph_api::LGraphType::STRING}}}, false, true),
+    Procedure("db.monitor.tuGraphInfo", BuiltinProcedure::DbMonitorTuGraphInfo,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"request", {0, lgraph_api::LGraphType::STRING}}}, false, true),
 
     Procedure("db.monitor.serverInfo", BuiltinProcedure::DbMonitorServerInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"cpu", {0, lgraph_api::LGraphType::STRING}},
@@ -912,8 +961,9 @@ static std::vector<Procedure> global_procedures = {
               false, true),
 
     Procedure("dbms.ha.clusterInfo", BuiltinProcedure::DbmsHaClusterInfo, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}}}, true,
-              true)};
+              Procedure::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}},
+                                  {"is_master", {1, lgraph_api::LGraphType::BOOLEAN}}
+              }, true, true)};
 
 class ProcedureTable {
     std::unordered_map<std::string, Procedure> ptable_;

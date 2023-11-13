@@ -18,6 +18,11 @@
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/http_client.h"
 #include "restful/server/stdafx.h"
 #include "client/cpp/restful/rest_client.h"
@@ -309,26 +314,27 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         json::value body;
         body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
         body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
-        Galaxy galaxy("./testdb");
         auto re = client1->request(methods::POST, _TU("/login"), body).get();
         auto token = _TS(re.extract_json().get().at(_TU("jwt")).as_string());
-        galaxy.SetTokenTimeUnlimited();
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, std::numeric_limits<int>::max());
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, std::numeric_limits<int>::max());
-        galaxy.ModifyTokenTime(token, 1, 3600 * 24);
-        fma_common::SleepS(1);
-        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(token), false);
-        galaxy.ModifyTokenTime(token, 600, 3600);
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).first, 600);
-        UT_EXPECT_EQ(galaxy.GetTokenTime(token).second, 3600);
         auto new_token = client.Refresh(token);
         UT_EXPECT_EQ(new_token != token, true);
-        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), true);
-        galaxy.ModifyTokenTime(new_token, 1, 3600 * 24);
-        fma_common::SleepS(1);
-        UT_EXPECT_EQ(galaxy.JudgeRefreshTime(new_token), false);
     }
     UT_LOG() << "Testing refresh succeeded";
+
+    // test update_token_time and get_token_time
+    {
+        auto* client1 = static_cast<http_client*>(client.GetClient());
+        json::value body;
+        body[_TU("user")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_NAME));
+        body[_TU("password")] = json::value::string(_TU(lgraph::_detail::DEFAULT_ADMIN_PASS));
+        auto re = client1->request(methods::POST, _TU("/login"), body).get();
+        auto token = _TS(re.extract_json().get().at(_TU("jwt")).as_string());
+        UT_EXPECT_EQ(client.GetTokenTime(token).first, 3600 * 24);
+        UT_EXPECT_EQ(client.GetTokenTime(token).second, 3600 * 24);
+        client.UpdateTokenTime(token, 200, 400);
+        UT_EXPECT_EQ(client.GetTokenTime(token).first, 200);
+        UT_EXPECT_EQ(client.GetTokenTime(token).second, 400);
+    }
 
     // test logout
     UT_LOG() << "Testing logout";
@@ -340,10 +346,10 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         auto response = client1->request(methods::POST, _TU("/login"), body).get();
         auto token = _TS(response.extract_json().get().at(_TU("jwt")).as_string());
         UT_EXPECT_EQ(client.Logout(token), true);
-        UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: Invalid token.");
-        UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: Invalid token.");
-        UT_EXPECT_THROW_MSG(client.EvalCypher(db_name,
-            "CALL db.addIndex('person', 'age', false)"), "Unauthorized: Invalid token.");
+        UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: Authentication failed.");
+        UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: Authentication failed.");
+        UT_EXPECT_THROW_MSG(client.EvalCypher(db_name, "CALL db.addIndex('person', 'age', false)"),
+                            "Unauthorized: Authentication failed.");
     }
     UT_LOG() << "Testing logout succeeded";
 
@@ -352,19 +358,19 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
     {
         client.Login(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
 
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "person", "uid", true));
-        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "name", false), true);
-        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "age", false), true);
-        UT_EXPECT_EQ(client.AddIndex(db_name, "software", "name", false), true);
-        UT_EXPECT_EQ(client.AddIndex(db_name, "company", "address", false), true);
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "address", false));
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", false));
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "error", false));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "person", "uid", 1));
+        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "name", 0), true);
+        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "age", 0), true);
+        UT_EXPECT_EQ(client.AddIndex(db_name, "software", "name", 0), true);
+        UT_EXPECT_EQ(client.AddIndex(db_name, "company", "address", 0), true);
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "address", 0));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", 0));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "error", 0));
 #ifdef _WIN32
 // TODO(hjk41): fix this on windows
 #else
         client.DeleteIndex(db_name, "company", "address");
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", false));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", 0));
 
         auto indexes = client.ListIndexes(db_name);
         UT_EXPECT_EQ(indexes.size(), 6);
@@ -590,8 +596,8 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         // set parameters online
         script_str.assign(
             UT_FMT("call dbms.config.update(\\{{}:true, {}:false, {}:true, {}:true\\})",
-                    lgraph::_detail::OPT_IP_CHECK_ENABLE, lgraph::_detail::OPT_DB_DURABLE,
-                    lgraph::_detail::OPT_TXN_OPTIMISTIC, lgraph::_detail::OPT_AUDIT_LOG_ENABLE));
+                   lgraph::_detail::OPT_IP_CHECK_ENABLE, lgraph::_detail::OPT_DB_DURABLE,
+                   lgraph::_detail::OPT_TXN_OPTIMISTIC, lgraph::_detail::OPT_AUDIT_LOG_ENABLE));
         ret = client.EvalCypher(db_name, script_str);
         RestClient::CPURate cpuRate;
         RestClient::MemoryInfo memInfo;
@@ -716,19 +722,25 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
             "oKICAgIHJldHVybiAoVHJ1ZSwgaW5wdXQpCg==");
 
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
+        UT_EXPECT_EQ(client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
+                                       PluginDesc("py_test", lgraph::plugin::PLUGIN_CODE_TYPE_PY,
+                                                  "test python plugin ECHO",
+                                                  lgraph::plugin::PLUGIN_VERSION_1, true, ""),
+                                       code),
+                     true);
         UT_EXPECT_EQ(
             client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
-                              PluginDesc("py_test", "test python plugin ECHO", true), code),
+                              PluginDesc("py_test_input", lgraph::plugin::PLUGIN_CODE_TYPE_PY,
+                                         "test python plugin ECHO with input",
+                                         lgraph::plugin::PLUGIN_VERSION_1, false, ""),
+                              codeNeedInput),
             true);
-        UT_EXPECT_EQ(client.LoadPlugin(
-                         db_name, lgraph_api::PluginCodeType::PY,
-                         PluginDesc("py_test_input", "test python plugin ECHO with input", false),
-                         codeNeedInput),
-                     true);
 
-        UT_EXPECT_ANY_THROW(
-            client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
-                              PluginDesc("py_test", "test python plugin ECHO", true), code));
+        UT_EXPECT_ANY_THROW(client.LoadPlugin(
+            db_name, lgraph_api::PluginCodeType::PY,
+            PluginDesc("py_test", lgraph::plugin::PLUGIN_CODE_TYPE_PY, "test python plugin ECHO",
+                       lgraph::plugin::PLUGIN_VERSION_1, true, ""),
+            code));
         // cpp
         auto plugins = client.GetPlugin(db_name, true);
         UT_EXPECT_EQ(plugins.size(), 0);
@@ -883,7 +895,6 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         UT_EXPECT_EQ(response.status_code(), status_codes::OK);
     }
     UT_LOG() << "Test Graph DB Desc Succeeded";
-
     UT_LOG() << "\n" << __func__ << " succeeded";
     UT_LOG() << "\n" << __func__ << " exit";
     SleepS(3);  // waiting for memory reclaiming by async task

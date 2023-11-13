@@ -19,7 +19,7 @@
 
 #include "parser/clause.h"
 #include "arithmetic/arithmetic_expression.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -34,19 +34,25 @@ class Project : public OpBase {
         RefreshAfterPass,
         Resetted,
         Consuming,
-    } state_;  // TODO: use OpBase state // NOLINT
+    } state_;  // TODO(anyone) use OpBase state
 
     /* Construct arithmetic expressions from return clause. */
     void _BuildArithmeticExpressions(const parser::QueryPart *stmt) {
         const auto &return_body = stmt->return_clause ? std::get<1>(*stmt->return_clause)
                                                       : std::get<1>(*stmt->with_clause);
         const auto &return_items = std::get<0>(return_body);
+        std::unordered_set<std::string> distinct_alias;
         for (auto &item : return_items) {
             auto &expr = std::get<0>(item);
             auto &var = std::get<1>(item);
             ArithExprNode ae(expr, sym_tab_);
             return_elements_.emplace_back(ae);
-            return_alias_.emplace_back(var.empty() ? expr.ToString(false) : var);
+            auto alias = var.empty() ? expr.ToString(false) : var;
+            if (distinct_alias.find(alias) != distinct_alias.end()) {
+                throw lgraph::CypherException("Duplicate alias: " + alias);
+            }
+            distinct_alias.emplace(alias);
+            return_alias_.emplace_back(alias);
             if (!var.empty()) modifies.emplace_back(var);
         }
     }
@@ -57,6 +63,18 @@ class Project : public OpBase {
         single_response_ = false;
         state_ = Uninitialized;
         _BuildArithmeticExpressions(stmt);
+    }
+
+    Project(const std::vector<std::tuple<ArithExprNode, std::string>> &items,
+            const SymbolTable *sym_tab)
+        : OpBase(OpType::PROJECT, "Project"), sym_tab_(*sym_tab) {
+        single_response_ = false;
+        state_ = Uninitialized;
+        for (const auto &[expr, var] : items) {
+            return_elements_.emplace_back(expr);
+            return_alias_.emplace_back(var.empty() ? expr.ToString() : var);
+            if (!var.empty()) modifies.emplace_back(var);
+        }
     }
 
     OpResult Initialize(RTContext *ctx) override {
@@ -90,7 +108,7 @@ class Project : public OpBase {
         for (auto &re : return_elements_) {
             auto v = re.Evaluate(ctx, *r);
             record->values[re_idx++] = v;
-            // todo: handle alias
+            // TODO(anyone) handle alias
         }
         return OP_OK;
     }
@@ -122,6 +140,5 @@ class Project : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

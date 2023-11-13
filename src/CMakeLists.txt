@@ -4,6 +4,9 @@ project(TuGraphSrc C CXX)
 set(LGRAPH_SRC_DIR ${PROJECT_SOURCE_DIR})
 
 include(BuildLGraphApi.cmake)
+if(BUILD_JAVASDK)
+    include(BuildLGraphApiForJNI.cmake)
+endif()
 include(BuildPythonApi.cmake)
 include(BuildLGraphServer.cmake)
 include(BuildCypherLib.cmake)
@@ -16,12 +19,23 @@ install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_cpp_rpc lgr
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
         DESTINATION share/lgraph)
+# install procedure demos
+install(DIRECTORY
+        DESTINATION share/lgraph/resource/procedure_demo/)
+install(FILES
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v1_scan_graph.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
+        DESTINATION share/lgraph/resource/procedure_demo/)
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/python/FMA_shell
         DESTINATION share/)
+# install python restful client
+install(DIRECTORY
+        ${CMAKE_CURRENT_LIST_DIR}/client/python/TuGraphClient
+        DESTINATION share/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
-        ${CMAKE_CURRENT_LIST_DIR}/../plugins/lgraph_plugin.py
         DESTINATION bin)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../release/local/etc/lgraph.json
@@ -34,11 +48,22 @@ add_custom_command(TARGET lgraph_server
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/lgraph_task_runner.py)
+# prepare web resource and procedure demos
+# TODO: redefine the share directory before removing legacy web resource
+add_custom_command(TARGET lgraph_server
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource)
+add_custom_command(TARGET lgraph_server
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -49,6 +74,11 @@ add_custom_command(TARGET lgraph_server
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_LIST_DIR}/server/lgraph_standalone.json
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/lgraph_standalone.json)
+add_custom_command(TARGET lgraph_server
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_LIST_DIR}/server/lgraph_ha.json
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/lgraph_ha.json)
 
 add_custom_command(TARGET lgraph_server
         POST_BUILD

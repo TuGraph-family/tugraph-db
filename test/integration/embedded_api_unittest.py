@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+import sys
+sys.path.append('.')
 import math
 import datetime
 
@@ -95,13 +96,13 @@ class LGraphUnitTests:
                 mod_spec = [FieldSpec("modified", FieldType.FLOAT, True)]
                 defalut_value = [FieldData(23.1)]
                 print("\nadd labels,indexes")
-                assert (db.AddVertexLabel(lv_0, fds_0, "id"))
-                assert (db.AddVertexLabel(lv_1, fds_1, "id"))
-                assert (db.AddEdgeLabel(le_0, fds_2))
-                assert (db.AddEdgeLabel(le_1, fds_3))
-                assert (db.AddVertexLabel(lv_2, fds_4, "id"))
-                assert (db.AddEdgeLabel(le_2, fds_5))
-                assert (db.AddEdgeLabel(le_3, fds_7))
+                assert (db.AddVertexLabel(lv_0, fds_0, VertexOptions("id")))
+                assert (db.AddVertexLabel(lv_1, fds_1, VertexOptions("id")))
+                assert (db.AddEdgeLabel(le_0, fds_2, EdgeOptions()))
+                assert (db.AddEdgeLabel(le_1, fds_3, EdgeOptions()))
+                assert (db.AddVertexLabel(lv_2, fds_4, VertexOptions("id")))
+                assert (db.AddEdgeLabel(le_2, fds_5, EdgeOptions()))
+                assert (db.AddEdgeLabel(le_3, fds_7, EdgeOptions()))
                 assert (~db.AlterEdgeLabelAddFields(le_3, defalut_spec, defalut_value))
                 assert (~db.AlterEdgeLabelModFields(le_3, mod_spec))
                 assert (~db.AlterEdgeLabelDelFields(le_3, ["modified"]))
@@ -114,7 +115,7 @@ class LGraphUnitTests:
                 FMA_EXPECT_EXCEPTION('db.AlterEdgeLabelDeleteFields(le_3, defalut_spec, defalut_value)', globals(),
                                      locals())
 
-                assert (db.AddVertexLabel(le_3, fds_7, "deleted"))
+                assert (db.AddVertexLabel(le_3, fds_7, VertexOptions("deleted")))
                 assert (~db.AlterVertexLabelAddFields(le_3, defalut_spec, defalut_value))
                 assert (~db.AlterVertexLabelModFields(le_3, mod_spec))
                 assert (~db.AlterVertexLabelDelFields(le_3, ["modified"]))
@@ -127,9 +128,9 @@ class LGraphUnitTests:
                 FMA_EXPECT_EXCEPTION('db.AlterVertexLabelDeleteFields(le_3, defalut_spec, defalut_value)', globals(),
                                      locals())
 
-                assert (db.AddVertexIndex(lv_0, fds_0[1].name, False))
-                assert (db.AddVertexIndex(lv_0, fds_0[2].name, False))
-                assert (db.AddVertexIndex(lv_1, fds_1[1].name, False))
+                assert (db.AddVertexIndex(lv_0, fds_0[1].name, NonuniqueIndex))
+                assert (db.AddVertexIndex(lv_0, fds_0[2].name, NonuniqueIndex))
+                assert (db.AddVertexIndex(lv_1, fds_1[1].name, NonuniqueIndex))
 
                 print("\nlist indexes")
                 with db.CreateReadTxn() as txn:

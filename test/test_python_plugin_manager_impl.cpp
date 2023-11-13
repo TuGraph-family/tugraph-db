@@ -47,9 +47,9 @@ class Tester : public lgraph::PythonPluginManagerImpl {
         : lgraph::PythonPluginManagerImpl(db, "default", dir) {}
 
     Tester(const std::string& db_dir, size_t db_size, const std::string& plugin_dir,
-           int max_idle_seconds)
+           int max_idle_seconds, int max_plugin_lifetime_seconds)
         : lgraph::PythonPluginManagerImpl("default", db_dir, db_size, plugin_dir,
-                                          max_idle_seconds) {}
+                                          max_idle_seconds, max_plugin_lifetime_seconds) {}
 
     size_t GetNFree() {
         std::lock_guard<std::mutex> l(_mtx);
@@ -158,6 +158,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
     std::string db_dir = "./testdb";
     int n_processes = 3;
     int max_idle_seconds = 2;
+    int max_plugin_lifetime_seconds = 10 * max_idle_seconds;
     int argc = _ut_argc;
     char** argv = _ut_argv;
     Configuration config;
@@ -165,6 +166,8 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
     config.Add(plugin_dir, "plugin", true).Comment("Plugin dir");
     config.Add(n_processes, "n,processes", true).Comment("Number of processes");
     config.Add(max_idle_seconds, "i,idle", true).Comment("Max idle seconds for python process");
+    config.Add(max_plugin_lifetime_seconds, "lifetime", true)
+        .Comment("Max life time for python process to be reused");
     config.ParseAndFinalize(argc, argv);
     fma_common::file_system::RemoveDir(db_dir);
 
@@ -174,7 +177,8 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
 
     {
         UT_WARN() << "Testing load plugin";
-        Tester manager(db_dir, (size_t)1 << 30, plugin_dir, max_idle_seconds);
+        Tester manager(db_dir, (size_t)1 << 30, plugin_dir, max_idle_seconds,
+                       max_plugin_lifetime_seconds);
         fma_common::FileSystem::GetFileSystem("./").Mkdir(plugin_dir);
         WriteEchoPlugin(plugin_dir + "/echo.so");
         auto* pinfo = manager.CreatePluginInfo();
@@ -185,7 +189,6 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
 
         UT_LOG() << "Testing call plugin";
         std::string output;
-        UT_LOG() << "Testing call plugin1111";
 
         manager.DoCall(nullptr, user, &db, "echo", pinfo, "hello", 0, true, output);
         UT_EXPECT_EQ(output, "hello");
@@ -238,20 +241,27 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         }
         for (auto& thr : thrs) thr.join();
         UT_EXPECT_EQ(manager.GetNFree(), n_processes);
-        fma_common::SleepS(max_idle_seconds + 0.4);
+        fma_common::SleepS(max_idle_seconds * 2);
+        UT_EXPECT_EQ(manager.GetNFree(), 0);
         // this call will clean all the processes
         manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 2, true, output);
-        UT_EXPECT_EQ(manager.GetNFree(), 0);
+        UT_EXPECT_EQ(manager.GetNFree(), 1);
         thrs.clear();
-        for (size_t i = 0; i < 3; i++) {
+        n_processes = 10;
+        for (size_t i = 0; i < n_processes; i++) {
             thrs.emplace_back([i, &manager, &db, pinfo, &user]() {
                 std::string out;
                 manager.DoCall(nullptr, user, &db, "sleep", pinfo, std::to_string(i), 0, true, out);
             });
         }
         for (auto& thr : thrs) thr.join();
-        manager.DoCall(nullptr, user, &db, "sleep", pinfo, "1.4", 2, true, output);
-        UT_EXPECT_EQ(manager.GetNFree(), std::min(max_idle_seconds - 1, 3));
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo, std::to_string(2 * max_idle_seconds),
+                       3 * max_idle_seconds, true, output);
+        UT_EXPECT_EQ(manager.GetNFree(), 1);
+        manager.DoCall(nullptr, user, &db, "sleep", pinfo,
+                       std::to_string(max_plugin_lifetime_seconds),
+                       1 + max_plugin_lifetime_seconds, true, output);
+        UT_EXPECT_EQ(manager.GetNFree(), 0);
         std::string path("sleep");
         auto res = manager.GetPluginPath(path);
         UT_LOG() << res;

@@ -1,0 +1,124 @@
+MATCH (n:Person{name:'Michael Redgrave'})
+RETURN n as n;
+
+MATCH (n:Person{birthyear:1910})
+RETURN n as nid;
+
+MATCH (n:Person{birthyear:1910})
+RETURN "123" as nid;
+
+MATCH (n:Person{name:'Michael Redgrave'})
+RETURN n.birthyear+3 as nid;
+
+MATCH (n:Person{name:'Michael Redgrave'})
+RETURN n.birthyear >= 1909 as nid;
+
+MATCH (n:Person{name:'Michael Redgrave'})-[]-(m)
+RETURN n.name as n, m.name;
+
+MATCH (n:Person{name:'Michael Redgrave'})-[e]-(m)
+RETURN label(n), label(e), m;
+
+MATCH (n:Person{name:'Michael Redgrave'})-[e]-(m:Person)
+WHERE m.birthyear > 1910
+RETURN n.name, label(e), m.name, m.birthyear;
+
+MATCH (n)-[e:ACTED_IN]-(m)
+WHERE e.charactername='Guenevere'
+RETURN label(m) OFFSET 1 LIMIT 1;
+
+MATCH (n:Person WHERE n.birthyear = 1970)-[e]->(m)
+RETURN n.name, label(e), m.name LIMIT 1;
+
+MATCH (n:Person)-[e:BORN_IN WHERE e.weight > 20]->(m)
+RETURN n.name, e.weight, m.name LIMIT 3;
+
+MATCH (n:Person WHERE n.birthyear = 1970)
+RETURN CASE WHEN n.birthyear > 1970 THEN n.name ELSE -1 END AS res;
+
+MATCH (n:Person WHERE n.birthyear = 1970)
+RETURN CASE WHEN n.birthyear = 1970 THEN n.name ELSE -1 END AS res;
+
+MATCH (n:Person)
+RETURN DISTINCT 1, 2;
+
+MATCH (a:Person) RETURN a.birthyear AS birth NEXT
+MATCH (b:Person) RETURN b.name, birth LIMIT 3;
+
+MATCH (n:Person) WHERE n.birthyear = 1970 RETURN n AS q NEXT
+MATCH (m:Person) WHERE m.birthyear < 1968 RETURN q.name, q.birthyear, m.name LIMIT 2;
+
+MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q ORDER BY q ASC;
+
+MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q ORDER BY q DESC;
+
+MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q LIMIT 5
+NEXT
+RETURN q ORDER BY q;
+
+OPTIONAL MATCH (n:Person) WHERE n.birthyear > 3000 RETURN n.name;
+
+OPTIONAL MATCH (n:Person WHERE n.birthyear > 3000) RETURN n NEXT
+MATCH (m:Person) WHERE m.birthyear = 1970 RETURN n.name, m.name;
+
+MATCH (n:Person) WHERE n.birthyear < 1970
+RETURN
+    max(n.birthyear+1) as max0,
+    sum(n.birthyear+1) as sum1,
+    sum(n.birthyear) as sum2,
+    count(n) as num;
+
+-- error
+MATCH (n) RETURN sum(count(n.birthyear));
+
+-- error
+MATCH (n) RETURN sum(n.birthyear)+round(n.birthyear);
+
+MATCH (n) RETURN sum(n.birthyear)+count(n.birthyear);
+
+MATCH (n:Person) WHERE n.birthyear < 1970
+RETURN
+    CASE WHEN n.birthyear < 1950 THEN 0 ELSE 1 END AS n1,
+    n.birthyear AS n2
+NEXT
+RETURN
+    n1, max(n2)+2*3 AS n2;
+
+RETURN !(100=100) as a;
+RETURN !(100!=100) as a;
+RETURN -1 as a;
+RETURN 100 = 101 as a;
+RETURN 100 = 100 as a;
+RETURN 100 != 101 as a;
+RETURN 100 != 100 as a;
+
+RETURN 100 > 99 as a;
+RETURN 100 > 100 as a;
+RETURN 100 > 101 as a;
+RETURN 100 >= 99 as a;
+RETURN 100 >= 100 as a;
+RETURN 100 >= 101 as a;
+RETURN 100 < 99 as a;
+RETURN 100 < 100 as a;
+RETURN 100 < 101 as a;
+RETURN 100 <= 99 as a;
+RETURN 100 <= 100 as a;
+RETURN 100 <= 101 as a;
+RETURN 4+2 as a;
+RETURN 4-2 as a;
+RETURN 4*2 as a;
+RETURN 4/2 as a;
+RETURN 4%3 as a;
+
+RETURN true and true as a;
+RETURN true and false as a;
+RETURN false and false as a;
+RETURN false and true as a;
+RETURN true or true as a;
+RETURN true or false as a;
+RETURN false or false as a;
+RETURN false or true as a;
+RETURN true xor true as a;
+RETURN true xor false as a;
+RETURN false xor false as a;
+RETURN false xor true as a;

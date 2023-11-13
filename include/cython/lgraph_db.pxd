@@ -6,11 +6,13 @@ from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 
 ctypedef size_t size_t
+ctypedef ssize_t ssize_t
 ctypedef unsigned long uint64_t
 ctypedef unsigned int uint32_t
 ctypedef signed long int64_t
 ctypedef signed int int32_t
 ctypedef short int int16_t
+ctypedef char int8_t
 ctypedef unsigned short int	uint16_t
 
 cdef extern from "lgraph/lgraph_types.h" namespace "lgraph_api":
@@ -26,6 +28,48 @@ cdef extern from "lgraph/lgraph_types.h" namespace "lgraph_api":
         # bint operator==(const EdgeUid& rhs)
         string ToString()
 
+    cdef enum FieldType:
+        NUL = 0,
+        BOOL = 1,
+        INT8 = 2,
+        INT16 = 3,
+        INT32 = 4,
+        INT64 = 5,
+        FLOAT = 6,
+        DOUBLE = 7,
+        DATE = 8,
+        DATETIME = 9,
+        STRING = 10,
+        BLOB = 11
+
+    cdef union FieldData_data:
+        bint boolean
+        int8_t int8
+        int16_t int16
+        int32_t int32
+        int64_t int64
+        float sp
+        double dp
+        string* buf
+
+    cdef cppclass FieldData:
+        FieldData()
+        FieldData(bint b)
+        FieldData(int8_t integer)
+        FieldData(int16_t integer)
+        FieldData(int32_t integer)
+        FieldData(int64_t integer)
+        FieldData(float real)
+        FieldData(double real)
+        FieldData(const string& buf)
+        FieldData(string& str)
+        FieldData(const char* buf)
+        FieldData(const char* buf, size_t s)
+        string ToString() nogil
+        int32_t AsInt32() nogil
+        FieldType type
+        FieldData_data data
+
 
 cdef extern from "lgraph/lgraph_vertex_index_iterator.h" namespace "lgraph_api":
     cdef cppclass VertexIndexIterator nogil:
@@ -33,14 +77,20 @@ cdef extern from "lgraph/lgraph_vertex_index_iterator.h" namespace "lgraph_api":
 
 cdef extern from "lgraph/lgraph_vertex_iterator.h" namespace "lgraph_api":
     cdef cppclass VertexIterator nogil:
-        pass
+        bint Goto(int64_t vid, bint nearest = false)
+        FieldData GetField(const string& field_name) const
+        InEdgeIterator GetInEdgeIterator() const
+        bint IsValid()
 
 cdef extern from "lgraph/lgraph_edge_iterator.h" namespace "lgraph_api":
     cdef cppclass OutEdgeIterator nogil:
         pass
 
     cdef cppclass InEdgeIterator nogil:
-            pass
+        pass
+
+cdef extern from "../../include/lgraph/lgraph_utils.h" namespace "lgraph_api":
+    double get_time() nogil
 
 cdef extern from "lgraph/lgraph_galaxy.h" namespace "lgraph_api":
     cdef cppclass Galaxy nogil:
@@ -129,4 +179,4 @@ cdef extern from "lgraph/lgraph_db.h" namespace "lgraph_api":
         Transaction CreateReadTxn()
         Transaction CreateWriteTxn()
         Transaction CreateWriteTxn(bint optimistic)
-        Transaction ForkTxn(Transaction & txn)
+        Transaction ForkTxn(Transaction & txn) nogil

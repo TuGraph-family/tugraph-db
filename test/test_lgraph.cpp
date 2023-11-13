@@ -163,12 +163,12 @@ TEST_F(TestLGraph, LGraph) {
                                         {"type", FieldType::INT8, false}};
         std::vector<FieldSpec> e1_fds = {{"source", FieldType::INT8, false},
                                          {"weight", FieldType::FLOAT, false}};
-        UT_EXPECT_TRUE(db.AddLabel("v", v_fds, true, "name", {}));
-        UT_EXPECT_TRUE(db.AddLabel("e1", e1_fds, false, {}, {}));
+        UT_EXPECT_TRUE(db.AddLabel("v", v_fds, true, VertexOptions("name")));
+        UT_EXPECT_TRUE(db.AddLabel("e1", e1_fds, false, EdgeOptions()));
         // ASSERT(db.BlockingAddIndex("v", "name", false));
 
         Transaction txn = db.CreateWriteTxn();
-        VertexId vid1_ = AddVertex(txn, "v1", "1");
+        AddVertex(txn, "v1", "1");
         VertexId vid2_ = AddVertex(txn, "v2", "2");
         {
             VertexIndexIterator iit = txn.GetVertexIndexIterator("v", "name", "v2", "v2");
@@ -195,72 +195,87 @@ TEST_F(TestLGraph, LGraph) {
         LightningGraph db(config);
         db.DropAllData();
         // not ok
-        UT_EXPECT_ANY_THROW(db.AddLabel("_102834_basd", std::vector<FieldSpec>(), true, {}, {}));
+        UT_EXPECT_ANY_THROW(db.AddLabel(
+            "_102834_basd", std::vector<FieldSpec>(), true, VertexOptions()));
         // ok
         std::vector<FieldSpec> fields;
         fields.emplace_back("a0", FieldType::STRING, false);
         for (size_t i = 1; i < 1024; i++)
             fields.emplace_back("a" + std::to_string(i), FieldType::STRING, true);
-        UT_EXPECT_TRUE(db.AddLabel("ok", fields, true, "a0", {}));
+        UT_EXPECT_TRUE(db.AddLabel("ok", fields, true, VertexOptions("a0")));
         // label already exists
-        UT_EXPECT_TRUE(!db.AddLabel("ok", fields, true, "a0", {}));
+        UT_EXPECT_TRUE(!db.AddLabel("ok", fields, true, VertexOptions("a0")));
         // too many fields
         fields.emplace_back("aa" + std::to_string(1024), FieldType::STRING, true);
-        UT_EXPECT_ANY_THROW(db.AddLabel("too_many_fields", fields, true, "a0", {}));
+        UT_EXPECT_ANY_THROW(db.AddLabel("too_many_fields", fields, true, VertexOptions("a0")));
         // cannot start with digits
         UT_EXPECT_ANY_THROW(db.AddLabel("102834_basd",
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
-                                        true, "id", {}));
+                                        true, VertexOptions("id")));
         // empty label name
         UT_EXPECT_ANY_THROW(db.AddLabel(
-            "", std::vector<FieldSpec>({{"id", FieldType::STRING, false}}), true, "id", {}));
-        // long label name
-        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(65, 'a'),
+            "", std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+            true, VertexOptions("id")));
+        // label name
+        db.AddLabel(std::string(255, 'e'),
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
-                                        true, "id", {}));
+                                        true, VertexOptions("id"));
+        // long label name
+        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(256, 'a'),
+                                        std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+                                        true, VertexOptions("id")));
         // strange label names
         for (auto& str : std::vector<std::string>{"#", "!", "+", "-", "*", "/"})
             UT_EXPECT_ANY_THROW(db.AddLabel(
-                str, std::vector<FieldSpec>({{"id", FieldType::STRING, false}}), true, "id", {}));
+                str, std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+                true, VertexOptions("id")));
         // duplicate field name
         UT_EXPECT_ANY_THROW(
             db.AddLabel("duplicate_name",
                         std::vector<FieldSpec>(2, FieldSpec("name", FieldType::STRING, false)),
-                        true, "name", {}));
+                        true, VertexOptions("name")));
         // too many fields
         UT_EXPECT_ANY_THROW(db.AddLabel("too_many_fields",
-                                        std::vector<FieldSpec>(1025, FieldSpec()), true, "", {}));
+                                        std::vector<FieldSpec>(1025, FieldSpec()),
+                                            true, VertexOptions()));
         // empty field name
         UT_EXPECT_ANY_THROW(db.AddLabel(
             "empty_field_name", std::vector<FieldSpec>{FieldSpec("", FieldType::STRING, false)},
-            true, "", {}));
+            true, VertexOptions()));
         // field name beginning with number
         UT_EXPECT_ANY_THROW(
             db.AddLabel("field_name_start_with_digit",
                         std::vector<FieldSpec>{FieldSpec("10234_kkk", FieldType::STRING, false)},
-                        true, "10234_kkk", {}));
+                        true, VertexOptions("10234_kkk")));
+        // field name ok
+        db.AddLabel(
+            "field_name_not_long",
+            std::vector<FieldSpec>{FieldSpec(std::string(255, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(255, 'a')));
         // field name too long
         UT_EXPECT_ANY_THROW(db.AddLabel(
             "field_name_too_long",
-            std::vector<FieldSpec>{FieldSpec(std::string(65, 'a'), FieldType::STRING, false)}, true,
-            std::string(65, 'a'), {}));
+            std::vector<FieldSpec>{FieldSpec(std::string(256, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(256, 'a'))));
         // invalid character in field name
         for (auto& str : std::vector<std::string>{"#", "!", "+", "-", "*", "/"})
             UT_EXPECT_ANY_THROW(db.AddLabel(
                 "invalid_character_in_field_name",
-                std::vector<FieldSpec>{FieldSpec(str, FieldType::STRING, false)}, true, str, {}));
+                std::vector<FieldSpec>{FieldSpec(str, FieldType::STRING, false)},
+                true, VertexOptions(str)));
 #ifndef _MSC_VER
         // vs encodes Chinese character with non-unicode, which causes trouble
         // ok with Chinese label name
         UT_EXPECT_TRUE(db.AddLabel(
             "field_name_with_chinese_character",
-            std::vector<FieldSpec>{FieldSpec("中文", FieldType::STRING, false)}, true, "中文", {}));
+            std::vector<FieldSpec>{FieldSpec("中文", FieldType::STRING, false)},
+            true, VertexOptions("中文")));
 #endif
         // ok
         UT_EXPECT_TRUE(
             db.AddLabel("field_name_with_underscore",
                         std::vector<FieldSpec>{FieldSpec("_good_", FieldType::STRING, false)}, true,
-                        "_good_", {}));
+                        VertexOptions("_good_")));
         // ok with value <= MAX_PROP_SIZE
 #if 0
         {
@@ -287,7 +302,7 @@ TEST_F(TestLGraph, LGraph) {
                                                    FieldSpec("int32", FieldType::INT32, true),
                                                    FieldSpec("string", FieldType::STRING, true),
                                                    FieldSpec("string2", FieldType::STRING, false)},
-                            true, "int16", {}));
+                            true, VertexOptions("int16")));
             auto txn = db.CreateWriteTxn();
             // value too large
 #if 0
@@ -340,23 +355,23 @@ TEST_F(TestLGraph, LGraph) {
                                     {"type", FieldType::INT8, false}};
     std::vector<FieldSpec> e_fds = {{"source", FieldType::INT8, false},
                                     {"weight", FieldType::FLOAT, false}};
-    UT_EXPECT_TRUE(db.AddLabel("v", v_fds, true, "name", {}));
-    UT_EXPECT_TRUE(db.AddLabel("e", e_fds, false, {}, {}));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", false, true));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", false, false));
+    UT_EXPECT_TRUE(db.AddLabel("v", v_fds, true, VertexOptions("name")));
+    UT_EXPECT_TRUE(db.AddLabel("e", e_fds, false, EdgeOptions()));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", lgraph::IndexType::NonuniqueIndex, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", lgraph::IndexType::NonuniqueIndex, false));
     db.DropAllIndex();
-    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "name", true, true));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", false, true));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", false, false));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "name", lgraph::IndexType::GlobalUniqueIndex, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", lgraph::IndexType::NonuniqueIndex, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", lgraph::IndexType::NonuniqueIndex, false));
     // UT_EXPECT_TRUE(db.BlockingAddIndex("v", "name", true));
     db.DropAllVertex();
     while (!db.IsIndexed("v", "name", true)) fma_common::SleepUs(100);
 
     {  // test exception
-        UT_EXPECT_ANY_THROW(db.AddLabel("_@lgraph@_", v_fds, true, "name", {}));
+        UT_EXPECT_ANY_THROW(db.AddLabel("_@lgraph@_", v_fds, true, VertexOptions("name")));
         std::vector<FieldSpec> v_fds_error = {{"_@lgraph@_", FieldType::STRING, false},
                                               {"type", FieldType::INT8, false}};
-        UT_EXPECT_ANY_THROW(db.AddLabel("test", v_fds_error, true, "_@lgraph@_", {}));
+        UT_EXPECT_ANY_THROW(db.AddLabel("test", v_fds_error, true, VertexOptions("_@lgraph@_")));
     }
 
     std::map<VertexId, std::map<VertexId, std::set<EdgeId>>> all_edges;
@@ -379,8 +394,8 @@ TEST_F(TestLGraph, LGraph) {
         txn.Commit();
         UT_LOG() << "Vertex added: " << nv;
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     // check vertex data integrity
@@ -403,8 +418,8 @@ TEST_F(TestLGraph, LGraph) {
         }
         txn.Abort();
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     // add edges
@@ -460,8 +475,8 @@ TEST_F(TestLGraph, LGraph) {
         }
         UT_LOG() << "Edges added: " << nedges;
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     // check edges
@@ -486,8 +501,8 @@ TEST_F(TestLGraph, LGraph) {
         }
         DumpGraph(txn);
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     // Test AddEdge2
@@ -495,7 +510,10 @@ TEST_F(TestLGraph, LGraph) {
         LOG() << "AddEdge with primary";
         std::vector<FieldSpec> e2_fds = {{"ts", FieldType::INT64, false},
                                          {"weight", FieldType::FLOAT, false}};
-        ASSERT(db.AddLabel("e2", e2_fds, false, "ts", {}));
+        EdgeOptions options;
+        options.temporal_field = "ts";
+        options.temporal_field_order = TemporalFieldOrder::ASC;
+        ASSERT(db.AddLabel("e2", e2_fds, false, options));
         auto txn = db.CreateWriteTxn();
         VertexId src = AddVertex(txn, "v10", "10");
         VertexId dst1 = AddVertex(txn, "v11", "11");
@@ -543,6 +561,7 @@ TEST_F(TestLGraph, LGraph) {
         }
     } catch (std::exception& e) {
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     try {
@@ -559,8 +578,8 @@ TEST_F(TestLGraph, LGraph) {
         }
         DumpGraph(txn);
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     std::set<std::tuple<VertexId, LabelId, VertexId, EdgeId>> updated_edges;
@@ -604,8 +623,8 @@ TEST_F(TestLGraph, LGraph) {
         auto txn = db.CreateReadTxn();
         DumpGraph(txn);
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     try {
@@ -673,8 +692,8 @@ TEST_F(TestLGraph, LGraph) {
         }
         txn.Commit();
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
 
     try {
@@ -721,8 +740,8 @@ TEST_F(TestLGraph, LGraph) {
         }
         UT_EXPECT_EQ(ne, 0);
     } catch (std::exception& e) {
-        UT_EXPECT_TRUE(false);
         ERR() << "Error occurred: " << e.what();
+        UT_EXPECT_TRUE(false);
     }
     UT_LOG() << "test delete all index";
     {
@@ -739,13 +758,17 @@ TEST_F(TestLGraph, LGraph) {
             {"date", FieldType::DATE, false},         {"BOOL", FieldType::BOOL, false},
             {"DATETIME", FieldType::DATETIME, false}, {"FLOAT", FieldType::FLOAT, false},
             {"DOUBLE", FieldType::DOUBLE, false},     {"STRING1", FieldType::STRING, false}};
-        UT_EXPECT_TRUE(db1.AddLabel("vl", e_q, true, "date", {}));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DATETIME", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "BOOL", true, true));
-        // UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "date", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "FLOAT", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DOUBLE", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "STRING1", false, true));
+        UT_EXPECT_TRUE(db1.AddLabel("vl", e_q, true, VertexOptions("date")));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DATETIME",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "BOOL",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "FLOAT",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DOUBLE",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "STRING1",
+                                            lgraph::IndexType::NonuniqueIndex, true));
         size_t n_mod = 20000;
         db1.DelLabel("v1", true, &n_mod);
     }
@@ -766,9 +789,64 @@ TEST_F(TestLGraph, LGraph) {
                                         {"SKIP", FieldType::STRING, false},
                                         {"DST_ID", FieldType::STRING, false},
                                         {"weight", FieldType::FLOAT, false}};
-        UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds1, true, "id", {}));
-        UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds2, true, "id", {}));
-        UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds3, true, "id", {}));
-        UT_EXPECT_ANY_THROW(db.AddLabel("e1", e_fds, false, {}, {}));
+        UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds1, true, VertexOptions("id")));
+        UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds2, true, VertexOptions("id")));
+        UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds3, true, VertexOptions("id")));
+        UT_EXPECT_ANY_THROW(db.AddLabel("e1", e_fds, false, EdgeOptions()));
+    }
+
+    UT_LOG() << "Test batch adding index";
+    {
+        DBConfig config;
+        config.dir = "./indexdb";
+        AutoCleanDir _("./indexdb");
+        LightningGraph db(config);
+        db.DropAllData();
+        std::vector<FieldSpec> v_fds = {{"uid", FieldType::STRING, false},
+                       {"name", FieldType::STRING, false}, {"phone", FieldType::STRING, false}};
+        std::vector<FieldSpec> e_fds = {{"since", FieldType::INT8, false},
+                       {"weight", FieldType::FLOAT, false}, {"comments", FieldType::INT8, false}};
+        UT_EXPECT_TRUE(db.AddLabel("person", v_fds, true, VertexOptions("uid")));
+        UT_EXPECT_TRUE(db.AddLabel("follow", e_fds, false, EdgeOptions()));
+        std::vector<std::string> v_properties = {"uid", "name", "phone"};
+        std::vector<std::string> e_properties = {"since", "weight", "comments"};
+        Transaction txn = db.CreateWriteTxn();
+        VertexId v_id1 = txn.AddVertex(std::string("person"), v_properties,
+                                       std::vector<std::string>{"uid1", "name1", "phone"});
+        VertexId v_id2 = txn.AddVertex(std::string("person"), v_properties,
+                                       std::vector<std::string>{"uid2", "name2", "phone"});
+        VertexId v_id3 = txn.AddVertex(std::string("person"), v_properties,
+                                       std::vector<std::string>{"uid3", "name3", "phone"});
+        txn.AddEdge(v_id1, v_id2, std::string("follow"), e_properties,
+                    std::vector<std::string>{"19", "0.1", "19"});
+        txn.AddEdge(v_id2, v_id3, std::string("follow"), e_properties,
+                    std::vector<std::string>{"20", "0.1", "19"});
+        txn.AddEdge(v_id1, v_id3, std::string("follow"), e_properties,
+                    std::vector<std::string>{"21", "0.1", "19"});
+        txn.AddEdge(v_id2, v_id3, std::string("follow"), e_properties,
+                    std::vector<std::string>{"22", "0.2", "19"});
+        txn.Commit();
+        UT_EXPECT_TRUE(db.BlockingAddIndex("person", "name",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_ANY_THROW(db.BlockingAddIndex("person", "phone",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db.BlockingAddIndex("follow", "since",
+                                           lgraph::IndexType::GlobalUniqueIndex, false));
+        UT_EXPECT_TRUE(db.BlockingAddIndex("follow", "weight",
+                                                lgraph::IndexType::PairUniqueIndex, false));
+        UT_EXPECT_ANY_THROW(db.BlockingAddIndex("follow", "comments",
+                                           lgraph::IndexType::PairUniqueIndex, false));
+        db.DropAllIndex();
+        std::vector<lgraph::IndexSpec> vertex_idxs{
+            {"person", "name", lgraph::IndexType::GlobalUniqueIndex},
+            {"person", "phone", lgraph::IndexType::GlobalUniqueIndex}
+        };
+        UT_EXPECT_ANY_THROW(db.OfflineCreateBatchIndex(vertex_idxs, 1, true));
+        std::vector<lgraph::IndexSpec> edge_idxs{
+            {"follow", "since", lgraph::IndexType::GlobalUniqueIndex},
+            {"follow", "weight", lgraph::IndexType::GlobalUniqueIndex},
+            {"follow", "comments", lgraph::IndexType::GlobalUniqueIndex}
+        };
+        UT_EXPECT_ANY_THROW(db.OfflineCreateBatchIndex(edge_idxs, 1, false));
     }
 }

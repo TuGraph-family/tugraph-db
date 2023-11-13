@@ -1,5 +1,5 @@
 # distutils: language = c++
-
+from libcpp.memory cimport shared_ptr
 ctypedef const void* const_p_void
 from lgraph_db cimport *
 
@@ -9,6 +9,19 @@ cdef extern from "<tuple>" namespace "std":
     cdef cppclass tuple[T1, T2]:
         pass
 
+cdef extern from "<string>" namespace "std":
+    cdef cppclass string:
+        string()
+        char& operator[](int)
+
+cdef extern from "string.h":
+    char* strcpy(char* dest, const char* src) nogil
+
+cdef extern from "<string>" namespace "std":
+    double stod(const string &str) nogil
+
+cdef extern from "fma-common/string_util.h" namespace "fma_common":
+    vector[string] Split(const string &str, const string &breakers) nogil
 
 cdef extern from "<functional>" namespace "std":
     cdef cppclass function[T]:
@@ -81,6 +94,12 @@ cdef extern from "lgraph/olap_base.h" namespace "lgraph_api::olap" :
         VertexLockGuard(bint *lock)
 
     cdef ReducedSum reduce_plus[ReducedSum](ReducedSum a, ReducedSum b) nogil
+
+    cdef cppclass Worker:
+        Worker() except +
+        @staticmethod
+        shared_ptr[Worker] SharedWorker()
+        void DelegateCompute[Compute](void(&func)(Compute), Compute compute)
 
     cdef cppclass OlapBase[EdgeData]:
         OlapBase() nogil

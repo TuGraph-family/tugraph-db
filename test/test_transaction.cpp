@@ -37,7 +37,7 @@ TEST_F(TestTransaction, TestConcurrentVertexAdd) {
     LightningGraph db(conf);
     db.AddLabel("v",
         std::vector<lgraph::FieldSpec>{lgraph::FieldSpec("id", lgraph::FieldType::INT64, false)},
-        true, "id", {});
+        true, lgraph::VertexOptions("id"));
     Barrier bar(n_threads);
     std::atomic<size_t> n_success(0);
     std::atomic<size_t> n_fail(0);
@@ -189,7 +189,7 @@ TEST_F(TestTransaction, Transaction) {
         for (size_t i = 0; i < nt; i++) {
             thrds.emplace_back([&db, &np]() {
                 auto txn = db.CreateReadTxn();
-                size_t i = np.fetch_add(1);
+                np.fetch_add(1);
                 UT_LOG() << "num read txns: " << np;
                 SleepS(0.1);
                 np.fetch_sub(1);

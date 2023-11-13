@@ -39,7 +39,7 @@ class AsyncTuGraphClient:
         warnings.simplefilter("ignore", DeprecationWarning)
         return asyncio.get_event_loop().run_until_complete(func())
 
-    async def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=True):
+    async def __get_result_with_retry__(self, get_func, retries=None, retry_interval_s=None, raise_on_error=False):
         '''
         Retry getting results with get_func
         If connection error, retry.
@@ -102,7 +102,7 @@ class AsyncTuGraphClient:
         Returns json response if return_json_only=True, otherwise return (status_code, json/err_msg)
         '''
         get_func = partial(requests.get, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        r = await self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
+        r = await self.__get_result_with_retry__(get_func)
         if return_json_only:
             return r[1]
         else:
@@ -118,7 +118,7 @@ class AsyncTuGraphClient:
             headers=self.http_headers,
             json=data_dict
         )
-        r = await self.__get_result_with_retry__(get_func, raise_on_error=return_json_only)
+        r = await self.__get_result_with_retry__(get_func)
         if return_json_only:
             return r[1]
         else:
@@ -129,14 +129,14 @@ class AsyncTuGraphClient:
         Raises if there is error.
         '''
         get_func = partial(requests.delete, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        return await self.__get_result_with_retry__(get_func, True)
+        return await self.__get_result_with_retry__(get_func, raise_on_error=True)
 
     async def __try_get__(self, relative_url):
         '''
         Returns (status_code, json/err_msg)
         '''
         get_func = partial(requests.get, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        return await self.__get_result_with_retry__(get_func, retries=1)
 
     async def __try_post__(self, relative_url, data_dict):
         '''
@@ -148,14 +148,14 @@ class AsyncTuGraphClient:
             headers=self.http_headers,
             json=data_dict,
         )
-        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        return await self.__get_result_with_retry__(get_func, retries=1)
 
     async def __try_del__(self, relative_url):
         '''
         Returns (status_code, json/err_msg)
         '''
         get_func = partial(requests.delete, url=self.__get_url_base__() + relative_url, headers=self.http_headers)
-        return await self.__get_result_with_retry__(get_func, retries=1, raise_on_error=False)
+        return await self.__get_result_with_retry__(get_func, retries=1)
 
     def __get_url_base__(self):
         return ('https://{}/' if self.use_https else 'http://{}/').format(self.curr_server)
@@ -208,7 +208,7 @@ class AsyncTuGraphClient:
             r = await self.__post_with_retry__('cypher', data)
         return r
 
-    async def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
+    async def load_plugin(self, name, desc, file_type, file_path, read_only, version, raw_output=False):
         '''
         Load a plugin from local file.
         mode: can be 'zip', 'cpp', 'so', 'py'
@@ -223,6 +223,7 @@ class AsyncTuGraphClient:
         data['description'] = desc
         data['read_only'] = read_only
         data['code_type'] = file_type
+        data['version'] = version
         if file_type == 'cpp' or file_type == 'zip' or file_type == 'so':
             url = 'cpp_plugin'
         elif file_type == 'py':
@@ -326,8 +327,8 @@ class TuGraphClient(AsyncTuGraphClient):
     def call_cypher(self, cypher, raw_output=False, timeout=0):
         return self._sync(partial(AsyncTuGraphClient.call_cypher, self, cypher, raw_output=raw_output, timeout=timeout))
 
-    def load_plugin(self, name, desc, file_type, file_path, read_only, raw_output=False):
-        return self._sync(partial(AsyncTuGraphClient.load_plugin, self, name, desc, file_type, file_path, read_only, raw_output=raw_output))
+    def load_plugin(self, name, desc, file_type, file_path, read_only, version, raw_output=False):
+        return self._sync(partial(AsyncTuGraphClient.load_plugin, self, name, desc, file_type, file_path, read_only, version, raw_output=raw_output))
 
     def call_plugin(self, plugin_type, plugin_name, input, raw_output=False, timeout=0):
         return self._sync(partial(AsyncTuGraphClient.call_plugin, self, plugin_type, plugin_name, input, raw_output=raw_output, timeout=timeout))

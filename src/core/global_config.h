@@ -46,8 +46,8 @@ struct BasicConfigs {
         , backup_log_dir("./binlog")
         , snapshot_dir("./snapshot_log")
         , max_backup_log_file_size((size_t)1 << 30)
-        , unlimited_token(0)
-        , ft_index_options() {}
+        , unlimited_token(false)
+        , enable_realtime_count(true) {}
 
     BasicConfigs(const BasicConfigs &basicConfigs)
         : db_dir(basicConfigs.db_dir)
@@ -73,8 +73,8 @@ struct BasicConfigs {
           , backup_log_dir(basicConfigs.backup_log_dir)
           , snapshot_dir(basicConfigs.snapshot_dir)
           , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
-          , unlimited_token(basicConfigs.unlimited_token)
-          , ft_index_options(basicConfigs.ft_index_options) {}
+          , ft_index_options(basicConfigs.ft_index_options)
+          , unlimited_token(basicConfigs.unlimited_token) {}
 
     std::string db_dir;  // db
     int thread_limit;                // number of threads, for both rpc and http
@@ -89,10 +89,20 @@ struct BasicConfigs {
     std::string http_web_dir;
     bool http_disable_auth;
     std::string jwt_secret;  // salt for jwt
-    // rpc
+    // rpc & ha
     bool enable_rpc;
     uint16_t rpc_port;
     bool use_pthread;
+    bool enable_ha = false;
+    std::string ha_conf;
+    std::string ha_log_dir;
+    int ha_election_timeout_ms = 500;           // election time out in 0.5s
+    int ha_snapshot_interval_s = 7 * 24 * 3600;     // snapshot every 24 hours
+    int ha_heartbeat_interval_ms = 1000;           // send heartbeat every 1 sec
+    int ha_node_offline_ms = 1200000;   // node will be marked as offline after 20 min
+    int ha_node_remove_ms = 600000;  // node will be removed from node list after 10 min
+    int ha_node_join_group_s = 10;  // node will join group in 10 s
+    int ha_bootstrap_role = 0;
     // log
     int verbose;
     std::string log_dir;
@@ -107,6 +117,8 @@ struct BasicConfigs {
     FullTextIndexOptions ft_index_options;
     // token time
     bool unlimited_token;
+    // vertex and edge count
+    bool enable_realtime_count{};
 };
 
 template <typename T>
@@ -142,9 +154,9 @@ struct GlobalConfig : public BasicConfigs {
     std::atomic<bool> enable_ip_check;
     std::atomic<bool> enable_backup_log;
 
-    virtual std::map<std::string, std::string> FormatAsOptions() const;
-    std::string FormatAsString(size_t heading_space = 2) const;
-    virtual std::map<std::string, FieldData> ToFieldDataMap() const;
+    [[nodiscard]] virtual std::map<std::string, std::string> FormatAsOptions() const;
+    [[nodiscard]] std::string FormatAsString(size_t heading_space = 2) const;
+    [[nodiscard]] virtual std::map<std::string, FieldData> ToFieldDataMap() const;
     static int PrintVersion(std::string &config_file, std::string &cmd, int *argc, char ***argv);
     virtual fma_common::Configuration InitConfig(std::string &cmd);
 };

@@ -30,9 +30,9 @@ class TestBatchVertexIndex : public TuGraphTest {
         db_path = "./testdb";
         graph = "default";
         indexes_str =
-            "person:uid:false,person:name:false,person:age:false,person:age16:false,person:age32:"
-            "false,"
-            "person:agef:false,person:aged:false";
+            "person:uid:1,person:name:0,person:age:0,person:age16:0,person:age32:"
+            "0,"
+            "person:agef:0,person:aged:0";
         n_dump_key = 10;
         dump_only = false;
         verbose = 1;
@@ -105,8 +105,10 @@ TEST_F(TestBatchVertexIndex, BatchVertexIndex) {
         lgraph::IndexSpec spec;
         spec.label = fma_common::Strip(tokens[0], "\t ");
         spec.field = fma_common::Strip(tokens[1], "\t ");
+        int type;
         size_t r =
-            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), spec.unique);
+            fma_common::TextParserUtils::ParseT(fma_common::Strip(tokens[2], "\t "), type);
+        spec.type = static_cast<lgraph::IndexType>(type);
         if (spec.label.empty() || spec.field.empty() || !r) {
             UT_ERR() << "Failed to parse index specifier: " << str;
         }
@@ -115,7 +117,7 @@ TEST_F(TestBatchVertexIndex, BatchVertexIndex) {
     UT_LOG() << "We will build the following indexes: ";
     for (auto& spec : idx_specs) {
         UT_LOG() << "\tlabel=" << spec.label << ", field=" << spec.field
-                 << ", unique=" << spec.unique;
+                 << ", type=" << static_cast<int>(spec.type);
     }
 
     lgraph::Galaxy::Config conf;

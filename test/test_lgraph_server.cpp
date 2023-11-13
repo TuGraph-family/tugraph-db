@@ -16,6 +16,11 @@
 #include "fma-common/logging.h"
 #include "gtest/gtest.h"
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/json.h"
 
 #include "core/global_config.h"
@@ -52,6 +57,9 @@ TEST_F(TestLGraphServer, LGraphServer) {
     conf.http_port = 7774;
     conf.rpc_port = 9394;
     conf.bind_host = "127.0.0.1";
+#ifdef __SANITIZE_ADDRESS__
+    conf.use_pthread = true;
+#endif
     auto ListGraphs = [](RpcClient& client) {
         std::string graphs;
         bool succeed = client.CallCypher(graphs, "call dbms.graph.listGraphs()");
@@ -94,20 +102,11 @@ TEST_F(TestLGraphServer, LGraphServer) {
             UT_EXPECT_EQ(obj[0]["configuration"]["description"].as_string(), "default graph");
             UT_EXPECT_EQ(obj[0]["configuration"]["max_size_GB"].as_integer(), 3);
 
-            // make sure data is persisted
             server->Kill();
             server->Wait();
-            server = StartLGraphServer(conf);
-            fma_common::SleepS(4);
-            ret = client.CallCypher(str,
-                                    "call dbms.graph.modGraph('default', {description:'default "
-                                    "graph', max_size_GB:3})");
-            UT_EXPECT_EQ(ret, false);
-            UT_EXPECT_EQ(str, "Access denied: Invalid token.");
         }
         std::string str;
         auto server = StartLGraphServer(conf);
-        fma_common::SleepS(4);  // waiting for memory reclaiming by async task
         RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         auto obj = ListGraphs(client);

@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -265,7 +265,7 @@ class RelationshipCount : public OpBase {
         }
         record = std::make_shared<Record>(1);
         record->values[0].type = Entry::CONSTANT;
-        // todo: remove txn totally
+        // TODO(anyone) remove txn totally
         txn_ = ctx->txn_->GetTxn().get();
         state = StreamUnInitialized;
         return OP_OK;
@@ -355,7 +355,6 @@ class RelationshipCount : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 
 }  // namespace cypher

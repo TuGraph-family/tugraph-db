@@ -19,10 +19,10 @@
 
 #include <string>
 #include <vector>
-#include "common.h"
+#include "cypher/graph/common.h"
 
 namespace cypher {
-struct RTContext;
+class RTContext;
 
 class Node {
     NodeID id_;
@@ -57,6 +57,8 @@ class Node {
 
     const std::string &Label() const;
 
+    void SetLabel(const std::string &label) { label_ = label; }
+
     const std::string &Alias() const;
 
     bool &Visited() { return visited_; }
@@ -80,6 +82,14 @@ class Node {
     bool AddRelp(RelpID rid, bool is_rhs_relp);
 
     void Set(const std::string &label, const Property &property);
+
+    void SetAlias(const std::string &alias) {
+        alias_ = alias;
+    }
+
+    void SetProperty(const Property &property) {
+        if (property.type != Property::NUL) property_ = property;
+    }
 
     lgraph::VertexId GetVid() const { return vid_; }
 

@@ -17,6 +17,9 @@
 #include "db/galaxy.h"
 #include "import/import_v2.h"
 #include "import/blob_writer.h"
+#include "import/import_utils.h"
+
+using lgraph::import::LabelGraph;
 
 lgraph::import_v2::Importer::Importer(const Config& config)
     : config_(config),
@@ -88,8 +91,8 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                      .MeetEdgeConstraints(file.edge_src.label, file.edge_dst.label)) {
                 throw std::runtime_error(FMA_FMT("{} not meet the edge constraints", file.path));
             }
-            file.edge_src.id = schema.FindVertexLabel(file.edge_src.label).GetPrimaryColumn().name;
-            file.edge_dst.id = schema.FindVertexLabel(file.edge_dst.label).GetPrimaryColumn().name;
+            file.edge_src.id = schema.FindVertexLabel(file.edge_src.label).GetPrimaryField().name;
+            file.edge_dst.id = schema.FindVertexLabel(file.edge_dst.label).GetPrimaryField().name;
         }
         ImportConfParser::CheckConsistent(schema, file);
     }
@@ -99,10 +102,23 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             // create labels
             auto m = v.GetSchemaDef();
             std::vector<FieldSpec> fds;
+            std::unique_ptr<LabelOptions> options;
+            if (v.is_vertex) {
+                auto vo = std::make_unique<VertexOptions>();
+                vo->primary_field = v.GetPrimaryField().name;
+                options = std::move(vo);
+            } else {
+                auto eo = std::make_unique<EdgeOptions>();
+                if (v.HasTemporalField()) {
+                    auto tf = v.GetTemporalField();
+                    eo->temporal_field = tf.name;
+                    eo->temporal_field_order = tf.temporal_order;
+                }
+                eo->edge_constraints = v.edge_constraints;
+                options = std::move(eo);
+            }
             for (auto& p : m) fds.emplace_back(p.second);
-            bool ok = db.AddLabel(v.is_vertex, v.name, fds,
-                                  v.HasPrimaryColumn() ? v.GetPrimaryColumn().name : "",
-                                  v.edge_constraints);
+            bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
             if (ok) {
                 FMA_LOG() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
                                      v.name);
@@ -116,25 +132,42 @@ void lgraph::import_v2::Importer::DoImportOffline() {
     auto import_index = [&](){
         for (auto& v : schema.label_desc) {
             for (auto& spec : v.columns) {
-                if (v.is_vertex && spec.index && !spec.primary) {
+                if (v.is_vertex && spec.index && !spec.primary &&
+                    spec.idxType == lgraph::IndexType::NonuniqueIndex) {
                     // create index, ID column has creadted
-                    if (db.AddVertexIndex(v.name, spec.name, spec.unique)) {
-                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, unique:{}]",
-                                             v.name, spec.name, spec.unique);
+                    if (db.AddVertexIndex(v.name, spec.name, spec.idxType)) {
+                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                             v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
                             FMA_FMT("Vertex index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
-                } else if (!v.is_vertex && spec.index) {
-                    if (db.AddEdgeIndex(v.name, spec.name, spec.unique)) {
-                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, unique:{}]",
-                                             v.name, spec.name, spec.unique);
+                } else if (v.is_vertex && spec.index && !spec.primary &&
+                           (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
+                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
+                    throw InputError(
+                        FMA_FMT("offline import does not support to create a unique "
+                                "index [label:{}, field:{}]. You should create an index for "
+                                "an attribute column after the import is complete",
+                                v.name, spec.name));
+                } else if (!v.is_vertex && spec.index &&
+                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                    if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
+                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                             v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
                             FMA_FMT("Edge index [label:{}, field:{}] already exists",
                                     v.name, spec.name));
                     }
+                } else if (!v.is_vertex && spec.index &&
+                           spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
+                    throw InputError(
+                        FMA_FMT("offline import does not support to create a unique "
+                                "index [label:{}, field:{}]. You should create an index for "
+                                "an attribute column after the import is complete",
+                                v.name, spec.name));
                 }
                 if (spec.fulltext) {
                     bool ok = db.AddFullTextIndex(v.is_vertex, v.name, spec.name);
@@ -230,7 +263,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             {
                 const std::string& vlabel = vid_label[act.vid];
                 FMA_LOG() << "Write vertex label " << vlabel;
-                const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryColumn();
+                const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryField();
                 if (!config_.dry_run) {
                     WriteVertex(db.GetLightningGraph(), vlabel, key_spec.name, key_spec.type);
                 }
@@ -266,7 +299,7 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                                                   const LabelDesc& ld) {
     FMA_ASSERT(!files.empty());
     const std::string& label = ld.name;
-    FieldType type = ld.GetPrimaryColumn().type;
+    FieldType type = ld.GetPrimaryField().type;
     // the whole process is organized as a pipeline of multiple stages
     //   ColumnParser -> [std::pair<VidType,
     //   std::vector<std::vector<FieldData>>>]
@@ -311,8 +344,8 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
             1);       // buffer size
         // stitch the FieldData into a binary block and get vid, then pass to file
         // writer
-        size_t key_col_id = desc->FindIdxExcludeSkip(ld.GetPrimaryColumn().name);
-        bool id_is_string = ld.GetPrimaryColumn().type == FieldType::STRING;
+        size_t key_col_id = desc->FindIdxExcludeSkip(ld.GetPrimaryField().name);
+        bool id_is_string = ld.GetPrimaryField().type == FieldType::STRING;
 
         Schema schema;
         std::vector<size_t> field_ids;
@@ -507,10 +540,13 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
         size_t first_id_pos = std::min(src_id_pos, dst_id_pos);
         size_t second_id_pos = std::max(src_id_pos, dst_id_pos);
         size_t label_id;
-        bool has_tid = ld.HasPrimaryColumn();
+        bool has_tid = ld.HasTemporalField();
+        TemporalFieldOrder tid_order = TemporalFieldOrder::ASC;
         int primary_id_pos = -1;
         if (has_tid) {
-            primary_id_pos = (int)fd.FindIdxExcludeSkip(ld.GetPrimaryColumn().name);
+            auto tf = ld.GetTemporalField();
+            tid_order = tf.temporal_order;
+            primary_id_pos = (int)fd.FindIdxExcludeSkip(tf.name);
         }
         std::vector<size_t> field_ids;
         Schema schema;
@@ -521,6 +557,13 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
             schema = *txn.GetSchemaInfo().e_schema_manager.GetSchema(label_id);
             txn.Abort();
         }
+        std::vector<size_t> unique_index_pos;
+        for (auto & cs : ld.GetColumnSpecs()) {
+            if (cs.index && (cs.idxType == lgraph::IndexType::PairUniqueIndex)) {
+                unique_index_pos.push_back(desc->FindIdxExcludeSkip(cs.name));
+            }
+        }
+        cuckoohash_map<std::string, char> unique_index_keys;
         // stitcher takes vectors of vector<FieldData>, which contains field
         // values, and returns a pair of (vectors of out-edges) and (vector of
         // in-edges)
@@ -553,7 +596,9 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                         const FieldData& src_id = edge[src_id_pos];
                         const FieldData& dst_id = edge[dst_id_pos];
                         TemporalId tid = 0;
-                        if (has_tid) tid = edge[primary_id_pos].AsInt64();
+                        if (has_tid) {
+                            tid = Transaction::ParseTemporalId(edge[primary_id_pos], tid_order);
+                        }
                         VidType src_vid, dst_vid;
                         bool resolve_success = true;
                         // try to translate src and dst id into vid
@@ -567,6 +612,41 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 resolve_success = false;
                                 OnMissingUidOffline(desc->path, dst_id.ToString(), fts, edge,
                                                     config_.continue_on_error);
+                            }
+                        }
+                        {
+                            for (const auto& pos : unique_index_pos) {
+                                const FieldData& unique_index_col = edge[pos];
+                                if (unique_index_col.IsNull() ||
+                                    unique_index_col.is_empty_buf()) {
+                                    OnErrorOffline("Invalid unique index key",
+                                                   config_.continue_on_error);
+                                    continue;
+                                }
+                                if (unique_index_col.IsString() &&
+                                    unique_index_col.string().size() >
+                                        lgraph::_detail::MAX_KEY_SIZE) {
+                                    OnErrorOffline("Unique index string key is too long: "
+                                                   + unique_index_col.string().substr(0, 1024),
+                                                   config_.continue_on_error);
+                                    continue;
+                                }
+                                std::string unique_key;
+                                unique_key.append((const char*)&pos, sizeof(pos));
+                                unique_key.append(
+                                    (const char*)&(src_vid < dst_vid ? src_vid : dst_vid),
+                                    sizeof(VertexId));
+                                unique_key.append(
+                                    (const char*)&(src_vid > dst_vid ? src_vid : dst_vid),
+                                    sizeof(VertexId));
+                                lgraph::import_v3::AppendFieldData(unique_key, unique_index_col);
+                                if (!unique_index_keys.insert(unique_key, 0)) {
+                                    OnErrorOffline("Duplicate unique index field: " +
+                                                   unique_index_col.ToString(),
+                                                   config_.continue_on_error);
+                                    resolve_success = false;
+                                    break;
+                                }
                             }
                         }
                         if (resolve_success) {
@@ -676,7 +756,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
     // build index
     FMA_DBG() << "Building index for " << label;
     // make index
-    db->_AddEmptyIndex(label, key_field, true, true);
+    db->_AddEmptyIndex(label, key_field, lgraph::IndexType::GlobalUniqueIndex, true);
     switch (key_type) {
     case FieldType::NUL:
         FMA_ASSERT(false);

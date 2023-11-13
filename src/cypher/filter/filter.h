@@ -21,15 +21,15 @@
 #include "resultset/record.h"
 #include "arithmetic/arithmetic_expression.h"
 #include "execution_plan/ops/op.h"
-#include "cypher_types.h"
-#include "iterator.h"
+#include "cypher/cypher_types.h"
+#include "cypher/filter/iterator.h"
 #include "lgraph/lgraph_date_time.h"
-
+#include "utils/geax_util.h"
 
 namespace cypher {
 class LocateNodeByVid;
 class LocateNodeByIndexedProp;
-}
+}  // namespace cypher
 
 namespace lgraph {
 
@@ -55,7 +55,7 @@ struct FieldDataHash {
         case FieldType::DATE:
             return std::hash<int32_t>()(fd.AsDate().DaysSinceEpoch());
         case FieldType::DATETIME:
-            return std::hash<int64_t>()(fd.AsDateTime().SecondsSinceEpoch());
+            return std::hash<int64_t>()(fd.AsDateTime().MicroSecondsSinceEpoch());
         case FieldType::STRING:
             return std::hash<std::string>()(fd.AsString());
         case FieldType::BLOB:
@@ -78,20 +78,35 @@ class Filter {
         TEST_EXISTS_FILTER,
         LABEL_FILTER,
         STRING_FILTER,
+        // todo (kehuang): AstExpr is currently temporarily used as a type of Filter, and will be
+        // replaced with AstExpr in the future.
+        GEAX_EXPR_FILTER,
     };
 
     static inline std::string ToString(const Type &type) {
         switch (type) {
-            case Type::EMPTY: return "EMPTY";
-            case Type::UNARY: return "UNARY";
-            case Type::BINARY: return "BINARY";
-            case Type::RANGE_FILTER: return "RANGE_FILTER";
-            case Type::TEST_NULL_FILTER: return "TEST_NULL_FILTER";
-            case Type::TEST_IN_FILTER: return "TEST_IN_FILTER";
-            case Type::TEST_EXISTS_FILTER: return "TEST_EXISTS_FILTER";
-            case Type::LABEL_FILTER: return "LABEL_FILTER";
-            case Type::STRING_FILTER: return "STRING_FILTER";
-            default: throw lgraph::CypherException("unknown RecordEntryType");
+        case Type::EMPTY:
+            return "EMPTY";
+        case Type::UNARY:
+            return "UNARY";
+        case Type::BINARY:
+            return "BINARY";
+        case Type::RANGE_FILTER:
+            return "RANGE_FILTER";
+        case Type::TEST_NULL_FILTER:
+            return "TEST_NULL_FILTER";
+        case Type::TEST_IN_FILTER:
+            return "TEST_IN_FILTER";
+        case Type::TEST_EXISTS_FILTER:
+            return "TEST_EXISTS_FILTER";
+        case Type::LABEL_FILTER:
+            return "LABEL_FILTER";
+        case Type::STRING_FILTER:
+            return "STRING_FILTER";
+        case Type::GEAX_EXPR_FILTER:
+            return "GEAX_EXPR_FILTER";
+        default:
+            throw lgraph::CypherException("unknown RecordEntryType");
         }
     }
 
@@ -158,10 +173,8 @@ class Filter {
     }
 
     virtual std::set<std::pair<std::string, std::string>> VisitedFields() const {
-        throw lgraph::CypherException(
-            fma_common::StringFormatter::Format(
-                "Filter Type:{} VisitedFields not implemented yet", Type())
-        );
+        throw lgraph::CypherException(fma_common::StringFormatter::Format(
+            "Filter Type:{} VisitedFields not implemented yet", Type()));
     }
 
     /* For filter tree: If there are sub-filter(s) completely contained in ALIASES.
@@ -196,8 +209,8 @@ class Filter {
         if (_type == BINARY && LogicalOp() != lgraph::LogicalOp::LBR_AND) {
             return false;
         }
-        return (_left == nullptr || _left->BinaryOnlyContainsAND())
-                && (_right == nullptr || _right->BinaryOnlyContainsAND());
+        return (_left == nullptr || _left->BinaryOnlyContainsAND()) &&
+               (_right == nullptr || _right->BinaryOnlyContainsAND());
     }
 
     /* Remove sub-filter nodes that are completely contained by the ALIAS.
@@ -328,14 +341,12 @@ static std::set<std::string> ExtractAlias(const cypher::ArithExprNode &ae) {
     return ret;
 }
 
-static std::set<std::pair<std::string, std::string>>
-        ExtractExpr(const cypher::ArithExprNode &ae) {
+static std::set<std::pair<std::string, std::string>> ExtractExpr(const cypher::ArithExprNode &ae) {
     std::set<std::pair<std::string, std::string>> ret;
     if (ae.type == cypher::ArithExprNode::AR_EXP_OPERAND &&
         ae.operand.type == cypher::ArithOperandNode::AR_OPERAND_VARIADIC) {
         if (!ae.operand.variadic.entity_prop.empty())
-            ret.emplace(std::make_pair(ae.operand.variadic.alias,
-                                       ae.operand.variadic.entity_prop));
+            ret.emplace(std::make_pair(ae.operand.variadic.alias, ae.operand.variadic.entity_prop));
     }
     return ret;
 }
@@ -428,15 +439,9 @@ class RangeFilter : public Filter {
         }
     }
 
-    lgraph::CompareOp GetCompareOp() {
-        return _compare_op;
-    }   
-    cypher::ArithExprNode GetAeLeft() {
-        return _ae_left;
-    }
-    cypher::ArithExprNode GetAeRight() {
-        return _ae_right;
-    }
+    lgraph::CompareOp GetCompareOp() { return _compare_op; }
+    cypher::ArithExprNode GetAeLeft() { return _ae_left; }
+    cypher::ArithExprNode GetAeRight() { return _ae_right; }
 
     static std::map<lgraph::CompareOp, std::string> _compare_name;
 
@@ -516,6 +521,7 @@ class TestInFilter : public Filter {
 
     friend class cypher::LocateNodeByVid;
     friend class cypher::LocateNodeByIndexedProp;
+
  public:
     TestInFilter() { _type = TEST_IN_FILTER; }
 
@@ -621,8 +627,6 @@ class TestExists : public Filter {
 
     TestExists(const cypher::SymbolTable &sym_tab,
                const std::shared_ptr<cypher::PatternGraph> &pattern);
-
-    TestExists(const TestExists &rhs) = default;
 
     TestExists(TestExists &&rhs) noexcept
         : property_(std::move(rhs.property_)),
@@ -805,4 +809,50 @@ class StringFilter : public Filter {
         return str;
     }
 };
+
+class GeaxExprFilter : public Filter {
+ private:
+    cypher::ArithExprNode arith_expr_;
+
+ public:
+    GeaxExprFilter(geax::frontend::Expr *expr, const cypher::SymbolTable &sym_tab) {
+        arith_expr_.SetAstExp(expr, sym_tab);
+        _type = GEAX_EXPR_FILTER;
+    }
+
+    cypher::ArithExprNode &GetArithExpr() { return arith_expr_; }
+
+    std::shared_ptr<Filter> Clone() const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    std::set<std::string> Alias() const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    std::set<std::pair<std::string, std::string>> VisitedFields() const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    bool ContainAlias(const std::vector<std::string> &alias) const override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    void RealignAliasId(const cypher::SymbolTable &sym_tab) override {
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    bool DoFilter(cypher::RTContext *ctx, const cypher::Record &record) override {
+        auto res = arith_expr_.Evaluate(ctx, record);
+        if (res.IsBool()) {
+            return res.constant.scalar.AsBool();
+        }
+        NOT_SUPPORT_AND_THROW();
+    }
+
+    const std::string ToString() const override {
+        return arith_expr_.ToString();
+    }
+};
+
 }  // namespace lgraph

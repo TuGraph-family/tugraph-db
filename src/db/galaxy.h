@@ -24,6 +24,7 @@
 
 #include "fma-common/thread_pool.h"
 #include "fma-common/rw_lock.h"
+#include "fma-common/utils.h"
 
 #include "core/global_config.h"
 #include "core/killable_rw_lock.h"
@@ -36,6 +37,10 @@
 #include "db/token_manager.h"
 #include "protobuf/ha.pb.h"
 
+#define MAX_TOKEN_NUM_PER_USER 10000
+#define RETRY_WAIT_TIME 60
+#define MAX_LOGIN_FAILED_TIMES 5
+
 namespace lgraph {
 class HaStateMachine;
 class Galaxy {
@@ -46,9 +51,12 @@ class Galaxy {
         std::string dir = "./TuGraph";
         bool durable = false;
         bool optimistic_txn = false;
-        std::string jwt_secret = "fma.ai";
+        std::string jwt_secret = "fma.ai" + GenerateRandomString();
         bool load_plugins = true;
     };
+
+    std::unordered_map<std::string, int> login_failed_times_;
+    double retry_login_time = 0.0;
 
  private:
     fma_common::Logger& logger_ = fma_common::Logger::Get("Galaxy");
@@ -65,8 +73,8 @@ class Galaxy {
     std::unique_ptr<GraphManager> graphs_;
     mutable KillableRWLock graphs_lock_;
     TokenManager token_manager_;
-    KvTable db_info_table_;
-    KvTable ip_whitelist_table_;
+    std::unique_ptr<KvTable> db_info_table_;
+    std::unique_ptr<KvTable> ip_whitelist_table_;
     std::unordered_set<std::string> ip_whitelist_;
     mutable KillableRWLock ip_whitelist_rw_lock_;
 
@@ -83,10 +91,13 @@ class Galaxy {
     inline const std::shared_ptr<GlobalConfig> GetGlobalConfigPtr() const { return global_config_; }
 
     // get token for a user
-    std::string GetUserToken(const std::string& user, const std::string& password) const;
+    std::string GetUserToken(const std::string& user, const std::string& password);
 
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;
+
+    // generate random string
+    static std::string GenerateRandomString();
 
     // refresh token
     std::string RefreshUserToken(const std::string& token, const std::string& user) const;
@@ -94,8 +105,14 @@ class Galaxy {
     // unbind token and user
     bool UnBindTokenUser(const std::string& token);
 
+    // unbind user all token
+    bool UnBindUserAllToken(const std::string& user);
+
     // judge token
     bool JudgeRefreshTime(const std::string& token);
+
+    // judge token num
+    bool JudgeUserTokenNum(const std::string& user);
 
     // modify tokenmanager time
     void ModifyTokenTime(const std::string& token,
@@ -122,6 +139,8 @@ class Galaxy {
                   const GraphManager::ModGraphActions& actions);
 
     std::map<std::string, DBConfig> ListGraphs(const std::string& curr_user) const;
+
+    std::map<std::string, DBConfig> ListGraphsInternal() const;
 
     bool CreateUser(const std::string& curr_user, const std::string& name,
                     const std::string& password, const std::string& desc);

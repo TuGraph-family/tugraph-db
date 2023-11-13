@@ -32,7 +32,8 @@ extern "C" LGAPI bool Process(GraphDB& db, const std::string& request, std::stri
         return false;
     }
     try {
-        return db.AddVertexLabel(label, std::vector<FieldSpec>({{"id", STRING, false}}), "id");
+        return db.AddVertexLabel(label, std::vector<FieldSpec>({{"id", STRING, false}}),
+                                 VertexOptions("id"));
     } catch (std::exception& e) {
         response = e.what();
         return false;

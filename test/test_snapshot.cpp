@@ -51,8 +51,8 @@ void CreateTestDB() {
                                     {"type", FieldType::INT8, false}};
     std::vector<FieldSpec> e_fds = {{"source", FieldType::INT8, false},
                                     {"weight", FieldType::FLOAT, false}};
-    UT_EXPECT_TRUE(db.AddLabel(true, "v", v_fds, "name", {}));
-    UT_EXPECT_TRUE(db.AddLabel(false, "e", e_fds, {}, {}));
+    UT_EXPECT_TRUE(db.AddLabel(true, "v", v_fds, VertexOptions("name")));
+    UT_EXPECT_TRUE(db.AddLabel(false, "e", e_fds, EdgeOptions()));
     // ASSERT(db.AddVertexIndex("v", "name", false));
     while (!db.IsVertexIndexed("v", "name")) fma_common::SleepUs(100);
 
@@ -70,11 +70,6 @@ void CreateTestDB() {
     AddEdge(txn, vid2_, vid2_, 22, 22.0);
 
     txn.Commit();
-}
-
-static lgraph::AccessControlledDB OpenGraph(const std::string& dir) {
-    lgraph::Galaxy galaxy(dir);
-    return galaxy.OpenGraph("admin", "default");
 }
 
 TEST_F(TestSnapshot, Snapshot) {

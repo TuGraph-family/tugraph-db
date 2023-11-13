@@ -62,55 +62,6 @@ inline Value CutKeyIfLong(const Value& k) {
 
 inline Value ReturnKeyEvenIfLong(Value&& v) { return std::move(v); }
 
-/**
- * The comparators for fixed-length types.
- * Compare first by key, then by vid.
- */
-template <FieldType DT>
-struct KeyVidCompareFunc {
-    static int func(const MDB_val* a, const MDB_val* b) {
-        typedef typename ::lgraph::field_data_helper::FieldType2StorageType<DT>::type T;
-        FMA_DBG_ASSERT(a->mv_size == sizeof(T) + VID_SIZE && b->mv_size == sizeof(T) + VID_SIZE);
-        int r = field_data_helper::ValueCompare<DT>(a->mv_data, sizeof(T), b->mv_data, sizeof(T));
-        if (r != 0) return r;
-        int64_t a_vid = GetVid((char*)a->mv_data + sizeof(T));
-        int64_t b_vid = GetVid((char*)b->mv_data + sizeof(T));
-        return a_vid < b_vid ? -1 : a_vid > b_vid ? 1 : 0;
-    }
-};
-
-template <FieldType DT>
-struct KeyCompareFunc {
-    static int func(const MDB_val* a, const MDB_val* b) {
-        typedef typename ::lgraph::field_data_helper::FieldType2StorageType<DT>::type T;
-        return field_data_helper::ValueCompare<DT>(a->mv_data, a->mv_size, b->mv_data, b->mv_size);
-    }
-};
-
-/**
- * The comparator for bytes or strings.
- */
-static int LexicalKeyVidCompareFunc(const MDB_val* a, const MDB_val* b) {
-    int diff;
-    int len_diff;
-    unsigned int len;
-
-    len = static_cast<int>(a->mv_size) - VID_SIZE;
-    len_diff = static_cast<int>(a->mv_size) - static_cast<int>(b->mv_size);
-    if (len_diff > 0) {
-        len = static_cast<int>(b->mv_size) - VID_SIZE;
-        len_diff = 1;
-    }
-
-    diff = memcmp(a->mv_data, b->mv_data, len);
-    if (diff == 0 && len_diff == 0) {
-        int64_t a_vid = GetVid((char*)a->mv_data + a->mv_size - VID_SIZE);
-        int64_t b_vid = GetVid((char*)b->mv_data + b->mv_size - VID_SIZE);
-        return a_vid < b_vid ? -1 : a_vid > b_vid ? 1 : 0;
-    }
-    return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
-}
-
 }  // namespace _detail
 
 class VertexIndex;
@@ -292,14 +243,14 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
     friend class VertexIndex;
 
     VertexIndex* index_;
-    KvIterator it_;
+    std::unique_ptr<KvIterator> it_;
     Value key_end_;
     Value curr_key_;  // current indexed key, excluding vid
     VertexIndexValue iv_;   // VertexIndexValue, if this is non-unique index
     bool valid_;
     int pos_;
     VertexId vid_;  // current vid
-    bool unique_;
+    IndexType type_;
 
     /**
      * The constructor for VertexIndexIterator
@@ -315,16 +266,17 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
     VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvTable& table,
                         const Value& key_start,
                         const Value& key_end,
-                        VertexId vid, bool unique);
+                        VertexId vid, IndexType type);
 
     VertexIndexIterator(VertexIndex* idx, KvTransaction* txn, KvTable& table,
                         const Value& key_start,
                         const Value& key_end,
-                        VertexId vid, bool unique);
+                        VertexId vid, IndexType type);
 
     bool KeyOutOfRange() {
-        if (key_end_.Empty() || (!unique_ && key_end_.Size() == _detail::VID_SIZE)) return false;
-        return it_.GetTable().CompareKey(it_.GetTxn(), it_.GetKey(), key_end_) > 0;
+        if (key_end_.Empty() || (type_ != IndexType::GlobalUniqueIndex
+                                 && key_end_.Size() == _detail::VID_SIZE)) return false;
+        return it_->GetTable().CompareKey(it_->GetTxn(), it_->GetKey(), key_end_) > 0;
     }
 
     /**
@@ -334,7 +286,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * \return  True if it succeeds, false if it fails.
      */
     bool PrevKV() {
-        if (!it_.Prev()) {
+        if (!it_->Prev()) {
             return false;
         }
         LoadContentFromIt();
@@ -348,16 +300,17 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * \return  Whether the iterator's current key starts with key.
      */
     bool KeyEquals(const Value& key) {
-        if (unique_) {
-            const Value& k = it_.GetKey();
-            return key.Size() == k.Size() && (memcmp(k.Data(), key.Data(), k.Size()) == 0);
-        } else {
-            auto key_vid = it_.GetKey();
+        FMA_DBG_ASSERT(type_ != IndexType::PairUniqueIndex);
+        // ust need to deal with NonuniqueIndex，because a key has a set of values
+        // in this kind index, and other types are guaranteed by lmdb
+        if (type_ == IndexType::NonuniqueIndex) {
+            auto key_vid = it_->GetKey();
             if (key_vid.Size() - _detail::VID_SIZE != key.Size()) {
                 return false;
             }
             return memcmp(key.Data(), key_vid.Data(), key.Size()) == 0;
         }
+        return false;
     }
 
     /** Loads content from iterator, assuming iterator is already at the right
@@ -366,11 +319,22 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
         valid_ = true;
         pos_ = 0;
         curr_key_.Copy(GetKey());
-        if (!unique_) {
-            iv_ = VertexIndexValue(it_.GetValue());
-            vid_ = iv_.GetNthVid(pos_);
-        } else {
-            vid_ = _detail::GetVid(it_.GetValue().Data());
+        switch (type_) {
+        case IndexType::GlobalUniqueIndex:
+            {
+                vid_ = _detail::GetVid(it_->GetValue().Data());
+                break;
+            }
+        case IndexType::NonuniqueIndex:
+            {
+                iv_ = VertexIndexValue(it_->GetValue());
+                vid_ = iv_.GetNthVid(pos_);
+                break;
+            }
+        case IndexType::PairUniqueIndex:
+            {
+                throw InputError("vertex index do not support pair-unique attributes");
+            }
         }
     }
 
@@ -399,7 +363,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
     bool Next() {
         // if we haven't reach the end of the current VertexIndexValue,
         // just move forward
-        if (!unique_ && pos_ < iv_.GetVidCount() - 1) {
+        if (type_ != IndexType::GlobalUniqueIndex && pos_ < iv_.GetVidCount() - 1) {
             pos_ += 1;
             vid_ = iv_.GetNthVid(pos_);
             return true;
@@ -407,7 +371,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
         // otherwise try moving to the next VertexIndex Value,
         // and check if it is still within the range
         valid_ = false;
-        if (!it_.Next() || KeyOutOfRange()) {
+        if (!it_->Next() || KeyOutOfRange()) {
             return false;
         }
         LoadContentFromIt();
@@ -420,13 +384,23 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * \return  The current key.
      */
     Value GetKey() const {
-        if (unique_) {
-            return _detail::ReturnKeyEvenIfLong(it_.GetKey());
-        } else {
-            Value key_vid = it_.GetKey();
-            return _detail::ReturnKeyEvenIfLong(
-                Value(key_vid.Data(), key_vid.Size() - _detail::VID_SIZE));
+        switch (type_) {
+        case IndexType::GlobalUniqueIndex:
+            {
+                return _detail::ReturnKeyEvenIfLong(it_->GetKey());
+            }
+        case IndexType::NonuniqueIndex:
+            {
+                Value key_vid = it_->GetKey();
+                return _detail::ReturnKeyEvenIfLong(
+                    Value(key_vid.Data(), key_vid.Size() - _detail::VID_SIZE));
+            }
+        case IndexType::PairUniqueIndex:
+            {
+                throw InputError("vertex index do not support pair-unique attributes");
+            }
         }
+        return Value();
     }
 
     FieldData GetKeyData() const {
@@ -448,26 +422,35 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * @return  True if KvIterator was modified.
      */
     void RefreshContentIfKvIteratorModified() override {
-        if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
+        if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
             valid_ = false;
-            // now it_ points to a valid position, but not necessary the right one
-            it_.GotoClosestKey(unique_ ? curr_key_ : _detail::PatchKeyWithVid(curr_key_, vid_));
-            FMA_DBG_ASSERT(it_.IsValid());
-            if (KeyOutOfRange()) return;
-            if (unique_) {
-                // found the right key
-                LoadContentFromIt();
-                return;
-            } else {
-                // non-unique, need to find correct pos_
-                iv_ = VertexIndexValue(it_.GetValue());
-                pos_ = iv_.SearchVid(vid_, valid_);
-                if (pos_ >= iv_.GetVidCount()) return;
-                valid_ = true;
-                curr_key_.Copy(GetKey());
-                vid_ = iv_.GetNthVid(pos_);
-                return;
+            switch (type_) {
+            case IndexType::GlobalUniqueIndex:
+                {
+                    it_->GotoClosestKey(curr_key_);
+                    FMA_DBG_ASSERT(it_->IsValid());
+                    if (KeyOutOfRange()) return;
+                    LoadContentFromIt();
+                    return;
+                }
+            case IndexType::NonuniqueIndex:
+                {
+                    it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_));
+                    FMA_DBG_ASSERT(it_->IsValid());
+                    if (KeyOutOfRange()) return;
+                    // non-unique, need to find correct pos_
+                    iv_ = VertexIndexValue(it_->GetValue());
+                    pos_ = iv_.SearchVid(vid_, valid_);
+                    if (pos_ >= iv_.GetVidCount()) return;
+                    valid_ = true;
+                    curr_key_.Copy(GetKey());
+                    vid_ = iv_.GetNthVid(pos_);
+                    return;
+                }
+            case IndexType::PairUniqueIndex:
+                throw InputError("vertex index do not support pair-unique attributes");
             }
+            // now it_ points to a valid position, but not necessary the right one
         }
     }
 };
@@ -484,22 +467,23 @@ class VertexIndex {
     friend class Transaction;
     friend int ::TestVertexIndexImpl();
 
-    KvTable table_;
+    std::shared_ptr<KvTable> table_;
     FieldType key_type_;
     std::atomic<bool> ready_;
     std::atomic<bool> disabled_;
-    bool unique_;
+    IndexType type_;
 
  public:
-    VertexIndex(const KvTable& table, FieldType key_type, bool unique)
-        : table_(table), key_type_(key_type), ready_(false), disabled_(false), unique_(unique) {}
+    VertexIndex(std::shared_ptr<KvTable> table, FieldType key_type, IndexType type)
+        : table_(std::move(table)), key_type_(key_type),
+          ready_(false), disabled_(false), type_(type) {}
 
     VertexIndex(const VertexIndex& rhs)
         : table_(rhs.table_),
           key_type_(rhs.key_type_),
           ready_(rhs.ready_.load()),
           disabled_(rhs.disabled_.load()),
-          unique_(rhs.unique_) {}
+          type_(rhs.type_) {}
 
     VertexIndex(VertexIndex&& rhs) = delete;
 
@@ -507,18 +491,33 @@ class VertexIndex {
 
     VertexIndex& operator=(VertexIndex&& rhs) = delete;
 
-    static KvTable OpenTable(KvTransaction& txn, KvStore& store, const std::string& name,
-                             FieldType dt, bool unique) {
+    static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,
+                                   const std::string& name, FieldType dt, IndexType type) {
         ComparatorDesc desc;
-        desc.comp_type = unique ? ComparatorDesc::SINGLE_TYPE : ComparatorDesc::TYPE_AND_VID;
+        switch (type) {
+        case IndexType::GlobalUniqueIndex:
+            {
+                desc.comp_type = ComparatorDesc::SINGLE_TYPE;
+                break;
+            }
+        case IndexType::NonuniqueIndex:
+            {
+                desc.comp_type = ComparatorDesc::TYPE_AND_VID;
+                break;
+            }
+        case IndexType::PairUniqueIndex:
+            {
+                throw InputError("vertex index do not support pair-unique attributes");
+            }
+        }
         desc.data_type = dt;
         return store.OpenTable(txn, name, true, desc);
     }
 
     void _AppendVertexIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
-        FMA_DBG_ASSERT(unique_);
+        FMA_DBG_ASSERT(type_ == IndexType::GlobalUniqueIndex);
         FMA_DBG_CHECK_LE(k.Size(), _detail::MAX_KEY_SIZE);
-        table_.AppendKv(txn, k, Value::ConstRef(vid));
+        table_->AppendKv(txn, k, Value::ConstRef(vid));
     }
 
     /**
@@ -530,7 +529,7 @@ class VertexIndex {
      */
     void _AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
                                           const std::vector<VertexId>& vids) {
-        FMA_DBG_ASSERT(!unique_);
+        FMA_DBG_ASSERT(type_ == IndexType::NonuniqueIndex);
         FMA_DBG_ASSERT(!vids.empty());
         FMA_DBG_CHECK_LE(k.Size(), _detail::MAX_KEY_SIZE);
         size_t vid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::VID_SIZE;
@@ -539,16 +538,16 @@ class VertexIndex {
             end = end <= vids.size() ? end : vids.size();
             VertexIndexValue idv(vids.begin() + i, vids.begin() + end);
             Value key = idv.CreateKey(k);
-            table_.AppendKv(txn, key, idv.GetBuf());
+            table_->AppendKv(txn, key, idv.GetBuf());
         }
     }
 
 #define _GET_UNM_INDEX_ITER_WITH_EMPTY_START_KEY(ft)                         \
     do {                                                                     \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();          \
-        return VertexIndexIterator(this, &txn, table_, Value::ConstRef(d),   \
+        return VertexIndexIterator(this, &txn, *table_, Value::ConstRef(d),   \
                                    std::forward<V2>(key_end),                \
-                                   vid, unique_);                            \
+                                   vid, type_);                            \
     } while (0)
 
     /**
@@ -586,32 +585,32 @@ class VertexIndex {
                 _GET_UNM_INDEX_ITER_WITH_EMPTY_START_KEY(DOUBLE);
             case FieldType::STRING:
                 {
-                    return VertexIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
+                    return VertexIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
                                          _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                         unique_);
+                                         type_);
                     break;
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
             default:
                 FMA_ASSERT(false);
-                return VertexIndexIterator(this, &txn, table_, std::forward<V1>(key_start),
-                                     std::forward<V2>(key_end), vid, unique_);
+                return VertexIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
+                                     std::forward<V2>(key_end), vid, type_);
             }
         } else {
-            return VertexIndexIterator(this, &txn, table_,
+            return VertexIndexIterator(this, &txn, *table_,
                                        _detail::CutKeyIfLong(std::forward<V1>(key_start)),
                                        _detail::CutKeyIfLong(std::forward<V2>(key_end)),
-                                       vid, unique_);
+                                       vid, type_);
         }
     }
 
 #define _GET_INDEX_ITER_WITH_EMPTY_START_KEY(ft)                            \
     do {                                                                    \
         auto d = field_data_helper::MinStoreValue<FieldType::ft>();         \
-        return VertexIndexIterator(this, txn, table_, Value::ConstRef(d),   \
+        return VertexIndexIterator(this, txn, *table_, Value::ConstRef(d),   \
                                    std::forward<V2>(key_end),               \
-                                   vid, unique_);                           \
+                                   vid, type_);                           \
     } while (0)
 
     template <typename V1, typename V2>
@@ -639,23 +638,23 @@ class VertexIndex {
                 _GET_INDEX_ITER_WITH_EMPTY_START_KEY(DOUBLE);
             case FieldType::STRING:
                 {
-                    return VertexIndexIterator(this, txn, table_, std::forward<V1>(key_start),
+                    return VertexIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
                                          _detail::CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                         unique_);
+                                         type_);
                     break;
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
             default:
                 FMA_ASSERT(false);
-                return VertexIndexIterator(this, txn, table_, std::forward<V1>(key_start),
-                                     std::forward<V2>(key_end), vid, unique_);
+                return VertexIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
+                                     std::forward<V2>(key_end), vid, type_);
             }
         } else {
-            return VertexIndexIterator(this, txn, table_,
+            return VertexIndexIterator(this, txn, *table_,
                                        _detail::CutKeyIfLong(std::forward<V1>(key_start)),
                                        _detail::CutKeyIfLong(std::forward<V2>(key_end)),
-                                                             vid, unique_);
+                                                             vid, type_);
         }
     }
 
@@ -663,33 +662,47 @@ class VertexIndex {
         return ready_.load(std::memory_order_acquire) && !disabled_.load(std::memory_order_acquire);
     }
 
-    bool IsUnique() const { return unique_; }
+    bool IsUnique() const { return type_ == IndexType::GlobalUniqueIndex; }
+
+    IndexType GetType() const { return type_; }
 
     FieldType KeyType() { return key_type_; }
 
     void Dump(KvTransaction& txn,
               const std::function<std::string(const char* p, size_t s)>& key_to_string) {
-        for (auto it = table_.GetIterator(txn); it.IsValid(); it.Next()) {
-            const Value& k = it.GetKey();
-            VertexIndexValue iv(it.GetValue());
+        auto it = table_->GetIterator(txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            const Value& k = it->GetKey();
+            VertexIndexValue iv(it->GetValue());
             std::string line = key_to_string(k.Data(), k.Size() - _detail::VID_SIZE);
             line.append(" -> ");
-            if (unique_) {
-                line.append(std::to_string(_detail::GetVid(iv.GetBuf().Data())));
-            } else {
-                for (int i = 0; i < iv.GetVidCount(); i++) {
-                    line.append(std::to_string(iv.GetNthVid(i)));
-                    line.append(",");
+            switch (type_) {
+            case IndexType::GlobalUniqueIndex:
+                {
+                    line.append(std::to_string(_detail::GetVid(iv.GetBuf().Data())));
+                    break;
+                }
+            case IndexType::NonuniqueIndex:
+                {
+                    for (int i = 0; i < iv.GetVidCount(); i++) {
+                        line.append(std::to_string(iv.GetNthVid(i)));
+                        line.append(",");
+                    }
+                    break;
+                }
+            case IndexType::PairUniqueIndex:
+                {
+                    throw InputError("vertex index do not support pair-unique attributes");
                 }
             }
             FMA_LOG() << line;
         }
     }
 
-    size_t GetNumKeys(KvTransaction& txn) { return table_.GetKeyCount(txn); }
+    size_t GetNumKeys(KvTransaction& txn) { return table_->GetKeyCount(txn); }
 
  private:
-    void Clear(KvTransaction& txn) { table_.Drop(txn); }
+    void Clear(KvTransaction& txn) { table_->Drop(txn); }
 
     void SetReady() { ready_.store(true, std::memory_order_release); }
 
@@ -715,27 +728,37 @@ class VertexIndex {
             // no such key_vid
             return false;
         }
-        if (unique_) {
-            it.it_.DeleteKey();
-            return true;
-        } else {
-            uint8_t ret = it.iv_.DeleteVidIfExist(vid);
-            if (ret == 1) {
-                // the key does not change after deletion
-                it.it_.SetValue(it.iv_.GetBuf());
-            } else if (ret == 2) {
-                // the key changes after deletion
-                it.it_.DeleteKey();
-                if (it.iv_.GetVidCount()) {
-                    bool r = it.it_.AddKeyValue(it.iv_.CreateKey(key), it.iv_.GetBuf());
-                    FMA_DBG_ASSERT(r);
-                }
-            } else {
-                // no such vid
-                return false;
+        switch (type_) {
+        case IndexType::GlobalUniqueIndex:
+            {
+                it.it_->DeleteKey();
+                return true;
             }
-            return true;
+        case IndexType::NonuniqueIndex:
+            {
+                uint8_t ret = it.iv_.DeleteVidIfExist(vid);
+                if (ret == 1) {
+                    // the key does not change after deletion
+                    it.it_->SetValue(it.iv_.GetBuf());
+                } else if (ret == 2) {
+                    // the key changes after deletion
+                    it.it_->DeleteKey();
+                    if (it.iv_.GetVidCount()) {
+                        bool r = it.it_->AddKeyValue(it.iv_.CreateKey(key), it.iv_.GetBuf());
+                        FMA_DBG_ASSERT(r);
+                    }
+                } else {
+                    // no such vid
+                    return false;
+                }
+                return true;
+            }
+        case IndexType::PairUniqueIndex:
+            {
+                throw InputError("vertex index do not support pair-unique attributes");
+            }
         }
+        return false;
     }
 
     /**
@@ -773,49 +796,60 @@ class VertexIndex {
             throw InputError("VertexIndex key size too large, must be less than 480.");
         }
         Value key = _detail::CutKeyIfLong(k);
-        if (unique_) {
-            return table_.AddKV(txn, key, Value::ConstRef(vid));
-        }
-        VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
-        if (!it.IsValid() || it.KeyOutOfRange()) {
-            if (!it.PrevKV() || !it.KeyEquals(key)) {
-                // create a new VertexIndexValue
-                VertexIndexValue iv;
-                uint8_t r = iv.InsertVid(vid);
-                FMA_DBG_CHECK_NEQ(r, 0);
-                bool r2 = table_.AddKV(txn, iv.CreateKey(key), iv.GetBuf());
-                FMA_DBG_ASSERT(r2);
+        switch (type_) {
+        case IndexType::GlobalUniqueIndex:
+            {
+                return table_->AddKV(txn, key, Value::ConstRef(vid));
+            }
+        case IndexType::NonuniqueIndex:
+            {
+                VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
+                if (!it.IsValid() || it.KeyOutOfRange()) {
+                    if (!it.PrevKV() || !it.KeyEquals(key)) {
+                        // create a new VertexIndexValue
+                        VertexIndexValue iv;
+                        uint8_t r = iv.InsertVid(vid);
+                        FMA_DBG_CHECK_NEQ(r, 0);
+                        bool r2 = table_->AddKV(txn, iv.CreateKey(key), iv.GetBuf());
+                        FMA_DBG_ASSERT(r2);
+                        return true;
+                    }
+                }
+                // found an existing VertexIndexValue
+                uint8_t ret = it.iv_.InsertVid(vid);
+                if (it.iv_.TooLarge()) {
+                    VertexIndexValue right = it.iv_.SplitRightHalf();
+                    // remove the original VertexIndexValue
+                    it.it_->DeleteKey();
+                    // insert the left half VertexIndexValue
+                    bool r = table_->AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
+                    FMA_DBG_ASSERT(r);
+                    // insert the right half VertexIndexValue
+                    r = table_->AddKV(txn, right.CreateKey(key), right.GetBuf());
+                    FMA_DBG_ASSERT(r);
+                } else {
+                    if (ret == 1) {
+                        // the key does not change, so just update the VertexIndexValue
+                        it.it_->SetValue(it.iv_.GetBuf());
+                    } else if (ret == 2) {
+                        // the key changes so we need to remove the original VertexIndexValue
+                        it.it_->DeleteKey();
+                        // then insert the VertexIndexValue with an updated key
+                        bool r = table_->AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
+                        FMA_DBG_ASSERT(r);
+                    } else {
+                        // vid already exists
+                        return false;
+                    }
+                }
                 return true;
             }
-        }
-        // found an existing VertexIndexValue
-        uint8_t ret = it.iv_.InsertVid(vid);
-        if (it.iv_.TooLarge()) {
-            VertexIndexValue right = it.iv_.SplitRightHalf();
-            // remove the original VertexIndexValue
-            it.it_.DeleteKey();
-            // insert the left half VertexIndexValue
-            bool r = table_.AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
-            FMA_DBG_ASSERT(r);
-            // insert the right half VertexIndexValue
-            r = table_.AddKV(txn, right.CreateKey(key), right.GetBuf());
-            FMA_DBG_ASSERT(r);
-        } else {
-            if (ret == 1) {
-                // the key does not change, so just update the VertexIndexValue
-                it.it_.SetValue(it.iv_.GetBuf());
-            } else if (ret == 2) {
-                // the key changes so we need to remove the original VertexIndexValue
-                it.it_.DeleteKey();
-                // then insert the VertexIndexValue with an updated key
-                bool r = table_.AddKV(txn, it.iv_.CreateKey(key), it.iv_.GetBuf());
-                FMA_DBG_ASSERT(r);
-            } else {
-                // vid already exists
-                return false;
+        case IndexType::PairUniqueIndex:
+            {
+                throw InputError("vertex index do not support pair-unique attributes");
             }
         }
-        return true;
+        return false;
     }
 };
 

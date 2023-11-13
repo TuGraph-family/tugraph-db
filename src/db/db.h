@@ -51,7 +51,7 @@ class AccessControlledDB {
 
     bool LoadPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name,
                     const std::string& code, plugin::CodeType code_type, const std::string& desc,
-                    bool is_read_only);
+                    bool is_read_only, const std::string& version);
 
     bool DelPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name);
 
@@ -76,7 +76,7 @@ class AccessControlledDB {
     size_t EstimateNumVertices();
 
     bool AddLabel(bool is_vertex, const std::string& label, const std::vector<FieldSpec>& fds,
-                  const std::string& primary_field, const EdgeConstraints& edge_constraints);
+                  const LabelOptions& options);
 
     bool DeleteLabel(bool is_vertex, const std::string& label, size_t* n_modified);
 
@@ -98,9 +98,9 @@ class AccessControlledDB {
         const std::vector<std::pair<std::string, std::string>>& constraints);
     bool ClearEdgeConstraints(const std::string& label);
 
-    bool AddVertexIndex(const std::string& label, const std::string& field, bool is_unique);
+    bool AddVertexIndex(const std::string& label, const std::string& field, IndexType type);
 
-    bool AddEdgeIndex(const std::string& label, const std::string& field, bool is_unique);
+    bool AddEdgeIndex(const std::string& label, const std::string& field, IndexType type);
 
     bool DeleteVertexIndex(const std::string& label, const std::string& field);
 
@@ -123,6 +123,7 @@ class AccessControlledDB {
 
     std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string& label,
                                                   const std::string& query, int top_n);
+    void RefreshCount();
 
     void WarmUp() const;
 

@@ -17,14 +17,14 @@
 //
 #include <regex>
 
-#include "filter.h"
+#include "cypher/filter/filter.h"
 #include "execution_plan/ops/op_expand_all.h"
 #include "execution_plan/ops/op_var_len_expand.h"
 #include "execution_plan/ops/op_immediate_argument.h"
 
 namespace cypher {
 
-// TODO: also defined in execution_plan.cpp // NOLINT
+// TODO(anyone) also defined in execution_plan.cpp
 // Connect ops into a single branch stream.
 static OpBase *_SingleBranchConnect(const std::vector<OpBase *> &ops) {
     if (ops.empty()) return nullptr;
@@ -87,7 +87,7 @@ void TestExists::BuildNestedExecutionPlan() {
     if (expand_streams.size() > 1) CYPHER_TODO();
     CYPHER_THROW_ASSERT(!expand_streams.empty() && !expand_streams[0].empty());
     std::vector<cypher::OpBase *> expand_ops;
-    // TODO: use dummy RTContext here. // NOLINT
+    // TODO(anyone) use dummy RTContext here.
     auto *ia = new cypher::ImmediateArgument(nullptr, nested_pattern_.get());
     expand_ops.emplace_back(ia);
     for (auto &step : expand_streams[0]) {

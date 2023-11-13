@@ -18,7 +18,7 @@
 #pragma once
 
 #include "execution_plan/ops/op_argument.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -71,7 +71,6 @@ class ImmediateArgument : public OpBase {
                 throw lgraph::CypherException("Unknown node variable: " + a.alias);
             }
             auto &input = input_record_->values[it->second.id];
-            auto &value = record->values[a.rec_idx];
             if (input.type != Entry::NODE) CYPHER_TODO();
             /* Note: The input may be invalid, such as nodes produced by OPTIONAL MATCH.
              * Set the record invalid in that cases. */
@@ -94,7 +93,6 @@ class ImmediateArgument : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 
 }  // namespace cypher

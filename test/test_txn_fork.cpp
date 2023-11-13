@@ -38,7 +38,7 @@ TEST_F(TestTxnFork, Fork) {
     db_config.dir = "./testdb";
     LightningGraph db(db_config);
     db.DropAllData();
-    db.AddLabel("v", {FieldSpec("id", FieldType::STRING, false)}, true, "id", {});
+    db.AddLabel("v", {FieldSpec("id", FieldType::STRING, false)}, true, VertexOptions("id"));
     {
         auto txn = db.CreateWriteTxn();
         txn.AddVertex(std::string("v"), std::vector<std::string>({"id"}),

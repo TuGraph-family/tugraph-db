@@ -39,23 +39,23 @@ struct IndexEntry {
         : label(std::move(rhs.label)),
           field(std::move(rhs.field)),
           table_name(std::move(rhs.table_name)),
-          is_unique(rhs.is_unique) {}
+          type(rhs.type) {}
 
     std::string label;
     std::string field;
     std::string table_name;
-    bool is_unique = false;
+    IndexType type;
 
     template <typename StreamT>
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, table_name) +
-               BinaryWrite(buf, is_unique);
+               BinaryWrite(buf, type);
     }
 
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, table_name) +
-               BinaryRead(buf, is_unique);
+               BinaryRead(buf, type);
     }
 };
 }  // namespace _detail
@@ -113,7 +113,7 @@ class IndexManager {
     }
 
     LightningGraph* db_;
-    KvTable index_list_table_;
+    std::unique_ptr<KvTable> index_list_table_;
 
  public:
     DISABLE_COPY(IndexManager);
@@ -130,7 +130,7 @@ class IndexManager {
      * \param [in,out]  db If non-null, the database.
      */
     IndexManager(KvTransaction& txn, SchemaManager* v_schema_info, SchemaManager* e_schema_info,
-                 const KvTable& index_list_table, LightningGraph* db);
+                 std::unique_ptr<KvTable> index_list_table, LightningGraph* db);
 
     ~IndexManager();
 
@@ -144,16 +144,16 @@ class IndexManager {
      *
      * \return  A KvTable.
      */
-    static KvTable OpenIndexListTable(KvTransaction& txn, KvStore& store,
+    static std::unique_ptr<KvTable> OpenIndexListTable(KvTransaction& txn, KvStore& store,
                                       const std::string& table_name) {
         return store.OpenTable(txn, table_name, true, ComparatorDesc::DefaultComparator());
     }
 
     bool AddVertexIndex(KvTransaction& txn, const std::string& label, const std::string& field,
-                        FieldType dt, bool is_unique, std::unique_ptr<VertexIndex>& index);
+                        FieldType dt, IndexType type, std::unique_ptr<VertexIndex>& index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
-                      FieldType dt, bool is_unique, std::unique_ptr<EdgeIndex>& index);
+                      FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);
 
     bool AddFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                           const std::string& field);
@@ -171,37 +171,27 @@ class IndexManager {
         IndexSpec is;
         size_t v_index_len = strlen(_detail::VERTEX_INDEX);
         size_t e_index_len = strlen(_detail::EDGE_INDEX);
-        for (auto it = index_list_table_.GetIterator(txn); it.IsValid(); it.Next()) {
-            std::string index_name = it.GetKey().AsString();
+        auto it = index_list_table_->GetIterator(txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            std::string index_name = it->GetKey().AsString();
             if (index_name.size() > v_index_len &&
                 index_name.substr(index_name.size() - v_index_len) == _detail::VERTEX_INDEX) {
-                _detail::IndexEntry ent = LoadIndex(it.GetValue());
+                _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
-                is.unique = ent.is_unique;
+                is.type = ent.type;
                 indexes.emplace_back(std::move(is));
             }
             if (index_name.size() > e_index_len &&
                 index_name.substr(index_name.size() - e_index_len) == _detail::EDGE_INDEX) {
-                _detail::IndexEntry ent = LoadIndex(it.GetValue());
+                _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
-                is.unique = ent.is_unique;
+                is.type = ent.type;
                 indexes.emplace_back(std::move(is));
             }
         }
         return indexes;
     }
-
- private:
-    template <typename T>
-    static void BuildIndexBatch(KvTransaction& txn, graph::VertexIterator& vit, size_t batch_size,
-                                VertexId& next_vid, const Schema* schema,
-                                const _detail::FieldExtractor* extractor);
-
-    template <typename T>
-    static void BuildEdgeIndexBatch(KvTransaction& txn, graph::VertexIterator& vit,
-                                    size_t batch_size, VertexId& next_vid, const Schema* schema,
-                                    const _detail::FieldExtractor* extractor);
 };
 }  // namespace lgraph

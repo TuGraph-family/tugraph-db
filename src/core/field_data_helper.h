@@ -288,7 +288,7 @@ MaxStoreValue<FieldType::DATE>() {
 template <>
 constexpr inline typename FieldType2StorageType<FieldType::DATETIME>::type
 MaxStoreValue<FieldType::DATETIME>() {
-    return ::lgraph_api::MaxSecondsSinceEpochForDateTime();
+    return ::lgraph_api::MaxMicroSecondsSinceEpochForDateTime();
 }
 
 template <FieldType FT>
@@ -308,7 +308,7 @@ MinStoreValue<FieldType::DATE>() {
 template <>
 constexpr inline typename FieldType2StorageType<FieldType::DATETIME>::type
 MinStoreValue<FieldType::DATETIME>() {
-    return ::lgraph_api::MinSecondsSinceEpochForDateTime();
+    return ::lgraph_api::MinMicroSecondsSinceEpochForDateTime();
 }
 
 template <FieldType DstType>
@@ -360,7 +360,7 @@ template <>
 inline bool CopyFdIntoDstStorageType<FieldType::DATETIME>(
     const FieldData& fd, typename FieldType2StorageType<FieldType::DATETIME>::type& dst) {
     FMA_DBG_ASSERT(fd.IsDate());
-    dst = DateTime(fd.AsDate()).SecondsSinceEpoch();
+    dst = DateTime(fd.AsDate()).MicroSecondsSinceEpoch();
     return true;
 }
 
@@ -836,6 +836,7 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
 //===============================
 template <FieldType T>
 inline int ValueCompare(const void* p1, size_t s1, const void* p2, size_t s2) {
+    if (s1 == (size_t)32 || s2 == (size_t)32) abort();
     FMA_DBG_ASSERT(s1 == _detail::FieldTypeSizes[T] && s2 == _detail::FieldTypeSizes[T]);
     typename FieldType2StorageType<T>::type v1, v2;
     memcpy(&v1, p1, s1);

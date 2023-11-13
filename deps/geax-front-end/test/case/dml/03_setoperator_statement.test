@@ -1,0 +1,60 @@
+# 1 select
+# 2 match
+
+
+
+## select
+# select 1 match (n:NODE_TYPE) UNION select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) UNION select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) UNION ALL select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) UNION DISTINCT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) EXCEPT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) EXCEPT ALL select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) EXCEPT DISTINCT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) INTERSECT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) INTERSECT ALL select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) INTERSECT DISTINCT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) union select 2 match (n:NODE_TYPE) union all select 3 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) union select 2 match (n:NODE_TYPE) union all select 3 match (n:NODE_TYPE) union distinct select 3 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) intersect select 2 match (n:NODE_TYPE) except all select 3 match (n:NODE_TYPE) union distinct select 3 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) order by a intersect select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) intersect select 2 match (n:NODE_TYPE) order by a
+# select 1 match (n:NODE_TYPE) order by a intersect select 2 match (n:NODE_TYPE) order by b
+# select 1 match (n:NODE_TYPE) limit 10 intersect select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) intersect select 2 match (n:NODE_TYPE) limit 10
+# select 1 match (n:NODE_TYPE) limit 10 intersect select 2 match (n:NODE_TYPE) limit 10
+# select 1 match (n:NODE_TYPE) order by a limit 10 intersect select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) intersect select 2 match (n:NODE_TYPE) order by a limit 10
+# select 1 match (n:NODE_TYPE) order by a limit 10 intersect select 2 match (n:NODE_TYPE) order by b limit 10
+# select 0 match (n:NODE_TYPE);select 1 match (n:NODE_TYPE) INTERSECT DISTINCT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) INTERSECT DISTINCT select 2 match (n:NODE_TYPE); select 0 match (n:NODE_TYPE)
+# insert (:person{@id:10}); select 1 match (n:NODE_TYPE) INTERSECT DISTINCT select 2 match (n:NODE_TYPE)
+# select 1 match (n:NODE_TYPE) INTERSECT DISTINCT select 2 match (n:NODE_TYPE); insert (:person{@id:10})
+
+## match
+match (n:NODE_TYPE) return 1 UNION match (n:NODE_TYPE) return 1;
+match (n:NODE_TYPE) return 1 UNION match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 UNION ALL match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 UNION DISTINCT match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 EXCEPT match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 EXCEPT ALL match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 EXCEPT DISTINCT match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 INTERSECT match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 INTERSECT ALL match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 INTERSECT DISTINCT match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 union match (n:NODE_TYPE) return 1 union all match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 union match (n:NODE_TYPE) return 1 union all match (n:NODE_TYPE) return 1 union distinct match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 intersect match (n:NODE_TYPE) return 1 except all match (n:NODE_TYPE) return 1 union distinct match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) order by a return 1 intersect match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 intersect match (n:NODE_TYPE) order by a return 1
+match (n:NODE_TYPE) order by a return 1 intersect match (n:NODE_TYPE) order by b return 1
+match (n:NODE_TYPE) limit 10 return 1 intersect match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 intersect match (n:NODE_TYPE) limit 10 return 1
+match (n:NODE_TYPE) limit 10 return 1 intersect match (n:NODE_TYPE) limit 10 return 1
+match (n:NODE_TYPE) order by a limit 10 return 1 intersect match (n:NODE_TYPE) return 1
+match (n:NODE_TYPE) return 1 intersect match (n:NODE_TYPE) order by a limit 10 return 1
+match (n:NODE_TYPE) order by a limit 10 return 1 intersect match (n:NODE_TYPE) order by b limit 10 return 1
+# match (n:NODE_TYPE) return 0; match (n:NODE_TYPE) return 1 INTERSECT DISTINCT match (n:NODE_TYPE) return 1
+# match (n:NODE_TYPE) return 1 INTERSECT DISTINCT match (n:NODE_TYPE) return 1; match (n:NODE_TYPE) return 0
+# insert (:person{@id:10}) return 1; match (n:NODE_TYPE) return 1 INTERSECT DISTINCT match (n:NODE_TYPE) return 1
+# match (n:NODE_TYPE) return 1 INTERSECT DISTINCT match (n:NODE_TYPE) return 1; insert (:person{@id:10})

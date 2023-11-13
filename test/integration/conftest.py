@@ -9,6 +9,7 @@ from executable_wrapper import ExecutableWrapper
 from server_wrapper import  ServerWrapper
 from common import list_directory
 from TuGraphClient import TuGraphClient
+from TuGraphRestClient import TuGraphRestClient
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ def server(request):
     log.info("server start")
     cmd = request.param.get("cmd")
     dirs = request.param.get("cleanup_dir")
-    server = ServerWrapper(cmd, 'Listening for REST on port')
+    server = ServerWrapper(cmd, 'Server started.')
     server.run(dirs)
     log.info("Server started")
     yield
@@ -42,12 +43,30 @@ def client(request):
             continue
             raise Exception("client create failed")
     yield c
-    c.close()
+    c.logout()
     log.info("Client stoped")
 
 client_1 = client
 client_2 = client
 client_3 = client
+
+@pytest.fixture(scope="function")
+def rest_client(request):
+    log.info("rest client start")
+    for i in range(60):
+        try:
+            c = TuGraphRestClient(request.param.get("host"), request.param.get("user"), request.param.get("password"))
+            log.info("rest client succeed")
+            break
+        except Exception as e:
+            time.sleep(1)
+            log.info(e)
+            log.info("rest retry connect %s times", i + 1)
+            continue
+            raise Exception("rest client create failed")
+    yield c
+    log.info("rest Client stoped")
+
 
 @pytest.fixture(scope="function")
 def importor(request):

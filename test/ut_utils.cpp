@@ -28,7 +28,10 @@ class MemoryBufferDevice : public fma_common::LogDevice {
         buf_.Open("", 0, std::ofstream::app);
     }
 
-    void Print() const { std::cerr << buf_.GetBuf(); }
+    void Print() const {
+        std::shared_lock<std::shared_mutex> lock(buf_.GetMutex());
+        std::cerr << buf_.GetBuf();
+    }
 };
 
 void TuGraphTest::setup() {
@@ -36,6 +39,7 @@ void TuGraphTest::setup() {
         static std::shared_ptr<MemoryBufferDevice> device(new MemoryBufferDevice());
         device->Reset();
         fma_common::Logger::Get().SetDevice(device);
+        lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
     }
 }
 
@@ -45,7 +49,9 @@ void TuGraphTest::teardown() {
             ::testing::UnitTest::GetInstance()->current_test_info();
         if (test_info->result()->Failed()) {
             dynamic_cast<MemoryBufferDevice*>(fma_common::Logger::Get().GetDevice().get())->Print();
+            lgraph_log::LoggerManager::GetInstance().FlushBufferLog();
         }
+        lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     }
 }
 

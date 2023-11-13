@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "resultset/record.h"
+#include "cypher/resultset/record.h"
 
 namespace cypher {
 class AggCtx {

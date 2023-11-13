@@ -18,6 +18,11 @@
 #include <string>
 #include <vector>
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/json.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/type_traits.h"
@@ -51,7 +56,6 @@ namespace lgraph {
 struct AuditLog;
 
 namespace RestStrings {
-static const char* EILLEGAL = "Illegal URI.";
 static const utility::string_t ACTION = _TU("action");
 static const utility::string_t ADDED = _TU("added");
 static const utility::string_t ALGO = _TU("algorithm");
@@ -61,6 +65,7 @@ static const utility::string_t AUTH_METHOD = _TU("auth_method");
 static const utility::string_t BEGIN_TIME = _TU("begin_time");
 static const utility::string_t BRANCH = _TU("git_branch");
 static const utility::string_t CODE = _TU("code_base64");
+static const utility::string_t VERSION = _TU("version");
 static const utility::string_t CODE_TYPE = _TU("code_type");
 static const utility::string_t COMMIT = _TU("git_commit");
 static const utility::string_t CONFIG = _TU("config");
@@ -70,6 +75,7 @@ static const utility::string_t CPP_ID = _TU("cpp_id");
 static const utility::string_t CPP_VERSION = _TU("cpp_version");
 static const utility::string_t CURR_PASS = _TU("current_password");
 static const utility::string_t CYPHER = _TU("cypher");
+static const utility::string_t GQL = _TU("gql");
 static const utility::string_t DATA = _TU("data");
 static const utility::string_t DB = _TU("db");
 static const utility::string_t DBCONFIG = _TU("db_config");
@@ -104,7 +110,7 @@ static const utility::string_t INE = _TU("in");
 static const utility::string_t INFO = _TU("info");
 static const utility::string_t INPROCESS = _TU("in_process");
 static const utility::string_t ISADMIN = _TU("is_admin");
-static const utility::string_t ISUNIQUE = _TU("is_unique");
+static const utility::string_t INDEXTYPE = _TU("index_type");
 static const utility::string_t ISV = _TU("is_vertex");
 static const utility::string_t HA_STATE = _TU("ha_state");
 static const utility::string_t LABEL = _TU("label");
@@ -156,6 +162,7 @@ static const utility::string_t RPC_ADDR = _TU("rpc_address");
 static const utility::string_t SCHEMA = _TU("schema");
 static const utility::string_t SCHEMA_TEXT = _TU("text");
 static const utility::string_t SCRIPT = _TU("script");
+static const utility::string_t SIGNATURE = _TU("signature");
 static const utility::string_t SRC = _TU("source");
 static const utility::string_t STATE = _TU("state");
 static const utility::string_t STATISTICS = _TU("statistics");
@@ -498,7 +505,17 @@ inline web::json::value ValueToJson(const IndexSpec& is) {
     web::json::value v;
     v[RestStrings::LABEL] = ValueToJson(is.label);
     v[RestStrings::FIELD] = ValueToJson(is.field);
-    v[RestStrings::ISUNIQUE] = ValueToJson(is.unique);
+    switch (is.type) {
+    case IndexType::GlobalUniqueIndex:
+        v[RestStrings::INDEXTYPE] = ValueToJson("GlobalUniqueIndex");
+        break;
+    case IndexType::PairUniqueIndex:
+        v[RestStrings::INDEXTYPE] = ValueToJson("PairUniqueIndex");
+        break;
+    case IndexType::NonuniqueIndex:
+        v[RestStrings::INDEXTYPE] = ValueToJson("NonuniqueIndex");
+        break;
+    }
     return v;
 }
 
@@ -611,6 +628,9 @@ inline web::json::value ValueToJson(const lgraph::PluginDesc& desc) {
     js[RestStrings::NAME] = web::json::value::string(_TU(desc.name));
     js[RestStrings::DESC] = web::json::value::string(_TU(desc.desc));
     js[RestStrings::READONLY] = web::json::value::boolean(desc.read_only);
+    js[RestStrings::CODE_TYPE] = web::json::value::string(_TU(desc.code_type));
+    js[RestStrings::SIGNATURE] = web::json::value::string(_TU(desc.signature));
+    js[RestStrings::VERSION] = web::json::value::string(_TU(desc.version));
     return js;
 }
 
@@ -621,6 +641,7 @@ inline web::json::value ValueToJson(const PluginCode& co) {
     v[RestStrings::READONLY] = ValueToJson(co.read_only);
     v[RestStrings::CODE] = ValueToJson(co.code);
     v[RestStrings::CODE_TYPE] = ValueToJson(co.code_type);
+    v[RestStrings::VERSION] = ValueToJson(co.version);
     return v;
 }
 
@@ -780,7 +801,7 @@ template <>
 inline bool JsonToType<IndexSpec>(const web::json::value& js, IndexSpec& i) {
     if (!ExtractStringField(js, RestStrings::LABEL, i.label)) return false;
     if (!ExtractStringField(js, RestStrings::FIELD, i.field)) return false;
-    if (!ExtractBoolField(js, RestStrings::ISUNIQUE, i.unique)) return false;
+    //  if (!ExtractIntField(js, RestStrings::ISUNIQUE, i.unique)) return false;
     return true;
 }
 

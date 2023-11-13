@@ -1,0 +1,249 @@
+diff --git a/src/Lower.cpp b/src/Lower.cpp
+index 61eef0e1a..a9a7cf82d 100644
+--- a/src/Lower.cpp
++++ b/src/Lower.cpp
+@@ -423,6 +423,9 @@ void lower_impl(const vector<Function> &output_funcs,
+             debug(1) << "Lowering after custom pass " << i << ":\n"
+                      << s << "\n\n";
+         }
++        s = simplify(s);
++        debug(1) << "Lowering after simplification after custom passes:\n"
++                 << s << "\n\n";
+     }
+
+     if (t.arch != Target::Hexagon && t.has_feature(Target::HVX)) {
+diff --git a/src/runtime/cuda.cpp b/src/runtime/cuda.cpp
+index f80c148c2..ea481b218 100644
+--- a/src/runtime/cuda.cpp
++++ b/src/runtime/cuda.cpp
+@@ -171,7 +171,9 @@ WEAK int halide_default_cuda_acquire_context(void *user_context, CUcontext *ctx,
+             // assigning to the global, but there's no way that
+             // create_cuda_context can access the "context" global, so
+             // we should be OK just storing to it here.
+-            context = local_val;
++// GPC begin
++            // context = local_val;
++// GPC end
+         }  // spinlock
+     }
+
+@@ -309,54 +311,70 @@ WEAK CUresult create_cuda_context(void *user_context, CUcontext *ctx) {
+         return err;
+     }
+
+-    // Make sure we have a device
+-    int deviceCount = 0;
+-    err = cuDeviceGetCount(&deviceCount);
+-    if (err != CUDA_SUCCESS) {
+-        error(user_context) << "CUDA: cuGetDeviceCount failed: "
+-                            << get_error_name(err);
+-        return err;
+-    }
++// GPC begin.
++    // Get device
++    CUdevice dev;
++    // If context exists already, we just use the device in it.
++    // Otherwise, we create context with the selected device.
++    err = cuCtxGetCurrent(ctx);
++    if (*ctx != nullptr) {
++      CUresult status = cuCtxGetDevice(&dev);
++      if (status != CUDA_SUCCESS) {
++          error(user_context) << "CUDA: cuCtxGetDevice failed: "
++                              << get_error_name(status);
++          return status;
++      }
++    } else {
++      debug(user_context)
++          << "No context exists, creating one with the device pointed." << "\n";
++        // Make sure we have a device
++        int deviceCount = 0;
++        err = cuDeviceGetCount(&deviceCount);
++        if (err != CUDA_SUCCESS) {
++            error(user_context) << "CUDA: cuGetDeviceCount failed: "
++                                << get_error_name(err);
++            return err;
++        }
+
+-    if (deviceCount <= 0) {
+-        halide_error(user_context, "CUDA: No devices available");
+-        return CUDA_ERROR_NO_DEVICE;
+-    }
++        if (deviceCount <= 0) {
++            halide_error(user_context, "CUDA: No devices available");
++            return CUDA_ERROR_NO_DEVICE;
++        }
+
+-    int device = halide_get_gpu_device(user_context);
+-    if (device == -1 && deviceCount == 1) {
+-        device = 0;
+-    } else if (device == -1) {
+-        debug(user_context) << "CUDA: Multiple CUDA devices detected. Selecting the one with the most cores.\n";
+-        int best_core_count = 0;
+-        for (int i = 0; i < deviceCount; i++) {
+-            CUdevice dev;
+-            CUresult status = cuDeviceGet(&dev, i);
+-            if (status != CUDA_SUCCESS) {
+-                debug(user_context) << "      Failed to get device " << i << "\n";
+-                continue;
+-            }
+-            int core_count = 0;
+-            status = cuDeviceGetAttribute(&core_count, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev);
+-            debug(user_context) << "      Device " << i << " has " << core_count << " cores\n";
+-            if (status != CUDA_SUCCESS) {
+-                continue;
+-            }
+-            if (core_count >= best_core_count) {
+-                device = i;
+-                best_core_count = core_count;
++        int device = halide_get_gpu_device(user_context);
++        if (device == -1 && deviceCount == 1) {
++            device = 0;
++        } else if (device == -1) {
++            debug(user_context) << "CUDA: Multiple CUDA devices detected. Selecting the one with the most cores.\n";
++            int best_core_count = 0;
++            for (int i = 0; i < deviceCount; i++) {
++                CUdevice dev;
++                CUresult status = cuDeviceGet(&dev, i);
++                if (status != CUDA_SUCCESS) {
++                    debug(user_context) << "      Failed to get device " << i << "\n";
++                    continue;
++                }
++                int core_count = 0;
++                status = cuDeviceGetAttribute(&core_count, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev);
++                debug(user_context) << "      Device " << i << " has " << core_count << " cores\n";
++                if (status != CUDA_SUCCESS) {
++                    continue;
++                }
++                if (core_count >= best_core_count) {
++                    device = i;
++                    best_core_count = core_count;
++                }
+             }
+         }
+-    }
+
+-    // Get device
+-    CUdevice dev;
+-    CUresult status = cuDeviceGet(&dev, device);
+-    if (status != CUDA_SUCCESS) {
+-        halide_error(user_context, "CUDA: Failed to get device\n");
+-        return status;
+-    }
++        CUresult status = cuDeviceGet(&dev, device);
++        if (status != CUDA_SUCCESS) {
++            halide_error(user_context, "CUDA: Failed to get device\n");
++            return status;
++        }
+
++    }
++// GPC end
+     debug(user_context) << "    Got device " << dev << "\n";
+
+ // Dump device attributes
+@@ -465,19 +483,34 @@ WEAK CUresult create_cuda_context(void *user_context, CUcontext *ctx) {
+     }
+ #endif
+
+-    // Create context
+-    debug(user_context) << "    cuCtxCreate " << dev << " -> ";
+-    err = cuCtxCreate(ctx, 0, dev);
++// GPC begin
++    // Get the primary context
++    debug(user_context) <<  "    cuDevicePrimaryCtxRetain " << dev << " -> ";
++    // Note: the ctx is not pushed.
++    err = cuDevicePrimaryCtxRetain(ctx, dev);
+     if (err != CUDA_SUCCESS) {
+         debug(user_context) << get_error_name(err) << "\n";
+-        error(user_context) << "CUDA: cuCtxCreate failed: "
++        error(user_context) << "CUDA: cuDevicePrimaryCtxRetain failed: "
+                             << get_error_name(err);
+         return err;
+     } else {
+         unsigned int version = 0;
+         cuCtxGetApiVersion(*ctx, &version);
+         debug(user_context) << *ctx << "(" << version << ")\n";
++        unsigned int flags;
++        int active;
++        err = cuDevicePrimaryCtxGetState(dev, &flags, &active);
++        if (err != CUDA_SUCCESS) {
++          debug(user_context) << get_error_name(err) << "\n";
++          error(user_context) << "CUDA: cuDevicePrimaryCtxGetState failed: "
++                              << get_error_name(err);
++          return err;
++        }
++        if (!active) {
++          debug(user_context) << "cuDevicePrimaryCtxRetain's context is not active.";
++        }
+     }
++#if 0 // if HALIDE_CONTEXT
+     // Creation automatically pushes the context, but we'll pop to allow the caller
+     // to decide when to push.
+     CUcontext dummy;
+@@ -487,6 +520,9 @@ WEAK CUresult create_cuda_context(void *user_context, CUcontext *ctx) {
+                             << get_error_name(err);
+         return err;
+     }
++#endif
++
++// GPC end
+
+     return CUDA_SUCCESS;
+ }
+@@ -728,6 +764,8 @@ WEAK int halide_cuda_device_release(void *user_context) {
+     }
+
+     if (ctx) {
++// GPC begin
++#if 0 // if HALIDE_CONTEXT
+         // It's possible that this is being called from the destructor of
+         // a static variable, in which case the driver may already be
+         // shutting down.
+@@ -735,6 +773,8 @@ WEAK int halide_cuda_device_release(void *user_context) {
+         if (err != CUDA_SUCCESS) {
+             err = cuCtxSynchronize();
+         }
++#endif
++// GPC end
+         halide_abort_if_false(user_context, err == CUDA_SUCCESS || err == CUDA_ERROR_DEINITIALIZED);
+
+         // Dump the contents of the free list, ignoring errors.
+diff --git a/src/runtime/cuda_functions.h b/src/runtime/cuda_functions.h
+index 5242e9316..4a6f719fc 100644
+--- a/src/runtime/cuda_functions.h
++++ b/src/runtime/cuda_functions.h
+@@ -52,6 +52,19 @@ CUDA_FN(CUresult, cuPointerGetAttribute, (void *result, int query, CUdeviceptr p
+
+ CUDA_FN_OPTIONAL(CUresult, cuStreamSynchronize, (CUstream hStream));
+
++// GPC begin
++CUDA_FN(CUresult, cuCtxGetCurrent, (CUcontext *pctx));
++CUDA_FN(CUresult, cuDevicePrimaryCtxRetain, (CUcontext *pctx, CUdevice dev));
++CUDA_FN(CUresult, cuDevicePrimaryCtxGetState, (CUdevice dev, unsigned int* flags, int* active ));
++// These are runtime API.
++// CUDA_FN(int, cudaEventCreate, (cudaEvent_t* event));
++// CUDA_FN(int, cudaEventRecord, (cudaEvent_t event, cudaStream_t stream));
++// CUDA_FN(int, cudaEventElapsedTime, (float* ms, cudaEvent_t start, cudaEvent_t end));
++// CUDA_FN(int, cudaEventDestroy, (cudaEvent_t event));
++// CUDA_FN(int, cudaEventSynchronize, (cudaEvent_t event));
++// GPC end
++
++
+ #undef CUDA_FN
+ #undef CUDA_FN_OPTIONAL
+ #undef CUDA_FN_3020
+diff --git a/src/runtime/mini_cuda.h b/src/runtime/mini_cuda.h
+index cfe21d706..e77e70ce3 100644
+--- a/src/runtime/mini_cuda.h
++++ b/src/runtime/mini_cuda.h
+@@ -26,6 +26,11 @@ typedef struct CUstream_st *CUstream; /**< CUDA stream */
+ typedef struct CUevent_st *CUevent;   /**< CUDA event */
+ typedef struct CUarray_st *CUarray;
+
++// GPC begin
++typedef struct cudaEvent_t_st *cudaEvent_t;               /**< CUDA event */
++typedef CUstream_st *cudaStream_t;
++// GPC end
++
+ typedef enum CUjit_option_enum {
+     CU_JIT_MAX_REGISTERS = 0,
+     CU_JIT_THREADS_PER_BLOCK = 1,

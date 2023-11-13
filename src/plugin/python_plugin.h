@@ -47,6 +47,7 @@ class PythonWorkerProcess {
     int exit_code_ = 0;
 
     std::chrono::steady_clock::time_point last_used_;
+    std::chrono::steady_clock::time_point started_at_;
 
     void PrintMessageToLog(const char* bytes, size_t n) {
         std::lock_guard<std::mutex> _l(err_lock_);
@@ -78,7 +79,9 @@ class PythonWorkerProcess {
 
  public:
     explicit PythonWorkerProcess(const std::string& db_dir)
-        : should_kill_(false), killed_(false), last_used_(std::chrono::steady_clock::now()) {
+        : should_kill_(false), killed_(false),
+          last_used_(std::chrono::steady_clock::now()),
+          started_at_(std::chrono::steady_clock::now()) {
         p2c_name_ = GeneratePipeName("p2c");
         c2p_name_ = GeneratePipeName("c2p");
         boost::interprocess::message_queue::remove(p2c_name_.c_str());
@@ -116,11 +119,17 @@ class PythonWorkerProcess {
     // The following three methods all try to modify the process handle.
     // So only one successful invocation is allowed. Otherwise, later
     // invocation results in undefined behavior.
-    void Kill() {
+    void Kill(bool force = false) {
         if (killed_) return;
-        killed_ = true;
-        process_->kill(true);
-        exit_code_ = -1;
+        if (force) {
+            process_->kill(false);
+            while (!process_->try_get_exit_status(exit_code_)) {
+                fma_common::SleepS(0.1);
+                process_->kill(true);
+            }
+        } else {
+            process_->kill(false);
+        }
     }
 
     int Wait() {
@@ -159,6 +168,12 @@ class PythonWorkerProcess {
             .count();
     }
 
+    size_t GetLiveTimeInSeconds() const {
+        return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() -
+                                                                started_at_)
+            .count();
+    }
+
     void UpdateLastUsedTime() { last_used_ = std::chrono::steady_clock::now(); }
 };
 
@@ -169,6 +184,7 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
     std::string plugin_dir_;
 
     int max_idle_seconds_ = 600;
+    int max_plugin_lifetime_seconds_ = LGRAPH_PYTHON_PLUGIN_LIFETIME_S;
     std::mutex _mtx;
     // free processes are owned by plugin manager
     std::list<std::unique_ptr<PythonWorkerProcess>> _free_processes;
@@ -179,20 +195,42 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
     // Before deleting the process, worker thread is required to remove
     // the prointer from busy_processes from this set first.
     std::unordered_set<PythonWorkerProcess*> _busy_processes;
-    std::chrono::steady_clock::time_point _last_request_time;
+    fma_common::TimedTaskScheduler::TaskPtr _kill_task;
+    // marked processes are owned by plugin manager.
+    // After trying to kill a process, worker thread need to move it
+    // into this queue.
+    std::unordered_set<std::unique_ptr<PythonWorkerProcess>> _marked_processes;
 
     // just for test
     PythonPluginManagerImpl(const std::string& name, const std::string& db_dir, size_t db_size,
-                            const std::string& plugin_dir, int max_idle_seconds = 600)
+                            const std::string& plugin_dir, int max_idle_seconds = 600,
+                            int max_plugin_lifetime_seconds = LGRAPH_PYTHON_PLUGIN_LIFETIME_S)
         : graph_name_(name),
           db_dir_(db_dir),
           plugin_dir_(plugin_dir),
           max_idle_seconds_(max_idle_seconds),
-          _last_request_time(std::chrono::steady_clock::now()) {}
+          max_plugin_lifetime_seconds_(max_plugin_lifetime_seconds) {
+        auto& scheduler = fma_common::TimedTaskScheduler::GetInstance();
+        _kill_task = scheduler.ScheduleReccurringTask(
+            max_idle_seconds * 1000, [this](fma_common::TimedTask*) {
+                std::lock_guard<std::mutex> l(_mtx);
+                CleanUpIdleProcessesNoLock();
+                auto it = _marked_processes.begin();
+                while (it != _marked_processes.end()) {
+                    if ((*it)->IsAlive()) {
+                        (*it)->Kill();
+                        it++;
+                    } else {
+                        it = _marked_processes.erase(it);
+                    }
+                }
+            });
+    }
 
  public:
     PythonPluginManagerImpl(LightningGraph* db, const std::string& graph_name,
-                            const std::string& plugin_dir, int max_idle_seconds = 600);
+                            const std::string& plugin_dir, int max_idle_seconds = 600,
+                            int max_plugin_lifetime_seconds = LGRAPH_PYTHON_PLUGIN_LIFETIME_S);
 
     ~PythonPluginManagerImpl();
 

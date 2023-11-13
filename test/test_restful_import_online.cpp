@@ -32,12 +32,6 @@ using namespace concurrency::streams;  // Asynchronous streams
 
 void test_client_other_branch(RestClient& client);
 
-static void SetAuth(std::string header, http_request& request) {
-    request.headers().clear();
-    request.headers().add(_TU("Authorization"), _TU(header));
-    request.headers().add(_TU("Content-Type"), _TU("application/json"));
-}
-
 inline void WriteFiles(const std::map<std::string, std::string>& name_contents) {
     for (auto& kv : name_contents) {
         fma_common::OutputFmaStream stream(kv.first);
@@ -100,7 +94,6 @@ TEST_P(TestRestfulImportOnline, RestfulImportOnline) {
     }
     // open the db_config api to set
     lgraph::RestServer rest_server(&state_machine, rest_config, gconfig);
-
     // -----------------------------------
     // server started, now start test
     std::string url;
@@ -109,7 +102,6 @@ TEST_P(TestRestfulImportOnline, RestfulImportOnline) {
     else
         url = fma_common::StringFormatter::Format("http://{}:{}/", host, port);
     UT_LOG() << "  url:  " << url;
-
     // now start client
     RestClient client(url, cert_path);
     client.Login("admin", "73@TuGraph");
@@ -143,7 +135,7 @@ TEST_P(TestRestfulImportOnline, RestfulImportOnline) {
      ]
 })";
         std::string data = "1,清华西路,费马1\n3,清华西路,费马2\n";
-        bool res_get = client.AddIndex(db_name, "company", "scale", true);
+        bool res_get = client.AddIndex(db_name, "company", "scale", 1);
         UT_EXPECT_EQ(res_get, true);
         // client.AddIndex(db_name, "person", "uid", true);
         auto res = client.SendImportData(db_name, desc, data, true, ",");

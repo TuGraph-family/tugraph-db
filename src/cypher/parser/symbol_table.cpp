@@ -15,10 +15,12 @@
 //
 // Created by wt on 2019/12/31.
 //
-#include "symbol_table.h"
-#include "clause.h"
+#include "cypher/parser/symbol_table.h"
+#include "cypher/parser/clause.h"
 
-static std::string ToString(const cypher::SymbolTable &sym_tab) {
+namespace cypher {
+
+static std::string ToString(const SymbolTable &sym_tab) {
     std::string str = "Alias_ID_Map of Symbol Table:\n";
     for (auto &a : sym_tab.symbols) {
         auto s =
@@ -37,8 +39,10 @@ static std::string ToString(const cypher::SymbolTable &sym_tab) {
     return str;
 }
 
-void cypher::SymbolTable::DumpTable() const {
+void SymbolTable::DumpTable() const {
     if (ParserLogger().GetLevel() >= fma_common::LogLevel::LL_DEBUG) {
         FMA_DBG_STREAM(ParserLogger()) << ToString(*this);
     }
 }
+
+}  // namespace cypher

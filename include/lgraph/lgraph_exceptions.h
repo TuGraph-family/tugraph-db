@@ -1,16 +1,11 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 
@@ -120,6 +115,26 @@ class IOError : public std::runtime_error {
 /** @brief   User not authorized to perform this action. */
 class UnauthorizedError : public InputError {
  public:
-    explicit UnauthorizedError(const std::string& msg = "Unauthorized.") : InputError(msg) {}
+    explicit UnauthorizedError(const std::string& msg = "Authentication failed.")
+        : InputError(msg) {}
 };
+
+class InternalErrorException : public std::exception {
+    std::string err_;
+
+ public:
+    explicit InternalErrorException(const std::string& err) : err_("InternalError " + err) {}
+
+    const char* what() const noexcept override { return err_.c_str(); }
+};
+
+class BadRequestException : public std::exception {
+    std::string err_;
+
+ public:
+    explicit BadRequestException(const std::string& err) : err_("BadRequest " + err) {}
+
+    const char* what() const noexcept override { return err_.c_str(); }
+};
+
 }  // namespace lgraph_api

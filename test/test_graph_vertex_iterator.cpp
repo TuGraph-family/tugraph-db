@@ -34,7 +34,6 @@ static Value GenProp(size_t s, char c) {
 
 TEST_F(TestGraphVertexIterator, GraphVertexIterator) {
     size_t vpsize = 1024;
-    size_t epsize = 1024;
     size_t nv = 10;
     size_t epv = 1024;
     int argc = _ut_argc;
@@ -46,53 +45,53 @@ TEST_F(TestGraphVertexIterator, GraphVertexIterator) {
     config.Add(epv, "epv", true).Comment("Edges per vertex");
     config.ParseAndFinalize(argc, argv);
 
-    KvStore store("./testdb", 1 << 30, false);
+    auto store = std::make_unique<LMDBKvStore>("./testdb", 1 << 30, false);
     // clear old data
-    KvTransaction txn = store.CreateWriteTxn();
-    store.DropAll(txn);
-    txn.Commit();
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
 
     // open table
-    txn = store.CreateWriteTxn();
-    KvTable graph_table = Graph::OpenTable(txn, store, "graph");
-    KvTable meta_table =
-        store.OpenTable(txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
-    Graph graph(txn, graph_table, &meta_table);
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    auto graph_table = Graph::OpenTable(*txn, *store, "graph");
+    auto meta_table =
+        store->OpenTable(*txn, "meta", true, lgraph::ComparatorDesc::DefaultComparator());
+    Graph graph(*txn, std::move(graph_table), std::move(meta_table));
+    txn->Commit();
 
     // create graph
     {
         UT_LOG() << "Test vertex iterator";
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         {
-            UT_EXPECT_EQ(graph.AddVertex(txn, GenProp(100, 'a')), 0);
-            auto it_a = graph.GetUnmanagedVertexIterator(&txn);
+            UT_EXPECT_EQ(graph.AddVertex(*txn, GenProp(100, 'a')), 0);
+            auto it_a = graph.GetUnmanagedVertexIterator(txn.get());
             UT_EXPECT_TRUE(it_a.IsValid());
             UT_EXPECT_EQ(it_a.GetId(), 0);
-            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 0, GenProp(5000, 'a')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(*txn, 0, GenProp(5000, 'a')));
             it_a.RefreshContentIfKvIteratorModified();
             // after refreshing, the iterator should become unmodified
             it_a.RefreshContentIfKvIteratorModified();
             UT_EXPECT_EQ(it_a.GetProperty().AsString(), std::string(5000, 'a'));
-            UT_EXPECT_EQ(graph.AddVertex(txn, GenProp(1000, 'b')), 1);
-            auto it_b = graph.GetUnmanagedVertexIterator(&txn, 1);
-            UT_EXPECT_EQ(graph.AddVertex(txn, GenProp(2096, 'c')), 2);
+            UT_EXPECT_EQ(graph.AddVertex(*txn, GenProp(1000, 'b')), 1);
+            auto it_b = graph.GetUnmanagedVertexIterator(txn.get(), 1);
+            UT_EXPECT_EQ(graph.AddVertex(*txn, GenProp(2096, 'c')), 2);
             it_b.RefreshContentIfKvIteratorModified();
             UT_EXPECT_TRUE(it_b.IsValid());
             UT_EXPECT_EQ(it_b.GetId(), 1);
             UT_EXPECT_EQ(it_b.GetProperty().AsString(), std::string(1000, 'b'));
-            graph.DeleteVertex(txn, it_b);
+            graph.DeleteVertex(*txn, it_b);
             UT_EXPECT_TRUE(it_b.IsValid());
             UT_EXPECT_EQ(it_b.GetId(), 2);
             UT_EXPECT_EQ(it_b.GetProperty().AsString(), std::string(2096, 'c'));
-            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 0, GenProp(10, 'a')));
-            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 2, GenProp(10, 'c')));
-            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 2, GenProp(0, 'c')));
-            UT_EXPECT_TRUE(graph.SetVertexProperty(txn, 2, GenProp(10, 'c')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(*txn, 0, GenProp(10, 'a')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(*txn, 2, GenProp(10, 'c')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(*txn, 2, GenProp(0, 'c')));
+            UT_EXPECT_TRUE(graph.SetVertexProperty(*txn, 2, GenProp(10, 'c')));
             it_b.RefreshContentIfKvIteratorModified();
             UT_EXPECT_EQ(it_b.GetId(), 2);
             UT_EXPECT_EQ(it_b.GetProperty().AsString(), std::string(10, 'c'));
         }
-        txn.Abort();
+        txn->Abort();
     }
 }

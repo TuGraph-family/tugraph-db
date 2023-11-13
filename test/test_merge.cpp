@@ -18,8 +18,8 @@
 #include "gtest/gtest.h"
 
 #include "core/lightning_graph.h"
-#include "../plugins/cpp/merge.h"
-#include "../plugins/cpp/merge_reduced.h"
+#include "../procedures/demo/merge.h"
+#include "../procedures/demo/merge_reduced.h"
 #include "./ut_utils.h"
 using namespace lgraph_api;
 using namespace std;
@@ -176,13 +176,13 @@ TEST_P(TestMerge, Merge) {
                       vector<FieldSpec>{{"name", FieldType::STRING, false},
                                         {"age", FieldType::INT32, true},
                                         {"gender", FieldType::INT8, false}},
-                      "name");
+                      VertexOptions("name"));
     db.AddEdgeLabel(
         label_e,
         vector<FieldSpec>{{"since", FieldType::INT32, false}, {"weight", FieldType::DOUBLE, false}},
         {});
-    UT_ASSERT(!db.AddVertexIndex(label_v, "name", false));
-    db.AddVertexIndex(label_v, "gender", false);
+    UT_ASSERT(!db.AddVertexIndex(label_v, "name", lgraph::IndexType::NonuniqueIndex));
+    db.AddVertexIndex(label_v, "gender", lgraph::IndexType::NonuniqueIndex);
     auto txn = db.CreateWriteTxn();
     int64_t vid[8];
     vid[0] = txn.AddVertex(label_v, vector<string>{"name", "age", "gender"},

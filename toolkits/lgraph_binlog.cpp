@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     std::string skip_list;  // indexes to skip, separated with comma
 
     std::string action = "print";
-    std::string host = "";
+    std::string host;
     uint16_t port = 7071;
     std::string dir;
     std::string user;
@@ -119,8 +119,8 @@ int main(int argc, char** argv) {
         if (input_paths.size() == 1) {
             // could be dir/*
             if (input_paths[0].back() == '*') {
-                std::string dir = fma_common::FilePath(input_paths[0]).Dir();
-                input_paths = fma_common::file_system::ListFiles(dir, nullptr, true);
+                std::string tmp_dir = fma_common::FilePath(input_paths[0]).Dir();
+                input_paths = fma_common::file_system::ListFiles(tmp_dir, nullptr, true);
             }
         }
         std::vector<std::string> input_files = lgraph::BackupLog::SortLogFiles(input_paths);
@@ -134,9 +134,9 @@ int main(int argc, char** argv) {
         }
         // check beg and end time
         int64_t min_time = std::numeric_limits<int64_t>::min();
-        if (!beg_time.empty()) min_time = lgraph::DateTime(beg_time).SecondsSinceEpoch();
+        if (!beg_time.empty()) min_time = lgraph::DateTime(beg_time).MicroSecondsSinceEpoch();
         int64_t max_time = std::numeric_limits<int64_t>::max();
-        if (!end_time.empty()) max_time = lgraph::DateTime(end_time).SecondsSinceEpoch();
+        if (!end_time.empty()) max_time = lgraph::DateTime(end_time).MicroSecondsSinceEpoch();
         if (limit <= 0) limit = std::numeric_limits<int64_t>::max();
         // check skip list
         std::unordered_set<int64_t> skip_ids;
@@ -236,5 +236,9 @@ int main(int argc, char** argv) {
         FMA_LOG() << "An error occurred:\n" << lgraph::PrintNestedException(e, 1);
         return 1;
     }
+#ifdef __SANITIZE_ADDRESS__
+    // For address sanitizer: wait gc thread to release memory object
+    fma_common::SleepS(2);
+#endif
     return 0;
 }

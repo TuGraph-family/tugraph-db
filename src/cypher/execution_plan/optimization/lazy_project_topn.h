@@ -17,7 +17,11 @@
  */
 #pragma once
 
-#include "opt_pass.h"
+#include "cypher/execution_plan/ops/op_project.h"
+#include "cypher/execution_plan/ops/op_limit.h"
+#include "cypher/execution_plan/ops/op_sort.h"
+#include "cypher/execution_plan/ops/op_topn.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
 /*
@@ -53,11 +57,11 @@ class LazyProjectTopN : public OptPass {
         return true;
     }
 
-    void _AdjustProjectOrder(ExecutionPlan &plan) {
+    void _AdjustProjectOrder(OpBase *root) {
         Limit *op_limit = nullptr;
         Sort *op_sort = nullptr;
         Project *op_project = nullptr;
-        if (!_IdentifyElementAndTopN(plan.Root(), op_limit, op_sort, op_project)) {
+        if (!_IdentifyElementAndTopN(root, op_limit, op_sort, op_project)) {
             return;
         }
         // add topN
@@ -69,7 +73,9 @@ class LazyProjectTopN : public OptPass {
         op_sort->RemoveChild(op_project);
         op_limit->RemoveChild(op_sort);
         op_post->RemoveChild(op_limit);
-        delete op_project, op_sort, op_limit;
+        delete op_project;
+        delete op_sort;
+        delete op_limit;
         op_project = nullptr;
         op_sort = nullptr;
         op_limit = nullptr;
@@ -86,8 +92,8 @@ class LazyProjectTopN : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _AdjustProjectOrder(*plan);
+    int Execute(OpBase *root) override {
+        _AdjustProjectOrder(root);
         return 0;
     }
 };

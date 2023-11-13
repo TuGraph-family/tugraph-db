@@ -40,13 +40,15 @@ class GraphManager {
         bool load_plugins = true;
         int plugin_subprocess_max_idle_seconds = 600;
         FullTextIndexOptions ft_index_options;
+        bool enable_realtime_count = true;
 
         Config() {}
         explicit Config(const GlobalConfig& gc)
             : durable(gc.durable),
               load_plugins(true),
               plugin_subprocess_max_idle_seconds(gc.subprocess_max_idle_seconds),
-              ft_index_options(gc.ft_index_options) {}
+              ft_index_options(gc.ft_index_options),
+              enable_realtime_count(gc.enable_realtime_count) {}
     };
 
     struct ModGraphActions {
@@ -59,7 +61,7 @@ class GraphManager {
  private:
     typedef GCRefCountedPtr<LightningGraph> GcDb;
 
-    KvTable table_;
+    std::shared_ptr<KvTable> table_;
     std::unordered_map<std::string, GcDb> graphs_;
     std::string parent_dir_;
     Config config_;

@@ -15,8 +15,13 @@
 #include "client/cpp/restful/rest_client.h"
 #include "client/cpp/restful/restful_exception.h"
 #include "core/lightning_graph.h"
-#include "cpprest/http_client.h"
 #include "restful/server/json_convert.h"
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
+#include "cpprest/http_client.h"
 #include "cpprest/json.h"
 
 #ifdef _WIN32
@@ -264,6 +269,7 @@ bool RestClient::Login(const std::string& username, const std::string& password)
 
 std::string RestClient::Refresh(const std::string& token) {
     json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
     auto response = DoPost("/refresh", body, true);
     auto new_token = response.at(_TU("jwt")).as_string();
     std::string auth_value = std::string("Bearer ") + ToStdString(new_token);
@@ -272,8 +278,28 @@ std::string RestClient::Refresh(const std::string& token) {
     return _TS(new_token);
 }
 
+bool RestClient::UpdateTokenTime(const std::string& token, int refresh_time, int expire_time) {
+    json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
+    body[_TU("refresh_time")] = json::value::number(refresh_time);
+    body[_TU("expire_time")] = json::value::number(expire_time);
+    auto response = DoPost("/update_token_time", body, false);
+    if (response.is_null()) return false;
+    return true;
+}
+
+std::pair<int, int> RestClient::GetTokenTime(const std::string& token) {
+    json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
+    auto response = DoPost("/get_token_time", body, true);
+    auto refresh_time = response.at(_TU("refresh_time")).as_integer();
+    auto expire_time = response.at(_TU("expire_time")).as_integer();
+    return std::make_pair(refresh_time, expire_time);
+}
+
 bool RestClient::Logout(const std::string& token) {
     json::value body;
+    body[_TU("jwt")] = json::value::string(_TU(token));
     auto response = DoPost("/logout", body, true);
     if (response.is_null()) return false;
     return true;
@@ -331,11 +357,11 @@ bool RestClient::AddLabel(
 }
 
 bool RestClient::AddIndex(const std::string& db, const std::string& label, const std::string& field,
-                          bool is_unique) {
+                          int index_type) {
     json::value data;
     data[_TU(RestStrings::LABEL)] = json::value::string(_TU(label));
     data[_TU(RestStrings::FIELD)] = json::value::string(_TU(field));
-    data[_TU(RestStrings::ISUNIQUE)] = json::value::boolean(is_unique);
+    data[_TU(RestStrings::INDEXTYPE)] = json::value::number(index_type);
     DoGraphPost(db, "/index", data, false);
     FMA_DBG_STREAM(logger_) << "[RestClient] AddVertexIndex (" << label << ":" << field
                             << ") succeeded";
@@ -1025,6 +1051,7 @@ bool RestClient::LoadPlugin(const std::string& db, lgraph_api::PluginCodeType ty
     body[RestStrings::NAME] = json::value::string(_TU(plugin_info.name));
     body[RestStrings::READONLY] = json::value::boolean(plugin_info.read_only);
     body[RestStrings::DESC] = json::value::string(_TU(plugin_info.desc));
+    body[RestStrings::VERSION] = json::value::string(_TU(plugin_info.version));
     body[RestStrings::CODE] = json::value::string(_TU(lgraph_api::base64::Encode(code)));
     body[RestStrings::CODE_TYPE] = json::value::string(_TU(lgraph_api::PluginCodeTypeStr(type)));
     DoGraphPost(db,

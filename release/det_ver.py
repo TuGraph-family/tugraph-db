@@ -19,7 +19,7 @@ def replace_ver(file_name, pattern, curr_ver):
     lines = f.readlines()
     f.seek(0,0)
     for line in lines:
-        if re.match(pattern, line) is not None:
+        if pattern in line:
             print("updating %s" % file_name)
             new_line = re.sub(r'[0-9]+\.[0-9]+\.[0-9]+', curr_ver, line)
             print(new_line)
@@ -30,8 +30,14 @@ def replace_ver(file_name, pattern, curr_ver):
 
 curr_ver = get_ver()
 print("current version: %s" % curr_ver)
-replace_ver('doc/autogen/TuGraph-Python-Procedure-API/index.rst', 'Version: ', curr_ver)
-replace_ver('doc/autogen/TuGraph-CPP-Procedure-API/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/autogen/TuGraph-Python-Procedure-API/index.rst', 'Version: ', curr_ver)
+replace_ver('docs/autogen/TuGraph-CPP-Procedure-API/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/en-US/source/5.developer-manual/6.interface/3.procedure/4.Python-procedure.rst', 'Version: ', curr_ver)
+replace_ver('docs/en-US/source/5.developer-manual/6.interface/3.procedure/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/zh-CN/source/5.developer-manual/6.interface/3.procedure/4.Python-procedure.rst', 'Version: ', curr_ver)
+replace_ver('docs/zh-CN/source/5.developer-manual/6.interface/3.procedure/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
+replace_ver('docs/zh-CN/source/1.guide.md', '安装', curr_ver)
+replace_ver('docs/en-US/source/1.guide.md', 'install', curr_ver)
 
 dockerfiles = [
     "tugraph-mini-runtime-centos7-Dockerfile",

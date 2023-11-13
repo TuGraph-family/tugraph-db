@@ -19,8 +19,8 @@
 
 #include "fma-common/type_traits.h"
 
-#include "node.h"
-#include "relationship.h"
+#include "cypher/graph/node.h"
+#include "cypher/graph/relationship.h"
 #include "parser/data_typedef.h"
 #include "parser/symbol_table.h"
 
@@ -43,7 +43,7 @@ class PatternGraph {
         const auto &node = GetNode(id);
         for (auto rr : node.RhsRelps()) {
             auto &r = GetRelationship(rr);
-            // todo: think about this again
+            // TODO(anyone) think about this again
             if (!ignore_created || (r.derivation_ != Relationship::CREATED &&
                                     GetNode(r.Rhs()).derivation_ != Node::CREATED &&
                                     r.derivation_ != Relationship::MERGED &&
@@ -117,6 +117,14 @@ class PatternGraph {
     NodeID AddNode(const std::string &label, const std::string &alias, const Property &prop_filter,
                    Node::Derivation derivation);
 
+    NodeID AddNode(Node *node) {
+        NodeID nid = _next_nid;
+        _nodes.emplace_back(nid, node->Label(), node->Alias(), node->Prop(), node->derivation_);
+        _node_map.emplace(node->Alias(), nid);
+        _next_nid++;
+        return nid;
+    }
+
     RelpID AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                            parser::LinkDirection direction, const std::string &alias,
                            Relationship::Derivation derivation);
@@ -124,6 +132,11 @@ class PatternGraph {
     RelpID AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                            parser::LinkDirection direction, const std::string &alias, int min_hop,
                            int max_hop, Relationship::Derivation derivation);
+
+    RelpID AddRelationship(Relationship *relp) {
+        return AddRelationship(relp->Types(), relp->Lhs(), relp->Rhs(), relp->direction_,
+                               relp->Alias(), relp->MinHop(), relp->MaxHop(), relp->derivation_);
+    }
 
     NodeID BuildNode(const parser::TUP_NODE_PATTERN &node_pattern, Node::Derivation derivation);
 

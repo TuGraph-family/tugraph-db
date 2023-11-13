@@ -17,7 +17,7 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
@@ -26,7 +26,7 @@ class Skip : public OpBase {
     size_t skipped_ = 0;
 
  public:
-    Skip(size_t rec_to_skip) : OpBase(OpType::SKIP, "Skip"), rec_to_skip_(rec_to_skip) {}
+    explicit Skip(size_t rec_to_skip) : OpBase(OpType::SKIP, "Skip"), rec_to_skip_(rec_to_skip) {}
 
     OpResult Initialize(RTContext *ctx) override {
         CYPHER_THROW_ASSERT(!children.empty());
@@ -62,7 +62,6 @@ class Skip : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 
 }  // namespace cypher

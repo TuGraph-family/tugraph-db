@@ -30,7 +30,7 @@ namespace lgraph {
  * existing tokens by rotating the valid period.
  */
 
-#define TOKEN_REFRESH_TIME 3600
+#define TOKEN_REFRESH_TIME 3600 * 24
 #define TOKEN_EXPIRE_TIME 3600 * 24
 #define TOKEN_MAX_TIME std::numeric_limits<int>::max()
 

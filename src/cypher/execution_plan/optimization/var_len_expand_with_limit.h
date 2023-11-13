@@ -17,7 +17,9 @@
 //
 #pragma once
 
-#include "opt_pass.h"
+#include "cypher/execution_plan/ops/op_var_len_expand.h"
+#include "cypher/execution_plan/ops/op_limit.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
 
 namespace cypher {
 
@@ -47,7 +49,7 @@ class PassVarLenExpandWithLimit : public OptPass {
         case OpType::LIMIT:
             return dynamic_cast<Limit *>(op);
         case OpType::SORT:
-        case OpType::FILTER:  // todo: ignore irrelevant filters
+        case OpType::FILTER:  // TODO(anyone) ignore irrelevant filters
         case OpType::AGGREGATE:
         case OpType::CARTESIAN_PRODUCT:
         case OpType::APPLY:
@@ -69,14 +71,14 @@ class PassVarLenExpandWithLimit : public OptPass {
         return 0;
     }
 
-    void _DoPassVarLenExpandWithLimit(ExecutionPlan &plan) {
+    void _DoPassVarLenExpandWithLimit(OpBase* root) {
         Project *op_project = nullptr;
         Limit *op_limit = nullptr;
         VarLenExpand *op_var_len_expand = nullptr;
-        if (_Identify(plan.Root(), op_project, op_limit, op_var_len_expand) != 0) {
+        if (_Identify(root, op_project, op_limit, op_var_len_expand) != 0) {
             return;
         }
-        // TODO: 20210701 // NOLINT
+        // TODO(anyone) 20210701
     }
 
  public:
@@ -84,8 +86,8 @@ class PassVarLenExpandWithLimit : public OptPass {
 
     bool Gate() override { return true; }
 
-    int Execute(ExecutionPlan *plan) override {
-        _DoPassVarLenExpandWithLimit(*plan);
+    int Execute(OpBase *root) override {
+        _DoPassVarLenExpandWithLimit(root);
         return 0;
     }
 };

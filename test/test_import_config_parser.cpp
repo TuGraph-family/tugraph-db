@@ -97,7 +97,7 @@ TEST_F(TestImportConfigParser, ImportConfigParser) {
                 {"name" : "role", "type":"STRING"},
                 {"name" : "id", "type" : "INT64"}
             ],
-            "primary" : "id",
+            "temporal" : "id",
             "constraints" : [["actor", "movie"]]
         }
     ],
@@ -246,7 +246,77 @@ TEST_F(TestImportConfigParser, ImportConfigParser) {
                 { "name" : "aid", "type":"STRING"},
                 { "name" : "name", "type":"STRING"}
             ],
-            "primary" : "aid"
+            "temporal" : "aid"
+        }
+    ]
+}
+        )"_json;
+
+        auto conf_str9 = R"(
+{
+    "schema": [
+        {
+            "label" : "BORN_IN",
+            "type" : "EDGE",
+            "properties" : [
+                {
+                    "name" : "weight",
+                    "type":"FLOAT",
+                    "optional":false,
+                    "unique":true,
+                    "pair_unique":true}
+            ]
+        }
+    ]
+}
+        )"_json;
+
+        auto conf_str10 = R"(
+{
+    "schema": [
+        {
+            "label" : "BORN_IN",
+            "type" : "EDGE",
+            "properties" : [
+                {
+                    "name" : "reg_time",
+                    "type":"DATETIME",
+                    "optional":false,
+                    "unique":false,
+                    "pair_unique":true},
+                {
+                    "name" : "real_time",
+                    "type":"DATETIME",
+                    "optional":true,
+                    "unique":false,
+                    "pair_unique":false},
+                {
+                    "name" : "weight",
+                    "type":"FLOAT",
+                    "optional":false,
+                    "unique":true,
+                    "pair_unique":false}
+            ]
+        }
+    ]
+}
+        )"_json;
+
+        auto conf_str11 = R"(
+{
+    "schema": [
+        {
+            "label" : "Person",
+            "type" : "VERTEX",
+            "primary" : "reg_time",
+            "properties" : [
+                {"name" : "reg_time", "type":"DATETIME", "optional":true},
+                {
+                    "name" : "weight",
+                    "type":"FLOAT",
+                    "optional":false,
+                    "pair_unique":true}
+            ]
         }
     ]
 }
@@ -260,6 +330,9 @@ TEST_F(TestImportConfigParser, ImportConfigParser) {
         UT_EXPECT_ANY_THROW(ImportConfParser::ParseSchema(conf_str6));
         UT_EXPECT_ANY_THROW(ImportConfParser::ParseSchema(conf_str7));
         UT_EXPECT_ANY_THROW(ImportConfParser::ParseSchema(conf_str8));
+        UT_EXPECT_ANY_THROW(ImportConfParser::ParseSchema(conf_str9));
+        ImportConfParser::ParseSchema(conf_str10).Dump();
+        UT_EXPECT_ANY_THROW(ImportConfParser::ParseSchema(conf_str11));
     }
 
     {

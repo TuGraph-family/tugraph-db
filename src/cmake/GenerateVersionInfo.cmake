@@ -41,7 +41,8 @@ function(GenerateVersionInfo ver_major ver_minor ver_patch infile outfile)
 
     set(CXX_COMPILER_ID ${CMAKE_CXX_COMPILER_ID})
     set(CXX_COMPILER_VERSION ${CMAKE_CXX_COMPILER_VERSION})
-    find_package(PythonLibs 3 REQUIRED)
+    find_package(PythonInterp 3)
+    find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
     set(PYTHON_LIB_VERSION ${PYTHONLIBS_VERSION_STRING})
 
     message(STATUS "Generating ${outfile}")

@@ -18,7 +18,7 @@
 #pragma once
 
 #include <string>
-#include "common.h"
+#include "cypher/graph/common.h"
 #include "parser/data_typedef.h"
 
 namespace cypher {
@@ -30,6 +30,8 @@ class Relationship {
     NodeID rhs_ = -1;
     std::string alias_;
     lgraph::EIter it_;
+    // Store edge iterators for variable length relationship, which slightly duplicate path_.
+    std::vector<lgraph::EIter> its_;
 
  public:
     parser::LinkDirection direction_ = parser::LinkDirection::UNKNOWN;
@@ -60,6 +62,8 @@ class Relationship {
 
     const std::set<std::string> &Types() const;
 
+    void SetTypes(const std::set<std::string> &types) { types_ = types; }
+
     NodeID Lhs() const { return lhs_; }
 
     NodeID Rhs() const { return rhs_; }
@@ -72,6 +76,8 @@ class Relationship {
 
     lgraph::EIter *ItRef();
 
+    std::vector<lgraph::EIter> &ItsRef();
+
     bool Empty() const;
 
     bool Undirected() const;
@@ -81,6 +87,14 @@ class Relationship {
     int MinHop() const;
 
     int MaxHop() const;
+
+    void AddType(const std::string &type) { types_.emplace(type); }
+
+    void SetLhs(NodeID lhs) { lhs_ = lhs; }
+
+    void SetRhs(NodeID rhs) { rhs_ = rhs; }
+
+    void SetAlias(const std::string &alias) { alias_ = alias; }
 
     static bool CheckVarLen(int min_hop, int max_hop);
 };

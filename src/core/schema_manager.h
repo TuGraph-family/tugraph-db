@@ -31,7 +31,7 @@ namespace lgraph {
  *  A maximum of 2^16 labels can be created. Schemas cannot be deleted.
  */
 class SchemaManager {
-    KvTable table_;
+    std::shared_ptr<KvTable> table_;
     std::vector<Schema> schemas_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     bool label_in_record_ = true;
@@ -46,7 +46,8 @@ class SchemaManager {
      *
      * \return  A kvstore::Table.
      */
-    static KvTable OpenTable(KvTransaction& txn, KvStore& store, const std::string& name) {
+    static std::unique_ptr<KvTable> OpenTable(
+        KvTransaction& txn, KvStore& store, const std::string& name) {
         return store.OpenTable(txn, name, true, ComparatorDesc::DefaultComparator());
     }
 
@@ -58,23 +59,24 @@ class SchemaManager {
      *
      * throws exception if the data in the table is corrupted
      */
-    SchemaManager(KvTransaction& txn, const KvTable& table, bool label_in_record) {
-        table_ = table;
+    SchemaManager(KvTransaction& txn, std::shared_ptr<KvTable> table, bool label_in_record) {
+        table_ = std::move(table);
         label_in_record_ = label_in_record;
         // load schemas from table
-        size_t n = table_.GetKeyCount(txn);
+        size_t n = table_->GetKeyCount(txn);
         schemas_.resize(n);
-        auto it = table_.GetIterator(txn);
-        while (it.IsValid()) {
-            LabelId id = it.GetKey().AsType<LabelId>();
-            Value v = it.GetValue();
+        auto it = table_->GetIterator(txn);
+        it->GotoFirstKey();
+        while (it->IsValid()) {
+            LabelId id = it->GetKey().AsType<LabelId>();
+            Value v = it->GetValue();
             using namespace fma_common;
             BinaryBuffer buf(v.Data(), v.Size());
             schemas_[id].SetStoreLabelInRecord(label_in_record_);
             if (!BinaryRead(buf, schemas_[id])) {
                 throw ::lgraph::InternalError("Invalid schema read from DB.");
             }
-            it.Next();
+            it->Next();
         }
         for (size_t i = 0; i < schemas_.size(); i++) {
             name_to_idx_[schemas_[i].GetLabel()] = i;
@@ -182,8 +184,7 @@ class SchemaManager {
      * \return  True if it succeeds, false if the label already exists. Throws exception on error.
      */
     bool AddLabel(KvTransaction& txn, bool is_vertex, const std::string& label, size_t n_fields,
-                  const FieldSpec* fields, const std::string& primary_field,
-                  const EdgeConstraints& edge_constraints) {
+                  const FieldSpec* fields, const LabelOptions& options) {
         auto it = name_to_idx_.find(label);
         if (it != name_to_idx_.end()) return false;
         Schema* ls = nullptr;
@@ -204,24 +205,36 @@ class SchemaManager {
             }
             ls->SetLabelId((LabelId)(schemas_.size() - 1));
         }
-        ls->SetSchema(is_vertex, n_fields, fields, primary_field, edge_constraints);
+        std::string primary, temporal;
+        TemporalFieldOrder temporal_order;
+        if (is_vertex) {
+            primary = dynamic_cast<const VertexOptions&>(options).primary_field;
+        }
+        EdgeConstraints edge_constraints;
+        if (!is_vertex) {
+            edge_constraints = dynamic_cast<const EdgeOptions&>(options).edge_constraints;
+            primary = dynamic_cast<const EdgeOptions&>(options).temporal_field;
+            temporal = dynamic_cast<const EdgeOptions&>(options).temporal_field;
+            temporal_order = dynamic_cast<const EdgeOptions&>(options).temporal_field_order;
+        }
+        ls->SetSchema(is_vertex, n_fields, fields, primary, temporal, temporal_order,
+                      edge_constraints);
         ls->SetLabel(label);
-        name_to_idx_.emplace_hint(it, std::make_pair(label, ls->GetLabelId()));
+        ls->SetDetachProperty(options.detach_property);
+        name_to_idx_.emplace_hint(it, label, ls->GetLabelId());
         // now write the modification to the kvstore
         using namespace fma_common;
         BinaryBuffer buf;
         BinaryWrite(buf, *ls);
-        bool r = table_.SetValue(txn, Value::ConstRef(ls->GetLabelId()),
+        bool r = table_->SetValue(txn, Value::ConstRef(ls->GetLabelId()),
                                  Value(buf.GetBuf(), buf.GetSize()));
         FMA_DBG_ASSERT(r);
         return true;
     }
 
     bool AddLabel(KvTransaction& txn, bool is_vertex, const std::string& label,
-                  const std::vector<FieldSpec>& fields, const std::string& primary_field,
-                  const EdgeConstraints& edge_constraints) {
-        return AddLabel(txn, is_vertex, label, fields.size(), fields.data(), primary_field,
-                        edge_constraints);
+                  const std::vector<FieldSpec>& fields, const LabelOptions& options) {
+        return AddLabel(txn, is_vertex, label, fields.size(), fields.data(), options);
     }
 
     /**
@@ -244,7 +257,7 @@ class SchemaManager {
         using namespace fma_common;
         BinaryBuffer buf;
         BinaryWrite(buf, schema);
-        bool r = table_.SetValue(txn, Value::ConstRef(schema.GetLabelId()),
+        bool r = table_->SetValue(txn, Value::ConstRef(schema.GetLabelId()),
                                  Value(buf.GetBuf(), buf.GetSize()));
         FMA_DBG_ASSERT(r);
         return true;
@@ -267,7 +280,7 @@ class SchemaManager {
         {
             BinaryBuffer buf;
             BinaryWrite(buf, *news);
-            bool r = table_.SetValue(txn, Value::ConstRef(news->GetLabelId()),
+            bool r = table_->SetValue(txn, Value::ConstRef(news->GetLabelId()),
                                      Value(buf.GetBuf(), buf.GetSize()));
             FMA_DBG_ASSERT(r);
         }
@@ -345,7 +358,7 @@ class SchemaManager {
     void Clear(KvTransaction& txn) {
         schemas_.clear();
         name_to_idx_.clear();
-        table_.Drop(txn);
+        table_->Drop(txn);
     }
 
     std::vector<IndexSpec> ListVertexIndexes() const {
@@ -359,7 +372,7 @@ class SchemaManager {
                 IndexSpec is;
                 is.label = schema.GetLabel();
                 is.field = extractor->Name();
-                is.unique = index->IsUnique();
+                is.type = index->GetType();
                 indexes.push_back(std::move(is));
             }
         }
@@ -377,7 +390,7 @@ class SchemaManager {
                 IndexSpec is;
                 is.label = schema.GetLabel();
                 is.field = extractor->Name();
-                is.unique = edge_index->IsUnique();
+                is.type = edge_index->GetType();
                 indexes.push_back(std::move(is));
             }
         }
@@ -399,7 +412,7 @@ class SchemaManager {
             IndexSpec is;
             is.label = label;
             is.field = extractor->Name();
-            is.unique = index->IsUnique();
+            is.type = index->GetType();
             indexes.push_back(std::move(is));
         }
         return indexes;
@@ -420,7 +433,7 @@ class SchemaManager {
             IndexSpec is;
             is.label = label;
             is.field = extractor->Name();
-            is.unique = edge_index->IsUnique();
+            is.type = edge_index->GetType();
             indexes.push_back(std::move(is));
         }
         return indexes;

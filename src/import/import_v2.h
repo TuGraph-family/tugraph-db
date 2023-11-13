@@ -28,7 +28,6 @@ class HaStateMachine;
 namespace import_v2 {
 
 class ImportOnline;
-using lgraph::import::LabelGraph;
 using lgraph::import::PlanExecutor;
 
 class Importer {

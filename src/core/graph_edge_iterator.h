@@ -230,8 +230,8 @@ class EdgeIteratorImpl {
         : it_(rhs.it_),
           ev_(std::move(rhs.ev_)),
           vid1_(rhs.vid1_),
-          tid_(rhs.tid_),
           lid_(rhs.lid_),
+          tid_(rhs.tid_),
           vid2_(rhs.vid2_),
           eid_(rhs.eid_),
           prop_(rhs.prop_),
@@ -381,15 +381,16 @@ class EdgeIteratorImpl {
     template <class InputIt>
     static void InsertEdges(
         VertexId vid1, InputIt begin, InputIt end, KvIterator& it,
-        std::function<void(int64_t, int64_t, uint16_t, int64_t, int64_t, const Value&)>
-            add_fulltext_index) {
+        const std::function<void(const EdgeUid&, const Value&)>&
+            extra_work, bool detach_property) {
         // @TODO: optimize
         for (InputIt i = begin; i != end; ++i) {
             auto eid =
-                InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), 0),
-                           std::get<2>(*i), it);
-            if (ET == PackType::OUT_EDGE && add_fulltext_index) {
-                add_fulltext_index(vid1, std::get<1>(*i), std::get<0>(*i), 0, eid, std::get<2>(*i));
+                InsertEdge(EdgeSid(vid1, std::get<1>(*i), std::get<0>(*i), std::get<2>(*i)),
+                           detach_property ? Value() : std::get<3>(*i), it);
+            if (ET == PackType::OUT_EDGE) {
+                extra_work({vid1, std::get<1>(*i), std::get<0>(*i), std::get<2>(*i), eid},
+                           std::get<3>(*i));
             }
         }
     }
@@ -505,7 +506,6 @@ class EdgeIteratorImpl {
                 throw std::runtime_error("Too many edges from src to dst with the same label");
         }
         int64_t size_diff = ev.InsertAtPos(pos, esid.lid, esid.tid, esid.dst, eid, prop);
-        const Value& v = it.GetValue();
         if (pt == PackType::PACKED_DATA) {
             if (it.GetValue().Size() + size_diff < ::lgraph::_detail::NODE_SPLIT_THRESHOLD) {
                 // pack back and store
@@ -548,21 +548,21 @@ class EdgeIteratorImpl {
             GetPeersFromEdgeValue(ev, start_from_first, start_lid, start_vid, n_edges, edge_left,
                                   vids, n_limit);
         } else {
-            KvIterator tmp(it);
+            auto tmp = it.Fork();
             if (ET == PackType::OUT_EDGE && start_from_first)
-                tmp.Next();
+                tmp->Next();
             else
-                tmp.GotoClosestKey(
+                tmp->GotoClosestKey(
                     KeyPacker::CreateEdgeKey(ET, EdgeUid(vid1, start_vid, start_lid, 0, 0)));
             bool set_pos_to_zero = start_from_first;
-            while (tmp.IsValid()) {
-                const Value& k = tmp.GetKey();
+            while (tmp->IsValid()) {
+                const Value& k = tmp->GetKey();
                 if (KeyPacker::GetFirstVid(k) != vid1 || KeyPacker::GetNodeType(k) != ET) break;
-                const EdgeValue& ev(EdgeValue(tmp.GetValue()));
+                const EdgeValue& ev(EdgeValue(tmp->GetValue()));
                 GetPeersFromEdgeValue(ev, set_pos_to_zero, start_lid, start_vid, n_edges, edge_left,
                                       vids, n_limit);
                 set_pos_to_zero = true;
-                tmp.Next();
+                tmp->Next();
             }
         }
         std::vector<VertexId> ret(vids.begin(), vids.end());
@@ -585,18 +585,18 @@ class EdgeIteratorImpl {
             return n;
         } else {
             size_t n = 0;
-            KvIterator tmp(it);
-            tmp.GotoClosestKey(KeyPacker::CreateEdgeKey(ET, EdgeUid(vid1, 0, 0, 0, 0)));
-            while (tmp.IsValid()) {
-                const Value& k = tmp.GetKey();
+            auto tmp = it.Fork();
+            tmp->GotoClosestKey(KeyPacker::CreateEdgeKey(ET, EdgeUid(vid1, 0, 0, 0, 0)));
+            while (tmp->IsValid()) {
+                const Value& k = tmp->GetKey();
                 if (KeyPacker::GetFirstVid(k) != vid1 || KeyPacker::GetNodeType(k) != ET) break;
-                const EdgeValue oev(tmp.GetValue());
+                const EdgeValue oev(tmp->GetValue());
                 n += (size_t)oev.GetEdgeCount();
                 if (n > limit) {
                     if (limit_exceeded) *limit_exceeded = true;
                     return limit;
                 }
-                tmp.Next();
+                tmp->Next();
             }
             return n;
         }
@@ -843,7 +843,7 @@ class EdgeIterator : public ::lgraph::IteratorBase {
     friend int ::TestPerfGraphNoncontinuous(bool track_incoming, bool durable);
 
  protected:
-    KvIterator it_;
+    std::unique_ptr<KvIterator> it_;
     EdgeIteratorImpl<ET> impl_;
 
     /**
@@ -865,11 +865,11 @@ class EdgeIterator : public ::lgraph::IteratorBase {
      * @param           closest         If goto closest position.
      */
     EdgeIterator(KvTransaction* txn, KvTable& table, const EdgeUid& euid, bool closest)
-        : IteratorBase(nullptr), it_(*txn, table), impl_(it_) {
+        : IteratorBase(nullptr), it_(table.GetIterator(*txn)), impl_(*it_) {
         impl_.Goto(euid, closest);
     }
 
-    KvIterator& GetIt() { return it_; }
+    KvIterator& GetIt() { return *it_; }
 
     DISABLE_COPY(EdgeIterator);
     EdgeIterator& operator=(EdgeIterator&& rhs) = delete;
@@ -881,7 +881,7 @@ class EdgeIterator : public ::lgraph::IteratorBase {
         : IteratorBase(std::move(rhs)), it_(std::move(rhs.it_)), impl_(std::move(rhs.impl_)) {
         // it_ is moved, but impl_ keeps the pointer of rhs.it_, so we
         // need to reset the pointer here
-        impl_.SetItPtr(&it_);
+        impl_.SetItPtr(it_.get());
     }
 
     /**
@@ -951,7 +951,7 @@ class EdgeIterator : public ::lgraph::IteratorBase {
     bool IsValid() const { return impl_.IsValid(); }
 
     void RefreshContentIfKvIteratorModified() override {
-        if (IsValid() && it_.IsValid() && it_.UnderlyingPointerModified()) {
+        if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
             impl_.RefreshIteratorAndContent();
         }
     }

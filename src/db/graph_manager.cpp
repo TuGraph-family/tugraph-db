@@ -50,7 +50,8 @@ void lgraph::GraphManager::StoreConfig(lgraph::KvTransaction& txn, const std::st
                                        const lgraph::DBConfig& config) {
     fma_common::BinaryBuffer buf;
     fma_common::BinaryWrite(buf, config);
-    table_.SetValue(txn, lgraph::Value::ConstRef(name), lgraph::Value(buf.GetBuf(), buf.GetSize()));
+    table_->SetValue(txn, lgraph::Value::ConstRef(name),
+                     lgraph::Value(buf.GetBuf(), buf.GetSize()));
 }
 
 void lgraph::GraphManager::CloseAllGraphs() {
@@ -84,6 +85,7 @@ inline void UpdateDBConfigWithGMConfig(lgraph::DBConfig& dbc,
     dbc.durable = gmc.durable;
     dbc.subprocess_max_idle_seconds = gmc.plugin_subprocess_max_idle_seconds;
     dbc.ft_index_options = gmc.ft_index_options;
+    dbc.enable_realtime_count = gmc.enable_realtime_count;
 }
 
 bool lgraph::GraphManager::CreateGraph(KvTransaction& txn, const std::string& name,
@@ -120,7 +122,7 @@ lgraph::GraphManager::GcDb lgraph::GraphManager::DelGraph(KvTransaction& txn,
     auto it = graphs_.find(name);
     if (it == graphs_.end()) return GcDb();
     // delete from table_
-    table_.DeleteKey(txn, Value::ConstRef(name));
+    table_->DeleteKey(txn, Value::ConstRef(name));
     // delete DB after all references are released
     GcDb gcobj = it->second;
     graphs_.erase(it);
@@ -174,8 +176,10 @@ std::map<std::string, lgraph::DBConfig> lgraph::GraphManager::ListGraphs() const
 
 lgraph::ScopedRef<lgraph::LightningGraph> lgraph::GraphManager::GetGraphRef(
     const std::string& graph) const {
+    if (graph.empty()) throw InputError("Graph name cannot be empty.");
     auto it = graphs_.find(graph);
-    if (it == graphs_.end()) throw InputError("No such graph.");
+    if (it == graphs_.end())
+        throw InputError(fma_common::StringFormatter::Format("No such graph: {}", graph));
     return it->second.GetScopedRef();
 }
 
@@ -193,7 +197,7 @@ void lgraph::GraphManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
     config_ = config;
     table_ = store->OpenTable(txn, table_name, true, ComparatorDesc::DefaultComparator());
     parent_dir_ = parent_dir;
-    if (table_.GetKeyCount(txn) == 0) {
+    if (table_->GetKeyCount(txn) == 0) {
         // create default DB
         DBConfig config;
         config.name = _detail::DEFAULT_GRAPH_DB_NAME;
@@ -207,9 +211,10 @@ void lgraph::GraphManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
         LightningGraph l(config);
         l.CheckDbSecret(secret);
     }
-    for (auto it = table_.GetIterator(txn); it.IsValid(); it.Next()) {
-        const std::string& graph_name = it.GetKey().AsString();
-        const Value& value = it.GetValue();
+    auto it = table_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        const std::string& graph_name = it->GetKey().AsString();
+        const Value& value = it->GetValue();
         if (existing_graphs.erase(graph_name) == 1) {
             // existing graph, just reload
             ScopedRef<LightningGraph> g = graphs_[graph_name].GetScopedRef();

@@ -1,5 +1,105 @@
 # Change Log for TuGraph
 
+# 4.0.1 (2023-9-28)
+
+**Breaking Changes:**
+
+1. Support Temporal order
+
+2. Add 5 algorithms
+
+**Improvements And Bug Fixes:**
+
+1. Python procedure can be killed immediately
+
+2. Extend label name length to 255 bytes
+
+3. Other bug fix
+
+**Interfaces Modification:**
+
+1. Fix temporal keyword in import.conf
+
+# 4.0.0 (2023-9-6)
+
+**Breaking Changes:**
+
+1. ISO GQL support
+
+2. Add 11 graph algorithms
+
+**Improvements And Bug Fixes:**
+
+1. Official m1 docker
+
+2. TuGraph-DB Browser support explore
+
+3. Index bug fix during import
+
+4. Other bug fix
+
+**Interfaces Modification:**
+
+1. Proto version upgraded to 1.2.0
+
+2. ISO GQL query interface in client
+
+# 3.6.0 (2023-8-11)
+
+**Breaking Changes:**
+
+1. High availability support
+
+2. Log system upgrade
+
+**Improvements And Bug Fixes:**
+
+1. Token fix
+
+2. Friendly ci log
+
+3. Mircosecond support for Datatime
+
+4. Other bug fix
+
+# 3.5.1 (2023-7-14)
+
+**Breaking Changes:**
+
+1. Learn engine added
+
+2. Ability to store property in detach mode
+
+3. Rust procedure API
+
+**Improvements And Bug Fixes:**
+
+1. Move fma-common from submodule to include
+
+2. Integrate procedure api doc in readthedocs
+
+3. Add real time count of vertex and edge
+
+4. Other bug fix
+
+# 3.5.0 (2023-6-5)
+
+**Breaking Changes:**
+
+1. POG (aka APOC) support
+
+2. New TuGraph Browser
+
+3. Document reorganize, readthedocs support
+
+**Improvements And Bug Fixes:**
+
+1. Fix edge index bug
+
+2. Update antlr
+
+3. Other bug fix
+
 # 3.4.0 (2023-3-11)
 
 **Breaking Changes:**

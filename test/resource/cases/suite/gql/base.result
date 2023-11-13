@@ -1,0 +1,186 @@
+MATCH (n:Person{name:'Michael Redgrave'})
+RETURN n as n;
+[{"n":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}}}]
+
+MATCH (n:Person{birthyear:1910})
+RETURN n as nid;
+[{"nid":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}}]
+
+MATCH (n:Person{birthyear:1910})
+RETURN "123" as nid;
+[{"nid":"123"}]
+
+MATCH (n:Person{name:'Michael Redgrave'})
+RETURN n.birthyear+3 as nid;
+[{"nid":1911}]
+
+MATCH (n:Person{name:'Michael Redgrave'})
+RETURN n.birthyear >= 1909 as nid;
+[{"nid":false}]
+
+MATCH (n:Person{name:'Michael Redgrave'})-[]-(m)
+RETURN n.name as n, m.name;
+[{"m.name":"Vanessa Redgrave","n":"Michael Redgrave"},{"m.name":"Corin Redgrave","n":"Michael Redgrave"},{"m.name":"Rachel Kempson","n":"Michael Redgrave"},{"m.name":null,"n":"Michael Redgrave"},{"m.name":"Roy Redgrave","n":"Michael Redgrave"},{"m.name":"Rachel Kempson","n":"Michael Redgrave"}]
+
+MATCH (n:Person{name:'Michael Redgrave'})-[e]-(m)
+RETURN label(n), label(e), m;
+[{"label(e)":"HAS_CHILD","label(n)":"Person","m":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}},{"label(e)":"HAS_CHILD","label(n)":"Person","m":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}}},{"label(e)":"MARRIED","label(n)":"Person","m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"label(e)":"ACTED_IN","label(n)":"Person","m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}}},{"label(e)":"HAS_CHILD","label(n)":"Person","m":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}}},{"label(e)":"MARRIED","label(n)":"Person","m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}}]
+
+MATCH (n:Person{name:'Michael Redgrave'})-[e]-(m:Person)
+WHERE m.birthyear > 1910
+RETURN n.name, label(e), m.name, m.birthyear;
+[{"label(e)":"HAS_CHILD","m.birthyear":1937,"m.name":"Vanessa Redgrave","n.name":"Michael Redgrave"},{"label(e)":"HAS_CHILD","m.birthyear":1939,"m.name":"Corin Redgrave","n.name":"Michael Redgrave"}]
+
+MATCH (n)-[e:ACTED_IN]-(m)
+WHERE e.charactername='Guenevere'
+RETURN label(m) OFFSET 1 LIMIT 1;
+[{"label(m)":"Person"}]
+
+MATCH (n:Person WHERE n.birthyear = 1970)-[e]->(m)
+RETURN n.name, label(e), m.name LIMIT 1;
+[{"label(e)":"BORN_IN","m.name":"London","n.name":"Christopher Nolan"}]
+
+MATCH (n:Person)-[e:BORN_IN WHERE e.weight > 20]->(m)
+RETURN n.name, e.weight, m.name LIMIT 3;
+[{"e.weight":20.549999237060547,"m.name":"New York","n.name":"John Williams"},{"e.weight":20.6200008392334,"m.name":"New York","n.name":"Lindsay Lohan"},{"e.weight":20.18000030517578,"m.name":"London","n.name":"Natasha Richardson"}]
+
+MATCH (n:Person WHERE n.birthyear = 1970)
+RETURN CASE WHEN n.birthyear > 1970 THEN n.name ELSE -1 END AS res;
+[{"res":-1}]
+
+MATCH (n:Person WHERE n.birthyear = 1970)
+RETURN CASE WHEN n.birthyear = 1970 THEN n.name ELSE -1 END AS res;
+[{"res":"Christopher Nolan"}]
+
+MATCH (n:Person)
+RETURN DISTINCT 1, 2;
+[{"1":1,"2":2}]
+
+MATCH (a:Person) RETURN a.birthyear AS birth NEXT
+MATCH (b:Person) RETURN b.name, birth LIMIT 3;
+[{"b.name":"Rachel Kempson","birth":1970},{"b.name":"Michael Redgrave","birth":1970},{"b.name":"Vanessa Redgrave","birth":1970}]
+
+MATCH (n:Person) WHERE n.birthyear = 1970 RETURN n AS q NEXT
+MATCH (m:Person) WHERE m.birthyear < 1968 RETURN q.name, q.birthyear, m.name LIMIT 2;
+[{"m.name":"Rachel Kempson","q.birthyear":1970,"q.name":"Christopher Nolan"},{"m.name":"Michael Redgrave","q.birthyear":1970,"q.name":"Christopher Nolan"}]
+
+MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q ORDER BY q ASC;
+[{"q":1873},{"q":1908},{"q":1910},{"q":1930},{"q":1932},{"q":1937},{"q":1939},{"q":1952},{"q":1954},{"q":1963},{"q":1965}]
+
+MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q ORDER BY q DESC;
+[{"q":1965},{"q":1963},{"q":1954},{"q":1952},{"q":1939},{"q":1937},{"q":1932},{"q":1930},{"q":1910},{"q":1908},{"q":1873}]
+
+MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q LIMIT 5
+NEXT
+RETURN q ORDER BY q;
+[{"q":1932},{"q":1939},{"q":1952},{"q":1954},{"q":1965}]
+
+OPTIONAL MATCH (n:Person) WHERE n.birthyear > 3000 RETURN n.name;
+[{"n.name":null}]
+
+OPTIONAL MATCH (n:Person WHERE n.birthyear > 3000) RETURN n NEXT
+MATCH (m:Person) WHERE m.birthyear = 1970 RETURN n.name, m.name;
+[{"m.name":"Christopher Nolan","n.name":null}]
+
+MATCH (n:Person) WHERE n.birthyear < 1970
+RETURN
+    max(n.birthyear+1) as max0,
+    sum(n.birthyear+1) as sum1,
+    sum(n.birthyear) as sum2,
+    count(n) as num;
+[{"max0":1966.0,"num":11,"sum1":21274.0,"sum2":21263.0}]
+
+-- error
+MATCH (n) RETURN sum(count(n.birthyear));
+Agg function cannot be nested
+
+-- error
+MATCH (n) RETURN sum(n.birthyear)+round(n.birthyear);
+Variables cannot be used outside of the Agg function, for example: sum(n) + m
+
+MATCH (n) RETURN sum(n.birthyear)+count(n.birthyear);
+[{"sum(n.birthyear)+count(n.birthyear)":25232.0}]
+
+MATCH (n:Person) WHERE n.birthyear < 1970
+RETURN
+    CASE WHEN n.birthyear < 1950 THEN 0 ELSE 1 END AS n1,
+    n.birthyear AS n2
+NEXT
+RETURN
+    n1, max(n2)+2*3 AS n2;
+[{"n1":1,"n2":1971.0},{"n1":0,"n2":1945.0}]
+
+RETURN !(100=100) as a;
+[{"a":false}]
+RETURN !(100!=100) as a;
+[{"a":true}]
+RETURN -1 as a;
+[{"a":-1}]
+RETURN 100 = 101 as a;
+[{"a":false}]
+RETURN 100 = 100 as a;
+[{"a":true}]
+RETURN 100 != 101 as a;
+[{"a":true}]
+RETURN 100 != 100 as a;
+[{"a":false}]
+
+RETURN 100 > 99 as a;
+[{"a":true}]
+RETURN 100 > 100 as a;
+[{"a":false}]
+RETURN 100 > 101 as a;
+[{"a":false}]
+RETURN 100 >= 99 as a;
+[{"a":true}]
+RETURN 100 >= 100 as a;
+[{"a":true}]
+RETURN 100 >= 101 as a;
+[{"a":false}]
+RETURN 100 < 99 as a;
+[{"a":false}]
+RETURN 100 < 100 as a;
+[{"a":false}]
+RETURN 100 < 101 as a;
+[{"a":true}]
+RETURN 100 <= 99 as a;
+[{"a":false}]
+RETURN 100 <= 100 as a;
+[{"a":true}]
+RETURN 100 <= 101 as a;
+[{"a":true}]
+RETURN 4+2 as a;
+[{"a":6}]
+RETURN 4-2 as a;
+[{"a":2}]
+RETURN 4*2 as a;
+[{"a":8}]
+RETURN 4/2 as a;
+[{"a":2}]
+RETURN 4%3 as a;
+[{"a":1}]
+
+RETURN true and true as a;
+[{"a":true}]
+RETURN true and false as a;
+[{"a":false}]
+RETURN false and false as a;
+[{"a":false}]
+RETURN false and true as a;
+[{"a":false}]
+RETURN true or true as a;
+[{"a":true}]
+RETURN true or false as a;
+[{"a":true}]
+RETURN false or false as a;
+[{"a":false}]
+RETURN false or true as a;
+[{"a":true}]
+RETURN true xor true as a;
+[{"a":false}]
+RETURN true xor false as a;
+[{"a":true}]
+RETURN false xor false as a;
+[{"a":false}]
+RETURN false xor true as a;
+[{"a":true}]

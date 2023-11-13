@@ -1,6 +1,9 @@
-FROM centos:7.3.1611
+# Docker hub image
+# FROM centos:7.3.1611
+# Alibaba Image
+FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
-RUN yum update -y && yum install -y \
+RUN yum -x filesystem update -y && yum install -y \
     git \
     gcc \
     gcc-c++ \
@@ -29,8 +32,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
-    && python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
 
 # install cmake
@@ -45,7 +48,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
 # https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
     && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
-    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace \
+    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
     && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
 
 #install maven
@@ -56,10 +59,54 @@ RUN cd opt \
     && tar xf apache-maven-3.8.7-bin.tar.gz \
     && rm apache-maven-*.tar.gz
 
-COPY tugraph-3.4.0-1.el7.x86_64.rpm /tugraph-3.4.0-1.el7.x86_64.rpm
-RUN rpm -ivh tugraph-3.4.0-1.el7.x86_64.rpm && rm /tugraph-3.4.0-1.el7.x86_64.rpm
+# install tugraph
+# specifies the path of the object storage where the installation package resides
+ARG FILEPATH
+# specifies installation package name for tugraph
+ARG FILENAME
+RUN wget ${FILEPATH}/${FILENAME}
+RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
+
+# install tugraph demo
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
+    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph_demos \
+    && cp -r tugraph-demo/movie /var/lib/lgraph_demos/movie \
+    && cp -r tugraph-demo/the_three_body /var/lib/lgraph_demos/the_three_body \
+    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph_demos/three_kingdoms \
+    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph_demos/wandering_earth \
+    && cp tugraph-demo/setup.sh /setup.sh
+
+# install node.js && yarn
+# if it is not accessible, replace it with the link below
+# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6.0-linux-x64.tar.gz \
+    && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \
+    && ln -s /node-v16.6.0-linux-x64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com \
+    && rm -rf /node-v16.6.0-linux-x64.tar.gz \
+    && npm install -g npm@latest \
+    && npm install --global yarn \
+    && ln -s /node-v16.6.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
+    && yarn config set registry https://registry.npmmirror.com
+
+# install tugraph-db-web dependencies
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-db-browser.tar.gz \
+    && mkdir -p /var/lib/web \
+    && mv tugraph-db-browser.tar.gz /var/lib/web \
+    && cd /var/lib/web \
+    && tar xf tugraph-db-browser.tar.gz --no-same-owner \
+    && rm tugraph-db-browser.tar.gz \
+    && cd tugraph-db-browser \
+    && yarn run bootstrap \
+    && yarn run build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

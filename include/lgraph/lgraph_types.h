@@ -1,16 +1,11 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 
@@ -44,6 +39,7 @@ enum class AccessLevel {
     FULL = 3
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const AccessLevel& v) {
     switch (v) {
         case AccessLevel::NONE:    return "NONE";
@@ -62,6 +58,7 @@ enum class FieldAccessLevel {
     WRITE = 2
 };
 
+[[maybe_unused]]
 inline static std::string to_string(const FieldAccessLevel& v) {
     switch (v) {
         case FieldAccessLevel::NONE:    return "NONE";
@@ -70,6 +67,110 @@ inline static std::string to_string(const FieldAccessLevel& v) {
         default:   throw std::runtime_error("Unknown AccessLevel");
     }
 }
+
+enum class GraphQueryType {
+    CYPHER = 0,
+    GQL = 1
+};
+
+[[maybe_unused]]
+inline static std::string to_string(const GraphQueryType& v) {
+    switch (v) {
+        case GraphQueryType::CYPHER:    return "CYPHER";
+        case GraphQueryType::GQL:       return "GQL";
+        default:   throw std::runtime_error("Unknown GraphQueryType");
+    }
+}
+
+/**
+ * @brief  Edge constraints type define
+ */
+typedef std::vector<std::pair<std::string, std::string>> EdgeConstraints;
+
+/**
+ * @brief  Label options, base class, define some common fields and methods
+ */
+struct LabelOptions {
+    // store property data in detached model
+    // Default: false
+    bool detach_property = false;
+    virtual std::string to_string() const = 0;
+    virtual void clear() = 0;
+    virtual ~LabelOptions() {}
+};
+
+/**
+ * @brief  Edge label options, contain fields only edge have
+ */
+struct EdgeOptions : LabelOptions {
+    // edge constraints, specify the start and end vertex label in edge direction
+    // Default: empty, means no constraints
+    EdgeConstraints edge_constraints;
+    // edge temporal field, edge will be stored in the order of this field
+    // Default: empty
+    std::string temporal_field;
+    // order of edge temporal field
+    // Default: ASC
+    enum class TemporalFieldOrder {
+        ASC = 0,
+        DESC = 1,
+    } temporal_field_order = TemporalFieldOrder::ASC;
+
+    inline static std::string to_string(const TemporalFieldOrder& v) {
+        switch (v) {
+        case TemporalFieldOrder::ASC:
+            return "ASC";
+        case TemporalFieldOrder::DESC:
+            return "DESC";
+        default:
+            throw std::runtime_error("Unknown TemporalFieldOrder");
+        }
+    }
+
+    EdgeOptions() = default;
+    explicit EdgeOptions(const EdgeConstraints& edge_constraints)
+        : edge_constraints(edge_constraints) {}
+
+    std::string to_string() const {
+        std::string ret;
+        std::string constraints;
+        for (size_t i = 0; i < edge_constraints.size(); i++) {
+            constraints += edge_constraints[i].first + " -> " + edge_constraints[i].second;
+            if (i != edge_constraints.size()-1) {
+                constraints += ", ";
+            }
+        }
+        constraints = "[" + constraints + "]";
+
+        return "detach_property: " + std::to_string(detach_property) +
+               ", edge_constraints: " + constraints + ", temporal_field: " + temporal_field +
+               ", temporal_field_order: " + to_string(temporal_field_order);
+    }
+    void clear() {
+        detach_property = false;
+        edge_constraints.clear();
+        temporal_field.clear();
+    }
+};
+
+/**
+ * @brief  Vertex label options, contain fields only vertex have
+ */
+struct VertexOptions : public LabelOptions {
+    // vertex primary field, must be set
+    std::string primary_field;
+
+    VertexOptions() = default;
+    explicit VertexOptions(const std::string& primary_field) : primary_field(primary_field) {}
+    std::string to_string() const {
+        return "detach_property: " + std::to_string(detach_property) +
+               ", primary_field: " + primary_field;
+    }
+    void clear() {
+        detach_property = false;
+        primary_field.clear();
+    }
+};
 
 /** @brief   Field and value types. */
 enum FieldType {
@@ -174,6 +275,37 @@ inline auto LGraphTypeIsAny(LGraphType type) -> bool {
     return type == LGraphType::ANY;
 }
 
+inline const std::string to_string(LGraphType type) {
+    switch (type) {
+    case LGraphType::NUL:
+        return "NUL";
+    case LGraphType::INTEGER:
+        return "INTEGER";
+    case LGraphType::FLOAT:
+        return "FLOAT";
+    case LGraphType::DOUBLE:
+        return "DOUBLE";
+    case LGraphType::BOOLEAN:
+        return "BOOLEAN";
+    case LGraphType::STRING:
+        return "STRING";
+    case LGraphType::NODE:
+        return "NODE";
+    case LGraphType::RELATIONSHIP:
+        return "RELATIONSHIP";
+    case LGraphType::PATH:
+        return "PATH";
+    case LGraphType::LIST:
+        return "LIST";
+    case LGraphType::MAP:
+        return "MAP";
+    case LGraphType::ANY:
+        return "ANY";
+    default:
+        throw std::runtime_error("Unknown LGraph Type");
+    }
+}
+
 
 /**
  * @brief The parameter of procedure/plugin
@@ -270,7 +402,7 @@ struct FieldData {
 
     explicit FieldData(const DateTime& d) {
         type = FieldType::DATETIME;
-        data.int64 = d.SecondsSinceEpoch();
+        data.int64 = d.MicroSecondsSinceEpoch();
     }
 
     explicit FieldData(const std::string& buf) {
@@ -726,9 +858,7 @@ struct FieldData {
 
     FieldType type;
 
-    FieldType getType() const {
-        return type;
-    }
+    FieldType GetType() const { return type; }
 
     union {
         bool boolean;
@@ -759,8 +889,26 @@ struct FieldData {
     /** @brief   Query if this object is string */
     bool IsString() const { return type == FieldType::STRING; }
 
+    /** @brief   Query if this object is INT8 */
+    bool IsInt8() const { return type == FieldType::INT8; }
+
+    /** @brief   Query if this object is INT16 */
+    bool IsInt16() const { return type == FieldType::INT16; }
+
+    /** @brief   Query if this object is INT32 */
+    bool IsInt32() const { return type == FieldType::INT32; }
+
+    /** @brief   Query if this object is INT64 */
+    bool IsInt64() const { return type == FieldType::INT64; }
+
     /** @brief   Is this a INT8, INT16, INT32 or INT64? */
     bool IsInteger() const { return IsInteger(type); }
+
+    /** @brief   Query if this object is float */
+    bool IsFloat() const { return type == FieldType::FLOAT; }
+
+    /** @brief   Query if this object is double */
+    bool IsDouble() const { return type == FieldType::DOUBLE; }
 
     /** @brief   Is this a FLOAT or DOUBLE? */
     bool IsReal() const { return IsReal(type); }
@@ -799,7 +947,7 @@ struct FieldSpec {
     /** @brief   is this field optional? */
     bool optional;
 
-    FieldSpec() {}
+    FieldSpec(): name(), type(FieldType::NUL), optional(false) {}
 
     /**
      * @brief   Constructor
@@ -822,14 +970,27 @@ struct FieldSpec {
     }
 };
 
+/** @brief  index type*/
+enum class IndexType {
+    /** @brief this is not unique index */
+    NonuniqueIndex = 0,
+    /** @brief this is a global unique index */
+    GlobalUniqueIndex = 1,
+    /** @brief this is a pair unique index, for edge index only
+     *  key of pair unique index is one of the follow case :
+     *  if src_vid < dst_vid ,key is (index field value + src_vid + dst_vid)
+     *  if src_vid > dst_vid ,key is (index field value + dst_vid + src_vid)
+     * */
+    PairUniqueIndex = 2
+};
+
 /** @brief   An index specifier. */
 struct IndexSpec {
     /** @brief   label name */
     std::string label;
     /** @brief   field name */
     std::string field;
-    /** @brief   is this a unique index? */
-    bool unique;
+    IndexType type;
 };
 
 struct EdgeUid {

@@ -27,24 +27,24 @@ TEST_F(TestSchemaManager, SchemaManager) {
     std::string dir = "./testdb";
     AutoCleanDir dir_cleaner("./testdb");
     {
-        KvStore store(dir, 1 << 30, false);
-        KvTransaction txn = store.CreateWriteTxn();
-        KvTable tbl = SchemaManager::OpenTable(txn, store, "v_schema");
-        SchemaManager manager(txn, tbl, true);
+        auto store = std::make_unique<LMDBKvStore>(dir, 1 << 30, false);
+        auto txn = store->CreateWriteTxn();
+        auto tbl = SchemaManager::OpenTable(*txn, *store, "v_schema");
+        SchemaManager manager(*txn, std::move(tbl), true);
         std::vector<FieldSpec> student_fds{{"name", FieldType::STRING, false},
                                            {"id", FieldType::STRING, false},
                                            {"gender", FieldType::INT8, true},
                                            {"age", FieldType::INT8, true}};
-        UT_EXPECT_TRUE(manager.AddLabel(txn, true, "student", student_fds.size(),
-                                        student_fds.data(), "id", {}));
+        UT_EXPECT_TRUE(manager.AddLabel(*txn, true, "student", student_fds.size(),
+                                        student_fds.data(), VertexOptions("id")));
         auto lid = manager.GetLabelId("student");
-        UT_EXPECT_EQ(manager.DeleteLabel(txn, "student"), true);
-        UT_EXPECT_EQ(manager.DeleteLabel(txn, "student"), false);
-        UT_EXPECT_EQ(manager.AddLabel(txn, true, "student", student_fds.size(), student_fds.data(),
-                                      "id", {}),
+        UT_EXPECT_EQ(manager.DeleteLabel(*txn, "student"), true);
+        UT_EXPECT_EQ(manager.DeleteLabel(*txn, "student"), false);
+        UT_EXPECT_EQ(manager.AddLabel(*txn, true, "student", student_fds.size(), student_fds.data(),
+                                      VertexOptions("id")),
                      true);
-        UT_EXPECT_EQ(manager.AddLabel(txn, true, "student", student_fds.size(), student_fds.data(),
-                                      "id", {}),
+        UT_EXPECT_EQ(manager.AddLabel(*txn, true, "student", student_fds.size(), student_fds.data(),
+                                      VertexOptions("id")),
                      false);
         UT_EXPECT_EQ(manager.GetSchema("student")->GetFieldSpecs().size(), 4);
         UT_EXPECT_EQ(manager.GetLabelId("student"), lid);
@@ -64,16 +64,16 @@ TEST_F(TestSchemaManager, SchemaManager) {
                                            {"id", FieldType::STRING, false},
                                            {"class", FieldType::INT8, true},
                                            {"score", FieldType::FLOAT, true}};
-        UT_EXPECT_TRUE(manager.AddLabel(txn, true, "teacher", teacher_fds.size(),
-                                        teacher_fds.data(), "id", {}));
-        txn.Commit();
+        UT_EXPECT_TRUE(manager.AddLabel(*txn, true, "teacher", teacher_fds.size(),
+                                        teacher_fds.data(), VertexOptions("id")));
+        txn->Commit();
     }
     {
         // make sure the changes are properly persisted
-        KvStore store(dir, 1 << 30, false);
-        KvTransaction txn = store.CreateWriteTxn();
-        KvTable tbl = SchemaManager::OpenTable(txn, store, "v_schema");
-        SchemaManager manager(txn, tbl, true);
+        auto store = std::make_unique<LMDBKvStore>(dir, 1 << 30, false);
+        auto txn = store->CreateWriteTxn();
+        auto tbl = SchemaManager::OpenTable(*txn, *store, "v_schema");
+        SchemaManager manager(*txn, std::move(tbl), true);
         Schema* schema = manager.GetSchema("student");
         Schema* old_schema = manager.GetSchema(0);
         UT_EXPECT_EQ(schema->GetFieldSpecs().size(), 4);

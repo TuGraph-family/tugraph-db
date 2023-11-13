@@ -48,14 +48,17 @@ static void DumpTable(KvTable& tab, KvTransaction& txn, int64_t b, int64_t e,
                       const std::function<std::string(const Value&)>& print_value) {
     int64_t bk[2] = {b, 0};
     auto it = tab.GetIterator(txn, Value(bk, key_size) /*key*/);
-    if (b < 0) it = tab.GetIterator(txn);
+    if (b < 0) {
+        it = tab.GetIterator(txn);
+        it->GotoFirstKey();
+    }
     int count = 0;
-    while (it.IsValid()) {
+    while (it->IsValid()) {
         std::string line;
-        line = line + "[" + print_key(it.GetKey()) + "]: {" + print_value(it.GetValue());
+        line = line + "[" + print_key(it->GetKey()) + "]: {" + print_value(it->GetValue());
         line += "}";
         UT_LOG() << line;
-        it.Next();
+        it->Next();
         if (b >= 0 && ++count > e - b) break;
     }
 }
@@ -81,40 +84,40 @@ int TestPerfKvFidProp(bool durable, int power, int prop_size) {
     txn_batch = txn_batch > nk ? nk : txn_batch;
 
     double t1, t2, t_add_kv;
-    KvStore store("./testkv", (size_t)1 << 40, durable);
+    auto store = std::make_unique<LMDBKvStore>("./testkv", (size_t)1 << 40, durable);
     // Start test, see if we already has a db
-    KvTransaction txn = store.CreateWriteTxn();
-    std::vector<std::string> tables = store.ListAllTables(txn);
+    auto txn = store->CreateWriteTxn();
+    std::vector<std::string> tables = store->ListAllTables(*txn);
     UT_LOG() << "Current tables in the kvstore: " << ToString(tables);
-    if (!tables.empty()) store.DropAll(txn);
-    txn.Commit();
+    if (!tables.empty()) store->DropAll(*txn);
+    txn->Commit();
 
     // now create tables
-    txn = store.CreateWriteTxn();
-    KvTable fid_prop =
-        store.OpenTable(txn, "fid_prop", true, ComparatorDesc::DefaultComparator());
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    auto fid_prop =
+        store->OpenTable(*txn, "fid_prop", true, ComparatorDesc::DefaultComparator());
+    txn->Commit();
 
     // add kv
     int64_t id[2] = {0, 0};
     t1 = fma_common::GetTime();
     for (int k = 0; k < nk / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (int i = 0; i < txn_batch; i++) {
             id[0]++;
-            InsertFidProp(id, prop, prop_size, fid_prop, txn);
+            InsertFidProp(id, prop, prop_size, *fid_prop, *txn);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t2 = fma_common::GetTime();
     t_add_kv = t2 - t1;
     UT_LOG() << "add kv done";
-    txn = store.CreateReadTxn();
-    DumpTable(fid_prop, txn);
+    txn = store->CreateReadTxn();
+    DumpTable(*fid_prop, *txn);
     size_t mem_size = 0, height = 0;
-    store.DumpStat(txn, mem_size, height);
+    store->DumpStat(*txn, mem_size, height);
     UT_LOG() << "store DumpStat: (mem_size, height) = " << mem_size << ", " << height;
-    txn.Abort();
+    txn->Abort();
 
     UT_LOG() << "(durable, nk, txn_batch, key_size, prop_size, log_space) = (" << durable << ", "
              << nk << ", " << txn_batch << ", " << key_size << ", " << prop_size << ", "
@@ -148,42 +151,42 @@ int TestPerfKvFidPropWithCmpFunc(bool durable, int power, int prop_size) {
     txn_batch = txn_batch > nk ? nk : txn_batch;
 
     double t1, t2, t_add_kv;
-    KvStore store("./testkv", (size_t)1 << 40, durable);
+    auto store = std::make_unique<LMDBKvStore>("./testkv", (size_t)1 << 40, durable);
     // Start test, see if we already has a db
-    KvTransaction txn = store.CreateWriteTxn();
-    std::vector<std::string> tables = store.ListAllTables(txn);
+    auto txn = store->CreateWriteTxn();
+    std::vector<std::string> tables = store->ListAllTables(*txn);
     UT_LOG() << "Current tables in the kvstore: " << ToString(tables);
-    if (!tables.empty()) store.DropAll(txn);
-    txn.Commit();
+    if (!tables.empty()) store->DropAll(*txn);
+    txn->Commit();
 
     // now create tables
     KeySortFunc key_cmp;
     key_cmp = my_key_cmp;
     // key_cmp = neg_key_cmp;
-    txn = store.CreateWriteTxn();
-    KvTable fid_prop = store._OpenTable_(txn, "fid_prop", true, key_cmp);
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    auto fid_prop = store->_OpenTable_(*txn, "fid_prop", true, key_cmp);
+    txn->Commit();
 
     // add kv
     int64_t id[2] = {0, 0};
     t1 = fma_common::GetTime();
     for (int k = 0; k < nk / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (int i = 0; i < txn_batch; i++) {
             id[0]++;
-            InsertFidProp(id, prop, prop_size, fid_prop, txn);
+            InsertFidProp(id, prop, prop_size, *fid_prop, *txn);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t2 = fma_common::GetTime();
     t_add_kv = t2 - t1;
     UT_LOG() << "add kv done";
-    txn = store.CreateReadTxn();
-    DumpTable(fid_prop, txn);
+    txn = store->CreateReadTxn();
+    DumpTable(*fid_prop, *txn);
     size_t mem_size = 0, height = 0;
-    store.DumpStat(txn, mem_size, height);
+    store->DumpStat(*txn, mem_size, height);
     UT_LOG() << "store DumpStat: (mem_size, height) = " << mem_size << ", " << height;
-    txn.Abort();
+    txn->Abort();
 
     UT_LOG() << "(durable, nk, txn_batch, key_size, prop_size, log_space) = (" << durable << ", "
              << nk << ", " << txn_batch << ", " << key_size << ", " << prop_size << ", "
@@ -211,41 +214,41 @@ int TestPerfKvFidPropWithCmpFuncShuffle(bool durable, int power, int prop_size) 
     std::shuffle(shuffle_id.begin(), shuffle_id.end(), g);
 
     double t1, t2, t_add_kv;
-    KvStore store("./testkv", (size_t)1 << 40, durable);
+    auto store = std::make_unique<LMDBKvStore>("./testkv", (size_t)1 << 40, durable);
     // Start test, see if we already has a db
-    KvTransaction txn = store.CreateWriteTxn();
-    std::vector<std::string> tables = store.ListAllTables(txn);
+    auto txn = store->CreateWriteTxn();
+    std::vector<std::string> tables = store->ListAllTables(*txn);
     UT_LOG() << "Current tables in the kvstore: " << ToString(tables);
-    if (!tables.empty()) store.DropAll(txn);
-    txn.Commit();
+    if (!tables.empty()) store->DropAll(*txn);
+    txn->Commit();
 
     // now create tables
     KeySortFunc key_cmp = my_key_cmp;
-    txn = store.CreateWriteTxn();
-    KvTable fid_prop = store._OpenTable_(txn, "fid_prop", true, key_cmp);
-    txn.Commit();
+    txn = store->CreateWriteTxn();
+    auto fid_prop = store->_OpenTable_(*txn, "fid_prop", true, key_cmp);
+    txn->Commit();
 
     // add kv
     int64_t count = 0;
     int64_t id[2] = {0, 0};
     t1 = fma_common::GetTime();
     for (int k = 0; k < nk / txn_batch; k++) {
-        txn = store.CreateWriteTxn();
+        txn = store->CreateWriteTxn();
         for (int i = 0; i < txn_batch; i++) {
             id[0] = shuffle_id[count++];
-            InsertFidProp(id, prop, prop_size, fid_prop, txn);
+            InsertFidProp(id, prop, prop_size, *fid_prop, *txn);
         }
-        txn.Commit();
+        txn->Commit();
     }
     t2 = fma_common::GetTime();
     t_add_kv = t2 - t1;
     UT_LOG() << "add kv done";
-    txn = store.CreateReadTxn();
-    DumpTable(fid_prop, txn);
+    txn = store->CreateReadTxn();
+    DumpTable(*fid_prop, *txn);
     size_t mem_size = 0, height = 0;
-    store.DumpStat(txn, mem_size, height);
+    store->DumpStat(*txn, mem_size, height);
     UT_LOG() << "store DumpStat: (mem_size, height) = " << mem_size << ", " << height;
-    txn.Abort();
+    txn->Abort();
 
     UT_LOG() << "(durable, nk, txn_batch, key_size, prop_size, log_space) = (" << durable << ", "
              << nk << ", " << txn_batch << ", " << key_size << ", " << prop_size << ", "

@@ -19,7 +19,7 @@
 
 #include "server/state_machine.h"
 #include "procedure/procedure.h"
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 class StandaloneCall : public OpBase {
@@ -37,7 +37,7 @@ class StandaloneCall : public OpBase {
     }
 
  public:
-    StandaloneCall(const parser::QueryPart *stmt)
+    explicit StandaloneCall(const parser::QueryPart *stmt)
         : OpBase(OpType::STANDALONE_CALL, "Standalone Call"), call_clause_(*stmt->sa_call_clause) {}
 
     OpResult Initialize(RTContext *ctx) override { return OP_OK; }
@@ -55,6 +55,5 @@ class StandaloneCall : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher

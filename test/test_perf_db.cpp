@@ -70,10 +70,10 @@ int TestPerfDbNoncontinuous(bool durable, bool track_in) {
 
     // create lgraph, cleaning
     {
-        KvStore store("./testdb", (size_t)1 << 40, durable);
-        auto txn = store.CreateWriteTxn();
-        store.DropAll(txn);
-        txn.Commit();
+        auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 40, durable);
+        auto txn = store->CreateWriteTxn();
+        store->DropAll(*txn);
+        txn->Commit();
     }
     DBConfig config;
     config.dir = "./testdb";
@@ -86,11 +86,11 @@ int TestPerfDbNoncontinuous(bool durable, bool track_in) {
     UT_EXPECT_TRUE(db.AddLabel("person",
                        std::vector<FieldSpec>(
                            {{"uid", FieldType::INT64, false}, {"name", FieldType::STRING, false}}),
-                       true /*is vertex*/, "uid", {}));
+                       true /*is vertex*/, VertexOptions("uid")));
     UT_EXPECT_TRUE(db.AddLabel("knows",
                        std::vector<FieldSpec>(
                            {{"uid", FieldType::INT64, false}, {"name", FieldType::STRING, false}}),
-                       false /*is edge*/, {}, {}));
+                       false /*is edge*/, EdgeOptions()));
 
     // add vertex
     VertexId vid = 0;
@@ -260,11 +260,11 @@ int TestPerfDbNonbatch(bool durable, bool track_in) {
     UT_EXPECT_TRUE(db.AddLabel("person",
                                std::vector<FieldSpec>({{"uid", FieldType::INT64, false},
                                                        {"name", FieldType::STRING, false}}),
-                               true /*is vertex*/, "uid", {}));
+                               true /*is vertex*/, VertexOptions("uid")));
     UT_EXPECT_TRUE(db.AddLabel("knows",
                                std::vector<FieldSpec>({{"uid", FieldType::INT64, false},
                                                        {"name", FieldType::STRING, false}}),
-                               false /*is vertex*/, {}, {}));
+                               false /*is vertex*/, EdgeOptions()));
 
     // add vertex
     VertexId vid = 0;

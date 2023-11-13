@@ -1,0 +1,113 @@
+# simple read 1
+MATCH (n:Account{id:12})
+RETURN
+    n.createTime as createTime,
+    n.isBlocked as isBlocked,
+    n.type as type;
+[{"createTime":53,"isBlocked":false,"type":"tp3"}]
+
+
+# simple read 2
+MATCH (n:Account{id:12}) RETURN n NEXT
+OPTIONAL MATCH (n)-[e:transfer]->(m:Account)
+WHERE
+    e.timestamp > 45
+    AND e.timestamp < 50
+RETURN
+    n,
+    sum(e.amount) as sumEdge1Amount,
+    max(e.amount) as maxEdge1Amount,
+    count(e) as numEdge1
+NEXT
+OPTIONAL MATCH (n)<-[e:transfer]-(m:Account)
+WHERE
+    e.timestamp > 0
+    AND e.timestamp < 100
+RETURN
+    sumEdge1Amount,
+    maxEdge1Amount,
+    numEdge1,
+    sum(e.amount) as sumEdge2Amount,
+    max(e.amount) as maxEdge2Amount,
+    count(e) as numEdge2
+NEXT
+RETURN
+    round(sumEdge1Amount * 1000) / 1000 as sumEdge1Amount,
+    CASE WHEN maxEdge1Amount < 0 THEN -1 ELSE round(maxEdge1Amount * 1000) / 1000 END as maxEdge1Amount,
+    numEdge1,
+    round(sumEdge2Amount * 1000) / 1000 as sumEdge2Amount,
+    CASE WHEN maxEdge2Amount < 0 THEN -1 ELSE round(maxEdge2Amount * 1000) / 1000 END as maxEdge2Amount,
+    numEdge2;
+[{"maxEdge1Amount":-1,"maxEdge2Amount":90.0,"numEdge1":0,"numEdge2":7,"sumEdge1Amount":0.0,"sumEdge2Amount":392.0}]
+
+
+# simple read 3
+OPTIONAL MATCH (n:Account{id:12})<-[e:transfer]-(m:Account)
+WHERE
+    e.amount > 30.0
+    AND e.timestamp > 10
+    AND e.timestamp < 70
+    AND m.isBlocked=true
+RETURN count(m) * 1.0 as numM
+NEXT
+OPTIONAL MATCH (n:Account{id:12})<-[e:transfer]-(m:Account)
+RETURN count(m) as numIn, numM
+NEXT
+RETURN CASE WHEN numIn = 0 THEN -1 ELSE round(numM / numIn * 1000) / 1000 END as blockRatio;
+[{"blockRatio":0.429}]
+
+
+# simple read 4
+MATCH (n:Account{id:12}) RETURN n NEXT
+MATCH (n)-[e:transfer]->(m:Account)
+WHERE
+    e.amount > 20
+    AND e.timestamp > 30
+    AND e.timestamp < 101
+RETURN
+    m.id as dstId,
+    count(e) as numEdges,
+    sum(e.amount) as sumAmount
+NEXT
+RETURN
+    dstId,
+    numEdges,
+    round(sumAmount * 1000) / 1000 as sumAmount
+ORDER BY sumAmount DESC, dstId ASC;
+[{"dstId":2,"numEdges":1,"sumAmount":91.0},{"dstId":6,"numEdges":1,"sumAmount":45.0}]
+
+
+# simple read 5
+MATCH (n:Account{id:12})<-[e:transfer]-(m:Account)
+WHERE
+    e.amount > 0
+    AND e.timestamp > 0
+    AND e.timestamp < 100
+RETURN
+    m.id as srcId,
+    count(e) as numEdges,
+    sum(e.amount) as sumAmount
+NEXT
+RETURN
+    srcId,
+    numEdges,
+    round(sumAmount * 1000) / 1000 as sumAmount
+ORDER BY sumAmount DESC, srcId ASC;
+[{"numEdges":2,"srcId":9,"sumAmount":95.0},{"numEdges":1,"srcId":17,"sumAmount":90.0},{"numEdges":1,"srcId":18,"sumAmount":64.0},{"numEdges":1,"srcId":13,"sumAmount":53.0},{"numEdges":1,"srcId":3,"sumAmount":50.0},{"numEdges":1,"srcId":8,"sumAmount":40.0}]
+
+
+# simple read 6
+MATCH
+    (src:Account{id:12})<-[e1:transfer]-(m:Account)
+    -[e2:transfer]->(dst:Account)
+WHERE
+    dst.isBlocked = true
+    AND src.id <> dst.id
+    AND e1.timestamp > 20
+    AND e1.timestamp < 40
+    AND e2.timestamp > 30
+    AND e2.timestamp < 70
+RETURN
+    DISTINCT dst.id as dstId
+ORDER BY dstId ASC;
+[{"dstId":4},{"dstId":5}]

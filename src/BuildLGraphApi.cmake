@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
 
-# boost
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS system filesystem)
-
 # threads
 find_package(Threads REQUIRED)
 
@@ -39,10 +35,10 @@ set(LGRAPH_CORE_SRC
         core/graph_vertex_iterator.cpp
         core/index_manager.cpp
         core/iterator_base.cpp
-        core/kv_store_iterator.cpp
-        core/kv_store_mdb.cpp
-        core/kv_store_table.cpp
-        core/kv_store_transaction.cpp
+        core/lmdb_iterator.cpp
+        core/lmdb_store.cpp
+        core/lmdb_table.cpp
+        core/lmdb_transaction.cpp
         core/kv_table_comparators.cpp
         core/lgraph_date_time.cpp
         core/lightning_graph.cpp
@@ -63,6 +59,7 @@ set(LGRAPH_DB_SRC
         db/token_manager.cpp)
 
 set(LGRAPH_API_SRC
+        lgraph_api/c.cpp
         lgraph_api/lgraph_db.cpp
         lgraph_api/lgraph_edge_iterator.cpp
         lgraph_api/lgraph_galaxy.cpp
@@ -89,8 +86,8 @@ add_library(${TARGET_LGRAPH} SHARED
         plugin/plugin_manager.cpp
         plugin/python_plugin.cpp
 
-        ${DEPS_INCLUDE_DIR}/tiny-process-library/process.cpp
-        ${DEPS_INCLUDE_DIR}/tiny-process-library/process_unix.cpp
+        tiny-process-library/process.cpp
+        tiny-process-library/process_unix.cpp
         ${PROTO_SRCS})
 
 target_include_directories(${TARGET_LGRAPH} PUBLIC
@@ -113,7 +110,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             ${PROTOBUF_LIBRARY}
             -Wl,--no-whole-archive
             ${JAVA_JVM_LIBRARY}
-            crypto
+            OpenSSL::crypto
             pthread
             rt
             z
@@ -121,11 +118,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
-                boost_system
-                boost_filesystem
+                ${Boost_LIBRARIES}
                 omp
                 pthread
-                crypto
+                OpenSSL::crypto
                 ${PROTOBUF_LIBRARY}
                 ${JAVA_JVM_LIBRARY})
     else ()
@@ -138,7 +134,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 -Wl,-Bdynamic
                 c++experimental
                 c++fs
-                crypto
+                OpenSSL::crypto
                 -Wl,--whole-archive
                 ${PROTOBUF_LIBRARY}
                 -Wl,--no-whole-archive

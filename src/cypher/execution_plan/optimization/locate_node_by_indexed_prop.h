@@ -1,10 +1,35 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 //
 // Created by gelincheng on 1/21/22.
 //
 
 #pragma once
 
-#include "opt_pass.h"
+#include "core/data_type.h"
+#include "cypher/execution_plan/ops/op_filter.h"
+#include "cypher/execution_plan/ops/op_node_index_seek.h"
+#include "cypher/execution_plan/ops/op_all_node_scan.h"
+#include "cypher/execution_plan/ops/op_node_by_label_scan.h"
+#include "cypher/execution_plan/optimization/opt_pass.h"
+#include "fma-common/logger.h"
+#include "geax-front-end/ast/AstDumper.h"
+#include "geax-front-end/ast/expr/BEqual.h"
+#include "geax-front-end/ast/expr/GetField.h"
+#include "geax-front-end/ast/expr/VDouble.h"
+#include "geax-front-end/ast/expr/VString.h"
 
 namespace cypher {
 
@@ -25,19 +50,19 @@ After:
 */
 
 class LocateNodeByIndexedProp : public OptPass {
-    void _AdjustNodePropFilter(ExecutionPlan &plan) {
+    void _AdjustNodePropFilter(OpBase *root) {
         OpFilter *op_filter = nullptr;
         std::string field;
         lgraph::FieldData value;
         std::vector<lgraph::FieldData> target_value_datas;
 
-        if (FindNodePropFilter(plan.Root(), op_filter, field, value, target_value_datas)) {
+        if (FindNodePropFilter(root, op_filter, field, value, target_value_datas)) {
             auto op_post = op_filter->parent;
 
             Node *node;
             const SymbolTable *symtab;
 
-            // TODO 2/9/22 gelincheng: 这里可以写的再优雅些嘛？
+            // TODO(anyone) 2/9/22 gelincheng: 这里可以写的再优雅些嘛？
             if (op_filter->children[0]->type == OpType::ALL_NODE_SCAN) {
                 node = dynamic_cast<AllNodeScan *>(op_filter->children[0])->GetNode();
                 symtab = dynamic_cast<AllNodeScan *>(op_filter->children[0])->sym_tab_;
@@ -53,7 +78,7 @@ class LocateNodeByIndexedProp : public OptPass {
             auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, target_value_datas);
             op_node_index_seek->parent = op_post;
             op_post->RemoveChild(op_filter);
-            delete op_filter;
+            OpBase::FreeStream(op_filter);
             op_filter = nullptr;
             op_post->AddChild(op_node_index_seek);
         }
@@ -71,14 +96,46 @@ class LocateNodeByIndexedProp : public OptPass {
             range_filter->GetCompareOp() == lgraph::LBR_EQ &&
             range_filter->GetAeRight().operand.type == ArithOperandNode::AR_OPERAND_CONSTANT) {
             if (field.empty()) {
-                //右值可能会不是constant? 如果是para类型？需要处理嘛？
+                // 右值可能会不是constant? 如果是para类型？需要处理嘛？
                 field = range_filter->GetAeLeft().operand.variadic.entity_prop;
             }
             if (field != range_filter->GetAeLeft().operand.variadic.entity_prop) {
                 return false;
             }
-            //这里默认是scalar,数组情况后续处理
+            // 这里默认是scalar,数组情况后续处理
             value = range_filter->GetAeRight().operand.constant.scalar;
+            return true;
+        }
+        return false;
+    }
+
+    bool getValueFromGeaxExprFilter(const std::shared_ptr<lgraph::Filter> &filter,
+                                    std::string &field, lgraph::FieldData &value) {
+        if (filter->Type() != lgraph::Filter::Type::GEAX_EXPR_FILTER) {
+            return false;
+        }
+        auto geax_expr_filter = std::dynamic_pointer_cast<lgraph::GeaxExprFilter>(filter);
+        auto expr = geax_expr_filter->GetArithExpr().expr_;
+        if (auto expr_equal = dynamic_cast<geax::frontend::BEqual *>(expr)) {
+            if (auto expr_left = dynamic_cast<geax::frontend::GetField *>(expr_equal->left())) {
+                field = expr_left->fieldName();
+            } else {
+                return false;
+            }
+            if (auto expr_right = dynamic_cast<geax::frontend::VString *>(expr_equal->right())) {
+                value = lgraph::FieldData(expr_right->val());
+            } else if (auto expr_right =
+                           dynamic_cast<geax::frontend::VInt *>(expr_equal->right())) {
+                value = lgraph::FieldData(expr_right->val());
+            } else if (auto expr_right =
+                           dynamic_cast<geax::frontend::VDouble *>(expr_equal->right())) {
+                value = lgraph::FieldData(expr_right->val());
+            } else if (auto expr_right =
+                           dynamic_cast<geax::frontend::VBool *>(expr_equal->right())) {
+                value = lgraph::FieldData(expr_right->val());
+            } else {
+                return false;
+            }
             return true;
         }
         return false;
@@ -125,9 +182,11 @@ class LocateNodeByIndexedProp : public OptPass {
             }
             if (!getValueFromRangeFilter(filter->Left(), field, value)) return false;
             target_value_datas.emplace_back(value);
-            //如果需要按照原来的输入顺序输出的话
+            // 如果需要按照原来的输入顺序输出的话
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
+        } else if (filter->Type() == lgraph::Filter::GEAX_EXPR_FILTER) {
+            return getValueFromGeaxExprFilter(filter, field, value);
         }
         return false;
     }
@@ -155,8 +214,8 @@ class LocateNodeByIndexedProp : public OptPass {
  public:
     LocateNodeByIndexedProp() : OptPass(typeid(LocateNodeByIndexedProp).name()) {}
     bool Gate() override { return true; }
-    int Execute(ExecutionPlan *plan) override {
-        _AdjustNodePropFilter(*plan);
+    int Execute(OpBase *root) override {
+        _AdjustNodePropFilter(root);
         return 0;
     }
 };

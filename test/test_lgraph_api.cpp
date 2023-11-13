@@ -15,10 +15,10 @@
 #include <map>
 #include <string>
 
+#include "core/data_type.h"
 #include "fma-common/configuration.h"
 #include "fma-common/logging.h"
 #include "fma-common/utils.h"
-#include "fma-common/unit_test_utils.h"
 
 #include "gtest/gtest.h"
 
@@ -45,7 +45,7 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
     graph.AddVertexLabel(std::string("v"),
                          std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                  {"content", FieldType::STRING, true}}),
-                         "id");
+                         VertexOptions("id"));
 
     Barrier bar(n_threads);
     std::atomic<size_t> n_success(0);
@@ -195,14 +195,14 @@ TEST_F(TestLGraphApi, LGraphApi) {
                           std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                   {"type", FieldType::INT8, false},
                                                   {"content", FieldType::STRING, true}}),
-                          "id");
+                          VertexOptions("id"));
         UT_EXPECT_TRUE(db.IsVertexIndexed(vertex_label, "id"));
         // UT_EXPECT_TRUE(db.DeleteVertexIndex(vertex_label, "id"));
         Transaction txn_write = db.CreateWriteTxn();
 
         for (int i = 0; i < 4; i++) {
             std::vector<std::string> v = {std::to_string(i), "8", "content"};
-            auto vid = txn_write.AddVertex(vertex_label, vertex_feild_name, v);
+            txn_write.AddVertex(vertex_label, vertex_feild_name, v);
         }
         txn_write.Commit();
         // txn_write.AddVertex();
@@ -230,14 +230,14 @@ TEST_F(TestLGraphApi, LGraphApi) {
                           std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                   {"type", FieldType::INT8, false},
                                                   {"content", FieldType::STRING, true}}),
-                          "id");
+                          VertexOptions("id"));
         std::string elabel = "e";
         db.AddEdgeLabel(elabel, std::vector<FieldSpec>({{"weight", FieldType::FLOAT, false}}), {});
         UT_EXPECT_TRUE(db.IsVertexIndexed(vlabel, "id"));
         Transaction txn_write = db.CreateWriteTxn();
         for (int i = 0; i < 4; i++) {
-            auto vid = txn_write.AddVertex(vlabel, {"id", "type"},
-                                           {FieldData(std::to_string(i)), FieldData((int64_t)0)});
+            txn_write.AddVertex(vlabel, {"id", "type"},
+                                {FieldData(std::to_string(i)), FieldData((int64_t)0)});
         }
         txn_write.Commit();
 
@@ -246,15 +246,15 @@ TEST_F(TestLGraphApi, LGraphApi) {
             db.AddEdgeLabel("esw", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
             db.AddVertexLabel("esk", std::vector<FieldSpec>({{"fs", FieldType::INT64, false}}),
-                              "fs");
+                              VertexOptions("fs"));
             db.AddEdgeLabel("esp", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
             db.AddEdgeLabel("unique", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
-            db.AddEdgeIndex("esw", "weight", false);
-            db.AddVertexIndex("esk", "fs", false);
-            db.AddEdgeIndex("esp", "weight", false);
-            db.AddEdgeIndex("unique", "weight", true);
+            db.AddEdgeIndex("esw", "weight", lgraph::IndexType::NonuniqueIndex);
+            db.AddVertexIndex("esk", "fs", lgraph::IndexType::NonuniqueIndex);
+            db.AddEdgeIndex("esp", "weight", lgraph::IndexType::NonuniqueIndex);
+            db.AddEdgeIndex("unique", "weight", lgraph::IndexType::GlobalUniqueIndex);
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esw", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esp", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("unique", "weight"));
@@ -265,9 +265,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 txn1.GetEdgeFieldIds(1, std::vector<std::string>{"weight"});
             UT_EXPECT_EQ(edge_field_ids[0], 0);
             for (int i = 0; i < 4; i++) {
-                UT_EXPECT_TRUE(
-                    txn1.AddEdge(i, (i + 1) % 4, "esw", {"weight"}, {FieldData(int64_t(i))}) ==
-                    EdgeUid(i, (i + 1) % 4, 1, 0, 0));
+                EdgeUid e = txn1.AddEdge(i, (i + 1) % 4, "esw",
+                                         {"weight"}, {FieldData(int64_t(i))});
+                EdgeUid expect(i, (i + 1) % 4, 1, 0, 0);
+                UT_EXPECT_TRUE(e == expect);
             }
             for (int i = 0; i < 4; i++) {
                 UT_EXPECT_TRUE(
@@ -280,7 +281,6 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 UT_EXPECT_TRUE(s == EdgeUid(i, (i + 1) % 4, 3, 0, 0));
             }
             auto uet = txn1.GetEdgeByUniqueIndex("unique", "weight", "1");
-
             UT_EXPECT_TRUE(uet.IsValid());
             UT_EXPECT_EQ(uet.GetSrc(), 1);
             UT_EXPECT_EQ(uet.GetDst(), 2);
@@ -304,10 +304,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
             auto in_eit = txn1.GetInEdgeIterator(0, 1, 1);
             UT_EXPECT_EQ(in_eit.GetFields(std::vector<std::string>{"weight"})[0].AsInt64(), 0);
             UT_EXPECT_EQ(in_eit.GetFields(std::vector<std::size_t>{0})[0].AsInt64(), 0);
-
-            EdgeIndexIterator test_eit1(txn1.GetEdgeIndexIterator("esw", "weight", "1", "2"));
-            test_eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
+            EdgeIndexIterator test_eit1 = txn1.GetEdgeIndexIterator("esw", "weight", "1", "2");
+            UT_EXPECT_TRUE(test_eit1.IsValid());
             auto test_eit2 = txn1.GetEdgeIndexIterator("esw", "weight", "2", "3");
+            UT_EXPECT_TRUE(test_eit2.IsValid());
             test_eit2.Next();
             UT_EXPECT_TRUE(test_eit2.IsValid());
             test_eit2.Close();
@@ -420,8 +420,8 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_EQ(oeit.GetField("weight").AsFloat(), 1);
         }
     } catch (std::exception& e) {
+        UT_LOG() << "An error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
-        ERR() << "An error occurred: " << e.what();
     }
     {
         lgraph::AutoCleanDir cleaner(path);
@@ -436,10 +436,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                                                   {"datetime", FieldType::DATETIME, true},
                                                   {"img", FieldType::BLOB, true},
                                                   {"valid", FieldType::BOOL, true}}),
-                          "id");
+                          VertexOptions("id"));
         UT_EXPECT_THROW_MSG(
-            db.AddVertexLabel("v3", std::vector<FieldSpec>({{"f", FieldType::NUL, false}}), "f"),
-            "NUL type");
+            db.AddVertexLabel("v3", std::vector<FieldSpec>({{"f", FieldType::NUL, false}}),
+                              VertexOptions("f")), "NUL type");
         auto txn = db.CreateWriteTxn();
         size_t label_id = txn.GetVertexLabelId("v2");
         std::vector<size_t> field_ids = txn.GetVertexFieldIds(
@@ -482,9 +482,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                           std::vector<FieldSpec>({{"id", FieldType::INT32, false},
                                                   {"name", FieldType::STRING, false},
                                                   {"img", FieldType::BLOB, true}}),
-                          "id");
-        db.AddVertexIndex("v2", "name", false);
-        UT_EXPECT_ANY_THROW(db.AddVertexIndex("v2", "img", true));  // blob cannot be indexed
+                          VertexOptions("id"));
+        db.AddVertexIndex("v2", "name", lgraph::IndexType::NonuniqueIndex);
+        UT_EXPECT_ANY_THROW(db.AddVertexIndex(
+            "v2", "img", lgraph::IndexType::GlobalUniqueIndex));  // blob cannot be indexed
         auto AddVertexWithString = [&](int32_t id, const std::string& name,
                                        const std::string& blob) {
             auto txn = db.CreateWriteTxn();
@@ -551,11 +552,14 @@ TEST_F(TestLGraphApi, LGraphApi) {
         {
             // testing edges with tid
             FMA_LOG() << "Testing edges with tid";
+            EdgeOptions options;
+            options.temporal_field = "ts";
+            options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
             db.AddEdgeLabel("et",
                             std::vector<lgraph_api::FieldSpec>{
                                 lgraph_api::FieldSpec("ts", FieldType::INT64, false),
                                 lgraph_api::FieldSpec("tt", FieldType::INT64, false)},
-                            "ts", {});
+                            options);
             auto AddEdgeWithInt = [&](int64_t src, int64_t dst, const int64_t i) {
                 auto txn = db.CreateWriteTxn();
                 auto eid = txn.AddEdge(src, dst, "et", std::vector<std::string>{"ts", "tt"},
@@ -623,6 +627,19 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_EQ(eit3.GetField("blob").AsBlob(), std::string("1234"));
             txn.Abort();
         }
+
+        // test count
+        std::pair<uint64_t, uint64_t> count_befor, count_after;
+        {
+            auto txn = db.CreateReadTxn();
+            count_befor = txn.Count();
+        }
+        db.RefreshCount();
+        {
+            auto txn = db.CreateReadTxn();
+            count_after = txn.Count();
+        }
+        UT_EXPECT_EQ(count_befor, count_after);
     }
     {
         UT_LOG() << "Testing label modifications.";
@@ -633,16 +650,16 @@ TEST_F(TestLGraphApi, LGraphApi) {
         UT_EXPECT_TRUE(db.AddVertexLabel("v1",
                                          std::vector<FieldSpec>({{"id", FieldType::INT32, false},
                                                                  {"img", FieldType::BLOB, true}}),
-                                         "id"));
+                                         VertexOptions("id")));
 
         UT_EXPECT_TRUE(db.AddVertexLabel("v2",
                                          std::vector<FieldSpec>({{"id2", FieldType::INT32, false},
                                                                  {"valid", FieldType::BOOL, true}}),
-                                         "id2"));
+                                         VertexOptions("id2")));
         UT_EXPECT_TRUE(db.AddVertexLabel("test_v",
                                          std::vector<FieldSpec>({{"id3", FieldType::INT32, false},
                                                                  {"img3", FieldType::BOOL, true}}),
-                                         "id3"));
+                                         VertexOptions("id3")));
         UT_EXPECT_TRUE(db.AlterVertexLabelAddFields(
             "test_v", std::vector<FieldSpec>({{"test3", FieldType::STRING, false}}),
             std::vector<FieldData>{FieldData("test_value")}));
@@ -696,7 +713,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
                                          std::vector<FieldSpec>({{"id", FieldType::STRING, false},
                                                                  {"id1", FieldType::STRING, false},
                                                                  {"img", FieldType::BLOB, true}}),
-                                         "id"));
+                                         VertexOptions("id")));
         {
             auto txn = db.CreateWriteTxn();
             auto vid1 = txn.AddVertex(
@@ -704,8 +721,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 std::vector<std::string>{std::string("2222"),
                                          std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1')});
             txn.Commit();
-            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1", true), "too long");
-            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1", true), "too long");
+            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1",
+                                     lgraph::IndexType::GlobalUniqueIndex), "too long");
+            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1",
+                                     lgraph::IndexType::GlobalUniqueIndex), "too long");
             txn = db.CreateWriteTxn();
             txn.GetVertexIterator(vid1).Delete();
             txn.Commit();
@@ -763,5 +782,5 @@ TEST_F(TestLGraphApi, LGraphApi) {
             UT_EXPECT_THROW((FieldData::String("2") > FieldData::Float(1.2)), std::runtime_error);
         }
     }
-    // #endif
+//     #endif
 }

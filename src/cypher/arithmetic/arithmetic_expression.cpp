@@ -16,14 +16,18 @@
 // Created by wt on 6/15/18.
 //
 #include <cmath>
+#include <cstdint>
 #include <random>
 #include <stack>
-#include "cypher_types.h"
-#include "parser/expression.h"
-#include "parser/clause.h"
-#include "parser/symbol_table.h"
-#include "procedure/utils.h"
-#include "arithmetic_expression.h"
+#include <string>
+#include <vector>
+#include "cypher/cypher_exception.h"
+#include "cypher/cypher_types.h"
+#include "cypher/parser/expression.h"
+#include "cypher/parser/clause.h"
+#include "cypher/parser/symbol_table.h"
+#include "cypher/procedure/utils.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
@@ -55,7 +59,7 @@ cypher::FieldData BuiltinFunction::Id(RTContext *ctx, const Record &record,
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
     auto operand = args[1];
     auto r = operand.Evaluate(ctx, record);
-    // TODO: handle snapshot of node/relp // NOLINT
+    // TODO(anyone) handle snapshot of node/relp
     if (r.IsNode()) {
         if (!VALIDATE_IT(r)) return {};
         return cypher::FieldData(lgraph::FieldData(r.node->PullVid()));
@@ -182,6 +186,42 @@ cypher::FieldData BuiltinFunction::Last(RTContext *ctx, const Record &record,
                                      : cypher::FieldData(r.constant.array->back());
 }
 
+cypher::FieldData BuiltinFunction::MaxInList(RTContext *ctx, const Record &record,
+                                             const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray())
+        throw lgraph::CypherException("List expected in maxInList(): " + r.ToString());
+    if (r.constant.array->empty()) {
+        throw lgraph::CypherException("List cannot be empty in maxInList()");
+    }
+    size_t pos = 0;
+    for (size_t i = 0; i < r.constant.array->size(); i++) {
+        if ((*r.constant.array)[i] > (*r.constant.array)[pos]) {
+            pos = i;
+        }
+    }
+    return cypher::FieldData((*r.constant.array)[pos]);
+}
+
+cypher::FieldData BuiltinFunction::MinInList(RTContext *ctx, const Record &record,
+                                             const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray())
+        throw lgraph::CypherException("List expected in minInList(): " + r.ToString());
+    if (r.constant.array->empty()) {
+        throw lgraph::CypherException("List cannot be empty in minInList()");
+    }
+    size_t pos = 0;
+    for (size_t i = 0; i < r.constant.array->size(); i++) {
+        if ((*r.constant.array)[i] < (*r.constant.array)[pos]) {
+            pos = i;
+        }
+    }
+    return cypher::FieldData((*r.constant.array)[pos]);
+}
+
 cypher::FieldData BuiltinFunction::Size(RTContext *ctx, const Record &record,
                                         const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
@@ -202,6 +242,44 @@ cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
     auto r = args[1].Evaluate(ctx, record);
     if (!r.IsArray()) throw lgraph::CypherException("Path expected in length(): " + r.ToString());
     return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
+}
+
+// TODO(jinyejun.jyj): support native path in FieldData
+cypher::FieldData BuiltinFunction::Nodes(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray()) throw lgraph::CypherException("Path expected in nodes(): " + r.ToString());
+    std::vector<lgraph::FieldData> vids;
+    for (size_t i = 0; i < r.constant.array->size(); i += 2) {
+        std::string vid_str = (*r.constant.array)[i].AsString(); /* V[0] */
+        auto open_bracket_pos = vid_str.find('[');
+        auto close_bracket_pos = vid_str.find(']');
+        auto vid_number_str =
+            vid_str.substr(open_bracket_pos + 1, close_bracket_pos - open_bracket_pos - 1);
+        vids.emplace_back(
+            lgraph::FieldData(static_cast<int64_t>(std::stoll(vid_number_str.c_str()))));
+    }
+    return cypher::FieldData(vids);
+}
+
+// TODO(huangke): support native path in FieldData
+cypher::FieldData BuiltinFunction::Relationships(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto r = args[1].Evaluate(ctx, record);
+    if (!r.IsArray()) throw lgraph::CypherException("Path expected in nodes(): " + r.ToString());
+    std::vector<lgraph::FieldData> euids;
+    for (size_t i = 1; i < r.constant.array->size(); i += 2) {
+        std::string euid_str = (*r.constant.array)[i].AsString(); /* E[0_0_0_0_0] */
+        auto open_bracket_pos = euid_str.find('[');
+        auto close_bracket_pos = euid_str.find(']');
+        auto euid_tuple_str =
+            euid_str.substr(open_bracket_pos + 1, close_bracket_pos - open_bracket_pos - 1);
+        euids.emplace_back(
+            lgraph::FieldData(euid_tuple_str));
+    }
+    return cypher::FieldData(euids);
 }
 
 cypher::FieldData BuiltinFunction::Labels(RTContext *ctx, const Record &record,
@@ -296,6 +374,106 @@ cypher::FieldData BuiltinFunction::Subscript(RTContext *ctx, const Record &recor
         return ret;
     }
     CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::IsAsc(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto r = operand.Evaluate(ctx, record);
+    if (r.IsArray()) {
+        for (size_t i = 1; i < r.constant.array->size(); i++) {
+            if ((*r.constant.array)[i] <= (*r.constant.array)[i-1]) {
+                return cypher::FieldData(lgraph::FieldData(false));
+            }
+        }
+        return cypher::FieldData(lgraph::FieldData(true));
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::IsDesc(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto r = operand.Evaluate(ctx, record);
+    if (r.IsArray()) {
+        for (size_t i = 1; i < r.constant.array->size(); i++) {
+            if ((*r.constant.array)[i] >= (*r.constant.array)[i-1]) {
+                return cypher::FieldData(lgraph::FieldData(false));
+            }
+        }
+        return cypher::FieldData(lgraph::FieldData(true));
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::HasDuplicates(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto r = operand.Evaluate(ctx, record);
+    if (r.IsArray()) {
+        std::unordered_set<int64_t> s;
+        for (auto item : *r.constant.array) {
+            if (!item.IsInteger()) {
+                CYPHER_ARGUMENT_ERROR();
+            }
+            if (s.find(item.AsInt64()) != s.end()) {
+                return cypher::FieldData(lgraph::FieldData(true));
+            }
+            s.emplace(item.AsInt64());
+        }
+        return cypher::FieldData(lgraph::FieldData(false));
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::GetMemberProp(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args) {
+    if (args.empty() || args.size() > 3) CYPHER_ARGUMENT_ERROR();
+    auto operand = args[1];
+    auto ret = cypher::FieldData::Array(0);
+    std::string field_name;
+    if (args.size() == 3) {
+        auto field_name_entry = args[2].Evaluate(ctx, record);
+        if (field_name_entry.IsString()) {
+            field_name = field_name_entry.constant.scalar.AsString();
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+
+    const auto &entry = args[1].Evaluate(ctx, record);
+    if (entry.type == Entry::VAR_LEN_RELP) {
+        for (auto &eit : entry.relationship->ItsRef()) {
+            if (eit.IsValid()) {
+                ret.array->emplace_back(lgraph::FieldData(eit.GetField(field_name)));
+            }
+        }
+    } else if (entry.type == Entry::CONSTANT && entry.constant.IsArray()) {
+        for (auto &item : *entry.constant.array) {
+            // TODO(huangke): support native nodes in FieldData
+            if (item.IsInteger()) {
+                auto vit = ctx->txn_->GetVertexIterator();
+                vit.Goto(item.AsInt64());
+                if (vit.IsValid()) {
+                    ret.array->emplace_back(lgraph::FieldData(vit.GetField(field_name)));
+                } else {
+                    ret.array->emplace_back(lgraph::FieldData());
+                }
+            } else {
+                ret.array->emplace_back(lgraph::FieldData());
+            }
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+    return ret;
 }
 
 cypher::FieldData BuiltinFunction::Abs(RTContext *ctx, const Record &record,
@@ -510,6 +688,53 @@ cypher::FieldData BuiltinFunction::ToInteger(RTContext *ctx, const Record &recor
     CYPHER_ARGUMENT_ERROR();
 }
 
+cypher::FieldData BuiltinFunction::Date(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
+    if (args.size() == 1) {
+        // date() Returns the current date;
+        return cypher::FieldData(::lgraph::FieldData(::lgraph::Date::Now()));
+    } else {
+        CYPHER_THROW_ASSERT(args.size() == 2);
+        // date(string) Returns a Date by parsing a string.
+        auto r = args[1].Evaluate(ctx, record);
+        if (!r.IsString()) CYPHER_ARGUMENT_ERROR();
+        auto dt = ::lgraph::FieldData::Date(r.constant.scalar.AsString());
+        return cypher::FieldData(dt);
+    }
+}
+
+cypher::FieldData BuiltinFunction::DateComponent(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    static const int64_t MAX_DAYS_EPOCH = 2000000;
+    static const std::unordered_map<std::string, int> COMPONENT_MAP{
+        {"year", 0}, {"month", 1}, {"day", 2}
+    };
+    auto days_stamp = args[1].Evaluate(ctx, record);
+    auto component = args[2].Evaluate(ctx, record);
+
+    if (!days_stamp.IsInteger() || !component.IsString()) CYPHER_ARGUMENT_ERROR();
+    auto days_epoch = days_stamp.constant.scalar.AsInt64();
+    if (days_epoch > MAX_DAYS_EPOCH) days_epoch /= 365;
+
+    auto d = lgraph::Date(static_cast<int32_t>(days_epoch));
+    auto YMD = d.GetYearMonthDay();
+    auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
+    if (it == COMPONENT_MAP.end())
+        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+    switch (it->second) {
+    case 0:
+        return cypher::FieldData(::lgraph::FieldData(YMD.year));
+    case 1:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(YMD.month)));
+    case 2:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(YMD.day)));
+    default:
+        throw ::lgraph::InternalError("");
+    }
+}
+
 cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
@@ -526,7 +751,7 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
     }
 }
 
-/* TODO: Consider the following 2 style:
+/* TODO(anyone) Consider the following 2 style:
  * 1.
  * RETURN datetimeComponent({epochMillis:1347062400000, component:year}),
  * datetimeComponent({epochMillis:1347062400, component:day}) 2. WITH datetime({ year:1984,
@@ -538,33 +763,36 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
 cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Record &record,
                                                      const std::vector<ArithExprNode> &args) {
     if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
-    static const int64_t MAX_SECONDS_EPOCH = 100000000000;  // 5138-11-16 09:46:40
+    static const int64_t MAX_MICROSECONDS_EPOCH = 100000000000000000;  // 5138-11-16 09:46:40
     static const std::unordered_map<std::string, int> COMPONENT_MAP{
         {"year", 0}, {"month", 1}, {"day", 2}, {"hour", 3}, {"minute", 4}, {"second", 5},
+        {"microsecond", 6}
     };
     auto time_stamp = args[1].Evaluate(ctx, record);
     auto component = args[2].Evaluate(ctx, record);
     if (!time_stamp.IsInteger() || !component.IsString()) CYPHER_ARGUMENT_ERROR();
-    auto seconds_epoch = time_stamp.constant.scalar.AsInt64();
-    if (seconds_epoch > MAX_SECONDS_EPOCH) seconds_epoch /= 1000;
-    auto dt = lgraph::DateTime(seconds_epoch);
-    auto ymdhms = dt.GetYMDHMS();
+    auto microseconds_epoch = time_stamp.constant.scalar.AsInt64();
+    if (microseconds_epoch > MAX_MICROSECONDS_EPOCH) microseconds_epoch /= 1000;
+    auto dt = lgraph::DateTime(microseconds_epoch);
+    auto ymdhmsf = dt.GetYMDHMSF();
     auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
     if (it == COMPONENT_MAP.end())
         throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
     switch (it->second) {
     case 0:
-        return cypher::FieldData(::lgraph::FieldData(ymdhms.year));
+        return cypher::FieldData(::lgraph::FieldData(ymdhmsf.year));
     case 1:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.month)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.month)));
     case 2:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.day)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.day)));
     case 3:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.hour)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.hour)));
     case 4:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.minute)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.minute)));
     case 5:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhms.second)));
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.second)));
+    case 6:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.fraction)));
     default:
         throw ::lgraph::InternalError("");
     }
@@ -647,7 +875,6 @@ cypher::FieldData BuiltinFunction::_ListComprehension(RTContext *ctx, const Reco
     nested_record_for_list_comprehension.values = record.values;
     nested_record_for_list_comprehension.values.emplace_back(Entry());
     CYPHER_THROW_ASSERT(args.size() == 4);
-    auto &var = args[0].operand.variadic.alias;
     auto range = args[1].Evaluate(ctx, record);
     CYPHER_THROW_ASSERT(range.IsArray());
     for (auto &a : *range.constant.array) {
@@ -946,133 +1173,11 @@ void ArithOpNode::RealignAliasId(const cypher::SymbolTable &sym_tab) {
     for (auto &c : children) c.RealignAliasId(sym_tab);
 }
 
-static inline bool IsNumeric(const cypher::FieldData &x) { return x.IsInteger() || x.IsReal(); }
-
-static inline void AddList(cypher::FieldData &ret, const cypher::FieldData &x) {
-    if (x.type == cypher::FieldData::ARRAY)
-        ret.array->insert(ret.array->end(), x.array->begin(), x.array->end());
-    else
-        ret.array->emplace_back(x.scalar);
-}
-
-static inline void AddString(cypher::FieldData &ret, const cypher::FieldData &x) {
-    if (x.IsBool()) throw lgraph::CypherException("Type mismatch: cannot add BOOL with STRING");
-    CYPHER_THROW_ASSERT(x.type != cypher::FieldData::ARRAY);
-    ret.scalar.data.buf->append(x.scalar.ToString());
-}
-
-static cypher::FieldData Add(const cypher::FieldData &x, const cypher::FieldData &y) {
-    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
-    cypher::FieldData ret;
-    if (x.type == cypher::FieldData::ARRAY || y.type == cypher::FieldData::ARRAY) {
-        ret.array = new std::vector<::lgraph::FieldData>();
-        ret.type = cypher::FieldData::ARRAY;
-        AddList(ret, x);
-        AddList(ret, y);
-    } else if (x.IsString() || y.IsString()) {
-        ret.scalar = ::lgraph::FieldData("");
-        AddString(ret, x);
-        AddString(ret, y);
-    } else if (IsNumeric(x) && IsNumeric(y)) {
-        if (x.IsInteger() && y.IsInteger()) {
-            ret.scalar = ::lgraph::FieldData(x.scalar.integer() + y.scalar.integer());
-        } else {
-            double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
-            double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
-            ret.scalar = ::lgraph::FieldData(x_n + y_n);
-        }
-    }
-    return ret;
-}
-
-static cypher::FieldData Sub(const cypher::FieldData &x, const cypher::FieldData &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        throw lgraph::CypherException("Type mismatch: expect Integer or Float in sub expr");
-    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
-    cypher::FieldData ret;
-    if (x.IsInteger() && y.IsInteger()) {
-        ret.scalar = ::lgraph::FieldData(x.scalar.integer() - y.scalar.integer());
-    } else {
-        double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
-        double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
-        ret.scalar = ::lgraph::FieldData(x_n - y_n);
-    }
-    return ret;
-}
-
-static cypher::FieldData Mul(const cypher::FieldData &x, const cypher::FieldData &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
-    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
-    cypher::FieldData ret;
-    if (x.IsInteger() && y.IsInteger()) {
-        ret.scalar = ::lgraph::FieldData(x.scalar.integer() * y.scalar.integer());
-    } else {
-        double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
-        double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
-        ret.scalar = ::lgraph::FieldData(x_n * y_n);
-    }
-    return ret;
-}
-
-static cypher::FieldData Div(const cypher::FieldData &x, const cypher::FieldData &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
-    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
-    cypher::FieldData ret;
-    if (x.IsInteger() && y.IsInteger()) {
-        int64_t x_n = x.scalar.integer();
-        int64_t y_n = y.scalar.integer();
-        if (y_n == 0) throw lgraph::CypherException("Divided by zero");
-        ret.scalar = ::lgraph::FieldData(x_n / y_n);
-    } else {
-        double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
-        double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
-        if (y_n == 0)
-            // In neo4j:
-            // 0.0 / 0.0 = null
-            // 1.0 / 0.0 = ifinity.0
-            // -1.0 / 0.0 = -ifinity.0
-            CYPHER_TODO();
-        else
-            ret.scalar = ::lgraph::FieldData(x_n / y_n);
-    }
-    return ret;
-}
-
-static cypher::FieldData Mod(const cypher::FieldData &x, const cypher::FieldData &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
-    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
-    cypher::FieldData ret;
-    if (x.IsInteger() && y.IsInteger()) {
-        int64_t x_n = x.scalar.integer();
-        int64_t y_n = y.scalar.integer();
-        if (y_n == 0) throw lgraph::CypherException("Divided by zero");
-        ret.scalar = ::lgraph::FieldData(x_n % y_n);
-    } else {
-        // Float mod
-        CYPHER_TODO();
-    }
-    return ret;
-}
-
-static cypher::FieldData Pow(const cypher::FieldData &x, const cypher::FieldData &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        throw lgraph::CypherException("Type mismatch: expect Integer or Float in mul expr");
-    if (x.IsNull() || y.IsNull()) return cypher::FieldData();
-    cypher::FieldData ret;
-    double x_n = x.IsInteger() ? x.scalar.integer() : x.scalar.real();
-    double y_n = y.IsInteger() ? y.scalar.integer() : y.scalar.real();
-    ret.scalar = ::lgraph::FieldData(pow(x_n, y_n));
-    return ret;
-}
-
 Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
     switch (type) {
     case AR_OP_AGGREGATE:
         /* Aggregation function should be reduced by now.
-         * TODO: verify above statement. */
+         * TODO(anyone) verify above statement. */
         return agg_func->result;
     case AR_OP_FUNC:
         {
@@ -1088,8 +1193,8 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
             }
             auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
             bool exists =
-                ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
-                                 input, 0, false, output);
+                ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP,
+                                 "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false, output);
             if (!exists) {
                 throw lgraph::InputError(FMA_FMT("Plugin [{}] does not exist.", name));
             }
@@ -1137,7 +1242,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
         }
     case AR_OP_MATH:
         {
-            /* TODO: move out to AR_OP_FUNC */
+            /* TODO(anyone) move out to AR_OP_FUNC */
             std::stack<cypher::FieldData> s;
             for (auto &c : children) {
                 if (!IsMathOperator(c)) {

@@ -16,6 +16,11 @@
 
 #include "fma-common/logger.h"
 
+// The 'U' macro can be used to create a string or character literal of the platform type, i.e.
+// utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
+// off by defining the macro '_TURN_OFF_PLATFORM_STRING' before including the C++ REST SDK header
+// files, and e.g. use '_XPLATSTR' instead.
+#define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/json.h"
 #include "lgraph/lgraph.h"
 #include "plugin/plugin_desc.h"
@@ -92,6 +97,10 @@ class RestClient {
 
     std::string Refresh(const std::string& token);
 
+    bool UpdateTokenTime(const std::string& token, int refresh_time, int expire_time);
+
+    std::pair<int, int> GetTokenTime(const std::string& token);
+
     bool Logout(const std::string& token);
 
     void* GetClient() const;
@@ -110,7 +119,7 @@ class RestClient {
                       const EdgeConstraints& edge_constraints = {});
 
     bool AddIndex(const std::string& db, const std::string& label, const std::string& field,
-                  bool is_unique);
+                  int index_type);
 
     std::vector<std::string> ListVertexLabels(const std::string& db);
 

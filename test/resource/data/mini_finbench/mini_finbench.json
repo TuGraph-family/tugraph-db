@@ -1,0 +1,288 @@
+{
+    "schema": [
+        {
+            "label" : "Person",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT64"},
+                {"name" : "name", "type":"STRING"},
+                {"name" : "isBlocked", "type": "BOOL"}
+            ]
+        },
+        {
+            "label" : "Account",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT64"},
+                {"name" : "createTime", "type":"INT64"},
+                {"name" : "isBlocked", "type": "BOOL"},
+                {"name" : "type", "type": "STRING"}
+            ]
+        },
+        {
+            "label" : "Medium",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT64"},
+                {"name" : "type", "type":"STRING"},
+                {"name" : "isBlocked", "type": "BOOL"}
+            ]
+        },
+        {
+            "label" : "Loan",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name": "id", "type":"INT64"},
+                {"name": "loanAmount", "type":"DOUBLE"},
+                {"name": "balance", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "Company",
+            "type" : "VERTEX",
+            "primary" : "id",
+            "properties" : [
+                {"name" : "id", "type":"INT64"},
+                {"name" : "name", "type":"STRING"},
+                {"name" : "isBlocked", "type": "BOOL"}
+            ]
+        },
+        {
+            "label" : "transfer",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"},
+                {"name" : "amount", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "withdraw",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"},
+                {"name" : "amount", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "repay",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"},
+                {"name" : "amount", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "deposit",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"},
+                {"name" : "amount", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "signIn",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"}
+            ]
+        },
+        {
+            "label" : "invest",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"},
+                {"name" : "ratio", "type":"DOUBLE"}
+            ]
+        },
+        {
+            "label" : "apply",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"}
+            ]
+        },
+        {
+            "label" : "guarantee",
+            "type" : "EDGE",
+            "temporal" : "timestamp",
+            "temporal_order" : "DESC",
+            "properties" : [
+                {"name" : "timestamp", "type":"INT64"}
+            ]
+        },
+        {
+            "label" : "own",
+            "type" : "EDGE",
+            "properties" : [
+            ]
+        },
+        {
+            "label" : "workIn",
+            "type" : "EDGE",
+            "properties" : [
+            ]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "../../test/resource/data/mini_finbench/Person.csv",
+            "format" : "CSV",
+            "label" : "Person",
+            "columns" : ["id", "name", "isBlocked"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/Account.csv",
+            "format" : "CSV",
+            "label" : "Account",
+            "columns" : ["id", "createTime", "isBlocked", "type"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/Medium.csv",
+            "format" : "CSV",
+            "label" : "Medium",
+            "columns" : ["id", "type", "isBlocked"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/Loan.csv",
+            "format" : "CSV",
+            "label" : "Loan",
+            "columns" : ["id", "loanAmount", "balance"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/Company.csv",
+            "format" : "CSV",
+            "label" : "Company",
+            "columns" : ["id", "name", "isBlocked"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/account_transfer_account.csv",
+            "format" : "CSV",
+            "label" : "transfer",
+            "SRC_ID" : "Account",
+            "DST_ID" : "Account",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount", "SKIP"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/account_withdraw_account.csv",
+            "format" : "CSV",
+            "label" : "withdraw",
+            "SRC_ID" : "Account",
+            "DST_ID" : "Account",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/account_repay_loan.csv",
+            "format" : "CSV",
+            "label" : "repay",
+            "SRC_ID" : "Account",
+            "DST_ID" : "Loan",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/loan_deposit_account.csv",
+            "format" : "CSV",
+            "label" : "deposit",
+            "SRC_ID" : "Loan",
+            "DST_ID" : "Account",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "amount"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/medium_signin_account.csv",
+            "format" : "CSV",
+            "label" : "signIn",
+            "SRC_ID" : "Medium",
+            "DST_ID" : "Account",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/person_invest_company.csv",
+            "format" : "CSV",
+            "label" : "invest",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Company",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "ratio"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/company_invest_company.csv",
+            "format" : "CSV",
+            "label" : "invest",
+            "SRC_ID" : "Company",
+            "DST_ID" : "Company",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp", "ratio"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/person_apply_loan.csv",
+            "format" : "CSV",
+            "label" : "apply",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Loan",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/company_apply_loan.csv",
+            "format" : "CSV",
+            "label" : "apply",
+            "SRC_ID" : "Company",
+            "DST_ID" : "Loan",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/person_guarantee_person.csv",
+            "format" : "CSV",
+            "label" : "guarantee",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/company_guarantee_company.csv",
+            "format" : "CSV",
+            "label" : "guarantee",
+            "SRC_ID" : "Company",
+            "DST_ID" : "Company",
+            "columns" : ["SRC_ID", "DST_ID", "timestamp"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/company_own_account.csv",
+            "format" : "CSV",
+            "label" : "own",
+            "SRC_ID" : "Company",
+            "DST_ID" : "Account",
+            "columns" : ["SRC_ID", "DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/person_own_account.csv",
+            "format" : "CSV",
+            "label" : "own",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Account",
+            "columns" : ["SRC_ID", "DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_finbench/person_workin_company.csv",
+            "format" : "CSV",
+            "label" : "workIn",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Company",
+            "columns" : ["SRC_ID", "DST_ID"]
+        }
+    ]
+}

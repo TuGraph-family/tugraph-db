@@ -12,6 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "monitor_manager.h"
+#include "cypher/monitor/monitor_manager.h"
 
 MonitorManager AllocatorManager;

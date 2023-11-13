@@ -40,19 +40,22 @@ class SingleLanguagePluginManager {
  protected:
     KillableRWLock lock_;
     LightningGraph* db_ = nullptr;
+    std::string language_;
     std::string graph_name_;
     std::string plugin_dir_;
-    KvTable table_;
+    std::unique_ptr<KvTable> table_;
     std::map<std::string, PluginInfoBase*> procedures_;
     std::unique_ptr<PluginManagerImplBase> impl_;
 
  public:
-    SingleLanguagePluginManager(const std::string& graph_name, const std::string& plugin_dir,
-                                const std::string& table_name, KvTransaction& txn, KvStore& store,
+    SingleLanguagePluginManager(const std::string& language, const std::string& graph_name,
+                                const std::string& plugin_dir, const std::string& table_name,
+                                KvTransaction& txn, KvStore& store,
                                 std::unique_ptr<PluginManagerImplBase>&& impl);
 
-    SingleLanguagePluginManager(LightningGraph* db, const std::string& graph_name,
-                                const std::string& plugin_dir, const std::string& table_name,
+    SingleLanguagePluginManager(const std::string& language, LightningGraph* db,
+                                const std::string& graph_name, const std::string& plugin_dir,
+                                const std::string& table_name,
                                 std::unique_ptr<PluginManagerImplBase>&& impl);
 
     virtual ~SingleLanguagePluginManager();
@@ -82,7 +85,8 @@ class SingleLanguagePluginManager {
     // throws on error
     virtual bool LoadPluginFromCode(const std::string& user, const std::string& name,
                                     const std::string& code, plugin::CodeType code_type,
-                                    const std::string& desc, bool read_only);
+                                    const std::string& desc, bool read_only,
+                                    const std::string& version);
 
     // delete plugin
     // return true if success, false if plugin does not exist
@@ -95,10 +99,10 @@ class SingleLanguagePluginManager {
     // returns true if success, false if no such plugin
     // TODO(jinyejun.jyj): Split into two overloaded function, one takes txn and the other one
     // takes db_with_access_control
-    virtual bool Call(lgraph_api::Transaction* txn,
-                      const std::string& user, AccessControlledDB* db_with_access_control,
-                      const std::string& name_, const std::string& request, double timeout,
-                      bool in_process, std::string& output);
+    virtual bool Call(lgraph_api::Transaction* txn, const std::string& user,
+                      AccessControlledDB* db_with_access_control, const std::string& name_,
+                      const std::string& request, double timeout, bool in_process,
+                      std::string& output);
 
  protected:
     void LoadAllPlugins(KvTransaction& txn);
@@ -156,7 +160,8 @@ class SingleLanguagePluginManager {
     void UnloadAllPlugins();
 
     void LoadPlugin(const std::string& user, KvTransaction& txn, const std::string& name,
-                              const std::string& exe, const std::string& desc, bool read_only);
+                    const std::string& exe, const std::string& desc, bool read_only,
+                    const std::string& version);
 
     // compile plugin and return binary code
     std::string CompilePluginFromCython(const std::string& name, const std::string& cython);
@@ -180,6 +185,8 @@ class SingleLanguagePluginManager {
                              fma_common::BinaryBuffer& info);
 
     bool isHashUpTodate(KvTransaction& txn, std::string name);
+
+    std::string SignatureToJsonString(const lgraph_api::SigSpec& spec);
 };
 
 class PluginManager {
@@ -209,7 +216,7 @@ class PluginManager {
      * @return  true if success, false if not found the plugin.
      */
     bool GetPluginSignature(PluginType type, const std::string& user, const std::string& name,
-                       lgraph_api::SigSpec** sig_spec);
+                            lgraph_api::SigSpec** sig_spec);
 
     /**
      * Loads plugin from code
@@ -234,13 +241,14 @@ class PluginManager {
      * @param          code_type            The code type, py, so, cpp or zip.
      * @param          desc                 The description.
      * @param          read_only            True to read only.
+     * @param          version              v1 or v2. v1 for legacy, v2 for POG.
      *
      * @return  true if success, false if plugin already exists
      */
     virtual bool LoadPluginFromCode(PluginType type, const std::string& user,
                                     const std::string& name, const std::string& code,
                                     plugin::CodeType code_type, const std::string& desc,
-                                    bool read_only);
+                                    bool read_only, const std::string& version);
 
     /**
      * Deletes the plugin
@@ -276,15 +284,9 @@ class PluginManager {
      *
      * @return  true if success, false if no such plugin
      */
-    bool Call(lgraph_api::Transaction* txn,
-              PluginType type,
-              const std::string& user,
-              AccessControlledDB* db_with_access_control,
-              const std::string& name_,
-              const std::string& request,
-              double timeout,
-              bool in_process,
-              std::string& output);
+    bool Call(lgraph_api::Transaction* txn, PluginType type, const std::string& user,
+              AccessControlledDB* db_with_access_control, const std::string& name_,
+              const std::string& request, double timeout, bool in_process, std::string& output);
 
  protected:
     inline std::unique_ptr<SingleLanguagePluginManager>& SelectManager(PluginType type) {
@@ -296,5 +298,11 @@ class InvalidPluginNameException : public InputError {
  public:
     explicit InvalidPluginNameException(const std::string& name)
         : InputError(FMA_FMT("Invalid plugin name [{}].", name)) {}
+};
+
+class InvalidPluginVersionException : public InputError {
+ public:
+    explicit InvalidPluginVersionException(const std::string& version)
+        : InputError(FMA_FMT("Invalid plugin version [{}].", version)) {}
 };
 }  // namespace lgraph

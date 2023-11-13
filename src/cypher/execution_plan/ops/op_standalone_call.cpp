@@ -16,8 +16,9 @@
 // Created by wt on 18-7-31.
 //
 #include "procedure/utils.h"
-#include "op_standalone_call.h"
+#include "cypher/execution_plan/ops/op_standalone_call.h"
 #include "procedure/procedure.h"
+#include "resultset/record.h"
 #include "server/json_convert.h"
 
 cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
@@ -38,7 +39,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
         if (names[2] == "list") {
             auto plugins = ac_db.ListPlugins(type, token);
-            // todo: return records other than just strings
+            // TODO(anyone): return records other than just strings
             auto &header = ctx->result_->Header();
             if (header.size() > 1)
                 throw lgraph::InputError(FMA_FMT("Plugin [{}] header is excaption.", names[2]));
@@ -48,8 +49,8 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 s.append(p.name).append(" | ").append(p.desc).append(" | ").append(
                     p.read_only ? "READ" : "WRITE");
 
-                auto &r = ctx->result_->NewRecord();
-                r.Insert(title, lgraph::FieldData(s));
+                auto r = ctx->result_->MutableRecord();
+                r->Insert(title, lgraph::FieldData(s));
             }
         } else {
             if (ctx->txn_) ctx->txn_->Abort();
@@ -57,7 +58,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
             if (!exists) throw lgraph::InputError("Plugin [{}] does not exist.", names[2]);
             ctx->result_->Load(output);
 #if 0
-            /* todo: redundant parse */
+            /* TODO(anyone): redundant parse */
             try {
                 std::vector<std::string> headers;
                 std::vector<Record> records;
@@ -90,17 +91,12 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         SetFunc(procedure_name);
         std::vector<Record> records;
         std::vector<std::string> _yield_items;
-        std::transform(
-            yield_items.cbegin(),
-            yield_items.cend(),
-            std::back_inserter(_yield_items),
-            [](const auto& item) {
-            return item.first;
-        });
+        std::transform(yield_items.cbegin(), yield_items.cend(), std::back_inserter(_yield_items),
+                       [](const auto &item) { return item.first; });
         procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
-            auto &record = ctx->result_->NewRecord();
+            auto record = ctx->result_->MutableRecord();
             int idx = 0;
             for (auto &v : r.values) {
                 auto title = header[idx].first;
@@ -113,18 +109,25 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                     CYPHER_TODO();
                     break;
                 case lgraph_api::LGraphType::ANY:
+                    if (v.type == Entry::RecordEntryType::CONSTANT &&
+                        v.constant.type == cypher::FieldData::FieldType::SCALAR) {
+                        record->Insert(title, lgraph::FieldData(v.constant.scalar));
+                    } else {
+                        record->Insert(title, lgraph::FieldData(v.ToString()));
+                    }
+                    break;
                 case lgraph_api::LGraphType::PATH:
-                    // TODO PATH is undefine
-                    record.Insert(title, lgraph::FieldData(v.ToString()));
+                    // TODO(anyone): PATH is undefine
+                    record->Insert(title, lgraph::FieldData(v.ToString()));
                     break;
                 case lgraph_api::LGraphType::MAP:
                     {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::map<std::string, lgraph::FieldData> map;
                         for (auto &o : obj.items()) {
-                            map[o.key()] = lgraph::FieldData(o.value().dump());
+                            map[o.key()] = lgraph_rfc::JsonToFieldData(o.value());
                         }
-                        record.Insert(title, map);
+                        record->Insert(title, map);
                         break;
                     }
                 case lgraph_api::LGraphType::LIST:
@@ -132,17 +135,16 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         auto obj = lgraph_rfc::FieldDataToJson(v.constant.scalar);
                         std::vector<lgraph::FieldData> list;
                         for (auto &o : obj) {
-                            list.emplace_back(lgraph::FieldData(o.dump()));
+                            list.emplace_back(lgraph_rfc::JsonToFieldData(o));
                         }
-                        record.Insert(title, list);
+                        record->Insert(title, list);
                         break;
                     }
                 default:
                     if (v.constant.array != nullptr) {
-                        record.Insert(title, lgraph::FieldData(v.ToString()));
-                    }
-                    else {
-                        record.Insert(title, v.constant.scalar);
+                        record->Insert(title, lgraph::FieldData(v.ToString()));
+                    } else {
+                        record->Insert(title, v.constant.scalar);
                     }
                 }
                 idx++;

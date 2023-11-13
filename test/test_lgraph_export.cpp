@@ -123,7 +123,7 @@ TEST_F(TestLGraphExport, LGraphExport) {
             "primary" : "name",
             "properties" : [
                 {"name": "name", "type":"STRING"},
-                {"name": "id", "type":"INT32", "index":true, "unique":true}
+                {"name": "id", "type":"INT32"}
             ]
         },
         {
@@ -131,7 +131,7 @@ TEST_F(TestLGraphExport, LGraphExport) {
             "label" : "BORN_IN",
             "type" : "EDGE",
             "properties" : [
-                {"name" : "weight", "type":"FLOAT", "optional":true}
+                {"name" : "weight", "type":"FLOAT", "index":true, "pair_unique":true}
             ]
         },
         {"constraints":[["Person","Person"],["Person","City"]], "label" : "KNOWS", "type" : "EDGE"}
@@ -196,7 +196,7 @@ Liam Neeson,1952,181
 Natasha Richardson,1963,159
 Richard Harris,1930,169
 Dennis Quaid,1954,170
-Lindsay Lohan,1986,170
+Lindsay Lohan,1986,173
 Jemma Redgrave,1965,172
 Roy Redgrave,1873,171
 John Williams,1932,167

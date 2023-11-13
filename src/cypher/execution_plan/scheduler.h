@@ -27,7 +27,8 @@
 #include "plugin/python_plugin.h"
 
 #include "execution_plan/execution_plan.h"
-#include "lru_cache.h"
+#include "execution_plan/runtime_context.h"
+#include "cypher/execution_plan/lru_cache.h"
 
 namespace lgraph {
 class StateMachine;
@@ -41,16 +42,24 @@ struct ElapsedTime {
     double t_exec = 0;
 };
 
-class ExecutionPlan;
 class Scheduler {
  public:
-    void Eval(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);
+    void Eval(RTContext *ctx, const lgraph_api::GraphQueryType &type, const std::string &script,
+              ElapsedTime &elapsed);
 
-    std::shared_ptr<ExecutionPlan> ParseQuery(RTContext *ctx, const std::string &script,
-                                              double &elapsed) {
-        return nullptr;
-    }
+    static bool DetermineReadOnly(cypher::RTContext *ctx,
+                                  const lgraph_api::GraphQueryType &query_type,
+                                  const std::string &script, std::string &name, std::string &type);
 
-    static bool DetermineReadOnly(const std::string &script, std::string& name, std::string& type);
+ private:
+    void EvalCypher(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);
+
+    void EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);
+
+    static bool DetermineCypherReadOnly(cypher::RTContext *ctx, const std::string &script,
+                                        std::string &name, std::string &type);
+
+    static bool DetermineGqlReadOnly(cypher::RTContext *ctx, const std::string &script,
+                                     std::string &name, std::string &type);
 };
 }  // namespace cypher

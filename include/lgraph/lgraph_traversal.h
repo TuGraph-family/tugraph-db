@@ -1,16 +1,12 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+﻿
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 
@@ -169,7 +165,8 @@ class FrontierTraversal {
      * @param [in,out]  txn     The transaction.
      * @param           flags   (Optional) The options used during traversals.
      */
-    FrontierTraversal(GraphDB &db, Transaction &txn, size_t flags = 0);
+    FrontierTraversal(GraphDB &db, Transaction &txn, size_t flags = 0,
+        size_t capacity = MAX_RESULT_SIZE);
 
     /**
      * @brief   Retrieve the current (i.e. latest) frontier.
@@ -284,8 +281,8 @@ class Edge {
     size_t start_;
     size_t end_;
     size_t eid_;
-    int64_t tid_;
     uint16_t lid_;
+    int64_t tid_;
     bool forward_;
 
  public:
@@ -483,7 +480,7 @@ class IteratorHelper {
 
 /**
  * @brief   PathTraversal behaves similar to FrontierTraversal, except that
- *          1) Each vertex could be revisited multiple times.  
+ *          1) Each vertex could be revisited multiple times.
  *          2) Each traversed path would be stored, and the filter function has access to the
  *          path.
  */
@@ -507,7 +504,7 @@ class PathTraversal {
      * @param [in,out]  txn     The transaction.
      * @param           flags   The options used during traversals.
      */
-    PathTraversal(GraphDB &db, Transaction &txn, size_t flags);
+    PathTraversal(GraphDB &db, Transaction &txn, size_t flags, size_t capacity = MAX_RESULT_SIZE);
 
     /**
      * @brief   Retrieve the current (i.e. latest) frontier.

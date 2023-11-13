@@ -40,7 +40,7 @@ struct Entry {
         NODE,
         RELATIONSHIP,
         VAR_LEN_RELP,
-        HEADER,  // todo: useless?
+        HEADER,  // TODO(anyone) useless?
         NODE_SNAPSHOT,
         RELP_SNAPSHOT,
     } type;
@@ -48,6 +48,8 @@ struct Entry {
     Entry() = default;
 
     explicit Entry(const cypher::FieldData &v) : constant(v), type(CONSTANT) {}
+
+    explicit Entry(cypher::FieldData &&v) : constant(std::move(v)), type(CONSTANT) {}
 
     explicit Entry(Node *v) : node(v), type(NODE) {}
 
@@ -106,7 +108,7 @@ struct Entry {
             return (type == rhs.type && constant == rhs.constant) ||
                    (EqualNull() && rhs.EqualNull());
         case NODE:
-            // todo: should be this.vid = rhs.vid?
+            // TODO(anyone) should be this.vid = rhs.vid?
             return (type == rhs.type && node == rhs.node) || (EqualNull() && rhs.EqualNull());
         case RELATIONSHIP:
             return (type == rhs.type && relationship == rhs.relationship) ||
@@ -172,7 +174,7 @@ struct Entry {
             return constant.ToString(null_value);
         case NODE_SNAPSHOT:
         case RELP_SNAPSHOT:
-            // TODO: use integers // NOLINT
+            // TODO(anyone) use integers
             return constant.scalar.string();
         case NODE:
             {
@@ -206,12 +208,12 @@ struct Entry {
         case CONSTANT:
             break;
         case NODE:
-            /* TODO: save VID in integer constant */
+            /* TODO(anyone) save VID in integer constant */
             constant = ::lgraph::FieldData(ToString());
             type = NODE_SNAPSHOT;
             break;
         case RELATIONSHIP:
-            /* TODO: save <EID> in integer list */
+            /* TODO(anyone) save <EID> in integer list */
             constant = ::lgraph::FieldData(ToString());
             type = RELP_SNAPSHOT;
             break;
@@ -231,7 +233,7 @@ struct Record {
 
     Record() = default;
 
-    Record(size_t size) { values.resize(size); }
+    explicit Record(size_t size) { values.resize(size); }
 
     Record(size_t size, const SymbolTable *sym_tab) : symbol_table(sym_tab) { values.resize(size); }
 

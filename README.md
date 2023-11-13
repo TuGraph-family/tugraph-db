@@ -4,9 +4,11 @@
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 
-:mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-7b50ea3d20e643da95bf&ServiceVersion=1&isTrial=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**
+[[中文版]](README_CN.md)
 
-## 0. Introduction
+:mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-7b50ea3d20e643da95bf&ServiceVersion=1&isTrial=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**.
+
+## 1. Introduction
 TuGraph is an efficient graph database that supports high data volume, low latency lookup and fast graph analytics.
 
 Functionalities:
@@ -25,38 +27,51 @@ Performance and scalability:
 - Visit millions of vertices per second
 - Fast bulk import
 
-Welcome to our [website](https://www.tugraph.org)
+You can find TuGraph's doc by [link](https://tugraph-db.readthedocs.io/en/latest), and welcome to our [website](https://www.tugraph.org).
 
-## 1. Quick Start
+## 2. Quick Start
 
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
 
-For more details, please refer to [quick start doc](doc/zh-CN/1.guide/3.quick-start.md).
+For more details, please refer to [quick start doc](docs/en-US/source/3.quick-start/1.preparation.md).
 
-## 2. Build from Source
+## 3. Build from Source
 
 It's recommended to build TuGraph in linux system, and docker environment is a good choice. If you want to setup a new environment, please refer to [Dockerfile](ci/images).
 
 Here are steps to compile TuGraph:
-1. `deps/build_deps.sh` or `SKIP_WEB=1 deps/build_deps.sh` to skip building web interface
+1. `deps/build_deps.sh` or to skip building web interface `SKIP_WEB=1 deps/build_deps.sh` 
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 4. `make`
 5. `make package` or `cpack --config CPackConfig.cmake`
 
-## 3. Develop
+Example:
+`tugraph/tugraph-compile-centos7`Docker environment
+
+```bash
+$ git clone --recursive https://github.com/TuGraph-family/tugraph-db.git
+$ cd tugraph-db
+$ deps/build_deps.sh
+$ mkdir build && cd build
+$ cmake .. -DOURSYSTEM=centos -DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1
+$ make
+$ make package
+```
+
+## 4. Develop
 
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-compile-[os]:[compile version]`, 
 for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers get started easily.
 
-We have a [roadmap](doc/zh-CN/6.community/3.roadmap.md) to help you understand TuGraph.
+We have a [roadmap](docs/en-US/source/6.contributor-manual/5.roadmap.md) to help you understand TuGraph.
 
-To contribute, please read [doc](doc/zh-CN/6.community/1.contributing.md)
+To contribute, please read [doc](docs/en-US/source/6.contributor-manual/1.contributing.md).
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
-## 4. Contact
+## 5. Contact
 
 Email: tugraph@service.alipay.com
 
@@ -73,13 +88,13 @@ Slack (For developer quick communication):
 
 DingTalk Group (For general technical discussion)
 
-![alert](./doc/images/dingtalk.png)
+![alert](./docs/images/dingtalk.png)
 
 WeChat Group (For general technical discussion)
 
-![alert](./doc/images/wechat_tech.png)
+![alert](./docs/images/wechat_tech.png)
 
 WeChat Official Account (For announcement)
 
-![alert](./doc/images/wechat.png)
+![alert](./docs/images/wechat.png)
 

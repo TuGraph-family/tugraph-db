@@ -21,19 +21,18 @@ if ((NOT LEVELDB_INCLUDE_PATH) OR (NOT LEVELDB_LIB))
     message(FATAL_ERROR "Fail to find leveldb")
 endif ()
 
-# openssl for cpprest
-find_package(OpenSSL)
-
 # protbuf
 include(cmake/GenerateProtobuf.cmake)
 GenerateProtobufCpp(${CMAKE_CURRENT_LIST_DIR}/protobuf
         PROTO_SRCS PROTO_HEADERS
-        ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto)
+        ${CMAKE_CURRENT_LIST_DIR}/protobuf/ha.proto
+        ${CMAKE_CURRENT_LIST_DIR}/protobuf/tugraph_db_management.proto)
 
 include_directories(${DEPS_INCLUDE_DIR})
 
 # brpc
 set(BRPC_LIB libbrpc.a)
+set(BRAFT_LIB libbraft.a)
 
 ############### liblgraph_server_lib ######################
 
@@ -45,17 +44,22 @@ add_library(${TARGET_SERVER_LIB} STATIC
         plugin/cpp_plugin.cpp
         server/lgraph_server.cpp
         server/state_machine.cpp
+        server/ha_state_machine.cpp
+        server/db_management_client.cpp
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
         restful/server/rest_server.cpp
-        restful/server/stdafx.cpp)
+        restful/server/stdafx.cpp
+        http/http_server.cpp
+        http/import_manager.cpp
+        http/import_task.cpp
+        ${PROTO_SRCS})
 
 target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}
         -D__const__=
         -pipe
-        #-W -Wall -Wno-unused-parameter
         -fPIC -fno-omit-frame-pointer)
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
@@ -63,19 +67,21 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             PUBLIC
             lgraph
             lgraph_cypher_lib
+            geax_isogql
             # begin static linking
             -Wl,-Bstatic
             cpprest
+            ${BRAFT_LIB}
             ${BRPC_LIB}
             ${PROTOBUF_LIBRARY}
             ${GFLAGS_LIBRARY}
             ${GPERFTOOLS_LIBRARIES}
             ${LEVELDB_LIB}
             snappy
+            OpenSSL::ssl
+            OpenSSL::crypto
             # end static linking
             -Wl,-Bdynamic
-            ssl
-            crypto
             dl
             c
             )
@@ -84,6 +90,7 @@ else ()
             PUBLIC
             lgraph
             lgraph_cypher_lib
+            ${BRAFT_LIB}
             ${BRPC_LIB}
             ${LEVELDB_LIB}
             ${PROTOBUF_LIBRARY}
@@ -103,7 +110,8 @@ else ()
             profiler
             snappy
             pthread
-            ssl
+            OpenSSL::ssl
+            OpenSSL::crypto
             z
             )
 endif ()

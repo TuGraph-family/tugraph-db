@@ -16,6 +16,7 @@
 
 #include "fma-common/file_system.h"
 #include "fma-common/fma_stream.h"
+#include "fma-common/utils.h"
 #include "restful/server/rest_server.h"
 #include "restful/server/json_convert.h"
 
@@ -27,8 +28,10 @@
 #include "protobuf/ha.pb.h"
 #include "server/proto_convert.h"
 #include "server/state_machine.h"
+#include "tools/lgraph_log.h"
 
 #ifndef _WIN32
+#include "execution_plan/runtime_context.h"
 #include "cypher/resultset/record.h"
 #endif
 
@@ -452,10 +455,13 @@ void RestServer::Start() {
     init_server();
     try {
         listener_.open().wait();
-        FMA_INFO_STREAM(logger_) << "Listening for REST on port " << config_.port;
+        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Listening for REST on port "
+            << config_.port;
         started_ = true;
     } catch (std::exception& e) {
-        FMA_FATAL_STREAM(logger_) << "Error initializing REST server: " << e.what();
+        GENERAL_LOG_STREAM(FATAL, logger_.GetName()) << "Error initializing REST server: "
+            << e.what();
+        EXIT_ON_FATAL(0);
     }
 }
 
@@ -467,13 +473,14 @@ void RestServer::Stop() {
         listener_.close().wait();
         // cpprestsdk has some mysterious bugs that crashes server if we exit too quickly
         fma_common::SleepS(0.5);
-        FMA_INFO_STREAM(logger_) << "REST server stopped.";
+        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "REST server stopped.";
         started_ = false;
 #ifndef _WIN32
         cypher_scheduler_ = nullptr;
 #endif
     } catch (std::exception& e) {
-        FMA_WARN_STREAM(logger_) << "Failed to stop REST server: " << e.what();
+        GENERAL_LOG_STREAM(WARNING, logger_.GetName()) << "Failed to stop REST server: "
+            << e.what();
     }
 }
 
@@ -592,6 +599,7 @@ http_response RestServer::GetCorsResponse(status_code code) const {
     response.headers().add(_TU("Access-Control-Allow-Credentials"), true);
     response.headers().add(_TU("Access-Control-Allow-Methods"),
                            _TU("GET, POST, PUT, OPTIONS, DELETE"));
+    response.headers().add(_TU("Set-Cookie"), _TU("HttpOnly; Secure; SameSite=Strict"));
     response.headers().add(RestStrings::SVR_VER, state_machine_->GetVersion());
     return response;
 }
@@ -807,35 +815,6 @@ static void FieldDataToJson(const std::string& key, lgraph::FieldData& value,
 }
 
 /**
- * Convert JSON to field data. If JSON value is null integer, double or string, convert to
- * corresponding FieldData, otherwise fd is left unchanged and return false.
- *
- * @param          v    A web::json::value to process.
- * @param [in,out] fd   The fd.
- *
- * @return  True if success, otherwise false
- */
-static bool JsonToFieldData(const web::json::value& v, FieldData& fd) {
-    if (v.is_integer()) {
-        fd = lgraph::FieldData(static_cast<int64_t>(v.as_number().to_int64()));
-        return true;
-    }
-    if (v.is_double()) {
-        fd = lgraph::FieldData(v.as_double());
-        return true;
-    }
-    if (v.is_string()) {
-        fd = lgraph::FieldData(_TS(v.as_string()));
-        return true;
-    }
-    if (v.is_null()) {
-        fd = lgraph::FieldData();
-        return true;
-    }
-    return false;
-}
-
-/**
  * Gets node properties and convert to JSON. This assumes that the node iterator is valid.
  *
  * @param [in,out] txn          The transaction.
@@ -884,13 +863,6 @@ static bool ExtractVidFromString(const utility::string_t& str, lgraph::VertexId&
     const std::string& s = _TS(str);
     if (_F_UNLIKELY(s.empty())) return false;
     size_t r = fma_common::TextParserUtils::ParseInt64(s.data(), s.data() + s.size(), vid);
-    return r == s.size();
-}
-
-static bool ExtractLidFromString(const utility::string_t& str, lgraph::LabelId& lid) {
-    const std::string& s = _TS(str);
-    if (_F_UNLIKELY(s.empty())) return false;
-    size_t r = fma_common::TextParserUtils::ParseT<LabelId>(s.data(), s.data() + s.size(), lid);
     return r == s.size();
 }
 
@@ -1071,8 +1043,8 @@ void RestServer::HandleGetInfo(const std::string& user, const http_request& requ
             if (s == 0) num_log = 100;
         }
         if (it_descending_order != query.end())
-            size_t s = fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
-                                                                 descending_order);
+            fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
+                                                      descending_order);
         FMA_DBG_STREAM(logger_) << " log_order: " << descending_order;
 
         std::vector<lgraph::AuditLog> logs = AuditLogger::GetInstance().GetLog(
@@ -1541,7 +1513,9 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
-    if (token.empty()) return RespondUnauthorized(request, "Bad user/password.");
+    if (!galaxy_->JudgeUserTokenNum(username)) {
+        throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
+    }
     web::json::value response;
     response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
     response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
@@ -1667,31 +1641,61 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
                                   const utility::string_t& relative_path,
                                   const std::vector<utility::string_t>& paths,
                                   const web::json::value& body) const {
-    // /cypher
+    HandlePostGraphQuery(user, token, lgraph_api::GraphQueryType::CYPHER, request, relative_path,
+                         paths, body);
+}
+
+// POST /gql
+// executes a gql query on the graph specified
+// input JSON: {"graph":"default", "script":"MATCH (n WHERE n.id = 3) return n", "parameters":""}
+// output:
+void RestServer::HandlePostGql(const std::string& user, const std::string& token,
+                               const web::http::http_request& request,
+                               const utility::string_t& relative_path,
+                               const std::vector<utility::string_t>& paths,
+                               const web::json::value& body) const {
+    HandlePostGraphQuery(user, token, lgraph_api::GraphQueryType::GQL, request, relative_path,
+                         paths, body);
+}
+
+void RestServer::HandlePostGraphQuery(const std::string& user, const std::string& token,
+                                      const lgraph_api::GraphQueryType& query_type,
+                                      const web::http::http_request& request,
+                                      const utility::string_t& relative_path,
+                                      const std::vector<utility::string_t>& paths,
+                                      const web::json::value& body) const {
+    auto log_api_type = query_type == lgraph_api::GraphQueryType::CYPHER
+                            ? lgraph::LogApiType::Cypher
+                            : lgraph::LogApiType::Gql;
     if (paths.size() != 1) {
-        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Cypher, false, "POST " + _TS(relative_path));
+        BEG_AUDIT_LOG(user, "", log_api_type, false, "POST " + _TS(relative_path));
         return RespondBadURI(request);
     }
 
 #ifdef _WIN32
-    return RespondInternalError(request, "Cypher is not supported on windows servers.");
+    return RespondInternalError(request, "Cypher/Gql is not supported on windows servers.");
 #else
     std::string graph, query;
     if (!ExtractStringField(body, RestStrings::GRAPH, graph)) graph = "";
     if (!ExtractStringField(body, RestStrings::SCRIPT, query)) {
-        BEG_AUDIT_LOG(user, graph, lgraph::LogApiType::Cypher, false, "[CYPHER] " + query);
+        BEG_AUDIT_LOG(user, graph, log_api_type, false,
+                      "[" + lgraph_api::to_string(query_type) + "] " + query);
         return RespondBadJSON(request);
     }
-    BEG_AUDIT_LOG(user, graph, lgraph::LogApiType::Cypher, false, "[CYPHER]" + query);
+    BEG_AUDIT_LOG(user, graph, log_api_type, false,
+                  "[" + lgraph_api::to_string(query_type) + "]" + query);
     double timeout = 0;
     ExtractTypedField(body, RestStrings::TIMEOUT, timeout);
     web::json::value response;
 
     LGraphRequest proto_req;
     proto_req.set_token(token);
+    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, graph);
+    cypher::RTContext ctx(state_machine_, galaxy_, token, user, graph, field_access);
     std::string name;
     std::string type;
-    bool ret = cypher::Scheduler::DetermineReadOnly(query, name, type);
+    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query,
+                                                    name, type);
     if (name.empty() || type.empty()) {
         proto_req.set_is_write_op(!ret);
     } else {
@@ -1704,7 +1708,8 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
         proto_req.set_is_write_op(!ret);
     }
 
-    CypherRequest* creq = proto_req.mutable_cypher_request();
+    GraphQueryRequest* creq = proto_req.mutable_graph_query_request();
+    creq->set_type(convert::FromLGraphT(query_type));
     creq->set_result_in_json_format(false);
     creq->set_query(query);
     creq->set_graph(graph);
@@ -1725,10 +1730,10 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
 
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-        const auto& resp = proto_resp.cypher_response();
-        if (resp.Result_case() == CypherResponse::kJsonResult) {
+        const auto& resp = proto_resp.graph_query_response();
+        if (resp.Result_case() == GraphQueryResponse::kJsonResult) {
             return RespondSuccess(request, resp.json_result());
-        } else if (resp.Result_case() == CypherResponse::kBinaryResult) {
+        } else if (resp.Result_case() == GraphQueryResponse::kBinaryResult) {
             std::vector<web::json::value> vec_header;
             for (auto& c : resp.binary_result().header()) {
                 web::json::value col;
@@ -1753,7 +1758,7 @@ void RestServer::HandlePostCypher(const std::string& user, const std::string& to
         }
     }
 
-    return RespondRSMError(request, proto_resp, relative_path, "Cypher");
+    return RespondRSMError(request, proto_resp, relative_path, lgraph_api::to_string(query_type));
 #endif
 }
 
@@ -1932,15 +1937,15 @@ void RestServer::HandlePostIndex(const std::string& user, const std::string& tok
     greq->set_graph(_TS(paths[1]));
 
     AddIndexRequest* req = greq->mutable_add_index_request();
-    bool is_unique;
+    int type;
     if (!ExtractStringField(body, RestStrings::LABEL, *req->mutable_label()) ||
         !ExtractStringField(body, RestStrings::FIELD, *req->mutable_field()) ||
-        !ExtractBoolField(body, RestStrings::ISUNIQUE, is_unique)) {
+        !ExtractIntField(body, RestStrings::INDEXTYPE, type)) {
         BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::SingleApi, true,
                       "POST " + _TS(relative_path));
         return RespondBadJSON(request);
     }
-    req->set_is_unique(is_unique);
+    req->set_type(type);
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS)
         return RespondSuccess(request);
@@ -1971,7 +1976,7 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
 
         LoadPluginRequest* req = preq->mutable_load_plugin_request();
         bool read_only = false;
-        std::string code;
+        std::string code, version;
         if (!ExtractStringField(body, RestStrings::NAME, *req->mutable_name()) ||
             !ExtractBoolField(body, RestStrings::READONLY, read_only) ||
             !ExtractStringField(body, RestStrings::CODE, code)) {
@@ -1979,6 +1984,11 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
         }
+        // use v1 by default for compatibility
+        if (!ExtractStringField(body, RestStrings::VERSION, version)) {
+            version = "v1";
+        }
+        preq->set_version(version);
         req->set_read_only(read_only);
         {
             std::vector<unsigned char> decoded = utility::conversions::from_base64(_TU(code));
@@ -2457,8 +2467,8 @@ void RestServer::HandlePostUser(const std::string& user, const std::string& toke
     }
     LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
     if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-        if (paths.size() == 3 && paths[2] == RestStrings::PASS && !galaxy_->IsAdmin(user)) {
-            if (!galaxy_->UnBindTokenUser(token)) return RespondBadRequest(request, "Bad token.");
+        if (paths.size() == 3 && paths[2] == RestStrings::PASS) {
+            if (!galaxy_->UnBindUserAllToken(user)) return RespondBadRequest(request, "Bad token.");
         }
         return RespondSuccess(request);
     }
@@ -3028,10 +3038,11 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         std::string user;
         if (fpc != RestPathCases::LOGIN) user = GetUser(request, &token);
         if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
-            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime
-            && !galaxy_->JudgeRefreshTime(token)) {
-            throw AuthError("The token is unvalid.");
-            exit(-1);
+            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
+            if (!galaxy_->JudgeRefreshTime(token)) {
+                FMA_WARN() << "token has already expire";
+                throw AuthError("token has already expire");
+            }
         }
         FMA_DBG_STREAM(logger_) << "\n----------------"
                                 << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"
@@ -3047,6 +3058,8 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
             return HandlePostLogin(request, relative_path, paths, body);
         case RestPathCases::CYPHER:
             return HandlePostCypher(user, token, request, relative_path, paths, body);
+        case RestPathCases::GQL:
+            return HandlePostGql(user, token, request, relative_path, paths, body);
         case RestPathCases::USER:
             CHECK_IS_MASTER();
             return HandlePostUser(user, token, request, relative_path, paths, body);

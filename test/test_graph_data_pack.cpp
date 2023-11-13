@@ -321,8 +321,7 @@ TEST_F(TestGraphDataPack, GraphDataPack) {
             char eid = static_cast<char>(i);
             Value prop(5 + eid);
             memset(prop.Data(), eid, (int)prop.Size());
-            int64_t r =
-                ev.UpsertEdge(static_cast<lgraph::LabelId>(i), 0, 20, eid, prop, exist, pos);
+            ev.UpsertEdge(static_cast<lgraph::LabelId>(i), 0, 20, eid, prop, exist, pos);
             UT_EXPECT_TRUE(exist);
         }
         for (size_t i = 0; i < ev.GetEdgeCount(); i++) {

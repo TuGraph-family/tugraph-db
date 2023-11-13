@@ -40,7 +40,7 @@ class UnWeight_Config : public ConfigBase<Empty> {
         ConfigBase<Empty>::Print();
     }
 
-    UnWeight_Config(int& argc, char**& argv) : ConfigBase<Empty>(argc, argv) {
+    UnWeight_Config(int &argc, char** &argv) : ConfigBase<Empty>(argc, argv) {
         fma_common::Configuration config;
         AddParameter(config);
         config.ParseAndFinalize(argc, argv);
@@ -60,7 +60,7 @@ class Weight_Config : public ConfigBase<double> {
         std::cout << "  name: " << name << std::endl;
     }
 
-    Weight_Config(int& argc, char**& argv): ConfigBase<double>(argc, argv) {
+    Weight_Config(int &argc, char** &argv): ConfigBase<double>(argc, argv) {
         parse_line = parse_line_weighted<double>;
         parse_string_line = parse_string_line_weighted<double>;
         fma_common::Configuration config;
@@ -137,9 +137,8 @@ TEST_P(TestOlapOnDisk, OlapOnDisk) {
     bool id_mappings = GetParam().id_mapping;
 
     int argc = 3;
-    char ** argv = _ut_argv;
-    argv[1] = (char*)"--input_dir";
-    argv[2] = (char*)"./";
+    const char* args[3] = {"unit_test", "--input_dir", "./"};
+    char** argv = (char**)args;
     UnWeight_Config unweight_config(argc, argv);
     unweight_config.id_mapping = id_mappings;
     unweight_config.input_dir = input_dirs;
@@ -217,6 +216,7 @@ TEST_P(TestOlapOnDisk, OlapOnDisk) {
 
         index = 0;
         sub_graph.LoadFromArray((char*)edge_array, 11, 10, DUAL_DIRECTION);
+        delete [] edge_array;
         auto node = sub_graph.AllocVertexSubset();
         node.Fill();
         auto sub_label = sub_graph.AllocVertexArray<size_t>();

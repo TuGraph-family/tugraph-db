@@ -1,10 +1,6 @@
 # brpc
 set(BRPC_LIB libbrpc.a)
 
-# boost
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.68 REQUIRED COMPONENTS system filesystem)
-
 if (ENABLE_FULLTEXT_INDEX)
     # jni
     find_package(JNI REQUIRED)
@@ -25,17 +21,18 @@ endif ()
 
 find_library(SNAPPY NAMES snappy)
 
-find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp 3)
+find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 
 ############### liblgraph_client_cpp_rpc ######################
 
-set(TARGET_CPP_CLIENT_RPC lgraph_client_cpp_rpc)
+set(TARGET_CLIENT_CPP_RPC lgraph_client_cpp_rpc)
 
-add_library(${TARGET_CPP_CLIENT_RPC} SHARED
+add_library(${TARGET_CLIENT_CPP_RPC} SHARED
         client/cpp/rpc/lgraph_rpc_client.cpp
         ${PROTO_SRCS})
 
-target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
+target_include_directories(${TARGET_CLIENT_CPP_RPC} PRIVATE
         ${DEPS_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher    # for FieldDataConvert
@@ -43,8 +40,9 @@ target_include_directories(${TARGET_CPP_CLIENT_RPC} PRIVATE
         ${JNI_INCLUDE_DIRS})
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
-    target_link_libraries(${TARGET_CPP_CLIENT_RPC}
+    target_link_libraries(${TARGET_CLIENT_CPP_RPC}
             PUBLIC
+            ${Boost_LIBRARIES}
             # begin static linking
             -Wl,-Bstatic
             ${BRPC_LIB}
@@ -56,19 +54,18 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             gflags
             snappy
             -Wl,-Bstatic
-            ${Boost_LIBRARIES}
             -static-libstdc++
             -static-libgcc
             libstdc++fs.a
+            OpenSSL::ssl
+            OpenSSL::crypto
             -Wl,-Bdynamic
-            ssl
-            crypto
             rt
             dl
             z
             )
 else ()
-    target_link_libraries(${TARGET_CPP_CLIENT_RPC}
+    target_link_libraries(${TARGET_CLIENT_CPP_RPC}
             PUBLIC
             lgraph
             lgraph_cypher_lib
@@ -91,7 +88,7 @@ else ()
             profiler
             snappy
             pthread
-            ssl
+            OpenSSL::ssl
             z
             )
 endif ()
@@ -105,12 +102,15 @@ add_library(${TARGET_CPP_CLIENT_REST} SHARED
         ${PROTO_SRCS})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
+    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
         lgraph_server_lib
         ${BRPC_LIB}
         boost_system
         boost_filesystem
         ${JAVA_JVM_LIBRARY})
+else()
+    target_link_libraries(${TARGET_CPP_CLIENT_REST} PUBLIC
+        geax_isogql)
 endif()
 
 target_include_directories(${TARGET_CPP_CLIENT_REST} PRIVATE

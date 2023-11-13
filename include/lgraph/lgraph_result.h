@@ -1,20 +1,16 @@
-﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 /**
- * Result interface for plugins and built-in procedures. The result of a plugin should be provided
- * in this format in order for the Cypher engine and the graph visualizer to understand.
+ *  @file   lgraph_result.h
+ *  @brief  Result interface for plugins and built-in procedures. The result of a plugin should be provided
+ *          in this format in order for the Cypher engine and the graph visualizer to understand.
  */
 
 #pragma once
@@ -65,19 +61,7 @@ class Record {
      * @param   fname   Field name you defined earlier.
      * @param   fv      Field value.
      */
-     void Insert(const std::string &fname, const FieldData &fv);
-
-    /**
-     * @brief   insert a value to result table. You can insert a value by insert function,
-     *          and value type must be same as you defined earlier. You can get properties
-     *          and label from the interface, this is different from InsertEdgeByID.
-     * @param   fname     title name you defined earlier.
-     * @param   vid       VertextId
-     * @param   txn       Transaction
-     */
-    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
-    void Insert(const std::string &fname, const int64_t vid,
-        lgraph::Transaction* txn);
+    void Insert(const std::string &fname, const FieldData &fv);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
@@ -88,17 +72,6 @@ class Record {
      * @param   txn       Transaction
      */
     void Insert(const std::string &fname, const int64_t vid, lgraph_api::Transaction* txn);
-
-    /**
-     * @brief   insert a value to result table. You can insert a value by insert function,
-     *          and value type must be same as you defined earlier. You can get properties
-     *          and label from the interface, this is different from InsertVertexByID.
-     * @param   fname   title name you defined earlier.
-     * @param   euid    EdgeUid
-     * @param   txn     Transaction
-     */
-    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
-    void Insert(const std::string &fname, EdgeUid &euid, lgraph::Transaction* txn);
 
     /**
      * @brief   insert a value to result table. You can insert a value by insert function,
@@ -181,16 +154,6 @@ class Record {
      * @param  path     Path of traverse api.
      * @param  txn      Trasaction
      */
-    [[deprecated("The interface will be replaced by lgraph_api::Transaction")]]
-    void Insert(const std::string &fname, const traversal::Path &path, lgraph::Transaction* txn);
-
-    /**
-     * @brief   insert value into result table. You can insert a value by the function,
-     *          and value must be same as you defined earlier.
-     * @param  fname    one of title name you defined earlier.
-     * @param  path     Path of traverse api.
-     * @param  txn      Trasaction
-     */
     void Insert(const std::string &fname, const traversal::Path &path,
                 lgraph_api::Transaction* txn);
 #endif
@@ -213,10 +176,10 @@ class Record {
     bool HasKey(const std::string &key) { return header.find(key) != header.end(); }
 };
 /**
- * @brief   Result table, result instance provide [NewRecord], [ResetHeader], [Dump] and [Load]
+ * @brief   Result table, result instance provide [MutableRecord], [ResetHeader], [Dump] and [Load]
  *          method. Table also provide some method to view content of table. For example,
  *          [Header] and [Recordview].
- *          
+ *
  *          It's worth noting that you are best to define your header before using result table.
  *          eg.
  *                       auto result = Result({title, LGraphType}...)
@@ -270,7 +233,7 @@ class Result {
      *
      * @returns The reference of record.
      */
-    Record &NewRecord();
+    Record *MutableRecord();
 
     /**
      * @brief   return header of the table.

@@ -106,10 +106,10 @@ size_t GraphDB::EstimateNumVertices() {
 }
 
 bool GraphDB::AddVertexLabel(const std::string& label, const std::vector<FieldSpec>& fds,
-                             const std::string& primary_field) {
+                             const VertexOptions& options) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddLabel(true, label, fds, primary_field, {});
+    return db_->AddLabel(true, label, fds, options);
 }
 
 bool GraphDB::DeleteVertexLabel(const std::string& label, size_t* n_modified) {
@@ -151,11 +151,10 @@ bool GraphDB::AlterVertexLabelModFields(const std::string& label,
 }
 
 bool GraphDB::AddEdgeLabel(const std::string& label, const std::vector<FieldSpec>& fds,
-                           const std::string& temporal_field,
-                           const lgraph::EdgeConstraints& edge_constraints) {
+                           const EdgeOptions& options) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddLabel(false, label, fds, temporal_field, edge_constraints);
+    return db_->AddLabel(false, label, fds, options);
 }
 
 bool GraphDB::DeleteEdgeLabel(const std::string& label, size_t* n_modified) {
@@ -189,16 +188,16 @@ bool GraphDB::AlterEdgeLabelModFields(const std::string& label,
     return db_->AlterLabelModFields(label, mod_fields, false, n_modified);
 }
 
-bool GraphDB::AddVertexIndex(const std::string& label, const std::string& field, bool is_unique) {
+bool GraphDB::AddVertexIndex(const std::string& label, const std::string& field, IndexType type) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddVertexIndex(label, field, is_unique);
+    return db_->AddVertexIndex(label, field, type);
 }
 
-bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field, bool is_unique) {
+bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field, IndexType type) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddEdgeIndex(label, field, is_unique);
+    return db_->AddEdgeIndex(label, field, type);
 }
 
 bool GraphDB::IsVertexIndexed(const std::string& label, const std::string& field) {
@@ -276,6 +275,12 @@ std::vector<std::pair<EdgeUid, float>> GraphDB::QueryEdgeByFullTextIndex(const s
                                                                          int top_n) {
     THROW_IF_INVALID();
     return db_->QueryEdgeByFullTextIndex(label, query, top_n);
+}
+
+void GraphDB::RefreshCount() {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    db_->RefreshCount();
 }
 
 }  // namespace lgraph_api

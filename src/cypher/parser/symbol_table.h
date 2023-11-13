@@ -16,7 +16,7 @@
 // Created by wt on 19-2-25.
 //
 #pragma once
-#include "data_typedef.h"
+#include "cypher/parser/data_typedef.h"
 
 namespace cypher {
 
@@ -37,21 +37,32 @@ struct SymbolNode {
 
     SymbolNode(size_t i, Type t, Scope s) : id(i), type(t), scope(s) {}
 
-    inline static std::string to_string(SymbolNode::Type& v) {
-        switch (v) {
-        case CONSTANT:
-            return "CONSTANT";
-        case NODE:
-            return "NODE";
-        case RELATIONSHIP:
-            return "RELATIONSHIP";
-        case PARAMETER:
-            return "PARAMETER";
-        case NAMED_PATH:
-            return "NAMED_PATH";
-        default:
-            throw std::runtime_error("Unknown Field Type");
+    inline static std::string to_string(const SymbolNode::Type& t) {
+        static std::unordered_map<SymbolNode::Type, std::string> type_map = {
+            {SymbolNode::Type::CONSTANT, "CONSTANT"},
+            {SymbolNode::Type::NODE, "NODE"},
+            {SymbolNode::Type::RELATIONSHIP, "RELATIONSHIP"},
+            {SymbolNode::Type::PARAMETER, "PARAMETER"},
+            {SymbolNode::Type::NAMED_PATH, "NAMED_PATH"},
+        };
+        auto it = type_map.find(t);
+        if (it == type_map.end()) {
+            throw std::runtime_error("Unknown SymbolNode::Type");
         }
+        return it->second;
+    }
+
+    inline static std::string to_string(const SymbolNode::Scope& s) {
+        static std::unordered_map<SymbolNode::Scope, std::string> scope_map = {
+            {SymbolNode::Scope::LOCAL, "LOCAL"},
+            {SymbolNode::Scope::ARGUMENT, "ARGUMENT"},
+            {SymbolNode::Scope::DERIVED_ARGUMENT, "DERIVED_ARGUMENT"},
+        };
+        auto it = scope_map.find(s);
+        if (it == scope_map.end()) {
+            throw std::runtime_error("Unknown SymbolNode::Scope");
+        }
+        return it->second;
     }
 };
 

@@ -202,7 +202,7 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_SUCC(INT64, "1000000000000", 1000000000000L);
     _CHECK_PARSE_STRING_SUCC(DATE, "2019-09-01", Date("2019-09-01").DaysSinceEpoch());
     _CHECK_PARSE_STRING_SUCC(DATETIME, "2019-09-01 09:58:45",
-                             DateTime("2019-09-01 09:58:45").SecondsSinceEpoch());
+                             DateTime("2019-09-01 09:58:45").MicroSecondsSinceEpoch());
     _CHECK_PARSE_STRING_SUCC(STRING, "str", "str");
     _CHECK_PARSE_STRING_SUCC(BLOB, ::lgraph_api::base64::Encode("orig_str"), "orig_str");
 
@@ -314,9 +314,9 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
                             true);
     _TEST_FD_TO_VALUE_OF_FT(STRING, "2000-09-08", DATE, Date("2000-09-08").DaysSinceEpoch(), true);
     _TEST_FD_TO_VALUE_OF_FT(DATETIME, DateTime("2000-09-08 09:08:22"), DATETIME,
-                            DateTime("2000-09-08 09:08:22").SecondsSinceEpoch(), true);
+                            DateTime("2000-09-08 09:08:22").MicroSecondsSinceEpoch(), true);
     _TEST_FD_TO_VALUE_OF_FT(STRING, "2000-09-08 09:08:22", DATETIME,
-                            DateTime("2000-09-08 09:08:22").SecondsSinceEpoch(), true);
+                            DateTime("2000-09-08 09:08:22").MicroSecondsSinceEpoch(), true);
     _TEST_FD_TO_VALUE_OF_FT(STRING, "hello", STRING, "hello", true);
     _TEST_FD_TO_VALUE_OF_FT(INT32, 12, STRING, "hello", false);
     _TEST_FD_TO_VALUE_OF_FT(BLOB, "hello", BLOB, "hello", true);
@@ -357,7 +357,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     _TEST_PARSE_TO_V_OF_FT(DOUBLE, "3.4123", 3.4123);
     _TEST_PARSE_TO_V_OF_FT(DATE, "1000-01-02", Date("1000-01-02").DaysSinceEpoch());
     _TEST_PARSE_TO_V_OF_FT(DATETIME, "1000-01-01 01:01:01",
-                           DateTime("1000-01-01 01:01:01").SecondsSinceEpoch());
+                           DateTime("1000-01-01 01:01:01").MicroSecondsSinceEpoch());
     _TEST_PARSE_TO_V_OF_FT(BLOB, "aGVsbG9zdHJpbmc=", "hellostring");
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
@@ -372,7 +372,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(
         _TEST_PARSE_TO_V_OF_FT(DATE, "1000-01-02 00:01:02", Date("1000-01-02").DaysSinceEpoch()));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(
-        DATETIME, "1000-01-01", DateTime("1000-01-01 01:01:01").SecondsSinceEpoch()));
+        DATETIME, "1000-01-01", DateTime("1000-01-01 01:01:01").MicroSecondsSinceEpoch()));
 }
 
 TEST_F(TestFieldDataHelper, ValueCompare) {

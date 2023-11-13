@@ -1,4 +1,5 @@
-find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp 3)
+find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 
 set(TARGET_PYTHON_API lgraph_python_api)
 

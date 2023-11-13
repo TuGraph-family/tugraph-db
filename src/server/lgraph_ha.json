@@ -1,0 +1,16 @@
+{
+  "directory": "./db",
+  "ha_bootstrap_role": 0,
+  "host": "127.0.0.1",
+  "port": 7072,
+  "enable_rpc": true,
+  "rpc_port": 9092,
+  "enable_ha": true,
+  "ha_conf": "127.0.0.1:9092",
+  "verbose": 1,
+  "log_dir": "",
+  "ssl_auth": false,
+  "server_key": "./server-key.pem",
+  "server_cert": "./server-cert.pem",
+  "web": "./resource"
+}

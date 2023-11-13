@@ -1,16 +1,11 @@
-/**
- * Copyright 2022 AntGroup CO., Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
+//  Copyright 2022 AntGroup CO., Ltd.
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #pragma once
 
@@ -219,7 +214,7 @@ class GraphDB {
      * @returns True if it succeeds, false if the label already exists.
      */
     bool AddVertexLabel(const std::string &label, const std::vector<FieldSpec> &fds,
-                        const std::string &primary_field);
+                        const VertexOptions& options);
 
     /**
      * @brief   Deletes a vertex label and all the vertices with this label.
@@ -319,8 +314,7 @@ class GraphDB {
      */
     bool AddEdgeLabel(
         const std::string &label, const std::vector<FieldSpec> &fds,
-        const std::string &temporal_field = {},
-        const std::vector<std::pair<std::string, std::string>> &edge_constraints = {});
+        const EdgeOptions& options);
 
     /**
      * @brief   Deletes an edge label and all the edges of this type.
@@ -433,7 +427,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddVertexIndex(const std::string &label, const std::string &field, bool is_unique);
+    bool AddVertexIndex(const std::string &label, const std::string &field, IndexType type);
 
     /**
      * @brief   Adds an index to 'label:field'. This function blocks until the index is fully
@@ -451,7 +445,7 @@ class GraphDB {
      *
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddEdgeIndex(const std::string &label, const std::string &field, bool is_unique);
+    bool AddEdgeIndex(const std::string &label, const std::string &field, IndexType type);
 
     /**
      * @brief   Check if this vertex_label:field is indexed.
@@ -639,6 +633,15 @@ class GraphDB {
     std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string &label,
                                                                     const std::string &query,
                                                                     int top_n);
+
+    /**
+     * @brief   Recount the total number of vertex and edge, stop writing during the count
+     *
+     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     *                                      level.
+     */
+    void RefreshCount();
 };
 
 }  // namespace lgraph_api

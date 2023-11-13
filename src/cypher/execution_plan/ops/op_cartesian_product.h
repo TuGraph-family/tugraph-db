@@ -17,14 +17,14 @@
 //
 #pragma once
 
-#include "op.h"
+#include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
 class CartesianProduct : public OpBase {
     bool init;
 
-    // todo: optimize, such as expand
+    // TODO(anyone) optimize, such as expand
     void ResetStream(OpBase *root) {
         root->Reset();
         for (auto c : root->children) ResetStream(c);
@@ -67,7 +67,7 @@ class CartesianProduct : public OpBase {
             auto res = child->Initialize(ctx);
             if (res != OP_OK) return res;
             /* take the 1st non-null sym_tab of children
-             * todo: check more  */
+             * TODO(anyone) check more  */
             if (!sym_tab && child->record->symbol_table) {
                 sym_tab = child->record->symbol_table;
             }
@@ -114,6 +114,5 @@ class CartesianProduct : public OpBase {
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()
-
 };
 }  // namespace cypher
