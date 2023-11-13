@@ -61,7 +61,7 @@ void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& us
         delete kv.second;
     }
     procedures_.clear();
-    table_.Drop(txn);
+    table_->Drop(txn);
 }
 
 void lgraph::SingleLanguagePluginManager::DeleteAllPlugins(const std::string& user) {
@@ -130,24 +130,24 @@ bool lgraph::SingleLanguagePluginManager::GetPluginCode(const std::string& user,
         std::string cpp_key = GetCppKey(name);
         std::string so_key = GetSoKey(name);
         std::string cython_key = GetCythonKey(name);
-        if (table_.HasKey(txn.GetTxn(), Value::ConstRef(zip_key))) {
-            auto zip_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(zip_key));
-            const std::string& zip = zip_it.GetValue().AsString();
+        if (table_->HasKey(txn.GetTxn(), Value::ConstRef(zip_key))) {
+            auto zip_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(zip_key));
+            const std::string& zip = zip_it->GetValue().AsString();
             ret.code = zip;
             ret.code_type = "zip";
-        } else if (table_.HasKey(txn.GetTxn(), Value::ConstRef(cpp_key))) {
-            auto cpp_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(cpp_key));
-            const std::string& cpp = cpp_it.GetValue().AsString();
+        } else if (table_->HasKey(txn.GetTxn(), Value::ConstRef(cpp_key))) {
+            auto cpp_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(cpp_key));
+            const std::string& cpp = cpp_it->GetValue().AsString();
             ret.code = cpp;
             ret.code_type = "cpp";
-        } else if (table_.HasKey(txn.GetTxn(), Value::ConstRef(cython_key))) {
-            auto cython_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(cython_key));
-            const std::string& cython = cython_it.GetValue().AsString();
+        } else if (table_->HasKey(txn.GetTxn(), Value::ConstRef(cython_key))) {
+            auto cython_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(cython_key));
+            const std::string& cython = cython_it->GetValue().AsString();
             ret.code = cython;
             ret.code_type = "py";
         } else {
-            auto so_it = table_.GetIterator(txn.GetTxn(), Value::ConstRef(so_key));
-            const std::string& so = so_it.GetValue().AsString();
+            auto so_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(so_key));
+            const std::string& so = so_it->GetValue().AsString();
             ret.code = so;
             ret.code_type = "so_or_py";
         }
@@ -168,10 +168,10 @@ void lgraph::SingleLanguagePluginManager::UpdateSoToKvStore(KvTransaction& txn,
                                                             const std::string& so) {
     // write runnable code
     std::string so_key = GetSoKey(name);
-    table_.SetValue(txn, Value::ConstRef(so_key), Value::ConstRef(so));
+    table_->SetValue(txn, Value::ConstRef(so_key), Value::ConstRef(so));
     // write hash
     std::string hash_key = GetHashKey(name);
-    table_.SetValue(txn, Value::ConstRef(hash_key), Value::ConstRef(GIT_COMMIT_HASH));
+    table_->SetValue(txn, Value::ConstRef(hash_key), Value::ConstRef(GIT_COMMIT_HASH));
 }
 
 void lgraph::SingleLanguagePluginManager::UpdateZipToKvStore(KvTransaction& txn,
@@ -179,7 +179,7 @@ void lgraph::SingleLanguagePluginManager::UpdateZipToKvStore(KvTransaction& txn,
                                                              const std::string& zip) {
     // write .zip
     std::string zip_key = GetZipKey(name);
-    table_.SetValue(txn, Value::ConstRef(zip_key), Value::ConstRef(zip));
+    table_->SetValue(txn, Value::ConstRef(zip_key), Value::ConstRef(zip));
 }
 
 void lgraph::SingleLanguagePluginManager::UpdateCppToKvStore(KvTransaction& txn,
@@ -187,7 +187,7 @@ void lgraph::SingleLanguagePluginManager::UpdateCppToKvStore(KvTransaction& txn,
                                                              const std::string& cpp) {
     // write cpp file
     std::string cpp_key = GetCppKey(name);
-    table_.SetValue(txn, Value::ConstRef(cpp_key), Value::ConstRef(cpp));
+    table_->SetValue(txn, Value::ConstRef(cpp_key), Value::ConstRef(cpp));
 }
 
 void lgraph::SingleLanguagePluginManager::UpdateCythonToKvStore(KvTransaction& txn,
@@ -195,13 +195,13 @@ void lgraph::SingleLanguagePluginManager::UpdateCythonToKvStore(KvTransaction& t
                                                                 const std::string& cython) {
     // write cython file
     std::string cython_key = GetCythonKey(name);
-    table_.SetValue(txn, Value::ConstRef(cython_key), Value::ConstRef(cython));
+    table_->SetValue(txn, Value::ConstRef(cython_key), Value::ConstRef(cython));
 }
 
 void lgraph::SingleLanguagePluginManager::UpdateInfoToKvStore(KvTransaction& txn,
                                                               const std::string& name,
                                                               fma_common::BinaryBuffer& info) {
-    table_.SetValue(txn, Value::ConstRef(name), Value(info.GetBuf(), info.GetSize()));
+    table_->SetValue(txn, Value::ConstRef(name), Value(info.GetBuf(), info.GetSize()));
 }
 
 static void ExecuteCommand(const std::string& cmd, size_t timeout_ms,
@@ -504,15 +504,15 @@ bool lgraph::SingleLanguagePluginManager::DelPlugin(const std::string& user,
     AutoWriteLock wlock(lock_, GetMyThreadId());
     auto db_txn = db_->CreateWriteTxn();
     KvTransaction& txn = db_txn.GetTxn();
-    table_.DeleteKey(txn, Value::ConstRef(name));
+    table_->DeleteKey(txn, Value::ConstRef(name));
     std::string exe_key = GetSoKey(name);
-    table_.DeleteKey(txn, Value::ConstRef(exe_key));
+    table_->DeleteKey(txn, Value::ConstRef(exe_key));
     std::string zip_key = GetZipKey(name);
     std::string cpp_key = GetCppKey(name);
     std::string cython_key = GetCythonKey(name);
-    table_.DeleteKey(txn, Value::ConstRef(zip_key));
-    table_.DeleteKey(txn, Value::ConstRef(cpp_key));
-    table_.DeleteKey(txn, Value::ConstRef(cython_key));
+    table_->DeleteKey(txn, Value::ConstRef(zip_key));
+    table_->DeleteKey(txn, Value::ConstRef(cpp_key));
+    table_->DeleteKey(txn, Value::ConstRef(cython_key));
 
     std::unique_ptr<PluginInfoBase> old_pinfo(std::move(it->second));
     procedures_.erase(it);
@@ -559,20 +559,21 @@ bool lgraph::SingleLanguagePluginManager::Call(lgraph_api::Transaction* txn,
 
 bool lgraph::SingleLanguagePluginManager::isHashUpTodate(KvTransaction& txn, std::string name) {
     std::string hash_key = GetHashKey(name);
-    auto hash_it = table_.GetIterator(txn, Value::ConstRef(hash_key));
-    FMA_DBG_ASSERT(hash_it.IsValid());
-    const std::string& hash = hash_it.GetValue().AsString();
+    auto hash_it = table_->GetIterator(txn, Value::ConstRef(hash_key));
+    FMA_DBG_ASSERT(hash_it->IsValid());
+    const std::string& hash = hash_it->GetValue().AsString();
     return hash == GIT_COMMIT_HASH;
 }
 
 void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
-    for (auto it = table_.GetIterator(txn); it.IsValid(); it.Next()) {
-        if (!IsNameKey(it.GetKey().AsString())) continue;
-        std::string name = it.GetKey().AsString();
+    auto it = table_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        if (!IsNameKey(it->GetKey().AsString())) continue;
+        std::string name = it->GetKey().AsString();
         try {
             // load plugin info
             std::unique_ptr<PluginInfoBase> pinfo(impl_->CreatePluginInfo());
-            Value v = it.GetValue();
+            Value v = it->GetValue();
             fma_common::BinaryBuffer info(v.Data(), v.Size());
             fma_common::BinaryRead(info, *pinfo);
             // write file
@@ -584,10 +585,10 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
             if (!need_write_file) {
                 // check if local file exist
                 std::string so_key = GetSoKey(name);
-                auto so_it = table_.GetIterator(txn, Value::ConstRef(so_key));
-                FMA_DBG_ASSERT(so_it.IsValid());
+                auto so_it = table_->GetIterator(txn, Value::ConstRef(so_key));
+                FMA_DBG_ASSERT(so_it->IsValid());
                 std::string path = impl_->GetPluginPath(name);
-                const std::string& so = so_it.GetValue().AsString();
+                const std::string& so = so_it->GetValue().AsString();
                 auto& fs = fma_common::FileSystem::GetFileSystem(path);
                 if (fs.FileExists(path)) {
                     std::string file_content = ReadWholeFile(path, "plugin binary file");
@@ -602,27 +603,27 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
                 std::string cpp_key = GetCppKey(name);
                 std::string so_key = GetSoKey(name);
                 std::string cython_key = GetCythonKey(name);
-                if (table_.HasKey(txn, Value::ConstRef(zip_key))) {
-                    auto zip_it = table_.GetIterator(txn, Value::ConstRef(zip_key));
-                    const std::string& zip = zip_it.GetValue().AsString();
+                if (table_->HasKey(txn, Value::ConstRef(zip_key))) {
+                    auto zip_it = table_->GetIterator(txn, Value::ConstRef(zip_key));
+                    const std::string& zip = zip_it->GetValue().AsString();
                     std::string exe = CompilePluginFromZip(name, zip);
                     WriteWholeFile(impl_->GetPluginPath(name), exe, "");
                     UpdateSoToKvStore(txn, name, exe);
-                } else if (table_.HasKey(txn, Value::ConstRef(cpp_key))) {
-                    auto file_it = table_.GetIterator(txn, Value::ConstRef(cpp_key));
-                    const std::string& file = file_it.GetValue().AsString();
+                } else if (table_->HasKey(txn, Value::ConstRef(cpp_key))) {
+                    auto file_it = table_->GetIterator(txn, Value::ConstRef(cpp_key));
+                    const std::string& file = file_it->GetValue().AsString();
                     std::string exe = CompilePluginFromCpp(name, file);
                     WriteWholeFile(impl_->GetPluginPath(name), exe, "");
                     UpdateSoToKvStore(txn, name, exe);
-                } else if (table_.HasKey(txn, Value::ConstRef(cython_key))) {
-                    auto file_it = table_.GetIterator(txn, Value::ConstRef(cython_key));
-                    const std::string& file = file_it.GetValue().AsString();
+                } else if (table_->HasKey(txn, Value::ConstRef(cython_key))) {
+                    auto file_it = table_->GetIterator(txn, Value::ConstRef(cython_key));
+                    const std::string& file = file_it->GetValue().AsString();
                     std::string exe = CompilePluginFromCython(name, file);
                     WriteWholeFile(impl_->GetPluginPath(name), exe, "");
                     UpdateSoToKvStore(txn, name, exe);
-                } else if (table_.HasKey(txn, Value::ConstRef(so_key))) {
-                    auto file_it = table_.GetIterator(txn, Value::ConstRef(so_key));
-                    const std::string& exe = file_it.GetValue().AsString();
+                } else if (table_->HasKey(txn, Value::ConstRef(so_key))) {
+                    auto file_it = table_->GetIterator(txn, Value::ConstRef(so_key));
+                    const std::string& exe = file_it->GetValue().AsString();
                     WriteWholeFile(impl_->GetPluginPath(name), exe, "");
                     UpdateSoToKvStore(txn, name, exe);
                 }

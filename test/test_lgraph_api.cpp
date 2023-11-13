@@ -251,10 +251,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                             {});
             db.AddEdgeLabel("unique", std::vector<FieldSpec>({{"weight", FieldType::INT64, false}}),
                             {});
-            db.AddEdgeIndex("esw", "weight", false, true);
-            db.AddVertexIndex("esk", "fs", false);
-            db.AddEdgeIndex("esp", "weight", false, true);
-            db.AddEdgeIndex("unique", "weight", true, true);
+            db.AddEdgeIndex("esw", "weight", lgraph::IndexType::NonuniqueIndex);
+            db.AddVertexIndex("esk", "fs", lgraph::IndexType::NonuniqueIndex);
+            db.AddEdgeIndex("esp", "weight", lgraph::IndexType::NonuniqueIndex);
+            db.AddEdgeIndex("unique", "weight", lgraph::IndexType::GlobalUniqueIndex);
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esw", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("esp", "weight"));
             UT_EXPECT_TRUE(db.IsEdgeIndexed("unique", "weight"));
@@ -483,8 +483,9 @@ TEST_F(TestLGraphApi, LGraphApi) {
                                                   {"name", FieldType::STRING, false},
                                                   {"img", FieldType::BLOB, true}}),
                           VertexOptions("id"));
-        db.AddVertexIndex("v2", "name", false);
-        UT_EXPECT_ANY_THROW(db.AddVertexIndex("v2", "img", true));  // blob cannot be indexed
+        db.AddVertexIndex("v2", "name", lgraph::IndexType::NonuniqueIndex);
+        UT_EXPECT_ANY_THROW(db.AddVertexIndex(
+            "v2", "img", lgraph::IndexType::GlobalUniqueIndex));  // blob cannot be indexed
         auto AddVertexWithString = [&](int32_t id, const std::string& name,
                                        const std::string& blob) {
             auto txn = db.CreateWriteTxn();
@@ -720,8 +721,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 std::vector<std::string>{std::string("2222"),
                                          std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1')});
             txn.Commit();
-            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1", true), "too long");
-            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1", true), "too long");
+            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1",
+                                     lgraph::IndexType::GlobalUniqueIndex), "too long");
+            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1",
+                                     lgraph::IndexType::GlobalUniqueIndex), "too long");
             txn = db.CreateWriteTxn();
             txn.GetVertexIterator(vid1).Delete();
             txn.Commit();

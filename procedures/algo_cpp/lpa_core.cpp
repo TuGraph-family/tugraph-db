@@ -19,8 +19,7 @@
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
-ParallelVector<size_t> InitializeLabelWithOwnVid(OlapBase<Empty>& graph) {
-    ParallelVector<size_t> label = graph.AllocVertexArray<size_t>();
+void InitializeLabelWithOwnVid(OlapBase<Empty>& graph, ParallelVector<size_t>& label) {
     size_t num_vertices = label.Size();
     graph.ProcessVertexInRange<size_t>(
         [&](size_t vi) {
@@ -28,7 +27,6 @@ ParallelVector<size_t> InitializeLabelWithOwnVid(OlapBase<Empty>& graph) {
             return 0;
         },
         0, num_vertices);
-    return label;
 }
 double calcu_modularity(OlapBase<Empty> & graph, ParallelVector<size_t> & label) {
     auto active = graph.AllocVertexSubset();
@@ -92,8 +90,9 @@ double calcu_modularity(OlapBase<Empty> & graph, ParallelVector<size_t> & label)
         active) / num_edges;
 }
 
-double LPACore(OlapBase<Empty>& graph, int num_iterations, bool sync_flag) {
-    auto label = InitializeLabelWithOwnVid(graph);
+double LPACore(OlapBase<Empty>& graph, ParallelVector<size_t>& label,
+        int num_iterations, bool sync_flag) {
+    InitializeLabelWithOwnVid(graph, label);
     size_t num_vertices = label.Size();
     size_t num_vertices_graph = graph.NumVertices();
     auto next = graph.AllocVertexArray<size_t>();

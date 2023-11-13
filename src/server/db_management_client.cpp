@@ -16,6 +16,10 @@
 
 namespace lgraph {
 
+bool DBManagementClient::exit_flag = false;
+std::mutex DBManagementClient::hb_mutex_;
+std::condition_variable DBManagementClient::hb_cond_;
+
 DBManagementClient::DBManagementClient()
     : job_stub_(db_management::JobManagementService_Stub(&channel_)),
       heartbeat_stub_(db_management::HeartbeatService_Stub(&channel_)) {
@@ -64,14 +68,18 @@ db_management::JobManagementService_Stub& DBManagementClient::GetJobStub() {
 }
 
 DBManagementClient& DBManagementClient::GetInstance() {
+    brpc::FLAGS_usercode_in_pthread = true;
     static DBManagementClient instance;
     return instance;
 }
 
 void DBManagementClient::DetectHeartbeat() {
+    std::unique_lock<std::mutex> l(hb_mutex_);
     db_management::HeartbeatService_Stub& stub =
         DBManagementClient::GetInstance().GetHeartbeatStub();
-    while (true) {
+    while (!exit_flag) {
+        hb_cond_.wait_for(l, std::chrono::seconds(3));
+        if (exit_flag) return;
         db_management::HeartbeatRequest request;
         db_management::HeartbeatResponse response;
         brpc::Controller cntl;
@@ -91,8 +99,6 @@ void DBManagementClient::DetectHeartbeat() {
             DBManagementClient::GetInstance().SetHeartbeat(false);
             DBManagementClient::GetInstance().SetHeartbeatCount(0);
         }
-
-        fma_common::SleepS(detect_freq_);
     }
 }
 
@@ -108,7 +114,6 @@ int DBManagementClient::CreateJob(std::string host, std::string port, std::int64
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_create_job_request(new db_management::CreateJobRequest());
     request.mutable_create_job_request()->set_start_time(start_time);
     request.mutable_create_job_request()->set_period(period);
     request.mutable_create_job_request()->set_procedure_name(name);
@@ -139,11 +144,10 @@ void DBManagementClient::UpdateJob(std::string host, std::string port, int job_i
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_update_job_request(new db_management::UpdateJobRequest());
-    request.mutable_update_job_request()->set_job_id(job_id);
-    request.mutable_update_job_request()->set_status(status);
-    request.mutable_update_job_request()->set_runtime(runtime);
-    request.mutable_update_job_request()->set_result(result);
+    request.mutable_update_job_status_request()->set_job_id(job_id);
+    request.mutable_update_job_status_request()->set_status(status);
+    request.mutable_update_job_status_request()->set_runtime(runtime);
+    request.mutable_update_job_status_request()->set_result(result);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
     if (!cntl.Failed()) {
@@ -165,14 +169,14 @@ std::vector<db_management::Job> DBManagementClient::ReadJob(std::string host,
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_read_job_request(new db_management::ReadJobRequest());
+    request.mutable_get_job_status_request();
 
     stub.handleRequest(&cntl, &request, &response, NULL);
     if (!cntl.Failed()) {
         DEBUG_LOG(INFO) << "[READ JOB REQUEST]: " << "success";
         std::vector<db_management::Job> job_list;
-        for (int i = 0; i < response.read_job_response().job_size(); i++) {
-            job_list.push_back(response.read_job_response().job(i));
+        for (int i = 0; i < response.get_job_status_response().job_size(); i++) {
+            job_list.push_back(response.get_job_status_response().job(i));
         }
         return job_list;
     } else {
@@ -193,15 +197,14 @@ db_management::Job DBManagementClient::ReadJob(std::string host,
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_read_job_request(new db_management::ReadJobRequest());
-    request.mutable_read_job_request()->set_job_id(job_id);
+    request.mutable_get_job_status_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
     if (!cntl.Failed()) {
         DEBUG_LOG(INFO) << "[READ JOB REQUEST]: " << "success";
         std::vector<db_management::Job> job_list;
         db_management::Job job;
-        job = response.read_job_response().job(0);
+        job = response.get_job_status_response().job(0);
         return job;
     } else {
         DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
@@ -209,7 +212,7 @@ db_management::Job DBManagementClient::ReadJob(std::string host,
     }
 }
 
-db_management::JobResult DBManagementClient::ReadJobResult(std::string host,
+db_management::AlgoResult DBManagementClient::ReadJobResult(std::string host,
                                                                     std::string port, int job_id) {
     db_management::JobManagementService_Stub& stub =
         DBManagementClient::GetInstance().GetJobStub();
@@ -220,14 +223,12 @@ db_management::JobResult DBManagementClient::ReadJobResult(std::string host,
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_read_job_result_request(
-            new db_management::ReadJobResultRequest());
-    request.mutable_read_job_result_request()->set_job_id(job_id);
+    request.mutable_get_algo_result_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);
     if (!cntl.Failed()) {
         DEBUG_LOG(INFO) << "[READ JOB RESULT REQUEST]: " << "success";
-        return response.read_job_result_response().job_result();
+        return response.get_algo_result_response().algo_result();
     } else {
         DEBUG_LOG(ERROR) << "[READ JOB RESULT REQUEST]: " << cntl.ErrorText();
         throw std::runtime_error("failed to connect to db management.");
@@ -244,7 +245,6 @@ void DBManagementClient::DeleteJob(std::string host, std::string port, int job_i
     // build create_job_request
     request.set_db_host(host);
     request.set_db_port(port);
-    request.set_allocated_delete_job_request(new db_management::DeleteJobRequest());
     request.mutable_delete_job_request()->set_job_id(job_id);
 
     stub.handleRequest(&cntl, &request, &response, NULL);

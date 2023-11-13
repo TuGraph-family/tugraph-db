@@ -18,6 +18,7 @@
 
 #include "lgraph/lgraph.h"
 #include "lgraph/olap_base.h"
+#include "fma-common/fma_stream.h"
 
 namespace lgraph_api {
 namespace olap {
@@ -155,7 +156,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
                         this->num_vertices_ = partition_offset[num_threads];
                         original_vids_.Resize(this->num_vertices_);
                     }
-
 #pragma omp barrier
 
                     memcpy(original_vids_.Data() + partition_offset[thread_id],
@@ -274,6 +274,12 @@ class OlapOnDB : public OlapBase<EdgeData> {
             this->num_edges_ = this->out_edges_.Size();
         }
 
+        if (this->num_vertices_ == 0) {
+            throw InputError("The graph vertex cannot be empty");
+        }
+        if (this->num_edges_ == 0) {
+            throw InputError("The graph edge cannot be empty");
+        }
         if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
         if (this->num_vertices_ == 0) {
             throw std::runtime_error("The olapondb graph cannot be empty");
@@ -1075,6 +1081,46 @@ class OlapOnDB : public OlapBase<EdgeData> {
         return a;
     }
 
+    /**
+     * @brief    Write vertex data to a file.
+     *
+     * @param    vertex_data    The parallel vector storing the vertex data.
+     * @param    output_file    The path to the output file.
+     *
+     */
+    template <typename VertexData>
+    void WriteToFile(ParallelVector<VertexData>& vertex_data,
+            const std::string& output_file) {
+        fma_common::OutputFmaStream fout;
+        fout.Open(output_file, 64 << 20);
+        for (size_t i = 0; i < this->num_vertices_; ++i) {
+            std::string line = fma_common::StringFormatter::Format(
+                "{} {}\n", OriginalVid(i), vertex_data[i]);
+            fout.Write(line.c_str(), line.size());
+        }
+    }
+
+    /**
+     * @brief    Write vertex data to the graph database.
+     *
+     * @param [in,out]   vertex_data    The parallel vector storing the vertex data.
+     * @param [in]       vertex_field   The name of the vertex field.
+     *
+     */
+    template <typename VertexData>
+    void WriteToGraphDB(ParallelVector<VertexData>& vertex_data,
+                const std::string& vertex_field) {
+        auto write_txn = db_.CreateWriteTxn();
+        auto vit = write_txn.GetVertexIterator();
+        for (size_t i = 0; i < this->num_vertices_; i++) {
+            FieldData local_distance(std::to_string(vertex_data[i]));
+            vit.Goto(OriginalVid(i));
+            if (vit.IsValid()) {
+                vit.SetField(vertex_field, local_distance);
+            }
+        }
+        write_txn.Commit();
+    }
 
     /**
      * @brief    Get the original vertex id (in LightningGraph) of some vertex.

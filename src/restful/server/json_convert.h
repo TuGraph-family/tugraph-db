@@ -110,7 +110,7 @@ static const utility::string_t INE = _TU("in");
 static const utility::string_t INFO = _TU("info");
 static const utility::string_t INPROCESS = _TU("in_process");
 static const utility::string_t ISADMIN = _TU("is_admin");
-static const utility::string_t ISUNIQUE = _TU("is_unique");
+static const utility::string_t INDEXTYPE = _TU("index_type");
 static const utility::string_t ISV = _TU("is_vertex");
 static const utility::string_t HA_STATE = _TU("ha_state");
 static const utility::string_t LABEL = _TU("label");
@@ -554,7 +554,17 @@ inline web::json::value ValueToJson(const IndexSpec& is) {
     web::json::value v;
     v[RestStrings::LABEL] = ValueToJson(is.label);
     v[RestStrings::FIELD] = ValueToJson(is.field);
-    v[RestStrings::ISUNIQUE] = ValueToJson(is.unique);
+    switch (is.type) {
+    case IndexType::GlobalUniqueIndex:
+        v[RestStrings::INDEXTYPE] = ValueToJson("GlobalUniqueIndex");
+        break;
+    case IndexType::PairUniqueIndex:
+        v[RestStrings::INDEXTYPE] = ValueToJson("PairUniqueIndex");
+        break;
+    case IndexType::NonuniqueIndex:
+        v[RestStrings::INDEXTYPE] = ValueToJson("NonuniqueIndex");
+        break;
+    }
     return v;
 }
 
@@ -840,7 +850,7 @@ template <>
 inline bool JsonToType<IndexSpec>(const web::json::value& js, IndexSpec& i) {
     if (!ExtractStringField(js, RestStrings::LABEL, i.label)) return false;
     if (!ExtractStringField(js, RestStrings::FIELD, i.field)) return false;
-    if (!ExtractBoolField(js, RestStrings::ISUNIQUE, i.unique)) return false;
+    //  if (!ExtractIntField(js, RestStrings::ISUNIQUE, i.unique)) return false;
     return true;
 }
 

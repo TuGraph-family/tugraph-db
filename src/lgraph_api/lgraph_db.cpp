@@ -188,17 +188,16 @@ bool GraphDB::AlterEdgeLabelModFields(const std::string& label,
     return db_->AlterLabelModFields(label, mod_fields, false, n_modified);
 }
 
-bool GraphDB::AddVertexIndex(const std::string& label, const std::string& field, bool is_unique) {
+bool GraphDB::AddVertexIndex(const std::string& label, const std::string& field, IndexType type) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddVertexIndex(label, field, is_unique);
+    return db_->AddVertexIndex(label, field, type);
 }
 
-bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field,
-                           bool is_unique, bool is_global) {
+bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field, IndexType type) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddEdgeIndex(label, field, is_unique, is_global);
+    return db_->AddEdgeIndex(label, field, type);
 }
 
 bool GraphDB::IsVertexIndexed(const std::string& label, const std::string& field) {

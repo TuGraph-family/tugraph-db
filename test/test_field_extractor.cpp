@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "core/schema.h"
-#include "core/kv_store_transaction.h"
+#include "core/lmdb_transaction.h"
 #include "lgraph/lgraph.h"
 #include "./test_tools.h"
 #include "./ut_utils.h"

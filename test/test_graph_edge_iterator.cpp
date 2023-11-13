@@ -27,22 +27,6 @@ using namespace lgraph::graph;
 
 class TestGraphEdgeIterator : public TuGraphTest {};
 
-void DumpTable(KvTransaction& txn, KvTable& tbl) {
-    std::string line;
-    tbl.Dump(
-        txn,
-        [&](const Value& k, void*) {
-            line.append(std::to_string(k.Size()));
-            line.append("->");
-        },
-        [&](const Value& v, void*) { line.append(std::to_string(v.Size())); },
-        [&](const Value& k, void*) {
-            UT_LOG() << line;
-            line.clear();
-        },
-        nullptr);
-}
-
 static Value GenProp(size_t size) {
     Value v(size);
     memset(v.Data(), size % 128, v.Size());
@@ -58,10 +42,10 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
     config.Add(n_edges, "n_edges", true).Comment("Number of edges to add in the test");
     config.ParseAndFinalize(argc, argv);
     UT_LOG() << "Testing OutEdgeIterator";
-    KvStore store("./testdb", 1 << 30, false);
-    KvTransaction txn = store.CreateWriteTxn();
-    store.DropAll(txn);
-    KvTable table = store.OpenTable(txn, "graph", true, ComparatorDesc::DefaultComparator());
+    auto store = std::make_unique<LMDBKvStore>("./testdb", 1 << 30, false);
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    auto table = store->OpenTable(*txn, "graph", true, ComparatorDesc::DefaultComparator());
 
     // first, we create a packed data node
     VertexId vid = 10000LL;
@@ -71,31 +55,32 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
     EdgeValue iev;
     EdgeValue oev;
     pdv = PackedDataValue::PackData(vov, oev, iev);
-    table.AddKV(txn, KeyPacker::CreatePackedDataKey(vid), pdv.GetBuf());
-    txn.Commit();
+    table->AddKV(*txn, KeyPacker::CreatePackedDataKey(vid), pdv.GetBuf());
+    txn->Commit();
     {
         // empty database
-        auto txn = store.CreateReadTxn();
-        OutEdgeIterator oeit(&txn, table, EdgeUid(vid, 0, 0, 0, 0), true);
+        auto txn = store->CreateReadTxn();
+        OutEdgeIterator oeit(txn.get(), *table, EdgeUid(vid, 0, 0, 0, 0), true);
         OutEdgeIterator out_edge_it = std::move(oeit);
         UT_EXPECT_TRUE(!out_edge_it.IsValid());
-        UT_EXPECT_TRUE(!InEdgeIterator(&txn, table, EdgeUid(0, vid, 0, 0, 0), true).IsValid());
+        UT_EXPECT_TRUE(!InEdgeIterator(txn.get(), *table,
+                                       EdgeUid(0, vid, 0, 0, 0), true).IsValid());
         out_edge_it.Close();
-        txn.Abort();
+        txn->Abort();
     }
     {
         // single huge edge
-        auto txn = store.CreateWriteTxn();
-        KvIterator it(txn, table);
+        auto txn = store->CreateWriteTxn();
+        auto it = table->GetIterator(*txn);
         EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, 200, 100, 0), GenProp(31000),
-                                                         it);
+                                                         *it);
         EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, 300, 0, 0), GenProp(6553),
-                                                         it);
+                                                         *it);
         EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
-            EdgeSid(vid, 300, 0, 0), GenProp(6553), it);
+            EdgeSid(vid, 300, 0, 0), GenProp(6553), *it);
         EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
-            EdgeSid(vid, 200, 100, 0), GenProp(31000), it);
-        InEdgeIterator ieit(&txn, table, EdgeUid(200, vid, 100, 0, 0), false);
+            EdgeSid(vid, 200, 100, 0), GenProp(31000), *it);
+        InEdgeIterator ieit(txn.get(), *table, EdgeUid(200, vid, 100, 0, 0), false);
         UT_EXPECT_TRUE(ieit.IsValid());
         UT_EXPECT_EQ(ieit.GetSrc(), 200);
         UT_EXPECT_EQ(ieit.GetDst(), vid);
@@ -107,14 +92,14 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
         UT_EXPECT_EQ(ieit.GetLabelId(), 0);
         UT_EXPECT_EQ(ieit.GetProperty().AsString(), GenProp(6553).AsString());
         UT_EXPECT_NO_THROW(EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
-            EdgeSid(vid, 200, 100, 0), GenProp(32767), it));
+            EdgeSid(vid, 200, 100, 0), GenProp(32767), *it));
     }
     {
         // edge with TemporalId
-        auto txn = store.CreateWriteTxn();
-        KvIterator it(txn, table);
+        auto txn = store->CreateWriteTxn();
+        auto it = table->GetIterator(*txn);
         PackedDataValue pdv;
-        table.AddKV(txn, KeyPacker::CreatePackedDataKey(vid + 10), pdv.GetBuf());
+        table->AddKV(*txn, KeyPacker::CreatePackedDataKey(vid + 10), pdv.GetBuf());
         std::vector<std::pair<EdgeUid, size_t>> edges;
         EdgeId eid;
         std::vector<std::pair<EdgeUid, size_t>> ins;
@@ -124,14 +109,14 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             size_t psize = rand_r(&seed) % 16;
             eid = EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
                 EdgeSid(vid + 10, src, 12, tid), GenProp(psize),
-                it);
+                *it);
             ins.emplace_back(EdgeUid(src, vid + 10, 12, tid, eid), psize);
         }
         typedef std::pair<EdgeUid, size_t> EdgeSizePair;
         std::sort(ins.begin(), ins.end(), [](const EdgeSizePair& lhs, const EdgeSizePair& rhs) {
             return EdgeUid::InEdgeSortOrder()(lhs.first, rhs.first);
         });
-        InEdgeIterator ieit(&txn, table, EdgeUid(0, vid + 10, 0, 0, 0), true);
+        InEdgeIterator ieit(txn.get(), *table, EdgeUid(0, vid + 10, 0, 0, 0), true);
         auto iit = ins.begin();
         while (ieit.IsValid()) {
             // ieit.GetPrimaryId(), ieit.GetSrc(), ieit.GetEdgeId());
@@ -148,29 +133,29 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
 
     {
         // a lot of small edges
-        auto txn = store.CreateWriteTxn();
-        KvIterator it(txn, table);
+        auto txn = store->CreateWriteTxn();
+        auto it = table->GetIterator(*txn);
         PackedDataValue pdv;
-        table.AddKV(txn, KeyPacker::CreatePackedDataKey(vid + 1), pdv.GetBuf());
+        table->AddKV(*txn, KeyPacker::CreatePackedDataKey(vid + 1), pdv.GetBuf());
         std::vector<std::pair<EdgeUid, size_t>> edges;
         EdgeId eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
             EdgeSid(vid + 1, 200, 100, 0), GenProp(1),
-            it);
+            *it);
         edges.emplace_back(EdgeUid(vid + 1, 200, 100, 0, eid), 1);
         // insert from front
         eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
             EdgeSid(vid + 1, 300, 99, 0), GenProp(2),
-            it);
+            *it);
         edges.emplace_back(EdgeUid(vid + 1, 300, 99, 0, eid), 2);
         // insert from back
         eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
             EdgeSid(vid + 1, 100, 200, 0), GenProp(3),
-            it);
+            *it);
         edges.emplace_back(EdgeUid(vid + 1, 100, 200, 0, eid), 3);
         // insert into middle
         eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
             EdgeSid(vid + 1, 400, 99, 0), GenProp(4),
-            it);
+            *it);
         edges.emplace_back(EdgeUid(vid + 1, 400, 99, 0, eid), 4);
         // randomly insert a lot
         std::vector<std::pair<EdgeUid, size_t>> ins;
@@ -180,7 +165,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             size_t psize = rand_r(&seed) % 16;
             eid = EdgeIteratorImpl<PackType::IN_EDGE>::InsertEdge(
                 EdgeSid(vid + 1, src, lid, 0), GenProp(psize),
-                it);
+                *it);
             ins.emplace_back(EdgeUid(src, vid + 1, lid, 0, eid), psize);
         }
         // validate
@@ -191,7 +176,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
         std::sort(ins.begin(), ins.end(), [](const EdgeSizePair& lhs, const EdgeSizePair& rhs) {
             return EdgeUid::InEdgeSortOrder()(lhs.first, rhs.first);
         });
-        OutEdgeIterator oeit(&txn, table, EdgeUid(vid + 1, 0, 0, 0, 0), true);
+        OutEdgeIterator oeit(txn.get(), *table, EdgeUid(vid + 1, 0, 0, 0, 0), true);
         auto oit = edges.begin();
         while (oeit.IsValid()) {
             UT_EXPECT_EQ(oeit.GetSrc(), vid + 1);
@@ -203,7 +188,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             oit++;
         }
         UT_EXPECT_TRUE(oit == edges.end());
-        InEdgeIterator ieit(&txn, table, EdgeUid(0, vid + 1, 0, 0, 0), true);
+        InEdgeIterator ieit(txn.get(), *table, EdgeUid(0, vid + 1, 0, 0, 0), true);
         auto iit = ins.begin();
         while (ieit.IsValid()) {
             UT_EXPECT_EQ(ieit.GetDst(), vid + 1);
@@ -217,17 +202,18 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
         UT_EXPECT_TRUE(iit == ins.end());
     }
 
-    txn = store.CreateWriteTxn();
+    txn = store->CreateWriteTxn();
     UT_LOG() << "\tSequentail insert";
     int64_t dst = 2000LL;
     LabelId lid = 21;
     try {
         std::vector<OutEdgeIterator> oeits;
-        KvIterator it(txn, table);
+        auto it = table->GetIterator(*txn);
         for (int i = 0; i < n_edges; i++) {
-            EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, dst, lid, 0), GenProp(i),
-                                                             it);
-            oeits.push_back(OutEdgeIterator(&txn, table, EdgeUid(vid, dst, lid, 0, i), false));
+            EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(EdgeSid(vid, dst, lid, 0),
+                                                             GenProp(i), *it);
+            oeits.push_back(OutEdgeIterator(txn.get(), *table,
+                                            EdgeUid(vid, dst, lid, 0, i), false));
             UT_EXPECT_TRUE((oeits.end() - 1)->IsValid());
         }
         EdgeId eid = 0;
@@ -246,7 +232,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
 
     UT_LOG() << "Checking Next()";
     int eid = 0;
-    OutEdgeIterator out_edge_it(&txn, table, EdgeUid(vid, 0, 0, 0, 0), true);
+    OutEdgeIterator out_edge_it(txn.get(), *table, EdgeUid(vid, 0, 0, 0, 0), true);
     out_edge_it.Goto(EdgeUid(vid, dst, lid, 0, 0), true);
     while (out_edge_it.IsValid()) {
         UT_EXPECT_EQ(out_edge_it.GetSrc(), vid);
@@ -322,7 +308,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
 
     UT_LOG() << "\tSetProperty";
     out_edge_it.Goto(EdgeUid(vid, dst, lid, 0, 30), false);
-    OutEdgeIterator oeit2(&txn, table, EdgeUid(vid, dst, lid, 0, 30), false);
+    OutEdgeIterator oeit2(txn.get(), *table, EdgeUid(vid, dst, lid, 0, 30), false);
     std::string large_prop(10000, 1);
     out_edge_it.SetProperty(Value::ConstRef(large_prop));
     UT_EXPECT_EQ(out_edge_it.GetSrc(), vid);
@@ -393,7 +379,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
     }
 
     srand(0);
-    KvIterator kvit(txn, table);
+    auto kvit = table->GetIterator(*txn);
     for (int i = 0; i < 10000; i++) {
         VertexId dst = rand_r(&seed);
         EdgeId eid = rand_r(&seed);
@@ -404,7 +390,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             if (insert) {
                 eid = EdgeIteratorImpl<PackType::OUT_EDGE>::InsertEdge(
                     EdgeSid(vid, dst, lid, 0), GenProp(s),
-                    kvit);
+                    *kvit);
                 all_pairs.emplace(std::make_pair(dst, eid), s);
             }
         } else {
@@ -440,12 +426,4 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
         out_edge_it.Next();
     }
     UT_EXPECT_EQ(it, all_pairs.end());
-#if 0
-UT_LOG() << "Now the sizes of the keys/values are: ";
-KvIterator kvit(txn, table, Value(), true);
-while (kvit.IsValid()) {
-    UT_LOG() << kvit.GetKey().Size() << "/" << kvit.GetValue().Size();
-    kvit.Next();
-}
-#endif
 }

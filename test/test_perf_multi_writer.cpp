@@ -31,24 +31,24 @@ using namespace fma_common;
 static const size_t n = 1000;
 
 void TestKvMultiWriter() {
-    KvStore store("./testkv", (size_t)1 << 30, true);
+    auto store = std::make_unique<LMDBKvStore>("./testkv", (size_t)1 << 30, true);
 
     {
-        auto txn = store.CreateWriteTxn();
-        auto tables = store.ListAllTables(txn);
-        if (!tables.empty()) store.DropAll(txn);
-        txn.Commit();
+        auto txn = store->CreateWriteTxn();
+        auto tables = store->ListAllTables(*txn);
+        if (!tables.empty()) store->DropAll(*txn);
+        txn->Commit();
 
-        txn = store.CreateWriteTxn();
-        KvTable table = store.OpenTable(txn, "mw", true, ComparatorDesc::DefaultComparator());
-        txn.Commit();
+        txn = store->CreateWriteTxn();
+        auto table = store->OpenTable(*txn, "mw", true, ComparatorDesc::DefaultComparator());
+        txn->Commit();
 
         auto t0 = fma_common::GetTime();
 #pragma omp parallel for
         for (size_t i = 0; i < n; i++) {
-            auto txn = store.CreateWriteTxn();
-            ASSERT(table.AddKV(txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
-            txn.Commit();
+            auto txn = store->CreateWriteTxn();
+            ASSERT(table->AddKV(*txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
+            txn->Commit();
         }
         auto t1 = fma_common::GetTime();
         UT_LOG() << "writing " << n << " keys with exclusive write transactions took " << (t1 - t0)
@@ -56,21 +56,21 @@ void TestKvMultiWriter() {
     }
 
     {
-        auto txn = store.CreateWriteTxn();
-        auto tables = store.ListAllTables(txn);
-        if (!tables.empty()) store.DropAll(txn);
-        txn.Commit();
+        auto txn = store->CreateWriteTxn();
+        auto tables = store->ListAllTables(*txn);
+        if (!tables.empty()) store->DropAll(*txn);
+        txn->Commit();
 
-        txn = store.CreateWriteTxn();
-        KvTable table = store.OpenTable(txn, "mw", true, ComparatorDesc::DefaultComparator());
-        txn.Commit();
+        txn = store->CreateWriteTxn();
+        auto table = store->OpenTable(*txn, "mw", true, ComparatorDesc::DefaultComparator());
+        txn->Commit();
 
         auto t0 = fma_common::GetTime();
 #pragma omp parallel for
         for (size_t i = 0; i < n; i++) {
-            auto txn = store.CreateWriteTxn(true);
-            ASSERT(table.AddKV(txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
-            txn.Commit();
+            auto txn = store->CreateWriteTxn(true);
+            ASSERT(table->AddKV(*txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
+            txn->Commit();
         }
         auto t1 = fma_common::GetTime();
         UT_LOG() << "writing " << n << " keys with optimistic write transactions took " << (t1 - t0)
@@ -80,11 +80,11 @@ void TestKvMultiWriter() {
 
 void TestLGraphApiMultiWriter() {
     {
-        KvStore store("./testdb", (size_t)1 << 30, true);
-        auto txn = store.CreateWriteTxn();
-        auto tables = store.ListAllTables(txn);
-        if (!tables.empty()) store.DropAll(txn);
-        txn.Commit();
+        auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 30, true);
+        auto txn = store->CreateWriteTxn();
+        auto tables = store->ListAllTables(*txn);
+        if (!tables.empty()) store->DropAll(*txn);
+        txn->Commit();
     }
 
     lgraph_api::Galaxy galaxy("./testdb",
@@ -96,7 +96,7 @@ void TestLGraphApiMultiWriter() {
                       std::vector<FieldSpec>(
                           {{"id", FieldType::INT32, false}, {"name", FieldType::STRING, false}}),
                       VertexOptions("id"));
-    db.AddVertexIndex("vertex", "name", false);
+    db.AddVertexIndex("vertex", "name", lgraph::IndexType::NonuniqueIndex);
 
     {
         auto t0 = fma_common::GetTime();

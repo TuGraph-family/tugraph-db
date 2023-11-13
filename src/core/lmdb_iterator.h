@@ -14,14 +14,14 @@
 
 #pragma once
 
-#include "core/kv_store_exception.h"
-#include "core/kv_store_transaction.h"
-#include "core/kv_store_table.h"
+#include "core/lmdb_exception.h"
+#include "core/lmdb_transaction.h"
+#include "core/lmdb_table.h"
 #include "core/lmdb/lmdb.h"
 #include "core/task_tracker.h"
 
 namespace lgraph {
-class KvTable;
+class LMDBKvTable;
 
 class DeltaStore;
 
@@ -35,19 +35,17 @@ class DeltaStore;
  * Trying to call Next() or GetKey() or GetValue() on an invalid iterator is an error and can
  * lead to segmentation fault or reading arbitrary bytes.
  */
-class KvIterator {
-    KvTransaction* txn_;
-    KvTable* table_;
+class LMDBKvIterator final : public KvIterator {
+    LMDBKvTransaction* txn_ = nullptr;
+    LMDBKvTable* table_ = nullptr;
     MDB_cursor* cursor_ = nullptr;
     bool valid_ = false;
     MDB_val key_;
     MDB_val value_;
-    friend class KvTransaction;
-
-    KvIterator& operator=(const KvIterator&) = delete;
+    friend class LMDBKvTransaction;
 
     DeltaStore* delta_ = nullptr;
-    std::map<std::string, std::string, KvTable>::iterator iter_;
+    std::map<std::string, std::string, LMDBKvTable>::iterator iter_;
     int8_t main_status_;
     int8_t delta_status_;
     int8_t current_mode_;
@@ -66,11 +64,11 @@ class KvIterator {
     void MoveBackwardDelta();
 
  public:
-    ~KvIterator();
+    ~LMDBKvIterator() override;
 
     /** Closes an iterator. Must be called BEFORE closing the enclosing transaction. The iterator
      * MUST NOT be used after being closed. Doing so may lead to segmentation fault. */
-    void Close();
+    void Close() override;
 
     /**
      * Place the iterator at the key. If the key is empty, iterator is placed at the first key. If
@@ -82,15 +80,17 @@ class KvIterator {
      * @param          key              The key.
      * @param          closest          True to closest.
      */
-    KvIterator(KvTransaction& txn, KvTable& table, const Value& key, bool closest);
+    LMDBKvIterator(LMDBKvTransaction& txn, LMDBKvTable& table, const Value& key, bool closest);
 
-    KvIterator(KvTransaction& txn, KvTable& table);
+    LMDBKvIterator(LMDBKvTransaction& txn, LMDBKvTable& table);
 
-    KvIterator(const KvIterator& rhs);
+    LMDBKvIterator(const LMDBKvIterator& rhs);
 
-    KvIterator(KvIterator&& rhs);
+    LMDBKvIterator(LMDBKvIterator&& rhs) noexcept;
 
-    KvIterator& operator=(KvIterator&& rhs);
+    LMDBKvIterator& operator=(LMDBKvIterator&& rhs) noexcept;
+
+    std::unique_ptr<KvIterator> Fork() override;
 
     /**
      * Determines if the underlying cursor was modified by other write
@@ -99,7 +99,7 @@ class KvIterator {
      *
      * @return  True if the cursor was valid and had been modified.
      */
-    bool UnderlyingPointerModified();
+    bool UnderlyingPointerModified() override;
 
     /**
      * Reload the data from underlying cursor. This is usually used when
@@ -108,7 +108,7 @@ class KvIterator {
      *
      * @return  True if it succeeds, false if it fails.
      */
-    bool RefreshAfterModify();
+    bool RefreshAfterModify() override;
 
     /**
      * Point the iterator to the first value of next key. It will invalidate the iterator if it
@@ -116,7 +116,7 @@ class KvIterator {
      *
      * \return  true if success, false if there is no next key.
      */
-    bool Next();
+    bool Next() override;
 
     /**
      * Move to the previous item in the collection. If the iterator is
@@ -124,7 +124,7 @@ class KvIterator {
      *
      * \return  True if it succeeds, false if there is no previous key.
      */
-    bool Prev();
+    bool Prev() override;
 
     /**
      * Goto key
@@ -133,7 +133,7 @@ class KvIterator {
      *
      * \return  True if it succeeds, false if it fails.
      */
-    bool GotoKey(const Value& key);
+    bool GotoKey(const Value& key) override;
 
     /**
      * Goto closest key
@@ -142,25 +142,25 @@ class KvIterator {
      *
      * \return  True if it succeeds, false if it fails.
      */
-    bool GotoClosestKey(const Value& key);
+    bool GotoClosestKey(const Value& key) override;
 
-    bool GotoLastKey();
+    bool GotoLastKey() override;
 
-    bool GotoFirstKey();
+    bool GotoFirstKey() override;
 
     /**
      * Gets the current key. Call only when iterator is valid.
      *
      * \return  The key.
      */
-    Value GetKey() const;
+    Value GetKey() const override;
 
     /**
      * Gets the current value. Call only when iterator is valid.
      *
      * \return  The value.
      */
-    Value GetValue(bool for_update = false);
+    Value GetValue(bool for_update = false) override;
 
     /**
      * Replace the value to which the iterator points. The iterator will point to the new key-value
@@ -168,7 +168,7 @@ class KvIterator {
      *
      * \param   value   The new value.
      */
-    void SetValue(const Value& value);
+    void SetValue(const Value& value) override;
 
     /**
      * Adds a key value to the table. The iterator will point to the new pair after this call. Any
@@ -180,23 +180,23 @@ class KvIterator {
      *
      * @return  True if it succeeds, false if key exists and overwrite==false.
      */
-    bool AddKeyValue(const Value& key, const Value& value, bool overwrite = false);
+    bool AddKeyValue(const Value& key, const Value& value, bool overwrite = false) override;
 
     /**
      * Query if this iterator is valid. Methods except for GotoXXX() will fail on invalid iterator.
      *
      * \return  True if valid, false if not.
      */
-    bool IsValid() const;
+    bool IsValid() const override;
 
     /**
      * Deletes the key and all associated values. If operation succeeds, iterator points to the next
      * key. If it fails, the iterator becomes invalid.
      */
-    void DeleteKey();
+    void DeleteKey() override;
 
-    KvTransaction& GetTxn() const { return *txn_; }
+    KvTransaction& GetTxn() const override { return *txn_; }
 
-    KvTable& GetTable() const { return *table_; }
+    KvTable& GetTable() const override { return *table_; }
 };
 }  // namespace lgraph

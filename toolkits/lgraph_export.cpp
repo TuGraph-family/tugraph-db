@@ -166,8 +166,22 @@ class VertexDumper {
                                          });
                 if (iter != vertex_indexs.end()) {
                     item["index"] = true;
-                    if (iter->unique) {
+                    bool unique = false, pair_unique = false;
+                    switch (iter->type) {
+                    case lgraph::IndexType::GlobalUniqueIndex:
+                        unique = true;
+                        break;
+                    case lgraph::IndexType::PairUniqueIndex:
+                        pair_unique = true;
+                        break;
+                    case lgraph::IndexType::NonuniqueIndex:
+                        // just to pass the compilation
+                        break;
+                    }
+                    if (unique) {
                         item["unique"] = true;
+                    } else if (pair_unique) {
+                        item["pair_unique"] = true;
                     }
                 }
             }
@@ -284,8 +298,22 @@ class EdgeDumper {
                                      });
             if (iter != edge_indexs.end()) {
                 item["index"] = true;
-                if (iter->unique) {
+                bool unique = false, pair_unique = false;
+                switch (iter->type) {
+                case lgraph::IndexType::GlobalUniqueIndex:
+                    unique = true;
+                    break;
+                case lgraph::IndexType::PairUniqueIndex:
+                    pair_unique = true;
+                    break;
+                case lgraph::IndexType::NonuniqueIndex:
+                    // just to pass the compilation
+                    break;
+                }
+                if (unique) {
                     item["unique"] = true;
+                } else if (pair_unique) {
+                    item["pair_unique"] = true;
                 }
             }
             properties.push_back(item);

@@ -128,6 +128,17 @@ TEST_F(TestParallelVector, ParallelVector) {
         UT_EXPECT_EQ(v_swap[i], v_copy[i]);
     }
 
+    ParallelVector<int> v_move(std::move(v_swap));
+    UT_EXPECT_EQ(v_move.Size(), v_copy.Size());
+    UT_EXPECT_EQ(v_move.Capacity(), v_copy.Capacity());
+    for (int i = 0; i < v_move.Size(); i++) {
+        UT_EXPECT_EQ(v_move[i], v_copy[i]);
+    }
+    UT_EXPECT_EQ(v_swap.Size(), 0);
+    UT_EXPECT_EQ(v_swap.Capacity(), 0);
+    UT_EXPECT_EQ(v_swap.Data(), nullptr);
+    UT_EXPECT_EQ(v_swap.Destroyed(), true);
+
     class Example {
      public:
         int x_;

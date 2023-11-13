@@ -73,8 +73,8 @@ class Galaxy {
     std::unique_ptr<GraphManager> graphs_;
     mutable KillableRWLock graphs_lock_;
     TokenManager token_manager_;
-    KvTable db_info_table_;
-    KvTable ip_whitelist_table_;
+    std::unique_ptr<KvTable> db_info_table_;
+    std::unique_ptr<KvTable> ip_whitelist_table_;
     std::unordered_set<std::string> ip_whitelist_;
     mutable KillableRWLock ip_whitelist_rw_lock_;
 
@@ -91,7 +91,7 @@ class Galaxy {
     inline const std::shared_ptr<GlobalConfig> GetGlobalConfigPtr() const { return global_config_; }
 
     // get token for a user
-    std::string GetUserToken(const std::string& user, const std::string& password) const;
+    std::string GetUserToken(const std::string& user, const std::string& password);
 
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;
@@ -110,6 +110,9 @@ class Galaxy {
 
     // judge token
     bool JudgeRefreshTime(const std::string& token);
+
+    // judge token num
+    bool JudgeUserTokenNum(const std::string& user);
 
     // modify tokenmanager time
     void ModifyTokenTime(const std::string& token,

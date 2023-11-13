@@ -119,7 +119,7 @@ class RestClient {
                       const EdgeConstraints& edge_constraints = {});
 
     bool AddIndex(const std::string& db, const std::string& label, const std::string& field,
-                  bool is_unique);
+                  int index_type);
 
     std::vector<std::string> ListVertexLabels(const std::string& db);
 

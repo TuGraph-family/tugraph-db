@@ -357,12 +357,12 @@ TEST_F(TestLGraph, LGraph) {
                                     {"weight", FieldType::FLOAT, false}};
     UT_EXPECT_TRUE(db.AddLabel("v", v_fds, true, VertexOptions("name")));
     UT_EXPECT_TRUE(db.AddLabel("e", e_fds, false, EdgeOptions()));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", false, true));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", false, false));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", lgraph::IndexType::NonuniqueIndex, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", lgraph::IndexType::NonuniqueIndex, false));
     db.DropAllIndex();
-    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "name", true, true));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", false, true));
-    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", false, false));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "name", lgraph::IndexType::GlobalUniqueIndex, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("v", "type", lgraph::IndexType::NonuniqueIndex, true));
+    UT_EXPECT_TRUE(db._AddEmptyIndex("e", "weight", lgraph::IndexType::NonuniqueIndex, false));
     // UT_EXPECT_TRUE(db.BlockingAddIndex("v", "name", true));
     db.DropAllVertex();
     while (!db.IsIndexed("v", "name", true)) fma_common::SleepUs(100);
@@ -759,12 +759,16 @@ TEST_F(TestLGraph, LGraph) {
             {"DATETIME", FieldType::DATETIME, false}, {"FLOAT", FieldType::FLOAT, false},
             {"DOUBLE", FieldType::DOUBLE, false},     {"STRING1", FieldType::STRING, false}};
         UT_EXPECT_TRUE(db1.AddLabel("vl", e_q, true, VertexOptions("date")));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DATETIME", true, true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "BOOL", true, true, true));
-        // UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "date", true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "FLOAT", true, true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DOUBLE", true, true, true));
-        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "STRING1", false, true, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DATETIME",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "BOOL",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "FLOAT",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "DOUBLE",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db1.BlockingAddIndex("vl", "STRING1",
+                                            lgraph::IndexType::NonuniqueIndex, true));
         size_t n_mod = 20000;
         db1.DelLabel("v1", true, &n_mod);
     }
@@ -789,5 +793,60 @@ TEST_F(TestLGraph, LGraph) {
         UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds2, true, VertexOptions("id")));
         UT_EXPECT_ANY_THROW(db.AddLabel("v1", v_fds3, true, VertexOptions("id")));
         UT_EXPECT_ANY_THROW(db.AddLabel("e1", e_fds, false, EdgeOptions()));
+    }
+
+    UT_LOG() << "Test batch adding index";
+    {
+        DBConfig config;
+        config.dir = "./indexdb";
+        AutoCleanDir _("./indexdb");
+        LightningGraph db(config);
+        db.DropAllData();
+        std::vector<FieldSpec> v_fds = {{"uid", FieldType::STRING, false},
+                       {"name", FieldType::STRING, false}, {"phone", FieldType::STRING, false}};
+        std::vector<FieldSpec> e_fds = {{"since", FieldType::INT8, false},
+                       {"weight", FieldType::FLOAT, false}, {"comments", FieldType::INT8, false}};
+        UT_EXPECT_TRUE(db.AddLabel("person", v_fds, true, VertexOptions("uid")));
+        UT_EXPECT_TRUE(db.AddLabel("follow", e_fds, false, EdgeOptions()));
+        std::vector<std::string> v_properties = {"uid", "name", "phone"};
+        std::vector<std::string> e_properties = {"since", "weight", "comments"};
+        Transaction txn = db.CreateWriteTxn();
+        VertexId v_id1 = txn.AddVertex(std::string("person"), v_properties,
+                                       std::vector<std::string>{"uid1", "name1", "phone"});
+        VertexId v_id2 = txn.AddVertex(std::string("person"), v_properties,
+                                       std::vector<std::string>{"uid2", "name2", "phone"});
+        VertexId v_id3 = txn.AddVertex(std::string("person"), v_properties,
+                                       std::vector<std::string>{"uid3", "name3", "phone"});
+        txn.AddEdge(v_id1, v_id2, std::string("follow"), e_properties,
+                    std::vector<std::string>{"19", "0.1", "19"});
+        txn.AddEdge(v_id2, v_id3, std::string("follow"), e_properties,
+                    std::vector<std::string>{"20", "0.1", "19"});
+        txn.AddEdge(v_id1, v_id3, std::string("follow"), e_properties,
+                    std::vector<std::string>{"21", "0.1", "19"});
+        txn.AddEdge(v_id2, v_id3, std::string("follow"), e_properties,
+                    std::vector<std::string>{"22", "0.2", "19"});
+        txn.Commit();
+        UT_EXPECT_TRUE(db.BlockingAddIndex("person", "name",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_ANY_THROW(db.BlockingAddIndex("person", "phone",
+                                            lgraph::IndexType::GlobalUniqueIndex, true));
+        UT_EXPECT_TRUE(db.BlockingAddIndex("follow", "since",
+                                           lgraph::IndexType::GlobalUniqueIndex, false));
+        UT_EXPECT_TRUE(db.BlockingAddIndex("follow", "weight",
+                                                lgraph::IndexType::PairUniqueIndex, false));
+        UT_EXPECT_ANY_THROW(db.BlockingAddIndex("follow", "comments",
+                                           lgraph::IndexType::PairUniqueIndex, false));
+        db.DropAllIndex();
+        std::vector<lgraph::IndexSpec> vertex_idxs{
+            {"person", "name", lgraph::IndexType::GlobalUniqueIndex},
+            {"person", "phone", lgraph::IndexType::GlobalUniqueIndex}
+        };
+        UT_EXPECT_ANY_THROW(db.OfflineCreateBatchIndex(vertex_idxs, 1, true));
+        std::vector<lgraph::IndexSpec> edge_idxs{
+            {"follow", "since", lgraph::IndexType::GlobalUniqueIndex},
+            {"follow", "weight", lgraph::IndexType::GlobalUniqueIndex},
+            {"follow", "comments", lgraph::IndexType::GlobalUniqueIndex}
+        };
+        UT_EXPECT_ANY_THROW(db.OfflineCreateBatchIndex(edge_idxs, 1, false));
     }
 }

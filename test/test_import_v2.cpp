@@ -55,7 +55,7 @@ static void check_import_db(std::string database, size_t num_vertex, size_t num_
     if (is) {
         auto indexes = txn.ListVertexIndexes();
         for (auto& i : indexes) {
-            if (i.label == is->label && i.field == is->field && i.unique == is->unique) return;
+            if (i.label == is->label && i.field == is->field && i.type == is->type) return;
         }
         UT_ASSERT(false);
     }
@@ -147,26 +147,24 @@ class TestImportV2Consistent : public TuGraphTest {
         return num_edges;
     }
     bool HasVertexIndex(lgraph_api::GraphDB& db, const std::string& label, const std::string& field,
-                        bool unique, bool global) {
+                        lgraph::IndexType type) {
         auto txn = db.CreateReadTxn();
         auto indexes = txn.ListVertexIndexes();
-        // TODO(jzj)
         for (auto& i : indexes) {
             if (i.label == label && i.field == field &&
-                i.unique == unique) {
+                i.type == type) {
                 return true;
             }
         }
         return false;
     }
     bool HasEdgeIndex(lgraph_api::GraphDB& db, const std::string& label, const std::string& field,
-                      bool unique, bool global) {
+                      lgraph::IndexType type) {
         auto txn = db.CreateReadTxn();
         auto indexes = txn.ListEdgeIndexes();
-        // TODO(jzj)
         for (auto& i : indexes) {
             if (i.label == label && i.field == field &&
-                i.unique == unique) {
+                i.type == type) {
                 return true;
             }
         }
@@ -887,7 +885,7 @@ TEST_F(TestImportV2, ImportV2) {
         IndexSpec is_check;
         is_check.label = "Person";
         is_check.field = "phone";
-        is_check.unique = false;
+        is_check.type = lgraph::IndexType::NonuniqueIndex;
         TestImportOnData(data_import, config, 20, 26, &is_check);
     }
     {
@@ -2590,10 +2588,10 @@ TEST_F(TestImportV2Consistent, DataConsistent) {
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
         UT_EXPECT_EQ(GetVertexNum(db), 4);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "uid"), 4);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "phone"), 4);
     }
 
@@ -2655,10 +2653,10 @@ TEST_F(TestImportV2Consistent, DataConsistent) {
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
         UT_EXPECT_EQ(GetVertexNum(db), 26);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "uid"), 26);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "user", "name", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "user", "phone", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "user", "phone"), 26);
     }
 
@@ -2746,57 +2744,49 @@ TEST_F(TestImportV2Consistent, DataConsistent) {
 					"name": "name_g",
 					"type": "STRING",
 					"index": true,
-                    "global": true,
 					"unique": false
 				},
                 {
                     "name": "address_g",
                     "type": "STRING",
                     "index": true,
-                    "global": true,
                     "unique": false
                 },
                 {
                     "name": "name",
                     "type": "STRING",
                     "index": true,
-                    "global": false,
                     "unique": false
                 },
 				{
 					"name": "address",
 					"type": "STRING",
 					"index": true,
-                    "global": false,
 					"unique": false
 				},
 				{
 					"name": "phone_g",
 					"type": "STRING",
 					"index": true,
-                    "global": false,
 					"unique": false
 				},
                 {
                     "name": "id_g",
                     "type": "STRING",
                     "index": true,
-                    "global": true,
                     "unique": false
                 },
                 {
                     "name": "phone",
                     "type": "STRING",
                     "index": true,
-                    "global": false,
-                    "unique": true
+                    "pair_unique": true
                 },
                 {
                     "name": "id",
                     "type": "STRING",
                     "index": true,
-                    "global": false,
-                    "unique": true
+                    "pair_unique": false
                 }
 			]
 		}
@@ -2847,64 +2837,65 @@ TEST_F(TestImportV2Consistent, DataConsistent) {
                     node0018,node2_i,08,888,999
                     node0020,node2_g,09,999,000)"},
             {"edge.csv",
-             R"(node0001,node0002,1,00,00,00,00,00,00,00,00
-                    node0003,node0004,2,01,01,01,01,01,01,01,01
-                    node0005,node0006,3,02,02,02,02,02,02,02,02
-                    node0007,node0008,4,03,00,03,00,03,00,03,03
-                    node0009,node0010,5,04,01,04,01,04,01,04,04
-                    node0011,node0012,6,05,02,05,02,05,02,05,05
-                    node0013,node0014,7,06,00,06,00,06,00,06,06
-                    node0015,node0016,8,07,01,07,01,07,01,07,07
-                    node0017,node0018,9,08,02,08,02,08,02,08,08
-                    node0019,node0020,10,09,00,09,00,09,00,09,09
-                    node0001,node0002,11,00,01,00,01,10,01,09,00
-                    node0003,node0004,12,01,02,01,02,11,02,08,01
-                    node0005,node0006,13,02,00,02,00,12,00,07,02
-                    node0007,node0008,14,03,01,03,01,13,01,06,03
-                    node0009,node0010,15,04,02,04,02,14,02,05,04
-                    node0011,node0012,16,05,00,05,00,15,00,04,05
-                    node0013,node0014,17,06,01,06,01,16,01,03,06
-                    node0015,node0016,18,07,02,07,02,17,02,02,07
-                    node0017,node0018,19,08,00,08,00,18,00,01,08
-                    node0019,node0020,20,09,01,09,01,19,01,00,09)"},
+             R"(node0001,node0002,1,00,00,00,00,00,00,100,200
+                    node0003,node0004,2,01,01,01,01,01,01,101,201
+                    node0005,node0006,3,02,02,02,02,02,02,102,202
+                    node0007,node0008,4,03,00,03,00,03,00,103,203
+                    node0009,node0010,5,04,01,04,01,04,01,104,204
+                    node0011,node0012,6,05,02,05,02,05,02,105,205
+                    node0013,node0014,7,06,00,06,00,06,00,106,206
+                    node0015,node0016,8,07,01,07,01,07,01,107,207
+                    node0017,node0018,9,08,02,08,02,08,02,108,208
+                    node0019,node0020,10,09,00,09,00,09,00,109,209
+                    node0001,node0002,11,00,01,00,01,10,01,109,200
+                    node0003,node0004,12,01,02,01,02,11,02,108,201
+                    node0005,node0006,13,02,00,02,00,12,00,107,202
+                    node0007,node0008,14,03,01,03,01,13,01,106,203
+                    node0009,node0010,15,04,02,04,02,14,02,105,204
+                    node0011,node0012,16,05,00,05,00,15,00,104,205
+                    node0013,node0014,17,06,01,06,01,16,01,103,206
+                    node0015,node0016,18,07,02,07,02,17,02,102,207
+                    node0017,node0018,19,08,00,08,00,18,00,101,208
+                    node0019,node0020,20,09,01,09,01,19,01,100,209)"},
         };
 
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
         UT_EXPECT_EQ(GetVertexNum(db), 20);
-        UT_EXPECT_EQ(GetEdgeNum(db), 10);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", true, false));
+        UT_EXPECT_EQ(GetEdgeNum(db), 20);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "uid"), 10);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "name", false, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "name", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "name"), 10);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "phone", true, false));
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "id", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "address", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "phone", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node1", "id", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "address", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node1", "address"), 10);
 
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "uid", true, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "uid", lgraph::IndexType::GlobalUniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "uid"), 10);
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "name", false, false));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "name", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "name"), 10);
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "phone", true, false));
-        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "id", true, false));
-        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "address", false, false));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "phone", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_FALSE(HasVertexIndex(db, "node2", "id", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasVertexIndex(db, "node2", "address", lgraph::IndexType::NonuniqueIndex));
         UT_EXPECT_EQ(GetVertexIndexValueNum(db, "node2", "address"), 10);
 
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name_g", false, true));
-        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name_g"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address_g", false, true));
-        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address_g"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name", false, false));
-        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address", false, false));
-        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address"), 10);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name_g", lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name_g"), 20);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address_g", lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address_g"), 20);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "name", lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "name"), 20);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "address", lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "address"), 20);
 
-        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "phone_g", true, true));
-        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "id_g", true, true));
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "phone", true, false));
-        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "phone"), 10);
-        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "id", true, false));
-        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "id"), 10);
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "phone_g", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "id_g", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "phone", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "phone"), 20);
+        UT_EXPECT_FALSE(HasEdgeIndex(db, "edge", "id", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "edge", "id", lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "id"), 20);
     }
 }

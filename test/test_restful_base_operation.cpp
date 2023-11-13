@@ -358,19 +358,19 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
     {
         client.Login(lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
 
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "person", "uid", true));
-        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "name", false), true);
-        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "age", false), true);
-        UT_EXPECT_EQ(client.AddIndex(db_name, "software", "name", false), true);
-        UT_EXPECT_EQ(client.AddIndex(db_name, "company", "address", false), true);
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "address", false));
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", false));
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "error", false));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "person", "uid", 1));
+        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "name", 0), true);
+        UT_EXPECT_EQ(client.AddIndex(db_name, "person", "age", 0), true);
+        UT_EXPECT_EQ(client.AddIndex(db_name, "software", "name", 0), true);
+        UT_EXPECT_EQ(client.AddIndex(db_name, "company", "address", 0), true);
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "address", 0));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", 0));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "company", "error", 0));
 #ifdef _WIN32
 // TODO(hjk41): fix this on windows
 #else
         client.DeleteIndex(db_name, "company", "address");
-        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", false));
+        UT_EXPECT_ANY_THROW(client.AddIndex(db_name, "error", "address", 0));
 
         auto indexes = client.ListIndexes(db_name);
         UT_EXPECT_EQ(indexes.size(), 6);
@@ -895,7 +895,6 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         UT_EXPECT_EQ(response.status_code(), status_codes::OK);
     }
     UT_LOG() << "Test Graph DB Desc Succeeded";
-
     UT_LOG() << "\n" << __func__ << " succeeded";
     UT_LOG() << "\n" << __func__ << " exit";
     SleepS(3);  // waiting for memory reclaiming by async task

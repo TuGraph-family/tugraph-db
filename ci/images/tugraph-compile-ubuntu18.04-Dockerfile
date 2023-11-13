@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     unzip \
     bzip2 \
+    libbz2-dev \
     python \
     autoconf \
     automake \

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+import sys
+sys.path.append('.')
 import math
 import datetime
 
@@ -155,9 +156,9 @@ class LGraphUnitTests:
                 FMA_EXPECT_EXCEPTION('db.AlterVertexLabelDeleteFields(le_3, defalut_spec, defalut_value)', globals(),
                                      locals())
 
-                assert (db.AddVertexIndex(lv_0, fds_0[1].name, False))
-                assert (db.AddVertexIndex(lv_0, fds_0[2].name, False))
-                assert (db.AddVertexIndex(lv_1, fds_1[1].name, False))
+                assert (db.AddVertexIndex(lv_0, fds_0[1].name, NonuniqueIndex))
+                assert (db.AddVertexIndex(lv_0, fds_0[2].name, NonuniqueIndex))
+                assert (db.AddVertexIndex(lv_1, fds_1[1].name, NonuniqueIndex))
 
                 print("\nlist indexes")
                 with db.CreateReadTxn() as txn:

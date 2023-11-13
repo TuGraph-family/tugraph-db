@@ -1237,7 +1237,7 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL dbms.security.deleteRole('test_role')",
         "CALL dbms.security.deleteUser('guest1')",
         "CALL db.plugin.listPlugin('CPP', 'any')",
-        "CALL db.listLabelIndexes('Person')",
+        "CALL db.listLabelIndexes('Person', 'vertex')",
         "CALL dbms.security.getUserPermissions('admin')",
         "CALL dbms.graph.getGraphInfo('default')",
 #ifndef __SANITIZE_ADDRESS__
@@ -2209,6 +2209,9 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
     expected_exception_any(ctx, "MATCH p=(n)-[e]->(m) RETURN p LIMIT 5");
     ctx->graph_ = graph;
     // issue #312 & #464 end
+    // issue #473
+    expected_exception_any(ctx, "MATCH (movie)<-[r]-(n) WITH n,n MATCH (n1) RETURN n1 LIMIT 1");
+    expected_exception_any(ctx, "MATCH (movie)<-[r]-(n) return n,n limit 1");
     return 0;
 }
 

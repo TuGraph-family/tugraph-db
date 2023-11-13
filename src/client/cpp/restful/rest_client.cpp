@@ -357,11 +357,11 @@ bool RestClient::AddLabel(
 }
 
 bool RestClient::AddIndex(const std::string& db, const std::string& label, const std::string& field,
-                          bool is_unique) {
+                          int index_type) {
     json::value data;
     data[_TU(RestStrings::LABEL)] = json::value::string(_TU(label));
     data[_TU(RestStrings::FIELD)] = json::value::string(_TU(field));
-    data[_TU(RestStrings::ISUNIQUE)] = json::value::boolean(is_unique);
+    data[_TU(RestStrings::INDEXTYPE)] = json::value::number(index_type);
     DoGraphPost(db, "/index", data, false);
     FMA_DBG_STREAM(logger_) << "[RestClient] AddVertexIndex (" << label << ":" << field
                             << ") succeeded";

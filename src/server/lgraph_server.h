@@ -86,6 +86,7 @@ class LGraphServer {
     std::shared_ptr<lgraph::GlobalConfig> config_;
     std::unique_ptr<lgraph::StateMachine> state_machine_;
     std::unique_ptr<lgraph::RestServer> rest_server_;
+    std::thread heartbeat_detect;
 #ifndef _WIN32
     std::unique_ptr<lgraph::RPCService> rpc_service_;
     std::unique_ptr<lgraph::http::HttpService> http_service_;

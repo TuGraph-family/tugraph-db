@@ -3,9 +3,9 @@
 # Standard Github-hosted runner is 2core currently.
 # Larger runner will support soon(current in Beta).
 
+set -ex
 ASAN=$1
-
-set -e
+WITH_PROCEDURE=${2:-"OFF"}
 
 # set $WORKSPACE to root dir
 pwd
@@ -18,27 +18,13 @@ mkdir build && cd build
 # build cpp
 if [[ "$ASAN" == "asan" ]]; then
 echo 'build with asan ...'
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCEDURE
 else
-cmake .. -DCMAKE_BUILD_TYPE=Coverage
+cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
 
-make package -j6
-
-# build java
-cd ${ACB_BUILD_DIR}/code-repo/deps/tugraph-db-client-java/
-sh local_build.sh
-cp rpc-client-test/target/tugraph-db-java-rpc-client-test-*.jar ${ACB_BUILD_DIR}/code-repo/build/output/
-cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar ${ACB_BUILD_DIR}/code-repo/build/output/
-
-# build cpp client test
-if [[ "$ASAN" != "asan" ]]; then
-cd ${ACB_BUILD_DIR}/code-repo/test/test_rpc_client
-sh ./cpp/CppClientTest/compile.sh
-cp -r ./cpp/CppClientTest/build/clienttest ${ACB_BUILD_DIR}/code-repo/build/output/
-fi
+make -j6
 
 # package
-cd ${ACB_BUILD_DIR}/code-repo
-tar -czf output.tar.gz ./build
-cp output.tar.gz $ACB_BUILD_DIR
+cd ${ACB_BUILD_DIR}
+tar -czf output.tar.gz code-repo

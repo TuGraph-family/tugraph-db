@@ -19,18 +19,18 @@
 namespace lgraph {
 namespace graph {
 VertexIterator::VertexIterator(::lgraph::Transaction* txn, KvTable& tbl, VertexId vid, bool closest)
-    : IteratorBase(txn), it_(txn_->GetTxn(), tbl), impl_(it_) {
+    : IteratorBase(txn), it_(tbl.GetIterator(txn_->GetTxn())), impl_(*it_) {
     impl_.Goto(vid, closest);
 }
 
 VertexIterator::VertexIterator(KvTransaction* txn, KvTable& tbl, VertexId vid, bool closest)
-    : IteratorBase(nullptr), it_(*txn, tbl), impl_(it_) {
+    : IteratorBase(nullptr), it_(tbl.GetIterator(*txn)), impl_(*it_) {
     impl_.Goto(vid, closest);
 }
 
 VertexIterator::VertexIterator(VertexIterator&& rhs)
     : IteratorBase(std::move(rhs)), it_(std::move(rhs.it_)), impl_(std::move(rhs.impl_)) {
-    impl_.SetItPtr(&it_);
+    impl_.SetItPtr(it_.get());
 }
 
 void VertexIterator::CloseImpl() { impl_.Close(); }

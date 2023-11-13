@@ -927,7 +927,7 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
 void test_index(lgraph::RpcClient& client) {
     UT_LOG() << "test addIndex , deleteIndex , indexes";
     std::string str;
-    std::string test_str;
+//    std::string test_str;
     bool ret = client.CallCypher(str, "CALL db.addIndex('actor', 'age', false)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(
@@ -951,19 +951,31 @@ void test_index(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.fullTextIndexes()");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge','index_value',"
-                            "false, true)");
-    UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(test_str, "CALL db.addEdgeIndex('index_edge', 'index_value',"
-                            "false, true)");
+    ret = client.CallCypher(str, "CALL db.addEdgeIndex("
+                            "'index_edge','index_value',true,true)");
     UT_EXPECT_FALSE(ret);
-
+    ret = client.CallCypher(str, "CALL db.addEdgeIndex("
+                            "'index_edge','index_value',false,false)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.addEdgeIndex("
+                            "'index_edge','index_value',false,false)");
+    UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL db.indexes()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_TRUE(ret);
     UT_EXPECT_EQ(ElementCount(json_val, "actor", "label"), 2);
 
+    ret = client.CallCypher(
+        str, "CALL db.createEdgeLabel('pair_edge', '[]', 'index_value', string, false)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL db.addEdgeIndex('pair_edge','index_value',false,true)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.listLabelIndexes('pair_edge', 'edge')");
+    UT_EXPECT_TRUE(ret);
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(ElementCount(json_val, "pair_edge", "label"), 1);
     // delete index
     ret = client.CallCypher(str, "CALL db.deleteIndex('actor', 'age')");
     UT_EXPECT_TRUE(ret);
@@ -979,9 +991,9 @@ void test_index(lgraph::RpcClient& client) {
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "actor", "label"), 1);
 
-    ret = client.CallCypher(test_str, "CALL db.deleteEdgeIndex('index_edge', 'index_value')");
+    ret = client.CallCypher(str, "CALL db.deleteEdgeIndex('index_edge', 'index_value')");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(test_str, "CALL db.deleteEdgeIndex('index_edge', 'index_value')");
+    ret = client.CallCypher(str, "CALL db.deleteEdgeIndex('index_edge', 'index_value')");
     UT_EXPECT_FALSE(ret);
 }
 

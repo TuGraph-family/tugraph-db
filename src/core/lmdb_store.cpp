@@ -15,7 +15,7 @@
 #if (!LGRAPH_USE_MOCK_KV)
 #include <chrono>
 #include <filesystem>
-#include "core/kv_store_mdb.h"
+#include "core/lmdb_store.h"
 #include "core/wal.h"
 
 using namespace std::chrono_literals;
@@ -23,7 +23,7 @@ using namespace std::chrono_literals;
 namespace lgraph {
 
 static const std::string DATA_FILE_NAME = "data.mdb";  // NOLINT
-std::atomic<int64_t> KvStore::last_op_id_(-1);
+std::atomic<int64_t> LMDBKvStore::last_op_id_(-1);
 
 static auto IsDir = [](const std::string& p) {
     std::error_code ec;
@@ -42,7 +42,7 @@ static auto RemoveDir = [](const std::string& p) {
     return std::filesystem::remove_all(p, ec);
 };
 
-void KvStore::Open(bool create_if_not_exist) {
+void LMDBKvStore::Open(bool create_if_not_exist) {
     if (create_if_not_exist) {
         std::error_code ec;
         if (!IsDir(path_) && !MkDir(path_)) {
@@ -68,7 +68,7 @@ void KvStore::Open(bool create_if_not_exist) {
     THROW_ON_ERR(mdb_txn_begin(env_, nullptr, MDB_RDONLY, &txn));
     int64_t last_op_id = mdb_txn_last_op_id(txn);
     mdb_txn_abort(txn);
-    KvStore::UpdateLastOpIdWithStoredValue(last_op_id);
+    LMDBKvStore::UpdateLastOpIdWithStoredValue(last_op_id);
     // start wal
     wal_.reset();
     if (durable_) {
@@ -77,7 +77,7 @@ void KvStore::Open(bool create_if_not_exist) {
     }
 }
 
-void KvStore::ReopenFromSnapshot(const std::string& snapshot_path) {
+void LMDBKvStore::ReopenFromSnapshot(const std::string& snapshot_path) {
     wal_.reset();
     mdb_env_close(env_);
     // copy the snapshot file
@@ -91,7 +91,7 @@ void KvStore::ReopenFromSnapshot(const std::string& snapshot_path) {
     Open(false);
 }
 
-KvStore::KvStore(const std::string& path, size_t db_size, bool durable,
+LMDBKvStore::LMDBKvStore(const std::string& path, size_t db_size, bool durable,
                  bool create_if_not_exist,
                  size_t wal_log_rotate_interval_ms,
                  size_t wal_batch_commit_interval_ms)
@@ -105,7 +105,7 @@ KvStore::KvStore(const std::string& path, size_t db_size, bool durable,
     validator_ = std::thread([this]() { this->ServeValidation(); });
 }
 
-KvStore::~KvStore() {
+LMDBKvStore::~LMDBKvStore() {
     if (env_) {
         wal_.reset();
         mdb_env_close(env_);
@@ -115,65 +115,74 @@ KvStore::~KvStore() {
     validator_.join();
 }
 
-KvTransaction KvStore::CreateReadTxn() { return KvTransaction(*this, true, false); }
-
-KvTransaction KvStore::CreateWriteTxn(bool optimistic) {
-    return KvTransaction(*this, false, optimistic);
+std::unique_ptr<KvTransaction> LMDBKvStore::CreateReadTxn() {
+    return std::make_unique<LMDBKvTransaction>(*this, true, false);
 }
 
-KvTable KvStore::OpenTable(KvTransaction& txn, const std::string& table_name,
+std::unique_ptr<KvTransaction> LMDBKvStore::CreateWriteTxn(bool optimistic) {
+    return std::make_unique<LMDBKvTransaction>(*this, false, optimistic);
+}
+
+std::unique_ptr<KvTable> LMDBKvStore::OpenTable(KvTransaction& txn, const std::string& table_name,
                            bool create_if_not_exist, const ComparatorDesc& desc) {
     std::lock_guard<std::mutex> l(mutex_);
-    KvTable t = KvTable(txn, table_name, create_if_not_exist, desc);
-    return t;
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    return std::make_unique<LMDBKvTable>(lmdb_txn, table_name, create_if_not_exist, desc);
 }
 
-KvTable KvStore::_OpenTable_(KvTransaction& txn, const std::string& table_name,
+std::unique_ptr<KvTable> LMDBKvStore::_OpenTable_(KvTransaction& txn, const std::string& table_name,
                            bool create_if_not_exist, const KeySortFunc& func) {
     std::lock_guard<std::mutex> l(mutex_);
-    KvTable t = KvTable(txn, table_name, create_if_not_exist,
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    auto t = std::make_unique<LMDBKvTable>(lmdb_txn, table_name, create_if_not_exist,
         ComparatorDesc::DefaultComparator());
-    if (func) mdb_set_compare(txn.GetTxn(), t.dbi_, func);
+    if (func) mdb_set_compare(lmdb_txn.GetTxn(), t->dbi_, func);
     return t;
 }
 
-bool KvStore::DeleteTable(KvTransaction& txn, const std::string& table_name) {
+bool LMDBKvStore::DeleteTable(KvTransaction& txn, const std::string& table_name) {
     std::lock_guard<std::mutex> l(mutex_);
-    auto tbl = KvTable(txn, table_name, true, ComparatorDesc::DefaultComparator());
-    tbl.Drop(txn);
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    auto tbl = LMDBKvTable(lmdb_txn, table_name, true, ComparatorDesc::DefaultComparator());
+    tbl.Drop(lmdb_txn);
     return true;
 }
 
-std::vector<std::string> KvStore::ListAllTables(KvTransaction& txn) {
+std::vector<std::string> LMDBKvStore::ListAllTables(KvTransaction& txn) {
     std::vector<std::string> tables;
-    KvTable unamed_table = KvTable(txn, "", false, ComparatorDesc::DefaultComparator());
-    KvIterator it = unamed_table.GetIterator(txn);
-    while (it.IsValid()) {
-        Value name = it.GetKey();
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    auto unamed_table = std::make_unique<LMDBKvTable>(
+        lmdb_txn, "", false, ComparatorDesc::DefaultComparator());
+    auto it = unamed_table->GetIterator(lmdb_txn);
+    it->GotoFirstKey();
+    while (it->IsValid()) {
+        Value name = it->GetKey();
         tables.emplace_back(name.AsString());
-        it.Next();
+        it->Next();
     }
     return tables;
 }
 
-void KvStore::Flush() { THROW_ON_ERR(mdb_env_sync(env_, true)); }
+void LMDBKvStore::Flush() { THROW_ON_ERR(mdb_env_sync(env_, true)); }
 
-void KvStore::DropAll(KvTransaction& txn) {
+void LMDBKvStore::DropAll(KvTransaction& txn) {
     auto all_tables = ListAllTables(txn);
     for (auto& tbl : all_tables) {
         DeleteTable(txn, tbl);
     }
 }
 
-void KvStore::DumpStat(KvTransaction& txn, size_t& memory_size, size_t& height) {
+void LMDBKvStore::DumpStat(KvTransaction& txn, size_t& memory_size, size_t& height) {
     memory_size = 0;
     height = 0;
     MDB_stat stat;
     stat.ms_psize = 4096;
     auto tables = ListAllTables(txn);
-    for (auto tbl : tables) {
-        KvTable t(txn, tbl, false, ComparatorDesc::DefaultComparator());
-        THROW_ON_ERR(mdb_stat(txn.GetTxn(), t.GetDbi(), &stat));
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    for (const auto& tbl : tables) {
+        auto t = std::make_unique<LMDBKvTable>(
+            lmdb_txn, tbl, false, ComparatorDesc::DefaultComparator());
+        THROW_ON_ERR(mdb_stat(lmdb_txn.GetTxn(), t->GetDbi(), &stat));
         // LOG() << "Table (" << tbl << "):"
         //    << "\n\tbranch_pages: " << stat.ms_branch_pages
         //    << "\n\tleaf_pages: " << stat.ms_leaf_pages
@@ -185,35 +194,41 @@ void KvStore::DumpStat(KvTransaction& txn, size_t& memory_size, size_t& height) 
     memory_size *= stat.ms_psize;
 }
 
-size_t KvStore::Backup(const std::string& path, bool compact) {
+size_t LMDBKvStore::Backup(const std::string& path, bool compact) {
     size_t last_txn_id = 0;
     THROW_ON_ERR(mdb_env_copy2(env_, path.c_str(), compact ? MDB_CP_COMPACT : 0, &last_txn_id));
     return last_txn_id;
 }
 
-void KvStore::Snapshot(KvTransaction& txn, const std::string& path, bool compaction) {
+void LMDBKvStore::Snapshot(KvTransaction& txn, const std::string& path, bool compaction) {
     int flags = 0;
     if (compaction) flags |= MDB_CP_COMPACT;
-    THROW_ON_ERR(mdb_env_copy_txn(env_, path.c_str(), txn.GetTxn(), flags));
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    THROW_ON_ERR(mdb_env_copy_txn(env_, path.c_str(), lmdb_txn.GetTxn(), flags));
 }
 
-void KvStore::LoadSnapshot(const std::string& snapshot_path) { ReopenFromSnapshot(snapshot_path); }
+void LMDBKvStore::LoadSnapshot(const std::string& snapshot_path) {
+    ReopenFromSnapshot(snapshot_path);
+}
 
-void KvStore::WarmUp(size_t* size) {
+void LMDBKvStore::WarmUp(size_t* size) {
     auto txn = CreateReadTxn();
-    auto tables = ListAllTables(txn);
+    auto tables = ListAllTables(*txn);
     size_t s = 0;
-    for (auto tbl : tables) {
-        KvTable t(txn, tbl, false, ComparatorDesc::DefaultComparator());
-        for (auto it = t.GetIterator(txn); it.IsValid(); it.Next()) {
-            s += it.GetKey().Size();
-            s += it.GetValue().Size();
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(*txn);
+    for (const auto& tbl : tables) {
+        auto t = std::make_unique<LMDBKvTable>(
+            lmdb_txn, tbl, false, ComparatorDesc::DefaultComparator());
+        auto it = t->GetIterator(lmdb_txn);
+        for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+            s += it->GetKey().Size();
+            s += it->GetValue().Size();
         }
     }
     if (size) *size = s;
 }
 
-void KvStore::ServeValidation() {
+void LMDBKvStore::ServeValidation() {
     #ifndef _WIN32
     pthread_setname_np(pthread_self(), "ServeValidation");
     #endif
@@ -223,7 +238,7 @@ void KvStore::ServeValidation() {
                                    [this]() { return !queue_.empty() || finished_; })) {
         }
         if (queue_.empty() && finished_) break;
-        std::vector<KvTransaction*> txns;
+        std::vector<LMDBKvTransaction*> txns;
         while (!queue_.empty()) {
             txns.emplace_back(queue_.front());
             queue_.pop();
@@ -245,7 +260,7 @@ void KvStore::ServeValidation() {
         if (wal_.get())
             wal_->WriteTxnBegin(write_version);
         std::vector<int> results;
-        for (KvTransaction* txn : txns) {
+        for (auto txn : txns) {
             MDB_txn* child_txn;
             ec = mdb_txn_begin(env_, root_txn, txn_begin_flags, &child_txn);
             if (ec != MDB_SUCCESS) {
