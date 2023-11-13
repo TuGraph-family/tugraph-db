@@ -111,8 +111,11 @@ class EdgeFilterPushdownExpand : public OptPass {
                     // split into two filters only when both are not nullptr
                     if (clone_filter && op_filter->filter_) {
                         auto op_node_filter = new OpFilter(clone_filter);
-                        op_node_filter->AddChild(op_filter->children[0]);
+                        // The RemoveChild(child) operation should be performed before the
+                        // AddChild(child) operation, otherwise the child->parent will be set to
+                        // nullptr
                         op_filter->RemoveChild(op_filter->children[0]);
+                        op_node_filter->AddChild(op_filter->children[0]);
                         op_filter->AddChild(op_node_filter);
                     }
                 }

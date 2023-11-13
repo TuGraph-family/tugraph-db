@@ -2166,8 +2166,12 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
         {"WITH '1' as s UNWIND ['a','b']+s as k RETURN s,k", 3},
         {"MATCH (n:Person)-[]->(m:Film) WITH n.name AS nname, collect(id(m)) AS mc "
          "MATCH (n:Person {name: nname})<-[]-(o) WITH n.name AS nname, mc, collect(id(o)) AS oc "
-         "UNWIND mc+oc AS c RETURN c", 11}
-    };
+         "UNWIND mc+oc AS c RETURN c",
+         11},
+        // github issue #322
+        {"MATCH (m:Person)-[r:BORN_IN]->(n:City) "
+         "WHERE n.name = 'London' and r.weight >= 1 and r.weight <= 100 RETURN sum(r.weight)",
+         1}};
     std::vector<std::string> scripts;
     std::vector<int> check;
     for (auto &s : script_check) {
