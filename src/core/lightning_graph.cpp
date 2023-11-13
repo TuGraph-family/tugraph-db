@@ -1122,7 +1122,9 @@ struct KeyEUid {
                (key == rhs.key && euid.src == rhs.euid.src && euid.dst == rhs.euid.dst &&
                 euid.lid < rhs.euid.lid) ||
                (key == rhs.key && euid.src == rhs.euid.src && euid.dst == rhs.euid.dst &&
-                euid.lid == rhs.euid.lid && euid.eid < rhs.euid.eid);
+                euid.lid == rhs.euid.lid && euid.tid < rhs.euid.tid) ||
+               (key == rhs.key && euid.src == rhs.euid.src && euid.dst == rhs.euid.dst &&
+                euid.lid == rhs.euid.lid && euid.tid == rhs.euid.tid && euid.eid < rhs.euid.eid);
     }
 };
 template <typename T>
@@ -1132,21 +1134,11 @@ T GetIndexKeyFromValue(const Value& v) {
 
 template <>
 ConstStringRef GetIndexKeyFromValue<ConstStringRef>(const Value& v) {
-    if (v.Size() > _detail::MAX_KEY_SIZE)
-        throw InputError(FMA_FMT(
-            "This string is too long to be indexed, max indexable size={}, string size={}, "
-            "content: {}...",
-            _detail::MAX_KEY_SIZE, v.Size(), v.AsString().substr(0, 100)));
     return ConstStringRef(v.Data(), v.Size());
 }
 
 template <>
 std::string GetIndexKeyFromValue<std::string>(const Value& v) {
-    if (v.Size() > _detail::MAX_KEY_SIZE)
-        throw InputError(FMA_FMT(
-            "This string is too long to be indexed, max indexable size={}, string size={}, "
-            "content: {}...",
-            _detail::MAX_KEY_SIZE, v.Size(), v.AsString().substr(0, 100)));
     return v.AsString();
 }
 
@@ -1156,17 +1148,6 @@ inline Value GetKeyConstRef(const T& key) {
 }
 
 inline Value GetKeyConstRef(const ConstStringRef& key) { return Value(key.Ptr(), key.Size()); }
-
-template <typename T>
-inline void CheckKeySizeForIndex(const T&) {}
-
-template <>
-inline void CheckKeySizeForIndex<std::string>(const std::string& str) {
-    if (str.size() >= _detail::MAX_KEY_SIZE) {
-        throw InputError(FMA_FMT("String key too long for index: {}{}", str.substr(0, 1024),
-                                 str.size() > 1024 ? "..." : ""));
-    }
-}
 
 template <typename T>
 void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_info,
@@ -1192,7 +1173,6 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
                 const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
-                CheckKeySizeForIndex(key);
                 key_vids.emplace_back(key, it.GetId());
             }
             LGRAPH_PSORT(key_vids.begin(), key_vids.end());
@@ -1275,7 +1255,6 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         prop = e_schema->GetDetachedEdgeProperty(txn.GetTxn(), et.GetUid());
                     }
                     const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
-                    CheckKeySizeForIndex(key);
                     key_euids.emplace_back(key, et.GetUid());
                     et.Next();
                 }
@@ -1496,12 +1475,12 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
             }
             fulltext_index_->AddVertex(vid, lid, kvs);
             if (++count % 100000 == 0) {
-                FMA_LOG() << std::to_string(count) +
+                FMA_DBG() << std::to_string(count) +
                                  " vertex FT index entries have been added" << count;
             }
         }
     }
-    FMA_LOG() << std::to_string(count) + " vertex FT index entries have been added" << count;
+    FMA_DBG() << std::to_string(count) + " vertex FT index entries have been added" << count;
     count = 0;
     if (!e_lids.empty()) {
         for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
@@ -1526,14 +1505,14 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
                     fulltext_index_->AddEdge({euid.src, euid.dst, euid.lid, euid.tid, euid.eid},
                                              kvs);
                     if (++count % 100000 == 0) {
-                        FMA_LOG() << std::to_string(count) +
+                        FMA_DBG() << std::to_string(count) +
                                          " edge FT index entries have been added" << count;
                     }
                 }
             }
         }
     }
-    FMA_LOG() << std::to_string(count) + " edge FT index entries have been added" << count;
+    FMA_DBG() << std::to_string(count) + " edge FT index entries have been added" << count;
     fulltext_index_->Commit();
 }
 
@@ -1669,11 +1648,11 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 }
                 count++;
                 if (count % 100000 == 0) {
-                    FMA_LOG() << "index count: " << count;
+                    FMA_DBG() << "index count: " << count;
                 }
             }
             kv_iter.reset();
-            FMA_LOG() << "index count: " << count;
+            FMA_DBG() << "index count: " << count;
             txn.Commit();
             schema_.Assign(new_schema.release());
             FMA_INFO_STREAM(logger_) <<
@@ -1727,11 +1706,11 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 }
                 count++;
                 if (count % 100000 == 0) {
-                    FMA_LOG() << "index count: " << count;
+                    FMA_DBG() << "index count: " << count;
                 }
             }
             kv_iter.reset();
-            FMA_LOG() << "index count: " << count;
+            FMA_DBG() << "index count: " << count;
             txn.Commit();
             schema_.Assign(new_schema.release());
             FMA_INFO_STREAM(logger_) <<
@@ -1840,7 +1819,7 @@ template <typename T>
 void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                                 size_t batch_commit_size, VertexId& next_vertex_id,
                                 bool is_vertex) {
-    FMA_LOG() << "Creating batch index for " << spec.label << ":" << spec.field;
+    FMA_DBG() << "Creating batch index for " << spec.label << ":" << spec.field;
     next_vertex_id = first_vertex;
     std::deque<KeyVid<T>> key_vids;
     std::deque<KeyEUid<T>> key_euids;
@@ -1852,7 +1831,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
         auto txn = CreateReadTxn();
         {
             LabelId lid = txn.GetLabelId(true, spec.label);
-            FMA_LOG() << "Scanning vertexes for keys";
+            FMA_DBG() << "Scanning vertexes for keys";
             auto vit = txn.GetVertexIterator(first_vertex, true);
             auto schema = txn.curr_schema_->v_schema_manager.GetSchema(lid);
             FMA_DBG_ASSERT(schema);
@@ -1876,18 +1855,25 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             }
             txn.Abort();
         }
-        FMA_LOG() << "Sorting by unique id";
+        FMA_DBG() << "Sorting by unique id";
         LGRAPH_PSORT(key_vids.begin(), key_vids.end());
-        FMA_LOG() << "Dumping index";
+        FMA_DBG() << "Dumping index";
         txn = CreateWriteTxn();
         auto index = txn.GetVertexIndex(spec.label, spec.field);
         switch (spec.type) {
         case IndexType::GlobalUniqueIndex:
             {
+                for (size_t i = 1; i < key_vids.size(); i++) {
+                    if (key_vids[i].key == key_vids[i - 1].key)
+                        throw InputError(FMA_FMT(
+                            "Duplicate vertex keys [{}] found for vids {} and {}.",
+                            key_vids[i].key, key_vids[i - 1].vid, key_vids[i].vid));
+                }
+
                 for (size_t i = 0; i < key_vids.size(); i++) {
                     if (i != 0 && i % batch_commit_size == 0) {
                         txn.Commit();
-                        FMA_LOG() << "committed " << i << " keys";
+                        FMA_DBG() << "committed " << i << " keys";
                         txn = CreateWriteTxn();
                     }
                     auto& kv = key_vids[i];
@@ -1903,7 +1889,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 for (size_t i = 0; i < key_vids.size(); ++i) {
                     if (i != 0 && i % batch_commit_size == 0) {
                         txn.Commit();
-                        FMA_LOG() << "committed " << i << " keys";
+                        FMA_DBG() << "committed " << i << " keys";
                         txn = CreateWriteTxn();
                     }
                     auto& kv = key_vids[i];
@@ -1916,7 +1902,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                     }
                     vids.push_back(kv.vid);
                 }
-                if (!key_vids.empty()) {
+                if (!vids.empty()) {
                     index->_AppendNonUniqueVertexIndexEntry(txn.GetTxn(),
                                                             GetKeyConstRef(key), vids);
                 }
@@ -1931,7 +1917,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
         auto txn = CreateReadTxn();
         {
             LabelId lid = txn.GetLabelId(false, spec.label);
-            FMA_LOG() << "Scanning edges for keys";
+            FMA_DBG() << "Scanning edges for keys";
             auto vit = txn.GetVertexIterator(first_vertex, true);
             Value v = vit.GetProperty();
             auto start_lid = SchemaManager::GetRecordLabelId(v);
@@ -1950,8 +1936,8 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 for (; eit.IsValid(); eit.Next()) {
                     if (eit.GetLabelId() == lid) {
                         EdgeUid euid = eit.GetUid();
-                        key_euids.emplace_back(GetIndexKeyFromValue<T>(extractor->GetConstRef(v)),
-                                               euid);
+                        key_euids.emplace_back(GetIndexKeyFromValue<T>(
+                                        extractor->GetConstRef(eit.GetProperty())), euid);
                     }
                 }
                 if (v_lid != start_lid) {
@@ -1965,19 +1951,54 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             }
             txn.Abort();
         }
-        FMA_LOG() << "Sorting by unique id";
+        FMA_DBG() << "Sorting by unique id";
         LGRAPH_PSORT(key_euids.begin(), key_euids.end());
-        FMA_LOG() << "Dumping index";
+        FMA_DBG() << "Dumping index";
         txn = CreateWriteTxn();
         auto index = txn.GetEdgeIndex(spec.label, spec.field);
         switch (spec.type) {
         case IndexType::GlobalUniqueIndex:
-        case IndexType::PairUniqueIndex:
             {
+                for (size_t i = 1; i < key_euids.size(); i++) {
+                    if (key_euids[i].key == key_euids[i - 1].key)
+                        throw InputError(FMA_FMT(
+                            "Duplicate edge index keys [{}] found for vid {} dst{} eid {},"
+                            "and {} {} {}.",
+                            key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
+                            key_euids[i].euid.eid, key_euids[i - 1].euid.src,
+                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                }
+                FMA_DBG() << "add unique index";
                 for (size_t i = 0; i < key_euids.size(); i++) {
                     if (i != 0 && i % batch_commit_size == 0) {
                         txn.Commit();
-                        FMA_LOG() << "committed " << i << " keys";
+                        FMA_DBG() << "committed " << i << " keys";
+                        txn = CreateWriteTxn();
+                    }
+                    auto& kv = key_euids[i];
+                    index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
+                                             (EdgeUid)kv.euid);
+                }
+                break;
+            }
+        case IndexType::PairUniqueIndex:
+            {
+                for (size_t i = 1; i < key_euids.size(); i++) {
+                    if (key_euids[i].key == key_euids[i - 1].key &&
+                        key_euids[i].euid.src == key_euids[i - 1].euid.src &&
+                        key_euids[i].euid.dst == key_euids[i - 1].euid.dst)
+                        throw InputError(FMA_FMT(
+                            "Duplicate edge index keys-vid [{}] found for vid {} "
+                            "dst{} eid {}, and {} {} {}.",
+                            key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
+                            key_euids[i].euid.eid, key_euids[i - 1].euid.src,
+                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                }
+                FMA_DBG() << "add pair_unique index";
+                for (size_t i = 0; i < key_euids.size(); i++) {
+                    if (i != 0 && i % batch_commit_size == 0) {
+                        txn.Commit();
+                        FMA_DBG() << "committed " << i << " keys";
                         txn = CreateWriteTxn();
                     }
                     auto& kv = key_euids[i];
@@ -1993,7 +2014,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 for (size_t i = 0; i < key_euids.size(); ++i) {
                     if (i != 0 && i % batch_commit_size == 0) {
                         txn.Commit();
-                        FMA_LOG() << "committed " << i << " keys";
+                        FMA_DBG() << "committed " << i << " keys";
                         txn = CreateWriteTxn();
                     }
                     auto& kv = key_euids[i];
@@ -2053,6 +2074,17 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
             }
             st.type = it->second;
         }
+    }
+    for (auto& label : edge_label_indexes) {
+        std::vector<FieldSpec> fields = txn.GetSchema(is_vertex, label.spec.label);
+        std::map<std::string, FieldType> fts;
+        for (auto& fd : fields) fts[fd.name] = fd.type;
+        auto it = fts.find(label.spec.field);
+        if (it == fts.end()) {
+            throw InputError(FMA_FMT("Field {} does not exist for label {}",
+                                     label.spec.field, label.spec.label));
+        }
+        label.type = it->second;
     }
     std::map<LabelId, bool> label_id_done;
     std::map<LabelId, std::string> label_id_name;

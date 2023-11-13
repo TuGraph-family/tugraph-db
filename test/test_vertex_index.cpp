@@ -38,6 +38,16 @@ int TestVertexIndexImpl() {
     int cnt = 0;
     // test integer keys
     {
+        auto fetch_n_bytes = [](const char* p, size_t nbytes) {
+            int64_t val = 0;
+            memcpy(&val, p, nbytes);
+            return val;
+        };
+        auto int_non_unique_to_string = [&](const char* p, size_t s) {
+            int32_t key = fetch_n_bytes(p, s - 5);
+            std::string ret = std::to_string(key);
+            return ret;
+        };
         auto idx_tab =
             VertexIndex::OpenTable(*txn, *store, "int32_index_test", FieldType::INT32,
                                    lgraph::IndexType::NonuniqueIndex);
@@ -63,6 +73,7 @@ int TestVertexIndexImpl() {
         }
         // test updates
         UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(2), Value::ConstRef(1), 0));
+        idx.Dump(*txn.get(), int_non_unique_to_string);
         // output indexed vids
         {
             auto it = idx.GetUnmanagedIterator(*txn, Value::ConstRef(1), Value::ConstRef(1));
@@ -241,8 +252,133 @@ int TestVertexIndexImpl() {
     return 0;
 }
 
+int CURDVertexWithTooLongKey() {
+    // test EdgeIndex
+    auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 30, true);
+    // Start test, see if we already has a db
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
+    txn = store->CreateWriteTxn();
+    // NonuniqueIndex vertex index
+    {
+        auto idx_tab = VertexIndex::OpenTable(*txn, *store, "LongKeyWithNonUnique",
+                                              FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+        VertexIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string key(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), i));
+            VertexIndexIterator it_add = idx.GetUnmanagedIterator(
+                *txn, Value::ConstRef(key), Value::ConstRef(key), i);
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(),
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - 5, 'a'));
+            bool find_vid = false;
+            while (!find_vid && it_add.IsValid()) {
+                if (it_add.GetVid() == i) find_vid = true;
+                it_add.Next();
+            }
+            UT_EXPECT_TRUE(find_vid);
+        }
+
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string ok(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+            std::string nk(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), i));
+            VertexIndexIterator it_add = idx.GetUnmanagedIterator(
+                *txn, Value::ConstRef(nk), Value::ConstRef(nk), i);
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(),
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - 5, 'b'));
+            bool find_vid = false;
+            while (!find_vid && it_add.IsValid()) {
+                if (it_add.GetVid() == i) find_vid = true;
+                it_add.Next();
+            }
+            UT_EXPECT_TRUE(find_vid);
+        }
+
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string key(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), i));
+            VertexIndexIterator it_del =
+                idx.GetUnmanagedIterator(*txn, Value::ConstRef(key), Value::ConstRef(key));
+            bool find_vid = false;
+            while (!find_vid && it_del.IsValid()) {
+                if (it_del.GetVid() == i) find_vid = true;
+                it_del.Next();
+            }
+            UT_EXPECT_FALSE(find_vid);
+        }
+    }
+
+    // GlobalUniqueIndex vertex index
+    {
+    auto bytes_count = [](int i) {
+        if (i == 0) return (size_t)1;
+        size_t count = 0;
+        while (i) {
+            i /= 10;
+            ++count;
+        }
+        return count;
+    };
+        auto idx_tab = VertexIndex::OpenTable(*txn, *store, "LongKeyWithGlobal",
+                                 FieldType::STRING, lgraph::IndexType::GlobalUniqueIndex);
+        VertexIndex idx(std::move(idx_tab), FieldType::STRING,
+                      lgraph::IndexType::GlobalUniqueIndex);
+        std::string str(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+        std::string tmp(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string key = std::to_string(i).append(str);
+            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), i));
+            VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(key),
+                                                                Value::ConstRef(key));
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'a'));
+            UT_EXPECT_EQ(it_add.GetVid(), i);
+        }
+        VertexIndexIterator it_all = idx.GetUnmanagedIterator(*txn, Value(), Value());
+        size_t vaild_keys = 0;
+        while (it_all.IsValid()) {
+            ++vaild_keys;
+            it_all.Next();
+        }
+        UT_EXPECT_EQ(vaild_keys, 100);
+
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string ok = std::to_string(i).append(str);
+            std::string nk = std::to_string(i).append(tmp);
+            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), i));
+            VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
+                                             Value::ConstRef(nk), Value::ConstRef(nk));
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
+                                  std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'b'));
+            UT_EXPECT_EQ(it_add.GetVid(), i);
+        }
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string key = std::to_string(i).append(tmp);
+            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), i));
+            VertexIndexIterator it_del = idx.GetUnmanagedIterator(*txn,
+                                                   Value::ConstRef(key), Value::ConstRef(key));
+            UT_EXPECT_FALSE(it_del.IsValid());
+        }
+
+        VertexIndexIterator it_none = idx.GetUnmanagedIterator(*txn, Value(), Value());
+        size_t all_keys = 0;
+        while (it_none.IsValid()) {
+            ++all_keys;
+            it_none.Next();
+        }
+        UT_EXPECT_EQ(all_keys, 0);
+    }
+    return 0;
+}
 TEST_F(TestVertexIndex, VertexIndex) {
     TestVertexIndexImpl();
+    CURDVertexWithTooLongKey();
 }
 
 TEST_F(TestVertexIndex, addIndexDetach) {

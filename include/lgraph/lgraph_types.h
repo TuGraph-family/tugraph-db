@@ -1019,6 +1019,22 @@ struct EdgeUid {
                tid == rhs.tid;
     }
 
+    inline bool operator<(const EdgeUid& rhs) const {
+        return src < rhs.src || (src == rhs.src && dst < rhs.dst) ||
+               (src == rhs.src && dst == rhs.dst && lid < rhs.lid) ||
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid < rhs.tid) ||
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid &&
+                tid == rhs.tid && eid < rhs.eid);
+    }
+
+    inline bool operator>(const EdgeUid& rhs) const {
+        return src > rhs.src || (src == rhs.src && dst > rhs.dst) ||
+               (src == rhs.src && dst == rhs.dst && lid > rhs.lid) ||
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid > rhs.tid) ||
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid &&
+                tid == rhs.tid && eid > rhs.eid);
+    }
+
     /** @brief  Get string representation of this object */
     std::string ToString() const {
         return std::to_string(src) + "_" + std::to_string(dst) + "_" + std::to_string(lid) + "_" +
