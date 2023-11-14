@@ -220,6 +220,7 @@ void Importer::VertexDataToSST() {
         std::vector<size_t> field_ids;
         std::vector<std::vector<FieldData>> block;
         LabelId label_id = 0;
+        const std::string* file_path = nullptr;
     };
     if (!fma_common::file_system::MkDir(sst_files_path_)) {
         throw std::runtime_error(FMA_FMT("failed to mkdir dir : {}", sst_files_path_));
@@ -231,7 +232,7 @@ void Importer::VertexDataToSST() {
         if (!file.is_vertex_file) {
             continue;
         }
-        boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, file](){
+        boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, &file](){
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -273,12 +274,17 @@ void Importer::VertexDataToSST() {
                         std::lock_guard<std::mutex> guard(next_vid_lock_);
                         start_vid = next_vid_;
                         next_vid_ += (VertexId)block.size();
+                        if (next_vid_ >= lgraph::_detail::MAX_VID) {
+                            throw std::runtime_error(
+                                FMA_FMT("next_vid {} reached the MAX_VID", next_vid_));
+                        }
                     }
                     auto dataBlock = std::make_unique<VertexDataBlock>();
                     dataBlock->block = std::move(block);
                     dataBlock->start_vid = start_vid;
                     dataBlock->key_col_id = key_col_id;
                     dataBlock->schema = schema;
+                    dataBlock->file_path = &file.path;
                     dataBlock->field_ids = field_ids;
                     dataBlock->label_id = boost::endian::native_to_big(label_id);
                     while (pending_tasks > 1) {
@@ -307,14 +313,20 @@ void Importer::VertexDataToSST() {
                                 const FieldData& key_col = line[dataBlock->key_col_id];
                                 // check null key
                                 if (key_col.IsNull() || key_col.is_empty_buf()) {
-                                    OnErrorOffline("Invalid primary key");
+                                    OnErrorOffline(FMA_FMT(
+                                        "[file: {}] [vertex label: {}] skip line,"
+                                        "reason: invalid primary key",
+                                        *dataBlock->file_path, dataBlock->schema->GetLabel()));
                                     continue;
                                 }
                                 // check super long key
                                 if (key_col.IsString() &&
                                     key_col.string().size() > lgraph::_detail::MAX_KEY_SIZE) {
-                                    OnErrorOffline("Id string too long: "
-                                                   + key_col.string().substr(0, 1024));
+                                    OnErrorOffline(FMA_FMT(
+                                        "[file: {}] [vertex label: {}] skip line,"
+                                        "reason: primary field too long: {}",
+                                        *dataBlock->file_path, dataBlock->schema->GetLabel(),
+                                        key_col.string().substr(0, 1024)));
                                     continue;
                                 }
 
@@ -326,8 +338,11 @@ void Importer::VertexDataToSST() {
                                     AppendFieldData(k, key_col);
                                     if (config_.keep_vid_in_memory) {
                                         if (!key_vid_maps_.insert(std::move(k), vid)) {
-                                            OnErrorOffline("Duplicate primary field: " +
-                                                           key_col.ToString());
+                                            OnErrorOffline(FMA_FMT(
+                                                "[file: {}] [vertex label: {}] skip line,"
+                                                "reason: duplicate primary field: {}",
+                                                *dataBlock->file_path,
+                                                dataBlock->schema->GetLabel(), key_col.ToString()));
                                             continue;
                                         }
                                     } else {
@@ -470,6 +485,7 @@ void Importer::EdgeDataToSST() {
         LabelId src_label_id = 0;
         LabelId dst_label_id = 0;
         Schema* schema = nullptr;
+        const std::string* file_path = nullptr;
     };
     struct KV {
         std::string key;
@@ -485,7 +501,7 @@ void Importer::EdgeDataToSST() {
             continue;
         }
         boost::asio::post(*parse_file_threads_,
-                          [this, file, &blob_writer, &pending_tasks, &sst_file_id](){
+                          [this, &file, &blob_writer, &pending_tasks, &sst_file_id](){
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -569,6 +585,7 @@ void Importer::EdgeDataToSST() {
                     edgeDataBlock->src_label_id = boost::endian::native_to_big(src_label_id);
                     edgeDataBlock->dst_label_id = boost::endian::native_to_big(dst_label_id);
                     edgeDataBlock->schema = schema;
+                    edgeDataBlock->file_path = &file.path;
                     while (pending_tasks > 1) {
                         fma_common::SleepUs(1000);
                     }
@@ -624,13 +641,21 @@ void Importer::EdgeDataToSST() {
                                 AppendFieldData(k, src_fd);
                                 if (config_.keep_vid_in_memory) {
                                     if (!key_vid_maps_.find(k, src_vid)) {
-                                        OnErrorOffline("no vid for " + src_fd.ToString());
+                                        OnErrorOffline(FMA_FMT(
+                                            "[file: {}] [edge label: {}] skip line,"
+                                            "reason: no vid for source node primary field: {}",
+                                            *edgeDataBlock->file_path,
+                                            edgeDataBlock->schema->GetLabel(), src_fd.ToString()));
                                         continue;
                                     }
                                 } else {
                                     vid_iter->Seek(k);
                                     if (!vid_iter->Valid()) {
-                                        OnErrorOffline("no vid for " + src_fd.ToString());
+                                        OnErrorOffline(FMA_FMT(
+                                            "[file: {}] [edge label: {}] skip line,"
+                                            "reason: no vid for source node primary field: {}",
+                                            *edgeDataBlock->file_path,
+                                            edgeDataBlock->schema->GetLabel(), src_fd.ToString()));
                                         continue;
                                     }
                                     auto slice_k = vid_iter->key();
@@ -639,7 +664,11 @@ void Importer::EdgeDataToSST() {
                                     src_vid = *(VertexId*)offset;
                                     slice_k.remove_suffix(sizeof(VertexId));
                                     if (slice_k.compare(k) != 0) {
-                                        OnErrorOffline("no vid for " + src_fd.ToString());
+                                        OnErrorOffline(FMA_FMT(
+                                            "[file: {}] [edge label: {}] skip line,"
+                                            "reason: no vid for source node primary field: {}",
+                                            *edgeDataBlock->file_path,
+                                            edgeDataBlock->schema->GetLabel(), src_fd.ToString()));
                                         continue;
                                     }
                                 }
@@ -649,13 +678,21 @@ void Importer::EdgeDataToSST() {
                                 AppendFieldData(k, dst_fd);
                                 if (config_.keep_vid_in_memory) {
                                     if (!key_vid_maps_.find(k, dst_vid)) {
-                                        OnErrorOffline("no vid for " + dst_fd.ToString());
+                                        OnErrorOffline(FMA_FMT(
+                                            "[file: {}] [edge label: {}] skip line,"
+                                            "reason: no vid for destination node primary field: {}",
+                                            *edgeDataBlock->file_path,
+                                            edgeDataBlock->schema->GetLabel(), dst_fd.ToString()));
                                         continue;
                                     }
                                 } else {
                                     vid_iter->Seek(k);
                                     if (!vid_iter->Valid()) {
-                                        OnErrorOffline("no vid for " + dst_fd.ToString());
+                                        OnErrorOffline(FMA_FMT(
+                                            "[file: {}] [edge label: {}] skip line,"
+                                            "reason: no vid for destination node primary field: {}",
+                                            *edgeDataBlock->file_path,
+                                            edgeDataBlock->schema->GetLabel(), dst_fd.ToString()));
                                         continue;
                                     }
                                     auto slice_k = vid_iter->key();
@@ -664,7 +701,11 @@ void Importer::EdgeDataToSST() {
                                     dst_vid = *(VertexId*)offset;
                                     slice_k.remove_suffix(sizeof(VertexId));
                                     if (slice_k.compare(k) != 0) {
-                                        OnErrorOffline("no vid for " + dst_fd.ToString());
+                                        OnErrorOffline(FMA_FMT(
+                                            "[file: {}] [edge label: {}] skip line,"
+                                            "reason: no vid for destination node primary field: {}",
+                                            *edgeDataBlock->file_path,
+                                            edgeDataBlock->schema->GetLabel(), dst_fd.ToString()));
                                         continue;
                                     }
                                 }
@@ -1048,6 +1089,9 @@ void Importer::RocksdbToLmdb() {
                 while (stage != i || pending_tasks > 1) {
                     fma_common::SleepUs(1000);
                 }
+                if (kvs.empty()) {
+                    return;
+                }
                 pending_tasks++;
                 boost::asio::post(*lmdb_writer, [this, &pending_tasks,
                                                  kvs = std::move(kvs),
@@ -1134,9 +1178,10 @@ void Importer::RocksdbToLmdb() {
                      iter->Next()) {
                     auto key = iter->key();
                     if (key.compare({(const char*)&bigend_end_vid, sizeof(bigend_end_vid)}) >= 0) {
-                        make_kvs();
-                        throw_kvs_to_lmdb(std::move(kvs),
-                                          std::move(vertex_property),
+                        if (pre_vid != InvalidVid) {
+                            make_kvs();
+                        }
+                        throw_kvs_to_lmdb(std::move(kvs), std::move(vertex_property),
                                           std::move(edge_property));
                         all_kv_size = 0;
                         stage = (i + 1) % config_.read_rocksdb_threads;
