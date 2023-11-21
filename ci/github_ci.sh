@@ -2,6 +2,7 @@
 set -e
 
 ASAN=$1
+WITH_PROCEDURE=${2:-"OFF"}
 
 cd $WORKSPACE
 
@@ -17,9 +18,9 @@ cd $WORKSPACE
 mkdir build && cd build
 if [[ "$ASAN" == "asan" ]]; then
 echo 'build with asan ...'
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCEDURE
 else
-cmake .. -DCMAKE_BUILD_TYPE=Coverage
+cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
 make -j2
 make unit_test fma_unit_test -j2
@@ -66,6 +67,9 @@ cp ../../src/client/python/TuGraphClient/TuGraphRestClient.py .
 cp -r ../../test/integration/* ./
 cp -r ../../learn/examples/* ./
 cp -r ../../demo/movie .
+if [[ "$WITH_PROCEDURE" == "OFF" ]]; then
+    rm -rf test_algo.py test_sampling.py test_train.py
+fi
 pytest ./
 
 # codecov
