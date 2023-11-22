@@ -108,7 +108,7 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
 
 // test whether spatial data error(wrong ewkb format)
 // can be handled at schema level;
-static void TestSampleDB(const std::string& dir, bool detach_property) {
+static void TestWrongDB(const std::string& dir, bool detach_property) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
@@ -195,15 +195,15 @@ TEST_P(TestSpatial, Spatial) {
     {
         UT_LOG() << "Testing encode and decode";
 
-        // testing point wkb format
+        // Testing point wkb format
         Spatial<Wgs84> Point_w(SRID::WGS84, SpatialType::POINT, 0,
         "0101000000000000000000F03F0000000000000040");
-        // output ewkb format are in capital
+        // Output ewkb format are in capital
         UT_EXPECT_EQ(Point_w.AsEWKB(), "0101000020E6100000000000000000F03F0000000000000040");
         UT_EXPECT_EQ(Point_w.AsEWKT(), "SRID=4326;POINT(1 2)");
         UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, "1111111"));
 
-        // testing point wkt format
+        // Testing point wkt format
         Spatial<Cartesian> Point_c(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(1.0 1.0)");
         UT_EXPECT_EQ(Point_c.AsEWKB(), "0101000020231C0000000000000000F03F000000000000F03F");
         UT_EXPECT_EQ(Point_c.AsEWKT(), "SRID=7203;POINT(1 1)");
@@ -211,7 +211,7 @@ TEST_P(TestSpatial, Spatial) {
         "POINT(1.0 2.0 3.0)"));
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::POINT, 1, "POINT(a)"));
 
-        // testing linestring wkb format
+        // Testing linestring wkb format
         UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::LINESTRING, 0, "1111111"));
         Spatial<Wgs84> line_w(SRID::WGS84, SpatialType::LINESTRING, 0, "01020000000300000000000000"
         "000000000000000000000000000000000000004000000000000000400000000000000840000000000000F03F");
@@ -219,7 +219,7 @@ TEST_P(TestSpatial, Spatial) {
         "00000000000004000000000000000400000000000000840000000000000F03F");
         UT_EXPECT_EQ(line_w.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
 
-        // testing linestring wkt format
+        // Testing linestring wkt format
         Spatial<Cartesian> line_c(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINESTRING(0 0,2 2,3 1)");
         UT_EXPECT_EQ(line_c.AsEWKB(), "0102000020231C00000300000000000000000000000000000000000"
@@ -230,7 +230,7 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_ANY_THROW(Spatial<Cartesian>(SRID::CARTESIAN, SpatialType::LINESTRING, 1,
         "LINE(0 0,2 2,3 1)"));
 
-        // testing polygon wkb format
+        // Testing polygon wkb format
         Spatial<Wgs84> Polygon_w(SRID::WGS84, SpatialType::POLYGON, 0,
         "0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
@@ -241,7 +241,7 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_EQ(Polygon_w.AsEWKT(), "SRID=4326;POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_ANY_THROW(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 0, "abcde"));
 
-        // testing polygon wkt format;
+        // Testing polygon wkt format;
         Spatial<Cartesian> Polygon_c(SRID::CARTESIAN, SpatialType::POLYGON, 1,
         "POLYGON((0 0,0 7,4 2,2 0,0 0))");
         UT_EXPECT_EQ(Polygon_c.AsEWKB(), "0103000020231C0000010000000500000000000000000000000"
@@ -256,7 +256,7 @@ TEST_P(TestSpatial, Spatial) {
 
     {
         UT_LOG() << "Testing construct from EWKB";
-        // testing point ewkb format;
+        // Testing point ewkb format;
         std::string point_wgs84 = "0101000020E6100000000000000000F03F000000000000F03F";
         std::string point_cartesian = "0101000020231C0000000000000000F03F000000000000F03F";
         Spatial<Wgs84> p1(point_wgs84);
@@ -266,7 +266,7 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_EQ(p2.AsEWKB(), point_cartesian);
         UT_EXPECT_EQ(p2.AsEWKT(), "SRID=7203;POINT(1 1)");
 
-        // testing line ewkb format;
+        // Testing line ewkb format;
         std::string line_wgs84 = "0102000020E61000000300000000000000000000000000000000000000"
         "000000000000004000000000000000400000000000000840000000000000F03F";
         std::string line_cartesian = "0102000020231C00000300000000000000000000000000000000000000"
@@ -278,7 +278,7 @@ TEST_P(TestSpatial, Spatial) {
         UT_EXPECT_EQ(l2.AsEWKB(), line_cartesian);
         UT_EXPECT_EQ(l2.AsEWKT(), "SRID=7203;LINESTRING(0 0,2 2,3 1)");
 
-        // testing polygon ewkb format;
+        // Testing polygon ewkb format;
         std::string polygon_wgs84 = "0103000020E610000001000000050000000000000000000000"
         "00000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F"
         "000000000000F03F000000000000000000000000000000000000000000000000";
@@ -387,7 +387,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
              FieldSpec("string2Spatial", FieldType::SPATIAL, true)}),
         "id", "", {}, {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
-    // add fields;
+    // Add fields;
     {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, false)}));
@@ -399,7 +399,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
         UT_EXPECT_TRUE(fmap == fields);
     }
 
-    // mod fields;
+    // Mod fields;
     {
         Schema s2(s1);
         std::vector<FieldSpec> mod = {FieldSpec("string2Point", FieldType::POINT, false),
@@ -417,7 +417,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
                         FieldNotFoundException);
     }
 
-    // del fields;
+    // Del fields;
     {
         Schema s2(s1);
         std::vector<std::string> to_del = {"Point", "LineString", "Polygon", "Spatial"};
@@ -435,7 +435,6 @@ TEST_P(TestSpatial, Spatial_Schema) {
     DBConfig conf;
     conf.dir = dir;
     CreateSampleDB(dir, GetParam());
-    UT_LOG() << "come here!";
     LightningGraph graph(conf);
     {
         auto txn = graph.CreateReadTxn();
@@ -453,7 +452,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
         "00000000000004000000000000000400000000000000840000000000000F03F"));
     }
 
-    UT_LOG() << "testing add";
+    UT_LOG() << "Testing add";
     {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelAddFields(
@@ -510,5 +509,5 @@ TEST_P(TestSpatial, error_handle) {
     AutoCleanDir cleaner(dir);
     DBConfig conf;
     conf.dir = dir;
-    TestSampleDB(dir, GetParam());
+    TestWrongDB(dir, GetParam());
 }
