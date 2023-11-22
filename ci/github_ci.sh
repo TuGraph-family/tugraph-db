@@ -82,6 +82,7 @@ else
   pytest ./
   # codecov
   cd $WORKSPACE
+  mkdir testresult
   bash ./ci/codecov.sh $WORKSPACE/build $WORKSPACE/testresult
   # Uploading report to CodeCov
   bash <(curl -s https://codecov.io/bash) -f $WORKSPACE/testresult/coverage.info -t $CODECOV_TOKEN || echo "Codecov did not collect coverage reports"
