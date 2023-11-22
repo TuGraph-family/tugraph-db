@@ -204,9 +204,14 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         CheckParseDataType<lgraph::DateTime>(FieldType::DATETIME, value_tmp, "2019-09-08 00:15:14",
                                              FieldData::DateTime("2020-05-04 20:24:34"),
                                              "not valid date", FieldData(123), true, "10240-09-01");
+        // testing spatial data;
         CheckParseDataType<lgraph::PointWgs84>(FieldType::POINT, value_tmp,
                            "0101000020E6100000000000000000F03F0000000000000040",
                            FieldData::Point("0101000020E6100000000000000000F03F0000000000000040"),
+                           "aasd332423d", FieldData(3215), false);
+        CheckParseDataType<lgraph::PointCartesian>(FieldType::POINT, value_tmp,
+                           "0101000020231C0000000000000000F03F0000000000000040",
+                           FieldData::Point("0101000020231C0000000000000000F03F0000000000000040"),
                            "aasd332423d", FieldData(3215), false);
         CheckParseDataType<lgraph::LineStringCartesian>(FieldType::LINESTRING, value_tmp,
                            "0102000020231C00000300000000000000000000000000000000000000000"
@@ -215,11 +220,27 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
                            "0000000000000000000000000000000000000000400000000"
                            "0000000400000000000000840000000000000F03F"),
                            "aasd332423d", FieldData(3215), false);
+        CheckParseDataType<lgraph::LineStringWgs84>(FieldType::LINESTRING, value_tmp,
+                           "0102000020E61000000300000000000000000000000000000000000000000"
+                           "000000000004000000000000000400000000000000840000000000000F03F",
+                           FieldData::LineString("0102000020E610000003000000000000"
+                           "0000000000000000000000000000000000000000400000000"
+                           "0000000400000000000000840000000000000F03F"),
+                           "aasd332423d", FieldData(3215), false);
         CheckParseDataType<lgraph::PolygonWgs84>(FieldType::POLYGON, value_tmp,
                            "0103000020E6100000010000000500000000000000000000000000000000"
                            "00000000000000000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000",
                            FieldData::Polygon("0103000020E61000000100000005000000"
+                           "000000000000000000000000000000000000000"
+                           "0000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000"),
+                           "aasd332423d", FieldData(3215), false);
+        CheckParseDataType<lgraph::PolygonCartesian>(FieldType::POLYGON, value_tmp,
+                           "0103000020231C0000010000000500000000000000000000000000000000"
+                           "00000000000000000000000000000000001C400000000000001040000000000000"
+                           "00400000000000000040000000000000000000000000000000000000000000000000",
+                           FieldData::Polygon("0103000020231C00000100000005000000"
                            "000000000000000000000000000000000000000"
                            "0000000000000000000001C400000000000001040000000000000"
                            "00400000000000000040000000000000000000000000000000000000000000000000"),

@@ -410,7 +410,7 @@ Point<SRID_Type>::Point(SRID srid, SpatialType type, int construct_type, std::st
     if (construct_type == 1) {
         std::string wkb_out;
 
-        // 如果WKT格式错误，这里会抛出异常; boost::exception_detail;
+        // exception will be thrown if the wkt format is wrong; boost::exception_detail;
         try {
             bg::read_wkt(content, point_);
         } catch (const std::exception &ex) {

@@ -256,24 +256,42 @@ TEST_P(TestSpatial, Spatial) {
 
     {
         UT_LOG() << "Testing construct from EWKB";
+        // testing point ewkb format;
+        std::string point_wgs84 = "0101000020E6100000000000000000F03F000000000000F03F";
+        std::string point_cartesian = "0101000020231C0000000000000000F03F000000000000F03F";
+        Spatial<Wgs84> p1(point_wgs84);
+        Spatial<Cartesian> p2(point_cartesian);
+        UT_EXPECT_EQ(p1.AsEWKB(), point_wgs84);
+        UT_EXPECT_EQ(p1.AsEWKT(), "SRID=4326;POINT(1 1)");
+        UT_EXPECT_EQ(p2.AsEWKB(), point_cartesian);
+        UT_EXPECT_EQ(p2.AsEWKT(), "SRID=7203;POINT(1 1)");
 
-        std::string EWKB1 = "0101000020E6100000000000000000F03F000000000000F03F";
-        Spatial<Wgs84> p(EWKB1);
-        UT_EXPECT_EQ(p.AsEWKB(), EWKB1);
-        UT_EXPECT_EQ(p.AsEWKT(), "SRID=4326;POINT(1 1)");
-
-        std::string EWKB2 = "0102000020231C00000300000000000000000000000000000000000000"
+        // testing line ewkb format;
+        std::string line_wgs84 = "0102000020E61000000300000000000000000000000000000000000000"
         "000000000000004000000000000000400000000000000840000000000000F03F";
-        Spatial<Cartesian> l(EWKB2);
-        UT_EXPECT_EQ(l.AsEWKB(), EWKB2);
-        UT_EXPECT_EQ(l.AsEWKT(), "SRID=7203;LINESTRING(0 0,2 2,3 1)");
+        std::string line_cartesian = "0102000020231C00000300000000000000000000000000000000000000"
+        "000000000000004000000000000000400000000000000840000000000000F03F";
+        Spatial<Wgs84> l1(line_wgs84);
+        Spatial<Cartesian> l2(line_cartesian);
+        UT_EXPECT_EQ(l1.AsEWKB(), line_wgs84);
+        UT_EXPECT_EQ(l1.AsEWKT(), "SRID=4326;LINESTRING(0 0,2 2,3 1)");
+        UT_EXPECT_EQ(l2.AsEWKB(), line_cartesian);
+        UT_EXPECT_EQ(l2.AsEWKT(), "SRID=7203;LINESTRING(0 0,2 2,3 1)");
 
-        std::string EWKB3 = "0103000020E610000001000000050000000000000000000000"
+        // testing polygon ewkb format;
+        std::string polygon_wgs84 = "0103000020E610000001000000050000000000000000000000"
         "00000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F"
         "000000000000F03F000000000000000000000000000000000000000000000000";
-        Spatial<Wgs84> p_(EWKB3);
-        UT_EXPECT_EQ(p_.AsEWKB(), EWKB3);
-        UT_EXPECT_EQ(p_.AsEWKT(), "SRID=4326;POLYGON((0 0,0 1,1 1,1 0,0 0))");
+        std::string polygon_cartesian = "0103000020231C000001000000050000000000000000000000"
+        "00000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F"
+        "000000000000F03F000000000000000000000000000000000000000000000000";
+        Spatial<Wgs84> po1(polygon_wgs84);
+        Spatial<Cartesian> po2(polygon_cartesian);
+
+        UT_EXPECT_EQ(po1.AsEWKB(), polygon_wgs84);
+        UT_EXPECT_EQ(po1.AsEWKT(), "SRID=4326;POLYGON((0 0,0 1,1 1,1 0,0 0))");
+        UT_EXPECT_EQ(po2.AsEWKB(), polygon_cartesian);
+        UT_EXPECT_EQ(po2.AsEWKT(), "SRID=7203;POLYGON((0 0,0 1,1 1,1 0,0 0))");
     }
 
     {

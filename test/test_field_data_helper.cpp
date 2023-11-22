@@ -310,6 +310,9 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     _TEST_FD_CONVERT(STRING, EWKB, POLYGON,
                      ::lgraph_api::Polygon<::lgraph_api::Wgs84>(EWKB).AsEWKB(),
                      true);
+    _TEST_FD_CONVERT(STRING, EWKB, SPATIAL,
+                     ::lgraph_api::Spatial<::lgraph_api::Wgs84>(EWKB).AsEWKB(),
+                     true);
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
     _TEST_FD_CONVERT(INT64, 127, STRING, "", false);
@@ -541,7 +544,7 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
     _TEST_VALUE_COMPARE(BLOB, std::string(3, 'a'), std::string(4, 'a'), -1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
     _TEST_VALUE_COMPARE(BLOB, std::string(30, 'a'), std::string(4, 'a'), 1);
-    // testing Point(compare string);
+    // testing Point & spatial(compare string);
     {
         std::string EWKB1 = "0101000020E6100000000000000000F03F0000000000000040";
         std::string EWKB2 = "0101000020231C0000000000000000F03F000000000000F03F";
