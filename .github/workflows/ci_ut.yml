@@ -1,6 +1,7 @@
-name: ci_asan
+name: ci_ut
 
 on:
+  push:
   pull_request:
     branches:
       - '*'
@@ -33,7 +34,7 @@ jobs:
           context: .
           tags: ${{ env.TEST_TAG }}
           build-args: |
-            BUILD_TYPE=asan
+            BUILD_TYPE=no_asan
             TEST_TYPE=ut
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
