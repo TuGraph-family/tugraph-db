@@ -75,9 +75,12 @@ class LGraphUnitTests:
         spatial1 = FieldData.Spatial(point_str)
         spatial2 = FieldData.Spatial(linestring_str)
         spatial3 = FieldData.Spatial(polygon_str)
-        assert(spatial1.AsSpatial(), point_str)
-        assert(spatial2.AsSpatial(), linestring_str)
-        assert(spatial3.AsSpatial(), polygon_str)
+        FMA_EXPECT_EXCEPTION('FieldData.Spatial(add + point_str)', globals(), locals())
+        FMA_EXPECT_EXCEPTION('FieldData.Spatial(add + linestring_str)', globals(), locals())
+        FMA_EXPECT_EXCEPTION('FieldData.Spatial(add + polygon_str)', globals(), locals())
+        assert(spatial1.AsSpatial() == point_str)
+        assert(spatial2.AsSpatial() == linestring_str)
+        assert(spatial3.AsSpatial() == polygon_str)
 
     def test_db(self):
         with Galaxy("./testdb", True, True) as galaxy:
