@@ -567,12 +567,27 @@ R"(
         importer.DoImportOffline();
     }
 
+    static void create_fb(const std::string& dir = "./lgraph_db") {
+        // todo(kehuang): use import_v3
+        lgraph::import_v2::Importer::Config config;
+        config.config_file =
+            lgraph::ut::TEST_RESOURCE_DIRECTORY + "/../integration/data/algo/fb.conf";
+        FMA_LOG() << "config_file : " << config.config_file;
+        config.db_dir = dir;
+        config.delete_if_exists = true;
+        config.graph = "default";
+        config.delimiter = ",";
+        lgraph::import_v2::Importer importer(config);
+        importer.DoImportOffline();
+    }
+
     enum class GRAPH_DATASET_TYPE {
         CURRENT = 0,
         EMPTY = 1,
         YAGO = 2,
         MINI_FINBENCH = 3,
         MINI_SNB = 4,
+        FB = 5
     };
 
     static std::string ToString(GRAPH_DATASET_TYPE dataset_type) {
@@ -582,6 +597,7 @@ R"(
             {GRAPH_DATASET_TYPE::YAGO, "YAGO"},
             {GRAPH_DATASET_TYPE::MINI_FINBENCH, "MINI_FINBENCH"},
             {GRAPH_DATASET_TYPE::MINI_SNB, "MINI_SNB"},
+            {GRAPH_DATASET_TYPE::FB, "FaceBook"},
         };
         auto it = dataset_type_to_string.find(dataset_type);
         if (it == dataset_type_to_string.end()) {
@@ -598,6 +614,7 @@ R"(
             {"YAGO", GRAPH_DATASET_TYPE::YAGO},
             {"MINI_FINBENCH", GRAPH_DATASET_TYPE::MINI_FINBENCH},
             {"MINI_SNB", GRAPH_DATASET_TYPE::MINI_SNB},
+            {"FaceBook", GRAPH_DATASET_TYPE::FB},
         };
         auto it = string_to_dataset_type.find(str);
         if (it == string_to_dataset_type.end()) {
@@ -612,7 +629,8 @@ R"(
         std::string ret;
         std::vector<GRAPH_DATASET_TYPE> all_types = {
             GRAPH_DATASET_TYPE::CURRENT, GRAPH_DATASET_TYPE::EMPTY, GRAPH_DATASET_TYPE::YAGO,
-            GRAPH_DATASET_TYPE::MINI_FINBENCH};
+            GRAPH_DATASET_TYPE::MINI_FINBENCH, GRAPH_DATASET_TYPE::MINI_SNB,
+            GRAPH_DATASET_TYPE::FB};
         for (auto& it : all_types) {
             ret += ToString(it);
             if (it != all_types.back()) {
@@ -641,6 +659,10 @@ R"(
         case GRAPH_DATASET_TYPE::MINI_SNB:
             fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
             create_mini_snb(dir);
+            return;
+        case GRAPH_DATASET_TYPE::FB:
+            fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
+            create_fb(dir);
             return;
         }
     }

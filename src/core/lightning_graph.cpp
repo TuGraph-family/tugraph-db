@@ -1257,7 +1257,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         for (size_t i = 1; i < key_euids.size(); i++) {
                             if (key_euids[i].key == key_euids[i - 1].key)
                                 throw InputError(FMA_FMT(
-                                    "Duplicate edge index keys [{}] found for vid {} dst{} eid {},"
+                                    "Duplicate edge index keys [{}] found for vid {} dst {} eid {},"
                                     "and {} {} {}.",
                                     key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
                                     key_euids[i].euid.eid, key_euids[i - 1].euid.src,

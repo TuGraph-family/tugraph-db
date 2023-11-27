@@ -3024,3 +3024,17 @@ TEST_F(TestImportV3, ImportV3Multi) {
             config, 0, 0, nullptr, false);
     }
 }
+
+TEST_F(TestImportV3, TestEdgeIndexCreate) {
+    GraphFactory::create_graph(GraphFactory::GRAPH_DATASET_TYPE::FB, "./testdb");
+    std::shared_ptr<lgraph_api::Galaxy> galaxy = std::make_shared<lgraph_api::Galaxy>(
+        "./testdb", lgraph::_detail::DEFAULT_ADMIN_NAME,
+        lgraph::_detail::DEFAULT_ADMIN_PASS, false, true);
+    auto db = galaxy->OpenGraph("default", false);
+    db.AlterEdgeLabelAddFields("edge", {
+                                           {"id", FieldType::STRING, false},
+                                           {"name", FieldType::STRING, false}},
+                               {FieldData(""), FieldData("")});
+    UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "id", IndexType::PairUniqueIndex));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "name", IndexType::NonuniqueIndex));
+}
