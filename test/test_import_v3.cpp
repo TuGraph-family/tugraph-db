@@ -2976,3 +2976,51 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
         UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "edge", "id"), 10);
     }
 }
+
+TEST_F(TestImportV3, ImportV3Multi) {
+    UT_LOG() << "Testing import many dbs";
+    const std::string src_dir = "./import_data/";
+    AutoCleanDir src(src_dir);
+    CreateCsvFiles(std::map<std::string, std::string>(
+        {{"import.conf", v3_data.import_string_ids},
+         {"node.csv", UT_FMT("\"{}\"\n", '1')}}));
+
+    const int MAX_DB_NUM = 70;
+    for (int i = 0; i < MAX_DB_NUM; ++i) {
+        const std::string db_dir = "./multigraph_testdb";
+        AutoCleanDir db(db_dir);
+        const std::string graph_name = "graph" + std::to_string(i);
+        UT_LOG() << UT_FMT("Importing {}...", graph_name);
+        Importer::Config config;
+        config.delete_if_exists = false;
+        config.continue_on_error = false;
+        config.db_dir = db_dir;
+        config.graph = graph_name;
+        TestImportOnData(
+            std::vector<std::pair<std::string, std::string>>{{"import.conf", R"(
+{
+    "schema": [
+        {
+            "label" : "user",
+            "type" : "VERTEX",
+            "primary" : "uid",
+            "properties" : [
+                {"name":"uid", "type":"STRING"}
+            ]
+        }
+    ],
+    "files" : [
+        {
+            "path" : "vertex.csv",
+            "format" : "CSV",
+            "label" : "user",
+            "columns" : ["uid"]
+        }
+    ]
+}
+                    )"},
+                                                             {"vertex.csv",
+                                                              "chuntao\n"}},
+            config, 0, 0, nullptr, false);
+    }
+}

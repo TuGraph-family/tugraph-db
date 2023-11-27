@@ -145,6 +145,26 @@ TEST_F(TestGalaxy, Galaxy) {
             UT_EXPECT_EQ(graphs["graph4T"].first, "this is graph4T");
             UT_EXPECT_EQ(graphs["graph4T"].second, big_graph_size);
         }
+        {
+            UT_LOG() << "multigraph test";
+            const std::string db_dir = "./multigraph_db";
+            Galaxy galaxy(db_dir);
+            lgraph::AutoCleanDir acd(db_dir);
+            galaxy.SetCurrentUser("admin", "73@TuGraph");
+            const int MAX_DB_NUM = 200;
+
+            for (int i = 0; i < MAX_DB_NUM; ++i) {
+                const std::string graph_name = "graph" + std::to_string(i);
+                UT_LOG() << "  now test " + graph_name;
+                // UT_EXPECT_TRUE(galaxy.CreateGraph(graph_name));
+                // will fail, too large mmapped space
+                UT_EXPECT_TRUE(galaxy.CreateGraph(graph_name, "this is graph1G",
+                                                  (size_t)1 << 30));  // will success
+            }
+
+            auto graphs = galaxy.ListGraphs();
+            UT_EXPECT_EQ(graphs.size(), MAX_DB_NUM + 1);
+        }
     }
 
     auto OpenNewGalaxy = [&]() {
