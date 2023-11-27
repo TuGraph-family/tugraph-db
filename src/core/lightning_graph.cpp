@@ -116,23 +116,6 @@ size_t LightningGraph::GetNumVertices() {
     return graph_->GetLooseNumVertex(txn.GetTxn());
 }
 
-template <bool IS_LABEL>
-inline void CheckIsValidLabelFieldName(const std::string& lof) {
-    if (lof.empty() || lof.size() > 255) {
-        throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +
-                         " is invalid: must be between 1 and 255 bytes.");
-    }
-    if (fma_common::TextParserUtils::IsDigits(lof.front())) {
-        throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +
-                         " cannot begin with a digit.");
-    }
-    for (char c : lof) {
-        if ((uint8_t)c < 128 && !fma_common::TextParserUtils::IsValidNameCharacter(c))
-            throw InputError(std::string((IS_LABEL ? "Label" : "Field name")) +
-                             " can only contain alphabetic and numeric characters and underscore.");
-    }
-}
-
 /**
  * Adds a label
  *
@@ -151,11 +134,8 @@ inline void CheckIsValidLabelFieldName(const std::string& lof) {
 bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const FieldSpec* fds,
                               bool is_vertex, const LabelOptions& options) {
     // check that label and field names are legal
-    CheckIsValidLabelFieldName<true>(label);
-    if (_F_UNLIKELY(n_fields > 1024)) {
-        throw InputError(
-            FMA_FMT("Label[{}]: Number of fields cannot exceed 1024, given [{}]", label, n_fields));
-    }
+    lgraph::CheckValidLabelName(label);
+    lgraph::CheckValidFieldNum(n_fields);
 
     std::set<std::string> unique_fds;
     for (size_t i = 0; i < n_fields; i++) {
@@ -210,7 +190,7 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
     }
     for (size_t i = 0; i < n_fields; i++) {
         auto& fn = fds[i].name;
-        CheckIsValidLabelFieldName<false>(fn);
+        lgraph::CheckValidFieldName(fn);
     }
     // Need to hold a write lock here since if two threads tries to add label concurrently, data
     // race to schema_ may happen.
@@ -219,6 +199,8 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
     ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
     SchemaManager* sm = is_vertex ? &new_schema->v_schema_manager : &new_schema->e_schema_manager;
+    lgraph::CheckValidLabelNum(new_schema->v_schema_manager.GetAllLabels().size() +
+                               new_schema->e_schema_manager.GetAllLabels().size() + 1);
     bool r = sm->AddLabel(txn.GetTxn(), is_vertex, label, n_fields, fds, options);
     if (r && is_vertex) {
         // add vertex primary index
@@ -284,7 +266,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
     _HoldWriteLock(meta_lock_);
     size_t commit_size = 4096;
     // check that label and field names are legal
-    CheckIsValidLabelFieldName<true>(label);
+    lgraph::CheckValidLabelName(label);
     Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     SchemaManager* curr_sm =

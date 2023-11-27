@@ -229,12 +229,12 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(g.SetPassword(admin_user, admin_pass, "admin123456"));
         UT_EXPECT_THROW_REGEX(g.SetPassword(admin_user, admin_pass, "new"),
                             "(Incorrect).*(password).");
-        UT_EXPECT_THROW_REGEX(g.SetPassword(admin_user, admin_pass, ""), "Invalid password");
+        UT_EXPECT_THROW_REGEX(g.SetPassword(admin_user, admin_pass, ""), "Invalid Password");
         UT_EXPECT_THROW_REGEX(g.SetPassword(admin_user, admin_pass,
                                           std::string(lgraph::_detail::MAX_PASSWORD_LEN + 1, 'a')),
-                            "Invalid password");
+                            "Invalid Password");
         UT_EXPECT_TRUE(!g.SetPassword("non_existing_user", "old", "new"));
-        UT_EXPECT_THROW_REGEX(g.SetPassword("", "old", "new"), "Invalid user name");
+        UT_EXPECT_THROW_REGEX(g.SetPassword("", "old", "new"), "Invalid User");
         g.Close();
         // test persistence
         g = OpenExistingGalaxy(false);
@@ -298,12 +298,12 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(g.CreateUser(new_user, new_pass));
         UT_EXPECT_EQ(g.ListUsers().size(), 2);
         UT_EXPECT_TRUE(!g.CreateUser(new_user, new_pass));  // already exists
-        UT_EXPECT_THROW_REGEX(g.CreateUser("@invalid_name", "new_pass"), "Invalid user name");
-        UT_EXPECT_THROW_REGEX(g.CreateUser("", "new_pass"), "Invalid user name");
+        UT_EXPECT_THROW_REGEX(g.CreateUser("@invalid_name", "new_pass"), "Invalid User");
+        UT_EXPECT_THROW_REGEX(g.CreateUser("", "new_pass"), "Invalid User");
         UT_EXPECT_THROW_REGEX(g.CreateUser(std::string(1024, 'a'), "new_pass"),
-                              "Invalid user name");
-        UT_EXPECT_THROW_REGEX(g.CreateUser("ok_name", ""), "Invalid password");
-        UT_EXPECT_THROW_REGEX(g.CreateUser("ok_name", std::string(1024, 1)), "Invalid password");
+                              "Invalid User");
+        UT_EXPECT_THROW_REGEX(g.CreateUser("ok_name", ""), "Invalid Password");
+        UT_EXPECT_THROW_REGEX(g.CreateUser("ok_name", std::string(1024, 1)), "Invalid Password");
         g.SetCurrentUser(new_user, new_pass);
         g.Close();
         // test persistence
@@ -322,7 +322,7 @@ TEST_F(TestGalaxy, Galaxy) {
         g.SetCurrentUser(admin_user, admin_pass);
         UT_EXPECT_TRUE(g.DeleteUser(new_user));
         UT_EXPECT_TRUE(!g.DeleteUser("non_existing_user"));
-        UT_EXPECT_THROW_REGEX(g.DeleteUser(""), "Invalid user name");
+        UT_EXPECT_THROW_REGEX(g.DeleteUser(""), "Invalid User");
         UT_EXPECT_THROW_REGEX(g.DeleteUser(admin_user), "cannot delete itself");
         UT_EXPECT_THROW_REGEX(g.SetCurrentUser(new_user, new_pass), "Bad user");
         g.Close();
@@ -347,7 +347,7 @@ TEST_F(TestGalaxy, Galaxy) {
         g.SetCurrentUser(admin_user, admin_pass);
         UT_EXPECT_TRUE(g.DisableUser(new_user));
         UT_EXPECT_TRUE(!g.DisableUser("non_existing_user"));
-        UT_EXPECT_THROW_REGEX(g.DisableUser(""), "Invalid user name");
+        UT_EXPECT_THROW_REGEX(g.DisableUser(""), "Invalid User");
         UT_EXPECT_THROW_REGEX(g.DisableUser(admin_user), "cannot disable itself");
         UT_EXPECT_THROW_REGEX(g.SetCurrentUser(new_user, new_pass), "Bad user");
         g.Close();
@@ -355,7 +355,7 @@ TEST_F(TestGalaxy, Galaxy) {
         g = OpenExistingGalaxy(true);
         UT_EXPECT_THROW_REGEX(g.SetCurrentUser(new_user, new_pass), "Bad user");
         UT_EXPECT_TRUE(g.EnableUser(new_user));
-        UT_EXPECT_THROW_REGEX(g.EnableUser(""), "Invalid user name");
+        UT_EXPECT_THROW_REGEX(g.EnableUser(""), "Invalid User");
         UT_EXPECT_TRUE(!g.EnableUser("non_existing_user"));
         g.SetCurrentUser(new_user, new_pass);
         g.Close();
@@ -432,8 +432,8 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(!g.SetUserRoles("non_existing_user", {admin_role}));
         auto uinfo = g.GetUserInfo(new_user);
         UT_EXPECT_TRUE(uinfo.roles == std::set<std::string>({admin_role, new_user}));
-        UT_EXPECT_THROW_REGEX(g.SetUserRoles("@illegal_user", {}), "Invalid user name");
-        UT_EXPECT_THROW_REGEX(g.SetUserRoles(new_user, {"@Illegal_role"}), "Invalid role name");
+        UT_EXPECT_THROW_REGEX(g.SetUserRoles("@illegal_user", {}), "Invalid User");
+        UT_EXPECT_THROW_REGEX(g.SetUserRoles(new_user, {"@Illegal_role"}), "Invalid Role");
     }
 
     DefineTest("GetUserInfoListUsers") {
@@ -445,7 +445,7 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_EQ(uinfo.roles.size(), 1);
         UT_EXPECT_TRUE(g.GetUserInfo(new_user).roles == std::set<std::string>({new_user}));
         UT_EXPECT_THROW_REGEX(g.GetUserInfo("non_existing_user"), "User.* does not exist");
-        UT_EXPECT_THROW_REGEX(g.GetUserInfo(""), "Invalid user name");
+        UT_EXPECT_THROW_REGEX(g.GetUserInfo(""), "Invalid User");
         UT_EXPECT_EQ(g.ListUsers().size(), 2);
         g.Close();
         // get with non-admin
@@ -464,10 +464,10 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(!g.CreateRole(new_role, new_role_desc));    // already exists
         UT_EXPECT_TRUE(!g.CreateRole(admin_role, new_role_desc));  // already exists
         UT_EXPECT_THROW_REGEX(g.CreateRole("nnn", std::string(8192, 'a')),
-                            "Role description too long.");
-        UT_EXPECT_THROW_REGEX(g.CreateRole("", ""), "Invalid role name.");
-        UT_EXPECT_THROW_REGEX(g.CreateRole("#invalid", ""), "Invalid role name.");
-        UT_EXPECT_THROW_REGEX(g.CreateRole(std::string(1024, 'a'), ""), "Invalid role name.");
+                            "Invalid Desc");
+        UT_EXPECT_THROW_REGEX(g.CreateRole("", ""), "Invalid Role");
+        UT_EXPECT_THROW_REGEX(g.CreateRole("#invalid", ""), "Invalid Role");
+        UT_EXPECT_THROW_REGEX(g.CreateRole(std::string(1024, 'a'), ""), "Invalid Role");
         UT_EXPECT_EQ(g.ListRoles().size(), 2);
         UT_EXPECT_EQ(g.ListRoles()[new_role].desc, new_role_desc);
         UT_EXPECT_EQ(g.ListRoles()[new_role].disabled, false);
@@ -491,7 +491,7 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(g.DeleteRole(new_role));
         UT_EXPECT_TRUE(!g.DeleteRole(new_role));                     // not exist
         UT_EXPECT_TRUE(!g.DeleteRole("non_existing_role"));          // not exist
-        UT_EXPECT_THROW_REGEX(g.DeleteRole(""), "Invalid role name");  // not exist
+        UT_EXPECT_THROW_REGEX(g.DeleteRole(""), "Invalid Role");  // not exist
         UT_EXPECT_THROW_REGEX(g.DeleteRole(admin_role), "Builtin roles cannot be deleted");
         g.Close();
         // test persistence
@@ -535,11 +535,11 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(g.SetRoleDesc(new_role, modified_desc));  // ok
         UT_EXPECT_EQ(g.GetRoleInfo(new_role).desc, modified_desc);
         UT_EXPECT_TRUE(!g.SetRoleDesc("non_existing_role", ""));  // not found
-        UT_EXPECT_THROW_REGEX(g.SetRoleDesc("", ""), "Invalid role name.");
+        UT_EXPECT_THROW_REGEX(g.SetRoleDesc("", ""), "Invalid Role");
         UT_EXPECT_THROW_REGEX(g.SetRoleDesc(admin_role, modified_desc),
                             "Builtin roles cannot be modified");  // builtin roles
         UT_EXPECT_THROW_REGEX(g.SetRoleDesc(new_role, std::string(8192, 'a')),
-                            "Role description too long.");  // desc too long
+                            "Invalid Desc");  // desc too long
         g.Close();
         // test persistence
         g = OpenExistingGalaxy(true);
@@ -567,7 +567,7 @@ TEST_F(TestGalaxy, Galaxy) {
                        g.SetRoleAccessRights(new_user,
                                   {{"non_existing_graph", lgraph_api::AccessLevel::FULL}}),
                             "Graph .* does not exist");  // not found
-        UT_EXPECT_THROW_REGEX(g.SetRoleAccessRights("", {}), "Invalid role name");
+        UT_EXPECT_THROW_REGEX(g.SetRoleAccessRights("", {}), "Invalid Role");
         UT_EXPECT_THROW_REGEX(
             g.SetRoleAccessRights(admin_role, {{new_graph, lgraph_api::AccessLevel::FULL}}),
             "Builtin roles cannot be modified");
@@ -595,7 +595,7 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(!rinfo.disabled);
         UT_EXPECT_EQ(rinfo.graph_access.size(), 1);
         UT_EXPECT_THROW_REGEX(g.GetRoleInfo("non_existing_role"), "Role .* does not exist");
-        UT_EXPECT_THROW_REGEX(g.GetRoleInfo(""), "Invalid role name");
+        UT_EXPECT_THROW_REGEX(g.GetRoleInfo(""), "Invalid Role");
         g.Close();
         // get with non-admin
         g = ExistingGalaxyWithNewUser(true);
@@ -621,14 +621,14 @@ TEST_F(TestGalaxy, Galaxy) {
         UT_EXPECT_TRUE(g.DisableRole(new_role));
         UT_EXPECT_TRUE(g.GetRoleInfo(new_role).disabled);
         UT_EXPECT_TRUE(!g.DisableRole("non_existing_role"));  // not found
-        UT_EXPECT_THROW_REGEX(g.DisableRole(""), "Invalid role name");
+        UT_EXPECT_THROW_REGEX(g.DisableRole(""), "Invalid Role");
         g.Close();
         // test persistence
         g = ExistingGalaxyWithNewUser(false);
         UT_EXPECT_TRUE(g.GetRoleInfo(new_role).disabled);
         UT_EXPECT_TRUE(g.EnableRole(new_role));
         UT_EXPECT_TRUE(!g.EnableRole("non_existing_role"));  // not found
-        UT_EXPECT_THROW_REGEX(g.EnableRole(""), "Invalid role name");
+        UT_EXPECT_THROW_REGEX(g.EnableRole(""), "Invalid Role");
     }
 
     DefineTest("Issue126") {

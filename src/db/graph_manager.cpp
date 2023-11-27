@@ -91,20 +91,17 @@ inline void UpdateDBConfigWithGMConfig(lgraph::DBConfig& dbc,
 bool lgraph::GraphManager::CreateGraph(KvTransaction& txn, const std::string& name,
                                        const DBConfig& config) {
     // check desc length
-    if (config.desc.size() > _detail::MAX_DESC_LEN)
-        throw InputError("Graph description is too long.");
+    lgraph::CheckValidDescLength(config.desc.size());
     auto it = graphs_.find(name);
     if (it != graphs_.end()) return false;
-    if (graphs_.size() >= _detail::MAX_NUM_GRAPHS)
-        throw std::runtime_error("Maximum number of graphs reached: " +
-                                 std::to_string(_detail::MAX_NUM_GRAPHS));
+    std::string err_msg;
+    lgraph::CheckValidGraphNum(graphs_.size());
     DBConfig real_config = config;
     UpdateDBConfigWithGMConfig(real_config, config_);
     real_config.name = name;
     if (real_config.db_size == 0)
         real_config.db_size = _detail::DEFAULT_GRAPH_SIZE;
-    else if (real_config.db_size > _detail::MAX_GRAPH_SIZE)
-        throw InputError("Graph max size is too big.");
+    lgraph::CheckValidGraphSize(real_config.db_size);
     real_config.dir = GenNewGraphSubDir();
     StoreConfig(txn, name, real_config);
     // update graphs_
@@ -147,13 +144,11 @@ bool lgraph::GraphManager::ModGraph(KvTransaction& txn, const std::string& name,
     DBConfig config = old_config;
     config.dir = fma_common::FilePath(config.dir).Name();
     if (actions.mod_desc) {
-        if (actions.desc.size() > _detail::MAX_DESC_LEN)
-            throw InputError("Graph description is too long.");
+        lgraph::CheckValidDescLength(actions.desc.size());
         config.desc = actions.desc;
     }
     if (actions.mod_size) {
-        if (actions.max_size > _detail::MAX_GRAPH_SIZE)
-            throw InputError("Graph max size is too big.");
+        lgraph::CheckValidGraphSize(actions.max_size);
         config.db_size = std::min(actions.max_size, _detail::MAX_GRAPH_SIZE);
     }
     // write config to db
@@ -184,7 +179,7 @@ lgraph::ScopedRef<lgraph::LightningGraph> lgraph::GraphManager::GetGraphRef(
 }
 
 bool lgraph::GraphManager::GraphExists(const std::string& graph) const {
-    if (!IsValidLGraphName(graph)) throw InputError("Invalid graph name: " + graph);
+    lgraph::CheckValidGraphName(graph);
     return graphs_.find(graph) != graphs_.end();
 }
 
