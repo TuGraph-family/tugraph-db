@@ -46,6 +46,7 @@ static const string_t HTTP_CALL_PROCEDURE_METHOD = "call_procedure";
 static const string_t HTTP_USER_NAME = "userName";
 static const string_t HTTP_PASSWORD = "password";
 static const string_t HTTP_AUTHORIZATION = "authorization";
+static const string_t HTTP_DEFAULT_PASSWORD = "default_password";
 static const string_t HTTP_GRAPH = "graph";
 static const string_t HTTP_GRAPH_NAME = "graphName";
 static const string_t HTTP_SCRIPT = "script";

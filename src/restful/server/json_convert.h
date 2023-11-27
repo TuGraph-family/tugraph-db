@@ -176,6 +176,7 @@ static const utility::string_t TID = _TU("termporal_id");
 static const utility::string_t TIME_USED = _TU("time_elapsed");
 static const utility::string_t TIMEOUT = _TU("timeout");
 static const utility::string_t TOKEN = _TU("jwt");
+static const utility::string_t DEFAULT_PASSWORD = _TU("default_password");
 static const utility::string_t TYPE = _TU("type");
 static const utility::string_t UP_TIME = _TU("up_time");
 static const utility::string_t USER = _TU("user");
