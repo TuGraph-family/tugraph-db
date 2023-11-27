@@ -17,9 +17,9 @@
 #include <cstring>
 
 #include "fma-common/logger.h"
-
 #include "core/lmdb/lmdb.h"
 #include "core/mem_profiler.h"
+#include "lgraph/lgraph_types.h"
 
 namespace lgraph {
 namespace _detail {
@@ -53,6 +53,62 @@ struct TypeCast {
 template <>
 struct TypeCast<std::string> {
     static std::string AsType(void* p, size_t s) { return std::string((char*)p, s); }
+};
+
+template <>
+struct TypeCast<lgraph_api::Point<lgraph_api::Wgs84>> {
+    static lgraph_api::Point<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::Point<lgraph_api::Wgs84>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::Point<lgraph_api::Cartesian>> {
+    static lgraph_api::Point<lgraph_api::Cartesian> AsType(void* p, size_t s) {
+        return lgraph_api::Point<lgraph_api::Cartesian>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::LineString<lgraph_api::Wgs84>> {
+    static lgraph_api::LineString<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::LineString<lgraph_api::Wgs84>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::LineString<lgraph_api::Cartesian>> {
+    static lgraph_api::LineString<lgraph_api::Cartesian> AsType(void* p, size_t s) {
+        return lgraph_api::LineString<lgraph_api::Cartesian>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::Polygon<lgraph_api::Wgs84>> {
+    static lgraph_api::Polygon<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::Polygon<lgraph_api::Wgs84>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::Polygon<lgraph_api::Cartesian>> {
+    static lgraph_api::Polygon<lgraph_api::Cartesian> AsType(void* p, size_t s) {
+        return lgraph_api::Polygon<lgraph_api::Cartesian>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::Spatial<lgraph_api::Wgs84>> {
+    static lgraph_api::Spatial<lgraph_api::Wgs84> AsType(void* p, size_t s) {
+        return lgraph_api::Spatial<lgraph_api::Wgs84>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
+    static lgraph_api::Spatial<lgraph_api::Cartesian> AsType(void* p, size_t s) {
+        return lgraph_api::Spatial<lgraph_api::Cartesian>(std::string((char*)p, s));
+    }
 };
 }  // namespace _detail
 
@@ -151,7 +207,6 @@ class Value {
     /**
      * Constructs a const reference to the memory block given in the MDB_val
      * object.
-     *
      * \param   val An MDB_val describing memory block and its size.
      */
     explicit Value(const MDB_val& val)

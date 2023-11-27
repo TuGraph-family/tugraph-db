@@ -49,6 +49,12 @@ typedef lgraph_api::FieldData FieldData;
 typedef lgraph_api::FieldType FieldType;
 typedef lgraph_api::Date Date;
 typedef lgraph_api::DateTime DateTime;
+typedef lgraph_api::Point<lgraph_api::Wgs84> PointWgs84;
+typedef lgraph_api::Point<lgraph_api::Cartesian> PointCartesian;
+typedef lgraph_api::LineString<lgraph_api::Wgs84> LineStringWgs84;
+typedef lgraph_api::LineString<lgraph_api::Cartesian> LineStringCartesian;
+typedef lgraph_api::Polygon<lgraph_api::Wgs84> PolygonWgs84;
+typedef lgraph_api::Polygon<lgraph_api::Cartesian> PolygonCartesian;
 
 //===============================
 // type name and sizes
@@ -57,11 +63,12 @@ namespace field_data_helper {
 namespace _detail {
 static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   "INT16",
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
-                                                 "DATE",  "DATETIME", "STRING", "BLOB"};
+                                                 "DATE",  "DATETIME", "STRING", "BLOB",
+                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
     std::unordered_map<std::string, FieldType> ret;
-    for (int i = 0; i <= (int)FieldType::BLOB; i++) {
+    for (int i = 0; i <= (int)FieldType::SPATIAL; i++) {
         ret[FieldTypeNames[i]] = FieldType(i);
         ret[fma_common::ToLower(FieldTypeNames[i])] = FieldType(i);
     }
@@ -69,18 +76,22 @@ static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
 }
 
 static constexpr size_t FieldTypeSizes[] = {
-    0,  // nul
-    1,  // bool
-    1,  // int8
-    2,  // int16
-    4,  // int32
-    8,  // int64
-    4,  // float
-    8,  // double
-    4,  // date
-    8,  // datetime
-    0,  // string
-    0,  // blob
+    0,   // nul
+    1,   // bool
+    1,   // int8
+    2,   // int16
+    4,   // int32
+    8,   // int64
+    4,   // float
+    8,   // double
+    4,   // date
+    8,   // datetime
+    0,   // string
+    0,   // blob
+    50,  // Point
+    0,   // LineString
+    0,   // Polygon
+    0    // Spatial
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -96,6 +107,10 @@ static constexpr bool IsFixedLengthType[] = {
     true,   // datetime
     false,  // string
     false,  // blob
+    true,   // Point
+    false,  // LineString
+    false,  // Polygon
+    false   // Spatial
 };
 
 template <class T, size_t N>
@@ -126,7 +141,7 @@ inline constexpr bool IsFixedLengthFieldType(FieldType dt) {
 }
 
 inline std::string TryGetFieldTypeName(FieldType ft) {
-    if (ft >= FieldType::NUL && ft <= FieldType::BLOB) return FieldTypeName(ft);
+    if (ft >= FieldType::NUL && ft <= FieldType::SPATIAL) return FieldTypeName(ft);
     return fma_common::StringFormatter::Format("[Illegal FieldType, value={}]", (int)ft);
 }
 
@@ -186,6 +201,22 @@ template <>
 struct FieldType2StorageType<FieldType::BLOB> {
     typedef std::string type;
 };
+template <>
+struct FieldType2StorageType<FieldType::POINT> {
+    typedef std::string type;
+};
+template <>
+struct FieldType2StorageType<FieldType::LINESTRING> {
+    typedef std::string type;
+};
+template <>
+struct FieldType2StorageType<FieldType::POLYGON> {
+    typedef std::string type;
+};
+template <>
+struct FieldType2StorageType<FieldType::SPATIAL> {
+    typedef std::string type;
+};
 
 template <FieldType FT>
 struct FieldType2CType {
@@ -205,6 +236,11 @@ struct FieldType2CType<FieldType::DATE> {
 template <>
 struct FieldType2CType<FieldType::DATETIME> {
     typedef DateTime type;
+};
+
+// TODO(shw): how to correlate spatial fieldtype with ctype?
+template <>
+struct FieldType2CType<FieldType::POINT> {
 };
 
 template <FieldType FT>
@@ -342,6 +378,42 @@ struct FieldDataRangeCheck<FieldType::BLOB> {
     }
 };
 
+template <>
+struct FieldDataRangeCheck<FieldType::POINT> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
+template <>
+struct FieldDataRangeCheck<FieldType::LINESTRING> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
+template <>
+struct FieldDataRangeCheck<FieldType::POLYGON> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
+template <>
+struct FieldDataRangeCheck<FieldType::SPATIAL> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
 template <FieldType DstType>
 inline bool CopyFdIntoDstStorageType(const FieldData& fd,
                                      typename FieldType2StorageType<DstType>::type& dst) {
@@ -391,6 +463,10 @@ inline Value GetConstRefOfFieldDataContent(const FieldData& fd) {
         return Value::ConstRef(fd.data.int64);
     case FieldType::STRING:
     case FieldType::BLOB:
+    case FieldType::POINT:
+    case FieldType::LINESTRING:
+    case FieldType::POLYGON:
+    case FieldType::SPATIAL:
         return Value::ConstRef(*fd.data.buf);
     }
     FMA_ASSERT(false);
@@ -450,7 +526,32 @@ GetStoredValue<FieldType::STRING>(const FieldData& fd) {
     return *fd.data.buf;
 }
 template <>
-inline const typename FieldType2StorageType<FieldType::BLOB>::type& GetStoredValue<FieldType::BLOB>(
+inline const typename FieldType2StorageType<FieldType::BLOB>::type&
+GetStoredValue<FieldType::BLOB>(
+    const FieldData& fd) {
+    return *fd.data.buf;
+}
+template <>
+inline const typename FieldType2StorageType<FieldType::POINT>::type&
+GetStoredValue<FieldType::POINT>(
+    const FieldData& fd) {
+    return *fd.data.buf;
+}
+template <>
+inline const typename FieldType2StorageType<FieldType::LINESTRING>::type&
+GetStoredValue<FieldType::LINESTRING>(
+    const FieldData& fd) {
+    return *fd.data.buf;
+}
+template <>
+inline const typename FieldType2StorageType<FieldType::POLYGON>::type&
+GetStoredValue<FieldType::POLYGON>(
+    const FieldData& fd) {
+    return *fd.data.buf;
+}
+template <>
+inline const typename FieldType2StorageType<FieldType::SPATIAL>::type&
+GetStoredValue<FieldType::SPATIAL>(
     const FieldData& fd) {
     return *fd.data.buf;
 }
@@ -522,6 +623,22 @@ template <>
 inline bool IsCompatibleType<FieldType::BLOB>(FieldType st) {
     return st == FieldType::STRING || st == FieldType::BLOB;
 }
+template <>
+inline bool IsCompatibleType<FieldType::POINT>(FieldType st) {
+    return st == FieldType::STRING;
+}
+template <>
+inline bool IsCompatibleType<FieldType::LINESTRING>(FieldType st) {
+    return st == FieldType::STRING;
+}
+template <>
+inline bool IsCompatibleType<FieldType::POLYGON>(FieldType st) {
+    return st == FieldType::STRING;
+}
+template <>
+inline bool IsCompatibleType<FieldType::SPATIAL>(FieldType st) {
+    return st == FieldType::STRING;
+}
 
 template <FieldType DstType>
 inline size_t ParseStringIntoFieldData(const char* beg, const char* end, FieldData& fd) {
@@ -573,13 +690,62 @@ template <>
 inline bool ParseStringIntoStorageType<FieldType::BLOB>(const std::string& str, std::string& sd) {
     return ::lgraph_api::base64::TryDecode(str, sd);
 }
+template <>
+inline bool ParseStringIntoStorageType<FieldType::POINT>(const std::string& str, std::string& sd) {
+    if (!::lgraph_api::TryDecodeEWKB(str,
+    ::lgraph_api::SpatialType::POINT)) {
+        return false;
+    }
+
+    sd.assign(str.begin(), str.end());
+    return true;
+}
+template <>
+inline bool ParseStringIntoStorageType<FieldType::LINESTRING>
+(const std::string& str, std::string& sd) {
+    if (!::lgraph_api::TryDecodeEWKB(str,
+    ::lgraph_api::SpatialType::LINESTRING)) {
+        return false;
+    }
+
+    sd.assign(str.begin(), str.end());
+    return true;
+}
+template <>
+inline bool ParseStringIntoStorageType<FieldType::POLYGON>
+(const std::string& str, std::string& sd) {
+    if (!::lgraph_api::TryDecodeEWKB(str,
+    ::lgraph_api::SpatialType::POLYGON)) {
+        return false;
+    }
+
+    sd.assign(str.begin(), str.end());
+    return true;
+}
+template <>
+inline bool ParseStringIntoStorageType<FieldType::SPATIAL>
+(const std::string& str, std::string& sd) {
+    ::lgraph_api::SpatialType s;
+    // extracttype may throw any exception if the input str is not valid!
+    // return false instead of throw exception;
+    try {
+        s = ::lgraph_api::ExtractType(str);
+    } catch (...) {
+        return false;
+    }
+    if (!::lgraph_api::TryDecodeEWKB(str, s)) {
+        return false;
+    }
+
+    sd.assign(str.begin(), str.end());
+    return true;
+}
 
 // This converts FieldData of different type into DstType
 // It is used only in schema.h, and the case when fd.type==DstType is already
 // handled there, so here we just assume they are not the same type
 template <FieldType DstType>
 struct FieldDataTypeConvert {
-    typedef typename FieldType2CType<DstType>::type CT;
     typedef typename FieldType2StorageType<DstType>::type ST;
     static inline bool Convert(const FieldData& fd, ST& s) {
         FMA_DBG_CHECK_NEQ(DstType, fd.type);
@@ -615,10 +781,22 @@ struct FieldDataTypeConvert {
             // datetime can only be converted to date
             return CopyFdIntoDstStorageType<DstType>(fd, s);
         case FieldType::STRING:
-            // can be converted to date, datetime, or bin
+            // can be converted to date, datetime, bin or spatial;
             return ParseStringIntoStorageType<DstType>(*fd.data.buf, s);
         case FieldType::BLOB:
             // nothing can be converted from bin
+            break;
+        case FieldType::POINT:
+            // nothing can be converted from Point
+            break;
+        case FieldType::LINESTRING:
+            // nothing can be converted from LineString
+            break;
+        case FieldType::POLYGON:
+            // nothing can be converted from Polygon;
+            break;
+        case FieldType::SPATIAL:
+            // nothing can be converted from spatial
             break;
         }
         return false;
@@ -681,6 +859,11 @@ inline size_t ParseStringIntoFieldData(FieldType ft, const char* b, const char* 
             fd = FieldData::Blob(std::move(decoded));
             return s;
         }
+    case FieldType::POINT:
+    case FieldType::LINESTRING:
+    case FieldType::POLYGON:
+    case FieldType::SPATIAL:
+        throw std::runtime_error("do not support spatial now!");
     }  // switch
     FMA_ASSERT(false);
     return 0;
@@ -735,7 +918,56 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
             v.Copy(decoded);
             return true;
         }
+    case FieldType::POINT:
+        {
+            // can only convert string to Point
+            if (fd.type != FieldType::STRING) return false;
+            const std::string EWKB = *fd.data.buf;
+            if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::POINT))
+                return false;
+            v.Copy(EWKB);
+            return true;
+        }
+    case FieldType::LINESTRING:
+        {
+             // can only convert string to LineString
+            if (fd.type != FieldType::STRING) return false;
+            const std::string EWKB = *fd.data.buf;
+            if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::LINESTRING))
+                return false;
+            v.Copy(EWKB);
+            return true;
+        }
+    case FieldType::POLYGON:
+        {
+             // can only convert string to Polygon
+            if (fd.type != FieldType::STRING) return false;
+            const std::string EWKB = *fd.data.buf;
+            if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::POLYGON))
+                return false;
+            v.Copy(EWKB);
+            return true;
+        }
+    case FieldType::SPATIAL:
+        {
+            // can only convert string to spatial
+            if (fd.type != FieldType::STRING) return false;
+            const std::string EWKB = *fd.data.buf;
+            ::lgraph_api::SpatialType s;
+            // return false instead of throw exception;
+            try {
+                s = ::lgraph_api::ExtractType(EWKB);
+            } catch (...) {
+                return false;
+            }
+
+            if (!::lgraph_api::TryDecodeEWKB(EWKB, s))
+                return false;
+            v.Copy(EWKB);
+            return true;
+        }
     }
+
     FMA_ASSERT(false);
     return false;
 }
@@ -792,7 +1024,47 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
             v.Copy(decoded);
             return v;
         }
+    case FieldType::POINT:
+        {
+            if (!::lgraph_api::TryDecodeEWKB(str, ::lgraph_api::SpatialType::POINT))
+                ThrowParseError(str, FieldType::POINT);
+            Value v;
+            v.Copy(str);
+            return v;
+        }
+    case FieldType::LINESTRING:
+        {
+            if (!::lgraph_api::TryDecodeEWKB(str, ::lgraph_api::SpatialType::LINESTRING))
+                ThrowParseError(str, FieldType::LINESTRING);
+            Value v;
+            v.Copy(str);
+            return v;
+        }
+    case FieldType::POLYGON:
+        {
+            if (!::lgraph_api::TryDecodeEWKB(str, ::lgraph_api::SpatialType::POLYGON))
+                ThrowParseError(str, FieldType::POLYGON);
+            Value v;
+            v.Copy(str);
+            return v;
+        }
+    case FieldType::SPATIAL:
+        {
+            // throw ParseError in this function;
+            ::lgraph_api::SpatialType s;
+            try {
+                s = ::lgraph_api::ExtractType(str);
+            } catch (...) {
+                ThrowParseError(str, FieldType::SPATIAL);
+            }
+            if (!::lgraph_api::TryDecodeEWKB(str, s))
+                ThrowParseError(str, FieldType::SPATIAL);
+            Value v;
+            v.Copy(str);
+            return v;
+        }
     }
+
     FMA_ASSERT(false);
     return Value();
 }
@@ -826,6 +1098,58 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         return FieldData(v.AsString());
     case FieldType::BLOB:
         return FieldData::Blob(v.AsString());
+    case FieldType::POINT:
+        {
+            std::string ewkb = v.AsString();
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
+            switch (s) {
+                case ::lgraph_api::SRID::NUL:
+                    throw std::runtime_error("cannot convert to Point data!");
+                case ::lgraph_api::SRID::WGS84:
+                    return FieldData(::lgraph_api::Point<::lgraph_api::Wgs84>(ewkb));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return FieldData(::lgraph_api::Point<::lgraph_api::Cartesian>(ewkb));
+            }
+        }
+    case FieldType::LINESTRING:
+        {
+            std::string ewkb = v.AsString();
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
+            switch (s) {
+                case ::lgraph_api::SRID::NUL:
+                    throw std::runtime_error("cannot convert to Point data!");
+                case ::lgraph_api::SRID::WGS84:
+                    return FieldData(::lgraph_api::LineString<::lgraph_api::Wgs84>(ewkb));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return FieldData(::lgraph_api::LineString<::lgraph_api::Cartesian>(ewkb));
+            }
+        }
+    case FieldType::POLYGON:
+        {
+            std::string ewkb = v.AsString();
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
+            switch (s) {
+                case ::lgraph_api::SRID::NUL:
+                    throw std::runtime_error("cannot convert to Point data!");
+                case ::lgraph_api::SRID::WGS84:
+                    return FieldData(::lgraph_api::Polygon<::lgraph_api::Wgs84>(ewkb));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return FieldData(::lgraph_api::Polygon<::lgraph_api::Cartesian>(ewkb));
+            }
+        }
+    case FieldType::SPATIAL:
+        {
+            std::string ewkb = v.AsString();
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(ewkb);
+            switch (s) {
+                case ::lgraph_api::SRID::NUL:
+                    throw std::runtime_error("cannot convert to spatial data!");
+                case ::lgraph_api::SRID::WGS84:
+                    return FieldData(::lgraph_api::Spatial<::lgraph_api::Wgs84>(ewkb));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return FieldData(::lgraph_api::Spatial<::lgraph_api::Cartesian>(ewkb));
+            }
+        }
     }
     FMA_ASSERT(false);
     return FieldData();
@@ -858,6 +1182,28 @@ template <>
 inline int ValueCompare<FieldType::BLOB>(const void* p1, size_t s1, const void* p2, size_t s2) {
     return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
 }
+
+template <>
+inline int ValueCompare<FieldType::POINT>(const void* p1, size_t s1, const void* p2, size_t s2) {
+    return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
+}
+
+template <>
+inline int ValueCompare<FieldType::LINESTRING>(const void* p1, size_t s1, const void* p2,
+size_t s2) {
+    return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
+}
+
+template <>
+inline int ValueCompare<FieldType::POLYGON>(const void* p1, size_t s1, const void* p2, size_t s2) {
+    return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
+}
+
+template <>
+inline int ValueCompare<FieldType::SPATIAL>(const void* p1, size_t s1, const void* p2, size_t s2) {
+    return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
+}
+
 }  // namespace field_data_helper
 }  // namespace lgraph
 

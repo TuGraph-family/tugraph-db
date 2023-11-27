@@ -107,6 +107,11 @@ inline pybind11::object FieldDataToPyObj(const FieldData& data) {
         return pybind11::str(*data.data.buf);
     case FieldType::BLOB:
         return pybind11::bytes(*data.data.buf);
+    case FieldType::POINT:
+    case FieldType::LINESTRING:
+    case FieldType::POLYGON:
+    case FieldType::SPATIAL:
+        return pybind11::str(*data.data.buf);
     }
     FMA_ASSERT(false);
     return pybind11::none();
@@ -139,7 +144,8 @@ void register_python_api(pybind11::module& m) {
              pybind11::call_guard<SignalsGuard>())
         .def_readwrite("name", &FieldSpec::name, "Name of this field.")
         .def_readwrite("type", &FieldSpec::type,
-                       "Type of this field, INT8, INT16, ..., FLOAT, DOUBLE, STRING.")
+                       "Type of this field, INT8, INT16, ..., POINT, LINESTRING,"
+                       "POLYGON, SPATIAL.")
         .def_readwrite("nullable", &FieldSpec::optional, "Whether this field can be null.")
         .def("__repr__", [](const FieldSpec& a) {
             return fma_common::StringFormatter::Format("(name:{}, type:{}, nullable:{})", a.name,
@@ -279,6 +285,24 @@ void register_python_api(pybind11::module& m) {
         .def_static(
             "Blob", [](const pybind11::bytes& str) { return FieldData::Blob(str); },
             "Make a BLOB value")
+        .def_static(
+            "Point", [](const std::string& str) { return FieldData::Point(str); },
+            "Make a Point value")
+        .def_static(
+            "LineString", [](const std::string& str) {
+                return FieldData::LineString(str);
+            },
+            "Make a Linestring value")
+        .def_static(
+            "Polygon", [](const std::string& str) {
+                return FieldData::Polygon(str);
+            },
+            "Make a Polygon value")
+        .def_static(
+            "Spatial", [](const std::string& str) {
+                return FieldData::Spatial(str);
+            },
+            "Make a Spatial value")
         .def("AsBool", &FieldData::AsBool, "Get value as bool, throws exception on type mismatch",
              pybind11::call_guard<SignalsGuard>())
         .def("AsInt8", &FieldData::AsInt8, "Get value as int8, throws exception on type mismatch",
@@ -317,6 +341,62 @@ void register_python_api(pybind11::module& m) {
         .def(
             "AsBlob", [](const FieldData& a) { return pybind11::bytes(*a.data.buf); },
             "Get value as double, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
+        .def(
+            "AsPoint", [](const FieldData& a) {
+                ::lgraph_api::SRID s = a.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return pybind11::str(a.AsWgsPoint().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return pybind11::str(a.AsCartesianPoint().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+                }
+            },
+            "Get value as point, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
+        .def(
+            "AsLineString", [](const FieldData& a) {
+                ::lgraph_api::SRID s = a.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return pybind11::str(a.AsWgsLineString().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return pybind11::str(a.AsCartesianLineString().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+                }
+            },
+            "Get value as linestring, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
+        .def(
+            "AsPolygon", [](const FieldData& a) {
+                ::lgraph_api::SRID s = a.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return pybind11::str(a.AsWgsPolygon().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return pybind11::str(a.AsCartesianPolygon().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+                }
+            },
+            "Get value as polygon, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
+        .def(
+            "AsSpatial", [](const FieldData& a) {
+                ::lgraph_api::SRID s = a.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return pybind11::str(a.AsWgsSpatial().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return pybind11::str(a.AsCartesianSpatial().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+                }
+            },
+            "Get value as spatial, throws exception on type mismatch",
             pybind11::call_guard<SignalsGuard>())
         .def(
             "ToPython", [](const FieldData& fd) { return FieldDataToPyObj(fd); },
@@ -388,6 +468,10 @@ void register_python_api(pybind11::module& m) {
         .value("DATETIME", FieldType::DATETIME)
         .value("STRING", FieldType::STRING)
         .value("BLOB", FieldType::BLOB)
+        .value("POINT", FieldType::POINT)
+        .value("LINESTRING", FieldType::LINESTRING)
+        .value("POLYGON", FieldType::POLYGON)
+        .value("SPATIAL", FieldType::SPATIAL)
         .export_values();
 
     pybind11::enum_<lgraph_api::AccessLevel>(m, "AccessLevel", pybind11::arithmetic(),

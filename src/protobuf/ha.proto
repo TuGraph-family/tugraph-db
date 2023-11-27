@@ -23,6 +23,10 @@ enum ProtoFieldType {
     DATETIME = 9;
     STRING = 10;
     BLOB = 11;
+    POINT = 12;
+    LINESTRING = 13;
+    POLYGON = 14;
+    SPATIAL = 15;
 };
 
 enum ProtoAccessLevel {
@@ -46,6 +50,10 @@ message ProtoFieldData {
         int64 datetime = 9;
         string str = 10;
         bytes blob = 11;
+        string point = 12;
+        string linestring = 13;
+        string polygon = 14;
+        string spatial = 15;
     }
 };
 

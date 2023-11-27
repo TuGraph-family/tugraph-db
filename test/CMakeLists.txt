@@ -65,6 +65,7 @@ add_executable(unit_test
         test_lgraph_export.cpp
         test_lgraph_monkey.cpp
         test_lgraph_server.cpp
+        test_lgraph_spatial.cpp
         test_lgraph_utils.cpp
         test_kv_store.cpp
         test_lgraph.cpp
