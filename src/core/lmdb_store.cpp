@@ -55,7 +55,7 @@ void LMDBKvStore::Open(bool create_if_not_exist) {
     }
     THROW_ON_ERR(mdb_env_create(&env_));
     THROW_ON_ERR(mdb_env_set_mapsize(env_, db_size_));
-    THROW_ON_ERR(mdb_env_set_maxdbs(env_, 255));
+    THROW_ON_ERR(mdb_env_set_maxdbs(env_, 5000));  // HENG: former value is 255
     THROW_ON_ERR(mdb_env_set_maxreaders(env_, 1200));
 #if LGRAPH_SHARE_DIR
     unsigned int flags = MDB_NOMEMINIT | MDB_NORDAHEAD | MDB_NOTLS | MDB_NOSYNC;

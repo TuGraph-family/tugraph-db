@@ -331,6 +331,22 @@ TEST_F(TestLGraph, LGraph) {
         }
     }
 
+    UT_LOG() << "Label number limit tests";
+    {
+        DBConfig config;
+        config.dir = "./testdb";
+        AutoCleanDir(config.dir);
+        LightningGraph db(config);
+        db.DropAllData();
+        size_t max_label_num = 4096;
+        for (int i = 0; i < max_label_num; ++i) {
+            std::string label_name = "v_label_" + std::to_string(i);
+            UT_EXPECT_TRUE(db.AddLabel(label_name,
+                                       std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+                                       true, VertexOptions("id")));
+        }
+    }
+
     UT_LOG() << "Performance tests";
     srand(0);
     size_t nv = 10;
