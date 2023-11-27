@@ -271,6 +271,17 @@ int LGraphServer::Start() {
         if (config_->enable_rpc) {
             http_service_->Start(config_.get());
         }
+        if (config_->reset_admin_password == 1) {
+            if (state_machine_->ResetAdminPassword(
+                lgraph::_detail::DEFAULT_ADMIN_NAME,
+                lgraph::_detail::DEFAULT_ADMIN_PASS, true)) {
+                // kill the server
+                GENERAL_LOG(INFO) << "Reset admin password successfully, server will exit now";
+            } else {
+                GENERAL_LOG(ERROR) << "Failed to reset admin password, server will exit now";
+            }
+            return Stop();
+        }
         GENERAL_LOG(INFO) << "Server started.";
 
 #ifndef __SANITIZE_ADDRESS__

@@ -127,9 +127,16 @@ TEST_F(TestRestfulAbnormal, RestfulAbnormal) {
         url = fma_common::StringFormatter::Format("http://{}:{}/", host, port);
     UT_LOG() << "  url:  " << url;
 
-    // now start client
+    // now start client and test reset password
     RestClient client(url, cert_path);
     client.Login("admin", "73@TuGraph");
+    client.SetPassword("admin", "73@TuGraph", "11111");
+    UT_EXPECT_ANY_THROW(client.Login("admin", "73@TuGraph"));
+    UT_EXPECT_THROW_MSG(state_machine.ResetAdminPassword("111",
+            "73@TuGraph", true), "Only admin can reset password.");
+    UT_EXPECT_TRUE(state_machine.ResetAdminPassword("admin", "73@TuGraph", true));
+
+    UT_EXPECT_TRUE(client.Login("admin", "73@TuGraph"));
     UT_LOG() << "Testing login succeeded";
 
     // schema

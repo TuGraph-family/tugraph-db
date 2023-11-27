@@ -45,6 +45,7 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
     AddOption(options, "optimistic transaction", txn_optimistic);
     AddOption(options, "Backup log enable", enable_backup_log);
     AddOption(options, "Whether the token is unlimited", unlimited_token);
+    AddOption(options, "reset admin password if you forget", reset_admin_password);
     AddOption(options, "HA enable", enable_ha);
     if (enable_ha) {
         AddOption(options, "HA init group", ha_conf);
@@ -186,6 +187,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     thread_limit = 0;
     unlimited_token = false;
     enable_realtime_count = true;
+    reset_admin_password = false;
     // fulltext index
     ft_index_options.enable_fulltext_index = false;
     ft_index_options.fulltext_commit_interval = 0;
@@ -263,6 +265,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Maximum number of threads to use");
     argparser.Add(unlimited_token, "unlimited_token", true)
         .Comment("Unlimited token for TuGraph.");
+    argparser.Add(reset_admin_password, "reset_admin_password", true)
+        .Comment("Reset admin password if you forget.");
     argparser.Add(enable_realtime_count, "realtime vertex and edge count", true)
         .Comment("Whether to enable realtime vertex and edge count.");
 

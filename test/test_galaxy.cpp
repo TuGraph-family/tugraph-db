@@ -112,6 +112,19 @@ TEST_F(TestGalaxy, Galaxy) {
         }
     }
 
+    // test reset admin password
+    {
+        fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
+        lgraph::Galaxy::Config conf;
+        conf.dir = "./testdb";
+        lgraph::Galaxy galaxy(conf.dir, true);
+        UT_EXPECT_NO_THROW(galaxy.GetUserToken(admin_user, admin_pass));
+        galaxy.ChangeCurrentPassword(admin_user, admin_pass, "1111");
+        UT_EXPECT_NO_THROW(galaxy.GetUserToken(admin_user, "1111"));
+        galaxy.ChangeCurrentPassword(admin_user, "", admin_pass, true);
+        UT_EXPECT_NO_THROW(galaxy.GetUserToken(admin_user, admin_pass));
+    }
+
     DefineTest("AddDeleteGraph") {
         MarkTestBegin("add and delete graph");
         fma_common::file_system::RemoveDir(testdir);

@@ -246,7 +246,7 @@ class Galaxy {
     bool ModUserDisable(const std::string& curr_user, const std::string& user, bool disable);
 
     bool ChangeCurrentPassword(const std::string& user, const std::string& old_password,
-                               const std::string& new_password);
+                               const std::string& new_password, bool force_reset_password = false);
 
     bool ChangeUserPassword(const std::string& current_user, const std::string& user,
                             const std::string& password);

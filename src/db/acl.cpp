@@ -762,15 +762,18 @@ bool lgraph::AclManager::ModUserDisable(KvTransaction& txn, const std::string& c
 
 bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::string& user,
                                                const std::string& old_password,
-                                               const std::string& new_password) {
+                                               const std::string& new_password,
+                                               bool force_reset_password) {
     // check if user exists
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
     if (!IsValidPassword(new_password)) throw InputError("Invalid password string.");
     // validate current password
-    if (old_password.empty() || PasswordMd5(old_password) != uinfo.password_md5)
-        throw InputError("Incorrect current password.");
+    if (!force_reset_password) {
+        if (old_password.empty() || PasswordMd5(old_password) != uinfo.password_md5)
+            throw InputError("Incorrect current password.");
+    }
     uinfo.password_md5 = PasswordMd5(new_password);
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv

@@ -868,10 +868,11 @@ bool lgraph::Galaxy::ModUserDisable(const std::string& curr_user, const std::str
 }
 
 bool lgraph::Galaxy::ChangeCurrentPassword(const std::string& user, const std::string& old_password,
-                                           const std::string& new_password) {
+                                    const std::string& new_password, bool force_reset_password) {
     _HoldWriteLock(reload_lock_);
     return ModifyACL([&](AclManager* new_acl, KvTransaction& txn) {
-        return new_acl->ChangeCurrentPassword(txn, user, old_password, new_password);
+        return new_acl->ChangeCurrentPassword(txn, user,
+                old_password, new_password, force_reset_password);
     });
 }
 

@@ -59,6 +59,15 @@ int64_t lgraph::StateMachine::GetVersion() { return galaxy_->GetRaftLogIndex(); 
 
 void lgraph::StateMachine::SetTokenTimeUnlimited() { return galaxy_->SetTokenTimeUnlimited(); }
 
+bool lgraph::StateMachine::ResetAdminPassword(const std::string& user,
+        const std::string& new_password, bool set_password) {
+    if (galaxy_->IsAdmin(user)) {
+        return galaxy_->ChangeCurrentPassword(user, "", new_password, set_password);
+    } else {
+        throw AuthError("Only admin can reset password.");
+    }
+}
+
 void lgraph::StateMachine::Stop() {
     galaxy_.reset();
     backup_log_.reset();

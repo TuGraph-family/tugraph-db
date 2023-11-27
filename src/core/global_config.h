@@ -47,6 +47,7 @@ struct BasicConfigs {
         , snapshot_dir("./snapshot_log")
         , max_backup_log_file_size((size_t)1 << 30)
         , unlimited_token(false)
+        , reset_admin_password(false)
         , enable_realtime_count(true) {}
 
     BasicConfigs(const BasicConfigs &basicConfigs)
@@ -74,7 +75,8 @@ struct BasicConfigs {
           , snapshot_dir(basicConfigs.snapshot_dir)
           , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
           , ft_index_options(basicConfigs.ft_index_options)
-          , unlimited_token(basicConfigs.unlimited_token) {}
+          , unlimited_token(basicConfigs.unlimited_token)
+          , reset_admin_password(basicConfigs.reset_admin_password) {}
 
     std::string db_dir;  // db
     int thread_limit;                // number of threads, for both rpc and http
@@ -117,6 +119,8 @@ struct BasicConfigs {
     FullTextIndexOptions ft_index_options;
     // token time
     bool unlimited_token;
+    // reset admin password
+    bool reset_admin_password;
     // vertex and edge count
     bool enable_realtime_count{};
 };
