@@ -21,6 +21,7 @@
 #include "fma-common/string_util.h"
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
+#include "./ut_config.h"
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
 #include "import/import_v2.h"
@@ -543,7 +544,8 @@ R"(
 
     static void create_mini_finbench(const std::string& dir = "./lgraph_db") {
         lgraph::import_v3::Importer::Config config;
-        config.config_file = "../../test/resource/data/mini_finbench/mini_finbench.json";
+        config.config_file =
+            lgraph::ut::TEST_RESOURCE_DIRECTORY + "/data/mini_finbench/mini_finbench.json";
         config.db_dir = dir;
         config.delete_if_exists = true;
         config.graph = "default";
@@ -552,11 +554,25 @@ R"(
         importer.DoImportOffline();
     }
 
+    static void create_mini_snb(const std::string& dir = "./lgraph_db") {
+        // todo(kehuang): use import_v3
+        lgraph::import_v2::Importer::Config config;
+        config.config_file =
+            lgraph::ut::TEST_RESOURCE_DIRECTORY + "/data/mini_snb/mini_snb.json";
+        config.db_dir = dir;
+        config.delete_if_exists = true;
+        config.graph = "default";
+        config.delimiter = ",";
+        lgraph::import_v2::Importer importer(config);
+        importer.DoImportOffline();
+    }
+
     enum class GRAPH_DATASET_TYPE {
         CURRENT = 0,
         EMPTY = 1,
         YAGO = 2,
         MINI_FINBENCH = 3,
+        MINI_SNB = 4,
     };
 
     static std::string ToString(GRAPH_DATASET_TYPE dataset_type) {
@@ -565,6 +581,7 @@ R"(
             {GRAPH_DATASET_TYPE::EMPTY, "EMPTY"},
             {GRAPH_DATASET_TYPE::YAGO, "YAGO"},
             {GRAPH_DATASET_TYPE::MINI_FINBENCH, "MINI_FINBENCH"},
+            {GRAPH_DATASET_TYPE::MINI_SNB, "MINI_SNB"},
         };
         auto it = dataset_type_to_string.find(dataset_type);
         if (it == dataset_type_to_string.end()) {
@@ -580,6 +597,7 @@ R"(
             {"EMPTY", GRAPH_DATASET_TYPE::EMPTY},
             {"YAGO", GRAPH_DATASET_TYPE::YAGO},
             {"MINI_FINBENCH", GRAPH_DATASET_TYPE::MINI_FINBENCH},
+            {"MINI_SNB", GRAPH_DATASET_TYPE::MINI_SNB},
         };
         auto it = string_to_dataset_type.find(str);
         if (it == string_to_dataset_type.end()) {
@@ -619,6 +637,10 @@ R"(
         case GRAPH_DATASET_TYPE::MINI_FINBENCH:
             fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
             create_mini_finbench(dir);
+            return;
+        case GRAPH_DATASET_TYPE::MINI_SNB:
+            fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
+            create_mini_snb(dir);
             return;
         }
     }
