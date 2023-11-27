@@ -479,7 +479,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const std::string& primary, const std::string& temporal,
                        const TemporalFieldOrder& temporal_order,
                        const EdgeConstraints& edge_constraints) {
-    if (_F_UNLIKELY(n_fields > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
+    lgraph::CheckValidFieldNum(n_fields);
     fields_.clear();
     name_to_idx_.clear();
     // assign id to fields, starting from fixed length types
@@ -554,7 +554,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             throw FieldAlreadyExistsException(f.name);
         fields_.push_back(_detail::FieldExtractor(f));
     }
-    if (_F_UNLIKELY(fields_.size() > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
+    lgraph::CheckValidFieldNum(fields_.size());
     RefreshLayout();
 }
 

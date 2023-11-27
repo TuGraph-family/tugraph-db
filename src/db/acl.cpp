@@ -202,14 +202,13 @@ lgraph::AccessLevel lgraph::AclManager::GetAccessRight(const std::string& curr_u
 bool lgraph::AclManager::AddUser(KvTransaction& txn, const std::string& curr_user,
                                  const std::string& name, const std::string& password,
                                  const std::string& desc, const std::string& auth_method) {
-    if (!IsValidUserName(name)) throw InputError("Invalid user name.");
-    if (!IsValidPassword(password)) throw InputError("Invalid password string.");
-    if (desc.size() > _detail::MAX_DESC_LEN) throw InputError("User desc string too long.");
+    std::string err_msg;
+    lgraph::CheckValidUserName(name);
+    lgraph::CheckValidPassword(password);
+    lgraph::CheckValidDescLength(desc.size());
+    lgraph::CheckValidUserNum(user_cache_.size());
     if (!IsAdmin(curr_user)) throw AuthError("Non-admin user cannot add user.");
     if (user_cache_.find(name) != user_cache_.end()) return false;
-    if (user_cache_.size() >= _detail::MAX_NUM_USERS)
-        throw std::runtime_error("Maximum number of users reached: " +
-                                 std::to_string(user_cache_.size()));
     if (!CreateRoleInternal(txn, name, "primary role for user " + name, true))
         throw InputError(FMA_FMT("A primary group named [{}] already exists.", name));
     UserInfo uinfo;
@@ -229,7 +228,7 @@ bool lgraph::AclManager::AddUser(KvTransaction& txn, const std::string& curr_use
 template <typename T>
 void lgraph::AclManager::CheckRolesExist(KvTransaction& txn, const T& roles) {
     for (auto& r : roles) {
-        if (!IsValidLGraphName(r)) throw InputError("Invalid role name: " + r);
+        lgraph::CheckValidRoleName(r);
         if (!role_tbl_->HasKey(txn, Value::ConstRef(r)))
             throw InputError(FMA_FMT("Role {} does not exist.", r));
     }
@@ -239,7 +238,7 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
                                  const ModUserRequest& request) {
     if (request.user() != curr_user && !IsAdmin(curr_user))
         throw AuthError("Non-admin user cannot modify other users.");
-    if (!IsValidUserName(request.user())) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(request.user());
     // check if user exists
     const std::string& user = request.user();
     auto ait = user_cache_.find(user);
@@ -265,7 +264,7 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
             if (!ait->second.builtin_auth)
                 throw InputError("Cannot set password to users using external authentication.");
             auto r = request.set_password();
-            if (!IsValidPassword(r.new_pass())) throw InputError("Invalid password string.");
+            lgraph::CheckValidPassword(r.new_pass());
             if (user == curr_user) {
                 // validate current password
                 if (!r.has_old_pass() || PasswordMd5(r.old_pass()) != uinfo.password_md5) {
@@ -277,8 +276,7 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
         }
     case ModUserRequest::kSetDesc:
         {
-            if (request.set_desc().size() > _detail::MAX_DESC_LEN)
-                throw InputError("User description too long.");
+            lgraph::CheckValidDescLength(request.set_desc().size());
             if (curr_user != user && !IsAdmin(curr_user))
                 throw AuthError("Non-admin user cannot modify other user's description.");
             uinfo.desc = request.set_desc();
@@ -318,7 +316,7 @@ bool lgraph::AclManager::DelUser(KvTransaction& txn, const std::string& curr_use
                                  const std::string& user) {
     if (!IsAdmin(curr_user)) throw AuthError("Non-admin user cannot delete users.");
     if (curr_user == user) throw InputError("User cannot delete itself.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     if (user == _detail::DEFAULT_ADMIN_NAME)
         throw InputError("Builtin admin user cannot be deleted.");
     auto uit = user_cache_.find(user);
@@ -346,7 +344,7 @@ lgraph::AclManager::UserInfo lgraph::AclManager::GetUserInfo(KvTransaction& txn,
     if (curr_user != user && !IsAdmin(curr_user)) {
         throw AuthError("Non-admin user cannot get other users' info.");
     }
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     if (user_cache_.find(user) == user_cache_.end())
         throw InputError(FMA_FMT("User [{}] does not exist.", user));
     return GetUserInfoFromKv(txn, user);
@@ -357,7 +355,7 @@ size_t lgraph::AclManager::GetUserMemoryLimit(KvTransaction& txn, const std::str
     if (curr_user != user && !IsAdmin(curr_user)) {
         throw AuthError("Non-admin user cannot get other users' info.");
     }
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     if (user_cache_.find(user) == user_cache_.end())
         throw InputError(FMA_FMT("User [{}] does not exist.", user));
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
@@ -388,8 +386,8 @@ bool lgraph::AclManager::CreateRole(KvTransaction& txn, const std::string& curr_
     if (!IsAdmin(curr_user)) {
         throw AuthError("Non-admin user cannot add roles.");
     }
-    if (!IsValidLGraphName(role_name)) throw InputError("Invalid role name.");
-    if (desc.size() > _detail::MAX_DESC_LEN) throw InputError("Role description too long.");
+    lgraph::CheckValidRoleName(role_name);
+    lgraph::CheckValidDescLength(desc.size());
     return CreateRoleInternal(txn, role_name, desc, false);
 }
 
@@ -398,7 +396,7 @@ bool lgraph::AclManager::ModRole(KvTransaction& txn, const std::string& curr_use
     if (!IsAdmin(curr_user)) throw AuthError("Non-admin user cannot modify roles.");
     if (IsBuiltinRole(request.role())) throw InputError("Builtin roles cannot be modified.");
     const std::string& role = request.role();
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     {
         auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
         if (!it->IsValid()) return false;
@@ -424,8 +422,7 @@ bool lgraph::AclManager::ModRole(KvTransaction& txn, const std::string& curr_use
         }
     case ModRoleRequest::kModDesc:
         {
-            if (request.mod_desc().size() > _detail::MAX_DESC_LEN)
-                throw InputError("Role description too long.");
+            lgraph::CheckValidDescLength(request.mod_desc().size());
             rinfo.desc = request.mod_desc();
             need_refresh_acl_table = false;
             break;
@@ -479,7 +476,7 @@ bool lgraph::AclManager::DelRole(KvTransaction& txn, const std::string& curr_use
         throw AuthError("Non-admin user cannot delete roles.");
     }
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be deleted.");
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     return DeleteRoleInternal(txn, role, false);
 }
 
@@ -498,7 +495,7 @@ lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfo(KvTransaction& txn,
         if (uinfo.roles.find(role) == uinfo.roles.end())
             throw AuthError("User is not an admin and does not have the specified role.");
     }
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     auto v = role_tbl_->GetValue(txn, Value::ConstRef(role));
     if (v.Empty())
         throw InputError(FMA_FMT("Role [{}] does not exist.", role));
@@ -509,7 +506,7 @@ lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfo(KvTransaction& txn,
 void lgraph::AclManager::AddGraph(KvTransaction& txn, const std::string& curr_user,
                                   const std::string& graph) {
     // we don't need to check user access here, this is used internally
-    if (!IsValidGraphName(graph)) throw InputError("Invalid graph name.");
+    lgraph::CheckValidGraphName(graph);
     // add graph to admin role
     RoleInfo rinfo = DeserializeFromValue<RoleInfo>(
         role_tbl_->GetValue(txn, Value::ConstRef(_detail::ADMIN_ROLE)));
@@ -529,7 +526,7 @@ void lgraph::AclManager::DelGraph(KvTransaction& txn, const std::string& curr_us
         throw AuthError("Non-admin user cannot delete graphs.");
     }
     if (graph == _detail::META_GRAPH) throw InputError("Builtin graph cannot be deleted.");
-    if (!IsValidGraphName(graph)) throw InputError("Invalid graph name.");
+    lgraph::CheckValidGraphName(graph);
     // remove graph from roles
     auto it = role_tbl_->GetIterator(txn);
     for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
@@ -594,7 +591,7 @@ void lgraph::AclManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
 
 bool lgraph::AclManager::ModRoleDisable(KvTransaction& txn, const std::string& role, bool disable) {
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     {
         auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
         if (!it->IsValid()) return false;
@@ -621,9 +618,10 @@ bool lgraph::AclManager::ModRoleDisable(KvTransaction& txn, const std::string& r
 
 bool lgraph::AclManager::ModRoleDesc(KvTransaction& txn, const std::string& role,
                                      const std::string& desc) {
+    std::string err_msg;
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
-    if (desc.size() > _detail::MAX_DESC_LEN) throw InputError("Role description too long.");
+    lgraph::CheckValidRoleName(role);
+    lgraph::CheckValidDescLength(desc.size());
     {
         auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
         if (!it->IsValid()) return false;
@@ -649,7 +647,7 @@ bool lgraph::AclManager::ModAllRoleAccessLevel(
     KvTransaction& txn, const std::string& role,
     const std::unordered_map<std::string, AccessLevel>& acs) {
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     {
         auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
         if (!it->IsValid()) return false;
@@ -677,7 +675,7 @@ bool lgraph::AclManager::ModAllRoleAccessLevel(
 bool lgraph::AclManager::ModRoleAccessLevel(KvTransaction& txn, const std::string& role,
                                             const AclTable& acs) {
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     {
         auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
         if (!it->IsValid()) return false;
@@ -707,7 +705,7 @@ bool lgraph::AclManager::ModRoleAccessLevel(KvTransaction& txn, const std::strin
 bool lgraph::AclManager::ModRoleFieldAccessLevel(KvTransaction& txn, const std::string& role,
                                                  const FieldAccessTable& acs) {
     if (IsBuiltinRole(role)) throw InputError("Builtin roles cannot be modified.");
-    if (!IsValidLGraphName(role)) throw InputError("Invalid role name.");
+    lgraph::CheckValidRoleName(role);
     {
         auto it = role_tbl_->GetIterator(txn, Value::ConstRef(role));
         if (!it->IsValid()) return false;
@@ -743,7 +741,7 @@ bool lgraph::AclManager::ModUserDisable(KvTransaction& txn, const std::string& c
     if (curr_user != user && !IsAdmin(curr_user))
         throw AuthError("Non-admin user cannot modify other user's description.");
     if (user == curr_user) throw InputError("User cannot disable itself.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidRoleName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
@@ -762,15 +760,18 @@ bool lgraph::AclManager::ModUserDisable(KvTransaction& txn, const std::string& c
 
 bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::string& user,
                                                const std::string& old_password,
-                                               const std::string& new_password) {
+                                               const std::string& new_password,
+                                               bool force_reset_password) {
     // check if user exists
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
-    if (!IsValidPassword(new_password)) throw InputError("Invalid password string.");
+    lgraph::CheckValidPassword(new_password);
     // validate current password
-    if (old_password.empty() || PasswordMd5(old_password) != uinfo.password_md5)
-        throw InputError("Incorrect current password.");
+    if (!force_reset_password) {
+        if (old_password.empty() || PasswordMd5(old_password) != uinfo.password_md5)
+            throw InputError("Incorrect current password.");
+    }
     uinfo.password_md5 = PasswordMd5(new_password);
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
@@ -782,13 +783,13 @@ bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::st
 bool lgraph::AclManager::ChangeUserPassword(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const std::string& password) {
     if (!IsAdmin(current_user)) throw AuthError("Non-admin user cannot modify other users.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
+    lgraph::CheckValidPassword(password);
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
     if (!ait->second.builtin_auth)
         throw InputError("Cannot set password to users using external authentication.");
-    if (!IsValidPassword(password)) throw InputError("Invalid password string.");
     uinfo.password_md5 = PasswordMd5(password);
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
@@ -801,12 +802,12 @@ bool lgraph::AclManager::SetUserDescription(KvTransaction& txn, const std::strin
                                             const std::string& user, const std::string& desc) {
     if (current_user != user && !IsAdmin(current_user))
         throw AuthError("Non-admin user cannot modify other user's description.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);
-    if (desc.size() > _detail::MAX_DESC_LEN) throw InputError("User description too long.");
+    lgraph::CheckValidDescLength(desc.size());
     uinfo.desc = desc;
     ait->second.UpdateAuthInfo(uinfo);
     // now update kv
@@ -818,7 +819,7 @@ bool lgraph::AclManager::DeleteUserRoles(KvTransaction& txn, const std::string& 
                                          const std::string& user,
                                          const std::vector<std::string>& roles) {
     if (!IsAdmin(current_user)) throw AuthError("Non-admin uesr cannot modify roles.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
@@ -846,7 +847,7 @@ bool lgraph::AclManager::RebuildUserRoles(KvTransaction& txn, const std::string&
                                           const std::string& user,
                                           const std::vector<std::string>& roles) {
     if (!IsAdmin(current_user)) throw AuthError("Non-admin uesr cannot modify roles.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
@@ -872,7 +873,7 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
                                       const std::string& user,
                                       const std::vector<std::string>& roles) {
     if (!IsAdmin(current_user)) throw AuthError("Non-admin uesr cannot modify roles.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     // check if user exists
     if (roles.empty()) return true;
     auto ait = user_cache_.find(user);
@@ -896,7 +897,7 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
 bool lgraph::AclManager::SetUserMemoryLimit(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const size_t& memory_limit) {
     if (!IsAdmin(current_user)) throw AuthError("Non-admin user cannot modify other users.");
-    if (!IsValidUserName(user)) throw InputError("Invalid user name.");
+    lgraph::CheckValidUserName(user);
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;
     UserInfo uinfo = GetUserInfoFromKv(txn, user);

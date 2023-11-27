@@ -34,8 +34,8 @@ static Value PatchNonuniqueIndexKey(const Value& key, VertexId src_vid, VertexId
                                     LabelId lid, TemporalId tid, EdgeId eid) {
     Value key_euid(key.Size() + EUID_SIZE);
     memcpy(key_euid.Data(), key.Data(), key.Size());
-    WriteVid(key_euid.Data() + key.Size(), src_vid < end_vid ? src_vid : end_vid);
-    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, src_vid > end_vid ? src_vid : end_vid);
+    WriteVid(key_euid.Data() + key.Size(), src_vid);
+    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, end_vid);
     WriteLabelId(key_euid.Data() + key.Size() + LID_BEGIN, lid);
     WriteTemporalId(key_euid.Data() + key.Size() + TID_BEGIN, tid);
     WriteEid(key_euid.Data() + key.Size() + EID_BEGIN, eid);
@@ -45,8 +45,8 @@ static Value PatchNonuniqueIndexKey(const Value& key, VertexId src_vid, VertexId
 static Value PatchPairUniqueIndexKey(const Value& key, VertexId src_vid, VertexId end_vid) {
     Value key_euid(key.Size() + VID_SIZE * 2);
     memcpy(key_euid.Data(), key.Data(), key.Size());
-    WriteVid(key_euid.Data() + key.Size(), src_vid < end_vid ? src_vid : end_vid);
-    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, src_vid > end_vid ? src_vid : end_vid);
+    WriteVid(key_euid.Data() + key.Size(), src_vid);
+    WriteVid(key_euid.Data() + key.Size() + VID_SIZE, end_vid);
     return key_euid;
 }
 
@@ -182,15 +182,8 @@ Value EdgeIndexValue::CreateKey(const Value& key) const {
     int pos = GetEUidCount() - 1;
     Value v(key.Size() + (_detail::EUID_SIZE));
     memcpy(v.Data(), key.Data(), key.Size());
-    VertexId src = _detail::GetVid(v_.Data() + 1 + (_detail::EUID_SIZE)*pos);
-    VertexId dst =
-        _detail::GetVid(v_.Data() + 1 + (_detail::EUID_SIZE)*pos + _detail::VID_SIZE);
-    memcpy(v.Data() + key.Size(), src < dst ? &src : &dst, _detail::VID_SIZE);
-    memcpy(v.Data() + key.Size() + _detail::VID_SIZE, src > dst ? &src : &dst,
-           _detail::VID_SIZE);
-    memcpy(v.Data() + key.Size() + _detail::LID_BEGIN,
-           v_.Data() + 1 + pos * (_detail::EUID_SIZE) + _detail::LID_BEGIN,
-           _detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE);
+    memcpy(v.Data() + key.Size(),
+           v_.Data() + 1 + pos * (_detail::EUID_SIZE), _detail::EUID_SIZE);
     return v;
 }
 
@@ -479,9 +472,8 @@ void EdgeIndex::_AppendIndexEntry(KvTransaction& txn, const Value& k, EdgeUid eu
     if (type_ == IndexType::PairUniqueIndex) {
         size_t key_size = key.Size();
         key.Resize(key_size + _detail::VID_SIZE * 2);
-        _detail::WriteVid(key.Data() + key_size, euid.src < euid.dst ? euid.src : euid.dst);
-        _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE,
-                          euid.src > euid.dst ? euid.src : euid.dst);
+        _detail::WriteVid(key.Data() + key_size, euid.src);
+        _detail::WriteVid(key.Data() + key_size + _detail::VID_SIZE, euid.dst);
         Value v(_detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE);
         _detail::WriteLabelId(v.Data(), euid.lid);
         _detail::WriteTemporalId(v.Data() + _detail::LID_SIZE, euid.tid);

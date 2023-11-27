@@ -73,20 +73,8 @@ lgraph::Galaxy::~Galaxy() {
     graphs_->CloseAllGraphs();
 }
 
-static inline void CheckUserName(const std::string& user) {
-    if (!lgraph::IsValidUserName(user)) throw lgraph::InputError("Invalid user name.");
-}
-
-static inline void CheckGraphName(const std::string& user) {
-    if (!lgraph::IsValidGraphName(user)) throw lgraph::InputError("Invalid graph name.");
-}
-
-static inline void CheckPasswordString(const std::string& password) {
-    if (!lgraph::IsValidPassword(password)) throw lgraph::InputError("Invalid password string.");
-}
-
 std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::string& password) {
-    CheckUserName(user);
+    lgraph::CheckValidUserName(user);
     _HoldWriteLock(acl_lock_);
 
     // judge user/password error times
@@ -191,7 +179,7 @@ std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token
 
 bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string& graph,
                                  const lgraph::DBConfig& config) {
-    CheckGraphName(graph);
+    CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
     AutoWriteLock l1(acl_lock_, GetMyThreadId());  // upgrade to write lock
@@ -210,7 +198,7 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
 }
 
 bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string& graph) {
-    CheckGraphName(graph);
+    lgraph::CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
     AutoWriteLock l1(acl_lock_, GetMyThreadId());
@@ -404,8 +392,8 @@ std::unordered_map<std::string, lgraph::AccessControlledDB> lgraph::Galaxy::Open
 
 lgraph::AccessLevel lgraph::Galaxy::GetAcl(const std::string& curr_user, const std::string& user,
                                            const std::string& graph) {
-    CheckUserName(user);
-    CheckGraphName(graph);
+    lgraph::CheckValidUserName(user);
+    lgraph::CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
     if (!graphs_->GraphExists(graph)) throw InputError("Graph does not exist.");
@@ -868,10 +856,11 @@ bool lgraph::Galaxy::ModUserDisable(const std::string& curr_user, const std::str
 }
 
 bool lgraph::Galaxy::ChangeCurrentPassword(const std::string& user, const std::string& old_password,
-                                           const std::string& new_password) {
+                                    const std::string& new_password, bool force_reset_password) {
     _HoldWriteLock(reload_lock_);
     return ModifyACL([&](AclManager* new_acl, KvTransaction& txn) {
-        return new_acl->ChangeCurrentPassword(txn, user, old_password, new_password);
+        return new_acl->ChangeCurrentPassword(txn, user,
+                old_password, new_password, force_reset_password);
     });
 }
 

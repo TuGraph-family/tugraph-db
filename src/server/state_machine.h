@@ -168,6 +168,12 @@ class StateMachine {
     void SetTokenTimeUnlimited();
 
     /**
+     * @brief  reset password if the password is forgotten
+     */
+    bool ResetAdminPassword(const std::string& user,
+        const std::string& new_password, bool set_password);
+
+    /**
      * Gets current master rest address.
      *
      * @return  The current master.

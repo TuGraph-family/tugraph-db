@@ -1523,6 +1523,10 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
         return RespondBadRequest(request, "`user` or `password` not specified.");
     }
     BEG_AUDIT_LOG(username, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
+    bool default_password = false;
+    if (password == lgraph::_detail::DEFAULT_ADMIN_PASS) {
+        default_password = true;
+    }
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
     if (!galaxy_->JudgeUserTokenNum(username)) {
@@ -1530,6 +1534,7 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     }
     web::json::value response;
     response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
+    response[RestStrings::DEFAULT_PASSWORD] = web::json::value::boolean(default_password);
     response[RestStrings::ISADMIN] = web::json::value(galaxy_->IsAdmin(username));
     return RespondSuccess(request, response);
 }

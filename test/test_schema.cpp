@@ -88,7 +88,7 @@ TEST_F(TestSchema, SetSchema) {
     std::vector<FieldSpec> fs;
     for (size_t i = 0; i < _detail::MAX_NUM_FIELDS + 1; i++)
         fs.emplace_back(UT_FMT("f_{}", i), FieldType::INT16, true);
-    UT_EXPECT_THROW(s.SetSchema(true, fs, "f_0", "", {}, {}), lgraph::TooManyFieldsException);
+    UT_EXPECT_THROW_MSG(s.SetSchema(true, fs, "f_0", "", {}, {}), "Invalid Field");
 }
 
 TEST_F(TestSchema, HasBlob) {

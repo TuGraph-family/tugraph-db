@@ -467,12 +467,17 @@ void HttpService::DoLoginRequest(const brpc::Controller* cntl, std::string& res)
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_USER_NAME, username);
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_PASSWORD, password);
     _HoldReadLock(galaxy_->GetReloadLock());
+    bool default_password = false;
+    if (password == lgraph::_detail::DEFAULT_ADMIN_PASS) {
+        default_password = true;
+    }
     std::string token = galaxy_->GetUserToken(username, password);
     if (!galaxy_->JudgeUserTokenNum(username)) {
         throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
     }
     nlohmann::json js;
     js[HTTP_AUTHORIZATION] = token;
+    js[HTTP_DEFAULT_PASSWORD] = default_password;
     res = js.dump();
 }
 

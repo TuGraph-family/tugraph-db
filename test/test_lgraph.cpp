@@ -217,11 +217,11 @@ TEST_F(TestLGraph, LGraph) {
             "", std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
             true, VertexOptions("id")));
         // label name
-        db.AddLabel(std::string(255, 'e'),
+        db.AddLabel(std::string(256, 'e'),
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
                                         true, VertexOptions("id"));
         // long label name
-        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(256, 'a'),
+        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(257, 'a'),
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
                                         true, VertexOptions("id")));
         // strange label names
@@ -250,13 +250,13 @@ TEST_F(TestLGraph, LGraph) {
         // field name ok
         db.AddLabel(
             "field_name_not_long",
-            std::vector<FieldSpec>{FieldSpec(std::string(255, 'a'), FieldType::STRING, false)},
-            true, VertexOptions(std::string(255, 'a')));
+            std::vector<FieldSpec>{FieldSpec(std::string(256, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(256, 'a')));
         // field name too long
         UT_EXPECT_ANY_THROW(db.AddLabel(
             "field_name_too_long",
-            std::vector<FieldSpec>{FieldSpec(std::string(256, 'a'), FieldType::STRING, false)},
-            true, VertexOptions(std::string(256, 'a'))));
+            std::vector<FieldSpec>{FieldSpec(std::string(257, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(257, 'a'))));
         // invalid character in field name
         for (auto& str : std::vector<std::string>{"#", "!", "+", "-", "*", "/"})
             UT_EXPECT_ANY_THROW(db.AddLabel(
@@ -328,6 +328,22 @@ TEST_F(TestLGraph, LGraph) {
                 UT_LOG() << "Free memory " << mem / 1024 / 1024 << "MB, skipping big value test";
             }
 #endif
+        }
+    }
+
+    UT_LOG() << "Label number limit tests";
+    {
+        DBConfig config;
+        config.dir = "./testdb";
+        AutoCleanDir(config.dir);
+        LightningGraph db(config);
+        db.DropAllData();
+        size_t max_label_num = 4096;
+        for (int i = 0; i < max_label_num; ++i) {
+            std::string label_name = "v_label_" + std::to_string(i);
+            UT_EXPECT_TRUE(db.AddLabel(label_name,
+                                       std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+                                       true, VertexOptions("id")));
         }
     }
 

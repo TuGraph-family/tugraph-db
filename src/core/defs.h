@@ -18,6 +18,7 @@
 #include <unordered_map>
 
 #include "fma-common/text_parser.h"
+#include "fma-common/string_formatter.h"
 #include "lgraph/lgraph_types.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -135,12 +136,14 @@ static const int VER_MINOR = LGRAPH_VERSION_MINOR;
 static const int VER_PATCH = LGRAPH_VERSION_PATCH;
 
 // limits
+static const size_t MAX_NUM_USERS = 65536;
+static const size_t MAX_NUM_GRAPHS = 4096;
 static const size_t MAX_NUM_FIELDS = 1024;  // max number of fields in vertex/edge property
+static const size_t MAX_NUM_LABELS = 4096;  // max number of vertex and edge labels in one graph
+
 static const size_t MAX_COMPILE_TIME_MS = 1000 * 1000;  // max compile time when loading plugin
 static const size_t MAX_UNZIP_TIME_MS = 100 * 1000;     // max unzip time when loading plugin
 
-static const size_t MAX_NUM_USERS = 65536;
-static const size_t MAX_NUM_GRAPHS = 4096;
 #ifdef _WIN32
 static const size_t DEFAULT_GRAPH_SIZE = (size_t)1 << 30;
 static const size_t MAX_GRAPH_SIZE = (size_t)1 << 40;
@@ -150,7 +153,9 @@ static const size_t MAX_GRAPH_SIZE = (size_t)1 << 44;
 #endif
 static const size_t GRAPH_SUBDIR_NAME_LEN = 8;
 
-static const size_t MAX_NAME_LEN = 64;
+static const size_t MAX_COMMON_NAME_LEN = 64;
+static const size_t MAX_LABEL_NAME_LEN = 256;
+static const size_t MAX_FIELD_NAME_LEN = 256;
 static const size_t MAX_PASSWORD_LEN = 64;
 static const size_t MAX_DESC_LEN = 512;
 
@@ -174,24 +179,112 @@ static const char* const PLUGIN_CODE_TYPE_PY = "py";
 typedef ::lgraph_api::PluginCodeType CodeType;
 }  // namespace plugin
 
-// check if name is a valid user name
-// User names must be of length (0, 64].
-inline bool IsValidLGraphName(const std::string& name) {
-    if (name.empty() || name.size() > _detail::MAX_NAME_LEN) return false;
-    if (fma_common::TextParserUtils::IsDigits(name.front())) return false;
-    for (auto& c : name) {
-        if ((uint8_t)c < 128 && !fma_common::TextParserUtils::IsValidNameCharacter(c)) return false;
+inline void CheckValidName(const std::string& name, const size_t max_name_length,
+                           std::string& err_msg) {
+    if (name.empty() || name.size() > max_name_length) {
+        err_msg += FMA_FMT("name length must be between 1 and {}, given [{}]",
+                           std::to_string(max_name_length), name.size());
+        throw std::runtime_error(err_msg);
     }
-    return true;
+    if (fma_common::TextParserUtils::IsDigits(name.front())) {
+        err_msg += "name cannot begin with a digit.";
+        throw std::runtime_error(err_msg);
+    }
+    for (auto& c : name) {
+        if ((uint8_t)c < 128 && !fma_common::TextParserUtils::IsValidNameCharacter(c)) {
+            err_msg += "name can only contain alphabetic and numeric characters and underscore.";
+            throw std::runtime_error(err_msg);
+        }
+    }
 }
 
-inline bool IsValidUserName(const std::string& name) { return IsValidLGraphName(name); }
+inline void CheckValidUserName(const std::string& name) {
+    std::string err_msg = "Invalid User: ";
+    CheckValidName(name, _detail::MAX_COMMON_NAME_LEN, err_msg);
+}
 
-inline bool IsValidGraphName(const std::string& name) { return IsValidLGraphName(name); }
+inline void CheckValidRoleName(const std::string& name) {
+    std::string err_msg = "Invalid Role: ";
+    CheckValidName(name, _detail::MAX_COMMON_NAME_LEN, err_msg);
+}
 
-// check if pass is a valid password
-// Passwords must be of length (0, 64].
-inline bool IsValidPassword(const std::string& pass) {
-    return !pass.empty() && pass.size() <= _detail::MAX_PASSWORD_LEN;
+inline void CheckValidGraphName(const std::string& name) {
+    std::string err_msg = "Invalid Graph: ";
+    CheckValidName(name, _detail::MAX_COMMON_NAME_LEN, err_msg);
+}
+
+inline void CheckValidLabelName(const std::string& name) {
+    std::string err_msg = "Invalid Label: ";
+    CheckValidName(name, _detail::MAX_LABEL_NAME_LEN, err_msg);
+}
+
+inline void CheckValidFieldName(const std::string& name) {
+    std::string err_msg = "Invalid Field: ";
+    CheckValidName(name, _detail::MAX_FIELD_NAME_LEN, err_msg);
+}
+
+inline void CheckValidUserNum(const size_t n) {
+    if (n > _detail::MAX_NUM_USERS) {
+        std::string err_msg = FMA_FMT("Invalid User: number cannot exceed {}, given [{}].",
+                                      _detail::MAX_NUM_USERS, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidRoleNum(const size_t n) {
+    if (n > _detail::MAX_NUM_USERS) {
+        std::string err_msg = FMA_FMT("Invalid Role: number cannot exceed {}, given [{}].",
+                                      _detail::MAX_NUM_USERS, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidGraphNum(const size_t n) {
+    if (n > _detail::MAX_NUM_GRAPHS) {
+        std::string err_msg = FMA_FMT("Invalid Graph: number cannot exceed {}, given [{}].",
+                                      _detail::MAX_NUM_GRAPHS, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidLabelNum(const size_t n) {
+    if (n > _detail::MAX_NUM_LABELS) {
+        std::string err_msg = FMA_FMT("Invalid Label: number cannot exceed {}, given [{}].",
+                                      _detail::MAX_NUM_LABELS, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidFieldNum(const size_t n) {
+    if (n > _detail::MAX_NUM_FIELDS) {
+        std::string err_msg = FMA_FMT("Invalid Field: number cannot exceed {}, given [{}].",
+                                      _detail::MAX_NUM_FIELDS, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidDescLength(const size_t n) {
+    if (n > _detail::MAX_DESC_LEN) {
+        std::string err_msg =
+            FMA_FMT("Invalid Desc: length cannot exceed {}, given [{}].", _detail::MAX_DESC_LEN, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidGraphSize(const size_t n) {
+    if (n > _detail::MAX_GRAPH_SIZE) {
+        std::string err_msg = FMA_FMT("Invalid Graph: size cannot exceed {}, given [{}].",
+                                      _detail::MAX_GRAPH_SIZE, n);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+inline void CheckValidPassword(const std::string& pass) {
+    if (pass.empty() || pass.size() > _detail::MAX_PASSWORD_LEN) {
+        std::string err_msg =
+            FMA_FMT("Invalid Password: length must between 1 and {}, given [{}]",
+                    std::to_string(_detail::MAX_PASSWORD_LEN), pass.size());
+        throw std::runtime_error(err_msg);
+    }
 }
 }  // namespace lgraph

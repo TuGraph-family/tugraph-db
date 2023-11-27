@@ -30,6 +30,7 @@ mkdir -p testresult/gtest
 
 # unittest
 cd $MY_WORKSPACE/build/output
+ln -s ../../test/integration/data ./
 OMP_NUM_THREADS=8 ./fma_unit_test -t all
 if [[ "$ASAN" == "asan" ]]; then
     export LSAN_OPTIONS=suppressions=$MY_WORKSPACE/test/asan.suppress
