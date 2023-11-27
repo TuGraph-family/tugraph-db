@@ -36,6 +36,7 @@ if [[ "$TEST" == "ut" ]]; then
   # unittest
   mkdir -p $WORKSPACE/testresult/gtest/
   cd $WORKSPACE/build/output
+  ln -s ../../test/integration/data ./
   OMP_NUM_THREADS=2 ./fma_unit_test -t all
   if [[ "$ASAN" == "asan" ]]; then
       export LSAN_OPTIONS=suppressions=$WORKSPACE/test/asan.suppress
