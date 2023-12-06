@@ -284,6 +284,34 @@ struct BuiltinFunction {
     static cypher::FieldData DateTimeComponent(RTContext *ctx, const Record &record,
                                                const std::vector<ArithExprNode> &args);
 
+        /* spatial functions */
+    static cypher::FieldData Point(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Point_WKB(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Point_WKT(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData LineString(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData LineString_WKB(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData LineString_WKT(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Polygon(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Polygon_WKB(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Polygon_WKT(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -478,6 +506,17 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
+        /* spatial functions */
+        ae_registered_funcs.emplace("point", BuiltinFunction::Point);
+        ae_registered_funcs.emplace("point_wkb", BuiltinFunction::Point_WKB);
+        ae_registered_funcs.emplace("point_wkt", BuiltinFunction::Point_WKT);
+        ae_registered_funcs.emplace("linestring", BuiltinFunction::LineString);
+        ae_registered_funcs.emplace("linestring_wkb", BuiltinFunction::LineString_WKB);
+        ae_registered_funcs.emplace("linestring_wkt", BuiltinFunction::LineString_WKT);
+        ae_registered_funcs.emplace("polygon", BuiltinFunction::Polygon);
+        ae_registered_funcs.emplace("polygon_wkb", BuiltinFunction::Polygon_WKB);
+        ae_registered_funcs.emplace("polygon_wkt", BuiltinFunction::Polygon_WKT);
+        
         /* native API-like functions */
         ae_registered_funcs.emplace("native.getedgefield", BuiltinFunction::NativeGetEdgeField);
         /* internal functions */
@@ -485,6 +524,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace(BuiltinFunction::INTL_TO_LIST, BuiltinFunction::_ToList);
         ae_registered_funcs.emplace(BuiltinFunction::INTL_LIST_COMPREHENSION,
                                     BuiltinFunction::_ListComprehension);
+        
         return ae_registered_funcs;
     }
 

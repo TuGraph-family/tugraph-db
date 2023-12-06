@@ -30,7 +30,7 @@
 #include <boost/geometry/io/wkt/read.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/write_wkb.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/utility.hpp>
-
+#include <boost/geometry.hpp>
 #include <boost/geometry/io/wkt/wkt.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/read_wkb.hpp>
 
@@ -328,9 +328,14 @@ class Spatial {
         return type_;
     }
 
-    bool operator==(const Spatial<SRID_Type>& other);
+    /**
+     *  @brief return the distance between two spatial type data;
+     * 
+     *  @param other the other spatial type data;
+    */
+    double Distance(Spatial<SRID_Type>& other);
 
-    // double Distance(geography<T>& other);
+    bool operator==(const Spatial<SRID_Type>& other);
 };
 
 /**
@@ -365,7 +370,7 @@ class SpatialBase {
 };
 
 /**
- * @brief implements a Point spatial class which spatial data is Point; 
+ * @brief implements a Point spatial class which spatial type is Point; 
  */
 template<typename SRID_Type>
 class Point : public SpatialBase {
@@ -399,6 +404,17 @@ class Point : public SpatialBase {
     */
     explicit Point(const std::string& ewkb);
 
+    /**
+     *  @brief construct Point class from Coordinate pairs and srid;
+     *  
+     *  @param arg1 the first coordinate datum;
+     * 
+     *  @param arg2 the second coordinate datum; 
+     * 
+     *  @param srid the srid of the Point;
+    */
+    Point(double arg1, double arg2, SRID& srid);
+
     std::string AsEWKB() const override {
         return ewkb_;
     }
@@ -416,6 +432,27 @@ class Point : public SpatialBase {
         return point_;
     }
 
+    /**
+     *  @brief caculate the distance between point and point;
+     * 
+     *  @param other the other point type data;
+    */
+    double Distance(Point<SRID_Type>& other);
+
+    /**
+     *  @brief caculate the distance between point and linestring;
+     *  
+     *  @param other the other linsetring type data;
+    */
+    double Distance(LineString<SRID_Type>& other);
+
+    /**
+     *  @brief caculate the distance between point and polygon;
+     *  
+     *  @param other the other polygon type data;
+    */
+    double Distance(Polygon<SRID_Type>& other);
+
     bool operator==(const Point<SRID_Type>& other);
 };
 
@@ -425,8 +462,8 @@ class Point : public SpatialBase {
 template<typename SRID_Type>
 class LineString : public SpatialBase {
     std::string ewkb_;
-    typedef bg::model::point<double, 2, SRID_Type> Point;
-    bg::model::linestring<Point> line_;
+    typedef bg::model::point<double, 2, SRID_Type> Point_;
+    bg::model::linestring<Point_> line_;
 
  public:
     LineString(SRID srid, SpatialType type, int construct_type, std::string& content);
@@ -448,6 +485,27 @@ class LineString : public SpatialBase {
         return line_;
     }
 
+    /**
+     *  @brief caculate the distance between linestring and point;
+     * 
+     *  @param other the other point type data;
+    */
+    double Distance(Point<SRID_Type>& other);
+
+    /**
+     *  @brief caculate the distance between linestring and linestring;
+     *  
+     *  @param other the other linsetring type data;
+    */
+    double Distance(LineString<SRID_Type>& other);
+
+    /**
+     *  @brief caculate the distance between linestring and polygon;
+     *  
+     *  @param other the other polygon type data;
+    */
+    double Distance(Polygon<SRID_Type>& other);
+
     bool operator==(const LineString<SRID_Type>& other);
 };
 
@@ -457,8 +515,8 @@ class LineString : public SpatialBase {
 template<typename SRID_Type>
 class Polygon : public SpatialBase {
     std::string ewkb_;
-    typedef bg::model::point<double, 2, SRID_Type> Point;
-    bg::model::polygon<Point> polygon_;
+    typedef bg::model::point<double, 2, SRID_Type> Point_;
+    bg::model::polygon<Point_> polygon_;
 
  public:
     Polygon(SRID srid, SpatialType type, int construct_type, std::string& content);
@@ -479,6 +537,27 @@ class Polygon : public SpatialBase {
     bg::model::polygon<bg::model::point<double, 2, SRID_Type>> GetSpatialData() {
         return polygon_;
     }
+
+    /**
+     *  @brief caculate the distance between linestring and point;
+     * 
+     *  @param other the other point type data;
+    */
+    double Distance(Point<SRID_Type>& other);
+
+    /**
+     *  @brief caculate the distance between linestring and linestring;
+     *  
+     *  @param other the other linsetring type data;
+    */
+    double Distance(LineString<SRID_Type>& other);
+
+    /**
+     *  @brief caculate the distance between linestring and polygon;
+     *  
+     *  @param other the other polygon type data;
+    */
+    double Distance(Polygon<SRID_Type>& other);
 
     bool operator==(const Polygon<SRID_Type>& other);
 };
