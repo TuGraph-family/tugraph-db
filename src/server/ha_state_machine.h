@@ -56,8 +56,6 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
     mutable std::mutex hb_mutex_;
     std::condition_variable hb_cond_;
     bool exit_flag_ = false;  // should heartbeat thread exit?
-    NodeState node_state_;    // state of current node
-    bool peers_changed_;
     struct HeartbeatStatus {
         std::string rpc_addr;
         std::string rest_addr;
@@ -80,9 +78,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
           node_(nullptr),
           leader_term_(-1),
           joined_group_(false),
-          config_(config),
-          node_state_(NodeState::UNINITIALIZED),
-          peers_changed_(false) {
+          config_(config) {
         my_rest_addr_ =
             fma_common::StringFormatter::Format("{}:{}", config.host, global_config->http_port);
         my_rpc_addr_ = fma_common::StringFormatter::Format("{}:{}", config.host, config_.rpc_port);
@@ -173,6 +169,14 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
         google::protobuf::Closure* done_;
     };
 
+    struct SnapshotArg {
+        braft::SnapshotWriter* writer;
+        braft::Closure* done;
+        lgraph::HaStateMachine* haStateMachine;
+    };
+
+    static void *save_snapshot(void* arg);
+
     bool ReplicateAndApplyRequest(const LGraphRequest* req, LGraphResponse* resp,
                                   google::protobuf::Closure* on_done);
 
@@ -181,7 +185,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
 
     void HeartbeatThread();
 
-    void SendHeartbeatToMasterLocked(NodeState state);
+    void SendHeartbeatToMasterLocked();
     void ScanHeartbeatStatusLocked();
 };
 }  // namespace lgraph
