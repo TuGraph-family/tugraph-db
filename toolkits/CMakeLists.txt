@@ -81,7 +81,7 @@ set(TARGET_LGRAPH_BINLOG lgraph_binlog)
 add_executable(${TARGET_LGRAPH_BINLOG} lgraph_binlog.cpp
                ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
                ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
-target_link_libraries(${TARGET_LGRAPH_BINLOG} lgraph_server_lib)
+target_link_libraries(${TARGET_LGRAPH_BINLOG} lgraph_server_lib librocksdb.a)
 
 
 ############### mdb_stat ######################

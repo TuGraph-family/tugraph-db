@@ -178,7 +178,8 @@ std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token
 }
 
 bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string& graph,
-                                 const lgraph::DBConfig& config) {
+                                 const lgraph::DBConfig& config,
+                                 const std::string& data_file_path) {
     CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
@@ -188,7 +189,12 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
     auto wt = store_->CreateWriteTxn(false);
     auto& txn = *wt;
-    bool r = gm_new->CreateGraph(txn, graph, config);
+    bool r;
+    if (data_file_path.empty()) {
+        r = gm_new->CreateGraph(txn, graph, config);
+    } else {
+        r = gm_new->CreateGraphWithData(txn, graph, config, data_file_path);
+    }
     if (!r) return r;
     acl_new->AddGraph(txn, curr_user, graph);
     txn.Commit();

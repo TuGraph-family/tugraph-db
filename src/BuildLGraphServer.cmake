@@ -125,6 +125,7 @@ add_executable(${TARGET_SERVER}
         server/server_main.cpp)
 
 target_link_libraries(${TARGET_SERVER}
-        ${TARGET_SERVER_LIB})
+        ${TARGET_SERVER_LIB}
+        librocksdb.a)
 
 

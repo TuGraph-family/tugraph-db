@@ -24,6 +24,7 @@
 #include "server/state_machine.h"
 #ifndef _WIN32
 #include "brpc/controller.h"
+#include "import/import_v3.h"
 #endif
 
 using namespace fma_common;

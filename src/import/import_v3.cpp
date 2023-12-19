@@ -41,7 +41,11 @@ void Importer::OnErrorOffline(const std::string& msg) {
     if (!config_.continue_on_error) {
         FMA_WARN() << "If you wish to ignore the errors, use "
                      "--continue_on_error true";
-        exit(-1);
+        if (!config_.import_online) {
+            exit(-1);
+        } else {
+            throw std::runtime_error(msg);
+        }
     }
 }
 
@@ -99,8 +103,13 @@ void Importer::DoImportOffline() {
         for (auto& p : m) fds.emplace_back(p.second);
         bool ok = db_->AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
-            FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
-                                 v.name);
+            if (!config_.import_online) {
+                FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
+                                     v.name);
+            } else {
+                online_full_import_oss << FMA_FMT("Add {} label:{}\n",
+                                                  v.is_vertex ? "vertex" : "edge", v.name);
+            }
         } else {
             throw InputError(
                 FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
@@ -137,8 +146,15 @@ void Importer::DoImportOffline() {
                     spec.idxType == lgraph::IndexType::NonuniqueIndex) {
                     // create index, ID column has creadted
                     if (db_->AddVertexIndex(v.name, spec.name, spec.idxType)) {
-                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
-                                             v.name, spec.name, static_cast<int>(spec.idxType));
+                        if (!config_.import_online) {
+                            FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                                 v.name, spec.name, static_cast<int>(spec.idxType));
+                        } else {
+                            online_full_import_oss << FMA_FMT("Add vertex index [label:{}, "
+                                "field:{}, type:{}]\n", v.name, spec.name,
+                                static_cast<int>(spec.idxType));
+                        }
+
                     } else {
                         throw InputError(
                             FMA_FMT("Vertex index [label:{}, field:{}] already exists",
@@ -155,8 +171,13 @@ void Importer::DoImportOffline() {
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
-                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
-                                             v.name, spec.name, static_cast<int>(spec.idxType));
+                        if (!config_.import_online) {
+                            FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                                 v.name, spec.name, static_cast<int>(spec.idxType));
+                        } else {
+                            online_full_import_oss << FMA_FMT("Add edge index [label:{}, field:{},"
+                                " type:{}]\n", v.name, spec.name, static_cast<int>(spec.idxType));
+                        }
                     } else {
                         throw InputError(
                             FMA_FMT("Edge index [label:{}, field:{}] already exists",
@@ -173,8 +194,13 @@ void Importer::DoImportOffline() {
                 if (spec.fulltext) {
                     bool ok = db_->AddFullTextIndex(v.is_vertex, v.name, spec.name);
                     if (ok) {
-                        FMA_LOG() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
-                                             v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                        if (!config_.import_online) {
+                            FMA_LOG() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
+                                         v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                        } else {
+                            online_full_import_oss << FMA_FMT("Add fulltext index [{} label:{}, "
+                                "field:{}]\n", v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                        }
                     } else {
                         throw InputError(FMA_FMT(
                             "Fulltext index [{} label:{}, field:{}] already exists",
@@ -186,7 +212,12 @@ void Importer::DoImportOffline() {
         db_->GetLightningGraph()->RebuildAllFullTextIndex();
     }
 
-    FMA_LOG() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
+    if (!config_.import_online) {
+        FMA_LOG() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
+    } else {
+        online_full_import_oss << "Import finished in " +
+                                      std::to_string(fma_common::GetTime() - t1) + " seconds.\n";
+    }
 }
 
 void Importer::VertexDataToSST() {
@@ -429,7 +460,11 @@ void Importer::VertexDataToSST() {
     if (config_.keep_vid_in_memory) {
         if (key_vid_maps_.empty()) {
             FMA_WARN() << "vids in memory are empty, no valid vertex data";
-            exit(-1);
+            if (!config_.import_online) {
+                exit(-1);
+            } else {
+                throw std::runtime_error("vids in memory are empty, no valid vertex data");
+            }
         }
     }
     if (!config_.keep_vid_in_memory) {
@@ -443,7 +478,11 @@ void Importer::VertexDataToSST() {
         }
         if (ingest_files.empty()) {
             FMA_WARN() << "vids in sst are empty, no valid vertex data";
-            exit(-1);
+            if (!config_.import_online) {
+                exit(-1);
+            } else {
+                throw std::runtime_error("vids in sst are empty, no valid vertex data");
+            }
         }
         rocksdb::IngestExternalFileOptions op;
         op.move_files = true;
@@ -460,11 +499,21 @@ void Importer::VertexDataToSST() {
             throw std::runtime_error(
                 FMA_FMT("vids CompactRange failed, error: {}", s.ToString().c_str()));
         }
-        FMA_LOG() << "vids CompactRange, time: " << fma_common::GetTime() - begin << "s";
+        if (!config_.import_online) {
+            FMA_LOG() << "vids CompactRange, time: " << fma_common::GetTime() - begin << "s";
+        } else {
+            online_full_import_oss << "vids CompactRange, time: " +
+                   std::to_string(fma_common::GetTime() - begin) + "s\n";
+        }
     }
 
     auto t2 = fma_common::GetTime();
-    FMA_LOG() << "Convert vertex data to sst files, time: " << t2 - t1 << "s";
+    if (!config_.import_online) {
+        FMA_LOG() << "Convert vertex data to sst files, time: " << t2 - t1 << "s";
+    } else {
+        online_full_import_oss << "Convert vertex data to sst files, time: " +
+                                      std::to_string(t2 - t1) + "s\n";
+    }
 }
 
 void Importer::EdgeDataToSST() {
@@ -823,7 +872,12 @@ void Importer::EdgeDataToSST() {
         std::rethrow_exception(exceptions_.front());
     }
     auto t2 = fma_common::GetTime();
-    FMA_LOG() << "Convert edge data to sst files, time: " << t2 - t1 << "s";
+    if (!config_.import_online) {
+        FMA_LOG() << "Convert edge data to sst files, time: " << t2 - t1 << "s";
+    } else {
+        online_full_import_oss << "Convert edge data to sst files, time: " +
+                                      std::to_string(t2 - t1) + "s\n";
+    }
 }
 
 void Importer::VertexPrimaryIndexToLmdb() {
@@ -966,12 +1020,21 @@ void Importer::VertexPrimaryIndexToLmdb() {
         }
         wf.close();
         if (dirty_vids > 0) {
-            FMA_LOG() << "dirty vids num: " << dirty_vids;
+            if (!config_.import_online) {
+                FMA_LOG() << "dirty vids num: " << dirty_vids;
+            } else {
+                online_full_import_oss << "dirty vids num: " + std::to_string(dirty_vids) + "\n";
+            }
         }
     }
     txn.Commit();
     auto t2 = fma_common::GetTime();
-    FMA_LOG() << "Write vertex primary index to lmdb, time: " << t2 - t1 << "s";
+    if (!config_.import_online) {
+        FMA_LOG() << "Write vertex primary index to lmdb, time: " << t2 - t1 << "s";
+    } else {
+        online_full_import_oss << "Write vertex primary index to lmdb, time: " +
+                                      std::to_string(t2 - t1) + "s\n";
+    }
     rocksdb_vids_.reset(nullptr);
 }
 typedef std::vector<std::tuple<LabelId, TemporalId,
@@ -1002,7 +1065,12 @@ void Importer::RocksdbToLmdb() {
     if (ingest_files.empty()) {
         FMA_WARN() << "no sst files are created, "
                       "please check if the input vertex and edge files are valid";
-        exit(-1);
+        if (!config_.import_online) {
+            exit(-1);
+        } else {
+            throw std::runtime_error("no sst files are created, "
+                "please check if the input vertex and edge files are valid");
+        }
     }
     rocksdb::IngestExternalFileOptions op;
     op.move_files = true;
@@ -1020,7 +1088,12 @@ void Importer::RocksdbToLmdb() {
             throw std::runtime_error(
                 FMA_FMT("CompactRange failed, error: {}", s.ToString().c_str()));
         }
-        FMA_LOG() << "CompactRange, time: " << fma_common::GetTime() - begin << "s";
+        if (!config_.import_online) {
+            FMA_LOG() << "CompactRange, time: " << fma_common::GetTime() - begin << "s";
+        } else {
+            online_full_import_oss << "CompactRange, time: " +
+                                          std::to_string(fma_common::GetTime() - begin) + "s\n";
+        }
     }
     if (!config_.keep_vid_in_memory) {
         std::ifstream rf(dirty_data_path_, std::ios::in | std::ios::binary);
@@ -1333,7 +1406,12 @@ void Importer::RocksdbToLmdb() {
     lmdb_writer->join();
     WriteCount();
     auto t2 = fma_common::GetTime();
-    FMA_LOG() << "Dump rocksdb into lmdb, time: " << t2 - t1 << "s";
+    if (!config_.import_online) {
+        FMA_LOG() << "Dump rocksdb into lmdb, time: " << t2 - t1 << "s";
+    } else {
+        online_full_import_oss << "Dump rocksdb into lmdb, time: " +
+                                      std::to_string(t2 - t1) + "s\n";
+    }
 }
 
 void Importer::WriteCount() {
@@ -1383,6 +1461,10 @@ AccessControlledDB Importer::OpenGraph(Galaxy& galaxy, bool empty_db) {
     }
     galaxy.SetRaftLogIndexBeforeWrite(1);
     return galaxy.OpenGraph(config_.user, config_.graph);
+}
+
+std::string Importer::OnlineFullImportLog() {
+    return online_full_import_oss.str();
 }
 
 }  // namespace import_v3

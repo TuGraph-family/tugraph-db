@@ -66,6 +66,8 @@ class LightningGraph {
     DISABLE_COPY(LightningGraph);
     DISABLE_MOVE(LightningGraph);
 
+    std::string db_secret;
+
  public:
     explicit LightningGraph(const DBConfig& conf);
 
@@ -291,6 +293,12 @@ class LightningGraph {
     // Check DB secret ID, used in galaxy to prevent copying LightningGraph dirs
     // Returns true if check success, otherwise false
     bool CheckDbSecret(const std::string& expected);
+
+    // Flush db secret in online full importing
+    void FlushDbSecret(const std::string& secret);
+
+    // Get db secret
+    std::string GetSecret();
 
     KillableRWLock& GetReloadLock() { return meta_lock_; }
 

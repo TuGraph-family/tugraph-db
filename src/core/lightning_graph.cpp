@@ -2471,9 +2471,22 @@ bool LightningGraph::CheckDbSecret(const std::string& expected) {
         // no such value, this is a newly created DB
         meta_table_->SetValue(*txn, key, Value::ConstRef(expected));
         txn->Commit();
+        db_secret = expected;
         return true;
     } else {
         return v.AsString() == expected;
     }
+}
+
+void LightningGraph::FlushDbSecret(const std::string& secret) {
+    auto txn = store_->CreateWriteTxn(false);
+    Value key = Value::ConstRef(lgraph::_detail::DB_SECRET_KEY);
+    meta_table_->SetValue(*txn, key, Value::ConstRef(secret));
+    txn->Commit();
+    db_secret = secret;
+}
+
+std::string LightningGraph::GetSecret() {
+    return db_secret;
 }
 }  // namespace lgraph
