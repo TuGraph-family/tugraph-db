@@ -135,8 +135,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.2
     && ln -s /node-v16.20.0-linux-x64/bin/npm /usr/local/bin/ \
     && ln -s /node-v16.20.0-linux-x64/bin/node /usr/local/bin/ \
     && npm config set registry https://registry.npmmirror.com \
-    && rm -rf /node-v16.20.0-linux-x64.tar.gz \
-    && npm install -g npm@latest
+    && rm -rf /node-v16.20.0-linux-x64.tar.gz
 
 # install lcov
 # if it is not accessible, replace it with the link below
