@@ -42,6 +42,8 @@ add_library(${TARGET_SERVER_LIB} STATIC
         plugin/plugin_context.cpp
         plugin/python_plugin.cpp
         plugin/cpp_plugin.cpp
+        server/bolt_handler.cpp
+        server/bolt_server.cpp
         server/lgraph_server.cpp
         server/state_machine.cpp
         server/ha_state_machine.cpp
@@ -69,6 +71,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             lgraph
             lgraph_cypher_lib
             geax_isogql
+            bolt
             # begin static linking
             -Wl,-Bstatic
             cpprest

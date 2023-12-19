@@ -73,6 +73,10 @@ lgraph::Galaxy::~Galaxy() {
     graphs_->CloseAllGraphs();
 }
 
+bool lgraph::Galaxy::ValidateUser(const std::string& user, const std::string& password) {
+    return acl_->ValidateUser(user, password);
+}
+
 std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::string& password) {
     lgraph::CheckValidUserName(user);
     _HoldWriteLock(acl_lock_);

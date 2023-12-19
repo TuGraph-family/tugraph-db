@@ -22,6 +22,7 @@
 #include "restful/server/rest_server.h"
 #include "http/http_server.h"
 #include "tools/lgraph_log.h"
+#include "server/bolt_server.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"

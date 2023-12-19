@@ -32,30 +32,29 @@ namespace lgraph_log {
 
 // Define log macro
 #define GENERAL_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::general_logger::get(), \
-::lgraph_log::severity_level::LEVEL)
+    ::lgraph_log::severity_level::LEVEL) \
+    << ::lgraph_log::logging::add_value("Line", __LINE__) \
+    << ::lgraph_log::logging::add_value("File", __FILE__) \
 
 #define GENERAL_LOG_STREAM(LEVEL, CLASS) BOOST_LOG_SEV(::lgraph_log::general_logger::get(), \
-  ::lgraph_log::severity_level::LEVEL) \
-  << ::lgraph_log::logging::add_value("Class", CLASS)
+    ::lgraph_log::severity_level::LEVEL) \
+    << ::lgraph_log::logging::add_value("Line", __LINE__) \
+    << ::lgraph_log::logging::add_value("File", __FILE__) \
 
 #define DEBUG_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
   ::lgraph_log::severity_level::LEVEL) \
   << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__)       \
-  << ::lgraph_log::logging::add_value("Function", __FUNCTION__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
 
 #define DEBUG_LOG_STREAM(LEVEL, CLASS) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
   ::lgraph_log::severity_level::LEVEL) \
   << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__)       \
-  << ::lgraph_log::logging::add_value("Function", __FUNCTION__) \
-  << ::lgraph_log::logging::add_value("Class", CLASS)
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
 
 #define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
   LEVEL) \
   << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__)       \
-  << ::lgraph_log::logging::add_value("Function", __FUNCTION__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
 
 #define EXIT_ON_FATAL(SIGNAL) ::fma_common::_detail::PrintBacktraceAndExit(SIGNAL)
 
@@ -120,42 +119,13 @@ class LoggerManager {
       }
     }
 
-    static void general_formatter(logging::record_view const& rec,
-                                  logging::formatting_ostream& strm) {
-      strm << "[" << logging::extract< boost::posix_time::ptime >("TimeStamp", rec) << "] ";
-      strm << "[" << level_to_string(logging::extract< severity_level >("Severity", rec)) << "] ";
-      logging::value_ref< std::string > class_name = logging::extract< std::string >("Class", rec);
-      if (class_name) strm << "[" << class_name << "] ";
-      strm << "- "<< rec[expr::smessage];
-    }
-
-    static void debug_formatter(logging::record_view const& rec,
-                                logging::formatting_ostream& strm) {
-      strm << "[" << logging::extract< boost::posix_time::ptime >("TimeStamp", rec) << "] ";
-      if (LoggerManager::GetInstance().GetLevel() <= severity_level::DEBUG) {
-          strm << "[" << logging::extract< attrs::current_thread_id::value_type >("ThreadID", rec)
-          << "] ";
-      }
-      strm << "[" << level_to_string(logging::extract< severity_level >("Severity", rec)) << "] ";
-      logging::value_ref< std::string > class_name = logging::extract< std::string >("Class", rec);
-      if (class_name) strm << "[" << class_name << "] ";
-      if (LoggerManager::GetInstance().GetLevel() <= severity_level::DEBUG) {
-          strm << "[" << logging::extract<std::string>("File", rec) << " : "
-          << logging::extract<std::string>("Function", rec) << " : "
-          << logging::extract<int>("Line", rec)
-          << "] ";
-      }
-      strm << "- "<< rec[expr::smessage];
-    }
-
-    static void stream_formatter(logging::record_view const& rec,
-                                  logging::formatting_ostream& strm) {
-      logging::value_ref< std::string > log_type = logging::extract< std::string >("LogType", rec);
-      if (log_type.get() == "debug") {
-          debug_formatter(rec, strm);
-      } else if (log_type.get() == "general") {
-          general_formatter(rec, strm);
-      }
+    static void formatter(logging::record_view const& rec, logging::formatting_ostream& strm) {
+      strm << logging::extract< boost::posix_time::ptime >("TimeStamp", rec) << " ";
+      strm << logging::extract< attrs::current_thread_id::value_type >("ThreadID", rec) << " ";
+      strm << level_to_string(logging::extract< severity_level >("Severity", rec)) << " ";
+      strm << logging::extract<std::string>("File", rec) << ":"
+           << logging::extract<int>("Line", rec) << " ";
+      strm << rec[expr::smessage];
     }
 
  public:
@@ -196,7 +166,7 @@ class LoggerManager {
                 keywords::target = history_general_log_dir_));
             general_sink_->locked_backend()->scan_for_files();
             general_sink_->set_filter(log_type_attr == "general");
-            general_sink_->set_formatter(&this->general_formatter);
+            general_sink_->set_formatter(&this->formatter);
 
             // Set up sink for debug log
             debug_sink_ = boost::shared_ptr< file_sink > (new file_sink(
@@ -210,7 +180,7 @@ class LoggerManager {
             debug_sink_->locked_backend()->scan_for_files();
             debug_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
                 log_type_attr == "debug");
-            debug_sink_->set_formatter(&this->debug_formatter);
+            debug_sink_->set_formatter(&this->formatter);
 
             logging::core::get()->add_sink(general_sink_);
             logging::core::get()->add_sink(debug_sink_);
@@ -226,7 +196,7 @@ class LoggerManager {
             }
             stream_sink_->locked_backend()->auto_flush(true);
             stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
-            stream_sink_->set_formatter(&this->stream_formatter);
+            stream_sink_->set_formatter(&this->formatter);
 
             logging::core::get()->add_sink(stream_sink_);
         }

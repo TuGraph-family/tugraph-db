@@ -273,8 +273,17 @@ int LGraphServer::Start() {
         }
         // start rest
         lgraph::RestServer::Config rest_config(*config_);
-        rest_server_ =
-            std::make_unique<lgraph::RestServer>(state_machine_.get(), rest_config, config_);
+        rest_server_ = std::make_unique<lgraph::RestServer>(state_machine_.get(),
+                                                            rest_config, config_);
+
+        if (config_->bolt_port > 0) {
+            if (!bolt::BoltServer::Instance().Start(state_machine_.get(),
+                                               config_->bolt_port,
+                                               config_->bolt_thread_num)) {
+                return -1;
+            }
+        }
+
         if (config_->enable_rpc) {
             http_service_->Start(config_.get());
         }
@@ -353,7 +362,9 @@ int LGraphServer::Stop(bool force_exit) {
         if (rpc_server_) rpc_server_->Stop(0);
         rpc_server_.reset();
         rpc_service_.reset();
-
+        if (config_->bolt_port > 0) {
+            bolt::BoltServer::Instance().Stop();
+        }
 #endif
         if (state_machine_) state_machine_->Stop();
         state_machine_.reset();

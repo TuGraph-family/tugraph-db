@@ -1707,8 +1707,7 @@ void RestServer::HandlePostGraphQuery(const std::string& user, const std::string
 
     LGraphRequest proto_req;
     proto_req.set_token(token);
-    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, graph);
-    cypher::RTContext ctx(state_machine_, galaxy_, token, user, graph, field_access);
+    cypher::RTContext ctx(state_machine_, galaxy_, user, graph);
     std::string name;
     std::string type;
     bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query,
