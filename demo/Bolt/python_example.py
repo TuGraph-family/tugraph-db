@@ -4,6 +4,7 @@ URI = "bolt://localhost:7687"
 AUTH = ("admin", "73@TuGraph")
 with GraphDatabase.driver(URI, auth=AUTH) as client:
     session = client.session(database="default")
+    session.run("CALL db.dropDB()")
     session.run("CALL db.createVertexLabel('person', 'id' , 'id' ,INT32, false, 'name' ,STRING, false)")
     session.run("CALL db.createEdgeLabel('is_friend','[[\"person\",\"person\"]]')")
     session.run("create (n1:person {name:'jack',id:1}), (n2:person {name:'lucy',id:2})")

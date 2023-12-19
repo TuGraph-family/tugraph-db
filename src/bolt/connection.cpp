@@ -94,6 +94,29 @@ void BoltConnection::ReadHandshakeDone(const boost::system::error_code& ec, cons
         Close();
         return;
     }
+    if (*(uint32_t*)handshake_buffer_ != *(uint32_t*)bolt_identification_) {
+        FMA_WARN() << "Bolt connection identification is wrong";
+        Close();
+        return;
+    }
+    bool match = false;
+    for (int i = 1; i < 5; i++) {
+        if (handshake_buffer_[i*4 + 3] == 4) {
+            *(uint32_t*)version_buffer_ = *(uint32_t*)(handshake_buffer_ + 4*i);
+            match = true;
+            break;
+        }
+    }
+    if (!match) {
+        FMA_WARN() << "No matching bolt version found";
+    }
+    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
+        for (int i = 1; i < 5; i++) {
+            FMA_DBG() << "protocol version " + std::to_string(i)
+                      << ": major:" << (int)handshake_buffer_[i*4+3] << ", minor:"
+                      << (int)handshake_buffer_[i*4+2];
+        }
+    }
     // write accepted version
     async_write(socket(),buffer(version_buffer_), // NOLINT
                 std::bind(&BoltConnection::WriteResponseDone, this,
