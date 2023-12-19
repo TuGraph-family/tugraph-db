@@ -54,6 +54,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         http/http_server.cpp
         http/import_manager.cpp
         http/import_task.cpp
+        http/algo_task.cpp
         ${PROTO_SRCS})
 
 target_compile_options(${TARGET_SERVER_LIB} PUBLIC

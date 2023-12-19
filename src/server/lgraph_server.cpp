@@ -22,6 +22,7 @@
 #endif
 
 #include "fma-common/fma_stream.h"
+#include "fma-common/hardware_info.h"
 #include "fma-common/leveled_log_device.h"
 #include "fma-common/rotating_file_log_device.h"
 
@@ -55,7 +56,7 @@ void int_handler(int x) {
 #include <cstdio>
 
 static void SetupSignalHandler() {
-    struct sigaction sa{};
+    struct sigaction sa {};
     sa.sa_handler = int_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
@@ -147,13 +148,19 @@ int LGraphServer::Start() {
             .append(std::to_string(lgraph::_detail::VER_PATCH));
         std::ostringstream header;
         header << "\n"
-               << "**********************************************************************" << "\n"
+               << "**********************************************************************"
+               << "\n"
                << "*                  TuGraph Graph Database v" << version
-               << std::string(26 - version.size(), ' ') << "*" << "\n"
-               << "*                                                                    *" << "\n"
-               << "*    Copyright(C) 2018-2023 Ant Group. All rights reserved.          *" << "\n"
-               << "*                                                                    *" << "\n"
-               << "**********************************************************************" << "\n"
+               << std::string(26 - version.size(), ' ') << "*"
+               << "\n"
+               << "*                                                                    *"
+               << "\n"
+               << "*    Copyright(C) 2018-2023 Ant Group. All rights reserved.          *"
+               << "\n"
+               << "*                                                                    *"
+               << "\n"
+               << "**********************************************************************"
+               << "\n"
                << "Server is configured with the following parameters:\n"
                << config_->FormatAsString();
         GENERAL_LOG(INFO) << header.str();
@@ -218,8 +225,8 @@ int LGraphServer::Start() {
             }
             // start http server
             http_service_ = std::make_unique<http::HttpService>(state_machine_.get());
-            if (rpc_server_->AddService(http_service_.get(),
-                                        brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
+            if (rpc_server_->AddService(http_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) !=
+                0) {
                 GENERAL_LOG(WARNING) << "Failed to add http service to http server";
                 return -1;
             }
@@ -266,8 +273,8 @@ int LGraphServer::Start() {
         }
         // start rest
         lgraph::RestServer::Config rest_config(*config_);
-        rest_server_ = std::make_unique<lgraph::RestServer>(state_machine_.get(),
-                                                            rest_config, config_);
+        rest_server_ =
+            std::make_unique<lgraph::RestServer>(state_machine_.get(), rest_config, config_);
         if (config_->enable_rpc) {
             http_service_->Start(config_.get());
         }
@@ -285,14 +292,11 @@ int LGraphServer::Start() {
         GENERAL_LOG(INFO) << "Server started.";
 
 #ifndef __SANITIZE_ADDRESS__
-        heartbeat_detect = std::thread([](){
-            // start db management service
-            try {
-                DBManagementClient::GetInstance().InitChannel("localhost:6091");
-            } catch(std::exception& e) {
-                GENERAL_LOG(WARNING) << "Failed to init db management channel";
-            }
-            DBManagementClient::DetectHeartbeat();
+        const std::string& hostname = fma_common::HardwareInfo::GetHostName();
+        const std::string server = "localhost:6091";
+        DBManagementClient::GetInstance().Init(hostname, config_->http_port, server);
+        heartbeat_detect = std::thread([]() {
+            DBManagementClient::GetInstance().DetectHeartbeat();
         });
 #endif
     } catch (std::exception &e) {
@@ -321,10 +325,8 @@ int LGraphServer::Stop(bool force_exit) {
     // otherwise, try to stop the services, exit forcefully if necessary
     try {
         GENERAL_LOG(INFO) << "Stopping TuGraph...";
-        DBManagementClient::exit_flag = true;
-        DBManagementClient::hb_cond_.notify_all();
-        if (heartbeat_detect.joinable())
-            heartbeat_detect.join();
+        DBManagementClient::GetInstance().StopHeartbeat();
+        if (heartbeat_detect.joinable()) heartbeat_detect.join();
         // the kaishaku watches the server, if exit flag is set and the server cannot be shutdown
         // normally after three seconds, it kills the process
         std::thread kaishaku;

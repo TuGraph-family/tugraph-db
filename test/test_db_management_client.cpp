@@ -15,123 +15,85 @@
 #include <iostream>
 #include <filesystem>
 
-#include "./ut_utils.h"
-#include "./test_tools.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 #include "server/db_management_client.h"
+
+#include "./ut_utils.h"
+#include "./test_tools.h"
 
 class TestDBManagementClient : public TuGraphTest {};
 
 TEST_F(TestDBManagementClient, DBManagementClient) {
     using namespace lgraph;
 
-    // set up cmd
-    std::string cmd;
-    int rt;
-
-    // set up test veriables
-    std::string exception_msg = "failed to connect to db management.";
-    std::string host = "127.0.0.1";
-    std::string port = "8888";
-    std::int64_t start_time = 169413845845;
-    std::string period = "IMMEDIATE";
-    std::string name = "Khop_test";
-    std::string type = "Python";
-    std::string user = "user";
-    std::int64_t create_time = 1694138458457;
-    int job_id = 1;
-    std::string status = "SUCCESS";
-    std::int64_t runtime = 100;
-    std::string result = "this is only a test of result";
-
     // init dbmanagement client
+    const std::string host = "127.0.0.1";
+    const int16_t port = 9091;
     try {
-        DBManagementClient::GetInstance().InitChannel("localhost:5091");
-    } catch(std::exception& e) {
+        DBManagementClient::GetInstance().Init(host, port, "localhost:5091");
+    } catch (std::exception& e) {
         UT_EXPECT_EQ(1, 0);
     }
+
+    const std::string uuid1 = "uuid1";
+    const std::string uuid2 = "uuid2";
+    const std::string name1 = "task1";
+    const std::string name2 = "task2";
+    const std::string status = "SUCCESS";
+    const std::string period = "IMMEDIATE";
+    const std::string name = "Khop_test";
+    const std::string type = "Python";
+    const std::string user = "user";
+    const std::int64_t create_time = 1694138458457;
+    const std::int64_t runtime = 100;
+    const std::string result = "this is only a test of result";
 
     // test exception handle
-    try {
-        DBManagementClient::GetInstance()
-            .CreateJob(host, port, start_time, period, name, type, user, create_time);
-        UT_EXPECT_EQ(1, 0);
-    } catch(std::exception& e) {
-        UT_EXPECT_EQ(e.what(), exception_msg);
-    }
-
-    try {
-        DBManagementClient::GetInstance().UpdateJob(host, port, job_id, status, runtime, result);
-        UT_EXPECT_EQ(1, 0);
-    } catch(std::exception& e) {
-        UT_EXPECT_EQ(e.what(), exception_msg);
-    }
-
-    try {
-        DBManagementClient::GetInstance().ReadJob(host, port);
-        UT_EXPECT_EQ(1, 0);
-    } catch(std::exception& e) {
-        UT_EXPECT_EQ(e.what(), exception_msg);
-    }
-
-    try {
-        DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
-        UT_EXPECT_EQ(1, 0);
-    } catch(std::exception& e) {
-        UT_EXPECT_EQ(e.what(), exception_msg);
-    }
-
-    try {
-        DBManagementClient::GetInstance().DeleteJob(host, port, job_id);
-        UT_EXPECT_EQ(1, 0);
-    } catch(std::exception& e) {
-        UT_EXPECT_EQ(e.what(), exception_msg);
+    {
+        UT_EXPECT_ANY_THROW(DBManagementClient::GetInstance().CreateJob(uuid1, name1, create_time,
+                                                                        period, name, type, user));
+        UT_EXPECT_ANY_THROW(
+            DBManagementClient::GetInstance().UpdateJobStatus(uuid1, status, runtime, result));
+        UT_EXPECT_ANY_THROW(DBManagementClient::GetInstance().GetJobStatus());
+        UT_EXPECT_ANY_THROW(DBManagementClient::GetInstance().GetJobResult(uuid1));
+        UT_EXPECT_ANY_THROW(DBManagementClient::GetInstance().DeleteJob(uuid1));
     }
 
     // start db management
-    cmd = "nohup java -jar tugraph-db-management-0.0.1-SNAPSHOT.jar --spring.profiles.active=ut "
-          "> log.txt 2>&1 & echo $! > pidfile.txt";
-    rt = system(cmd.c_str());
+    std::string cmd =
+        "nohup java -jar tugraph-db-management-0.0.1-SNAPSHOT.jar "
+        " --spring.profiles.active=ut > log.txt 2>&1 & echo $! > pidfile.txt";
+    int rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     // sleep and wait db management start
-    fma_common::SleepS(60);
+    fma_common::SleepS(30);
 
     // test crud
     try {
+        auto& client = DBManagementClient::GetInstance();
         // create a new job
-        job_id = DBManagementClient::GetInstance()
-            .CreateJob(host, port, start_time, period, name, type, user, create_time);
-        UT_EXPECT_EQ(1, job_id);
-        // test jobid self increment
-        job_id = DBManagementClient::GetInstance()
-            .CreateJob(host, port, start_time, period, name, type, user, create_time);
-        UT_EXPECT_EQ(2, job_id);
+        client.CreateJob(uuid1, name1, create_time, period, name, type, user);
+        client.CreateJob(uuid2, name2, create_time, period, name, type, user);
 
-        // update this job
-        DBManagementClient::GetInstance().UpdateJob(host, port, job_id, status, runtime, result);
+        // update job status
+        client.UpdateJobStatus(uuid1, status, runtime, result);
 
-        // read all jobs status
-        std::vector<db_management::Job> jobs =
-            DBManagementClient::GetInstance().ReadJob(host, port);
+        // read job status
+        std::vector<DbMgr::Job> jobs = client.GetJobStatus();
         UT_EXPECT_EQ(2, jobs.size());
-        // read job by jobid
-        db_management::Job job =
-            DBManagementClient::GetInstance().ReadJob(host, port, job_id);
-        UT_EXPECT_EQ(2, job.job_id());
+        DbMgr::Job job = client.GetJobStatusById(uuid1);
+        UT_EXPECT_EQ(status, job.status());
 
         // read job result by id
-        db_management::AlgoResult job_result =
-            DBManagementClient::GetInstance().ReadJobResult(host, port, job_id);
+        DbMgr::AlgoResult job_result = client.GetJobResult(uuid1);
         UT_EXPECT_EQ(result, job_result.result());
 
         // delete job
-        DBManagementClient::GetInstance().DeleteJob(host, port, job_id);
-
-        // test if deleted successfully
-        jobs = DBManagementClient::GetInstance().ReadJob(host, port);
+        client.DeleteJob(uuid2);
+        jobs = client.GetJobStatus();
         UT_EXPECT_EQ(1, jobs.size());
-    } catch(std::exception& e) {
+    } catch (std::exception& e) {
         DEBUG_LOG(ERROR) << e.what();
         UT_EXPECT_EQ(1, 0);
     }
