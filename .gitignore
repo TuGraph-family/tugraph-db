@@ -112,3 +112,11 @@ logs/
 # docs
 doc/en-US/build
 doc/zh-CN/build
+
+# geax
+deps/geax-front-end/.aci.yml
+deps/geax-front-end/.clang-format
+deps/geax-front-end/.gitignore
+deps/geax-front-end/LEGAL.md
+deps/geax-front-end/README.md
+deps/geax-front-end/cpplint

@@ -31,18 +31,9 @@ public:
     void setPath(std::string&& path) { path_ = std::move(path); }
     const std::string& path() const { return path_; }
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
-
-    DEFINE_FROM_AND_TO_JSON
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-        JSON_FIELD(path);
-    }
-
     std::string path_;
 };  // class SchemaFromPath
 

@@ -19,16 +19,13 @@
 #define GEAXFRONTEND_AST_STMT_PROCEDUREBODY_H_
 
 #include "geax-front-end/ast/AstNode.h"
-#include "geax-front-end/ast/clause/BindingVar.h"
 #include "geax-front-end/ast/clause/SchemaRef.h"
+#include "geax-front-end/ast/stmt/BindingDefinition.h"
 #include "geax-front-end/ast/stmt/StatementWithYield.h"
 
 namespace geax {
 namespace frontend {
 
-/**
- * This is the root of an AST.
- */
 class ProcedureBody : public AstNode {
 public:
     ProcedureBody() : AstNode(AstNodeType::kProcedureBody) {}
@@ -43,17 +40,21 @@ public:
     void setSchemaRef(SchemaRef* schemaRef) { schemaRef_ = schemaRef; }
     const std::optional<SchemaRef*>& schemaRef() const { return schemaRef_; }
 
-    void appendBindingVar(BindingVar* binding) { bindingVars_.emplace_back(binding); }
-    void setBindingVars(std::vector<BindingVar*>&& bindingVars) {
-        bindingVars_ = std::move(bindingVars);
+    void appendBindingDefinition(BindingDefinition* binding) {
+        bindingDefinitions_.emplace_back(binding);
     }
-    const std::vector<BindingVar*>& bindingVars() const { return bindingVars_; }
+    void setBindingDefinitions(std::vector<BindingDefinition*>&& bindingDefinitions) {
+        bindingDefinitions_ = std::move(bindingDefinitions);
+    }
+    const std::vector<BindingDefinition*>& bindingDefinitions() const {
+        return bindingDefinitions_;
+    }
 
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
     std::optional<SchemaRef*> schemaRef_;
-    std::vector<BindingVar*> bindingVars_;
+    std::vector<BindingDefinition*> bindingDefinitions_;
     std::vector<StatementWithYield*> statements_;
 };  // class ProcedureBody
 

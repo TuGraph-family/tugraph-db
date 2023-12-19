@@ -26,5 +26,6 @@ if(GLog_FOUND)
     set_target_properties(GLog::glog
         PROPERTIES
         IMPORTED_LOCATION ${GLog_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES ${GLog_INCLUDE_DIR})
+        INTERFACE_INCLUDE_DIRECTORIES ${GLog_INCLUDE_DIR}
+        INTERFACE_LINK_LIBRARIES "GFlags::gflags")
 endif()

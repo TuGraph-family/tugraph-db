@@ -15,23 +15,21 @@
  *         lili <liangjingru.ljr@antgroup.com>
  */
 
-#ifndef GEAXFRONTEND_AST_CLAUSE_BINDINGGRAPH_H_
-#define GEAXFRONTEND_AST_CLAUSE_BINDINGGRAPH_H_
+#ifndef GEAXFRONTEND_AST_STMT_TRANSACTION_H_
+#define GEAXFRONTEND_AST_STMT_TRANSACTION_H_
 
-#include "geax-front-end/ast/clause/BindingVar.h"
+#include "geax-front-end/ast/AstNode.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingGraph : public BindingVar {
+class Transaction : public AstNode {
 public:
-    BindingGraph() : BindingVar(AstNodeType::kBindingGraph) {}
-    ~BindingGraph() = default;
-
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
-};  // class BindingGraph
+    explicit Transaction(AstNodeType type) : AstNode(type) {}
+    ~Transaction() = default;
+};
 
 }  // namespace frontend
 }  // namespace geax
 
-#endif  // GEAXFRONTEND_AST_CLAUSE_BINDINGGRAPH_H_
+#endif  // GEAXFRONTEND_AST_STMT_TRANSACTION_H_

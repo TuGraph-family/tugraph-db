@@ -12,24 +12,26 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  *  Author:
- *         Yaochi <boyao.zby@alibaba-inc.com>
+ *         lili <liangjingru.ljr@antgroup.com>
  */
 
-#ifndef GEAXFRONTEND_AST_STMT_BINDINGVAR_H_
-#define GEAXFRONTEND_AST_STMT_BINDINGVAR_H_
+#ifndef GEAXFRONTEND_AST_STMT_COMMITTRANSACTION_H_
+#define GEAXFRONTEND_AST_STMT_COMMITTRANSACTION_H_
 
-#include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/stmt/EndTransaction.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingVar : public AstNode {
+class CommitTransaction : public EndTransaction {
 public:
-    explicit BindingVar(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~BindingVar() = default;
-};  // class BindingVar
+    CommitTransaction() : EndTransaction(AstNodeType::kCommitTransaction) {}
+    ~CommitTransaction() = default;
+
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+};
 
 }  // namespace frontend
 }  // namespace geax
 
-#endif  // GEAXFRONTEND_AST_STMT_BINDINGVAR_H_
+#endif  // GEAXFRONTEND_AST_STMT_COMMITTRANSACTION_H_

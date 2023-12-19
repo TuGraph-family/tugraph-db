@@ -15,23 +15,23 @@
  *         lili <liangjingru.ljr@antgroup.com>
  */
 
-#ifndef GEAXFRONTEND_AST_CLAUSE_BINDINGTABLE_H_
-#define GEAXFRONTEND_AST_CLAUSE_BINDINGTABLE_H_
+#ifndef GEAXFRONTEND_AST_STMT_ROLLBACKTRANSACTION_H_
+#define GEAXFRONTEND_AST_STMT_ROLLBACKTRANSACTION_H_
 
-#include "geax-front-end/ast/clause/BindingVar.h"
+#include "geax-front-end/ast/stmt/EndTransaction.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingTable : public BindingVar {
+class RollBackTransaction : public EndTransaction {
 public:
-    BindingTable() : BindingVar(AstNodeType::kBindingTable) {}
-    ~BindingTable() = default;
+    RollBackTransaction() : EndTransaction(AstNodeType::kRollBackTransaction) {}
+    ~RollBackTransaction() = default;
 
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
-};  // class BindingTable
+};
 
 }  // namespace frontend
 }  // namespace geax
 
-#endif  // GEAXFRONTEND_AST_CLAUSE_BINDINGTABLE_H_
+#endif  // GEAXFRONTEND_AST_STMT_ROLLBACKTRANSACTION_H_
