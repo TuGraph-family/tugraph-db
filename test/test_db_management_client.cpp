@@ -62,7 +62,7 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
 
     // start db management
     std::string cmd =
-        "nohup java -jar tugraph-db-management-0.0.1-SNAPSHOT.jar "
+        "rm tugraph_db_management_*.db & nohup java -jar tugraph-db-management-0.0.1-SNAPSHOT.jar "
         " --spring.profiles.active=ut > log.txt 2>&1 & echo $! > pidfile.txt";
     int rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
