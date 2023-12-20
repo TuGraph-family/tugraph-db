@@ -34,10 +34,9 @@ void lgraph::HaStateMachine::Start() {
         galaxy_->BootstrapRaftLogIndex(new_log_index);
         // now bootstrap
         braft::BootstrapOptions options;
-        if (options.group_conf.parse_from(config_.ha_conf) != 0) {
-            ::lgraph::StateMachine::Stop();
-            throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
-        }
+        butil::EndPoint addr;
+        butil::str2endpoint(config_.host.c_str(), config_.rpc_port, &addr);
+        options.group_conf.add_peer(braft::PeerId(addr));
         options.fsm = this;
         options.node_owns_fsm = false;
         std::string prefix = "local://" + config_.ha_dir;
@@ -66,9 +65,13 @@ void lgraph::HaStateMachine::Start() {
     }
     braft::Node* node = new braft::Node("lgraph", braft::PeerId(addr));
     braft::NodeOptions node_options;
-    if (node_options.initial_conf.parse_from(config_.ha_conf) != 0) {
-        ::lgraph::StateMachine::Stop();
-        throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
+    if (config_.ha_bootstrap_role == 1) {
+        node_options.initial_conf.add_peer(braft::PeerId(addr));
+    } else if (config_.ha_bootstrap_role == 0) {
+        if (node_options.initial_conf.parse_from(config_.ha_conf) != 0) {
+            ::lgraph::StateMachine::Stop();
+            throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
+        }
     }
     node_options.election_timeout_ms = config_.ha_election_timeout_ms;
     node_options.fsm = this;
@@ -243,6 +246,38 @@ bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,
     return true;
 }
 
+void* lgraph::HaStateMachine::save_snapshot(void* arg) {
+    auto* sa = (SnapshotArg*) arg;
+    std::unique_ptr<SnapshotArg> arg_guard(sa);
+    brpc::ClosureGuard closure_guard(sa->done);
+    std::string path = sa->writer->get_path() + "/_snapshot_";
+    try {
+        GENERAL_LOG_STREAM(DEBUG, sa->haStateMachine->logger_.GetName()) <<
+            "Saving snapshot to " << path;
+        _HoldReadLock(sa->haStateMachine->galaxy_->GetReloadLock());
+        // bthread_usleep(30 * 1000000);
+        auto files = sa->haStateMachine->galaxy_->SaveSnapshot(path);
+        GENERAL_LOG_STREAM(DEBUG, sa->haStateMachine->logger_.GetName()) <<
+            "Snapshot files: " << fma_common::ToString(files);
+        for (auto& f : files) {
+            // normalize file path
+            auto pos = f.find("_snapshot_");
+            if (sa->writer->add_file(f.substr(pos)) != 0) {
+                sa->done->status().set_error(EIO, "Fail to add file to writer");
+                return NULL;
+            }
+        }
+        sa->writer->list_files(&files);
+        GENERAL_LOG_STREAM(DEBUG, sa->haStateMachine->logger_.GetName())
+            << "Actual files in snapshot: " << fma_common::ToString(files);
+    } catch (std::exception& e) {
+        GENERAL_LOG_STREAM(ERROR, sa->haStateMachine->logger_.GetName()) <<
+            "Failed to save snapshot to " << path << ": " << e.what();
+        sa->done->status().set_error(EIO, "Failed to save snapshot: %s", e.what());
+    }
+    return NULL;
+}
+
 void lgraph::HaStateMachine::on_snapshot_save(braft::SnapshotWriter* writer, braft::Closure* done) {
 #if LGRAPH_SHARE_DIR
     std::string path = writer->get_path() + "/snapshot.dummy";
@@ -255,44 +290,12 @@ void lgraph::HaStateMachine::on_snapshot_save(braft::SnapshotWriter* writer, bra
     writer->add_file("snapshot.dummy");
     GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Snapshot saved";
 #else
-    std::mutex mu;
-    std::condition_variable cv;
-    bool ok_to_leave = false;
-    std::thread worker([&]() {
-        // TODO: take snapshot asynchronously // NOLINT
-        {
-            std::string path = writer->get_path() + "/_snapshot_";
-            GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Saving snapshot to " << path;
-            braft::AsyncClosureGuard closure_guard(done);
-            std::lock_guard<std::mutex> l(mu);
-            try {
-                _HoldReadLock(galaxy_->GetReloadLock());
-                auto files = galaxy_->SaveSnapshot(path);
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-                    "Snapshot files: " << fma_common::ToString(files);
-                for (auto& f : files) {
-                    // normalize file path
-                    auto pos = f.find("_snapshot_");
-                    if (writer->add_file(f.substr(pos)) != 0) {
-                        done->status().set_error(EIO, "Fail to add file to writer");
-                        return;
-                    }
-                }
-                writer->list_files(&files);
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName())
-                    << "Actual files in snapshot: " << fma_common::ToString(files);
-            } catch (std::exception& e) {
-                GENERAL_LOG_STREAM(ERROR, logger_.GetName()) <<
-                    "Failed to save snapshot to " << path << ": " << e.what();
-                done->status().set_error(EIO, "Failed to save snapshot: %s", e.what());
-            }
-            ok_to_leave = true;
-            cv.notify_all();
-        }
-    });
-    worker.detach();
-    std::unique_lock<std::mutex> l(mu);
-    while (!ok_to_leave) cv.wait(l);
+    auto* arg = new SnapshotArg;
+    arg->writer = writer;
+    arg->done = done;
+    arg->haStateMachine = this;
+    bthread_t tid;
+    bthread_start_urgent(&tid, NULL, save_snapshot, arg);
 #endif
 }
 

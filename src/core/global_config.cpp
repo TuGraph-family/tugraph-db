@@ -299,6 +299,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Initial list of machines in the form of host1:port1,host2:port2");
     argparser.Add(ha_snapshot_interval_s, "ha_snapshot_interval_s", true)
         .Comment("Snapshot interval in seconds.");
+    argparser.Add(ha_election_timeout_ms, "ha_election_timeout_ms", true)
+        .Comment("leader step down timeout in ms.");
     argparser.Add(ha_heartbeat_interval_ms, "ha_heartbeat_interval_ms", true)
         .Comment("Interval for heartbeat in ms.");
     argparser.Add(ha_node_offline_ms, "ha_node_offline_ms", true)

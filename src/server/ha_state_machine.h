@@ -173,6 +173,14 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
         google::protobuf::Closure* done_;
     };
 
+    struct SnapshotArg {
+        braft::SnapshotWriter* writer;
+        braft::Closure* done;
+        lgraph::HaStateMachine* haStateMachine;
+    };
+
+    static void *save_snapshot(void* arg);
+
     bool ReplicateAndApplyRequest(const LGraphRequest* req, LGraphResponse* resp,
                                   google::protobuf::Closure* on_done);
 

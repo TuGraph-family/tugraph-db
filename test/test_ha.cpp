@@ -4,7 +4,8 @@
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_rpc_client.h"
 #include "fma-common/configuration.h"
-#include <boost/algorithm/string.hpp>
+#include "boost/algorithm/string.hpp"
+#include "braft/cli.h"
 
 void build_so(const std::string& so_name, const std::string& so_path) {
     const std::string INCLUDE_DIR = "../../include";
@@ -121,10 +122,7 @@ class TestHA : public TuGraphTest {
 
  public:
     std::string host;
-};
-
-TEST_F(TestHA, HAClient) {
-    std::string schema =
+    const std::string schema =
         "{\"schema\" :\n"
         "[  \n"
         "{ \n"
@@ -158,7 +156,7 @@ TEST_F(TestHA, HAClient) {
         "}    \n"
         "]\n"
         "}";
-    std::string data_desc =
+    const std::string data_desc =
         "{\"files\": [    \n"
         "   {        \n"
         "       \"columns\": [\"name\", \"birthyear\", \"phone\"],\n"
@@ -167,7 +165,7 @@ TEST_F(TestHA, HAClient) {
         "       \"label\": \"Person\"    \n"
         "   }]\n"
         "}";
-    std::string data_person =
+    const std::string data_person =
         "Rachel Kempson,1910,10086\n"
         "Michael Redgrave,1908,10087\n"
         "Vanessa Redgrave,1937,10088\n"
@@ -181,6 +179,9 @@ TEST_F(TestHA, HAClient) {
         "Roy Redgrave,1873,10096\n"
         "John Williams,1932,10097\n"
         "Christopher Nolan,1970,10098";
+};
+
+TEST_F(TestHA, HAClient) {
     build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
     lgraph::RpcClient client(this->host + ":29092", "admin", "73@TuGraph");
     std::string result;
@@ -255,4 +256,25 @@ TEST_F(TestHA, HAConsistency) {
     nlohmann::json res = nlohmann::json::parse(result);
     UT_EXPECT_EQ(res[0]["COUNT(n)"], 300000);
     rpcClient.Logout();
+}
+
+TEST_F(TestHA, AsyncSnapshot) {
+    lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
+    std::string result;
+    rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
+    rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
+    rpcClient.CallCypher(result, "CALL dbms.graph.createGraph('ha', 'description', 2045)");
+    rpcClient.ImportSchemaFromContent(result, schema, "ha");
+    std::thread snapshot_thread = std::thread([this]() {
+        braft::cli::snapshot("lgraph", braft::PeerId(this->host + ":29092"),
+                             braft::cli::CliOptions());
+    });
+    rpcClient.ImportDataFromContent(result, data_desc, data_person, ",", false, 8, "ha");
+    bool ret = rpcClient.CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)", "ha");
+    UT_EXPECT_TRUE(ret);
+    nlohmann::json res = nlohmann::json::parse(result);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 13);
+    rpcClient.Logout();
+    if (snapshot_thread.joinable())
+        snapshot_thread.join();
 }
