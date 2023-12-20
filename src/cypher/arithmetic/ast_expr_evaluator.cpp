@@ -13,6 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <algorithm>
 #include "geax-front-end/ast/expr/VDouble.h"
 #include "core/data_type.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
@@ -219,7 +220,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::If* node) { NOT_SUPPORT
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Function* node) {
     static std::unordered_map<std::string, BuiltinFunction::FUNC> ae_registered_funcs =
         ArithOpNode::RegisterFuncs();
-    auto it = ae_registered_funcs.find(node->name());
+    std::string func_name = node->name();
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    auto it = ae_registered_funcs.find(func_name);
     if (it != ae_registered_funcs.end()) {
         std::vector<ArithExprNode> args;
         args.emplace_back(node, *sym_tab_);
