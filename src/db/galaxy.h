@@ -130,7 +130,7 @@ class Galaxy {
 
     // create a graph
     bool CreateGraph(const std::string& curr_user, const std::string& graph_name,
-                     const DBConfig& config);
+                     const DBConfig& config, const std::string& data_file_path = "");
 
     // delete a graph
     bool DeleteGraph(const std::string& curr_user, const std::string& graph_name);

@@ -114,6 +114,43 @@ bool lgraph::GraphManager::CreateGraph(KvTransaction& txn, const std::string& na
     return true;
 }
 
+bool lgraph::GraphManager::CreateGraphWithData(KvTransaction& txn, const std::string& name,
+                                       const DBConfig& config, const std::string& data_file_path) {
+    auto it = graphs_.find(name);
+    if (it == graphs_.end()) {
+        CheckValidGraphNum(graphs_.size() + 1);
+    }
+    DBConfig real_config = config;
+    UpdateDBConfigWithGMConfig(real_config, config_);
+    real_config.name = name;
+    real_config.db_size = _detail::DEFAULT_GRAPH_SIZE;
+    // update graphs_
+    real_config.create_if_not_exist = true;
+    if (it == graphs_.end()) {
+        real_config.dir = GenNewGraphSubDir();
+        StoreConfig(txn, name, real_config);
+        std::string secret = real_config.dir;
+        real_config.dir = GetGraphActualDir(parent_dir_, real_config.dir);
+
+        std::unique_ptr<LightningGraph> graph(new LightningGraph(real_config));
+        std::string new_file_path = GetGraphActualDir(real_config.dir, "data.mdb");
+        std::rename(data_file_path.c_str(), new_file_path.c_str());
+        graph = std::make_unique<LightningGraph>(real_config);
+        graph->FlushDbSecret(secret);
+        graphs_.emplace_hint(it, name, GcDb(graph.release()));
+    } else {
+        auto origin_graph = graphs_.find(name)->second.GetScopedRef();
+        real_config.dir = GetGraphActualDir(parent_dir_, origin_graph->GetSecret());
+        std::string new_file_path = GetGraphActualDir(GetGraphActualDir(
+                                    parent_dir_, origin_graph->GetSecret()), "data.mdb");
+        std::rename(data_file_path.c_str(), new_file_path.c_str());
+        std::unique_ptr<LightningGraph> new_graph(new LightningGraph(real_config));
+        new_graph->FlushDbSecret(origin_graph->GetSecret());
+        graphs_[name] = GcDb(new_graph.release());
+    }
+    return true;
+}
+
 lgraph::GraphManager::GcDb lgraph::GraphManager::DelGraph(KvTransaction& txn,
                                                           const std::string& name) {
     auto it = graphs_.find(name);
