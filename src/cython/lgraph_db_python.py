@@ -6,15 +6,58 @@ from cython.cimports.olap_base import *
 from cython.cimports.lgraph_db import *
 from cython.cimports.libc.stdio import printf
 from cython.cimports.libcpp.string import string
+from cython.cimports.libcpp.vector import vector
 
 @cython.cclass
 class PyOlapOnDB:
     olapondb: cython.p_void
     edgedata: str
-    def __init__(self, edgedata: str, db: PyGraphDB, txn: PyTxn):
+    vertex_label_list: list
+    edge_label_list: list
+    meta_label_list: list
+
+    def __init__(self, edgedata: str, db: PyGraphDB, txn: PyTxn, schema: list = []):
         self.edgedata = edgedata
+        self.vertex_label_list = []
+        self.edge_label_list = []
+        self.meta_label_list = []
+        label_key: string
         if edgedata == "Empty":
-            self.olapondb = new OlapOnDB[Empty](db.db, txn.txn, SNAPSHOT_PARALLEL)
+            label_list = vector[vector[string]]()
+            if len(schema) != 0:
+                for i in schema:
+                    labels = vector[string]()
+                    for j in range(3):
+                        label_key = i[j].encode("utf-8")
+                        if j == 1 and i[j] not in self.edge_label_list:
+                            for e_label in txn.txn.ListEdgeLabels():
+                                if label_key == e_label:
+                                    self.edge_label_list.append(i[j])
+                                    break
+                            else:
+                                print("%s label not found" % i[j])
+                        elif i[j] not in self.vertex_label_list:
+                            for v_label in txn.txn.ListVertexLabels():
+                                if label_key == v_label:
+                                    self.vertex_label_list.append(i[j])
+                                    break
+                            else:
+                                print("%s label not found" % i[j])
+                        labels.push_back(label_key)
+                    self.meta_label_list.append(i)
+                    label_list.push_back(labels)
+                self.olapondb = new OlapOnDB[Empty](db.db, txn.txn, label_list, SNAPSHOT_PARALLEL)
+            else:
+                self.olapondb = new OlapOnDB[Empty](db.db, txn.txn, SNAPSHOT_PARALLEL)
+
+    def ntypes(self):
+        return self.vertex_label_list
+    
+    def etypes(self):
+        return self.edge_label_list
+
+    def metagraph(self):
+        return self.meta_label_list
 
     def get_pointer(self) -> cython.Py_ssize_t:
         return cython.cast(cython.Py_ssize_t, self.olapondb)
@@ -36,6 +79,10 @@ class PyTxn:
         return self.txn.GetNumVertices()
     def Commit(self):
         self.txn.Commit()
+    def ListVertexLabels(self):
+        self.txn.ListVertexLabels()
+    def ListEdgeLabels(self):
+        self.txn.ListEdgeLabels()
 
 @cython.cclass
 class PyGraphDB:
