@@ -31,13 +31,13 @@ namespace fma_common {
 #define FMA_DBG_CHECK_GE(a, b)  FMA_CHECK_GE(a, b)
 #define FMA_DBG_ASSERT(pred)    FMA_ASSERT(pred)
 #else
-#define FMA_DBG_CHECK(pred)     ((void)0)
-#define FMA_DBG_CHECK_EQ(pred)  ((void)0)
-#define FMA_DBG_CHECK_NEQ(pred) ((void)0)
-#define FMA_DBG_CHECK_LT(pred)  ((void)0)
-#define FMA_DBG_CHECK_LE(pred)  ((void)0)
-#define FMA_DBG_CHECK_GT(pred)  ((void)0)
-#define FMA_DBG_CHECK_GE(pred)  ((void)0)
-#define FMA_DBG_ASSERT(pred)    ((void)0)
+#define FMA_DBG_CHECK(pred)     (void)(true || (pred))
+#define FMA_DBG_CHECK_EQ(a, b)  (void)(true || ((a) == (b)))
+#define FMA_DBG_CHECK_NEQ(a, b) (void)(true || ((a) != (b)))
+#define FMA_DBG_CHECK_LT(a, b)  (void)(true || ((a) < (b)))
+#define FMA_DBG_CHECK_LE(a, b)  (void)(true || ((a) <= (b)))
+#define FMA_DBG_CHECK_GT(a, b)  (void)(true || ((a) > (b)))
+#define FMA_DBG_CHECK_GE(a, b)  (void)(true || ((a) >= (b)))
+#define FMA_DBG_ASSERT(pred)    (void)(true || (pred))
 #endif
 }  // namespace fma_common
