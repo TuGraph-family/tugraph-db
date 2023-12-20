@@ -703,9 +703,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
                 eo->edge_constraints = ec;
                 options = std::move(eo);
             }
-            bool success =
-                db->AddLabel(lreq.is_vertex(), lreq.label(),
-                            FieldSpecConvert::ToLGraphT(lreq.fields()), *options);
+            bool success = db->AddLabel(lreq.is_vertex(), lreq.label(),
+                                        FieldSpecConvert::ToLGraphT(lreq.fields()), *options);
             if (success) {
                 return RespondSuccess(resp);
             } else {
@@ -719,8 +718,8 @@ bool lgraph::StateMachine::ApplyGraphApiRequest(const LGraphRequest* lgraph_req,
             const auto& ireq = req.add_index_request();
             BEG_AUDIT_LOG(curr_user, req.graph(), lgraph::LogApiType::SingleApi, true,
                           req.DebugString());
-            bool success = db->AddVertexIndex(ireq.label(), ireq.field(),
-                                              static_cast<IndexType>(ireq.type()));
+            bool success =
+                db->AddVertexIndex(ireq.label(), ireq.field(), static_cast<IndexType>(ireq.type()));
             if (success) {
                 return RespondSuccess(resp);
             } else {
@@ -1109,7 +1108,6 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
                 cpp.insert(cpp.end(), py.begin(), py.end());
                 r = std::move(cpp);
             }
-            db->ListPlugins(type, user);
             if (!r.empty()) {
                 nlohmann::json output;
                 for (const auto& item : r) {
