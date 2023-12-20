@@ -18,6 +18,11 @@ func main() {
 	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "default"})
 	defer session.Close(ctx)
 
+	_, err = session.Run(ctx, "CALL db.dropDB()", nil)
+	if err != nil {
+		panic(err)
+		return
+	}
 	_, err = session.Run(ctx, "CALL db.createVertexLabel('person', 'id' , 'id' ,INT32, false, 'name' ,STRING, false)", nil)
 	if err != nil {
 		panic(err)

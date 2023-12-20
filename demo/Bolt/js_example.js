@@ -2,6 +2,8 @@
     var neo4j = require('neo4j-driver');
     var driver = neo4j.driver('bolt://localhost:7687', neo4j.auth.basic('admin', '73@TuGraph'));
     var session = driver.session({database: 'default'})
+    await session.run("CALL db.dropDB()");
+    console.log("clean db");
     await session.run("CALL db.createVertexLabel('person', 'id' , 'id' ,INT32, false, 'name' ,STRING, false)");
     console.log("add vertex label");
     await session.run("CALL db.createEdgeLabel('is_friend','[[\"person\",\"person\"]]')");

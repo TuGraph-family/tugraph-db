@@ -32,6 +32,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             ps.AppendFailure({{"code", "error"},
                               {"message", "Hello msg fields size error"}});
             conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
             return;
         }
         auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
@@ -42,23 +43,29 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});
             conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
             return;
         }
         std::unordered_map<std::string, std::any> meta;
         meta["connection_id"] = std::string("bolt") + std::to_string(conn.conn_id());
+        // Neo4j python client check that the returned server info must start with 'Neo4j/'
         meta["server"] = "Neo4j/tugraph-db";
         auto session = std::make_shared<BoltSession>();
+        session->state = SessionState::READY;
         session->user = principal;
         conn.SetContext(std::move(session));
         ps.AppendSuccess(meta);
         conn.Respond(std::move(ps.MutableBuffer()));
     } else if (msg == BoltMsg::Run) {
+        auto session = (BoltSession*)conn.GetContext();
+        session->state = SessionState::STREAMING;
         // Now only implicit transactions are supported
         workers.post([&conn, fields = std::move(fields)](){
             if (fields.size() < 3) {
                 bolt::PackStream ps;
                 ps.AppendFailure({{"code", "error"},
                                   {"message", "Run msg fields size error"}});
+                ps.AppendIgnored();
                 conn.PostResponse(std::move(ps.MutableBuffer()));
                 return;
             }
@@ -72,6 +79,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 ps.AppendFailure(
                     {{"code", "error"},
                      {"message", "Missing 'db' item in the 'extra' info of 'Run' msg"}});
+                ps.AppendIgnored();
                 conn.PostResponse(std::move(ps.MutableBuffer()));
                 return;
             }
@@ -94,18 +102,37 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             meta["fields"] = ctx.result_->BoltHeader();
             bolt::PackStream ps;
             ps.AppendSuccess(meta);
-            for (const auto& r : ctx.result_->BoltRecords()) {
-                ps.AppendRecord(r);
-            }
-            ps.AppendSuccess();
             conn.PostResponse(std::move(ps.MutableBuffer()));
+            auto msg = session->msgs.Pop();
+            ps.Reset();
+            if (msg == BoltMsg::PullN) {
+                for (const auto& r : ctx.result_->BoltRecords()) {
+                    ps.AppendRecord(r);
+                }
+                ps.AppendSuccess();
+            } else if (msg == BoltMsg::DiscardN) {
+                ps.AppendSuccess();
+            } else {
+                FMA_WARN() << "Unexpected bolt msg: " << ToString(msg) << " after RUN";
+                ps.AppendSuccess();
+            }
+            conn.PostResponse(std::move(ps.MutableBuffer()));
+            session->state = SessionState::READY;
         });
     } else if (msg == BoltMsg::PullN) {
-        // TODO(botu.wzy): something
+        auto session = (BoltSession*)conn.GetContext();
+        session->msgs.Push(BoltMsg::PullN);
+    } else if (msg == BoltMsg::DiscardN) {
+        auto session = (BoltSession*)conn.GetContext();
+        session->msgs.Push(BoltMsg::DiscardN);
     } else if (msg == BoltMsg::Begin ||
                msg == BoltMsg::Commit ||
                msg == BoltMsg::Rollback) {
         // Explicit transactions are not currently supported
+        ps.Reset();
+        ps.AppendSuccess();
+        conn.Respond(std::move(ps.MutableBuffer()));
+    } else if (msg == BoltMsg::Reset) {
         ps.Reset();
         ps.AppendSuccess();
         conn.Respond(std::move(ps.MutableBuffer()));

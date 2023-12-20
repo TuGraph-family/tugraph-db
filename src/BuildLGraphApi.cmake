@@ -68,6 +68,7 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_edge_index_iterator.cpp
         lgraph_api/lgraph_traversal.cpp
         lgraph_api/lgraph_txn.cpp
+        lgraph_api/lgraph_types.cpp
         lgraph_api/lgraph_utils.cpp
         lgraph_api/lgraph_vertex_iterator.cpp
         lgraph_api/lgraph_result.cpp

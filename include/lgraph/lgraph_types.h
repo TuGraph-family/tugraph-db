@@ -675,30 +675,7 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    inline std::any ToBolt() const {
-        switch (type) {
-        case FieldType::NUL:
-            return {};
-        case FieldType::BOOL:
-            return data.boolean;
-        case FieldType::INT8:
-            return data.int8;
-        case FieldType::INT16:
-            return data.int16;
-        case FieldType::INT32:
-            return data.int32;
-        case FieldType::INT64:
-            return data.int64;
-        case FieldType::FLOAT:
-            return data.sp;
-        case FieldType::DOUBLE:
-            return data.dp;
-        case FieldType::STRING:
-            return *data.buf;
-        default:
-            throw std::runtime_error("ToBolt meet unsupported data type.");
-        }
-    }
+    std::any ToBolt() const;
 
     /** @brief   Get string representation of this FieldData. */
     inline std::string ToString(const std::string& null_value = "NUL") const {

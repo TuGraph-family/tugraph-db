@@ -88,8 +88,9 @@ class BoltConnection
 
     std::function<void(BoltConnection& conn, BoltMsg msg,
                        std::vector<std::any> fields)> handle_;
+    uint8_t bolt_identification_[4] = {0x60, 0x60, 0xB0, 0x17};
     uint8_t handshake_buffer_[20] = {0};
-    uint8_t version_buffer_[4] = {0, 0, 4, 4};
+    uint8_t version_buffer_[4] = {0};
     uint16_t chunk_size_ = 0;
     std::vector<uint8_t> chunk_;
     Unpacker unpacker_;

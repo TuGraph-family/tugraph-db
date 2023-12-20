@@ -27,6 +27,7 @@
 #include "bolt/messages.h"
 #include "bolt/graph.h"
 #include "bolt/path.h"
+#include "bolt/temporal.h"
 
 namespace bolt {
 
@@ -76,6 +77,14 @@ class PackStream {
         }
         chunker_.EndMessage();
     }
+
+    void PackDate(const bolt::Date& m) {
+        packer_.Int64(m.days);
+    }
+    void PackLocalTime(const bolt::LocalTime& m) {
+        packer_.Int64(m.nanoseconds);
+    }
+
     void PackX(const std::any& x) {
         if (!x.has_value()) {
             packer_.Null();
@@ -112,10 +121,15 @@ class PackStream {
             PackMap(std::any_cast<const std::unordered_map<std::string, std::any>&>(x));
         } else if (type == typeid(std::vector<std::any>)) {
             PackList(std::any_cast<const std::vector<std::any>&>(x));
+        } else if (type == typeid(bolt::Date)) {
+            PackDate(std::any_cast<const bolt::Date&>(x));
+        } else if (type == typeid(bolt::LocalTime)) {
+            PackLocalTime(std::any_cast<const bolt::LocalTime&>(x));
         } else {
             FMA_FATAL() << FMA_FMT("PackX meet unexpected type {}", type.name());
         }
     }
+
     void PackMap(const std::unordered_map<std::string, std::any>& m) {
         packer_.MapHeader(m.size());
         for (auto& pair : m) {

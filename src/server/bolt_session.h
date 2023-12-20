@@ -18,11 +18,23 @@
 #pragma once
 #include <boost/asio.hpp>
 #include "lgraph/lgraph_txn.h"
+#include "bolt/blocking_queue.h"
 
 namespace bolt {
 
+enum class SessionState {
+    DISCONNECTED = 0,
+    DEFUNCT,
+    CONNECTED,
+    READY,
+    STREAMING,
+    FAILED
+};
+
 struct BoltSession {
     std::string user;
+    SessionState state;
+    BlockingQueue<BoltMsg> msgs;
 };
 
 }  // namespace bolt
