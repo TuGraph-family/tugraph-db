@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 
 #include "gtest/gtest.h"
@@ -350,7 +349,7 @@ TEST_F(TestGraphTraversal, GraphTraversal) {
 
     // test transaction of read
     lgraph_api::Transaction txn_read = db.CreateReadTxn();
-    ASSERT(txn_read.IsReadOnly() == true);
+    UT_ASSERT(txn_read.IsReadOnly() == true);
     // txn_read.GetNumLabels(true);
     auto pv = FindVertices(
         db, txn_read,

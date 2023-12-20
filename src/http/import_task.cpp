@@ -13,7 +13,7 @@
  */
 
 #include "http/import_task.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "import/import_config_parser.h"
 #include "import/file_cutter.h"
 #include "import/parse_delimiter.h"

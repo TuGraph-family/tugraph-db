@@ -194,7 +194,7 @@ class PipelineStage : public DataConsumer<T1> {
             cv_ok_to_push_.wait(l);
         }
         if (kill_switch_) {
-            FMA_WARN() << "Killing pipeline stage when there is ongoing push";
+            LOG_WARN() << "Killing pipeline stage when there is ongoing push";
             return false;
         }
         input_buffer_.emplace_back(std::forward<T1>(t), State::NEW_TASK);
@@ -278,7 +278,7 @@ class PipelineStage : public DataConsumer<T1> {
 
     ENABLE_IF_NOT_VOID(T2, void) OutputToNextStage(const TaskIterator& t) {
         if (next_stage_ == nullptr) {
-            FMA_ERR() << "No where to put the pipeline output, "
+            LOG_ERROR() << "No where to put the pipeline output, "
                       << "please call SetNextStage before starting to push task into pipeline";
         }
         if (!kill_switch_) next_stage_->Push(std::move(t->output));

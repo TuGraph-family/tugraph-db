@@ -43,10 +43,10 @@ bool BoltServer::Start(lgraph::StateMachine* sm, int port, int workerNum) {
             boost::asio::io_service::work holder(listener);
             promise.set_value(true);
             promise_done = true;
-            FMA_LOG() << "bolt server run";
+            LOG_INFO() << "bolt server run";
             listener.run();
         } catch (const std::exception& e) {
-            FMA_WARN() << "bolt server expection: " << e.what();
+            LOG_WARN() << "bolt server expection: " << e.what();
             if (!promise_done) {
                 promise.set_value(false);
             }
@@ -65,7 +65,7 @@ void BoltServer::Stop() {
         t.join();
     }
     stopped_ = true;
-    FMA_LOG() << "bolt server stopped.";
+    LOG_INFO() << "bolt server stopped.";
 }
 
 }  // namespace bolt

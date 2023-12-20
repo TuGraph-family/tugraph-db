@@ -155,7 +155,7 @@ class AllVidTables {
      */
     void StartVidTable(const std::string& label, FieldType type, VidType start_id) {
         if (label_map_.find(label) != label_map_.end()) {
-            FMA_ERR() << "Label [" << label << "] added more than once, current labels: "
+            LOG_ERROR() << "Label [" << label << "] added more than once, current labels: "
                       << fma_common::ToString(GetLabels());
         }
         std::unique_ptr<VidTableInterface> table;
@@ -211,7 +211,7 @@ class AllVidTables {
     void SealVidTable(const std::string& label, VidType end_id) {
         auto it = label_map_.find(label);
         if (it == label_map_.end()) {
-            FMA_ERR() << "Label [" << label
+            LOG_ERROR() << "Label [" << label
                       << "] not found, current labels: " << fma_common::ToString(GetLabels());
         }
         it->second.end_id = end_id;
@@ -240,7 +240,7 @@ class AllVidTables {
     void DeleteVidTable(const std::string& label) {
         auto it = label_map_.find(label);
         if (it == label_map_.end()) {
-            FMA_ERR() << "Label [" << label
+            LOG_ERROR() << "Label [" << label
                       << "] not found, current labels: " << fma_common::ToString(GetLabels());
         }
         label_map_.erase(it);
@@ -249,7 +249,7 @@ class AllVidTables {
     VidType GetStartVid(const std::string& label) const {
         auto it = label_map_.find(label);
         if (it == label_map_.end()) {
-            FMA_ERR() << "Label [" << label
+            LOG_ERROR() << "Label [" << label
                       << "] not found, current labels: " << fma_common::ToString(GetLabels());
         }
         return it->second.start_id;
@@ -258,7 +258,7 @@ class AllVidTables {
     VidType GetEndVid(const std::string& label) const {
         auto it = label_map_.find(label);
         if (it == label_map_.end()) {
-            FMA_ERR() << "Label [" << label
+            LOG_ERROR() << "Label [" << label
                       << "] not found, current labels: " << fma_common::ToString(GetLabels());
         }
         return it->second.end_id;

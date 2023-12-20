@@ -31,7 +31,6 @@
 
 namespace lgraph {
 class RestServer {
-    fma_common::Logger& logger_;
     enum RestPathCases {
         INVALID = 0,
         WEB = 1,

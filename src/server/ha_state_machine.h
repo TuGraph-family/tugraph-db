@@ -2,8 +2,7 @@
 
 #pragma once
 #include <chrono>
-#include "fma-common/logger.h"
-
+#include "tools/lgraph_log.h"
 #include "core/global_config.h"
 #include "server/state_machine.h"
 
@@ -45,7 +44,6 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
     };
 
  protected:
-    fma_common::Logger& logger_ = fma_common::Logger::Get("HaStateMachine");
     braft::Node* volatile node_;
     std::atomic<int64_t> leader_term_;
     std::atomic<bool> joined_group_;
@@ -199,7 +197,7 @@ class HaStateMachine : public StateMachine {
     };
 
     HaStateMachine(const Config& config, GlobalConfig* gc) : ::lgraph::StateMachine(config, gc) {
-        FMA_ERR() << "Replication is not implemented for Windows yet.";
+        LOG_ERROR() << "Replication is not implemented for Windows yet.";
     }
     virtual ~HaStateMachine() {}
 };

@@ -16,7 +16,6 @@
 #include <cctype>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/text_parser.h"
 #include "./unit_test_utils.h"
 
@@ -51,8 +50,8 @@ FMA_UNIT_TEST(TextParserUtils) {
             }
         }
         double t3 = GetTime();
-        LOG() << "method1: " << t2 - t1;
-        LOG() << "method2: " << t3 - t2;
+        LOG_INFO() << "method1: " << t2 - t1;
+        LOG_INFO() << "method2: " << t3 - t2;
         FMA_UT_CHECK_EQ(sum1, sum2);
         return 0;
     }
@@ -104,7 +103,7 @@ FMA_UNIT_TEST(TextParserUtils) {
     FMA_UT_CHECK_EQ(TextParserUtils::ParseDouble(num.data(), &num[num.size()], dou), num.size());
     double delta = (dou - truev) / truev;
     FMA_UT_ASSERT(delta >= -1e-6 && delta <= 1e-6);
-    LOG() << dou;
+    LOG_INFO() << dou;
 
     double t1 = GetTime();
     double x = 0;
@@ -120,11 +119,11 @@ FMA_UNIT_TEST(TextParserUtils) {
     double et = GetTime() - t1;
     // LOG() << "x=" << x;
     printf("%30f\n", x);
-    LOG() << "Ran " << n_iter << " iterations at " << (double)n_iter / et << " tps";
-    LOG() << "Parsed " << bytes_parsed << "bytes at " << (double)bytes_parsed / 1024 / 1024 / et
-          << "MB/s";
+    LOG_INFO() << "Ran " << n_iter << " iterations at " << (double)n_iter / et << " tps";
+    LOG_INFO() << "Parsed " << bytes_parsed << "bytes at "
+               << (double)bytes_parsed / 1024 / 1024 / et << "MB/s";
 
-    LOG() << "Testing FindNextLine";
+    LOG_INFO() << "Testing FindNextLine";
     // test FindNextLine
     {
         const std::string str = "1\r\n2\n\r3\r4\n5\n\n7";

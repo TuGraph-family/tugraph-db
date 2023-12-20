@@ -14,7 +14,7 @@
 
 #include <atomic>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/timed_task.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -30,7 +30,7 @@ FMA_UNIT_TEST(TimedTask) {
         TimedTaskScheduler scheduler;
         std::atomic<int> n(0);
         auto task = scheduler.ScheduleReccurringTask(100, [&n](TimedTask *) {
-            FMA_LOG() << "recurring " << n;
+            LOG_INFO() << "recurring " << n;
             n++;
         });
         while (n < 10) SleepS(0);
@@ -40,11 +40,11 @@ FMA_UNIT_TEST(TimedTask) {
     {
         TimedTaskScheduler scheduler;
         for (size_t i = 10; i > 0; i--) {
-            scheduler.RunAfterDuration(i * 100, [i](TimedTask *) { FMA_LOG() << i; });
+            scheduler.RunAfterDuration(i * 100, [i](TimedTask *) { LOG_INFO() << i; });
         }
         scheduler.WaitTillClear();
         for (size_t i = 10; i > 0; i--) {
-            scheduler.RunAfterDuration(i * 100, [i](TimedTask *) { FMA_LOG() << i; });
+            scheduler.RunAfterDuration(i * 100, [i](TimedTask *) { LOG_INFO() << i; });
         }
     }
     {
@@ -66,7 +66,7 @@ FMA_UNIT_TEST(TimedTask) {
         std::atomic<int> n(0);
         {
             AutoCancelTimedTask guard(scheduler.ScheduleReccurringTask(100, [&n](TimedTask *) {
-                FMA_LOG() << "recurring " << n;
+                LOG_INFO() << "recurring " << n;
                 n++;
             }));
             fma_common::SleepS(1);

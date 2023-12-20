@@ -17,7 +17,7 @@
 #include "client/cpp/rpc/lgraph_rpc.h"
 #include "client/cpp/rpc/field_spec_serializer.h"
 #include "client/cpp/rpc/rpc_exception.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/fma_stream.h"
 #include "tools/json.hpp"
 #include "protobuf/ha.pb.h"
@@ -45,8 +45,7 @@ RpcClient::RpcSingleClient::RpcSingleClient(const std::string& url,
       password(pass),
       channel(std::make_shared<lgraph_rpc::m_channel>()),
       cntl(std::make_shared<lgraph_rpc::m_controller>()),
-      options(std::make_shared<lgraph_rpc::m_channel_options>()),
-      logger_(fma_common::Logger::Get("lgraph.RpcClient")) {
+      options(std::make_shared<lgraph_rpc::m_channel_options>()) {
     server_version = -1;
     options->protocol = FLAGS_protocol;
     options->connection_type = FLAGS_connection_type;
@@ -63,7 +62,7 @@ RpcClient::RpcSingleClient::RpcSingleClient(const std::string& url,
     auth->set_password(pass);
     // send data
     token = HandleRequest(&request).acl_response().auth_response().token();
-    FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient succeeded";
+    LOG_DEBUG() << "[RpcClient] RpcClient succeeded";
 }
 
 int64_t RpcClient::RpcSingleClient::Restore(const std::vector<lgraph::BackupLogEntry>& requests) {
@@ -191,7 +190,7 @@ std::string RpcClient::RpcSingleClient::SingleElementExtractor(const CypherResul
                 arr[i] = nlohmann::json(data.blob());
                 break;
             case ProtoFieldData::DATA_NOT_SET:
-                FMA_ERR() << "ProtoFieldData::DATA_NOT_SET";
+                LOG_ERROR() << "ProtoFieldData::DATA_NOT_SET";
                 break;
             }
         }
@@ -245,7 +244,7 @@ std::string RpcClient::RpcSingleClient::MultElementExtractor(const CypherResult 
                 obj[cypher.header(j).name()] = nlohmann::json(data.blob());
                 break;
             case ProtoFieldData::DATA_NOT_SET:
-                FMA_ERR() << "ProtoFieldData::DATA_NOT_SET";
+                LOG_ERROR() << "ProtoFieldData::DATA_NOT_SET";
                 break;
             }
         }
@@ -275,7 +274,7 @@ std::string RpcClient::RpcSingleClient::GraphQueryResponseExtractor(const GraphQ
 #endif
         }
     case GraphQueryResponse::RESULT_NOT_SET:
-        FMA_ERR() << "GraphQueryResponse::RESULT_NOT_SET";
+        LOG_ERROR() << "GraphQueryResponse::RESULT_NOT_SET";
         break;
     }
     //  Just to pass the compilation
@@ -537,21 +536,20 @@ void RpcClient::RpcSingleClient::Logout() {
     auto* auth = req->mutable_auth_request()->mutable_logout();
     auth->set_token(token);
     HandleRequest(&request);
-    FMA_DBG_STREAM(logger_) << "[RpcSingleClient] RpcSingleClient logout succeeded";
+    LOG_DEBUG() << "[RpcSingleClient] RpcSingleClient logout succeeded";
 }
 
 RpcClient::RpcSingleClient::~RpcSingleClient() {
     try {
         Logout();
     } catch (const RpcConnectionException& e) {
-        FMA_DBG_STREAM(logger_) << "[RpcSingleClient] RpcSingleClient Connection Exception";
+        LOG_DEBUG() << "[RpcSingleClient] RpcSingleClient Connection Exception";
     }
 }
 
 RpcClient::RpcClient(const std::string &url, const std::string &user,
                          const std::string &password)
-    : logger_(fma_common::Logger::Get("lgraph.RpcClient")),
-      user(user),
+    : user(user),
       password(password),
       base_client(std::make_shared<RpcSingleClient>(url, user, password)) {
     std::string result;
@@ -568,8 +566,7 @@ RpcClient::RpcClient(const std::string &url, const std::string &user,
 
 RpcClient::RpcClient(std::vector<std::string> &urls, std::string user,
                          std::string password)
-    : logger_(fma_common::Logger::Get("lgraph.RpcClient")),
-      user(std::move(user)),
+    : user(std::move(user)),
       password(std::move(password)),
       urls(urls) {
     client_type = INDIRECT_HA_CONNECTION;
@@ -582,7 +579,7 @@ RpcClient::~RpcClient() {
     try {
         Logout();
     } catch (const RpcConnectionException& e) {
-        FMA_DBG_STREAM(logger_) << "[RpcClient] RpcClient Connection Exception";
+        LOG_DEBUG() << "[RpcClient] RpcClient Connection Exception";
     }
 }
 
@@ -905,7 +902,7 @@ void RpcClient::RefreshConnection() {
         RefreshUserDefinedProcedure();
         RefreshBuiltInProcedure();
     } catch (std::exception &e) {
-        FMA_ERR_STREAM(logger_) << "[RpcClient] RpcClient Connection Exception, "
+        LOG_ERROR() << "[RpcClient] RpcClient Connection Exception, "
                                    "please connect again!";
     }
 }
@@ -935,7 +932,7 @@ bool RpcClient::DoubleCheckQuery(const F &f) {
             RefreshConnection();
             return f();
         } catch (std::exception &e) {
-            FMA_ERR_STREAM(logger_) << e.what();
+            LOG_ERROR() << e.what();
             return false;
         }
     }

@@ -27,10 +27,10 @@
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
 
+#include "tools/lgraph_log.h"
 #include "fma-common/buffered_file_stream.h"
 #include "fma-common/file_stream.h"
 #include "fma-common/stream_buffer.h"
-#include "fma-common/logger.h"
 
 namespace fma_common {
 /*!

@@ -39,10 +39,9 @@ int main(int argc, char** argv) {
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
     } catch (std::exception& e) {
-        FMA_ERR() << "Failed to parse command line option: " << e.what();
+        LOG_ERROR() << "Failed to parse command line option: " << e.what();
         return -1;
     }
-    fma_common::Logger::Get().SetFormatter(std::make_shared<fma_common::TimedLogFormatter>());
     try {
         lgraph_api::Galaxy galaxy(db_dir, user, password, false, false);
         std::vector<std::string> graphs;
@@ -53,7 +52,7 @@ int main(int argc, char** argv) {
             graphs.push_back(graph);
         }
         for (auto& name : graphs) {
-            FMA_LOG() << "Validating " << name;
+            LOG_INFO() << "Validating " << name;
             lgraph_api::GraphDB db = galaxy.OpenGraph(name, true);
             std::atomic<size_t> nv(0);
             std::atomic<size_t> ne(0);
@@ -69,24 +68,24 @@ int main(int argc, char** argv) {
                     nv++;
                     if (omp_get_thread_num() == 0 && nv - last_print_vid_num > 100000) {
                         last_print_vid_num = nv;
-                        FMA_LOG() << "Checked " << nv << " vertices.";
+                        LOG_INFO() << "Checked " << nv << " vertices.";
                     }
                     for (auto oeit = vit.GetOutEdgeIterator(); oeit.IsValid(); oeit.Next()) {
                         ne++;
                         auto vvit = txn.GetVertexIterator(oeit.GetDst());
                         if (!vvit.IsValid()) {
-                            FMA_WARN()
+                            LOG_WARN()
                                 << "INCONSISTENT: edge(" << oeit.GetSrc() << ", " << oeit.GetDst()
                                 << ") exists, but vertex " << oeit.GetDst() << " does not exist";
                         }
                         auto euid = oeit.GetUid();
                         auto ieit = txn.GetInEdgeIterator(euid);
                         if (!ieit.IsValid()) {
-                            FMA_WARN() << "INCONSISTENT: outedge(" << PrintEuid(euid) << ") exists,"
+                            LOG_WARN() << "INCONSISTENT: outedge(" << PrintEuid(euid) << ") exists,"
                                        << " but corresponding inedge does not.";
                         } else {
                             if (oeit.GetAllFields() != ieit.GetAllFields()) {
-                                FMA_WARN()
+                                LOG_WARN()
                                     << "INCONSISTENT: outedge(" << PrintEuid(euid) << ") has "
                                     << " different properties from its corresponding inedge: \n\t"
                                     << fma_common::ToString(oeit.GetAllFields()) << "\n\t"
@@ -97,18 +96,18 @@ int main(int argc, char** argv) {
                     for (auto ieit = vit.GetInEdgeIterator(); ieit.IsValid(); ieit.Next()) {
                         auto vvit = txn.GetVertexIterator(ieit.GetSrc());
                         if (!vvit.IsValid()) {
-                            FMA_WARN()
+                            LOG_WARN()
                                 << "INCONSISTENT: edge(" << ieit.GetSrc() << ", " << ieit.GetDst()
                                 << ") exists, but vertex " << ieit.GetSrc() << " does not exist";
                         }
                         auto euid = ieit.GetUid();
                         auto oeit = txn.GetInEdgeIterator(euid);
                         if (!oeit.IsValid()) {
-                            FMA_WARN() << "INCONSISTENT: inedge(" << PrintEuid(euid) << ") exists,"
+                            LOG_WARN() << "INCONSISTENT: inedge(" << PrintEuid(euid) << ") exists,"
                                        << " but corresponding outedge does not.";
                         } else {
                             if (oeit.GetAllFields() != ieit.GetAllFields()) {
-                                FMA_WARN()
+                                LOG_WARN()
                                     << "INCONSISTENT: inedge(" << PrintEuid(euid) << ") has "
                                     << " different properties from its corresponding outedge: \n\t"
                                     << fma_common::ToString(ieit.GetAllFields()) << "\n\t"
@@ -118,12 +117,12 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            FMA_LOG() << "Finished checking " << name << ": nv=" << nv << ", ne=" << ne;
+            LOG_INFO() << "Finished checking " << name << ": nv=" << nv << ", ne=" << ne;
         }
     } catch (std::exception& e) {
-        FMA_LOG() << "Error when peek db " << db_dir << ":\n\t" << e.what();
+        LOG_INFO() << "Error when peek db " << db_dir << ":\n\t" << e.what();
         return 1;
     }
-    FMA_LOG() << "Data validation finished";
+    LOG_INFO() << "Data validation finished";
     return 0;
 }

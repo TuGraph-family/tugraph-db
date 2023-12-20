@@ -106,10 +106,10 @@ class PassReduceCount : public OptPass {
             new RelationshipCount(op_expand->start_, op_expand->neighbor_, op_expand->relp_);
         op_result->RemoveChild(op_aggregate);
         op_result->AddChild(op_count);
-        FMA_DBG() << "the stream to delete:";
+        LOG_DEBUG() << "the stream to delete:";
         std::string s;
         OpBase::DumpStream(op_aggregate, 0, false, s);
-        FMA_DBG() << s;
+        LOG_DEBUG() << s;
         OpBase::FreeStream(op_aggregate);
     }
 

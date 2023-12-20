@@ -59,7 +59,6 @@ class Galaxy {
     double retry_login_time = 0.0;
 
  private:
-    fma_common::Logger& logger_ = fma_common::Logger::Get("Galaxy");
     mutable KillableRWLock reload_lock_;
     Config config_;
     std::shared_ptr<GlobalConfig> global_config_;

@@ -19,7 +19,7 @@
 #include "cypher/parser/clause.h"
 
 namespace cypher {
-
+using namespace lgraph_log;
 static std::string ToString(const SymbolTable &sym_tab) {
     std::string str = "Alias_ID_Map of Symbol Table:\n";
     for (auto &a : sym_tab.symbols) {
@@ -40,8 +40,8 @@ static std::string ToString(const SymbolTable &sym_tab) {
 }
 
 void SymbolTable::DumpTable() const {
-    if (ParserLogger().GetLevel() >= fma_common::LogLevel::LL_DEBUG) {
-        FMA_DBG_STREAM(ParserLogger()) << ToString(*this);
+    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
+        LOG_DEBUG() << ToString(*this);
     }
 }
 

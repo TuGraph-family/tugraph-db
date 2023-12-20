@@ -152,7 +152,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
         std::lock_guard<std::mutex> l(_mtx);
         if (_free_processes.empty()) {
             // no free process, create a new one
-            FMA_DBG() << "Creating a new Python process";
+            LOG_DEBUG() << "Creating a new Python process";
             proc.reset(new PythonWorkerProcess(db_dir_));
         } else {
             proc.swap(_free_processes.front());
@@ -224,7 +224,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
             if (proc->GetLiveTimeInSeconds() < (size_t)max_plugin_lifetime_seconds_) {
                 _free_processes.emplace_front(std::move(proc));
             } else {
-                DEBUG_LOG(DEBUG) << "proc lives " << proc->GetLiveTimeInSeconds()
+                LOG_DEBUG() << "proc lives " << proc->GetLiveTimeInSeconds()
                                  << " s and is not reused";
                 proc->Kill();
                 _marked_processes.insert(std::move(proc));
@@ -235,7 +235,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
 }
 
 void PythonPluginManagerImpl::KillAllProcesses() {
-    GENERAL_LOG(DEBUG) << "Killing all python processes";
+    LOG_DEBUG() << "Killing all python processes";
     std::lock_guard<std::mutex> l(_mtx);
     for (auto& p : _free_processes) {
         p->Kill();

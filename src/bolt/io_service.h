@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include "boost/asio.hpp"
 #include "boost/lexical_cast.hpp"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
 
 namespace bolt {
@@ -104,9 +104,9 @@ class IOService : private boost::asio::noncopyable {
         conn_.reset(new T(io_service_pool_.GetIOService(), handler_));
         acceptor_.async_accept(conn_->socket(), [this](boost::system::error_code ec) {
             if (ec) {
-                FMA_WARN() << FMA_FMT("async accept error: {}", ec.message());
+                LOG_WARN() << FMA_FMT("async accept error: {}", ec.message());
             } else {
-                FMA_DBG() << FMA_FMT("accept new bolt connection {}",
+                LOG_DEBUG() << FMA_FMT("accept new bolt connection {}",
                                      boost::lexical_cast<std::string>(
                                          conn_->socket().remote_endpoint()));
                 socket_set_options(conn_->socket());

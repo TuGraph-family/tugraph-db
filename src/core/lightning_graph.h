@@ -17,7 +17,7 @@
 #include <memory>
 #include <mutex>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/rw_lock.h"
 
 #include "core/blob_manager.h"
@@ -57,8 +57,6 @@ class LightningGraph {
     std::unique_ptr<FullTextIndex> fulltext_index_ = nullptr;
     GCRefCountedPtr<SchemaInfo> schema_;
     KillableRWLock meta_lock_;  // lock to hold when doing meta update, especially when AlterLabel
-
-    fma_common::Logger& logger_ = fma_common::Logger::Get("LightningGraph");
 
     static thread_local bool in_transaction_;
     static inline bool& InTransaction() { return in_transaction_; }

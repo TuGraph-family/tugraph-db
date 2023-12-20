@@ -94,7 +94,7 @@ TEST_F(TestDBManagementClient, DBManagementClient) {
         jobs = client.GetJobStatus();
         UT_EXPECT_EQ(1, jobs.size());
     } catch (std::exception& e) {
-        DEBUG_LOG(ERROR) << e.what();
+        LOG_ERROR() << e.what();
         UT_EXPECT_EQ(1, 0);
     }
 

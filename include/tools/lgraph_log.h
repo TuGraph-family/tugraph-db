@@ -17,46 +17,18 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
-#include "fma-common/logger.h"
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/sinks.hpp>
+#include <boost/log/support/date_time.hpp>
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/phoenix/bind/bind_function.hpp>
 #include <boost/core/null_deleter.hpp>
 
 namespace lgraph_log {
-
-// Define log macro
-#define GENERAL_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::general_logger::get(), \
-    ::lgraph_log::severity_level::LEVEL) \
-    << ::lgraph_log::logging::add_value("Line", __LINE__) \
-    << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define GENERAL_LOG_STREAM(LEVEL, CLASS) BOOST_LOG_SEV(::lgraph_log::general_logger::get(), \
-    ::lgraph_log::severity_level::LEVEL) \
-    << ::lgraph_log::logging::add_value("Line", __LINE__) \
-    << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define DEBUG_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
-  ::lgraph_log::severity_level::LEVEL) \
-  << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define DEBUG_LOG_STREAM(LEVEL, CLASS) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
-  ::lgraph_log::severity_level::LEVEL) \
-  << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
-  LEVEL) \
-  << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define EXIT_ON_FATAL(SIGNAL) ::fma_common::_detail::PrintBacktraceAndExit(SIGNAL)
 
 namespace logging = boost::log;
 namespace attrs = boost::log::attributes;
@@ -71,9 +43,6 @@ typedef sinks::synchronous_sink< sinks::text_file_backend > file_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > stream_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > ut_sink;
 
-
-BOOST_LOG_ATTRIBUTE_KEYWORD(log_type_attr, "LogType", std::string)
-
 enum severity_level {
     TRACE,
     DEBUG,
@@ -86,13 +55,9 @@ enum severity_level {
 class LoggerManager {
  private:
     std::string log_dir_;
-    std::string rotation_target_dir_;
-    std::string history_general_log_dir_;
-    std::string history_debug_log_dir_;
-    severity_level level_;
-    size_t rotation_size_;
-    boost::shared_ptr< file_sink > general_sink_;
-    boost::shared_ptr< file_sink > debug_sink_;
+    severity_level level_ = severity_level::INFO;
+    size_t rotation_size_ = 256*1024*1024;
+    boost::shared_ptr< file_sink > file_sink_;
     boost::shared_ptr< stream_sink > stream_sink_;
     std::ostringstream log_buffer_;
     boost::shared_ptr< std::ostream > console_stream_;
@@ -101,31 +66,35 @@ class LoggerManager {
     bool global_inited_ = false;
 
     static std::string level_to_string(logging::value_ref< severity_level > const& level) {
-      switch (level.get()) {
-      case TRACE:
-          return "TRACE";
-      case DEBUG:
-          return "DEBUG";
-      case INFO:
-          return "INFO";
-      case WARNING:
-          return "WARNING";
-      case ERROR:
-          return "ERROR";
-      case FATAL:
-          return "FATAL";
-      default:
-          return "Invalid severity level";
-      }
+        switch (level.get()) {
+        case TRACE:
+            return "TRACE";
+        case DEBUG:
+            return "DEBUG";
+        case INFO:
+            return "INFO";
+        case WARNING:
+            return "WARN";
+        case ERROR:
+            return "ERROR";
+        case FATAL:
+            return "FATAL";
+        default:
+            return "Invalid severity level";
+        }
     }
 
     static void formatter(logging::record_view const& rec, logging::formatting_ostream& strm) {
-      strm << logging::extract< boost::posix_time::ptime >("TimeStamp", rec) << " ";
-      strm << logging::extract< attrs::current_thread_id::value_type >("ThreadID", rec) << " ";
-      strm << level_to_string(logging::extract< severity_level >("Severity", rec)) << " ";
-      strm << logging::extract<std::string>("File", rec) << ":"
-           << logging::extract<int>("Line", rec) << " ";
-      strm << rec[expr::smessage];
+        auto actor = expr::stream << "[" <<
+                     expr::format_date_time< boost::posix_time::ptime >(
+                         "TimeStamp", "%Y%m%d %H:%M:%S.%f") << " ";
+        actor(rec, strm);
+        strm << logging::extract< attrs::current_thread_id::value_type >("ThreadID", rec) << " ";
+        strm << std::left << std::setw(5) << std::setfill(' ')
+             << level_to_string(logging::extract< severity_level >("Severity", rec)) << " ";
+        strm << logging::extract<std::string>("File", rec) << ":"
+             << logging::extract<int>("Line", rec) << "] ";
+        strm << rec[expr::smessage];
     }
 
  public:
@@ -141,49 +110,28 @@ class LoggerManager {
      * @param   level     The log filtering level.
      */
     void Init(std::string log_dir = "logs/", severity_level level = severity_level::INFO,
-              size_t rotation_size = 5*1024*1024) {
+              size_t rotation_size = 256*1024*1024) {
         logging::core::get()->remove_all_sinks();
         // Set up log directory
-        log_dir_ = log_dir;
+        log_dir_ = std::move(log_dir);
         level_ = level;
-        if (log_dir_ != "") {
+
+        if (!log_dir_.empty()) {
             if (log_dir_.back() != '/') {
-               log_dir_ += '/';
+                log_dir_ += '/';
             }
             rotation_size_ = rotation_size;
-            rotation_target_dir_ = log_dir_ + "history_logs/";
-            history_general_log_dir_ = rotation_target_dir_ + "general_logs/";
-            history_debug_log_dir_ = rotation_target_dir_ + "debug_logs/";
-
-            // Set up sink for general log
-            general_sink_ = boost::shared_ptr< file_sink > (new file_sink(
-                keywords::file_name = log_dir_ + "general.log",
-                keywords::open_mode = std::ios_base::out | std::ios_base::app,
-                keywords::enable_final_rotation = false,
-                keywords::auto_flush = true,
-                keywords::rotation_size = rotation_size_));
-            general_sink_->locked_backend()->set_file_collector(sinks::file::make_collector(
-                keywords::target = history_general_log_dir_));
-            general_sink_->locked_backend()->scan_for_files();
-            general_sink_->set_filter(log_type_attr == "general");
-            general_sink_->set_formatter(&this->formatter);
-
             // Set up sink for debug log
-            debug_sink_ = boost::shared_ptr< file_sink > (new file_sink(
-                keywords::file_name = log_dir_ + "debug.log",
+            file_sink_ = boost::shared_ptr< file_sink > (new file_sink(
+                keywords::file_name = log_dir_ + "lgraph_%Y%m%d_%H%M%S%f.log",
                 keywords::open_mode = std::ios_base::out | std::ios_base::app,
                 keywords::enable_final_rotation = false,
                 keywords::auto_flush = true,
                 keywords::rotation_size = rotation_size_));
-            debug_sink_->locked_backend()->set_file_collector(sinks::file::make_collector(
-                keywords::target = history_debug_log_dir_));
-            debug_sink_->locked_backend()->scan_for_files();
-            debug_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-                log_type_attr == "debug");
-            debug_sink_->set_formatter(&this->formatter);
+            file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
+            file_sink_->set_formatter(&formatter);
 
-            logging::core::get()->add_sink(general_sink_);
-            logging::core::get()->add_sink(debug_sink_);
+            logging::core::get()->add_sink(file_sink_);
         } else {
             // Set up sink for stream log
             stream_sink_ = boost::shared_ptr< stream_sink > (new stream_sink());
@@ -196,7 +144,7 @@ class LoggerManager {
             }
             stream_sink_->locked_backend()->auto_flush(true);
             stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
-            stream_sink_->set_formatter(&this->formatter);
+            stream_sink_->set_formatter(&formatter);
 
             logging::core::get()->add_sink(stream_sink_);
         }
@@ -217,11 +165,8 @@ class LoggerManager {
      */
     void SetLevel(severity_level level) {
       level_ = level;
-      if (log_dir_ != "") {
-        general_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-            log_type_attr == "general");
-        debug_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-            log_type_attr == "debug");
+      if (!log_dir_.empty()) {
+            file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
       } else {
         stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
       }
@@ -231,7 +176,7 @@ class LoggerManager {
      * @brief   enable buffer log when log_dir_ is empty. log record will be written into a buffer stream. call this method after Init.
      */
     void EnableBufferMode() {
-        if (!buffer_log_mode_ && log_dir_ == "") {
+        if (!buffer_log_mode_ && log_dir_.empty()) {
             log_buffer_.str("");
             stream_sink_->locked_backend()->remove_stream(console_stream_);
             stream_sink_->locked_backend()->add_stream(
@@ -244,7 +189,7 @@ class LoggerManager {
      * @brief   disable buffer log when log_dir_ is empty. log record will be written into console. call this method after Init.
      */
     void DisableBufferMode() {
-        if (buffer_log_mode_ && log_dir_ == "") {
+        if (buffer_log_mode_ && log_dir_.empty()) {
             log_buffer_.str("");
             stream_sink_->locked_backend()->remove_stream(buffer_log_stream_);
             stream_sink_->locked_backend()->add_stream(
@@ -286,29 +231,35 @@ class LoggerManager {
     }
 };
 
-// Global logger init
-BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(general_logger, src::severity_logger_mt< severity_level >) {
-  src::severity_logger_mt< severity_level > lg;
-  attrs::constant< std::string > general_type("general");
-  lg.add_attribute("LogType", general_type);
-  return lg;
-}
-
 BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< severity_level >) {
-  src::severity_logger_mt< severity_level > lg;
-  attrs::constant< std::string > debug_type("debug");
-  lg.add_attribute("LogType", debug_type);
-
-  // Init empty console log first if not inited
-  if (!LoggerManager::GetInstance().IsInited()) {
+    src::severity_logger_mt< severity_level > lg;
+    // Init empty console log first if not inited
+    if (!LoggerManager::GetInstance().IsInited()) {
       boost::shared_ptr< stream_sink > empty_sink =
           boost::shared_ptr< stream_sink > (new stream_sink());
       empty_sink->locked_backend()->add_stream(
           boost::shared_ptr< std::ostream >(&std::clog, boost::null_deleter()));
       empty_sink->locked_backend()->auto_flush(true);
       logging::core::get()->add_sink(empty_sink);
-  }
+    }
+    return lg;
+};
 
-  return lg;
-}
+// Define log macro
+#define LGRAPH_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
+  ::lgraph_log::severity_level::LEVEL) \
+  << ::lgraph_log::logging::add_value("Line", __LINE__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
+
+#define LOG_DEBUG() LGRAPH_LOG(DEBUG)
+#define LOG_INFO() LGRAPH_LOG(INFO)
+#define LOG_WARN() LGRAPH_LOG(WARNING)
+#define LOG_ERROR() LGRAPH_LOG(ERROR)
+#define LOG_FATAL() LGRAPH_LOG(FATAL)
+
+#define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
+  LEVEL) \
+  << ::lgraph_log::logging::add_value("Line", __LINE__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
+
 }  // namespace lgraph_log

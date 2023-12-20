@@ -138,7 +138,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
     for (auto seg : pattern_graph_root_) OpBase::DumpStream(seg, 0, false, s);
-    FMA_DBG_STREAM(PlanLogger()) << s;
+    LOG_DEBUG() << s;
     return s;
 }
 
@@ -301,7 +301,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         auto& relp = pattern_graph.GetRelationship(relp_t_->Alias());
         auto& end = pattern_graph.GetNode(node_t_->Alias());
         OpBase* expand_op;
-        FMA_DBG() << relp.MinHop() << " " << relp.MaxHop();
+        LOG_DEBUG() << relp.MinHop() << " " << relp.MaxHop();
         if (relp.VarLen()) {
             expand_op = new VarLenExpand(&pattern_graph, &start, &end, &relp);
         } else {

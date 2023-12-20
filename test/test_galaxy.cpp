@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
 

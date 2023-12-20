@@ -153,12 +153,12 @@ int lgraph::GlobalConfig::PrintVersion(std::string &config_file, std::string &cm
             .append(std::to_string(lgraph::_detail::VER_MINOR))
             .append(".")
             .append(std::to_string(lgraph::_detail::VER_PATCH));
-        FMA_LOG() << "TuGraph v" << version << ", compiled from " << GIT_BRANCH
+        LOG_INFO() << "TuGraph v" << version << ", compiled from " << GIT_BRANCH
                   << " branch, commit " << GIT_COMMIT_HASH << " (web commit " << WEB_GIT_COMMIT_HASH
                   << ").";
-        FMA_LOG() << "  CPP compiler version: " << CXX_COMPILER_ID << " " << CXX_COMPILER_VERSION
+        LOG_INFO() << "  CPP compiler version: " << CXX_COMPILER_ID << " " << CXX_COMPILER_VERSION
                   << ".";
-        FMA_LOG() << "  Python version : " << PYTHON_LIB_VERSION << ".";
+        LOG_INFO() << "  Python version : " << PYTHON_LIB_VERSION << ".";
         return 0;
     }
     return 1;

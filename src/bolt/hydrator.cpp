@@ -18,7 +18,7 @@
 /*
  * written by botu.wzy, inspired by Neo4j Go Driver
  */
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "bolt/hydrator.h"
 #include "bolt/messages.h"
 #include "bolt/graph.h"
@@ -900,7 +900,7 @@ nlohmann::json DebugString(const std::any& fd) {
         }
         return ret;
     }
-    FMA_FATAL() << "DebugString meet unexpected type";
+    LOG_FATAL() << "DebugString meet unexpected type";
     return nullptr;
 }
 
@@ -914,7 +914,7 @@ std::any ServerHydrator(Unpacker& unpacker) {
         case PackType::String:
             return unpacker.String();
         case PackType::Structure: {
-            FMA_FATAL() << "No support for unpacking struct in server stub";
+            LOG_FATAL() << "No support for unpacking struct in server stub";
         }
         case PackType::Bytes:
             return unpacker.ByteArray();
@@ -945,7 +945,7 @@ std::any ServerHydrator(Unpacker& unpacker) {
         case PackType::False:
             return false;
         default: {
-            FMA_FATAL() << "Unsupported type to unpack";
+            LOG_FATAL() << "Unsupported type to unpack";
             return {};
         }
     }

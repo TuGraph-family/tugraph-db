@@ -127,7 +127,7 @@ void ImportManager::DeleteDataFiles(const std::string& id, const nlohmann::json&
         std::string file = item[HTTP_PATH].get<std::string>();
         fma_common::LocalFileSystem fs;
         if (!fs.Remove(file)) {
-            FMA_LOG() << FMA_FMT("{} file remove failed in {} task", file, id);
+            LOG_INFO() << FMA_FMT("{} file remove failed in {} task", file, id);
         }
     }
 }

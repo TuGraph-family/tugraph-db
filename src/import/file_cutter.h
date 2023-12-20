@@ -43,7 +43,7 @@ class FileCutter {
         begin = (char*)buf_.data();
         size_t n_read = file_.Read(begin, ONLINE_IMPORT_LIMIT_SOFT);
         if (!n_read) {
-            FMA_LOG() << "Finished reading file " << filename_;
+            LOG_INFO() << "Finished reading file " << filename_;
             return false;
         }
         end = begin + n_read;

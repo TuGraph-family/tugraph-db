@@ -61,7 +61,7 @@ void AlgorithmTask::operator()() {
     } catch (std::exception& e) {
         status = "failed";
         result = e.what();
-        GENERAL_LOG(INFO) << "Failed to CreateJob: " << e.what();
+        LOG_INFO() << "Failed to CreateJob: " << e.what();
     }
 
     lgraph_api::DateTime finish_time(std::chrono::system_clock::now());
@@ -69,7 +69,7 @@ void AlgorithmTask::operator()() {
     try {
         DBManagementClient::GetInstance().UpdateJobStatus(taskId_, status, runtime, result);
     } catch (std::exception& e) {
-        GENERAL_LOG(INFO) << "Failed to UpdateJobStatus: " << e.what();
+        LOG_INFO() << "Failed to UpdateJobStatus: " << e.what();
     }
 }
 

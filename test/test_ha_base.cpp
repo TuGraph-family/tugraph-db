@@ -12,8 +12,6 @@
 // files, and e.g. use '_XPLATSTR' instead.
 #define _TURN_OFF_PLATFORM_STRING
 #include "cpprest/http_client.h"
-
-#include "fma-common/logger.h"
 #include "./ut_utils.h"
 #include "lgraph/lgraph.h"
 #include "client/cpp/restful/rest_client.h"
@@ -77,7 +75,7 @@ class UnitTestBase {
             tests = included;
         for (auto& t : excluded) {
             if (tests.erase(t) == 0) {
-                FMA_WARN() << "Excluded test [" << t << "] is not in the test list.";
+                LOG_WARN() << "Excluded test [" << t << "] is not in the test list.";
             }
         }
         for (auto& t : tests) {

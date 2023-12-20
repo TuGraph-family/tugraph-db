@@ -16,7 +16,6 @@
 #include <set>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/file_system.h"
 #include "fma-common/type_traits.h"
 #include "./ut_utils.h"

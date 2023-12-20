@@ -17,7 +17,6 @@
 #include <thread>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/pipeline.h"
 #include "fma-common/utils.h"
 #include "./unit_test_utils.h"
@@ -28,19 +27,19 @@ using namespace fma_common;
 static double sleep_time = 0.1;
 
 std::pair<int, double> AddOne(int d) {
-    FMA_DBG() << "1i: " << d;
+    LOG_DEBUG() << "1i: " << d;
     SleepS(sleep_time);
     return std::make_pair(d, (double)d + 1);
 }
 
 std::pair<int, double> Square(const std::pair<int, double> &d) {
-    FMA_DBG() << "2i: " << d.first;
+    LOG_DEBUG() << "2i: " << d.first;
     SleepS(((double)(myrand() % 10) + 1) / 5 * sleep_time);
     return std::make_pair(d.first, d.second * d.second);
 }
 
 std::pair<int, int> SqrtMinusOne(const std::pair<int, double> &d) {
-    FMA_DBG() << "3i: " << d.first;
+    LOG_DEBUG() << "3i: " << d.first;
     SleepS(sleep_time);
     return std::make_pair(d.first, (int)(sqrt(d.second) - 1));
 }
@@ -49,10 +48,6 @@ FMA_SET_TEST_PARAMS(Pipeline, "", "--nTasks 100 --sleepTime 0.05");
 
 FMA_UNIT_TEST(Pipeline) {
     lgraph_log::LoggerManager::GetInstance().EnableBufferMode();
-
-    Logger::Get().SetFormatter(std::make_shared<TimedLogFormatter>());
-    Logger::Get().SetLevel(LogLevel::LL_DEBUG);
-
     int n_tasks = 10;
     Configuration config;
     config.Add(sleep_time, "sleepTime", true).Comment("Time to sleep for each task");
@@ -88,7 +83,7 @@ FMA_UNIT_TEST(Pipeline) {
     p3.WaitTillClear();
     double t2 = GetTime();
     double et = t2 - t1;
-    FMA_LOG() << "cost: " << et;
+    LOG_INFO() << "cost: " << et;
     // FMA_UT_ASSERT(et >= sleep_time * ((double)((n_tasks + 4) / 5) * 2 +
     //    (double)0.2 * (n_tasks + 2)/ 3))
     //    << "Total time is too small: " << et;

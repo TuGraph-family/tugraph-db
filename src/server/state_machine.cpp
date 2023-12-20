@@ -50,7 +50,7 @@ void lgraph::StateMachine::Start() {
         // check if snapshot already taken
         if (fma_common::file_system::ListSubDirs(global_config_->snapshot_dir, true).empty()) {
             // no snapshot, take one
-            FMA_INFO_STREAM(logger_) << "Taking initial snapshot...";
+            LOG_INFO() << "Taking initial snapshot...";
             TakeSnapshot();
         }
     }
@@ -139,7 +139,7 @@ bool lgraph::StateMachine::IsFromLegalHost(::google::protobuf::RpcController* co
         std::string ip = butil::ip2str(ctl->remote_side().ip).c_str();
         _HoldReadLock(galaxy_->GetReloadLock());
         if (!galaxy_->IsIpInWhitelist(ip)) {
-            FMA_WARN_STREAM(logger_) << "illegal access from ip: " << ip;
+            LOG_WARN() << "illegal access from ip: " << ip;
             return false;
         }
     }
@@ -207,7 +207,7 @@ std::string lgraph::StateMachine::TakeSnapshot() {
         DateTime d;
         if (!DateTime::Parse(now, d)) continue;
         // ok, remove
-        FMA_INFO_STREAM(logger_) << "Removing old snapshot " << p;
+        LOG_INFO() << "Removing old snapshot " << p;
         fma_common::file_system::RemoveDir(global_config_->snapshot_dir + "/" + p);
     }
     return path;
@@ -238,13 +238,13 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
             switch (req->Req_case()) {
             case LGraphRequest::kGraphApiRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Apply a native request.";
+                    LOG_DEBUG() << "Apply a native request.";
                     ApplyGraphApiRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kGraphQueryRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Apply a "
+                    LOG_DEBUG() << "Apply a "
                                             << lgraph_api::to_string(convert::ToLGraphT(
                                                    req->graph_query_request().type()))
                                             << " request.";
@@ -253,49 +253,49 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
                 }
             case LGraphRequest::kPluginRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Apply a plugin request.";
+                    LOG_DEBUG() << "Apply a plugin request.";
                     ApplyPluginRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kAclRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Apply a acl request.";
+                    LOG_DEBUG() << "Apply a acl request.";
                     ApplyAclRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kGraphRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Apply a graph request.";
+                    LOG_DEBUG() << "Apply a graph request.";
                     ApplyGraphRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kImportRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Received an import request.";
+                    LOG_DEBUG() << "Received an import request.";
                     ApplyImportRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kConfigRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Received config request: " << req->DebugString();
+                    LOG_DEBUG() << "Received config request: " << req->DebugString();
                     ApplyConfigRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kRestoreRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Received restore request.";
+                    LOG_DEBUG() << "Received restore request.";
                     ApplyRestoreRequest(req, resp);
                     break;
                 }
             case LGraphRequest::kSchemaRequest:
                 {
-                    FMA_DBG_STREAM(logger_) << "Received a schema request.";
+                    LOG_DEBUG() << "Received a schema request.";
                     ApplySchemaRequest(req, resp);
                     break;
                 }
             default:
                 {
-                    FMA_WARN_STREAM(logger_) << "Unhandled request type: " << req->Req_case();
+                    LOG_WARN() << "Unhandled request type: " << req->Req_case();
                     RespondException(resp, "Unhandled request type.");
                     break;
                 }
@@ -331,13 +331,13 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
         auto preq = req->plugin_request().call_plugin_request();
         auto param = preq.param();
         boost::replace_all(param, "\n", "");
-        FMA_DBG_STREAM(logger_) << fma_common::StringFormatter::Format(
+        LOG_DEBUG() << fma_common::StringFormatter::Format(
             "[Calling Plugin] plugin_name={}, elapsed={}, res={}, param=[{}]", preq.name(),
             end_time - start_time, LGraphResponse_ErrorCode_Name(resp->error_code()), param);
     } else if (req->Req_case() == LGraphRequest::kGraphQueryRequest) {
         auto query = req->graph_query_request().query();
         boost::replace_all(query, "\n", "");
-        FMA_DBG_STREAM(logger_) << fma_common::StringFormatter::Format(
+        LOG_DEBUG() << fma_common::StringFormatter::Format(
             "[Calling {}] elapsed={}, res={}, query=[{}]",
             lgraph_api::to_string(convert::ToLGraphT(req->graph_query_request().type())),
             end_time - start_time, LGraphResponse_ErrorCode_Name(resp->error_code()), query);
@@ -1046,7 +1046,7 @@ inline lgraph::plugin::CodeType GetPluginCodeType(const lgraph::LoadPluginReques
 bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
                                               LGraphResponse* resp) {
     using namespace web;
-    FMA_DBG_STREAM(logger_) << "Applying plugin request to state machine";
+    LOG_DEBUG() << "Applying plugin request to state machine";
     const PluginRequest& req = lgraph_req->plugin_request();
     PluginResponse* presp = resp->mutable_plugin_response();
     std::string user;
@@ -1141,7 +1141,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
                 true, is_write);
             BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, is_write,
                           req.DebugString());
-            FMA_DBG_STREAM(logger_) << "Calling plugin " << preq.name() << " with param "
+            LOG_DEBUG() << "Calling plugin " << preq.name() << " with param "
                                     << preq.param() << " timeout " << preq.timeout();
             TimeoutTaskKiller timeout_killer;
             if (preq.has_timeout() && preq.timeout() > 0) {
@@ -1167,7 +1167,7 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
     default:
         {
             BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true, req.DebugString());
-            FMA_WARN_STREAM(logger_) << "Unhandled request type: " << req.Req_case();
+            LOG_WARN() << "Unhandled request type: " << req.Req_case();
             return RespondBadInput(resp,
                                    FMA_FMT("Unhandled plugin request type [{}].", req.Req_case()));
         }

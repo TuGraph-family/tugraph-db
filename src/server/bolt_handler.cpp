@@ -15,7 +15,7 @@
 /*
  * written by botu.wzy
  */
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "bolt/connection.h"
 #include "server/bolt_server.h"
 #include "server/bolt_session.h"
@@ -113,7 +113,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             } else if (msg == BoltMsg::DiscardN) {
                 ps.AppendSuccess();
             } else {
-                FMA_WARN() << "Unexpected bolt msg: " << ToString(msg) << " after RUN";
+                LOG_WARN() << "Unexpected bolt msg: " << ToString(msg) << " after RUN";
                 ps.AppendSuccess();
             }
             conn.PostResponse(std::move(ps.MutableBuffer()));
@@ -139,7 +139,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
     } else if (msg == BoltMsg::Goodbye) {
         conn.Close();
     } else {
-        FMA_WARN() << "receive unknown bolt message: " << ToString(msg);
+        LOG_WARN() << "receive unknown bolt message: " << ToString(msg);
         conn.Close();
     }
 };

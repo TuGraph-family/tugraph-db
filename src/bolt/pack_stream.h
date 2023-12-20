@@ -21,7 +21,7 @@
 #pragma once
 #include <iostream>
 #include <any>
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
 #include "bolt/pack.h"
 #include "bolt/messages.h"
@@ -73,7 +73,7 @@ class PackStream {
     void End() {
         const auto& err = packer_.Err();
         if (err) {
-            FMA_FATAL() << FMA_FMT("packer meet error {}", err.value());
+            LOG_FATAL() << FMA_FMT("packer meet error {}", err.value());
         }
         chunker_.EndMessage();
     }
@@ -126,7 +126,7 @@ class PackStream {
         } else if (type == typeid(bolt::LocalTime)) {
             PackLocalTime(std::any_cast<const bolt::LocalTime&>(x));
         } else {
-            FMA_FATAL() << FMA_FMT("PackX meet unexpected type {}", type.name());
+            LOG_FATAL() << FMA_FMT("PackX meet unexpected type {}", type.name());
         }
     }
 

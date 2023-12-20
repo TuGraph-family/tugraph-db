@@ -322,16 +322,16 @@ inline LogEntry ReadNextLog(std::ifstream &in, bool &success) {
                 break;
             }
         default:
-            FMA_WARN() << "Unrecognized op type from log: " << ret.op_type;
+            LOG_WARN() << "Unrecognized op type from log: " << ret.op_type;
             success = false;
         }
         return ret;
     } catch (KvException &e) {
-        FMA_WARN() << "KvException occurred while reading log: " << e.what();
+        LOG_WARN() << "KvException occurred while reading log: " << e.what();
         success = false;
         return {};
     } catch (std::exception &e) {
-        FMA_WARN() << "Failed to read next log: " << e.what();
+        LOG_WARN() << "Failed to read next log: " << e.what();
         success = false;
         return {};
     }
@@ -433,7 +433,7 @@ Wal::Wal(MDB_env* env,
 
 inline void TryDeleteLog(const std::string &path) {
     if (!fma_common::file_system::RemoveFile(path)) {
-        FMA_WARN() << "Failed to delete log file " << path;
+        LOG_WARN() << "Failed to delete log file " << path;
     }
 }
 
@@ -459,7 +459,7 @@ Wal::~Wal() {
 void Wal::ReplayLogs()  {
     std::ifstream dbi_in(GetDbiFilePath(), std::ios::binary);
     if (!dbi_in.good()) {
-        FMA_DBG() << "No wal found, starting clean.";
+        LOG_DEBUG() << "No wal found, starting clean.";
         return;
     }
     // list log files
@@ -468,13 +468,13 @@ void Wal::ReplayLogs()  {
         if (fma_common::StartsWith(fname, _wal::WAL_FILE_PREFIX)) {
             uint64_t id = 0;
             if (!fma_common::ParseString(fname.substr(strlen(_wal::WAL_FILE_PREFIX)), id)) {
-                FMA_WARN() << "Unrecognized log file name " << fname;
+                LOG_WARN() << "Unrecognized log file name " << fname;
             }
             log_file_ids.insert(id);
         }
     }
     if (log_file_ids.empty()) {
-        FMA_DBG() << "No op wal found, starting clean.";
+        LOG_DEBUG() << "No op wal found, starting clean.";
         return;
     }
     // Read files and replay
@@ -528,7 +528,7 @@ void Wal::ReplayLogs()  {
                 next_op_entry = ReadNextLog(op_in, succ_op);
                 // if (succ_op) break;
                 if (!succ_op) {
-                    FMA_LOG() << "Finished to read from log file " << op_log_path;
+                    LOG_INFO() << "Finished to read from log file " << op_log_path;
                     // delete this file
                     op_in.close();
                     // open next file

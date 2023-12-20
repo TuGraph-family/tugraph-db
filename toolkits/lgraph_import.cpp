@@ -13,9 +13,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "tools/lgraph_log.h"
 #include "fma-common/check_date.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/timed_task.h"
 #include "fma-common/hardware_info.h"
 #include "import/import_v2.h"
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
     try {
         if (online) {
             if (!full) {
-                FMA_LOG() << "Importing ONLINE: "
+                LOG_INFO() << "Importing ONLINE: "
                           << "\n\tfrom:                " << online_import_config.config_file
                           << "\n\tto:                  " << online_import_config.url
                           << "\n\tverbose:             " << verbose_level
@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
                 OnlineImportClient client(online_import_config);
                 client.DoImport();
             } else {
-                FMA_LOG() << "Full Importing ONLINE: "
+                LOG_INFO() << "Full Importing ONLINE: "
                           << "\n\tfrom:                " << online_import_config.config_file
                           << "\n\tto:                  " << online_import_config.url
                           << "\n\tverbose:             " << verbose_level
@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
                 client.DoFullImport();
             }
         } else if (!v3) {
-            FMA_LOG() << "Importing FROM SCRATCH: "
+            LOG_INFO() << "Importing FROM SCRATCH: "
                       << "\n\tfrom:                " << import_config.config_file
                       << "\n\tto:                  " << import_config.db_dir
                       << "\n\tverbose:             " << verbose_level
@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
             fma_common::TimedTaskScheduler scheduler;
             if (memory_profile) {
                 scheduler.ScheduleReccurringTask(1000, [](TimedTask*) {
-                    FMA_LOG() << "Current available memory: "
+                    LOG_INFO() << "Current available memory: "
                               << fma_common::HardwareInfo::GetAvailableMemory() / 1024 / 1024 / 1024
                               << "GB";
                 });
@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
             Importer importer(import_config);
             importer.DoImportOffline();
         } else {
-            FMA_LOG() << "Importing FROM SCRATCH:   "
+            LOG_INFO() << "Importing FROM SCRATCH:   "
                       << "\n\tfrom:                 " << import_config_v3.config_file
                       << "\n\tto:                   " << import_config_v3.db_dir
                       << "\n\tverbose:              " << verbose_level
@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
             importer.DoImportOffline();
         }
     } catch (std::exception& e) {
-        FMA_LOG() << "An error occurred during import:\n" << PrintNestedException(e, 1);
+        LOG_INFO() << "An error occurred during import:\n" << PrintNestedException(e, 1);
         return 1;
     }
     fma_common::SleepS(3);  // waiting for memory reclaiming by async task

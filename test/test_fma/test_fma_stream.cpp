@@ -20,7 +20,6 @@
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
 #include "fma-common/fma_stream.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -106,7 +105,7 @@ FMA_UNIT_TEST(FmaStream) {
     }
     out.Close();
     double t2 = GetTime();
-    LOG() << "Write completed at "
+    LOG_INFO() << "Write completed at "
           << (double)vector_size * sizeof(T) * n_vectors / 1024 / 1024 / (t2 - t1) << "MB/s";
 
     for (size_t r = 0; r < n_read; r++) {
@@ -123,7 +122,7 @@ FMA_UNIT_TEST(FmaStream) {
             for (auto d : v) s += d;
             FMA_UT_CHECK_EQ(s, sum) << "inconsistent content";
         }
-        LOG() << "Read completed at "
+        LOG_INFO() << "Read completed at "
               << (double)vector_size * sizeof(T) * n_vectors / 1024 / 1024 / t << "MB/s";
     }
 

@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 
@@ -225,7 +224,7 @@ TEST_P(TestSchemaChange, DelFields) {
                                txn.GetEdgeFields(eit));
             }
         }
-        FMA_LOG() << "Current Graph: \n" << str;
+        LOG_INFO() << "Current Graph: \n" << str;
     };
 
     DBConfig conf;

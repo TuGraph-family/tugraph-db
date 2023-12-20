@@ -13,9 +13,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "tools/lgraph_log.h"
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logging.h"
 
 #include "core/killable_rw_lock.h"
 #include "db/galaxy.h"
@@ -34,10 +34,10 @@ int main(int argc, char** argv) {
             "increases backup time");
     config.ParseAndFinalize(argc, argv);
 
-    LOG() << "Backing up data from [" << src << "] to [" << dst << "]";
+    LOG_INFO() << "Backing up data from [" << src << "] to [" << dst << "]";
     // check if src exists
     if (!fma_common::file_system::DirExists(src)) {
-        ERR() << "Source DB does not exist!";
+        LOG_ERROR() << "Source DB does not exist!";
         return -1;
     }
 
@@ -65,10 +65,10 @@ int main(int argc, char** argv) {
             }
         }
         if (!overwrite) {
-            FMA_LOG() << "Program stops without modifying data.";
+            LOG_INFO() << "Program stops without modifying data.";
             return -1;
         } else {
-            FMA_LOG() << "Overwriting all the data in " << dst;
+            LOG_INFO() << "Overwriting all the data in " << dst;
             fs.RemoveDir(dst);
         }
     } else {
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
         _HoldWriteLock(src_galaxy.GetReloadLock());
         src_galaxy.Backup(dst, compact);
     } catch (std::exception& e) {
-        ERR() << "Failed to backup the db: " << e.what();
+        LOG_ERROR() << "Failed to backup the db: " << e.what();
         return -1;
     }
     return 0;

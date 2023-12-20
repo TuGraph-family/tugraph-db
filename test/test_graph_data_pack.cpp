@@ -13,7 +13,6 @@
  */
 
 #include <set>
-#include "fma-common/logging.h"
 #include "fma-common/configuration.h"
 #include "fma-common/string_formatter.h"
 
@@ -377,7 +376,7 @@ TEST_F(TestGraphDataPack, GraphDataPack) {
         TemporalId last_tid = -1;
         int64_t last_vid = -1;
         int64_t last_eid = -1;
-        LOG() << "Now we have " << (int)ev.GetEdgeCount() << " edges";
+        LOG_INFO() << "Now we have " << (int)ev.GetEdgeCount() << " edges";
         std::set<std::tuple<LabelId, TemporalId, int64_t, int64_t>> edges;
         for (size_t i = 0; i < ev.GetEdgeCount(); i++) {
             LabelId lid;

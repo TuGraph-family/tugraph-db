@@ -521,7 +521,7 @@ void Result::Load(const std::string &output) {
         auto record = this->MutableRecord();
         record->Insert(header[0].first, FieldData(output));
         record->length_++;
-        FMA_LOG() << FMA_FMT("[Plugin Error] Error: {}", e.what());
+        LOG_INFO() << FMA_FMT("[Plugin Error] Error: {}", e.what());
     }
 }
 

@@ -15,7 +15,6 @@
 #include <condition_variable>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "gtest/gtest.h"
 
 #include "core/task_tracker.h"

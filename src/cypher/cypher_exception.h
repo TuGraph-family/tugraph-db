@@ -19,16 +19,6 @@
 #include "core/data_type.h"
 #include "fma-common/string_formatter.h"
 
-inline fma_common::Logger& PlanLogger() {
-    static fma_common::Logger& logger = fma_common::Logger::Get("cypher.execution_plan");
-    return logger;
-}
-
-inline fma_common::Logger& ParserLogger() {
-    static fma_common::Logger& logger = fma_common::Logger::Get("cypher.parser");
-    return logger;
-}
-
 namespace lgraph {
 
 #ifndef NDEBUG

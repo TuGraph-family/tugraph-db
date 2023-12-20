@@ -15,7 +15,6 @@
 #include <random>
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logging.h"
 
 #include "gtest/gtest.h"
 

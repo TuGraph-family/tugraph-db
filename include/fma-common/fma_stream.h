@@ -99,7 +99,7 @@ class InputFmaStream : public InputFileStream {
 #if FMA_ENABLE_SNAPPY
             file_ = new SnappyInputStream(path, buf_size);
 #else
-            FMA_ERR() << "Please define FMA_ENABLE_SNAPPY=1 to enable snappy stream";
+            LOG_ERROR() << "Please define FMA_ENABLE_SNAPPY=1 to enable snappy stream";
 #endif
         } else {
             if (FilePath(path).Scheme() == FilePath::SchemeType::LOCAL) {
@@ -111,7 +111,7 @@ class InputFmaStream : public InputFileStream {
 #if FMA_HAS_LIBMYSQL
                 file_ = std::make_unique<InputSqlStream>(path, buf_size);
 #else
-                FMA_ERR() << "Mysql stream is not enabled. Please define FMA_HAS_LIBMYSQL=1 to "
+                LOG_ERROR() << "Mysql stream is not enabled. Please define FMA_HAS_LIBMYSQL=1 to "
                              "enable it.";
 #endif
             }
@@ -269,7 +269,7 @@ class OutputFmaStream : public OutputFileStream {
 #if FMA_ENABLE_SNAPPY
         file_ = new SnappyOutputStream(path, n_buffers, block_size, mode);
 #else
-        FMA_ERR() << "Please define ENABLE_SNAPPY=1 to enable snappy stream";
+        LOG_ERROR() << "Please define ENABLE_SNAPPY=1 to enable snappy stream";
 #endif
     }
 

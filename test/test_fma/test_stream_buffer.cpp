@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/stream_buffer.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -27,7 +26,7 @@ class MockInputStream : public InputStreamBase {
     double read_time_ = 0.0;
 
  public:
-    ~MockInputStream() { LOG() << "Time used in Stream::Read(): " << read_time_; }
+    ~MockInputStream() { LOG_INFO() << "Time used in Stream::Read(): " << read_time_; }
 
     MockInputStream(size_t size, double mbps) {
         size_ = size;
@@ -57,7 +56,7 @@ class MockOutputStream : public OutputStreamBase {
     double read_time_ = 0.0;
 
  public:
-    ~MockOutputStream() { LOG() << "Time used in Stream::Write(): " << read_time_; }
+    ~MockOutputStream() { LOG_INFO() << "Time used in Stream::Write(): " << read_time_; }
 
     explicit MockOutputStream(double mbps) { mbps_ = mbps; }
 
@@ -97,8 +96,8 @@ FMA_UNIT_TEST(StreamBuffer) {
     std::string buf(block_size, 0);
     double tt1, tt2;
     if (mode == "read") {
-        LOG() << "Testing InputStreamBuffer";
-        LOG() << "Directly using stream";
+        LOG_INFO() << "Testing InputStreamBuffer";
+        LOG_INFO() << "Directly using stream";
         tt1 = GetTime();
         {
             MockInputStream in(size, mbps);
@@ -113,8 +112,8 @@ FMA_UNIT_TEST(StreamBuffer) {
             FMA_UT_CHECK_EQ(total, size);
         }
         tt2 = GetTime();
-        LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
-        LOG() << "Now using buffered stream";
+        LOG_INFO() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
+        LOG_INFO() << "Now using buffered stream";
         tt1 = GetTime();
         {
             MockInputStream in(size, mbps);
@@ -131,10 +130,10 @@ FMA_UNIT_TEST(StreamBuffer) {
             FMA_UT_CHECK_EQ(total, size);
         }
         tt2 = GetTime();
-        LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
+        LOG_INFO() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
     } else {
-        LOG() << "Testing OutputStreamBuffer";
-        LOG() << "Directly using stream";
+        LOG_INFO() << "Testing OutputStreamBuffer";
+        LOG_INFO() << "Directly using stream";
         tt1 = GetTime();
         {
             MockOutputStream out(mbps);
@@ -147,8 +146,8 @@ FMA_UNIT_TEST(StreamBuffer) {
             }
         }
         tt2 = GetTime();
-        LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
-        LOG() << "Now using buffered stream";
+        LOG_INFO() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
+        LOG_INFO() << "Now using buffered stream";
         tt1 = GetTime();
         {
             MockOutputStream stream(mbps);
@@ -163,7 +162,7 @@ FMA_UNIT_TEST(StreamBuffer) {
             }
         }
         tt2 = GetTime();
-        LOG() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
+        LOG_INFO() << "Finished at " << (double)size / 1024 / 1024 / (tt2 - tt1) << "MB/s";
     }
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();

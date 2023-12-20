@@ -16,7 +16,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_util.h"
 #include "fma-common/fma_stream.h"
 #include "gtest/gtest.h"
@@ -629,7 +628,7 @@ TEST_F(TestKvStore, KvStore) {
         UT_EXPECT_EQ(size, 1054);
 #endif
     } catch (std::exception& e) {
-        FMA_FATAL() << e.what();
+        LOG_FATAL() << e.what();
     }
 
 #if (!LGRAPH_USE_MOCK_KV)
