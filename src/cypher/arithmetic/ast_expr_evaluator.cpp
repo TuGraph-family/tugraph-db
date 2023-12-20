@@ -233,21 +233,34 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Function* node) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Case* node) {
     if (node->input().has_value()) {
-        NOT_SUPPORT_AND_THROW();
-    }
-    for (auto& [cond, expr] : node->caseBodies()) {
-        auto cond_val = std::any_cast<Entry>(cond->accept(*this));
-        if (!cond_val.IsBool()) {
+        auto l_val = std::any_cast<Entry>(node->input().value()->accept(*this));
+        for (auto& [cond, expr] : node->caseBodies()) {
+            auto r_val = std::any_cast<Entry>(cond->accept(*this));
+            if (l_val == r_val) {
+                return expr->accept(*this);
+            }
+        }
+        if (node->elseBody().has_value()) {
+            return node->elseBody().value()->accept(*this);
+        } else {
             NOT_SUPPORT_AND_THROW();
         }
-        if (cond_val.constant.scalar.AsBool()) {
-            return expr->accept(*this);
-        }
-    }
-    if (node->elseBody().has_value()) {
-        return node->elseBody().value()->accept(*this);
+
     } else {
-        NOT_SUPPORT_AND_THROW();
+        for (auto& [cond, expr] : node->caseBodies()) {
+            auto cond_val = std::any_cast<Entry>(cond->accept(*this));
+            if (!cond_val.IsBool()) {
+                NOT_SUPPORT_AND_THROW();
+            }
+            if (cond_val.constant.scalar.AsBool()) {
+                return expr->accept(*this);
+            }
+        }
+        if (node->elseBody().has_value()) {
+            return node->elseBody().value()->accept(*this);
+        } else {
+            NOT_SUPPORT_AND_THROW();
+        }
     }
 }
 
