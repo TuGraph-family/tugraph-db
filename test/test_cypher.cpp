@@ -2456,11 +2456,7 @@ TEST_P(TestCypher, Cypher) {
     gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
 
-    cypher::RTContext db(nullptr, &galaxy,
-                         galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                             lgraph::_detail::DEFAULT_ADMIN_PASS),
-                         lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
-                         lgraph::AclManager::FieldAccess());
+    cypher::RTContext db(nullptr, &galaxy, lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
     db.param_tab_ = g_param_tab;
 
     auto no_throw_test_case = [&] {

@@ -90,8 +90,9 @@ class Galaxy {
     inline const Config& GetConfig() const { return config_; }
     inline const std::shared_ptr<GlobalConfig> GetGlobalConfigPtr() const { return global_config_; }
 
-    // get token for a user
     std::string GetUserToken(const std::string& user, const std::string& password);
+
+    bool ValidateUser(const std::string& user, const std::string& password);
 
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;

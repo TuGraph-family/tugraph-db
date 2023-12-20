@@ -93,9 +93,7 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             const GraphQueryRequest& cypher_req = req->graph_query_request();
             // const std::string& user = GetCurrUser(lgraph_req);
             std::string user = req->has_user() ? req->user() : GetCurrUser(req);
-            auto field_access = galaxy_->GetRoleFieldAccessLevel(user, cypher_req.graph());
-            cypher::RTContext ctx(this, galaxy_.get(), req->token(), user, cypher_req.graph(),
-                                  field_access);
+            cypher::RTContext ctx(this, galaxy_.get(), user, cypher_req.graph());
             std::string name;
             std::string type;
             bool ret = cypher::Scheduler::DetermineReadOnly(
@@ -930,9 +928,7 @@ bool lgraph::StateMachine::ApplyGraphQueryRequest(const LGraphRequest* lgraph_re
     const GraphQueryRequest& req = lgraph_req->graph_query_request();
     GraphQueryResponse* cresp = resp->mutable_graph_query_response();
     std::string user = lgraph_req->has_user() ? lgraph_req->user() : GetCurrUser(lgraph_req);
-    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, req.graph());
-    cypher::RTContext ctx(this, galaxy_.get(), lgraph_req->token(), user, req.graph(),
-                          field_access);
+    cypher::RTContext ctx(this, galaxy_.get(), user, req.graph());
     if (lgraph_req->has_is_write_op()) {
         is_write = lgraph_req->is_write_op();
     } else {

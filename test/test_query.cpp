@@ -97,9 +97,7 @@ class TestQuery : public TuGraphTest {
         galaxy_ = std::make_shared<lgraph::Galaxy>(gconf_, true, nullptr);
         ctx_ = std::make_shared<cypher::RTContext>(
             nullptr, galaxy_.get(),
-            galaxy_->GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                  lgraph::_detail::DEFAULT_ADMIN_PASS),
-            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_, lgraph::AclManager::FieldAccess());
+            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_);
     }
 
     bool test_gql_case(const std::string& gql, std::string& result) {

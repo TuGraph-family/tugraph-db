@@ -205,6 +205,10 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     ha_node_remove_ms = 1200 * 1000;
     ha_node_join_group_s = 10;
 
+    // bolt
+    bolt_port = 0;
+    bolt_thread_num = 10;
+
     // parse options
     fma_common::Configuration argparser;
     argparser.Add(durable, lgraph::_detail::OPT_DB_DURABLE, true)
@@ -303,6 +307,9 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Node considered completly dead and removed from list after this duration.");
     argparser.Add(ha_node_join_group_s, "ha_node_join_group_s", true)
         .Comment("Node joined replicated group during this duration.");
-
+    argparser.Add(bolt_port, "bolt_port", true)
+        .Comment("Bolt protocol port.");
+    argparser.Add(bolt_thread_num, "bolt_thread_num", true)
+        .Comment("bolt thread pool size.");
     return argparser;
 }

@@ -99,6 +99,7 @@ add_executable(unit_test
         test_schema.cpp
         test_schema_change.cpp
         test_schema_manager.cpp
+        test_bolt_hydrator.cpp
         test_service.cpp
         test_snapshot.cpp
         test_sync_file_implementations.cpp
@@ -129,6 +130,7 @@ add_executable(unit_test
 target_link_libraries(unit_test
         lgraph_server_lib
         geax_isogql
+        bolt
         librocksdb.a)
 
 target_link_libraries(unit_test

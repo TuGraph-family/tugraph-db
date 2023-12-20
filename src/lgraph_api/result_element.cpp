@@ -41,6 +41,16 @@ nlohmann::json Node::ToJson() {
     return result;
 }
 
+bolt::Node Node::ToBolt() {
+    bolt::Node ret;
+    ret.id = id;
+    ret.labels = {label};
+    for (auto& pair : properties) {
+        ret.props.emplace(pair.first, pair.second.ToBolt());
+    }
+    return ret;
+}
+
 nlohmann::json Relationship::ToJson() {
     json result;
     std::map<std::string, json> j_properties;
@@ -60,6 +70,28 @@ nlohmann::json Relationship::ToJson() {
         result["properties"] = j_properties;
     }
     return result;
+}
+
+bolt::RelNode Relationship::ToBoltUnbound() {
+    bolt::RelNode rel;
+    rel.id = id;
+    rel.name = label;
+    for (auto &pair : properties) {
+        rel.props.emplace(pair.first, pair.second.ToBolt());
+    }
+    return rel;
+}
+
+bolt::Relationship Relationship::ToBolt() {
+    bolt::Relationship rel;
+    rel.id = id;
+    rel.startId = src;
+    rel.endId = dst;
+    rel.type = label;
+    for (auto &pair : properties) {
+        rel.props.emplace(pair.first, pair.second.ToBolt());
+    }
+    return rel;
 }
 
 PathElement::PathElement(const PathElement &value) {
@@ -323,6 +355,79 @@ json ResultElement::ToJson() {
         }
     }
     return result;
+}
+
+std::any ResultElement::ToBolt() {
+    if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
+        return v.fieldData->ToBolt();
+    } else if (type_ == LGraphType::LIST) {
+        std::vector<std::any> ret;
+        for (auto &l : *v.list) {
+            if (l.is_null()) {
+                ret.emplace_back();
+            } else if (l.is_number_float()) {
+                ret.emplace_back(l.get<float>());
+            } else if (l.is_number_integer()) {
+                ret.emplace_back(l.get<int64_t>());
+            } else if (l.is_boolean()) {
+                ret.emplace_back(l.get<bool>());
+            } else if (l.is_string()) {
+                ret.emplace_back(l.get<std::string>());
+            } else {
+                throw lgraph::InputError(FMA_FMT(
+                    "ToBolt: unsupported item in list: {}", l.dump()));
+            }
+        }
+        return ret;
+    } else if (type_ == LGraphType::MAP) {
+        std::unordered_map<std::string, std::any> ret;
+        for (auto &pair : *v.map) {
+            if (pair.second.is_null()) {
+                ret.emplace(pair.first, std::any{});
+            } else if (pair.second.is_number_float()) {
+                ret.emplace(pair.first, pair.second.get<float>());
+            } else if (pair.second.is_number_integer()) {
+                ret.emplace(pair.first, pair.second.get<int64_t>());
+            } else if (pair.second.is_boolean()) {
+                ret.emplace(pair.first, pair.second.get<bool>());
+            } else if (pair.second.is_string()) {
+                ret.emplace(pair.first, pair.second.get<std::string>());
+            } else {
+                throw lgraph::InputError(FMA_FMT(
+                    "ToBolt: unsupported value in map: {}", pair.second.dump()));
+            }
+        }
+        return ret;
+    } else if (type_ == LGraphType::NODE) {
+        return v.node->ToBolt();
+    } else if (type_ == LGraphType::RELATIONSHIP) {
+        return v.repl->ToBolt();
+    } else if (type_ == LGraphType::PATH) {
+        bolt::InternalPath path;
+        for (size_t i = 0; i < v.path->size(); i++) {
+            auto& p = (*v.path)[i];
+            if (p.type_ == LGraphType::NODE) {
+                path.nodes.push_back(p.v.node->ToBolt());
+            } else {
+                path.rels.push_back(p.v.repl->ToBoltUnbound());
+            }
+            if (i >= 1) {
+                if (i%2 == 1) {
+                    if (p.v.repl->src == path.nodes.back().id) {
+                        path.indices.push_back((int)path.rels.size());
+                    } else {
+                        path.indices.push_back(0-(int)path.rels.size());
+                    }
+                } else {
+                    path.indices.push_back((int)path.nodes.size()-1);
+                }
+            }
+        }
+        return path;
+    } else {
+        throw lgraph::InputError(FMA_FMT(
+            "ToBolt: unsupported field type: {}", to_string(type_)));
+    }
 }
 
 std::string ResultElement::ToString() { return ToJson().dump(); }

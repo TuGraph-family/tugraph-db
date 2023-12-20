@@ -88,10 +88,7 @@ int test_cypher_plan(const nlohmann::json &conf) {
             gconf.dir = "./testdb";
             lgraph::Galaxy galaxy(gconf, true, nullptr);
             cypher::RTContext db(nullptr, &galaxy,
-                                 galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                                     lgraph::_detail::DEFAULT_ADMIN_PASS),
-                                 lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
-                                 lgraph::AclManager::FieldAccess());
+                                 lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
             db.param_tab_ = g_param_tab;
             for (auto &test_cases : el["querys"].items()) {
                 for (auto &c : test_cases.value()) {

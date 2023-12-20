@@ -24,7 +24,8 @@ class LGraphDaemon : public Service {
         : Service("lgraph", "./lgraph.pid"), server_(config) {}
 
     int Run() override {
-        server_.Start();
+        auto ret = server_.Start();
+        if (ret) return ret;
         return server_.WaitTillKilled();
     }
 };
