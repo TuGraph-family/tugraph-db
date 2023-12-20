@@ -402,6 +402,10 @@ DURATION_BETWEEN
    : 'DURATION_BETWEEN'
    ;
 
+EDGE_ON_JOIN
+   : 'EDGE_ON_JOIN'
+   ;
+
 ELEMENT
    : 'ELEMENT'
    ;
@@ -432,6 +436,10 @@ EXISTS
 
 EXP
    : 'EXP'
+   ;
+
+EXPLAIN
+   : 'EXPLAIN'
    ;
 
 FALSE
@@ -480,6 +488,10 @@ FLOOR
 
 FOR
    : 'FOR'
+   ;
+
+FORMAT
+   : 'FORMAT'
    ;
 
 FROM
@@ -722,6 +734,10 @@ MAX_
    : 'MAX'
    ;
 
+MERGE
+   : 'MERGE'
+   ;
+
 MIN_
    : 'MIN'
    ;
@@ -786,7 +802,7 @@ OCTET_LENGTH
    : 'OCTET_LENGTH'
    ;
 
-OF
+OF_ // conflict prevention
    : 'OF'
    ;
 
@@ -858,6 +874,10 @@ PER_SHARD_LIMIT
    : 'PER_SHARD_LIMIT'
    ;
 
+PER_SRC_DUP_DST_LIMIT
+   : 'PER_SRC_DUP_DST_LIMIT'
+   ;
+
 POWER
    : 'POWER'
    ;
@@ -868,6 +888,10 @@ PRECISION
 
 PROCESSLIST
    : 'PROCESSLIST'
+   ;
+
+PROFILE
+   : 'PROFILE'
    ;
 
 PROPERTY

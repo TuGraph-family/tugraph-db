@@ -28,16 +28,7 @@ public:
     OtherWise() : QueryConjunctionType(AstNodeType::kOtherWise) {}
     ~OtherWise() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
-
-    DEFINE_FROM_AND_TO_JSON
-
-private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-    }
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 };  // class OtherWise
 
 }  // namespace frontend

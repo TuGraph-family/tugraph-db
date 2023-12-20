@@ -139,11 +139,207 @@ std::any GQLAstVisitor::visitGqlRequest(GqlParser::GqlRequestContext* ctx) {
         LOG(WARNING) << "Failed to visit children of GqlRequest: " << K(ret);
     } else if (GEAX_RET_FAIL(checkChildResult())) {
         LOG(WARNING) << "Failed to check child result: " << K(ret);
-    } else if (GEAX_UNLIKELY_NE(childRes_->type(), AstNodeType::kProcedureBody)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
-        LOG(WARNING) << "Statement type is not supported now: " << KV("type", childRes_->type())
-                     << DK(ret);
     }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitExplainActivity(parser::GqlParser::ExplainActivityContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    ExplainActivity* explainActivity = ALLOC_GEAOBJECT(ExplainActivity);
+    DEFER(explainActivity, ret);
+
+    GqlParser::ProcedureSpecificationContext* procedureCtx = nullptr;
+    GqlParser::ExplainFormatContext* formatCtx = nullptr;
+    ProcedureBody* procedureBody = nullptr;
+    if (GEAX_IS_NULL(procedureCtx = ctx->procedureSpecification())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "ProcedureSpecification is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(
+                   VISIT_RULE(procedureCtx, AstNodeType::kProcedureBody, procedureBody))) {
+        LOG(WARNING) << "Failed to visit rule ProcedureSpecification: " << K(ret);
+    } else {
+        explainActivity->setProcedureBody(procedureBody);
+        if (ctx->EXPLAIN() != nullptr) {
+            explainActivity->setIsProfile(false);
+        } else {
+            explainActivity->setIsProfile(true);
+        }
+        if ((formatCtx = ctx->explainFormat()) != nullptr) {
+            explainActivity->setFormat(formatCtx->getText());
+        }
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitSessionActivity(GqlParser::SessionActivityContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    SessionActivity* sessionActivity = ALLOC_GEAOBJECT(SessionActivity);
+    DEFER(sessionActivity, ret);
+
+    auto sessionCtxs = ctx->sessionActivityCommand();
+    for (auto i = 0u; i < sessionCtxs.size() && GEAX_OK(ret); ++i) {
+        Session* session = nullptr;
+        if (GEAX_IS_NULL(sessionCtxs[i])) {
+            ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+            LOG(WARNING) << "SessionActivityCommand is not set in rule SessionActivity: " << K(ret);
+        } else if (GEAX_RET_FAIL(ACCEPT_RULE(sessionCtxs[i]))) {
+            LOG(WARNING) << "Failed to visit SessionActivityCommand: " << K(ret);
+        } else if (GEAX_UNLIKELY(!checkedCast(childRes_, session))) {
+            ret = GEAXErrorCode::GEAX_OOPS;
+            LOG(WARNING) << "ChildRes should be Session: " << K(ret);
+        } else {
+            sessionActivity->appendSession(session);
+        }
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitGqlFullTransaction(GqlParser::GqlFullTransactionContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    TransactionActivity* transactionActivity = ALLOC_GEAOBJECT(TransactionActivity);
+    DEFER(transactionActivity, ret);
+
+    GqlParser::StartTransactionCommandContext* startCtx = nullptr;
+    StartTransaction* start = nullptr;
+    if (GEAX_IS_NULL(startCtx = ctx->startTransactionCommand())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "StartTransactionCommand is not set: " << K(ret);
+    } else if (ctx->procedureSpecification() != nullptr) {
+        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        LOG(WARNING) << "GqlBlock is not supported in transaction yet: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(startCtx, AstNodeType::kStartTransaction, start))) {
+        LOG(WARNING) << "Failed to visit rule StartTransactionCommand: " << K(ret);
+    } else {
+        FullTransaction* full = ALLOC_GEAOBJECT(FullTransaction);
+        full->setStartTransaction(start);
+        transactionActivity->setTransaction(full);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitGqlNormalTransaction(GqlParser::GqlNormalTransactionContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    TransactionActivity* transactionActivity = ALLOC_GEAOBJECT(TransactionActivity);
+    DEFER(transactionActivity, ret);
+
+    GqlParser::ProcedureSpecificationContext* procedureCtx = nullptr;
+    ProcedureBody* procedureBody = nullptr;
+    if (GEAX_IS_NULL(procedureCtx = ctx->procedureSpecification())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "ProcedureSpecification is not set: " << K(ret);
+    } else if (ctx->endTransactionCommand() != nullptr) {
+        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        LOG(WARNING) << "GqlBlock is not supported in transaction yet: " << K(ret);
+    } else if (GEAX_RET_FAIL(
+                   VISIT_RULE(procedureCtx, AstNodeType::kProcedureBody, procedureBody))) {
+        LOG(WARNING) << "Failed to visit rule ProcedureSpecification: " << K(ret);
+    } else {
+        NormalTransaction* normal = ALLOC_GEAOBJECT(NormalTransaction);
+        normal->setProcedureBody(procedureBody);
+        transactionActivity->setTransaction(normal);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitGqlEndTransaction(GqlParser::GqlEndTransactionContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    TransactionActivity* transactionActivity = ALLOC_GEAOBJECT(TransactionActivity);
+    DEFER(transactionActivity, ret);
+
+    GqlParser::EndTransactionCommandContext* endCtx = nullptr;
+    if (GEAX_IS_NULL(endCtx = ctx->endTransactionCommand())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "EndTransactionCommand is not set: " << K(ret);
+    } else if (endCtx->commitCommand() != nullptr) {
+        EndTransaction* end = ALLOC_GEAOBJECT(CommitTransaction);
+        transactionActivity->setTransaction(end);
+    } else if (endCtx->rollbackCommand() != nullptr) {
+        EndTransaction* end = ALLOC_GEAOBJECT(RollBackTransaction);
+        transactionActivity->setTransaction(end);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitStartTransactionCommand(
+    GqlParser::StartTransactionCommandContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    StartTransaction* start = ALLOC_GEAOBJECT(StartTransaction);
+    DEFER(start, ret);
+
+    // TODO(ljr) : TransactionCharacteristics subsequent processing
+    if (ctx->transactionCharacteristics() != nullptr) {
+        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        LOG(WARNING) << "TransactionCharacteristics is not supported yet: " << K(ret);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitSessionSetCommand(GqlParser::SessionSetCommandContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    SessionSet* sessionSet = ALLOC_GEAOBJECT(SessionSet);
+    DEFER(sessionSet, ret);
+
+    if (GEAX_RET_FAIL(byPass(ctx))) {
+        LOG(WARNING) << "Failed to visit children of GqlRequest: " << K(ret);
+    } else if (GEAX_RET_FAIL(checkChildResult())) {
+        LOG(WARNING) << "Failed to check child result: " << K(ret);
+    } else {
+        switch (childRes_->type()) {
+        case AstNodeType::kSetParam:
+            sessionSet->setCommand(castAs<SetParamClause>(childRes_, AstNodeType::kSetParam));
+            break;
+        default:
+            ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+            LOG(WARNING) << "SessionSetCommand except parameter is not supported yet: " << K(ret);
+        }
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitSessionResetCommand(GqlParser::SessionResetCommandContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitSessionSetValueParameterClause(
+    GqlParser::SessionSetValueParameterClauseContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    SetParamClause* setParam = ALLOC_GEAOBJECT(SetParamClause);
+    DEFER(setParam, ret);
+
+    GqlParser::SessionSetParameterNameContext* setNameCtx = ctx->sessionSetParameterName();
+    GqlParser::OptTypedValueInitializerContext* setValueCtx = ctx->optTypedValueInitializer();
+    GqlParser::ExpressionContext* exprCtx = nullptr;
+    GqlParser::ParameterNameContext* nameCtx = nullptr;
+    Expr* expr = nullptr;
+    if (GEAX_ANY_NULL(setNameCtx, setValueCtx)) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Child of SessionSetValueParameterClause is not set: " << K(ret);
+    } else if (GEAX_IS_NULL(nameCtx = setNameCtx->parameterName())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "ParameterName is not set: " << K(ret);
+    } else if (GEAX_IS_NULL(exprCtx = setValueCtx->expression())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Expression is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_EXPR(exprCtx, expr))) {
+        LOG(WARNING) << "Failed to visit expression: " << K(ret);
+    } else {
+        setParam->setSessionParamType(SessionParamType::kValueType);
+        setParam->setName(nameCtx->getText());
+        setParam->setExpr(expr);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitSessionSetGraphParameterClause(
+    GqlParser::SessionSetGraphParameterClauseContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitSessionSetBindingTableParameterClause(
+    GqlParser::SessionSetBindingTableParameterClauseContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     return std::any();
 }
 
@@ -153,18 +349,137 @@ std::any GQLAstVisitor::visitProcedureBody(GqlParser::ProcedureBodyContext* ctx)
     DEFER(procedure, ret);
 
     GqlParser::StatementBlockContext* stmtCtx = nullptr;
+    GqlParser::BindingVariableDefinitionBlockContext* bindingCtx = nullptr;
     if (ctx->atSchemaClause() != nullptr) {
         ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
         LOG(WARNING) << "AtSchemaClause is not supported now: " << K(ret);
-    } else if (ctx->bindingVariableDefinitionBlock() != nullptr) {
-        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
-        LOG(WARNING) << "BindingVariable is not supported now: " << K(ret);
     } else if (GEAX_IS_NULL(stmtCtx = ctx->statementBlock())) {
         ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
         LOG(WARNING) << "StatementBlock is not set: " << K(ret);
     } else if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(stmtCtx, procedure))) {
         LOG(WARNING) << "Failed to visit rule StatementBlock: " << K(ret);
+    } else if ((bindingCtx = ctx->bindingVariableDefinitionBlock()) != nullptr) {
+        if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(bindingCtx, procedure))) {
+            LOG(WARNING) << "Failed to visit rule BindingVariableDefinitionBlock: " << K(ret);
+        }
     }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitBindingVariableDefinitionBlock(
+    GqlParser::BindingVariableDefinitionBlockContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    DEFER_RET(ret);
+
+    ProcedureBody* procedure = nullptr;
+    if (GEAX_IS_NULL(procedure = castAs<ProcedureBody>(faRes_, AstNodeType::kProcedureBody))) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Failed to cast to node kProcedureBody: " << K(ret);
+    } else {
+        auto bindingVarCtxs = ctx->bindingVariableDefinition();
+        for (auto i = 0u; i < bindingVarCtxs.size() && GEAX_OK(ret); ++i) {
+            BindingDefinition* bindingDef = nullptr;
+            if (GEAX_IS_NULL(bindingVarCtxs[i])) {
+                ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+                LOG(WARNING) << "BindingVariableDefinition is not set in rule "
+                                "BindingVariableDefinitionBlock: "
+                             << K(ret);
+            } else if (GEAX_RET_FAIL(ACCEPT_RULE(bindingVarCtxs[i]))) {
+                LOG(WARNING) << "Failed to visit BindingVariableDefinition: " << K(ret);
+            } else if (GEAX_UNLIKELY(!checkedCast(childRes_, bindingDef))) {
+                ret = GEAXErrorCode::GEAX_OOPS;
+                LOG(WARNING) << "Child result should be a BindingDefinition: " << K(ret);
+            } else {
+                procedure->appendBindingDefinition(bindingDef);
+            }
+        }
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitGraphVariableDefinition(
+    GqlParser::GraphVariableDefinitionContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitValueVariableDefinition(
+    GqlParser::ValueVariableDefinitionContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitBindingTableVariableDefinition(
+    GqlParser::BindingTableVariableDefinitionContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    BindingTable* bindingTable = ALLOC_GEAOBJECT(BindingTable);
+    DEFER(bindingTable, ret);
+
+    GqlParser::BindingTableVariableContext* tableVarCtx = nullptr;
+    GqlParser::OptTypedBindingTableInitializerContext* optInitCtx = nullptr;
+    GqlParser::BindingTableInitializerContext* tableInitCtx = nullptr;
+    GqlParser::BindingTableExpressionContext* tableExprCtx = nullptr;
+    Ref* ref = nullptr;
+    BindingTableExpr* bindingTableExpr = nullptr;
+    if (GEAX_ANY_NULL(tableVarCtx = ctx->bindingTableVariable(),
+                      optInitCtx = ctx->optTypedBindingTableInitializer())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Child of BindingTableVariableDefinition is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_EXPR(tableVarCtx, ref))) {
+        LOG(WARNING) << "Failed to visit rule BindingTableVariable: " << K(ret);
+    } else if (GEAX_IS_NULL(tableInitCtx = optInitCtx->bindingTableInitializer())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "BindingTableInitializer is not set: " << K(ret);
+    } else if (GEAX_IS_NULL(tableExprCtx = tableInitCtx->bindingTableExpression())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "BindingTableExpression is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(ACCEPT_RULE(tableExprCtx))) {
+        LOG(WARNING) << "Failed to visit BindingTableInitializer: " << K(ret);
+    } else if (GEAX_UNLIKELY(!checkedCast(childRes_, bindingTableExpr))) {
+        ret = GEAXErrorCode::GEAX_OOPS;
+        LOG(WARNING) << "Child result should be a BindingTableExpr: " << K(ret);
+    } else {
+        bindingTable->setVal(std::move(ref->name()));
+        bindingTable->setQuery(bindingTableExpr);
+        // TODO(ljr) : consider bindingTableReferenceValueType
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitNestedQuerySpecification(
+    GqlParser::NestedQuerySpecificationContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    BindingTableInnerQuery* nestedQuery = ALLOC_GEAOBJECT(BindingTableInnerQuery);
+    DEFER(nestedQuery, ret);
+
+    GqlParser::ProcedureSpecificationContext* procedureCtx = nullptr;
+    ProcedureBody* procedureBody = nullptr;
+    if (GEAX_IS_NULL(procedureCtx = ctx->procedureSpecification())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "ProcedureSpecification is not set in NestedQuerySpecification: " << K(ret);
+    } else if (GEAX_RET_FAIL(
+                   VISIT_RULE(procedureCtx, AstNodeType::kProcedureBody, procedureBody))) {
+        LOG(WARNING) << "Failed to visit rule ProcedureSpecification: " << K(ret);
+    } else {
+        nestedQuery->setBody(procedureBody);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitObjectExpressionPrimary(
+    GqlParser::ObjectExpressionPrimaryContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitBindingTableReference(GqlParser::BindingTableReferenceContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitObjectNameOrBindingVariable(
+    GqlParser::ObjectNameOrBindingVariableContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     return std::any();
 }
 
@@ -189,8 +504,6 @@ std::any GQLAstVisitor::visitStatementBlock(GqlParser::StatementBlockContext* ct
     } else {
         StatementWithYield* headStmt = ALLOC_GEAOBJECT(StatementWithYield);
         headStmt->setStatement(stmt);
-        YieldField* yieldNode = ALLOC_GEAOBJECT(YieldField);
-        headStmt->setYield(yieldNode);
         procedure->appendStatement(headStmt);
         auto nextStmts = ctx->nextStatement();
         for (auto i = 0u; i < nextStmts.size() && GEAX_OK(ret); ++i) {
@@ -222,9 +535,6 @@ std::any GQLAstVisitor::visitNextStatement(GqlParser::NextStatementContext* ctx)
         } else {
             nextStmt->setYield(yieldNode);
         }
-    } else {
-        YieldField* yieldNode = ALLOC_GEAOBJECT(YieldField);
-        nextStmt->setYield(yieldNode);
     }
 
     GqlParser::StatementContext* stmtCtx = nullptr;
@@ -309,6 +619,27 @@ std::any GQLAstVisitor::visitQueryStatement(GqlParser::QueryStatementContext* ct
         LOG(WARNING) << "Failed to visit joinQueryExpression: " << K(ret);
     } else {
         queryStmt->setJoinQuery(joinQuery);
+    }
+
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitStandaloneCallStatement(
+    GqlParser::StandaloneCallStatementContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    StandaloneCallStatement* standaloneCall = ALLOC_GEAOBJECT(StandaloneCallStatement);
+    DEFER(standaloneCall, ret);
+
+    GqlParser::CallProcedureStatementContext* callCtx = nullptr;
+    CallProcedureStatement* callStmt = nullptr;
+    if (GEAX_IS_NULL(callCtx = ctx->callProcedureStatement())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "CallProcedureStatement is not set in rule StandaloneCallStatement: "
+                     << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(callCtx, AstNodeType::kCallProcedureStatement, callStmt))) {
+        LOG(WARNING) << "Failed to visit CallProcedureStatement: " << K(ret);
+    } else {
+        standaloneCall->setProcedureStatement(callStmt);
     }
 
     return std::any();
@@ -434,6 +765,14 @@ std::any GQLAstVisitor::visitAmbientLinearQueryStatement(
                     ambientStmt->appendQueryStatement(
                         castAs<FilterStatement>(childRes_, AstNodeType::kFilterStatement));
                     break;
+                case AstNodeType::kForStatement:
+                    ambientStmt->appendQueryStatement(
+                        castAs<ForStatement>(childRes_, AstNodeType::kForStatement));
+                    break;
+                case AstNodeType::kCallQueryStatement:
+                    ambientStmt->appendQueryStatement(
+                        castAs<CallQueryStatement>(childRes_, AstNodeType::kCallQueryStatement));
+                    break;
                 default:
                     ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
                     LOG(WARNING) << "Child type is not supported. " << KV("type", childRes_->type())
@@ -519,8 +858,7 @@ std::any GQLAstVisitor::visitAmbientLinearDataModifyingStatementBody(
                             if (graphPattern->keep().has_value() ||
                                 graphPattern->matchMode().has_value() ||
                                 graphPattern->where().has_value() ||
-                                (graphPattern->yield() != nullptr &&
-                                 !graphPattern->yield()->items().empty())) {
+                                graphPattern->yield().has_value()) {
                                 ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
                                 LOG(WARNING) << "mode/keep/where/yield is not supported in "
                                                 "converting to multi-match: "
@@ -541,9 +879,6 @@ std::any GQLAstVisitor::visitAmbientLinearDataModifyingStatementBody(
                                         GraphPattern* newGraphPattern =
                                             ALLOC_GEAOBJECT(GraphPattern);
                                         newGraphPattern->appendPathPattern(pathPattern);
-                                        // but yield is not optional, so we must set a empty yield
-                                        YieldField* yieldNode = ALLOC_GEAOBJECT(YieldField);
-                                        newGraphPattern->setYield(yieldNode);
                                         MatchStatement* matchTmp = ALLOC_GEAOBJECT(MatchStatement);
                                         matchTmp->setGraphPattern(newGraphPattern);
                                         dataModifyStmt->appendQueryStatement(matchTmp);
@@ -596,6 +931,12 @@ std::any GQLAstVisitor::visitAmbientLinearDataModifyingStatementBody(
                 ReplaceStatement* replace =
                     castAs<ReplaceStatement>(childRes_, AstNodeType::kReplaceStatement);
                 dataModifyStmt->appendModifyStatement(replace);
+                break;
+            }
+            case AstNodeType::kMergeStatement: {
+                MergeStatement* merge =
+                    castAs<MergeStatement>(childRes_, AstNodeType::kMergeStatement);
+                dataModifyStmt->appendModifyStatement(merge);
                 break;
             }
             default:
@@ -860,6 +1201,77 @@ std::any GQLAstVisitor::visitReplaceStatement(GqlParser::ReplaceStatementContext
     return std::any();
 }
 
+std::any GQLAstVisitor::visitMergeStatement(GqlParser::MergeStatementContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    MergeStatement* merge = ALLOC_GEAOBJECT(MergeStatement);
+    DEFER(merge, ret);
+
+    PathPattern* pathPattern = nullptr;
+    GqlParser::PathPatternContext* patternCtx = nullptr;
+
+    if (GEAX_IS_NULL(patternCtx = ctx->pathPattern())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "PathPattern is not set in rule MergeStatement: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(patternCtx, AstNodeType::kPathPattern, pathPattern))) {
+        LOG(WARNING) << "Failed to visit rule PathPattern: " << K(ret);
+    } else {
+        merge->setPathPattern(pathPattern);
+    }
+    auto mergeActionCtxs = ctx->mergeAction();
+    for (auto i = 0u; GEAX_OK(ret) && i < mergeActionCtxs.size(); ++i) {
+        if (GEAX_IS_NULL(mergeActionCtxs[i])) {
+            ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+            LOG(WARNING) << "MergeAction is not set in MergeActionList: " << K(ret);
+        } else if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(mergeActionCtxs[i], merge))) {
+            LOG(WARNING) << "Failed to visit rule mergeAction: " << K(ret);
+        }
+    }
+
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitGqlMergeOnMatch(GqlParser::GqlMergeOnMatchContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    DEFER_RET(ret);
+
+    MergeStatement* merge = nullptr;
+    GqlParser::SetStatementContext* setCtx = nullptr;
+    SetStatement* setStatement = nullptr;
+    if (GEAX_IS_NULL(merge = castAs<MergeStatement>(faRes_, AstNodeType::kMergeStatement))) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Failed to cast to node kMergeStatement: " << K(ret);
+    } else if (GEAX_IS_NULL(setCtx = ctx->setStatement())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "SetStatement is not set in rule GqlMergeOnMatch: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(setCtx, AstNodeType::kSetStatement, setStatement))) {
+        LOG(WARNING) << "Failed to visit rule SetStatement: " << K(ret);
+    } else {
+        merge->appendOnMatch(setStatement);
+    }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitGqlMergeOnCreate(GqlParser::GqlMergeOnCreateContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    DEFER_RET(ret);
+
+    MergeStatement* merge = nullptr;
+    GqlParser::SetStatementContext* setCtx = nullptr;
+    SetStatement* setStatement = nullptr;
+    if (GEAX_IS_NULL(merge = castAs<MergeStatement>(faRes_, AstNodeType::kMergeStatement))) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Failed to cast to node kMergeStatement: " << K(ret);
+    } else if (GEAX_IS_NULL(setCtx = ctx->setStatement())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "SetStatement is not set in rule GqlMergeOnMatch: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(setCtx, AstNodeType::kSetStatement, setStatement))) {
+        LOG(WARNING) << "Failed to visit rule SetStatement: " << K(ret);
+    } else {
+        merge->appendOnCreate(setStatement);
+    }
+    return std::any();
+}
+
 std::any GQLAstVisitor::visitFilterStatement(GqlParser::FilterStatementContext* ctx) {
     auto ret = GEAXErrorCode::GEAX_SUCCEED;
     FilterStatement* filter = ALLOC_GEAOBJECT(FilterStatement);
@@ -915,9 +1327,6 @@ std::any GQLAstVisitor::visitSimpleMatchStatement(GqlParser::SimpleMatchStatemen
         } else {
             graphPattern->setYield(yieldNode);
         }
-    } else {
-        YieldField* yieldNode = ALLOC_GEAOBJECT(YieldField);
-        graphPattern->setYield(yieldNode);
     }
 
     return std::any();
@@ -943,6 +1352,51 @@ std::any GQLAstVisitor::visitOptionalMatchStatement(GqlParser::OptionalMatchStat
 
 std::any GQLAstVisitor::visitMatchStatementBlock(GqlParser::MatchStatementBlockContext* ctx) {
     childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitForStatement(GqlParser::ForStatementContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    ForStatement* forStatement = ALLOC_GEAOBJECT(ForStatement);
+    DEFER(forStatement, ret);
+
+    GqlParser::ForItemContext* forItemCtx = nullptr;
+    GqlParser::ForOrdinalityOrOffsetContext* ordinalityCtx = nullptr;
+    GqlParser::ForItemAliasContext* forItemAliasCtx = nullptr;
+    GqlParser::ExpressionAtomContext* exprAtomCtx = nullptr;
+    GqlParser::IdentifierContext* idCtx = nullptr;
+    Expr* expr = nullptr;
+    if (GEAX_IS_NULL(forItemCtx = ctx->forItem())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Child of ForStatement is not set: " << K(ret);
+    } else if (GEAX_ANY_NULL(forItemAliasCtx = forItemCtx->forItemAlias(),
+                             exprAtomCtx = forItemCtx->expressionAtom())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Child of ForItem is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_EXPR(exprAtomCtx, expr))) {
+        LOG(WARNING) << "Failed to visit ExpressionAtom: " << K(ret);
+    } else {
+        forStatement->setExpr(expr);
+        auto idCtxs = forItemAliasCtx->identifier();
+        for (auto i = 0u; GEAX_OK(ret) && i < idCtxs.size(); ++i) {
+            if (GEAX_IS_NULL(idCtxs[i])) {
+                ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+                LOG(WARNING) << "Identifier is not set in ForItemAlias: " << K(ret);
+            } else {
+                forStatement->appendItem(idCtxs[i]->getText());
+            }
+        }
+    }
+    if (GEAX_FAIL(ret)) {
+    } else if ((ordinalityCtx = ctx->forOrdinalityOrOffset()) != nullptr) {
+        if (GEAX_IS_NULL(idCtx = ordinalityCtx->identifier())) {
+            ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+            LOG(WARNING) << "Identifier is not set in ForOrdinalityOrOffset: " << K(ret);
+        } else {
+            forStatement->setOrdinalityOrOffset(
+                ordinalityCtx->ORDINALITY() == nullptr ? false : true, idCtx->getText());
+        }
+    }
     return std::any();
 }
 
@@ -1596,10 +2050,13 @@ std::any GQLAstVisitor::visitOrderByAndPageStatement(
     DEFER_RET(ret);
 
     PrimitiveResultStatement* result = nullptr;
+    // TODO(ljr) : consider use a AST node 'OrderByAndPage'? It contains offset,limit and orderBy
     if (GEAX_IS_NULL(result = castAs<PrimitiveResultStatement>(
                          faRes_, AstNodeType::kPrimitiveResultStatement))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kPrimitiveResultStatement: " << K(ret);
+        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        LOG(WARNING)
+            << "OrderByAndPageStatement is only supported in primitiveResultStatement yet: "
+            << K(ret);
     } else {
         for (auto i = 0u; GEAX_OK(ret) && i < ctx->children.size(); ++i) {
             GqlParser::OffsetClauseContext* offsetCtx = nullptr;
@@ -1735,6 +2192,119 @@ std::any GQLAstVisitor::visitSortSpecification(GqlParser::SortSpecificationConte
             }
         }
     }
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitCallQueryStatement(GqlParser::CallQueryStatementContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    CallQueryStatement* callQuery = ALLOC_GEAOBJECT(CallQueryStatement);
+    DEFER(callQuery, ret);
+
+    GqlParser::CallProcedureStatementContext* callCtx = nullptr;
+    CallProcedureStatement* callStmt = nullptr;
+    if (GEAX_IS_NULL(callCtx = ctx->callProcedureStatement())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "CallProcedureStatement is not set in rule CallQueryStatement: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(callCtx, AstNodeType::kCallProcedureStatement, callStmt))) {
+        LOG(WARNING) << "Failed to visit CallProcedureStatement: " << K(ret);
+    } else {
+        callQuery->setProcedureStatement(callStmt);
+    }
+
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitCallProcedureStatement(GqlParser::CallProcedureStatementContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    CallProcedureStatement* procedureStmt = ALLOC_GEAOBJECT(CallProcedureStatement);
+    DEFER(procedureStmt, ret);
+
+    if (ctx->OPTIONAL() != nullptr) {
+        procedureStmt->setIsOption(true);
+    } else {
+        procedureStmt->setIsOption(false);
+    }
+    GqlParser::ProcedureCallContext* procedureCtx = nullptr;
+    ProcedureCall* procedureCall = nullptr;
+    if (GEAX_IS_NULL(procedureCtx = ctx->procedureCall())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "ProcedureCall is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(ACCEPT_RULE(procedureCtx))) {
+        LOG(WARNING) << "Failed to visit rule ProcedureCall: " << K(ret);
+    } else if (GEAX_UNLIKELY(!checkedCast(childRes_, procedureCall))) {
+        ret = GEAXErrorCode::GEAX_OOPS;
+        LOG(WARNING) << "Child result should be a ProcedureCall: " << K(ret);
+    } else {
+        procedureStmt->setProcedureCall(procedureCall);
+    }
+
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitInlineProcedureCall(GqlParser::InlineProcedureCallContext* ctx) {
+    childRet_ = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitNamedProcedureCall(GqlParser::NamedProcedureCallContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    NamedProcedureCall* namedProcedure = ALLOC_GEAOBJECT(NamedProcedureCall);
+    DEFER(namedProcedure, ret);
+
+    GqlParser::ProcedureArgumentListContext* argListCtx = nullptr;
+    GqlParser::YieldClauseContext* yieldCtx = nullptr;
+    GqlParser::ProcedureReferenceContext* procedureRefCtx = nullptr;
+    if (GEAX_IS_NULL(procedureRefCtx = ctx->procedureReference())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "ProcedureReference is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(ACCEPT_RULE(procedureRefCtx))) {
+        LOG(WARNING) << "Failed to visit rule ProcedureReference: " << K(ret);
+    } else {
+        switch (childRes_->type()) {
+        case AstNodeType::kVString: {
+            VString* vString = castAs<VString>(childRes_, AstNodeType::kVString);
+            namedProcedure->setName(vString->val());
+            break;
+        }
+        case AstNodeType::kParam: {
+            Param* param = castAs<Param>(childRes_, AstNodeType::kParam);
+            namedProcedure->setName(param);
+            break;
+        }
+        default: {
+            ret = GEAXErrorCode::GEAX_OOPS;
+            LOG(WARNING) << "Child result should be VString or Param: " << K(ret);
+            break;
+        }
+        }
+    }
+
+    if (GEAX_FAIL(ret)) {
+    } else if ((argListCtx = ctx->procedureArgumentList()) != nullptr) {
+        auto procedureArgsCtx = argListCtx->procedureArgument();
+        for (auto i = 0u; i < procedureArgsCtx.size() && GEAX_OK(ret); ++i) {
+            Expr* expr = nullptr;
+            if (GEAX_IS_NULL(procedureArgsCtx[i])) {
+                ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+                LOG(WARNING) << "ProcedureArgument is not set: " << K(ret);
+            } else if (GEAX_RET_FAIL(VISIT_EXPR(procedureArgsCtx[i], expr))) {
+                LOG(WARNING) << "Failed to visit rule ProcedureArgument: " << K(ret);
+            } else {
+                namedProcedure->appendArg(expr);
+            }
+        }
+    }
+
+    if (GEAX_FAIL(ret)) {
+    } else if ((yieldCtx = ctx->yieldClause()) != nullptr) {
+        YieldField* yieldNode = nullptr;
+        if (GEAX_RET_FAIL(VISIT_RULE(yieldCtx, AstNodeType::kYieldField, yieldNode))) {
+            LOG(WARNING) << "Failed to visit rule Yield: " << K(ret);
+        } else {
+            namedProcedure->setYield(yieldNode);
+        }
+    }
+
     return std::any();
 }
 
@@ -1955,31 +2525,31 @@ std::any GQLAstVisitor::visitElementPatternFiller(GqlParser::ElementPatternFille
     ElementFiller* filler = ALLOC_GEAOBJECT(ElementFiller);
     DEFER(filler, ret);
 
-    for (auto i = 0u; i < ctx->children.size() && GEAX_OK(ret); ++i) {
-        GqlParser::ElementVariableDeclarationContext* varCtx = nullptr;
-        GqlParser::IsLabelExpressionContext* labelExprCtx = nullptr;
-        GqlParser::ElementPatternPredicateContext* predicateCtx = nullptr;
-        if (checkedCast(ctx->children[i], varCtx)) {
-            if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(varCtx, filler))) {
-                LOG(WARNING) << "Failed to visit ElementVariableDeclaration: " << K(ret);
-            }
-        } else if (checkedCast(ctx->children[i], labelExprCtx)) {
-            LabelTree* label = nullptr;
-            if (GEAX_RET_FAIL(ACCEPT_RULE(labelExprCtx))) {
-                LOG(WARNING) << "Failed visit IsLabelExpression: " << K(ret);
-            } else if (GEAX_UNLIKELY(!checkedCast(childRes_, label))) {
-                ret = GEAXErrorCode::GEAX_OOPS;
-                LOG(WARNING) << "Child result should be a LabelTree: " << K(ret);
-            } else {
-                filler->setLabel(label);
-            }
-        } else if (checkedCast(ctx->children[i], predicateCtx)) {
-            if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(predicateCtx, filler))) {
-                LOG(WARNING) << "Failed to visit ElementPatternPredicate: " << K(ret);
-            }
+    GqlParser::ElementVariableDeclarationContext* varCtx = nullptr;
+    GqlParser::IsLabelExpressionContext* labelExprCtx = nullptr;
+    std::vector<GqlParser::ElementPatternPredicateContext*> predicateCtxs =
+        ctx->elementPatternPredicate();
+    if ((varCtx = ctx->elementVariableDeclaration()) != nullptr) {
+        if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(varCtx, filler))) {
+            LOG(WARNING) << "Failed to visit ElementVariableDeclaration: " << K(ret);
         }
     }
-
+    if (GEAX_FAIL(ret)) {
+    } else if ((labelExprCtx = ctx->isLabelExpression()) != nullptr) {
+        LabelTree* label = nullptr;
+        if (GEAX_RET_FAIL(ACCEPT_RULE(labelExprCtx))) {
+            LOG(WARNING) << "Failed visit IsLabelExpression: " << K(ret);
+        } else if (GEAX_UNLIKELY(!checkedCast(childRes_, label))) {
+            ret = GEAXErrorCode::GEAX_OOPS;
+            LOG(WARNING) << "Child result should be a LabelTree: " << K(ret);
+        } else {
+            filler->setLabel(label);
+        }
+    }
+    if (GEAX_FAIL(ret)) {
+    } else if (GEAX_RET_FAIL(visitElementPatternPredicates(predicateCtxs, filler))) {
+        LOG(WARNING) << "Failed to visit ElementPatternPredicates: " << K(ret);
+    }
     return std::any();
 }
 
@@ -2007,78 +2577,55 @@ std::any GQLAstVisitor::visitElementVariableDeclaration(
     return std::any();
 }
 
-std::any GQLAstVisitor::visitElementPatternPredicate(
-    GqlParser::ElementPatternPredicateContext* ctx) {
+GEAXErrorCode GQLAstVisitor::visitElementPatternPredicates(
+    std::vector<GqlParser::ElementPatternPredicateContext*>& predicateCtxs, ElementFiller* filler) {
     auto ret = GEAXErrorCode::GEAX_SUCCEED;
     DEFER_RET(ret);
 
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
+    if (GEAX_IS_NULL(filler)) {
         ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
+        LOG(WARNING) << "ElementFiller is nullptr: " << K(ret);
     } else {
         GqlParser::WhereClauseContext* whereCtx = nullptr;
         GqlParser::ElementPropertySpecificationContext* propertyCtx = nullptr;
-        GqlParser::PerNodeLimitClauseContext* perNodeCtx = nullptr;
-        GqlParser::PerNodeLimitWherePredicateContext* perNodeWhereCtx = nullptr;
-        GqlParser::PerNodeLimitPropertyPredicateContext* perNodePropertyCtx = nullptr;
-        GqlParser::PerShardLimitClauseContext* perShardCtx = nullptr;
-        GqlParser::PerShardLimitWherePredicateContext* perShardWhereCtx = nullptr;
-        GqlParser::PerShardLimitPropertyPredicateContext* perShardPropertyCtx = nullptr;
-        if (GEAX_UNLIKELY(ctx->children.size() != 1)) {
-            ret = GEAXErrorCode::GEAX_COMMON_SYNTAX_ERROR;
-            LOG(WARNING) << "Invalid children num for rule ElementPatternPredicate: "
-                         << DKV("size", ctx->children.size()) << DK(ret);
-        } else if (checkedCast(ctx->children[0], whereCtx)) {
-            WhereClause* where = nullptr;
-            if (GEAX_RET_FAIL(VISIT_RULE(whereCtx, AstNodeType::kWhere, where))) {
-                LOG(WARNING) << "Failed to visit WhereClause: " << K(ret);
+        GqlParser::ElementTableFunctionContext* tableFuncCtx = nullptr;
+        for (auto i = 0u; i < predicateCtxs.size() && GEAX_OK(ret); ++i) {
+            if (GEAX_UNLIKELY(predicateCtxs[i]->children.size() != 1)) {
+                ret = GEAXErrorCode::GEAX_COMMON_SYNTAX_ERROR;
+                LOG(WARNING) << "Invalid children num for rule ElementPatternPredicate: "
+                             << DKV("size", predicateCtxs[i]->children.size()) << DK(ret);
+            } else if (whereCtx == nullptr && propertyCtx == nullptr &&
+                       checkedCast(predicateCtxs[i]->children[0], whereCtx)) {
+                WhereClause* where = nullptr;
+                if (GEAX_RET_FAIL(VISIT_RULE(whereCtx, AstNodeType::kWhere, where))) {
+                    LOG(WARNING) << "Failed to visit WhereClause: " << K(ret);
+                } else {
+                    filler->appendPredicate(where);
+                }
+            } else if (whereCtx == nullptr && propertyCtx == nullptr &&
+                       checkedCast(predicateCtxs[i]->children[0], propertyCtx)) {
+                PropStruct* prop = nullptr;
+                if (GEAX_RET_FAIL(VISIT_RULE(propertyCtx, AstNodeType::kPropStruct, prop))) {
+                    LOG(WARNING) << "Failed to visit ElementPropertySpecification: " << K(ret);
+                } else {
+                    filler->appendPredicate(prop);
+                }
+            } else if (checkedCast(predicateCtxs[i]->children[0], tableFuncCtx)) {
+                TableFunctionClause* tableFunc = nullptr;
+                if (GEAX_RET_FAIL(
+                        VISIT_RULE(tableFuncCtx, AstNodeType::kTableFunction, tableFunc))) {
+                    LOG(WARNING) << "Failed to visit PerNodeLimitClause: " << K(ret);
+                } else {
+                    filler->appendPredicate(tableFunc);
+                }
             } else {
-                filler->appendPredicate(where);
+                ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+                LOG(WARNING) << "Multi WhereClause or ElementProperty is not supported yet: "
+                             << KV("type", childRes_->type());
             }
-        } else if (checkedCast(ctx->children[0], propertyCtx)) {
-            PropStruct* prop = nullptr;
-            if (GEAX_RET_FAIL(VISIT_RULE(propertyCtx, AstNodeType::kPropStruct, prop))) {
-                LOG(WARNING) << "Failed to visit ElementPropertySpecification: " << K(ret);
-            } else {
-                filler->appendPredicate(prop);
-            }
-        } else if (checkedCast(ctx->children[0], perNodeCtx)) {
-            TableFunctionClause* tableFunc = nullptr;
-            if (GEAX_RET_FAIL(VISIT_RULE(perNodeCtx, AstNodeType::kTableFunction, tableFunc))) {
-                LOG(WARNING) << "Failed to visit PerNodeLimitClause: " << K(ret);
-            } else {
-                filler->appendPredicate(tableFunc);
-            }
-        } else if (checkedCast(ctx->children[0], perNodeWhereCtx)) {
-            if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(perNodeWhereCtx, filler))) {
-                LOG(WARNING) << "Failed to visit PerNodeLimitWherePredicate: " << K(ret);
-            }
-        } else if (checkedCast(ctx->children[0], perNodePropertyCtx)) {
-            if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(perNodePropertyCtx, filler))) {
-                LOG(WARNING) << "Failed to visit PerNodeLimitPropertyPredicate: " << K(ret);
-            }
-        } else if (checkedCast(ctx->children[0], perShardCtx)) {
-            TableFunctionClause* tableFunc = nullptr;
-            if (GEAX_RET_FAIL(VISIT_RULE(perShardCtx, AstNodeType::kTableFunction, tableFunc))) {
-                LOG(WARNING) << "Failed to visit PerShardLimitClause: " << K(ret);
-            } else {
-                filler->appendPredicate(tableFunc);
-            }
-        } else if (checkedCast(ctx->children[0], perShardWhereCtx)) {
-            if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(perShardWhereCtx, filler))) {
-                LOG(WARNING) << "Failed to visit PerShardLimitWherePredicate: " << K(ret);
-            }
-        } else if (checkedCast(ctx->children[0], perShardPropertyCtx)) {
-            if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(perShardPropertyCtx, filler))) {
-                LOG(WARNING) << "Failed to visit PerShardLimitPropertyPredicate: " << K(ret);
-            }
-        } else {
-            ret = GEAXErrorCode::GEAX_OOPS;
-            LOG(WARNING) << "Invalid AstNode: " << KV("type", childRes_->type());
         }
     }
-    return std::any();
+    return ret;
 }
 
 std::any GQLAstVisitor::visitPropertyKeyValuePairList(
@@ -2145,15 +2692,14 @@ std::any GQLAstVisitor::visitWhereClause(GqlParser::WhereClauseContext* ctx) {
     return std::any();
 }
 
-std::any GQLAstVisitor::visitPerNodeLimitClause(GqlParser::PerNodeLimitClauseContext* ctx) {
+std::any GQLAstVisitor::visitElementTableFunction(GqlParser::ElementTableFunctionContext* ctx) {
     auto ret = GEAXErrorCode::GEAX_SUCCEED;
     TableFunctionClause* tableFunc = ALLOC_GEAOBJECT(TableFunctionClause);
     DEFER(tableFunc, ret);
 
     Function* func = nullptr;
-    if (GEAX_RET_FAIL(
-            visitPerLimitFunction(ctx->unsignedIntegerSpecification(), ctx->PER_NODE_LIMIT()))) {
-        LOG(WARNING) << "Failed to visit PerLimitFunction: " << K(ret);
+    if (GEAX_RET_FAIL(visitTableFunction(ctx->tableFunctionName(), ctx->eleTableFuncParameter()))) {
+        LOG(WARNING) << "Failed to visit rule ElementTableFunction: " << DK(ret);
     } else if (GEAX_UNLIKELY(!checkedCast(childRes_, func))) {
         ret = GEAXErrorCode::GEAX_OOPS;
         LOG(WARNING) << "Child result should be a Function: " << K(ret);
@@ -2161,372 +2707,6 @@ std::any GQLAstVisitor::visitPerNodeLimitClause(GqlParser::PerNodeLimitClauseCon
         tableFunc->setFunction(func);
     }
     return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitClause(GqlParser::PerShardLimitClauseContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    TableFunctionClause* tableFunc = ALLOC_GEAOBJECT(TableFunctionClause);
-    DEFER(tableFunc, ret);
-
-    Function* func = nullptr;
-    if (GEAX_RET_FAIL(
-            visitPerLimitFunction(ctx->unsignedIntegerSpecification(), ctx->PER_SHARD_LIMIT()))) {
-        LOG(WARNING) << "Failed to visit PerLimitFunction: " << K(ret);
-    } else if (GEAX_UNLIKELY(!checkedCast(childRes_, func))) {
-        ret = GEAXErrorCode::GEAX_OOPS;
-        LOG(WARNING) << "Child result should be a Function: " << K(ret);
-    } else {
-        tableFunc->setFunction(func);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitFunction(
-    GqlParser::UnsignedIntegerSpecificationContext* ictx, antlr4::tree::TerminalNode* perName) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    Function* func = ALLOC_GEAOBJECT(Function);
-    DEFER(func, ret);
-
-    Expr* expr = nullptr;
-    if (GEAX_ANY_NULL(perName, ictx)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "UnsignedIntegerSpecification or perName is not set: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_EXPR(ictx, expr))) {
-        LOG(WARNING) << "Failed to visit unsignedIntegerSpecification: " << K(ret);
-    } else {
-        func->setName(perName->getText());
-        func->appendArg(expr);
-    }
-    return ret;
-}
-
-std::any GQLAstVisitor::visitPerNodeLimitLeftWherePredicate(
-    GqlParser::PerNodeLimitLeftWherePredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(
-                   visitPerLimitLeftWherePredicate(ctx->lhs, ctx->whereClause(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitLeftWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitLeftWherePredicate(
-    GqlParser::PerShardLimitLeftWherePredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(
-                   visitPerLimitLeftWherePredicate(ctx->lhs, ctx->whereClause(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitLeftWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitLeftWherePredicate(
-    antlr4::ParserRuleContext* lhs, GqlParser::WhereClauseContext* whereCtx,
-    ElementFiller* filler) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-
-    TableFunctionClause* tableFunc = nullptr;
-    WhereClause* where = nullptr;
-    if (GEAX_ANY_NULL(lhs, whereCtx, filler)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "PerNodeLimitClause/WhereClause/ElementFiller is not set : " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(lhs, AstNodeType::kTableFunction, tableFunc))) {
-        LOG(WARNING) << "Failed to visit lhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(whereCtx, AstNodeType::kWhere, where))) {
-        LOG(WARNING) << "Failed to visit whereClause: " << K(ret);
-    } else {
-        filler->appendPredicate(tableFunc);
-        filler->appendPredicate(where);
-    }
-    return ret;
-}
-
-std::any GQLAstVisitor::visitPerNodeLimitRightWherePredicate(
-    GqlParser::PerNodeLimitRightWherePredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(
-                   visitPerLimitRightWherePredicate(ctx->rhs, ctx->whereClause(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitLeftWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitRightWherePredicate(
-    GqlParser::PerShardLimitRightWherePredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(
-                   visitPerLimitRightWherePredicate(ctx->rhs, ctx->whereClause(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitRightWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitRightWherePredicate(
-    antlr4::ParserRuleContext* rhs, GqlParser::WhereClauseContext* whereCtx,
-    ElementFiller* filler) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-
-    WhereClause* where = nullptr;
-    TableFunctionClause* tableFunc = nullptr;
-    if (GEAX_ANY_NULL(rhs, whereCtx, filler)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "PerNodeLimitClause/WhereClause/ElementFiller is not set : " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(rhs, AstNodeType::kTableFunction, tableFunc))) {
-        LOG(WARNING) << "Failed to visit rhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(whereCtx, AstNodeType::kWhere, where))) {
-        LOG(WARNING) << "Failed to visit whereClause: " << K(ret);
-    } else {
-        filler->appendPredicate(where);
-        filler->appendPredicate(tableFunc);
-    }
-    return ret;
-}
-
-std::any GQLAstVisitor::visitPerNodeLimitBothWherePredicate(
-    GqlParser::PerNodeLimitBothWherePredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitBothWherePredicate(ctx->lhs, ctx->rhs, ctx->whereClause(),
-                                                             filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitBothWherePredicate(
-    GqlParser::PerShardLimitBothWherePredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitBothWherePredicate(ctx->lhs, ctx->rhs, ctx->whereClause(),
-                                                             filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitBothWherePredicate(
-    antlr4::ParserRuleContext* lhs, antlr4::ParserRuleContext* rhs,
-    GqlParser::WhereClauseContext* whereCtx, ElementFiller* filler) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-
-    WhereClause* where = nullptr;
-    TableFunctionClause* tableFuncBefore = nullptr;
-    TableFunctionClause* tableFuncAfter = nullptr;
-    if (GEAX_ANY_NULL(lhs, rhs, whereCtx, filler)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "PerNodeLimitClause/WhereClause/ElementFiller is not set : " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(lhs, AstNodeType::kTableFunction, tableFuncBefore))) {
-        LOG(WARNING) << "Failed to visit lhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(rhs, AstNodeType::kTableFunction, tableFuncAfter))) {
-        LOG(WARNING) << "Failed to visit rhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(whereCtx, AstNodeType::kWhere, where))) {
-        LOG(WARNING) << "Failed to visit whereClause: " << K(ret);
-    } else {
-        filler->appendPredicate(tableFuncBefore);
-        filler->appendPredicate(where);
-        filler->appendPredicate(tableFuncAfter);
-    }
-    return ret;
-}
-
-std::any GQLAstVisitor::visitPerNodeLimitLeftPropertyPredicate(
-    GqlParser::PerNodeLimitLeftPropertyPredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitLeftPropertyPredicate(
-                   ctx->lhs, ctx->elementPropertySpecification(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitLeftPropertyPredicate(
-    GqlParser::PerShardLimitLeftPropertyPredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitLeftPropertyPredicate(
-                   ctx->lhs, ctx->elementPropertySpecification(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitLeftPropertyPredicate(
-    antlr4::ParserRuleContext* lhs, GqlParser::ElementPropertySpecificationContext* propertyCtx,
-    ElementFiller* filler) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-
-    TableFunctionClause* tableFunc = nullptr;
-    PropStruct* prop = nullptr;
-    if (GEAX_ANY_NULL(lhs, propertyCtx, filler)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "PerNodeLimitClause/PropertySpecification/ElementFiller is not set : "
-                     << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(lhs, AstNodeType::kTableFunction, tableFunc))) {
-        LOG(WARNING) << "Failed to visit lhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(propertyCtx, AstNodeType::kPropStruct, prop))) {
-        LOG(WARNING) << "Failed to visit ElementPropertySpecification: " << K(ret);
-    } else {
-        filler->appendPredicate(tableFunc);
-        filler->appendPredicate(prop);
-    }
-    return ret;
-}
-
-std::any GQLAstVisitor::visitPerNodeLimitRightPropertyPredicate(
-    GqlParser::PerNodeLimitRightPropertyPredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitRightPropertyPredicate(
-                   ctx->rhs, ctx->elementPropertySpecification(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitRightPropertyPredicate(
-    GqlParser::PerShardLimitRightPropertyPredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitRightPropertyPredicate(
-                   ctx->rhs, ctx->elementPropertySpecification(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitRightPropertyPredicate(
-    antlr4::ParserRuleContext* rhs, GqlParser::ElementPropertySpecificationContext* propertyCtx,
-    ElementFiller* filler) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-
-    TableFunctionClause* tableFunc = nullptr;
-    PropStruct* prop = nullptr;
-    if (GEAX_ANY_NULL(rhs, propertyCtx, filler)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "PerNodeLimitClause/PropertySpecification/ElementFiller is not set : "
-                     << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(rhs, AstNodeType::kTableFunction, tableFunc))) {
-        LOG(WARNING) << "Failed to visit rhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(propertyCtx, AstNodeType::kPropStruct, prop))) {
-        LOG(WARNING) << "Failed to visit ElementPropertySpecification: " << K(ret);
-    } else {
-        filler->appendPredicate(prop);
-        filler->appendPredicate(tableFunc);
-    }
-    return ret;
-}
-
-std::any GQLAstVisitor::visitPerNodeLimitBothPropertyPredicate(
-    GqlParser::PerNodeLimitBothPropertyPredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitBothPropertyPredicate(
-                   ctx->lhs, ctx->rhs, ctx->elementPropertySpecification(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-std::any GQLAstVisitor::visitPerShardLimitBothPropertyPredicate(
-    GqlParser::PerShardLimitBothPropertyPredicateContext* ctx) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    DEFER_RET(ret);
-
-    ElementFiller* filler = nullptr;
-    if (GEAX_IS_NULL(filler = castAs<ElementFiller>(faRes_, AstNodeType::kElementFiller))) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "Failed to cast to node kElementFiller: " << K(ret);
-    } else if (GEAX_RET_FAIL(visitPerLimitBothPropertyPredicate(
-                   ctx->lhs, ctx->rhs, ctx->elementPropertySpecification(), filler))) {
-        LOG(WARNING) << "Failed to visit PerLimitBothWherePredicate: " << K(ret);
-    }
-    return std::any();
-}
-
-GEAXErrorCode GQLAstVisitor::visitPerLimitBothPropertyPredicate(
-    antlr4::ParserRuleContext* lhs, antlr4::ParserRuleContext* rhs,
-    GqlParser::ElementPropertySpecificationContext* propertyCtx, ElementFiller* filler) {
-    auto ret = GEAXErrorCode::GEAX_SUCCEED;
-
-    TableFunctionClause* tableFuncBefore = nullptr;
-    TableFunctionClause* tableFuncAfter = nullptr;
-    PropStruct* prop = nullptr;
-    if (GEAX_ANY_NULL(lhs, rhs, propertyCtx, filler)) {
-        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-        LOG(WARNING) << "PerNodeLimitClause/PropertySpecification/ElementFiller is not set : "
-                     << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(lhs, AstNodeType::kTableFunction, tableFuncBefore))) {
-        LOG(WARNING) << "Failed to visit lhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(rhs, AstNodeType::kTableFunction, tableFuncAfter))) {
-        LOG(WARNING) << "Failed to visit rhs perNodeLimitClause: " << K(ret);
-    } else if (GEAX_RET_FAIL(VISIT_RULE(propertyCtx, AstNodeType::kPropStruct, prop))) {
-        LOG(WARNING) << "Failed to visit ElementPropertySpecification: " << K(ret);
-    } else {
-        filler->appendPredicate(tableFuncBefore);
-        filler->appendPredicate(prop);
-        filler->appendPredicate(tableFuncAfter);
-    }
-    return ret;
 }
 
 std::any GQLAstVisitor::visitGroupingElement(GqlParser::GroupingElementContext* ctx) {
@@ -2860,6 +3040,25 @@ std::any GQLAstVisitor::visitGqlAllowAnonymousTable(
     return std::any();
 }
 
+std::any GQLAstVisitor::visitGqlEdgeOnJoin(parser::GqlParser::GqlEdgeOnJoinContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    EdgeOnJoin* edgeOnJoin = ALLOC_GEAOBJECT(EdgeOnJoin);
+    DEFER(edgeOnJoin, ret);
+
+    std::vector<GqlParser::IdentifierContext*> identifierCtx = ctx->identifier();
+    if (GEAX_UNLIKELY(identifierCtx.size() != 2)) {
+        ret = GEAXErrorCode::GEAX_COMMON_INVALID_ARGUMENT;
+        LOG(WARNING) << "Failed to get two identifiers in rule GqlEdgeOnJoin: " << K(ret);
+    } else if (GEAX_ANY_NULL(identifierCtx[0], identifierCtx[1])) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Identifier is not set in rule GqlEdgeOnJoin: " << K(ret);
+    } else {
+        edgeOnJoin->setEdge(identifierCtx[0]->getText());
+        edgeOnJoin->setJoinKey(identifierCtx[1]->getText());
+    }
+    return std::any();
+}
+
 std::any GQLAstVisitor::visitReturnItemList(GqlParser::ReturnItemListContext* ctx) {
     auto ret = GEAXErrorCode::GEAX_SUCCEED;
     PrimitiveResultStatement* result = nullptr;
@@ -3150,25 +3349,18 @@ std::any GQLAstVisitor::visitSelectStatementBody(GqlParser::SelectStatementBodyC
     DEFER_RET(ret);
 
     SelectStatement* selectStmt = nullptr;
+    GqlParser::MatchStatementContext* matchCtx = nullptr;
+    MatchStatement* match = nullptr;
     if (GEAX_IS_NULL(selectStmt = castAs<SelectStatement>(faRes_, AstNodeType::kSelectStatement))) {
         ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
         LOG(WARNING) << "Failed to cast to node kSelectStatement: " << K(ret);
-    }
-    auto matchList = ctx->matchStatement();
-    if (matchList.size() == 0) {
-        ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
-        LOG(WARNING) << "FROM is not supported in SelectStatement yet:" << K(ret);
-    }
-    for (auto i = 0u; GEAX_OK(ret) && i < matchList.size(); ++i) {
-        MatchStatement* match = nullptr;
-        if (GEAX_IS_NULL(matchList[i])) {
-            ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
-            LOG(WARNING) << "Child of rule matchStatement is not set: " << K(ret);
-        } else if (GEAX_RET_FAIL(VISIT_RULE(matchList[i], AstNodeType::kMatchStatement, match))) {
-            LOG(WARNING) << "Failed to visit rule matchStatement: " << K(ret);
-        } else {
-            selectStmt->appendFromClause("", match);
-        }
+    } else if (GEAX_IS_NULL(matchCtx = ctx->matchStatement())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "MatchStatement is not set in SelectStatement :" << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_RULE(matchCtx, AstNodeType::kMatchStatement, match))) {
+        LOG(WARNING) << "Failed to visit rule matchStatement: " << K(ret);
+    } else {
+        selectStmt->appendFromClause("", match);
     }
     return std::any();
 }
@@ -4069,13 +4261,29 @@ std::any GQLAstVisitor::visitRecordValueConstructor(GqlParser::RecordValueConstr
 
 std::any GQLAstVisitor::visitListValue(GqlParser::ListValueContext* ctx) {
     auto ret = GEAXErrorCode::GEAX_SUCCEED;
-    MkList* l = ALLOC_GEAOBJECT(MkList);
-    DEFER(l, ret);
+    Expr* expr = nullptr;
+    DEFER(expr, ret);
 
     std::vector<GqlParser::ExpressionContext*> exprCtxs = ctx->expression();
-    if (GEAX_RET_FAIL(visitListExpr(exprCtxs, l))) {
-        LOG(WARNING) << "Failed to visit list: " << K(ret);
+    if (ctx->LEFT_BRACKET() != nullptr || ctx->LEFT_PAREN() != nullptr) {
+        MkList* l = ALLOC_GEAOBJECT(MkList);
+        std::vector<GqlParser::ExpressionContext*> exprCtxs = ctx->expression();
+        if (GEAX_RET_FAIL(visitListExpr(exprCtxs, l))) {
+            LOG(WARNING) << "Failed to visit list: " << K(ret);
+        } else {
+            expr = l;
+        }
+    } else if (GEAX_UNLIKELY(exprCtxs.size() != 1)) {
+        ret = GEAXErrorCode::GEAX_OOPS;
+        LOG(WARNING) << "Num mismatch, expected 1 parameter but actually "
+                     << KV("size", exprCtxs.size()) << DK(ret);
+    } else if (GEAX_IS_NULL(exprCtxs[0])) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Expression of ListValue is not set: " << K(ret);
+    } else if (GEAX_RET_FAIL(VISIT_EXPR(exprCtxs[0], expr))) {
+        LOG(WARNING) << "Failed to visit expr: " << K(ret);
     }
+
     return std::any();
 }
 
@@ -4501,7 +4709,32 @@ GEAXErrorCode GQLAstVisitor::visitFunction(
         ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
         LOG(WARNING) << "funcName is not set: " << K(ret);
     } else {
-        // TODO(ljr) : g4 consider function:stringLiteral L_PAREN parameters R_PAREN;
+        func->setName(funcName->getText());
+        for (auto i = 0u; GEAX_OK(ret) && i < params.size(); ++i) {
+            Expr* expr = nullptr;
+            if (GEAX_IS_NULL(params[i])) {
+                ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+                LOG(WARNING) << "FunctionParameter is not set: " << K(ret);
+            } else if (GEAX_RET_FAIL(VISIT_EXPR(params[i], expr))) {
+                LOG(WARNING) << "Failed to visit rule FunctionParameter: " << K(ret);
+            } else {
+                func->appendArg(expr);
+            }
+        }
+    }
+    return ret;
+}
+
+GEAXErrorCode GQLAstVisitor::visitTableFunction(
+    parser::GqlParser::TableFunctionNameContext* funcName,
+    const std::vector<GqlParser::EleTableFuncParameterContext*>& params) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    Function* func = ALLOC_GEAOBJECT(Function);
+    DEFER(func, ret);
+    if (GEAX_IS_NULL(funcName)) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "funcName is not set: " << K(ret);
+    } else {
         func->setName(funcName->getText());
         for (auto i = 0u; GEAX_OK(ret) && i < params.size(); ++i) {
             Expr* expr = nullptr;
@@ -4940,6 +5173,16 @@ std::any GQLAstVisitor::visitGqlPropertyReference(GqlParser::GqlPropertyReferenc
         getField->setExpr(ref);
     }
 
+    return std::any();
+}
+
+std::any GQLAstVisitor::visitCatalogProcedureParentAndName(
+    GqlParser::CatalogProcedureParentAndNameContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    VString* s = ALLOC_GEAOBJECT(VString);
+    DEFER(s, ret);
+
+    s->setVal(ctx->getText());
     return std::any();
 }
 

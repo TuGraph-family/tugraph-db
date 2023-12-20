@@ -28,11 +28,11 @@ namespace frontend {
 class StatementWithYield : public AstNode {
 public:
     StatementWithYield()
-        : AstNode(AstNodeType::kStatementWithYield), yield_(nullptr), statement_(nullptr) {}
+        : AstNode(AstNodeType::kStatementWithYield), statement_(nullptr) {}
     ~StatementWithYield() = default;
 
     void setYield(YieldField* yield) { yield_ = yield; }
-    YieldField* yield() const { return yield_; }
+    const std::optional<YieldField*>& yield() const { return yield_; }
 
     void setStatement(Statement* statement) { statement_ = statement; }
     Statement* statement() const { return statement_; }
@@ -40,7 +40,7 @@ public:
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
-    YieldField* yield_;
+    std::optional<YieldField*> yield_;
     Statement* statement_;
 };  // class StatementWithYield
 

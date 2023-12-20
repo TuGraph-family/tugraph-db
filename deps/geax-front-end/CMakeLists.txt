@@ -35,14 +35,16 @@ else()
 endif()
 
 # option
-
-option(ENABLE_ASAN "enable address sanitizer" OFF)
-
 option(GEAX_WITH_TESTS "build with tests" OFF)
 
 option(GEAX_ENABLE_GLOG "build with glog" ON)
 
 option(GEAX_ENABLE_JEMALLOC "build with jemalloc" ON)
+option(GEAX_ENABLE_TCMALLOC "build with tcmalloc" OFF)
+
+option(GEAX_ENABLE_GFLAGS "build with gflags" ON)
+
+option(GEAX_ENABLE_UNWIND "build with unwind" ON)
 
 option(GEAX_INSTALL "install geax" ${GEAX_MASTER_PROJECT})
 
@@ -57,6 +59,15 @@ else()
         -msse4.2
     )
 endif()
+
+option(ENABLE_ASAN "Enable Address Sanitizer." OFF)
+if (ENABLE_ASAN)
+    message(STATUS "Address Sanitizer is enabled.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -static-libasan")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address -static-libasan ")
+else (ENABLE_ASAN)
+    message(STATUS "Address Sanitizer is disabled.")
+endif (ENABLE_ASAN)
 
 get_directory_property(compile_defs DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS)
 if(NOT compile_defs)
@@ -92,17 +103,14 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 if (NOT TARGET Threads::Threads)
     find_package(Threads REQUIRED)
 endif()
-if (NOT TARGET Boost::boost)
-    set(Boost_USE_STATIC_LIBS ON) # use boost static lib
-    find_package(Boost 1.72
-        REQUIRED COMPONENTS headers
-        PATHS ${GEAX_THIRD_PARTY_DIR})
-endif()
 if (GEAX_WITH_TESTS AND (NOT TARGET GTest::gtest))
     find_package(GTest REQUIRED)
 endif()
 if (GEAX_ENABLE_JEMALLOC AND (NOT TARGET Jemalloc::jemalloc))
     find_package(Jemalloc REQUIRED)
+endif()
+if (GEAX_ENABLE_GFLAGS AND (NOT TARGET GFlags::gflags))
+    find_package(GFlags REQUIRED)
 endif()
 if (GEAX_ENABLE_GLOG AND (NOT TARGET GLog::glog))
     find_package(GLog REQUIRED)

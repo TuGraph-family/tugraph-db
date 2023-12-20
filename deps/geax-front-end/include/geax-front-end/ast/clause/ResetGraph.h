@@ -15,21 +15,23 @@
  *         lili <liangjingru.ljr@antgroup.com>
  */
 
-#ifndef GEAXFRONTEND_AST_CLAUSE_BINDINGVAR_H_
-#define GEAXFRONTEND_AST_CLAUSE_BINDINGVAR_H_
+#ifndef GEAXFRONTEND_AST_CLAUSE_RESETGRAPH_H_
+#define GEAXFRONTEND_AST_CLAUSE_RESETGRAPH_H_
 
-#include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/clause/SessionResetCommand.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingVar : public AstNode {
+class ResetGraph : public SessionResetCommand {
 public:
-    explicit BindingVar(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~BindingVar() = default;
-};  // class BindingVar
+    ResetGraph() : SessionResetCommand(AstNodeType::kResetGraph) {}
+    ~ResetGraph() = default;
+
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+};
 
 }  // namespace frontend
 }  // namespace geax
 
-#endif  // GEAXFRONTEND_AST_CLAUSE_BINDINGVAR_H_
+#endif  // GEAXFRONTEND_AST_CLAUSE_RESETGRAPH_H_

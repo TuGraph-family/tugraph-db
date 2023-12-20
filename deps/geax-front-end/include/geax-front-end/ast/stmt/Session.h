@@ -15,23 +15,21 @@
  *         lili <liangjingru.ljr@antgroup.com>
  */
 
-#ifndef GEAXFRONTEND_AST_CLAUSE_BINDINGVALUE_H_
-#define GEAXFRONTEND_AST_CLAUSE_BINDINGVALUE_H_
+#ifndef GEAXFRONTEND_AST_STMT_SESSION_H_
+#define GEAXFRONTEND_AST_STMT_SESSION_H_
 
-#include "geax-front-end/ast/clause/BindingVar.h"
+#include "geax-front-end/ast/AstNode.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingValue : public BindingVar {
+class Session : public AstNode {
 public:
-    BindingValue() : BindingVar(AstNodeType::kBindingValue) {}
-    ~BindingValue() = default;
-
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
-};  // class BindingValue
+    explicit Session(AstNodeType type) : AstNode(type) {}
+    ~Session() = default;
+};
 
 }  // namespace frontend
 }  // namespace geax
 
-#endif  // GEAXFRONTEND_AST_CLAUSE_BINDINGVALUE_H_
+#endif  // GEAXFRONTEND_AST_STMT_SESSION_H_

@@ -6,10 +6,10 @@ else()
     set(Jemalloc_ROOT "$ENV{Jemalloc_DIR}")
 endif()
 
-if (NOT JEMALLCO_SUB_DIR)
+if (NOT JEMALLOC_SUB_DIR)
     set(Jemalloc_lib_path "")
 else()
-    set(Jemalloc_lib_path "jemalloc/${JEMALLCO_SUB_DIR}")
+    set(Jemalloc_lib_path "jemalloc/${JEMALLOC_SUB_DIR}")
 endif()
 
 find_path(Jemalloc_INCLUDE_DIR jemalloc/jemalloc.h
