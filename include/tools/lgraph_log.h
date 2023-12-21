@@ -27,6 +27,7 @@
 #include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/phoenix/bind/bind_function.hpp>
 #include <boost/core/null_deleter.hpp>
+#include "json.hpp"
 
 namespace lgraph_log {
 
@@ -57,6 +58,8 @@ namespace lgraph_log {
   << ::lgraph_log::logging::add_value("File", __FILE__)       \
   << ::lgraph_log::logging::add_value("Function", __FUNCTION__) \
 
+#define AUDIT_LOG() BOOST_LOG(::lgraph_log::audit_logger::get())
+
 #define EXIT_ON_FATAL(SIGNAL) ::fma_common::_detail::PrintBacktraceAndExit(SIGNAL)
 
 namespace logging = boost::log;
@@ -67,6 +70,7 @@ namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 
 using boost::shared_ptr;
+using json = nlohmann::json;
 
 typedef sinks::synchronous_sink< sinks::text_file_backend > file_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > stream_sink;
@@ -341,4 +345,55 @@ BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< sever
 
   return lg;
 }
+
+BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(audit_logger, src::logger_mt) {
+  src::logger_mt lg;
+  attrs::constant< std::string > audit_type("audit");
+  lg.add_attribute("LogType", audit_type);
+  return lg;
+}
+
+class AuditLogger {
+ private:
+    std::string log_dir_;
+    int rotation_size_;
+    boost::shared_ptr< file_sink > audit_sink_;
+    bool global_inited_ = false;
+
+ public:
+    void Init(std::string log_dir = "logs/") {
+        if(!global_inited_) {
+            // Set up log directory
+            log_dir_ = log_dir;
+            rotation_size_ = 5 * 1024 * 1024;
+
+            // Set up sink for debug log
+            audit_sink_ = boost::shared_ptr< file_sink > (new file_sink(
+                keywords::file_name = log_dir_ + "%Y%m%d_%H%M%S",
+                keywords::open_mode = std::ios_base::out | std::ios_base::app,
+                keywords::enable_final_rotation = false,
+                keywords::auto_flush = true,
+                keywords::rotation_size = rotation_size_));
+            audit_sink_->locked_backend()->set_file_collector(sinks::file::make_collector(
+                keywords::target = log_dir_));
+            audit_sink_->locked_backend()->scan_for_files();
+            audit_sink_->set_filter(log_type_attr == "audit");
+
+            // Add sinks to log core
+            logging::core::get()->add_sink(audit_sink_);
+
+            global_inited_ = true;
+        }
+    }
+
+    // write a json record to log file.
+    void WriteLog(json log_msg) {
+        AUDIT_LOG() << log_msg.dump();
+    }
+
+    static AuditLogger& GetInstance() {
+        static AuditLogger instance;
+        return instance;
+    }
+};
 }  // namespace lgraph_log
