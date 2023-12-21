@@ -14,7 +14,6 @@
 
 #include "gtest/gtest.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "core/kv_store.h"
 #include "core/mock_kv.h"

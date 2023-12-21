@@ -13,8 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
-
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 
@@ -1786,7 +1784,7 @@ John Williams,"Goodbye, Mr. Chips"
         bool ret = client.CallCypher(str, "MATCH (n:Person) RETURN Count(n)");
         UT_EXPECT_TRUE(ret);
         web::json::value json_val = web::json::value::parse(str);
-        FMA_LOG() << "MATCH (n:Person) RETURN Count(n) " << str;
+        LOG_INFO() << "MATCH (n:Person) RETURN Count(n) " << str;
         UT_EXPECT_EQ(json_val[0]["Count(n)"], 11);
     }
 }

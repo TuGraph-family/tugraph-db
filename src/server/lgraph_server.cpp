@@ -23,9 +23,6 @@
 
 #include "fma-common/fma_stream.h"
 #include "fma-common/hardware_info.h"
-#include "fma-common/leveled_log_device.h"
-#include "fma-common/rotating_file_log_device.h"
-
 #include "server/lgraph_server.h"
 #include "core/audit_logger.h"
 #include "core/global_config.h"
@@ -47,7 +44,7 @@ namespace lgraph {
 static Signal _kill_signal_;
 
 void int_handler(int x) {
-    GENERAL_LOG(INFO) << "!!!!! Received signal " << x << ", exiting... !!!!!";
+    LOG_INFO() << "!!!!! Received signal " << x << ", exiting... !!!!!";
     _kill_signal_.Notify();
 }
 
@@ -62,11 +59,11 @@ static void SetupSignalHandler() {
     sa.sa_flags = 0;
     int r = sigaction(SIGINT, &sa, nullptr);
     if (r != 0) {
-        GENERAL_LOG(ERROR) << "Error setting up SIGINT signal handler: " << strerror(errno);
+        LOG_ERROR() << "Error setting up SIGINT signal handler: " << strerror(errno);
     }
     r = sigaction(SIGQUIT, &sa, nullptr);
     if (r != 0) {
-        GENERAL_LOG(ERROR) << "Error setting up SIGQUIT signal handler: " << strerror(errno);
+        LOG_ERROR() << "Error setting up SIGQUIT signal handler: " << strerror(errno);
     }
 }
 
@@ -83,7 +80,7 @@ LGraphServer::LGraphServer(std::shared_ptr<lgraph::GlobalConfig> config)
     auto &fs = fma_common::FileSystem::GetFileSystem(config_->db_dir);
     if (!fs.IsDir(config_->db_dir)) {
         if (!fs.Mkdir(config_->db_dir)) {
-            GENERAL_LOG(ERROR) << "Failed to create the data dir [" << config_->db_dir << "]";
+            LOG_ERROR() << "Failed to create the data dir [" << config_->db_dir << "]";
         }
     }
 }
@@ -94,7 +91,7 @@ int LGraphServer::Start() {
     // adjust config
     if (config_->enable_ha && config_->ha_log_dir.empty()) {
 #if LGRAPH_SHARE_DIR
-        GENERAL_LOG(ERROR) << "HA is enabled, but ha_log_dir is not specified.";
+        LOG_ERROR() << "HA is enabled, but ha_log_dir is not specified.";
         return -1;
 #else
         config_->ha_log_dir = config_->db_dir + "/ha";
@@ -136,7 +133,7 @@ int LGraphServer::Start() {
         // If ha is enabled, we need to enable rpc
         if (config_->enable_ha) {
             config_->enable_rpc = true;
-            GENERAL_LOG(INFO) << "Server starting in HA mode.";
+            LOG_INFO() << "Server starting in HA mode.";
         }
 
         // print welcome message
@@ -163,7 +160,7 @@ int LGraphServer::Start() {
                << "\n"
                << "Server is configured with the following parameters:\n"
                << config_->FormatAsString();
-        GENERAL_LOG(INFO) << header.str();
+        LOG_INFO() << header.str();
 
         // starting audit log
         if (config_->audit_log_dir.empty())
@@ -220,14 +217,14 @@ int LGraphServer::Start() {
             }
             rpc_server_ = std::make_unique<brpc::Server>();
             if (rpc_server_->AddService(rpc_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-                GENERAL_LOG(WARNING) << "Failed to add service to RPC server";
+                LOG_WARN() << "Failed to add service to RPC server";
                 return -1;
             }
             // start http server
             http_service_ = std::make_unique<http::HttpService>(state_machine_.get());
             if (rpc_server_->AddService(http_service_.get(), brpc::SERVER_DOESNT_OWN_SERVICE) !=
                 0) {
-                GENERAL_LOG(WARNING) << "Failed to add http service to http server";
+                LOG_WARN() << "Failed to add http service to http server";
                 return -1;
             }
 
@@ -235,7 +232,7 @@ int LGraphServer::Start() {
                 fma_common::StringFormatter::Format("{}:{}", config_->bind_host, config_->rpc_port);
             if (config_->enable_ha) {
                 if (braft::add_service(rpc_server_.get(), rpc_addr.c_str()) != 0) {
-                    GENERAL_LOG(ERROR) << "Failed to add service to RAFT";
+                    LOG_ERROR() << "Failed to add service to RAFT";
                     return -1;
                 }
             }
@@ -253,7 +250,7 @@ int LGraphServer::Start() {
             int retries = 0;
             while (retries < max_retries) {
                 if (rpc_server_->Start(rpc_addr.c_str(), &brpc_options) != 0) {
-                    GENERAL_LOG(WARNING) << "RPC server returns -1, try again after 1s";
+                    LOG_WARN() << "RPC server returns -1, try again after 1s";
                 } else {
                     break;
                 }
@@ -261,10 +258,10 @@ int LGraphServer::Start() {
                 retries++;
             }
             if (retries >= max_retries) {
-                GENERAL_LOG(ERROR) << "Failed to start RPC server";
+                LOG_ERROR() << "Failed to start RPC server";
                 return -1;
             }
-            GENERAL_LOG(INFO) << "Listening for RPC on port " << config_->rpc_port;
+            LOG_INFO() << "Listening for RPC on port " << config_->rpc_port;
         }
 #endif
         state_machine_->Start();
@@ -292,13 +289,13 @@ int LGraphServer::Start() {
                 lgraph::_detail::DEFAULT_ADMIN_NAME,
                 lgraph::_detail::DEFAULT_ADMIN_PASS, true)) {
                 // kill the server
-                GENERAL_LOG(INFO) << "Reset admin password successfully, server will exit now";
+                LOG_INFO() << "Reset admin password successfully, server will exit now";
             } else {
-                GENERAL_LOG(ERROR) << "Failed to reset admin password, server will exit now";
+                LOG_ERROR() << "Failed to reset admin password, server will exit now";
             }
             return Stop();
         }
-        GENERAL_LOG(INFO) << "Server started.";
+        LOG_INFO() << "Server started.";
 
 #ifndef __SANITIZE_ADDRESS__
         const std::string& hostname = fma_common::HardwareInfo::GetHostName();
@@ -310,7 +307,7 @@ int LGraphServer::Start() {
 #endif
     } catch (std::exception &e) {
         _kill_signal_.Notify();
-        GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
+        LOG_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         ret = -2;
     }
     return ret;
@@ -322,7 +319,7 @@ int LGraphServer::WaitTillKilled() {
         while (!_kill_signal_.Wait(3600)) {
         }
     } catch (std::exception &e) {
-        GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
+        LOG_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
     return Stop(true);
@@ -333,7 +330,7 @@ int LGraphServer::Stop(bool force_exit) {
     if (!state_machine_) return 0;
     // otherwise, try to stop the services, exit forcefully if necessary
     try {
-        GENERAL_LOG(INFO) << "Stopping TuGraph...";
+        LOG_INFO() << "Stopping TuGraph...";
         DBManagementClient::GetInstance().StopHeartbeat();
         if (heartbeat_detect.joinable()) heartbeat_detect.join();
         // the kaishaku watches the server, if exit flag is set and the server cannot be shutdown
@@ -343,7 +340,7 @@ int LGraphServer::Stop(bool force_exit) {
             kaishaku = std::thread([&]() {
                 _kill_signal_.Wait(-1);
                 if (!server_exit_.Wait(3)) {
-                    GENERAL_LOG(INFO) << "Killing server...";
+                    LOG_INFO() << "Killing server...";
 #ifdef _WIN32
                     exit(1);
 #else
@@ -368,12 +365,12 @@ int LGraphServer::Stop(bool force_exit) {
 #endif
         if (state_machine_) state_machine_->Stop();
         state_machine_.reset();
-        GENERAL_LOG(INFO) << "Server shutdown.";
+        LOG_INFO() << "Server shutdown.";
         server_exit_.Notify();
         if (kaishaku.joinable()) kaishaku.join();
         return 0;
     } catch (std::exception &e) {
-        GENERAL_LOG(WARNING) << "Server hit an exception and shuts down abnormally: " << e.what();
+        LOG_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();
         return -1;
     }
 }

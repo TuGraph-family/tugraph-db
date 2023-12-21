@@ -388,8 +388,7 @@ inline web::json::value ValueToJson(const StateMachine::Peer& peer) {
 
 RestServer::RestServer(StateMachine* state_machine, const Config& config,
                        const std::shared_ptr<GlobalConfig> service_config)
-    : logger_(fma_common::Logger::Get("RestServer")),
-      state_machine_(state_machine),
+    : state_machine_(state_machine),
       config_(config),
       global_config_(service_config),
       path_to_case_(GetPathToCaseDict()) {
@@ -407,7 +406,7 @@ bool RestServer::IsClientAddressAllowed(const web::http::http_request& request) 
     if (global_config_ && global_config_->enable_ip_check) {
         const std::string& ip = _TS(request.remote_address());
         if (!galaxy_->IsIpInWhitelist(ip)) {
-            FMA_WARN_STREAM(logger_) << "Access from illegal host: " << ip;
+            LOG_WARN() << "Access from illegal host: " << ip;
             return false;
         }
     }
@@ -416,7 +415,7 @@ bool RestServer::IsClientAddressAllowed(const web::http::http_request& request) 
 
 void RestServer::Start() {
     if (started_) {
-        FMA_WARN_STREAM(logger_) << "Failed to start REST server: it is already started";
+        LOG_WARN() << "Failed to start REST server: it is already started";
         return;
     }
     galaxy_ = state_machine_->GetGalaxy();
@@ -452,7 +451,7 @@ void RestServer::Start() {
                 ctx.use_certificate_chain(cert);
                 ctx.use_private_key(key, boost::asio::ssl::context::pem);
             } catch (std::exception& e) {
-                FMA_ERR() << "Oops, error occurred! Please make sure server's cert & key "
+                LOG_ERROR() << "Oops, error occurred! Please make sure server's cert & key "
                              "are correct. Detail: "
                           << e.what();
             }
@@ -467,13 +466,10 @@ void RestServer::Start() {
     init_server();
     try {
         listener_.open().wait();
-        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Listening for REST on port "
-            << config_.port;
+        LOG_INFO() << "Listening for REST on port " << config_.port;
         started_ = true;
     } catch (std::exception& e) {
-        GENERAL_LOG_STREAM(FATAL, logger_.GetName()) << "Error initializing REST server: "
-            << e.what();
-        EXIT_ON_FATAL(0);
+        LOG_FATAL() << "Error initializing REST server: " << e.what();
     }
 }
 
@@ -485,13 +481,13 @@ void RestServer::Stop() {
         listener_.close().wait();
         // cpprestsdk has some mysterious bugs that crashes server if we exit too quickly
         fma_common::SleepS(0.5);
-        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "REST server stopped.";
+        LOG_INFO() << "REST server stopped.";
         started_ = false;
 #ifndef _WIN32
         cypher_scheduler_ = nullptr;
 #endif
     } catch (std::exception& e) {
-        GENERAL_LOG_STREAM(WARNING, logger_.GetName()) << "Failed to stop REST server: "
+        LOG_WARN() << "Failed to stop REST server: "
             << e.what();
     }
 }
@@ -539,7 +535,7 @@ static bool InitHtmlContentMap(
         auto suffix = f.substr(f.find_last_of('.') + 1);
         auto it = content_type.find(suffix);
         std::string type = it == content_type.end() ? "" : it->second;
-        // FMA_DBG() << "Found HTML content: " << local_f << " -> " << f;
+        // LOG_DEBUG() << "Found HTML content: " << local_f << " -> " << f;
         hcm[_TU(local_f)] = std::make_tuple(_TU(f), _TU(type));
     }
     return true;
@@ -623,7 +619,7 @@ http_response RestServer::GetCorsResponse(status_code code) const {
  */
 void RestServer::RespondUnauthorized(const http_request& request,
                                      const std::string& error = "") const {
-    FMA_WARN_STREAM(logger_) << "Unauthorized request: " << _TS(request.to_string()) << ": "
+    LOG_WARN() << "Unauthorized request: " << _TS(request.to_string()) << ": "
                              << error;
     http_response response = GetCorsResponse(status_codes::Unauthorized);
     web::json::value body;
@@ -643,11 +639,11 @@ void RestServer::RespondBadRequest(const http_request& request, const std::strin
     try {
         // request.to_string() may throw an exception
         auto req = request.to_string();
-        FMA_INFO_STREAM(logger_) << "Illegal request: " << _TS(req);
+        LOG_INFO() << "Illegal request: " << _TS(req);
     } catch (std::exception& e) {
-        FMA_INFO_STREAM(logger_) << "request.to_string throw an exception: " << e.what();
+        LOG_INFO() << "request.to_string throw an exception: " << e.what();
     }
-    FMA_INFO_STREAM(logger_) << "RespondBadRequest error info : " << error;
+    LOG_INFO() << "RespondBadRequest error info : " << error;
     http_response response = GetCorsResponse(status_codes::BadRequest);
     web::json::value body;
     body[RestStrings::ERR_MSG] = web::json::value(_TU(error));
@@ -673,7 +669,7 @@ void RestServer::RespondBadJSON(const http_request& request) const {
  */
 void RestServer::RespondSuccess(const http_request& request, const web::json::value& body) const {
     AUDIT_LOG_SUCC();
-    FMA_DBG_STREAM(logger_) << "request successful";
+    LOG_DEBUG() << "request successful";
     http_response response = GetCorsResponse(status_codes::OK);
     response.set_body(body);
     request.reply(response);
@@ -681,7 +677,7 @@ void RestServer::RespondSuccess(const http_request& request, const web::json::va
 
 void RestServer::RespondSuccess(const http_request& request, const std::string& body) const {
     AUDIT_LOG_SUCC();
-    FMA_DBG_STREAM(logger_) << "request successful";
+    LOG_DEBUG() << "request successful";
     http_response response = GetCorsResponse(status_codes::OK);
     response.set_body(body);
     request.reply(response);
@@ -689,7 +685,7 @@ void RestServer::RespondSuccess(const http_request& request, const std::string& 
 
 void RestServer::RespondSuccess(const http_request& request) const {
     AUDIT_LOG_SUCC();
-    FMA_DBG_STREAM(logger_) << "request successful";
+    LOG_DEBUG() << "request successful";
     http_response response = GetCorsResponse(status_codes::OK);
     request.reply(response);
 }
@@ -704,7 +700,7 @@ void RestServer::RespondSuccess(const http_request& request) const {
 void RestServer::RespondRedirect(const http_request& request, const std::string& host,
                                  const utility::string_t& relative_path, bool need_leader) const {
     AUDIT_LOG_FAIL("Request redirected");
-    FMA_DBG_STREAM(logger_) << "Request redirected during handling of request "
+    LOG_DEBUG() << "Request redirected during handling of request "
                             << _TS(request.to_string());
     http_response response = GetCorsResponse(status_codes::TemporaryRedirect);
     web::json::value body;
@@ -729,7 +725,7 @@ void RestServer::RespondRedirect(const http_request& request, const std::string&
  */
 void RestServer::RespondInternalError(const http_request& request, const std::string& e) const {
     AUDIT_LOG_FAIL(e);
-    FMA_WARN_STREAM(logger_) << "Exception occurred during handling of request "
+    LOG_WARN() << "Exception occurred during handling of request "
                              << _TS(request.to_string()) << ": " << e;
     http_response response = GetCorsResponse(status_codes::InternalError);
     web::json::value body;
@@ -747,7 +743,7 @@ void RestServer::RespondInternalError(const http_request& request, const std::st
 void RestServer::RespondInternalException(const http_request& request,
                                           const std::exception& e) const {
     AUDIT_LOG_FAIL(e.what());
-    FMA_WARN_STREAM(logger_) << "Exception occurred during handling of request "
+    LOG_WARN() << "Exception occurred during handling of request "
                              << _TS(request.to_string()) << ": " << e.what();
     RespondInternalError(request, e.what());
 }
@@ -965,7 +961,7 @@ void RestServer::HandleGetWeb(const std::string& user, const http_request& reque
                         t.get();
                     } catch (std::exception& e) {
                         // Ignore the error, Log it if a logger is available
-                        FMA_WARN_STREAM(logger_) << "Failed to send reply message: " << e.what();
+                        LOG_WARN() << "Failed to send reply message: " << e.what();
                     }
                 });
             })
@@ -973,10 +969,10 @@ void RestServer::HandleGetWeb(const std::string& user, const http_request& reque
                 try {
                     t.get();
                 } catch (std::exception& e) {
-                    FMA_WARN_STREAM(logger_) << "Failed to open file: " << e.what();
+                    LOG_WARN() << "Failed to open file: " << e.what();
                     // opening the file (open_istream) failed. Reply with an error.
                     request.reply(status_codes::InternalError).then([this](pplx::task<void> t) {
-                        FMA_WARN_STREAM(logger_) << "Replied with error code";
+                        LOG_WARN() << "Replied with error code";
                     });
                 }
             });
@@ -1057,12 +1053,12 @@ void RestServer::HandleGetInfo(const std::string& user, const http_request& requ
         if (it_descending_order != query.end())
             fma_common::TextParserUtils::ParseT<bool>(_TS(it_descending_order->second),
                                                       descending_order);
-        FMA_DBG_STREAM(logger_) << " log_order: " << descending_order;
+        LOG_DEBUG() << " log_order: " << descending_order;
 
         std::vector<lgraph::AuditLog> logs = AuditLogger::GetInstance().GetLog(
             begin_time, end_time, search_user, num_log, descending_order);
         response = ValueToJson(logs);
-        FMA_DBG_STREAM(logger_) << "Get " << logs.size()
+        LOG_DEBUG() << "Get " << logs.size()
                                 << " logs.";  //<< " " << _TS(response.serialize());
         return RespondSuccess(request, response);
     }
@@ -2054,16 +2050,16 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
         std::string param;
         ExtractStringField(body, RestStrings::DATA, param);
         req->set_param(std::move(param));
-        FMA_DBG_STREAM(logger_) << "Forwarding to state machine";
+        LOG_DEBUG() << "Forwarding to state machine";
         LGraphResponse proto_resp = ApplyToStateMachine(proto_req);
         if (proto_resp.error_code() == LGraphResponse::SUCCESS) {
-            FMA_DBG_STREAM(logger_) << "Plugin request successfully returned";
+            LOG_DEBUG() << "Plugin request successfully returned";
             web::json::value body;
             body[RestStrings::RESULT] =
                 web::json::value(_TU(proto_resp.plugin_response().call_plugin_response().reply()));
             return RespondSuccess(request, body);
         } else {
-            FMA_DBG_STREAM(logger_) << "Plugin request failed with RSM error "
+            LOG_DEBUG() << "Plugin request failed with RSM error "
                                     << proto_resp.error_code() << ": " << proto_resp.error();
             return RespondRSMError(request, proto_resp, relative_path, "Plugin");
         }
@@ -2246,12 +2242,12 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
         if (chunk.size() > 1024*1024) {
             // TODO(botu) : Is there a better way to confirm the other peer is disconnected?
             if (response_done.is_done()) {
-                FMA_ERR() << "response is done, the client may have been disconnected";
+                LOG_ERROR() << "response is done, the client may have been disconnected";
                 return false;
             }
             auto size = buffer.putn_nocopy((const uint8_t*)chunk.data(), chunk.size()).get();
             if (size != chunk.size()) {
-                FMA_ERR() << FMA_FMT("unexpected size {}", size);
+                LOG_ERROR() << FMA_FMT("unexpected size {}", size);
                 return false;
             }
             chunk.clear();
@@ -2318,7 +2314,7 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
     if (!chunk.empty()) {
         auto size = buffer.putn_nocopy((const uint8_t*)chunk.data(), chunk.size()).get();
         if (size != chunk.size()) {
-            FMA_ERR() << FMA_FMT("unexpected size {}", size);
+            LOG_ERROR() << FMA_FMT("unexpected size {}", size);
         }
     }
     buffer.sync().get();
@@ -2889,9 +2885,9 @@ void RestServer::handle_delete(http_request request) {
         std::string token;
         std::string user = GetUser(request, &token);
         const auto& relative_path = uri::decode(request.relative_uri().path());
-        FMA_DBG_STREAM(logger_) << "\n----------------"
-                                << "\n[" << user << "]\tDELETE\t" << _TS(relative_path)
-                                << "\n----------------";
+        LOG_DEBUG() << "\n----------------"
+                  << "\n[" << user << "]\tDELETE\t" << _TS(relative_path)
+                  << "\n----------------";
 
         auto paths = uri::split_path(relative_path);
         if (paths.empty()) return RespondBadURI(request);
@@ -2967,7 +2963,7 @@ void RestServer::handle_get(http_request request) {
         std::string user;
         std::string token;
         if (fp != RestPathCases::WEB) user = GetUser(request, &token);
-        FMA_DBG_STREAM(logger_) << "\n----------------"
+        LOG_DEBUG() << "\n----------------"
                                 << "\n[" << user << "]\tGET\t" << _TS(relative_path)
                                 << "\n----------------";
 
@@ -3056,13 +3052,13 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
             && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
             if (!galaxy_->JudgeRefreshTime(token)) {
-                FMA_WARN() << "token has already expire";
+                LOG_WARN() << "token has already expire";
                 throw AuthError("token has already expire");
             }
         }
-        FMA_DBG_STREAM(logger_) << "\n----------------"
-                                << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"
-                                << _TS(body.serialize()).substr(0, 1024) << "\n--------------";
+        LOG_DEBUG() << "\n----------------"
+                  << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"
+                  << _TS(body.serialize()).substr(0, 1024) << "\n--------------";
 
         // release read lock in case request is handled in another thread and requires
         // write lock
@@ -3163,7 +3159,7 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
         std::string token;
         std::string user = GetUser(request, &token);
         const auto& relative_path = uri::decode(request.relative_uri().path());
-        FMA_DBG_STREAM(logger_) << "\n----------------"
+        LOG_DEBUG() << "\n----------------"
                                 << "\n[" << user << "]\tPUT\t" << _TS(relative_path) << "\n"
                                 << _TS(body.serialize()).substr(0, 1024) << "\n----------------";
 
@@ -3210,7 +3206,7 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
 }
 
 void RestServer::handle_options(http_request request) {
-    FMA_DBG_STREAM(logger_) << "OPTIONS: \n" << _TS(request.to_string());
+    LOG_DEBUG() << "OPTIONS: \n" << _TS(request.to_string());
     /* server-specific OPTIONS */
     return RespondSuccess(request);
 }

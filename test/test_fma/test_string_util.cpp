@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <sstream>
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/string_util.h"
 #include "./unit_test_utils.h"
@@ -196,21 +195,21 @@ FMA_UNIT_TEST(StringUtil) {
     double t1, t2;
     double x = 987654321;
     size_t total_bytes = 0;
-    LOG() << "Using snprintf";
+    LOG_INFO() << "Using snprintf";
     t1 = GetTime();
     for (int i = 0; i < n_iter; i++) {
         char buf[32];
         total_bytes += snprintf(buf, sizeof(buf), "%f", x);
     }
     t2 = GetTime();
-    LOG() << "Printed " << n_iter << " integers at " << (double)n_iter / (t2 - t1) << " tps";
-    LOG() << "Number of bytes: " << total_bytes << " at "
+    LOG_INFO() << "Printed " << n_iter << " integers at " << (double)n_iter / (t2 - t1) << " tps";
+    LOG_INFO() << "Number of bytes: " << total_bytes << " at "
           << (double)total_bytes / 1024 / 1024 / (t2 - t1) << "MB/s";
 
     SleepS(1);
 
     total_bytes = 0;
-    LOG() << "Using to_string";
+    LOG_INFO() << "Using to_string";
     std::string buf(16, 0);
     t1 = GetTime();
     std::ios_base::sync_with_stdio(0);
@@ -224,17 +223,17 @@ FMA_UNIT_TEST(StringUtil) {
         // total_bytes += unsigned_to_decimal(x, &buf[0]);
     }
     t2 = GetTime();
-    LOG() << "x=" << ToString(x);
-    LOG() << "Printed " << n_iter << " integers at " << (double)n_iter / (t2 - t1) << " tps";
-    LOG() << "Number of bytes: " << total_bytes << " at "
+    LOG_INFO() << "x=" << ToString(x);
+    LOG_INFO() << "Printed " << n_iter << " integers at " << (double)n_iter / (t2 - t1) << " tps";
+    LOG_INFO() << "Number of bytes: " << total_bytes << " at "
           << (double)total_bytes / 1024 / 1024 / (t2 - t1) << "MB/s";
 
     //// this should trigger a ToString()-not-defined error
     // LOG() << ToString(Type3());
     //// this should trigger a ToString()-return-type error
     // LOG() << ToString(Type2());
-    LOG() << ToString(DerivedWithToString());
-    LOG() << ToString(Type1());
+    LOG_INFO() << ToString(DerivedWithToString());
+    LOG_INFO() << ToString(Type1());
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;

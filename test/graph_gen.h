@@ -18,8 +18,6 @@
 #include <random>
 #include <string>
 
-#include "fma-common/logger.h"
-
 #include "core/data_type.h"
 #include "lgraph/lgraph.h"
 #include "./random_port.h"

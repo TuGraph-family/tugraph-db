@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#include "fma-common/logger.h"
 #include "fma-common/string_util.h"
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
@@ -572,7 +571,7 @@ R"(
         lgraph::import_v2::Importer::Config config;
         config.config_file =
             lgraph::ut::TEST_RESOURCE_DIRECTORY + "/../integration/data/algo/fb.conf";
-        FMA_LOG() << "config_file : " << config.config_file;
+        LOG_INFO() << "config_file : " << config.config_file;
         config.db_dir = dir;
         config.delete_if_exists = true;
         config.graph = "default";

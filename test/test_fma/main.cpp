@@ -17,9 +17,6 @@
 #include <vector>
 
 #include "fma-common/configuration.h"
-#include "fma-common/file_system.h"
-#include "fma-common/logging.h"
-#include "fma-common/type_traits.h"
 #include "fma-common/utils.h"
 #include "./unit_test_utils.h"
 
@@ -42,16 +39,16 @@ int RunTest(const char *argv0, const char *args) {
 int TestAll(int argc, char **argv) {
     for (auto &test : ::fma_common::GetUnitTests()) {
         for (auto &params : test.second.params) {
-            FMA_LOG() << "------------------------------------------";
-            FMA_LOG() << "Testing " << test.first << " " << params;
+            LOG_INFO() << "------------------------------------------";
+            LOG_INFO() << "Testing " << test.first << " " << params;
             std::string cmd = argv[0];
             cmd.append(" -t ").append(test.first);
             FMA_UT_CHECK_EQ(RunTest(cmd.c_str(), params.c_str()), 0);
-            FMA_LOG() << "TEST PASSED";
+            LOG_INFO() << "TEST PASSED";
         }
     }
-    FMA_LOG() << "---------------------";
-    FMA_LOG() << "ALL PASSED";
+    LOG_INFO() << "---------------------";
+    LOG_INFO() << "ALL PASSED";
     return 0;
 }
 

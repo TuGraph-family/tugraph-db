@@ -39,7 +39,7 @@ struct BasicConfigs {
         , use_pthread(false)
         , verbose(1)
         , log_dir()
-        , max_log_file_size_mb(64)
+        , max_log_file_size_mb(256)
         , max_n_log_files(16)
         , audit_log_expire(0)
         , audit_log_dir("./audit_log")

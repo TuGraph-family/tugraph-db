@@ -16,7 +16,7 @@
 
 #include <cstring>
 
-#include "fma-common/logger.h"
+#include "fma-common/assert.h"
 #include "core/lmdb/lmdb.h"
 #include "core/mem_profiler.h"
 #include "lgraph/lgraph_types.h"

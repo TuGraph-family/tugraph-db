@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "fma-common/logging.h"
 #include "gtest/gtest.h"
 #include "import/import_planner.h"
 #include "./random_port.h"

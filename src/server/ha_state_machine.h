@@ -2,8 +2,7 @@
 
 #pragma once
 #include <chrono>
-#include "fma-common/logger.h"
-
+#include "tools/lgraph_log.h"
 #include "core/global_config.h"
 #include "server/state_machine.h"
 
@@ -45,7 +44,6 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
     };
 
  protected:
-    fma_common::Logger& logger_ = fma_common::Logger::Get("HaStateMachine");
     braft::Node* volatile node_;
     std::atomic<int64_t> leader_term_;
     std::atomic<bool> joined_group_;
@@ -56,8 +54,6 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
     mutable std::mutex hb_mutex_;
     std::condition_variable hb_cond_;
     bool exit_flag_ = false;  // should heartbeat thread exit?
-    NodeState node_state_;    // state of current node
-    bool peers_changed_;
     struct HeartbeatStatus {
         std::string rpc_addr;
         std::string rest_addr;
@@ -80,9 +76,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
           node_(nullptr),
           leader_term_(-1),
           joined_group_(false),
-          config_(config),
-          node_state_(NodeState::UNINITIALIZED),
-          peers_changed_(false) {
+          config_(config) {
         my_rest_addr_ =
             fma_common::StringFormatter::Format("{}:{}", config.host, global_config->http_port);
         my_rpc_addr_ = fma_common::StringFormatter::Format("{}:{}", config.host, config_.rpc_port);
@@ -189,7 +183,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
 
     void HeartbeatThread();
 
-    void SendHeartbeatToMasterLocked(NodeState state);
+    void SendHeartbeatToMasterLocked();
     void ScanHeartbeatStatusLocked();
 };
 }  // namespace lgraph
@@ -203,7 +197,7 @@ class HaStateMachine : public StateMachine {
     };
 
     HaStateMachine(const Config& config, GlobalConfig* gc) : ::lgraph::StateMachine(config, gc) {
-        FMA_ERR() << "Replication is not implemented for Windows yet.";
+        LOG_ERROR() << "Replication is not implemented for Windows yet.";
     }
     virtual ~HaStateMachine() {}
 };

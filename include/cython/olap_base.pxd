@@ -153,9 +153,12 @@ cdef extern from "lgraph/olap_on_db.h" namespace "lgraph_api::olap" :
 
     cdef cppclass OlapOnDB[EdgeData](OlapBase[EdgeData]) nogil:
         OlapOnDB(GraphDB & db, Transaction & txn, size_t flags, bint(*vertex_filter)(VertexIterator &), bint(*out_edge_filter)(OutEdgeIterator &, EdgeData &))
+        OlapOnDB(GraphDB & db, Transaction & txn, vector[vector[string]] &label_list, size_t flags)
         # OlapOnDB(GraphDB & db, Transaction & txn, size_t flags, bint(&vertex_filter)(VertexIterator &), bint(&out_edge_filter)(OutEdgeIterator &, EdgeData&))
         # OlapOnDB(GraphDB & db, Transaction & txn, size_t flags, bint(VertexIterator &)vertex_filter)
         OlapOnDB(GraphDB & db, Transaction & txn, size_t flags)
         OlapOnDB(GraphDB & db, Transaction & txn)
         # OlapOnDB(OlapOnDB[EdgeData]&& rhs)
         # ParallelVector[VertexData] ExtractVertexData(void(VertexIterator &, VertexData &) extract)
+        int64_t OriginalVid(size_t vid)
+        size_t MappedVid(size_t original_vid)

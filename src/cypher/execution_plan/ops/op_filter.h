@@ -108,7 +108,7 @@ class OpFilter : public OpBase {
             }
         }
 #ifndef NDEBUG
-        FMA_DBG() << "[" << __FILE__ << "] " << filter_->ToString() << " passed!";
+        LOG_DEBUG() << "[" << __FILE__ << "] " << filter_->ToString() << " passed!";
 #endif
         return OP_OK;
     }

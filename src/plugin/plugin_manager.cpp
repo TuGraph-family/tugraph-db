@@ -315,9 +315,7 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromZip(const std:
 
     // compile
     std::string exec_dir = fma_common::FileSystem::GetExecutablePath().Dir();
-    std::string CFLAGS = FMA_FMT(
-        "-DLGRAPH_ENABLE_LGRAPH_LOG=1 "
-        " -I{}/../../include -I/usr/local/include", exec_dir);
+    std::string CFLAGS = FMA_FMT(" -I{}/../../include -I/usr/local/include", exec_dir);
     std::string LDFLAGS =
         FMA_FMT("-L{}/../../liblgraph.so -L/usr/local/lib64/liblgraph.so", exec_dir);
     cmd = fma_common::StringFormatter::Format("cd \"{}\" && make CFLAGS=\"{}\" LDFLAGS=\"{}\"",
@@ -359,25 +357,25 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
 #ifndef __clang__
 #ifdef __SANITIZE_ADDRESS__
     std::string cmd = FMA_FMT(
-        "g++ -fno-gnu-unique -DLGRAPH_ENABLE_LGRAPH_LOG=1"
+        "g++ -fno-gnu-unique "
         " -fPIC -g --std=c++17 {} -Wl,-z,nodelete "
         " -rdynamic -O3 -fopenmp -o {} {} {} -shared ",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #else
     std::string cmd = FMA_FMT(
-        "g++ -fno-gnu-unique -DLGRAPH_ENABLE_LGRAPH_LOG=1 -fPIC -g "
+        "g++ -fno-gnu-unique -fPIC -g "
         " --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #endif
 #elif __APPLE__
     std::string cmd = FMA_FMT(
-        "clang++ -stdlib=libc++ -DLGRAPH_ENABLE_LGRAPH_LOG=1"
+        "clang++ -stdlib=libc++ "
         " -fPIC -g --std=c++17 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
         "{} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #else
     std::string cmd = FMA_FMT(
-        "clang++ -stdlib=libc++ -DLGRAPH_ENABLE_LGRAPH_LOG=1"
+        "clang++ -stdlib=libc++ "
         " -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, file_path, LDFLAGS);
 #endif
@@ -633,12 +631,12 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
                     WriteWholeFile(impl_->GetPluginPath(name), exe, "");
                     UpdateSoToKvStore(txn, name, exe);
                 }
-                FMA_DBG() << "Reload plugin " << name;
+                LOG_DEBUG() << "Reload plugin " << name;
             }
             // load plugin
             impl_->LoadPlugin("", name, pinfo.get());
             procedures_.emplace(std::make_pair(name, pinfo.release()));
-            FMA_DBG() << "Loaded plugin " << name;
+            LOG_DEBUG() << "Loaded plugin " << name;
         } catch (const std::exception& e) {
             std::throw_with_nested(
                 InternalError("Failed to load plugin [{}], err: {}", name, e.what()));

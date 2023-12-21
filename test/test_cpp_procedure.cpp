@@ -16,7 +16,6 @@
 
 #include "fma-common/binary_buffer.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "./ut_utils.h"
 #include "gtest/gtest.h"
@@ -74,14 +73,14 @@ void build_so() {
     std::string cmd;
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./sortstr.so",
                  "../../test/test_procedures/sortstr.cpp", LIBLGRAPH);
-    FMA_LOG() << "cmd_sort:" << cmd;
+    LOG_INFO() << "cmd_sort:" << cmd;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./scan_graph.so",
                  "../../test/test_procedures/scan_graph.cpp", LIBLGRAPH);
-    FMA_LOG() << "cmd_scan_graph:" << cmd;
+    LOG_INFO() << "cmd_scan_graph:" << cmd;
     rt = system(cmd.c_str());
-    FMA_LOG() << "rt:" << rt;
+    LOG_INFO() << "rt:" << rt;
     UT_EXPECT_EQ(rt, 0);
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./echo_binary.so",
                  "../../procedures/demo/echo_binary.cpp", LIBLGRAPH);

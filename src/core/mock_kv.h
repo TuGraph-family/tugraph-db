@@ -165,8 +165,8 @@ class MockKvTable {
     void AppendKv(MockKvTransaction& txn, const Value& key, const Value& value) {
         auto it = map_->emplace_hint(map_->end(), key.AsString(), value.AsString());
         if (++it != map_->end()) {
-            FMA_LOG() << "map: " << fma_common::ToString(*map_);
-            FMA_LOG() << "it: " << fma_common::ToString(*it);
+            LOG_INFO() << "map: " << fma_common::ToString(*map_);
+            LOG_INFO() << "it: " << fma_common::ToString(*it);
             FMA_ASSERT(false);
         }
     }
@@ -369,7 +369,7 @@ class MockKvStore {
         fma_common::OutputFmaStream out(data_file_);
         if (out.Good()) {
             size_t n_bytes = fma_common::BinaryWrite(out, tables_);
-            FMA_DBG() << "KvStore " << data_file_ << " is of size " << n_bytes;
+            LOG_DEBUG() << "KvStore " << data_file_ << " is of size " << n_bytes;
         }
     }
 

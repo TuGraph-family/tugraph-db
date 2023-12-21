@@ -2187,7 +2187,7 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
                                       per_node_limit.has_value() ? per_node_limit.value() : 10000,
                                       &in_edge_left, nullptr);
         if (out_edge_left || in_edge_left) {
-            FMA_WARN() << "Result trimmed down because " << vid
+            LOG_WARN() << "Result trimmed down because " << vid
                                     << " has more than 10000 in/out neighbours";
         }
         if (direction == parser::LinkDirection::RIGHT_TO_LEFT) {

@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     {
         fma_common::InputFmaStream f(config_file);
         if (!f.Good()) {
-            FMA_WARN() << "Error opening config file " << config_file;
+            LOG_WARN() << "Error opening config file " << config_file;
             return -1;
         }
         json.resize(f.Size());
@@ -55,14 +55,14 @@ int main(int argc, char** argv) {
     try {
         argparser.ParseJson(json.c_str());
     } catch (std::exception& e) {
-        FMA_ERR() << "Failed to parse config file " << config_file << ": " << e.what();
+        LOG_ERROR() << "Failed to parse config file " << config_file << ": " << e.what();
         return -1;
     }
     try {
         argparser.ExitAfterHelp(true);
         argparser.ParseAndFinalize(argc, argv);
     } catch (std::exception& e) {
-        FMA_ERR() << "Failed to parse command line option: " << e.what();
+        LOG_ERROR() << "Failed to parse command line option: " << e.what();
         return -1;
     }
     // now run the service

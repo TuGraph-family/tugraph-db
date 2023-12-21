@@ -16,7 +16,7 @@ class TestExec:
 
     IMPORTOPT = {
         "cmd" : "./lgraph_import -c ./data/algo/cora.conf --dir ./coradb --overwrite 1 && ./algo/feature_float_embed ./coradb",
-        "cleanup_dir" : ["./testdb", "./.import_tmp"]
+        "cleanup_dir" : ["./coradb", "./.import_tmp"]
     }
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
@@ -31,5 +31,18 @@ class TestExec:
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("algo", [TRAINFULLCORA], indirect=True)
     def test_exec_train_full_cora_python_embed(self, importor, algo):
+        pass
+    MAPIMPORTOPT = {
+        "cmd" : "./lgraph_import -c ./data/algo/mag.conf --dir ./magdb --overwrite 1 && ./algo/feature_float_embed ./magdb",
+        "cleanup_dir" : ["./magdb", "./.import_tmp"]
+    }
+
+    TRAINFULLMAG = {
+        "cmd" : "python3 train_full_mag.py",
+        "result" : ["The loss value is less than 5"]
+    }
+    @pytest.mark.parametrize("importor", [MAPIMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [TRAINFULLMAG], indirect=True)
+    def test_exec_train_full_mag_python_embed(self, importor, algo):
         pass
 

@@ -29,7 +29,7 @@
 #include <thread>
 
 #include "fma-common/env.h"
-#include "fma-common/logger.h"
+#include "fma-common/assert.h"
 #include "fma-common/predefs.h"
 #include "fma-common/string_util.h"
 #include "fma-common/type_traits.h"
@@ -257,8 +257,6 @@ inline FILE* OpenPipe(const std::string& cmd, const char* mode, bool redirect_st
     std::string c = cmd;
     if (redirect_stderr) c += " 2>&1 ";
     FILE* f = popen(c.c_str(), mode);
-    FMA_ASSERT(f != nullptr) << "Error executing command to open pipe: " << c
-                             << ": ErrorNo=" << errno;
     return f;
 }
 }  // namespace _detail

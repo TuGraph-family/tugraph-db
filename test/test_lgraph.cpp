@@ -13,7 +13,6 @@
  */
 
 #include <random>
-#include "fma-common/logging.h"
 #include "fma-common/configuration.h"
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
@@ -410,7 +409,7 @@ TEST_F(TestLGraph, LGraph) {
         txn.Commit();
         UT_LOG() << "Vertex added: " << nv;
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -434,7 +433,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         txn.Abort();
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -491,7 +490,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         UT_LOG() << "Edges added: " << nedges;
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -517,25 +516,24 @@ TEST_F(TestLGraph, LGraph) {
         }
         DumpGraph(txn);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
     // Test AddEdge2
     try {
-        LOG() << "AddEdge with primary";
+        UT_LOG() << "AddEdge with primary";
         std::vector<FieldSpec> e2_fds = {{"ts", FieldType::INT64, false},
                                          {"weight", FieldType::FLOAT, false}};
         EdgeOptions options;
         options.temporal_field = "ts";
         options.temporal_field_order = TemporalFieldOrder::ASC;
-        ASSERT(db.AddLabel("e2", e2_fds, false, options));
+        UT_ASSERT(db.AddLabel("e2", e2_fds, false, options));
         auto txn = db.CreateWriteTxn();
         VertexId src = AddVertex(txn, "v10", "10");
         VertexId dst1 = AddVertex(txn, "v11", "11");
         VertexId dst2 = AddVertex(txn, "v12", "12");
         VertexId dst3 = AddVertex(txn, "v13", "13");
-        // FMA_LOG() << txn.GetAllLabels(false).size();
         AddEdge2(txn, src, dst2, 3, 0.3);
         AddEdge2(txn, src, dst3, 1, 0.1);
         AddEdge2(txn, src, dst3, 1, 0.1);
@@ -559,7 +557,7 @@ TEST_F(TestLGraph, LGraph) {
 #if 0
                 auto eit = txn.GetOutEdgeIterator(EdgeUid(src, 0, 1, 0, 0), true);
                 while (eit.IsValid()) {
-                    FMA_LOG() << "<<<< " << eit.GetUid().ToString()
+                    LOG_INFO() << "<<<< " << eit.GetUid().ToString()
                               << txn.GetEdgeField(eit, size_t(1)).AsFloat();
                     eit.Next();
 #endif
@@ -576,7 +574,7 @@ TEST_F(TestLGraph, LGraph) {
             UT_ASSERT(fabs(txn.GetEdgeField(eit2, size_t(1)).AsFloat() - 2.2) < 1e-6);
         }
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -594,7 +592,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         DumpGraph(txn);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -639,7 +637,7 @@ TEST_F(TestLGraph, LGraph) {
         auto txn = db.CreateReadTxn();
         DumpGraph(txn);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -708,7 +706,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         txn.Commit();
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -756,7 +754,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         UT_EXPECT_EQ(ne, 0);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
     UT_LOG() << "test delete all index";

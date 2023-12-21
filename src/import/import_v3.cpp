@@ -37,9 +37,9 @@ Importer::Importer(Config config)
 
 void Importer::OnErrorOffline(const std::string& msg) {
     if (config_.continue_on_error && config_.quiet) return;
-    FMA_WARN() << msg;
+    LOG_WARN() << msg;
     if (!config_.continue_on_error) {
-        FMA_WARN() << "If you wish to ignore the errors, use "
+        LOG_WARN() << "If you wish to ignore the errors, use "
                      "--continue_on_error true";
         if (!config_.import_online) {
             exit(-1);
@@ -104,7 +104,7 @@ void Importer::DoImportOffline() {
         bool ok = db_->AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
             if (!config_.import_online) {
-                FMA_LOG() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
+                LOG_INFO() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
                                      v.name);
             } else {
                 online_full_import_oss << FMA_FMT("Add {} label:{}\n",
@@ -147,7 +147,7 @@ void Importer::DoImportOffline() {
                     // create index, ID column has creadted
                     if (db_->AddVertexIndex(v.name, spec.name, spec.idxType)) {
                         if (!config_.import_online) {
-                            FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                            LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
                                                  v.name, spec.name, static_cast<int>(spec.idxType));
                         } else {
                             online_full_import_oss << FMA_FMT("Add vertex index [label:{}, "
@@ -172,7 +172,7 @@ void Importer::DoImportOffline() {
                            spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                         if (!config_.import_online) {
-                            FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                            LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
                                                  v.name, spec.name, static_cast<int>(spec.idxType));
                         } else {
                             online_full_import_oss << FMA_FMT("Add edge index [label:{}, field:{},"
@@ -195,7 +195,7 @@ void Importer::DoImportOffline() {
                     bool ok = db_->AddFullTextIndex(v.is_vertex, v.name, spec.name);
                     if (ok) {
                         if (!config_.import_online) {
-                            FMA_LOG() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
+                            LOG_INFO() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
                                          v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                         } else {
                             online_full_import_oss << FMA_FMT("Add fulltext index [{} label:{}, "
@@ -213,7 +213,7 @@ void Importer::DoImportOffline() {
     }
 
     if (!config_.import_online) {
-        FMA_LOG() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
+        LOG_INFO() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
     } else {
         online_full_import_oss << "Import finished in " +
                                       std::to_string(fma_common::GetTime() - t1) + " seconds.\n";
@@ -459,7 +459,7 @@ void Importer::VertexDataToSST() {
     }
     if (config_.keep_vid_in_memory) {
         if (key_vid_maps_.empty()) {
-            FMA_WARN() << "vids in memory are empty, no valid vertex data";
+            LOG_WARN() << "vids in memory are empty, no valid vertex data";
             if (!config_.import_online) {
                 exit(-1);
             } else {
@@ -477,7 +477,7 @@ void Importer::VertexDataToSST() {
             }
         }
         if (ingest_files.empty()) {
-            FMA_WARN() << "vids in sst are empty, no valid vertex data";
+            LOG_WARN() << "vids in sst are empty, no valid vertex data";
             if (!config_.import_online) {
                 exit(-1);
             } else {
@@ -500,7 +500,7 @@ void Importer::VertexDataToSST() {
                 FMA_FMT("vids CompactRange failed, error: {}", s.ToString().c_str()));
         }
         if (!config_.import_online) {
-            FMA_LOG() << "vids CompactRange, time: " << fma_common::GetTime() - begin << "s";
+            LOG_INFO() << "vids CompactRange, time: " << fma_common::GetTime() - begin << "s";
         } else {
             online_full_import_oss << "vids CompactRange, time: " +
                    std::to_string(fma_common::GetTime() - begin) + "s\n";
@@ -509,7 +509,7 @@ void Importer::VertexDataToSST() {
 
     auto t2 = fma_common::GetTime();
     if (!config_.import_online) {
-        FMA_LOG() << "Convert vertex data to sst files, time: " << t2 - t1 << "s";
+        LOG_INFO() << "Convert vertex data to sst files, time: " << t2 - t1 << "s";
     } else {
         online_full_import_oss << "Convert vertex data to sst files, time: " +
                                       std::to_string(t2 - t1) + "s\n";
@@ -873,7 +873,7 @@ void Importer::EdgeDataToSST() {
     }
     auto t2 = fma_common::GetTime();
     if (!config_.import_online) {
-        FMA_LOG() << "Convert edge data to sst files, time: " << t2 - t1 << "s";
+        LOG_INFO() << "Convert edge data to sst files, time: " << t2 - t1 << "s";
     } else {
         online_full_import_oss << "Convert edge data to sst files, time: " +
                                       std::to_string(t2 - t1) + "s\n";
@@ -1021,7 +1021,7 @@ void Importer::VertexPrimaryIndexToLmdb() {
         wf.close();
         if (dirty_vids > 0) {
             if (!config_.import_online) {
-                FMA_LOG() << "dirty vids num: " << dirty_vids;
+                LOG_INFO() << "dirty vids num: " << dirty_vids;
             } else {
                 online_full_import_oss << "dirty vids num: " + std::to_string(dirty_vids) + "\n";
             }
@@ -1030,7 +1030,7 @@ void Importer::VertexPrimaryIndexToLmdb() {
     txn.Commit();
     auto t2 = fma_common::GetTime();
     if (!config_.import_online) {
-        FMA_LOG() << "Write vertex primary index to lmdb, time: " << t2 - t1 << "s";
+        LOG_INFO() << "Write vertex primary index to lmdb, time: " << t2 - t1 << "s";
     } else {
         online_full_import_oss << "Write vertex primary index to lmdb, time: " +
                                       std::to_string(t2 - t1) + "s\n";
@@ -1063,7 +1063,7 @@ void Importer::RocksdbToLmdb() {
         ingest_files.push_back(entry.path().generic_string());
     }
     if (ingest_files.empty()) {
-        FMA_WARN() << "no sst files are created, "
+        LOG_WARN() << "no sst files are created, "
                       "please check if the input vertex and edge files are valid";
         if (!config_.import_online) {
             exit(-1);
@@ -1089,7 +1089,7 @@ void Importer::RocksdbToLmdb() {
                 FMA_FMT("CompactRange failed, error: {}", s.ToString().c_str()));
         }
         if (!config_.import_online) {
-            FMA_LOG() << "CompactRange, time: " << fma_common::GetTime() - begin << "s";
+            LOG_INFO() << "CompactRange, time: " << fma_common::GetTime() - begin << "s";
         } else {
             online_full_import_oss << "CompactRange, time: " +
                                           std::to_string(fma_common::GetTime() - begin) + "s\n";
@@ -1407,7 +1407,7 @@ void Importer::RocksdbToLmdb() {
     WriteCount();
     auto t2 = fma_common::GetTime();
     if (!config_.import_online) {
-        FMA_LOG() << "Dump rocksdb into lmdb, time: " << t2 - t1 << "s";
+        LOG_INFO() << "Dump rocksdb into lmdb, time: " << t2 - t1 << "s";
     } else {
         online_full_import_oss << "Dump rocksdb into lmdb, time: " +
                                       std::to_string(t2 - t1) + "s\n";
@@ -1451,7 +1451,8 @@ AccessControlledDB Importer::OpenGraph(Galaxy& galaxy, bool empty_db) {
                     "Graph already exists. If you want to overwrite the graph, use --overwrite "
                     "true.");
             } else {
-                FMA_LOG() << "Graph already exists, all the data in the graph will be overwritten.";
+                LOG_INFO() << "Graph already exists, "
+                              "all the data in the graph will be overwritten.";
                 AccessControlledDB db = galaxy.OpenGraph(config_.user, config_.graph);
                 db.DropAllData();
             }

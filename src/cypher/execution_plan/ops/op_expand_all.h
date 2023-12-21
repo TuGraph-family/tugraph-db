@@ -70,9 +70,9 @@ class ExpandAll : public OpBase {
 
     void _DumpForDebug() const {
 #ifndef NDEBUG
-        FMA_DBG() << "[" << __FILE__ << "] start:" << start_->PullVid()
+        LOG_DEBUG() << "[" << __FILE__ << "] start:" << start_->PullVid()
                   << ", neighbor:" << neighbor_->PullVid();
-        FMA_DBG() << pattern_graph_->VisitedEdges().Dump();
+        LOG_DEBUG() << pattern_graph_->VisitedEdges().Dump();
 #endif
     }
 

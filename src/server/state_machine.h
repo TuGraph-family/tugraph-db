@@ -129,7 +129,6 @@ class StateMachine {
     };
 
  protected:
-    fma_common::Logger& logger_ = fma_common::Logger::Get("StateMachine");
     Config config_;
     std::shared_ptr<GlobalConfig> global_config_;
     std::unique_ptr<Galaxy> galaxy_;

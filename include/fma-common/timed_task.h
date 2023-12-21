@@ -15,7 +15,7 @@
 #include <mutex>
 #include <thread>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/type_traits.h"
 
 namespace fma_common {
@@ -229,7 +229,7 @@ class TimedTaskScheduler {
                 try {
                     first_task->Run(first_task);
                 } catch (std::exception& e) {
-                    FMA_WARN() << "Error executing timed task: " << e.what();
+                    LOG_WARN() << "Error executing timed task: " << e.what();
                 }
                 l.lock();
                 n_running_--;
@@ -256,7 +256,7 @@ inline void RecurringTask::Run(const std::shared_ptr<TimedTask>& self) {
     try {
         func(this);
     } catch (std::exception& e) {
-        FMA_WARN() << "Error executing recurring task: " << e.what();
+        LOG_WARN() << "Error executing recurring task: " << e.what();
     }
     l.lock();
     executed_ = true;

@@ -17,7 +17,7 @@
 //
 
 #include "cypher/execution_plan/ops/op_argument.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 namespace cypher {
 

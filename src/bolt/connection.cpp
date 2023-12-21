@@ -52,7 +52,7 @@ void BoltConnection::DoSend() {
     async_write(socket(), send_buffers_,
      [this](const boost::system::error_code& ec, std::size_t) {
          if (ec) {
-             FMA_WARN() << FMA_FMT("async write error: {}, clear {} pending message",
+             LOG_WARN() << FMA_FMT("async write error: {}, clear {} pending message",
                                   ec.message(), msg_queue_.size());
              msg_queue_.clear();
              Close();
@@ -70,7 +70,7 @@ void BoltConnection::DoSend() {
 // used in io thread
 void BoltConnection::Respond(std::string str) {
     if (!socket().is_open()) {
-        FMA_WARN() << "connection is not available, drop this message";
+        LOG_WARN() << "connection is not available, drop this message";
         return;
     }
     bool need_invoke = msg_queue_.empty();
@@ -90,12 +90,12 @@ void BoltConnection::PostResponse(std::string str) {
 
 void BoltConnection::ReadHandshakeDone(const boost::system::error_code& ec, const size_t) {
     if (ec) {
-        FMA_WARN() << FMA_FMT("ReadHandshakeDone error: {}", ec.message());
+        LOG_WARN() << FMA_FMT("ReadHandshakeDone error: {}", ec.message());
         Close();
         return;
     }
     if (*(uint32_t*)handshake_buffer_ != *(uint32_t*)bolt_identification_) {
-        FMA_WARN() << "Bolt connection identification is wrong";
+        LOG_WARN() << "Bolt connection identification is wrong";
         Close();
         return;
     }
@@ -108,11 +108,11 @@ void BoltConnection::ReadHandshakeDone(const boost::system::error_code& ec, cons
         }
     }
     if (!match) {
-        FMA_WARN() << "No matching bolt version found";
+        LOG_WARN() << "No matching bolt version found";
     }
     if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
         for (int i = 1; i < 5; i++) {
-            FMA_DBG() << "protocol version " + std::to_string(i)
+            LOG_DEBUG() << "protocol version " + std::to_string(i)
                       << ": major:" << (int)handshake_buffer_[i*4+3] << ", minor:"
                       << (int)handshake_buffer_[i*4+2];
         }
@@ -125,7 +125,7 @@ void BoltConnection::ReadHandshakeDone(const boost::system::error_code& ec, cons
 
 void BoltConnection::WriteResponseDone(const boost::system::error_code& ec, const size_t) {
     if (ec) {
-        FMA_WARN() << FMA_FMT("WriteResponseDone error: {}", ec.message());
+        LOG_WARN() << FMA_FMT("WriteResponseDone error: {}", ec.message());
         Close();
         return;
     }
@@ -137,7 +137,7 @@ void BoltConnection::WriteResponseDone(const boost::system::error_code& ec, cons
 
 void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec, const size_t) {
     if (ec) {
-        FMA_WARN() << FMA_FMT("ReadChunkSizeDone error: {}", ec.message());
+        LOG_WARN() << FMA_FMT("ReadChunkSizeDone error: {}", ec.message());
         Close();
         return;
     }
@@ -157,7 +157,7 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec, cons
             for (const auto& f : fields) {
                 debug.push_back(DebugString(f));
             }
-            FMA_DBG() << FMA_FMT(
+            LOG_DEBUG() << FMA_FMT(
                 "msg: {}, fields: {}", ToString(tag), debug.dump());
         }
         handle_(*this, tag, std::move(fields));
@@ -172,7 +172,7 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec, cons
 
 void BoltConnection::ReadChunkDone(const boost::system::error_code& ec, const size_t) {
     if (ec) {
-        FMA_WARN() << FMA_FMT("ReadChunkDone error: {}", ec.message());
+        LOG_WARN() << FMA_FMT("ReadChunkDone error: {}", ec.message());
         Close();
         return;
     }

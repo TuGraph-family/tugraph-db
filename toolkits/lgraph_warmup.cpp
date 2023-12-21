@@ -13,8 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "tools/lgraph_log.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/utils.h"
 #include "db/galaxy.h"
 
@@ -31,11 +31,11 @@ int main(int argc, char** argv) {
     std::vector<std::string> graphs = fma_common::Split(graph_list, ",");
 
     double t1 = fma_common::GetTime();
-    LOG() << "Warming up data in [" << dir << "]";
-    FMA_LOG() << "Graph list: " << fma_common::ToString(graphs);
+    LOG_INFO() << "Warming up data in [" << dir << "]";
+    LOG_INFO() << "Graph list: " << fma_common::ToString(graphs);
     lgraph::Galaxy g(dir, false);
     g.WarmUp("admin", graphs);
     double t2 = fma_common::GetTime();
-    LOG() << "Warm up successful in " << t2 - t1 << " seconds.";
+    LOG_INFO() << "Warm up successful in " << t2 - t1 << " seconds.";
     return 0;
 }

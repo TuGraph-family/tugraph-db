@@ -11,7 +11,7 @@
 
 #include <mutex>
 
-#include "fma-common/logger.h"
+#include "fma-common/assert.h"
 
 namespace fma_common {
 static const int FMA_MAX_THREADS = 480;

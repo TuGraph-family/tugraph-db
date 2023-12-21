@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "fma-common/string_formatter.h"
+#include "fma-common/assert.h"
 
 namespace lgraph {
 namespace import {

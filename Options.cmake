@@ -81,14 +81,6 @@ else (ENABLE_FULLTEXT_INDEX)
     message("Fulltext index is disabled.")
 endif (ENABLE_FULLTEXT_INDEX)
 
-option(ENABLE_LGRAPH_LOG "Enable lgraph log." ON)
-if (ENABLE_LGRAPH_LOG)
-    message("Use lgraph log based on Boost.log.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLGRAPH_ENABLE_LGRAPH_LOG=1")
-else (ENABLE_LGRAPH_LOG)
-    message("Use native fma log.")
-endif (ENABLE_LGRAPH_LOG)
-
 option(BUILD_JAVASDK "Build lgraph4jni.so for javasdk" OFF)
 if (BUILD_JAVASDK)
     message("Build lgraph4jni.so for javasdk.")
@@ -101,6 +93,9 @@ endif (BUILD_PROCEDURE)
 
 # disable krb5
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENSSL_NO_KRB5=1")
+
+# remove prefix in macro __FILE__
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmacro-prefix-map=${CMAKE_CURRENT_LIST_DIR}/=")
 
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)

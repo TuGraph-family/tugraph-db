@@ -123,10 +123,10 @@ TestExists::TestExists(const cypher::SymbolTable &sym_tab,
     SetScopeNestedSymbolTable(sym_tab, *nested_pattern_);
     BuildNestedExecutionPlan();
 #ifndef NDEBUG
-    FMA_DBG() << "Nested execution plan:";
+    LOG_DEBUG() << "Nested execution plan:";
     std::string s;
     cypher::OpBase::DumpStream(nested_plan_, 4, false, s);
-    FMA_DBG() << s;
+    LOG_DEBUG() << s;
 #endif
 }
 

@@ -222,8 +222,8 @@ void RestClient::SetMisc() {
     DoPost("/misc/sync_meta", body, false);
 }
 
-RestClient::RestClient(const std::string& url, const std::string& cert_path, size_t timeout_seconds)
-    : logger_(fma_common::Logger::Get("lgraph.RestClient")) {
+RestClient::RestClient(const std::string& url, const std::string& cert_path,
+                       size_t timeout_seconds) {
     http_client_config config;
     config.set_validate_certificates(false);
     config.set_timeout(std::chrono::seconds(timeout_seconds));
@@ -247,7 +247,7 @@ RestClient::RestClient(const std::string& url, const std::string& cert_path, siz
     http_client_ = new http_client(_TU(url), config);
 
     // logger_.SetLevel(fma_common::LogLevel::LL_DEBUG);
-    FMA_DBG_STREAM(logger_) << "[RestClient] RestClient succeeded";
+    LOG_DEBUG() << "[RestClient] RestClient succeeded";
 }
 
 RestClient::~RestClient() { delete static_cast<http_client*>(http_client_); }
@@ -263,7 +263,7 @@ bool RestClient::Login(const std::string& username, const std::string& password)
     auto token = response.at(_TU("jwt")).as_string();
     std::string auth_value = std::string("Bearer ") + ToStdString(token);
     _header["Authorization"] = auth_value;
-    FMA_DBG_STREAM(logger_) << "[RestClient] Login " << username << " succeeded";
+    LOG_DEBUG() << "[RestClient] Login " << username << " succeeded";
     return true;
 }
 
@@ -274,7 +274,7 @@ std::string RestClient::Refresh(const std::string& token) {
     auto new_token = response.at(_TU("jwt")).as_string();
     std::string auth_value = std::string("Bearer ") + ToStdString(new_token);
     _header["Authorization"] = auth_value;
-    FMA_DBG_STREAM(logger_) << "[RestClient] Refresh " << " succeeded";
+    LOG_DEBUG() << "[RestClient] Refresh " << " succeeded";
     return _TS(new_token);
 }
 
@@ -352,7 +352,7 @@ bool RestClient::AddLabel(
     body_data[_TU(RestStrings::PRIMARY)] = json::value::string(_TU(primary));
     body_data[_TU(RestStrings::EDGE_CONSTRAINTS)] = VectorToJson(edge_constraints);
     DoGraphPost(db, "/label", body_data, true);
-    FMA_DBG_STREAM(logger_) << "[RestClient] AddLabel " << label << " succeeded";
+    LOG_DEBUG() << "[RestClient] AddLabel " << label << " succeeded";
     return true;
 }
 
@@ -363,7 +363,7 @@ bool RestClient::AddIndex(const std::string& db, const std::string& label, const
     data[_TU(RestStrings::FIELD)] = json::value::string(_TU(field));
     data[_TU(RestStrings::INDEXTYPE)] = json::value::number(index_type);
     DoGraphPost(db, "/index", data, false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] AddVertexIndex (" << label << ":" << field
+    LOG_DEBUG() << "[RestClient] AddVertexIndex (" << label << ":" << field
                             << ") succeeded";
     return true;
 }
@@ -373,7 +373,7 @@ std::vector<std::string> RestClient::ListVertexLabels(const std::string& db) {
     auto resp = response.as_array();
     std::vector<std::string> labels;
     for (auto& l : resp) labels.push_back(_TS(l.as_string()));
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListVertexLabels succeeded";
+    LOG_DEBUG() << "[RestClient] ListVertexLabels succeeded";
     return labels;
 }
 
@@ -382,7 +382,7 @@ std::vector<std::string> RestClient::ListEdgeLabels(const std::string& db) {
     auto resp = response.as_array();
     std::vector<std::string> labels;
     for (auto& l : resp) labels.push_back(_TS(l.as_string()));
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListEdgeLabels succeeded";
+    LOG_DEBUG() << "[RestClient] ListEdgeLabels succeeded";
     return labels;
 }
 
@@ -402,7 +402,7 @@ std::vector<FieldSpec> RestClient::GetSchema(const std::string& db, bool is_vert
         ExtractBoolField(js, RestStrings::NULLABLE, fs.optional);
         fds.emplace_back(std::move(fs));
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] Get" << (is_vertex ? "Vertex" : "Edge") << "Schema "
+    LOG_DEBUG() << "[RestClient] Get" << (is_vertex ? "Vertex" : "Edge") << "Schema "
                             << label_name << " succeeded";
     return fds;
 }
@@ -427,11 +427,11 @@ std::vector<IndexSpec> RestClient::ListIndexes(const std::string& db) {
             indexes.push_back(i);
         } else {
             indexes.clear();
-            FMA_WARN_STREAM(logger_) << "[RestClient] ListVertexIndexes failed";
+            LOG_WARN() << "[RestClient] ListVertexIndexes failed";
             return indexes;
         }
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListVertexIndexes succeeded";
+    LOG_DEBUG() << "[RestClient] ListVertexIndexes succeeded";
     return indexes;
 }
 
@@ -447,18 +447,18 @@ std::vector<IndexSpec> RestClient::ListIndexesAboutLabel(const std::string& db,
             indexes.push_back(i);
         } else {
             indexes.clear();
-            FMA_WARN_STREAM(logger_) << "[RestClient] ListIndexesAboutLabel failed";
+            LOG_WARN() << "[RestClient] ListIndexesAboutLabel failed";
             return indexes;
         }
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListIndexesAboutLabel succeeded";
+    LOG_DEBUG() << "[RestClient] ListIndexesAboutLabel succeeded";
     return indexes;
 }
 
 void RestClient::DeleteIndex(const std::string& db, const std::string& label,
                              const std::string& field) {
     DoGraphDelete(db, FMA_FMT("/index/{}/{}", label, field), false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] DeleteVertexIndex (" << label << ":" << field
+    LOG_DEBUG() << "[RestClient] DeleteVertexIndex (" << label << ":" << field
                             << ") succeeded";
 }
 
@@ -475,7 +475,7 @@ std::vector<int64_t> RestClient::GetVidsByIndex(const std::string& db, const std
         JsonToType(v, vid);
         vids.push_back(vid);
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetVidsByIndex (" << label << "," << field << ","
+    LOG_DEBUG() << "[RestClient] GetVidsByIndex (" << label << "," << field << ","
                             << value << ") succeeded";
     return vids;
 }
@@ -485,7 +485,7 @@ int64_t RestClient::AddVertex(const std::string& db, const std::string& label_na
                               const std::vector<FieldData>& field_values) {
     int64_t ret = -1;
     if (field_names.size() != field_values.size()) {
-        FMA_DBG_STREAM(logger_)
+        LOG_DEBUG()
             << "[RestClient] AddVertex failed! field_names.size() != field_values.size()";
         return -1;
     }
@@ -498,10 +498,10 @@ int64_t RestClient::AddVertex(const std::string& db, const std::string& label_na
     body_data[_TU(RestStrings::PROP)] = js_prop;
     auto resp = DoGraphPost(db, "/node", body_data, true);
     if (JsonToType(resp, ret)) {
-        FMA_DBG_STREAM(logger_) << "[RestClient] AddVertex succeeded";
+        LOG_DEBUG() << "[RestClient] AddVertex succeeded";
         return ret;
     } else {
-        FMA_WARN_STREAM(logger_) << "[RestClient] AddVertex failed";
+        LOG_WARN() << "[RestClient] AddVertex failed";
         return -1;
     }
 }
@@ -517,7 +517,7 @@ std::vector<int64_t> RestClient::AddVertexes(
     jsv.reserve(field_values_vector.size());
     for (auto& field_values : field_values_vector) {
         if (field_values.size() != field_size) {
-            FMA_WARN_STREAM(logger_)
+            LOG_WARN()
                 << "[RestClient] AddVertexes failed! field_values.size() != field_size";
             return ret;
         }
@@ -534,12 +534,12 @@ std::vector<int64_t> RestClient::AddVertexes(
         ret.push_back(vid);
     }
     if (ret.size() != field_values_vector.size()) {
-        FMA_WARN_STREAM(logger_)
+        LOG_WARN()
             << "[RestClient] AddVertexes failed! ret.size() != field_values_vector.size()";
         ret.clear();
         return ret;
     } else {
-        FMA_DBG_STREAM(logger_) << "[RestClient] AddVertexes succeeded";
+        LOG_DEBUG() << "[RestClient] AddVertexes succeeded";
         return ret;
     }
 }
@@ -549,7 +549,7 @@ EdgeUid RestClient::AddEdge(const std::string& db, lgraph::VertexId src, lgraph:
                             const std::vector<FieldData>& field_values) {
     EdgeUid ret;
     if (field_names.size() != field_values.size()) {
-        FMA_WARN_STREAM(logger_)
+        LOG_WARN()
             << "[RestClient] AddEdge failed! field_names.size() != field_values.size()";
         return ret;
     }
@@ -565,9 +565,9 @@ EdgeUid RestClient::AddEdge(const std::string& db, lgraph::VertexId src, lgraph:
     auto resp = response.as_string();
     bool b = ExtractEdgeUid(_TS(resp), ret);
     if (!b)
-        FMA_WARN_STREAM(logger_) << "[RestClient] AddEdge (" << src << "," << dst << ") failed";
+        LOG_WARN() << "[RestClient] AddEdge (" << src << "," << dst << ") failed";
     else
-        FMA_DBG_STREAM(logger_) << "[RestClient] AddEdge (" << src << "," << dst << ") succeeded";
+        LOG_DEBUG() << "[RestClient] AddEdge (" << src << "," << dst << ") succeeded";
     return ret;
 }
 
@@ -582,13 +582,13 @@ std::vector<EdgeUid> RestClient::AddEdges(
     jsv.reserve(edge_size);
     json::value js;
     if (field_values_vector.size() != edge_size) {
-        FMA_WARN_STREAM(logger_)
+        LOG_WARN()
             << "[RestClient] AddEdges failed! field_values_vector.size() != edge_size";
         return ret;
     }
     for (size_t i = 0; i < edge_size; i++) {
         if (field_values_vector[i].size() != field_size) {
-            FMA_WARN_STREAM(logger_)
+            LOG_WARN()
                 << "[RestClient] AddEdges failed! field_values.size() != field_size";
             return ret;
         }
@@ -609,11 +609,11 @@ std::vector<EdgeUid> RestClient::AddEdges(
         if (ExtractEdgeUid(e.back(), edge)) ret.push_back(edge);
     }
     if (ret.size() != edge_size) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] AddEdges failed! ret.size() != edge_size";
+        LOG_WARN() << "[RestClient] AddEdges failed! ret.size() != edge_size";
         ret.clear();
         return ret;
     } else {
-        FMA_DBG_STREAM(logger_) << "[RestClient] AddEdges succeeded";
+        LOG_DEBUG() << "[RestClient] AddEdges succeeded";
         return ret;
     }
 }
@@ -631,7 +631,7 @@ std::map<std::string, FieldData> RestClient::GetVertexFields(const std::string& 
         JsonToType(iter->second, fd);
         ret.insert(std::make_pair(_TS(iter->first), fd));
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetVertexFields " << vid << " succeeded";
+    LOG_DEBUG() << "[RestClient] GetVertexFields " << vid << " succeeded";
     return ret;
 }
 
@@ -647,7 +647,7 @@ std::map<std::string, FieldData> RestClient::GetVertex(const std::string& db, lg
         JsonToType(iter->second, fd);
         ret.insert(std::make_pair(_TS(iter->first), fd));
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetVertex " << vid << " succeeded";
+    LOG_DEBUG() << "[RestClient] GetVertex " << vid << " succeeded";
     return ret;
 }
 
@@ -656,10 +656,10 @@ FieldData RestClient::GetVertexField(const std::string& db, lgraph::VertexId vid
     FieldData ret;
     auto resp = DoGraphGet(db, FMA_FMT("/node/{}/property/{}", vid, field_name), true);
     if (JsonToType(resp, ret)) {
-        FMA_DBG_STREAM(logger_) << "[RestClient] GetVertexField " << vid << ":" << field_name
+        LOG_DEBUG() << "[RestClient] GetVertexField " << vid << ":" << field_name
                                 << " succeeded";
     } else {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetVertexField " << vid << ":" << field_name
+        LOG_WARN() << "[RestClient] GetVertexField " << vid << ":" << field_name
                                  << " failed";
     }
     return ret;
@@ -673,13 +673,13 @@ std::vector<EdgeUid> RestClient::ListOutEdges(const std::string& db, lgraph::Ver
     for (auto& r : resp) {
         bool b = ExtractEdgeUid(_TS(r.as_string()), e);
         if (!b) {
-            FMA_WARN_STREAM(logger_) << "[RestClient] ListOutEdges " << src << " failed";
+            LOG_WARN() << "[RestClient] ListOutEdges " << src << " failed";
             ret.clear();
             return ret;
         }
         ret.push_back(e);
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListOutEdges " << src << " succeeded";
+    LOG_DEBUG() << "[RestClient] ListOutEdges " << src << " succeeded";
     return ret;
 }
 
@@ -691,13 +691,13 @@ std::vector<EdgeUid> RestClient::ListInEdges(const std::string& db, lgraph::Vert
     for (auto& r : resp) {
         bool b = ExtractEdgeUid(_TS(r.as_string()), e);
         if (!b) {
-            FMA_WARN_STREAM(logger_) << "[RestClient] ListInEdges " << dst << " failed";
+            LOG_WARN() << "[RestClient] ListInEdges " << dst << " failed";
             ret.clear();
             return ret;
         }
         ret.push_back(e);
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListInEdges " << dst << " succeeded";
+    LOG_DEBUG() << "[RestClient] ListInEdges " << dst << " succeeded";
     return ret;
 }
 
@@ -714,7 +714,7 @@ std::vector<std::vector<EdgeUid>> RestClient::ListAllEdges(const std::string& db
     for (auto& ine : inEdges) {
         bool b = ExtractEdgeUid(_TS(ine.as_string()), e);
         if (!b) {
-            FMA_WARN_STREAM(logger_) << "[RestClient] ListAllEdges " << vid << " failed";
+            LOG_WARN() << "[RestClient] ListAllEdges " << vid << " failed";
             inEdgesRet.clear();
             outEdgesRet.clear();
             return ret;
@@ -724,7 +724,7 @@ std::vector<std::vector<EdgeUid>> RestClient::ListAllEdges(const std::string& db
     for (auto& oute : outEdges) {
         bool b = ExtractEdgeUid(_TS(oute.as_string()), e);
         if (!b) {
-            FMA_WARN_STREAM(logger_) << "[RestClient] ListAllEdges " << vid << " failed";
+            LOG_WARN() << "[RestClient] ListAllEdges " << vid << " failed";
             inEdgesRet.clear();
             outEdgesRet.clear();
             return ret;
@@ -733,7 +733,7 @@ std::vector<std::vector<EdgeUid>> RestClient::ListAllEdges(const std::string& db
     }
     ret.push_back(inEdgesRet);
     ret.push_back(outEdgesRet);
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListAllEdges " << vid << " succeeded";
+    LOG_DEBUG() << "[RestClient] ListAllEdges " << vid << " succeeded";
     return ret;
 }
 
@@ -750,7 +750,7 @@ std::map<std::string, FieldData> RestClient::GetEdge(const std::string& db,
         JsonToType(iter->second, fd);
         ret.insert(std::make_pair(_TS(iter->first), fd));
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetEdge " << FMA_FMT("{}", euid.ToString())
+    LOG_DEBUG() << "[RestClient] GetEdge " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
     return ret;
 }
@@ -766,7 +766,7 @@ std::map<std::string, FieldData> RestClient::GetEdgeFields(const std::string& db
         JsonToType(iter->second, fd);
         ret.insert(std::make_pair(_TS(iter->first), fd));
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetEdgeFields " << FMA_FMT("{}", euid.ToString())
+    LOG_DEBUG() << "[RestClient] GetEdgeFields " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
     return ret;
 }
@@ -777,10 +777,10 @@ FieldData RestClient::GetEdgeField(const std::string& db, const lgraph::EdgeUid&
     auto resp =
         DoGraphGet(db, FMA_FMT("/relationship/{}/property/{}", euid.ToString(), field_name), true);
     if (JsonToType(resp, ret)) {
-        FMA_DBG_STREAM(logger_) << "[RestClient] GetEdgeField " << FMA_FMT("{}:", euid.ToString())
+        LOG_DEBUG() << "[RestClient] GetEdgeField " << FMA_FMT("{}:", euid.ToString())
                                 << field_name << " succeeded";
     } else {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetEdgeField " << FMA_FMT("{}:", euid.ToString())
+        LOG_WARN() << "[RestClient] GetEdgeField " << FMA_FMT("{}:", euid.ToString())
                                  << field_name << " failed";
     }
     return ret;
@@ -792,7 +792,7 @@ void RestClient::SetVertexProperty(const std::string& db, lgraph::VertexId vid,
                                    const std::vector<std::string>& field_names,
                                    const std::vector<FieldData>& field_data) {
     if (field_names.size() != field_data.size()) {
-        FMA_WARN_STREAM(logger_)
+        LOG_WARN()
             << "[RestClient] SetVertexProperty failed! field_names.size() != field_data.size()";
         throw std::runtime_error("field_names and field_data should have the same size.");
     }
@@ -803,14 +803,14 @@ void RestClient::SetVertexProperty(const std::string& db, lgraph::VertexId vid,
     json::value body_data;
     body_data[_TU(RestStrings::PROP)] = js_prop;
     DoGraphPut(db, FMA_FMT("/node/{}", vid), body_data);
-    FMA_DBG_STREAM(logger_) << "[RestClient] SetVertexProperty " << vid << " succeeded";
+    LOG_DEBUG() << "[RestClient] SetVertexProperty " << vid << " succeeded";
 }
 
 void RestClient::SetEdgeProperty(const std::string& db, const lgraph::EdgeUid& euid,
                                  const std::vector<std::string>& field_names,
                                  const std::vector<FieldData>& field_data) {
     if (field_names.size() != field_data.size()) {
-        FMA_WARN_STREAM(logger_)
+        LOG_WARN()
             << "[RestClient] SetEdgeProperty failed! field_names.size() != field_data.size()";
         throw std::runtime_error("field_names and field_data should have the same size.");
     }
@@ -821,7 +821,7 @@ void RestClient::SetEdgeProperty(const std::string& db, const lgraph::EdgeUid& e
     json::value body_data;
     body_data[_TU(RestStrings::PROP)] = js_prop;
     DoGraphPut(db, FMA_FMT("/relationship/{}", euid.ToString()), body_data);
-    FMA_DBG_STREAM(logger_) << "[RestClient] SetEdgeProperty " << FMA_FMT("{}", euid.ToString())
+    LOG_DEBUG() << "[RestClient] SetEdgeProperty " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
 }
 
@@ -832,12 +832,12 @@ void RestClient::DeleteVertex(const std::string& db, lgraph::VertexId vid, size_
     json::value v = DoGraphDelete(db, FMA_FMT("/node/{}", vid), true);
     *n_in = v.at(_TU(RestStrings::INE)).as_number().to_int64();
     *n_out = v.at(_TU(RestStrings::OUTE)).as_number().to_int64();
-    FMA_DBG_STREAM(logger_) << "[RestClient] DeleteVertex " << vid << " succeeded";
+    LOG_DEBUG() << "[RestClient] DeleteVertex " << vid << " succeeded";
 }
 
 void RestClient::DeleteEdge(const std::string& db, const lgraph::EdgeUid& euid) {
     DoGraphDelete(db, FMA_FMT("/relationship/{}", euid.ToString()), false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] DeleteEdge " << FMA_FMT("{}", euid.ToString())
+    LOG_DEBUG() << "[RestClient] DeleteEdge " << FMA_FMT("{}", euid.ToString())
                             << " succeeded";
 }
 
@@ -846,7 +846,7 @@ json::value RestClient::EvalCypher(const std::string& graph, const std::string& 
     body[RestStrings::SCRIPT] = json::value::string(_TU(s));
     body[RestStrings::GRAPH] = json::value::string(_TU(graph));
     auto response = DoPost("/cypher", body, true);
-    FMA_DBG_STREAM(logger_) << "[RestClient] EvalCypher succeeded";
+    LOG_DEBUG() << "[RestClient] EvalCypher succeeded";
     return response;
 }
 
@@ -857,7 +857,7 @@ json::value RestClient::EvalCypherWithParam(const std::string& graph, const std:
     body[RestStrings::GRAPH] = json::value::string(_TU(graph));
     body[RestStrings::PARAMETERS] = _ValueToJson<std::map<std::string, FieldData>>::Convert(param);
     auto response = DoPost("/cypher", body, true);
-    FMA_DBG_STREAM(logger_) << "[RestClient] EvalCypherWithParam succeeded";
+    LOG_DEBUG() << "[RestClient] EvalCypherWithParam succeeded";
     return response;
 }
 
@@ -866,7 +866,7 @@ json::value RestClient::GetSubGraph(const std::string& db, const std::vector<int
     body[RestStrings::VIDS] = VectorToJson(vec_vertex);
     auto response = DoGraphPost(
         db, FMA_FMT("/{}/{}", _TS(RestStrings::MISC), _TS(RestStrings::SUB_GRAPH)), body, true);
-    FMA_DBG_STREAM(logger_) << "[RestClient] " << __func__ << " succeeded";
+    LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return response;
 }
 
@@ -875,10 +875,10 @@ std::map<std::string, lgraph_api::UserInfo> RestClient::ListUsers() {
     auto response = DoGet("/user", true);
     if (!JsonToType(response, ret)) {
         std::string err = "Error parsing result:\n" + _TS(response.serialize());
-        FMA_ERR_STREAM(logger_) << err;
+        LOG_ERROR() << err;
         throw InternalError(err);
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] ListUsers succeeded";
+    LOG_DEBUG() << "[RestClient] ListUsers succeeded";
     return ret;
 }
 
@@ -892,7 +892,7 @@ void RestClient::AddUser(const std::string& user_name, bool is_admin, const std:
     if (is_admin) {
         SetUserRoles(user_name, {lgraph::_detail::ADMIN_ROLE});
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] AddUser " << user_name << " succeeded";
+    LOG_DEBUG() << "[RestClient] AddUser " << user_name << " succeeded";
 }
 
 void RestClient::SetPassword(const std::string& user, const std::string& curr_pass,
@@ -901,21 +901,21 @@ void RestClient::SetPassword(const std::string& user, const std::string& curr_pa
     body[RestStrings::CURR_PASS] = json::value::string(_TU(curr_pass));
     body[RestStrings::NEW_PASS] = json::value::string(_TU(new_pass));
     DoPost(FMA_FMT("/user/{}/{}", user, RestStrings::PASS), body, false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] SetPassword " << user << " succeeded";
+    LOG_DEBUG() << "[RestClient] SetPassword " << user << " succeeded";
 }
 
 void RestClient::SetUserDesc(const std::string& user, const std::string& desc) {
     json::value body;
     body[RestStrings::DESC] = json::value::string(_TU(desc));
     DoPost(FMA_FMT("/user/{}/{}", user, RestStrings::DESC), body, false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] SetPassword " << user << " succeeded";
+    LOG_DEBUG() << "[RestClient] SetPassword " << user << " succeeded";
 }
 
 void RestClient::SetUserRoles(const std::string& user, const std::vector<std::string>& roles) {
     json::value body;
     body = ValueToJson(roles);
     DoPost(FMA_FMT("/user/{}/{}", user, RestStrings::ROLE), body, false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] SetUserRoles " << user << " succeeded";
+    LOG_DEBUG() << "[RestClient] SetUserRoles " << user << " succeeded";
 }
 
 lgraph_api::UserInfo RestClient::GetUserInfo(const std::string& user) {
@@ -927,7 +927,7 @@ lgraph_api::UserInfo RestClient::GetUserInfo(const std::string& user) {
 
 void RestClient::DeleteUser(const std::string& user_name) {
     DoDelete(FMA_FMT("/user/{}", user_name), false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] DeleteUser " << user_name << " succeeded";
+    LOG_DEBUG() << "[RestClient] DeleteUser " << user_name << " succeeded";
 }
 
 void RestClient::DisableUser(const std::string& user) {
@@ -974,7 +974,6 @@ bool RestClient::GetServerInfo(RestClient::CPURate& cpu_rate, RestClient::Memory
                                std::string& lgraph_version, std::string& node,
                                std::string& relationship) {
     auto response = DoGet("/info", true);
-    // FMA_DBG_STREAM(logger_) << ToStdString(response.serialize());
     auto js_cpu = response[RestStrings::CPU];
     auto js_mem = response[RestStrings::MEM];
     auto js_db_space = response[RestStrings::DBSPACE];
@@ -985,21 +984,21 @@ bool RestClient::GetServerInfo(RestClient::CPURate& cpu_rate, RestClient::Memory
     if (!ExtractTypedField(js_cpu, _TU("self"), cpu_rate.self_cpu_rate) ||
         !ExtractTypedField(js_cpu, _TU("server"), cpu_rate.server_cpu_rate) ||
         !ExtractTypedField(js_cpu, _TU("unit"), cpu_rate.unit)) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:CPU failed";
+        LOG_WARN() << "[RestClient] GetServerInfo:CPU failed";
         return false;
     }
     if (!ExtractTypedField(js_mem, _TU("self"), memory_info.self_memory) ||
         !ExtractTypedField(js_mem, _TU("server_avail"), memory_info.available) ||
         !ExtractTypedField(js_mem, _TU("server_total"), memory_info.total) ||
         !ExtractTypedField(js_mem, _TU("unit"), memory_info.unit)) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:MEM failed";
+        LOG_WARN() << "[RestClient] GetServerInfo:MEM failed";
         return false;
     }
     if (!ExtractTypedField(js_db_space, _TU("space"), db_space.space) ||
         !ExtractTypedField(js_db_space, _TU("disk_total"), db_space.total) ||
         !ExtractTypedField(js_db_space, _TU("disk_avail"), db_space.avail) ||
         !ExtractTypedField(js_db_space, _TU("unit"), db_space.unit)) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:DBSPACE failed";
+        LOG_WARN() << "[RestClient] GetServerInfo:DBSPACE failed";
         return false;
     }
     if (js_db_config.is_null()) {
@@ -1018,8 +1017,8 @@ bool RestClient::GetServerInfo(RestClient::CPURate& cpu_rate, RestClient::Memory
             !ExtractTypedField(js_db_config, _TU("enable_audit_log"), db_config.enable_audit) ||
             !ExtractTypedField(js_db_config, _TU("enable_ip_check"), db_config.enable_ip_check) ||
             !ExtractTypedField(js_db_config, _TU("optimistic_txn"), db_config.optimistic_txn)) {
-            FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:DBCONFIG failed";
-            FMA_LOG() << db_config.disable_auth << db_config.enable_rpc << db_config.thread_limit;
+            LOG_WARN() << "[RestClient] GetServerInfo:DBCONFIG failed";
+            LOG_INFO() << db_config.disable_auth << db_config.enable_rpc << db_config.thread_limit;
             return false;
         }
 
@@ -1030,18 +1029,18 @@ bool RestClient::GetServerInfo(RestClient::CPURate& cpu_rate, RestClient::Memory
         db_config.port = (uint16_t)port;
     }
     if (!JsonToType(js_version, lgraph_version)) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:VER failed";
+        LOG_WARN() << "[RestClient] GetServerInfo:VER failed";
         return false;
     }
     if (!JsonToType(js_node, node)) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:NODE failed";
+        LOG_WARN() << "[RestClient] GetServerInfo:NODE failed";
         return false;
     }
     if (!JsonToType(js_rel, relationship)) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] GetServerInfo:REL failed";
+        LOG_WARN() << "[RestClient] GetServerInfo:REL failed";
         return false;
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] GetServerInfo succeeded";
+    LOG_DEBUG() << "[RestClient] GetServerInfo succeeded";
     return true;
 }
 
@@ -1057,7 +1056,7 @@ bool RestClient::LoadPlugin(const std::string& db, lgraph_api::PluginCodeType ty
     DoGraphPost(db,
                 FMA_FMT("/{}_plugin", type == lgraph_api::PluginCodeType::PY ? "python" : "cpp"),
                 body, false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] " << __func__ << " succeeded";
+    LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return true;
 }
 
@@ -1069,14 +1068,14 @@ std::vector<PluginDesc> RestClient::GetPlugin(const std::string& db, bool is_cpp
     for (auto& r : resp) {
         bool b = JsonToType(r, pd);
         if (!b) {
-            FMA_WARN_STREAM(logger_) << "[RestClient] " << __func__ << " failed";
+            LOG_WARN() << "[RestClient] " << __func__ << " failed";
             throw InternalError("[RestClient] {} parse response failed", __func__);
             ret.clear();
             return ret;
         }
         ret.push_back(pd);
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] " << __func__ << " succeeded";
+    LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return ret;
 }
 
@@ -1087,10 +1086,10 @@ PluginCode RestClient::GetPluginDetail(const std::string& db, const std::string&
         DoGraphGet(db, FMA_FMT("{}/{}", is_cpp ? "/cpp_plugin" : "/python_plugin", name));
     bool b = JsonToType(response, pc);
     if (!b) {
-        FMA_WARN_STREAM(logger_) << "[RestClient] " << __func__ << " failed";
+        LOG_WARN() << "[RestClient] " << __func__ << " failed";
         throw InternalError("[RestClient] {} parse response failed", __func__);
     }
-    FMA_DBG_STREAM(logger_) << "[RestClient] " << __func__ << " succeeded";
+    LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return pc;
 }
 
@@ -1115,13 +1114,13 @@ std::string RestClient::ExecutePlugin(const std::string& db, bool is_cpp,
     }
     CheckStatusCodeAndThrow(response);
     auto resp = response.extract_json().get();
-    FMA_DBG_STREAM(logger_) << "[RestClient] " << __func__ << " succeeded";
+    LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return _TS(resp.at(RestStrings::RESULT).as_string());
 }
 
 void RestClient::DeletePlugin(const std::string& db, bool is_cpp, const std::string& plugin_name) {
     DoGraphDelete(db, FMA_FMT("/{}_plugin/{}", is_cpp ? "cpp" : "python", plugin_name), false);
-    FMA_DBG_STREAM(logger_) << "[RestClient] DeletePlugin " << plugin_name << " succeeded";
+    LOG_DEBUG() << "[RestClient] DeletePlugin " << plugin_name << " succeeded";
 }
 
 EdgeUid RestClient::AddEdge(const std::string& db, lgraph::VertexId src, lgraph::VertexId dst,
@@ -1129,7 +1128,7 @@ EdgeUid RestClient::AddEdge(const std::string& db, lgraph::VertexId src, lgraph:
                             const std::vector<std::string>& field_value_strings) {
     EdgeUid ret;
     if (field_names.size() != field_value_strings.size()) {
-        FMA_WARN_STREAM(logger_)
+        LOG_WARN()
             << "[RestClient] AddEdge failed! field_names.size() != field_values.size()";
         return ret;
     }
@@ -1145,9 +1144,9 @@ EdgeUid RestClient::AddEdge(const std::string& db, lgraph::VertexId src, lgraph:
     auto resp = response.as_string();
     bool b = ExtractEdgeUid(_TS(resp), ret);
     if (!b)
-        FMA_WARN_STREAM(logger_) << "[RestClient] AddEdge (" << src << "," << dst << ") failed";
+        LOG_WARN() << "[RestClient] AddEdge (" << src << "," << dst << ") failed";
     else
-        FMA_DBG_STREAM(logger_) << "[RestClient] AddEdge (" << src << "," << dst << ") succeeded";
+        LOG_DEBUG() << "[RestClient] AddEdge (" << src << "," << dst << ") succeeded";
     return ret;
 }
 
@@ -1158,7 +1157,7 @@ int64_t RestClient::AddVertex(const std::string& db, const std::string& label_na
                               const std::vector<std::string>& field_value_strings) {
     int64_t ret = -1;
     if (field_names.size() != field_value_strings.size()) {
-        FMA_DBG_STREAM(logger_)
+        LOG_DEBUG()
             << "[RestClient] AddVertex failed! field_names.size() != field_value_strings.size()";
         return -1;
     }
@@ -1171,10 +1170,10 @@ int64_t RestClient::AddVertex(const std::string& db, const std::string& label_na
     body_data[_TU(RestStrings::PROP)] = js_prop;
     auto resp = DoGraphPost(db, "/node", body_data, true);
     if (JsonToType(resp, ret)) {
-        FMA_DBG_STREAM(logger_) << "[RestClient] AddVertex succeeded";
+        LOG_DEBUG() << "[RestClient] AddVertex succeeded";
         return ret;
     } else {
-        FMA_WARN_STREAM(logger_) << "[RestClient] AddVertex failed";
+        LOG_WARN() << "[RestClient] AddVertex failed";
         return -1;
     }
 }

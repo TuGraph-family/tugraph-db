@@ -13,7 +13,6 @@
  */
 
 #include "tools/date.h"
-#include "fma-common/logger.h"
 #include "gtest/gtest.h"
 
 #include "lgraph/lgraph_date_time.h"

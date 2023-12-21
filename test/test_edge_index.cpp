@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 
 #include "gtest/gtest.h"

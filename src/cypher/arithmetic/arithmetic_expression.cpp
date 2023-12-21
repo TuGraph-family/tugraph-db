@@ -604,7 +604,7 @@ cypher::FieldData BuiltinFunction::ToFloat(RTContext *ctx, const Record &record,
             try {
                 return cypher::FieldData(lgraph::FieldData(std::stod(r.constant.scalar.string())));
             } catch (std::exception &e) {
-                FMA_WARN() << e.what();
+                LOG_WARN() << e.what();
                 break;
             }
         }
@@ -629,7 +629,7 @@ cypher::FieldData BuiltinFunction::ToString(RTContext *ctx, const Record &record
                 return cypher::FieldData(
                     lgraph::FieldData(std::to_string(r.constant.scalar.integer())));
             } catch (std::exception &e) {
-                FMA_WARN() << e.what();
+                LOG_WARN() << e.what();
                 break;
             }
         }
@@ -638,7 +638,7 @@ cypher::FieldData BuiltinFunction::ToString(RTContext *ctx, const Record &record
                 return cypher::FieldData(
                     lgraph::FieldData(std::to_string(r.constant.scalar.real())));
             } catch (std::exception &e) {
-                FMA_WARN() << e.what();
+                LOG_WARN() << e.what();
                 break;
             }
         }
@@ -674,7 +674,7 @@ cypher::FieldData BuiltinFunction::ToInteger(RTContext *ctx, const Record &recor
                 return cypher::FieldData(lgraph::FieldData(
                     static_cast<int64_t>(std::stoll(r.constant.scalar.string()))));
             } catch (std::exception &e) {
-                FMA_WARN() << e.what();
+                LOG_WARN() << e.what();
                 break;
             }
         }

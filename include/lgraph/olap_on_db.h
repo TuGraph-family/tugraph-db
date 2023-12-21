@@ -1010,6 +1010,373 @@ class OlapOnDB : public OlapBase<EdgeData> {
         }
     }
 
+    // Filter subgraphs based on a set of triples of point labels, edge labels, and point labels
+    OlapOnDB(GraphDB &db, Transaction &txn, std::vector<std::vector<std::string>> label_list,
+        size_t flags = 0): db_(db),
+                           txn_(txn),
+                           flags_(flags) {
+        if (txn.GetNumVertices() == 0) {
+            throw std::runtime_error("The graph cannot be empty");
+        }
+        flags_ |= SNAPSHOT_IDMAPPING;
+        Init(txn.GetNumVertices());
+        std::vector<std::vector<size_t>> label_id_list;
+        for (auto& labels : label_list) {
+            std::vector<size_t> label_id;
+            label_id.push_back(txn.GetVertexLabelId(labels[0]));
+            label_id.push_back(txn.GetEdgeLabelId(labels[1]));
+            label_id.push_back(txn.GetVertexLabelId(labels[2]));
+            label_id_list.push_back(label_id);
+        }
+        original_vids_.ReAlloc(this->num_vertices_);
+        vid_map_.reserve(this->num_vertices_);
+        auto task_ctx = GetThreadContext();
+        auto worker = Worker::SharedWorker();
+        if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
+            // parallel generation
+            worker->Delegate([&]() {
+                int num_threads = 0;
+#pragma omp parallel
+                {
+                  if (omp_get_thread_num() == 0) {
+                      num_threads = omp_get_num_threads();
+                  }
+                };
+
+                std::vector<size_t> partition_offset(num_threads + 1, 0);
+                std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
+#pragma omp parallel
+                {
+                    ParallelVector<size_t> local_original_vids(this->num_vertices_);
+                    ParallelVector<size_t> local_out_index(this->num_vertices_ + 1);
+                    ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
+
+                    local_out_index.Append(0, false);
+
+                    auto txn = db_.ForkTxn(txn_);
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    auto vit = txn.GetVertexIterator();
+                    for (size_t start = 64 * thread_id; start < this->num_vertices_;
+                         start += 64 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 64;
+                        if (end > this->num_vertices_) end = this->num_vertices_;
+                        for (vit.Goto(start, true); vit.IsValid(); vit.Next()) {
+                            size_t original_vid = vit.GetId();
+                            if (original_vid >= end) break;
+                            auto label_id = vit.GetLabelId();
+                            bool keepVertex = false;
+                            for (auto &labels : label_id_list) {
+                                if (label_id == labels[0]) {
+                                    OutEdgeIterator eit = vit.GetOutEdgeIterator();
+                                    while (eit.IsValid()) {
+                                        auto dst = eit.GetDst();
+                                        vit.Goto(dst);
+                                        if (size_t(eit.GetLabelId()) == labels[1]
+                                            && vit.GetLabelId() == labels[2]) {
+                                            keepVertex = true;
+                                            AdjUnit<EdgeData> out_edge;
+                                            out_edge.neighbour = dst;
+                                            local_out_edges.Append(out_edge, false);
+                                        }
+                                        eit.Next();
+                                    }
+                                }
+                                if (!keepVertex && (label_id == labels[2])) {
+                                    InEdgeIterator eit = vit.GetInEdgeIterator();
+                                    while (eit.IsValid()) {
+                                        auto src = eit.GetSrc();
+                                        vit.Goto(src);
+                                        if (size_t(eit.GetLabelId()) == labels[1]
+                                            && vit.GetLabelId() == labels[0]) {
+                                            keepVertex = true;
+                                            break;
+                                        }
+                                        eit.Next();
+                                    }
+                                }
+                            }
+                            vit.Goto(original_vid);
+                            if (keepVertex) {
+                                local_original_vids.Append(original_vid, false);
+                            }
+                            local_out_index.Append(local_out_edges.Size(), false);
+                        }
+                    }
+
+                    partition_offset[thread_id + 1] = local_original_vids.Size();
+
+#pragma omp barrier
+
+                    if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
+
+                    if (thread_id == 0) {
+                        for (int thread_id = 0; thread_id < num_threads; thread_id++) {
+                            partition_offset[thread_id + 1] += partition_offset[thread_id];
+                        }
+                        this->num_vertices_ = partition_offset[num_threads];
+                        original_vids_.Resize(this->num_vertices_);
+                    }
+#pragma omp barrier
+
+                    memcpy(original_vids_.Data() + partition_offset[thread_id],
+                           local_original_vids.Data(), sizeof(size_t) * local_original_vids.Size());
+                    // local_out_index.Append(0, false);
+
+#pragma omp barrier
+
+                    for (size_t vi = partition_offset[thread_id];
+                         vi < partition_offset[thread_id + 1]; vi++) {
+                        if (vi % 1024 == 0 && ShouldKillThisTask(task_ctx)) break;
+                        vid_map_.insert(original_vids_[vi], vi);
+                    }
+
+#pragma omp barrier
+
+                    if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
+                    out_edges_partition_offset[thread_id + 1] = local_out_edges.Size();
+
+#pragma omp barrier
+
+                    if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
+
+                    if (thread_id == 0) {
+                        for (int thread_id = 0; thread_id < num_threads; thread_id++) {
+                            out_edges_partition_offset[thread_id + 1] +=
+                                out_edges_partition_offset[thread_id];
+                        }
+                        this->num_edges_ = out_edges_partition_offset[num_threads];
+                        this->out_edges_.Resize(this->num_edges_);
+                        this->out_index_.Resize(this->num_vertices_ + 1);
+                    }
+
+#pragma omp barrier
+
+                    if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
+
+                    for (size_t ii = 0; ii < local_out_index.Size(); ii++) {
+                        if (ii % 1024 == 0 && ShouldKillThisTask(task_ctx)) break;
+                        local_out_index[ii] += out_edges_partition_offset[thread_id];
+                    }
+                    if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
+                    memcpy(this->out_index_.Data() + partition_offset[thread_id],
+                           local_out_index.Data(), sizeof(size_t) * local_out_index.Size());
+
+                    if (thread_id == 0) {
+                        this->out_index_[this->num_vertices_] = this->num_edges_;
+                    }
+
+                    if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
+                    memcpy(this->out_edges_.Data() + out_edges_partition_offset[thread_id],
+                           local_out_edges.Data(),
+                           sizeof(AdjUnit<EdgeData>) * local_out_edges.Size());
+
+                SNAPSHOT_PHASE1_ABORT:
+                    {};
+                }
+            });
+        }
+
+        if (this->num_vertices_ == 0) {
+            throw InputError("The graph vertex cannot be empty");
+        }
+        if (this->num_edges_ == 0) {
+            throw InputError("The graph edge cannot be empty");
+        }
+        if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
+        if (this->num_vertices_ == 0) {
+            throw std::runtime_error("The olapondb graph cannot be empty");
+        }
+        this->lock_array_.Resize(this->num_vertices_);
+        this->lock_array_.Fill(false);
+        worker->Delegate([&]() {
+            if (flags_ & SNAPSHOT_UNDIRECTED) {
+                this->in_degree_.Resize(this->num_vertices_);
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 1024 * thread_id; start < this->num_vertices_;
+                         start += 1024 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 1024;
+                        if (end > this->num_vertices_) end = this->num_vertices_;
+                        for (size_t vi = start; vi < end; vi++) {
+                            this->in_degree_[vi] = this->out_index_[vi + 1] - this->out_index_[vi];
+                        }
+                    }
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 1024 * thread_id; start < this->num_edges_;
+                         start += 1024 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 1024;
+                        if (end > this->num_edges_) end = this->num_edges_;
+                        for (size_t ei = start; ei < end; ei++) {
+                            size_t dst = this->out_edges_[ei].neighbour;
+                            size_t mapped_dst = vid_map_.find(dst);
+                            this->out_edges_[ei].neighbour = mapped_dst;
+                            __sync_fetch_and_add(&this->in_degree_[mapped_dst], 1);
+                        }
+                    }
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                this->num_edges_ *= 2;
+                this->in_index_.Resize(this->num_vertices_ + 1);
+                this->in_index_[0] = 0;
+                for (size_t vi = 0; vi < this->num_vertices_; vi++) {
+                    if (vi % 1024 == 0 && ShouldKillThisTask(task_ctx)) break;
+                    this->in_index_[vi + 1] = this->in_index_[vi] + this->in_degree_[vi];
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                assert(this->in_index_[this->num_vertices_] == this->num_edges_);
+                this->in_edges_.Resize(this->num_edges_);
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 64 * thread_id; start < this->num_vertices_;
+                         start += 64 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 64;
+                        if (end > this->num_vertices_) end = this->num_vertices_;
+                        for (size_t src = start; src < end; src++) {
+                            size_t pos = __sync_fetch_and_add(
+                                &this->in_index_[src],
+                                this->out_index_[src + 1] - this->out_index_[src]);
+                            memcpy(this->in_edges_.Data() + pos,
+                                   this->out_edges_.Data() + this->out_index_[src],
+                                   sizeof(AdjUnit<EdgeData>) *
+                                       (this->out_index_[src + 1] - this->out_index_[src]));
+                            for (size_t ei = this->out_index_[src]; ei < this->out_index_[src + 1];
+                                 ei++) {
+                                auto &out_edge = this->out_edges_[ei];
+                                size_t dst = out_edge.neighbour;
+                                size_t pos = __sync_fetch_and_add(&this->in_index_[dst], 1);
+                                auto &in_edge = this->in_edges_[pos];
+                                in_edge.neighbour = src;
+                                if (!std::is_same<EdgeData, Empty>::value) {
+                                    in_edge.edge_data = out_edge.edge_data;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                memmove(this->in_index_.Data() + 1, this->in_index_.Data(),
+                        sizeof(size_t) * this->num_vertices_);
+                this->in_index_[0] = 0;
+                this->out_degree_.Swap(this->in_degree_);
+                this->out_index_.Swap(this->in_index_);
+                this->out_edges_.Swap(this->in_edges_);
+                this->in_degree_.Destroy();
+                this->in_index_.Destroy();
+                this->in_edges_.Destroy();
+            } else {
+                this->out_degree_.Resize(this->num_vertices_);
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 1024 * thread_id; start < this->num_vertices_;
+                         start += 1024 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 1024;
+                        if (end > this->num_vertices_) end = this->num_vertices_;
+                        for (size_t vi = start; vi < end; vi++) {
+                            this->out_degree_[vi] = this->out_index_[vi + 1] - this->out_index_[vi];
+                        }
+                    }
+                }
+
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                this->in_degree_.Resize(this->num_vertices_);
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 1024 * thread_id; start < this->num_vertices_;
+                         start += 1024 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 1024;
+                        if (end > this->num_vertices_) end = this->num_vertices_;
+                        for (size_t vi = start; vi < end; vi++) {
+                            this->in_degree_[vi] = 0;
+                        }
+                    }
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 1024 * thread_id; start < this->num_edges_;
+                         start += 1024 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 1024;
+                        if (end > this->num_edges_) end = this->num_edges_;
+                        for (size_t ei = start; ei < end; ei++) {
+                            size_t dst = this->out_edges_[ei].neighbour;
+                            size_t mapped_dst = vid_map_.find(dst);
+                            this->out_edges_[ei].neighbour = mapped_dst;
+                            __sync_fetch_and_add(&this->in_degree_[mapped_dst], 1);
+                        }
+                    }
+                }
+
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                this->in_index_.Resize(this->num_vertices_ + 1);
+                this->in_index_[0] = 0;
+                for (size_t vi = 0; vi < this->num_vertices_; vi++) {
+                    if (vi % 1024 == 0) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                    }
+                    this->in_index_[vi + 1] = this->in_index_[vi] + this->in_degree_[vi];
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                assert(this->in_index_[this->num_vertices_] == this->num_edges_);
+                this->in_edges_.Resize(this->num_edges_);
+#pragma omp parallel
+                {
+                    int thread_id = omp_get_thread_num();
+                    int num_threads = omp_get_num_threads();
+                    for (size_t start = 64 * thread_id; start < this->num_vertices_;
+                         start += 64 * num_threads) {
+                        if (ShouldKillThisTask(task_ctx)) break;
+                        size_t end = start + 64;
+                        if (end > this->num_vertices_) end = this->num_vertices_;
+                        for (size_t src = start; src < end; src++) {
+                            for (size_t ei = this->out_index_[src]; ei < this->out_index_[src + 1];
+                                 ei++) {
+                                auto &out_edge = this->out_edges_[ei];
+                                size_t dst = out_edge.neighbour;
+                                size_t pos = __sync_fetch_and_add(&this->in_index_[dst], 1);
+                                auto &in_edge = this->in_edges_[pos];
+                                in_edge.neighbour = src;
+                                if (!std::is_same<EdgeData, Empty>::value) {
+                                    in_edge.edge_data = out_edge.edge_data;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE2_ABORT;
+                memmove(this->in_index_.Data() + 1, this->in_index_.Data(),
+                        sizeof(size_t) * this->num_vertices_);
+                this->in_index_[0] = 0;
+
+            SNAPSHOT_PHASE2_ABORT:
+                {};
+            }
+        });
+        if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
+    }
+
     OlapOnDB() = delete;
 
     OlapOnDB(const OlapOnDB<EdgeData> &rhs) = delete;
@@ -1130,11 +1497,11 @@ class OlapOnDB : public OlapBase<EdgeData> {
      * @return   The original id of the specified vertex in the graph.
      */
 
-    size_t OriginalVid(size_t vid) {
+    int64_t OriginalVid(size_t vid) {
         if (flags_ & SNAPSHOT_IDMAPPING) {
-            return original_vids_[vid];
+            return (int64_t)original_vids_[vid];
         } else {
-            return vid;
+            return (int64_t)vid;
         }
     }
 

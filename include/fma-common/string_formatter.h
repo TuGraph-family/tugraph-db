@@ -10,7 +10,8 @@
 #pragma once
 #include <exception>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
+#include "fma-common/string_util.h"
 
 namespace fma_common {
 /*!
@@ -90,7 +91,7 @@ class StringFormatter {
     template <typename... Ts>
     static const std::string& Append(std::string& buf, const char* format, const Ts&... data) {
         if (!MyPrintf(buf, format, data...)) {
-            FMA_ERR() << "Error formatting string with format string \"" << format
+            LOG_ERROR() << "Error formatting string with format string \"" << format
                       << "\". Number of fields given: " << sizeof...(Ts);
         }
         return buf;
@@ -100,7 +101,7 @@ class StringFormatter {
     static const std::string& Format(std::string& buf, const char* format, const Ts&... data) {
         buf.clear();
         if (!MyPrintf(buf, format, data...)) {
-            FMA_ERR() << "Error formatting string with format string \"" << format
+            LOG_ERROR() << "Error formatting string with format string \"" << format
                       << "\". Number of fields given: " << sizeof...(Ts);
         }
         return buf;
@@ -111,7 +112,7 @@ class StringFormatter {
         // static_assert(CheckNumFields(format, 0), "Number of fields does not match");
         std::string ret;
         if (!MyPrintf(ret, format, data...)) {
-            FMA_ERR() << "Error formatting string with format string \"" << format
+            LOG_ERROR() << "Error formatting string with format string \"" << format
                       << "\". Number of fields given: " << sizeof...(Ts);
         }
         return ret;

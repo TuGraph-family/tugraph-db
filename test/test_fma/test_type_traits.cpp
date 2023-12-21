@@ -23,7 +23,7 @@ using namespace fma_common;
 
 class Foo {
  public:
-    void Bar(int i, double j) { FMA_LOG() << i << ", " << j; }
+    void Bar(int i, double j) { LOG_INFO() << i << ", " << j; }
 };
 
 FMA_UNIT_TEST(TypeTraits) {

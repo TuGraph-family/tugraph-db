@@ -81,10 +81,10 @@ class LazyProjectTopN : public OptPass {
         op_limit = nullptr;
         op_post->AddChild(op_topn);
         op_topn->AddChild(op_pre);
-        FMA_DBG() << "the stream:";
+        LOG_DEBUG() << "the stream:";
         std::string s;
         OpBase::DumpStream(op_post, 0, true, s);
-        FMA_DBG() << s;
+        LOG_DEBUG() << s;
     }
 
  public:

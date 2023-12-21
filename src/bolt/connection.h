@@ -29,7 +29,7 @@
 #include "boost/asio.hpp"
 #include "bolt/hydrator.h"
 #include "bolt/pack_stream.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 namespace bolt {
 using boost::asio::ip::tcp;

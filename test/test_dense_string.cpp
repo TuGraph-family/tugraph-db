@@ -12,10 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "fma-common/logging.h"
-
 #include "import/dense_string.h"
-
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 
