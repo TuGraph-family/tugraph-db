@@ -51,6 +51,50 @@ TEST_F(TestProtoConvert, ProtoConvert) {
             auto fd2 = FieldDataConvert::ToLGraphT(pfd);
             UT_EXPECT_EQ(fd.AsString(), fd2.AsString());
         }
+
+        // testing spatial data;
+        {
+            FieldData fd(PointWgs84(std::string("0101000020E6100000000000000000"
+                                                "F03F0000000000000040")));
+            FieldDataConvert::FromLGraphT(fd, &pfd);
+            UT_EXPECT_TRUE(fd.AsWgsPoint() == PointWgs84(pfd.point()));
+            UT_EXPECT_TRUE(pfd.has_point());
+            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+            UT_EXPECT_TRUE(fd.AsWgsPoint() == fd2.AsWgsPoint());
+        }
+
+        {
+            FieldData fd(LineStringWgs84(std::string("0102000020E610000003000000000000000000000"
+            "00000000000000000000000000000004000000000000000400000000000000840000000000000F03F")));
+            FieldDataConvert::FromLGraphT(fd, &pfd);
+            UT_EXPECT_TRUE(fd.AsWgsLineString() == LineStringWgs84(pfd.linestring()));
+            UT_EXPECT_TRUE(pfd.has_linestring());
+            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+            UT_EXPECT_TRUE(fd.AsWgsLineString() == fd2.AsWgsLineString());
+        }
+
+        {
+            FieldData fd(PolygonWgs84(std::string("0103000020E610000001000000050000000000000000"
+            "000000000000000000000000000000000000000000000000001C400000000000001040000000000000"
+            "00400000000000000040000000000000000000000000000000000000000000000000")));
+            FieldDataConvert::FromLGraphT(fd, &pfd);
+            UT_EXPECT_TRUE(fd.AsWgsPolygon() == PolygonWgs84(pfd.polygon()));
+            UT_EXPECT_TRUE(pfd.has_polygon());
+            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+            UT_EXPECT_TRUE(fd.AsWgsPolygon() == fd2.AsWgsPolygon());
+        }
+
+        {
+            FieldData fd(SpatialWgs84(std::string("0103000020E610000001000000050000000000000000"
+            "000000000000000000000000000000000000000000000000001C400000000000001040000000000000"
+            "00400000000000000040000000000000000000000000000000000000000000000000")));
+            FieldDataConvert::FromLGraphT(fd, &pfd);
+            UT_EXPECT_TRUE(fd.AsWgsSpatial() == SpatialWgs84(pfd.spatial()));
+            UT_EXPECT_TRUE(pfd.has_spatial());
+            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+            UT_EXPECT_TRUE(fd.AsWgsSpatial() == fd2.AsWgsSpatial());
+        }
+
         {
             FieldData fd;
             FieldDataConvert::FromLGraphT(fd, &pfd);
@@ -87,6 +131,10 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         fss.emplace_back("int8", FieldType::FLOAT, false);
         fss.emplace_back("int8", FieldType::DOUBLE, false);
         fss.emplace_back("int8", FieldType::STRING, true);
+        fss.emplace_back("int8", FieldType::POINT, false);
+        fss.emplace_back("int8", FieldType::LINESTRING, false);
+        fss.emplace_back("int8", FieldType::POLYGON, false);
+        fss.emplace_back("int8", FieldType::SPATIAL, false);
         ::google::protobuf::RepeatedPtrField<ProtoFieldSpec> pfss, pfss2;
         FieldSpecConvert::FromLGraphT(fss, &pfss);
         UT_EXPECT_EQ(pfss.size(), fss.size());

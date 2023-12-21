@@ -104,9 +104,15 @@ class IOService : private boost::asio::noncopyable {
         conn_.reset(new T(io_service_pool_.GetIOService(), handler_));
         acceptor_.async_accept(conn_->socket(), [this](boost::system::error_code ec) {
             if (ec) {
+<<<<<<< HEAD
                 LOG_WARN() << FMA_FMT("async accept error: {}", ec.message());
             } else {
                 LOG_DEBUG() << FMA_FMT("accept new bolt connection {}",
+=======
+                FMA_WARN() << FMA_FMT("async accept error: {}", ec.message());
+            } else {
+                FMA_DBG() << FMA_FMT("accept new bolt connection {}",
+>>>>>>> master
                                      boost::lexical_cast<std::string>(
                                          conn_->socket().remote_endpoint()));
                 socket_set_options(conn_->socket());

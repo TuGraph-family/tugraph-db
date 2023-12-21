@@ -41,6 +41,7 @@ set(LGRAPH_CORE_SRC
         core/lmdb_transaction.cpp
         core/kv_table_comparators.cpp
         core/lgraph_date_time.cpp
+        core/lgraph_spatial.cpp
         core/lightning_graph.cpp
         core/schema.cpp
         core/sync_file.cpp

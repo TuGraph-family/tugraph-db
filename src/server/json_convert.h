@@ -77,6 +77,54 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         {
             return json(data.AsBase64Blob());
         }
+    case lgraph_api::FieldType::POINT:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsPoint().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianPoint().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+            }
+        }
+    case lgraph_api::FieldType::LINESTRING:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsLineString().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianLineString().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+            }
+        }
+    case lgraph_api::FieldType::POLYGON:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsPolygon().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianPolygon().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+            }
+        }
+    case lgraph_api::FieldType::SPATIAL:
+        {
+            ::lgraph_api::SRID s = data.GetSRID();
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return json(data.AsWgsSpatial().ToString());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return json(data.AsCartesianSpatial().ToString());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+            }
+        }
     default:
         throw lgraph::InputError(fma_common::StringFormatter::Format(
             "FieldDataToJson: unsupported field type: {}", data.type));
