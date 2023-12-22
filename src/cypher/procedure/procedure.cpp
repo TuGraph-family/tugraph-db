@@ -338,6 +338,11 @@ void BuiltinProcedure::_ExtractFds(const VEC_EXPR &args, std::string &label, std
         }
         fds.emplace_back(name, it->second, nullable);
     }
+    //add vector
+    parser::Expression::EXPR_TYPE_STRING vname = "vector";
+    parser::Expression::EXPR_TYPE_STRING vtype_name = "float";
+    auto vit = type_map_.find(vtype_name);
+    fds.emplace_back(vname, vit->second, true); 
 }
 
 void BuiltinProcedure::_ExtractAccessLevel(
@@ -453,7 +458,16 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
             edge_constraints.push_back(std::make_pair(item[0], item[1]));
         }
     }
-    auto field_specs = ParseFieldSpecs(args, 3);
+     auto field_specs = ParseFieldSpecs(args, 3);
+
+    //add vector
+    if (is_vertex) {    
+        parser::Expression::EXPR_TYPE_STRING vname = "vector";
+        parser::Expression::EXPR_TYPE_STRING vtype_name = "float";
+        auto vit = type_map_.find(vtype_name);
+        field_specs.emplace_back(vname, vit->second, true); 
+    }
+    
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     std::unique_ptr<lgraph::LabelOptions> options;
     if (is_vertex) {
