@@ -490,6 +490,7 @@ class AuditLogger {
                         }
                         log->second.end_time = lgraph_api::DateTime(msg_time).ToString();
                         log->second.success = msg.success();
+
                         if (log->second.success)
                             log->second.content = log->second.content + "    Successful";
                         else
@@ -635,6 +636,7 @@ class AuditLogger {
     void Close() {
         AutoWriteLock<RWLock> lock(lock_);
         file_.Close();
+        lgraph_log::AuditLogger::GetInstance().Close();
     }
 };
 

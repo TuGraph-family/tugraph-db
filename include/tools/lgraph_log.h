@@ -362,33 +362,38 @@ class AuditLogger {
 
  public:
     void Init(std::string log_dir = "logs/") {
-        if(!global_inited_) {
-            // Set up log directory
-            log_dir_ = log_dir;
-            rotation_size_ = 5 * 1024 * 1024;
-
-            // Set up sink for debug log
-            audit_sink_ = boost::shared_ptr< file_sink > (new file_sink(
-                keywords::file_name = log_dir_ + "%Y%m%d_%H%M%S",
-                keywords::open_mode = std::ios_base::out | std::ios_base::app,
-                keywords::enable_final_rotation = false,
-                keywords::auto_flush = true,
-                keywords::rotation_size = rotation_size_));
-            audit_sink_->locked_backend()->set_file_collector(sinks::file::make_collector(
-                keywords::target = log_dir_));
-            audit_sink_->locked_backend()->scan_for_files();
-            audit_sink_->set_filter(log_type_attr == "audit");
-
-            // Add sinks to log core
-            logging::core::get()->add_sink(audit_sink_);
-
-            global_inited_ = true;
+        // Set up log directory
+        log_dir_ = log_dir;
+        if (log_dir_.back() != '/') {
+            log_dir_ += '/';
         }
+        rotation_size_ = 5 * 1024 * 1024;
+
+        // Set up sink for debug log
+        audit_sink_ = boost::shared_ptr< file_sink > (new file_sink(
+            keywords::file_name = log_dir_ + "%Y%m%d_%H%M%S",
+            keywords::open_mode = std::ios_base::out | std::ios_base::app,
+            keywords::enable_final_rotation = false,
+            keywords::auto_flush = true,
+            keywords::rotation_size = rotation_size_));
+        audit_sink_->locked_backend()->set_file_collector(sinks::file::make_collector(
+            keywords::target = log_dir_));
+        audit_sink_->locked_backend()->scan_for_files();
+        audit_sink_->set_filter(log_type_attr == "audit");
+
+        // Add sinks to log core
+        logging::core::get()->add_sink(audit_sink_);
+
+        global_inited_ = true;
     }
 
     // write a json record to log file.
     void WriteLog(json log_msg) {
         AUDIT_LOG() << log_msg.dump();
+    }
+
+    void Close() {
+        logging::core::get()->remove_sink(audit_sink_);
     }
 
     static AuditLogger& GetInstance() {
