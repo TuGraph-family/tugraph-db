@@ -27,7 +27,7 @@
 #include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/phoenix/bind/bind_function.hpp>
 #include <boost/core/null_deleter.hpp>
-#include "json.hpp"
+#include "tools/json.hpp"
 
 namespace lgraph_log {
 
