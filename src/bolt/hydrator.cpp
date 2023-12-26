@@ -25,6 +25,7 @@
 #include "bolt/path.h"
 #include "bolt/spatial.h"
 #include "bolt/temporal.h"
+#include "fma-common/string_formatter.h"
 
 namespace bolt {
 const char* containsSystemUpdatesKey = "contains-system-updates";
@@ -72,7 +73,7 @@ const std::optional<std::string>& Hydrator::GetErr() {
 
 void Hydrator::AssertLength(const std::string& structType, uint32_t expected, uint32_t actual) {
     if (expected != actual) {
-        SetErr("Invalid length of struct, expected %d but was %d");
+        SetErr(FMA_FMT("Invalid length of struct, expected {} but was {}", expected, actual));
     }
 }
 
@@ -869,39 +870,6 @@ Notification ParseNotification(std::unordered_map<std::string, std::any> m) {
 std::any Hydrator::GetUnknownStructError(uint8_t t) {
     this->SetErr("Received unknown struct tag: " + std::to_string(t));
     return {};
-}
-
-nlohmann::json DebugString(const std::any& fd) {
-    if (!fd.has_value()) {
-        return nullptr;
-    }
-    const auto& type = fd.type();
-    if (type == typeid(int64_t)) {
-        return std::any_cast<int64_t>(fd);
-    } else if (type == typeid(double)) {
-        return std::any_cast<double>(fd);
-    } else if (type == typeid(std::string)) {
-        return std::any_cast<const std::string&>(fd);
-    } else if (type == typeid(bool)) {
-        return std::any_cast<bool>(fd);
-    } else if (type == typeid(std::vector<std::any>)) {
-        nlohmann::json ret = nlohmann::json::array();
-        auto& val = std::any_cast<const std::vector<std::any>&>(fd);
-        for (auto& item : val) {
-            ret.push_back(DebugString(item));
-        }
-        return ret;
-    } else if (type == typeid(std::unordered_map<std::string, std::any>)) {
-        nlohmann::json ret;
-        auto& val =
-            std::any_cast<const std::unordered_map<std::string, std::any>&>(fd);
-        for (auto& pair : val) {
-            ret[pair.first] = DebugString(pair.second);
-        }
-        return ret;
-    }
-    LOG_FATAL() << "DebugString meet unexpected type";
-    return nullptr;
 }
 
 // Utility to test hydration

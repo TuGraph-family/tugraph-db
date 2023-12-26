@@ -206,6 +206,10 @@ class LoggerManager {
         log_buffer_.str("");
     }
 
+    void FlushAllSinks() {
+        logging::core::get()->flush();
+    }
+
     /**
      * @brief   Get current log filtering level.
      *
@@ -238,7 +242,7 @@ BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< sever
       boost::shared_ptr< stream_sink > empty_sink =
           boost::shared_ptr< stream_sink > (new stream_sink());
       empty_sink->locked_backend()->add_stream(
-          boost::shared_ptr< std::ostream >(&std::clog, boost::null_deleter()));
+          boost::shared_ptr< std::ostream >(&std::cout, boost::null_deleter()));
       empty_sink->locked_backend()->auto_flush(true);
       logging::core::get()->add_sink(empty_sink);
     }
@@ -255,7 +259,30 @@ BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< sever
 #define LOG_INFO() LGRAPH_LOG(INFO)
 #define LOG_WARN() LGRAPH_LOG(WARNING)
 #define LOG_ERROR() LGRAPH_LOG(ERROR)
-#define LOG_FATAL() LGRAPH_LOG(FATAL)
+
+class FatalLogger {
+ public:
+    FatalLogger(std::string file, int line)
+        : file_(std::move(file)), line_(line) {}
+    ~FatalLogger() {
+      BOOST_LOG_SEV(debug_logger::get(), severity_level::FATAL)
+          << logging::add_value("Line", line_)
+          << logging::add_value("File", file_) << stream_.str();
+      LoggerManager::GetInstance().FlushAllSinks();
+      std::abort();
+    }
+    template <typename T>
+    FatalLogger& operator<<(const T& value) {
+      stream_ << value;
+      return *this;
+    }
+
+ private:
+    std::ostringstream stream_;
+    std::string file_;
+    int line_;
+};
+#define LOG_FATAL() lgraph_log::FatalLogger(__FILE__, __LINE__)
 
 #define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
   LEVEL) \

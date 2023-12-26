@@ -150,15 +150,13 @@ int64_t Unpacker::Int() {
 }
 
 double Unpacker::Double() {
-    auto buffer = this->Read(8);
+    char buffer[8] = {0};
+    Read(8, buffer);
     if (err_) {
         return std::numeric_limits<double>::quiet_NaN();
     }
-    uint64_t num = *(uint64_t *) (buffer.data());
-    boost::endian::big_to_native_inplace(num);
-    double ret;
-    memcpy(&ret, &num, 8);
-    return ret;
+    boost::endian::big_to_native_inplace(*(uint64_t*)buffer);
+    return *(double*)buffer;
 }
 
 std::string Unpacker::String() {
@@ -202,6 +200,17 @@ std::string Unpacker::Read(uint32_t n) {
     }
     off_ = end;
     return {buf_.data() + start, n};
+}
+
+void Unpacker::Read(uint32_t n, void* p) {
+    auto start = off_;
+    auto end = off_ + n;
+    if (end > len_) {
+        SetErr("IO Error");
+        return;
+    }
+    off_ = end;
+    memcpy(p, buf_.data() + start, n);
 }
 
 uint32_t Unpacker::ReadLen(uint32_t n) {

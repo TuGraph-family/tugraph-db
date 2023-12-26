@@ -123,6 +123,7 @@ add_executable(unit_test
         test_ha.cpp
         test_full_import_online.cpp
         test_http_tasks.cpp
+        test_lgraph_cli.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
         ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp

@@ -29,6 +29,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
     if (msg == BoltMsg::Hello) {
         ps.Reset();
         if (fields.size() != 1) {
+            LOG_ERROR() << "Hello msg fields size error, size: " << fields.size();
             ps.AppendFailure({{"code", "error"},
                               {"message", "Hello msg fields size error"}});
             conn.Respond(std::move(ps.MutableBuffer()));
@@ -40,6 +41,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         auto& credentials = std::any_cast<const std::string&>(val.at("credentials"));
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
         if (!galaxy->ValidateUser(principal, credentials)) {
+            LOG_ERROR() << "Bolt authentication failed";
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});
             conn.Respond(std::move(ps.MutableBuffer()));
@@ -62,6 +64,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         // Now only implicit transactions are supported
         workers.post([&conn, fields = std::move(fields)](){
             if (fields.size() < 3) {
+                LOG_ERROR() << "Run msg fields size error, size: " << fields.size();
                 bolt::PackStream ps;
                 ps.AppendFailure({{"code", "error"},
                                   {"message", "Run msg fields size error"}});
@@ -75,6 +78,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 const std::unordered_map<std::string, std::any>&>(fields[2]);
             auto db_iter = extra.find("db");
             if (db_iter == extra.end()) {
+                LOG_ERROR() << "Missing 'db' item in the 'extra' info of 'Run' msg";
                 bolt::PackStream ps;
                 ps.AppendFailure(
                     {{"code", "error"},
@@ -87,10 +91,12 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             auto sm = BoltServer::Instance().StateMachine();
             cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph);
             cypher::ElapsedTime elapsed;
+            LOG_DEBUG() << "Bolt run " << cypher;
             try {
                 sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER, cypher,
                                                elapsed);
             } catch (const std::exception& ex) {
+                LOG_ERROR() << "Cypher execution meets exception: " << ex.what();
                 bolt::PackStream ps;
                 ps.AppendFailure({{"code", "error"},
                                   {"message", ex.what()}});
@@ -98,6 +104,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 conn.PostResponse(std::move(ps.MutableBuffer()));
                 return;
             }
+            LOG_DEBUG() << "Cypher execution completed";
             std::unordered_map<std::string, std::any> meta;
             meta["fields"] = ctx.result_->BoltHeader();
             bolt::PackStream ps;
@@ -117,6 +124,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 ps.AppendSuccess();
             }
             conn.PostResponse(std::move(ps.MutableBuffer()));
+            LOG_DEBUG() << "Posting response completed";
             session->state = SessionState::READY;
         });
     } else if (msg == BoltMsg::PullN) {

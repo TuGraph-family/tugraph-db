@@ -105,10 +105,10 @@ class Packer  {
     }
     void Double(double f) {
         buf_->push_back((uint8_t)0xc1);
-        uint64_t  num = 0;
-        memcpy(&num, &f, 8);
-        boost::endian::native_to_big_inplace(num);
-        buf_->append((const char*)&num, sizeof(uint64_t));
+        uint64_t t = 0;
+        memcpy(&t, &f, sizeof(f));
+        boost::endian::native_to_big_inplace(t);
+        buf_->append((const char*)&t, sizeof(t));
     }
     void Float(float f) {
         Double(double(f));
@@ -219,6 +219,7 @@ struct Unpacker {
     }
     uint8_t Pop();
     std::string Read(uint32_t n);
+    void Read(uint32_t n, void* p);
     uint32_t ReadLen(uint32_t n);
 
     std::string_view buf_;

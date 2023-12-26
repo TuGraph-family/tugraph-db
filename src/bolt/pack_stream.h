@@ -130,6 +130,10 @@ class PackStream {
         }
     }
 
+    void PackString(const std::string& str) {
+        packer_.String(str);
+    }
+
     void PackMap(const std::unordered_map<std::string, std::any>& m) {
         packer_.MapHeader(m.size());
         for (auto& pair : m) {
@@ -186,30 +190,53 @@ class PackStream {
         }
     }
 
+    void AppendStructMessage(BoltMsg type, const std::unordered_map<std::string, std::any>& meta) {
+        Begin();
+        packer_.StructHeader(type, 1);
+        PackMap(meta);
+        End();
+    }
+    void AppendStructMessage(BoltMsg type) {
+        Begin();
+        packer_.StructHeader(type, 0);
+        End();
+    }
+
+    void AppendHello(const std::unordered_map<std::string, std::any>& meta) {
+        AppendStructMessage(BoltMsg::Hello, meta);
+    }
+
     void AppendSuccess(const std::unordered_map<std::string, std::any>& meta) {
-        Begin();
-        packer_.StructHeader(BoltMsg::Success, 1);
-        PackMap(meta);
-        End();
+        AppendStructMessage(BoltMsg::Success, meta);
     }
+
     void AppendSuccess() {
-        Begin();
-        packer_.StructHeader(BoltMsg::Success, 1);
-        packer_.MapHeader(0);
-        End();
+        AppendStructMessage(BoltMsg::Success, {});
     }
+
     void AppendIgnored() {
-        Begin();
-        packer_.StructHeader(BoltMsg::Ignored, 1);
-        packer_.MapHeader(0);
-        End();
+        AppendStructMessage(BoltMsg::Ignored);
     }
+
     void AppendFailure(const std::unordered_map<std::string, std::any>& meta) {
+        AppendStructMessage(BoltMsg::Failure, meta);
+    }
+
+    void AppendRun(const std::string& cypher,
+                   const std::unordered_map<std::string, std::any>& params,
+                   const std::unordered_map<std::string, std::any>& meta) {
         Begin();
-        packer_.StructHeader(BoltMsg::Failure, 1);
+        packer_.StructHeader(BoltMsg::Run, 3);
+        PackString(cypher);
+        PackMap(params);
         PackMap(meta);
         End();
     }
+
+    void AppendPullN(int64_t n) {
+        AppendStructMessage(BoltMsg::PullN, {{"n", n}});
+    }
+
     void AppendRecord(const std::vector<std::any>& fields) {
         Begin();
         packer_.StructHeader(BoltMsg::Record, 1);

@@ -20,6 +20,7 @@
 #include "tools/json.hpp"
 #include "bolt/connection.h"
 #include "bolt/messages.h"
+#include "bolt/to_string.h"
 
 namespace bolt {
 using namespace boost::asio;
@@ -152,14 +153,8 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec, cons
             unpacker_.Next();
             fields.push_back(bolt::ServerHydrator(unpacker_));
         }
-        if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
-            nlohmann::json debug = nlohmann::json::array();
-            for (const auto& f : fields) {
-                debug.push_back(DebugString(f));
-            }
-            LOG_DEBUG() << FMA_FMT(
-                "msg: {}, fields: {}", ToString(tag), debug.dump());
-        }
+        LOG_DEBUG() << FMA_FMT("msg: {}, fields: {}",
+                               ToString(tag), Print(fields));
         handle_(*this, tag, std::move(fields));
         chunk_.resize(0);
     }

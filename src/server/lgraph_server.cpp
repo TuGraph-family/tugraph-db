@@ -129,6 +129,7 @@ int LGraphServer::Start() {
     if (config_->rpc_port == 0) config_->rpc_port = config_->http_port + 1;
     // start
     int ret = 0;
+
     try {
         // If ha is enabled, we need to enable rpc
         if (config_->enable_ha) {

@@ -58,6 +58,8 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
         AddOption(options, "HA node join(s)", ha_node_join_group_s);
         AddOption(options, "Bootstrap Role", ha_bootstrap_role);
     }
+    AddOption(options, "bolt_port", bolt_port);
+    AddOption(options, "bolt_thread_num", bolt_thread_num);
     return options;
 }
 

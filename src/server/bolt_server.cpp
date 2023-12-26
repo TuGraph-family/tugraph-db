@@ -41,9 +41,9 @@ bool BoltServer::Start(lgraph::StateMachine* sm, int port, int workerNum) {
             bolt::IOService<bolt::BoltConnection, decltype(bolt::BoltHandler)> bolt_service(
                 listener, port_, 1, bolt::BoltHandler);
             boost::asio::io_service::work holder(listener);
+            LOG_INFO() << "bolt server run";
             promise.set_value(true);
             promise_done = true;
-            LOG_INFO() << "bolt server run";
             listener.run();
         } catch (const std::exception& e) {
             LOG_WARN() << "bolt server expection: " << e.what();

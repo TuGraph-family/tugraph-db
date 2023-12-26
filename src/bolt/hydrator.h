@@ -130,5 +130,5 @@ Plan ParsePlan(std::unordered_map<std::string, std::any> planx);
 ProfiledPlan ParseProfile(std::unordered_map<std::string, std::any> profilex);
 Notification ParseNotification(std::unordered_map<std::string, std::any> m);
 std::any ServerHydrator(Unpacker& unpacker);
-nlohmann::json DebugString(const std::any& fd);
 }  // namespace bolt
+
