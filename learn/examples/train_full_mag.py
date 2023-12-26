@@ -403,7 +403,8 @@ def train(
 
         pbar.close()
         loss = total_loss / num_train
-
+        if epoch == 4 and loss < 5:
+            print("The loss value is less than 5")
         result = test(g, model, node_embed, labels, device, split_idx)
         logger.add_result(run, result)
         train_acc, valid_acc, test_acc = result
