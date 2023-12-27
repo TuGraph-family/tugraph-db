@@ -45,6 +45,8 @@ typedef sinks::synchronous_sink< sinks::text_file_backend > file_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > stream_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > ut_sink;
 
+BOOST_LOG_ATTRIBUTE_KEYWORD(log_type_attr, "LogType", std::string)
+
 enum severity_level {
     TRACE,
     DEBUG,
@@ -130,7 +132,8 @@ class LoggerManager {
                 keywords::enable_final_rotation = false,
                 keywords::auto_flush = true,
                 keywords::rotation_size = rotation_size_));
-            file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
+            file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
+                log_type_attr == "debug");
             file_sink_->set_formatter(&formatter);
 
             logging::core::get()->add_sink(file_sink_);
@@ -145,7 +148,8 @@ class LoggerManager {
                     boost::shared_ptr< std::ostream >(console_stream_));
             }
             stream_sink_->locked_backend()->auto_flush(true);
-            stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
+            stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
+                log_type_attr == "debug");
             stream_sink_->set_formatter(&formatter);
 
             logging::core::get()->add_sink(stream_sink_);
@@ -168,9 +172,11 @@ class LoggerManager {
     void SetLevel(severity_level level) {
       level_ = level;
       if (!log_dir_.empty()) {
-            file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
+            file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
+                log_type_attr == "debug");
       } else {
-        stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_);
+        stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
+                log_type_attr == "debug");
       }
     }
 
@@ -239,6 +245,9 @@ class LoggerManager {
 
 BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< severity_level >) {
     src::severity_logger_mt< severity_level > lg;
+    attrs::constant< std::string > debug_type("debug");
+    lg.add_attribute("LogType", debug_type);
+
     // Init empty console log first if not inited
     if (!LoggerManager::GetInstance().IsInited()) {
       boost::shared_ptr< stream_sink > empty_sink =

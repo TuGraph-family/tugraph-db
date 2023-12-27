@@ -170,14 +170,14 @@ class AuditLogger {
     }
 
     inline bool ParseAuditLog(std::string path, std::string& log_line, lgraph::LogMessage& msg) {
-        DEBUG_LOG(DEBUG) << "[AUDIT TEST]" << log_line;
+        LOG_DEBUG() << "[AUDIT TEST]" << log_line;
 
         if (log_line == "") {
-            FMA_DBG_STREAM(logger_) << "Error parsing audit log from string " << path;
+            LOG_DEBUG() << "Error parsing audit log from string " << path;
             return false;
         }
         lgraph_log::json log_msg = lgraph_log::json::parse(log_line);
-        DEBUG_LOG(DEBUG) << "[AUDIT TEST]" << log_msg.dump();
+        LOG_DEBUG() << "[AUDIT TEST]" << log_msg.dump();
         msg.set_index(log_msg["index"]);
         msg.set_time(log_msg["time"]);
         msg.set_begin_end(log_msg["is_end_log"]);
