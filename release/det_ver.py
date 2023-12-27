@@ -37,7 +37,7 @@ replace_ver('docs/en-US/source/5.developer-manual/6.interface/3.procedure/Doxyfi
 replace_ver('docs/zh-CN/source/5.developer-manual/6.interface/3.procedure/4.Python-procedure.rst', 'Version: ', curr_ver)
 replace_ver('docs/zh-CN/source/5.developer-manual/6.interface/3.procedure/Doxyfile', 'PROJECT_NUMBER         = ', curr_ver)
 replace_ver('docs/zh-CN/source/1.guide.md', '安装', curr_ver)
-replace_ver('docs/en-US/source/1.guide.md', 'install', curr_ver)
+replace_ver('docs/en-US/source/1.guide.md', 'runtime', curr_ver)
 
 dockerfiles = [
     "tugraph-mini-runtime-centos7-Dockerfile",

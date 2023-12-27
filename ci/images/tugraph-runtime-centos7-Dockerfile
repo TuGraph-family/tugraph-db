@@ -33,7 +33,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
     && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
 
 # install cmake
@@ -85,7 +85,6 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.2
     && ln -s /node-v16.20.0-linux-x64/bin/node /usr/local/bin/ \
     && npm config set registry https://registry.npmmirror.com \
     && rm -rf /node-v16.20.0-linux-x64.tar.gz \
-    && npm install -g npm@latest \
     && npm install --global yarn \
     && ln -s /node-v16.20.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
     && yarn config set registry https://registry.npmmirror.com

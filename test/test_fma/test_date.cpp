@@ -14,7 +14,6 @@
 
 #include <ctime>
 #include "tools/date.h"
-#include "fma-common/logger.h"
 #include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(Date, "");
@@ -30,7 +29,7 @@ FMA_UNIT_TEST(Date) {
     t.tm_year = 2019;
     t.tm_mon = 2;
     t.tm_mday = 29;
-    FMA_LOG() << t.tm_year << t.tm_mon << t.tm_mday;
+    LOG_INFO() << t.tm_year << t.tm_mon << t.tm_mday;
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;

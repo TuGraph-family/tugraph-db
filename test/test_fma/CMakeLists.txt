@@ -18,8 +18,6 @@ add_executable(fma_unit_test
         test_fma_stream.cpp
         test_hard_container.cpp
         test_hardware_info.cpp
-        test_leveled_log_device.cpp
-        test_logging.cpp
         test_many_streams.cpp
         test_multi_disk_stream.cpp
         test_piped_hdfs_stream.cpp
@@ -36,8 +34,7 @@ add_executable(fma_unit_test
         test_thread_pool.cpp
         test_timed_task.cpp
         test_type_traits.cpp
-        test_utils.cpp
-        test_level_log.cpp)
+        test_utils.cpp)
 
 target_link_libraries (fma_unit_test
         libstdc++fs.a

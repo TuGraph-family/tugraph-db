@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/hardware_info.h"
-#include "fma-common/logging.h"
 #include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(HardwareInfo, "-n 4 -r 1000");
@@ -31,37 +30,37 @@ FMA_UNIT_TEST(HardwareInfo) {
         .Comment("Number of random numbers to generate between each cpu rate test.");
     config.ParseAndFinalize(argc, argv);
 
-    LOG() << HardwareInfo::GetCpuId();
-    LOG() << HardwareInfo::GetCpuModel();
-    LOG() << ToString(HardwareInfo::ListMacAddr());
-    LOG() << HardwareInfo::GetHostName();
-    LOG() << HardwareInfo::GetAvailableMemory();
+    LOG_INFO() << HardwareInfo::GetCpuId();
+    LOG_INFO() << HardwareInfo::GetCpuModel();
+    LOG_INFO() << ToString(HardwareInfo::ListMacAddr());
+    LOG_INFO() << HardwareInfo::GetHostName();
+    LOG_INFO() << HardwareInfo::GetAvailableMemory();
     // by qinwei MemoeyInfo
     HardwareInfo::MemoryInfo memoryInfo;
     HardwareInfo::GetMemoryInfo(memoryInfo);
-    LOG() << memoryInfo.total << " KB total";
-    LOG() << memoryInfo.free << " KB free";
-    LOG() << memoryInfo.available << " KB available";
-    LOG() << memoryInfo.used << " KB used";
-    LOG() << memoryInfo.shared << " KB shared";
-    LOG() << memoryInfo.buff << " KB buff";
-    LOG() << memoryInfo.cache << " KB cache";
-    LOG() << memoryInfo.dwMemoryLoad << " % used";
-    LOG() << memoryInfo.selfMemory << " KB selfMemory";
+    LOG_INFO() << memoryInfo.total << " KB total";
+    LOG_INFO() << memoryInfo.free << " KB free";
+    LOG_INFO() << memoryInfo.available << " KB available";
+    LOG_INFO() << memoryInfo.used << " KB used";
+    LOG_INFO() << memoryInfo.shared << " KB shared";
+    LOG_INFO() << memoryInfo.buff << " KB buff";
+    LOG_INFO() << memoryInfo.cache << " KB cache";
+    LOG_INFO() << memoryInfo.dwMemoryLoad << " % used";
+    LOG_INFO() << memoryInfo.selfMemory << " KB selfMemory";
     // by qinwei CPURate
     HardwareInfo::CPURate cpuRate;
     double sum = 0;
     for (size_t i = 0; i < 10; i++) {
         HardwareInfo::CPURate cpuRate = HardwareInfo::GetCPURate();
-        LOG() << "CPU%: " << cpuRate.selfCPURate << "\t" << cpuRate.serverCPURate;
+        LOG_INFO() << "CPU%: " << cpuRate.selfCPURate << "\t" << cpuRate.serverCPURate;
         for (size_t k = 0; k < n_rand; k++) {
             sum += 1.0 / (k + 100);
         }
     }
-    FMA_LOG() << sum;
+    LOG_INFO() << sum;
     for (size_t i = 0; i < 3; i++) {
         auto diskStat = HardwareInfo::GetDiskRate();
-        LOG() << "READ  " << diskStat.readRate / 1024 / 1024 << " MB/s"
+        LOG_INFO() << "READ  " << diskStat.readRate / 1024 / 1024 << " MB/s"
               << "\tWRITE " << diskStat.writeRate / 1024 / 1024 << " MB/s";
         SleepS(1);
     }

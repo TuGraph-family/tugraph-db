@@ -411,7 +411,7 @@ void VertexIndex::Dump(KvTransaction& txn,
                 throw InputError("vertex index do not support pair-unique attributes");
             }
         }
-        FMA_LOG() << line;
+        LOG_INFO() << line;
     }
 }
 

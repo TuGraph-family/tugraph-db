@@ -73,6 +73,10 @@ lgraph::Galaxy::~Galaxy() {
     graphs_->CloseAllGraphs();
 }
 
+bool lgraph::Galaxy::ValidateUser(const std::string& user, const std::string& password) {
+    return acl_->ValidateUser(user, password);
+}
+
 std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::string& password) {
     lgraph::CheckValidUserName(user);
     _HoldWriteLock(acl_lock_);
@@ -178,7 +182,8 @@ std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token
 }
 
 bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string& graph,
-                                 const lgraph::DBConfig& config) {
+                                 const lgraph::DBConfig& config,
+                                 const std::string& data_file_path) {
     CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
     if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
@@ -188,7 +193,12 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
     std::unique_ptr<GraphManager> gm_new(new GraphManager(*graphs_));
     auto wt = store_->CreateWriteTxn(false);
     auto& txn = *wt;
-    bool r = gm_new->CreateGraph(txn, graph, config);
+    bool r;
+    if (data_file_path.empty()) {
+        r = gm_new->CreateGraph(txn, graph, config);
+    } else {
+        r = gm_new->CreateGraphWithData(txn, graph, config, data_file_path);
+    }
     if (!r) return r;
     acl_new->AddGraph(txn, curr_user, graph);
     txn.Commit();
@@ -222,7 +232,7 @@ bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string
         std::string dir = db->GetConfig().dir;
         db->Close();
         fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir);
-        FMA_LOG() << "GraphDB " << dir << " deleted.";
+        LOG_INFO() << "GraphDB " << dir << " deleted.";
     });
     return true;
 }
@@ -483,7 +493,7 @@ bool lgraph::Galaxy::LoadSnapshot(const std::string& dir) {
 
 static inline void TryMkDir(const std::string& dir, const fma_common::FileSystem& fs) {
     if (!fs.Mkdir(dir)) {
-        FMA_WARN() << "Failed to create dir " << dir;
+        LOG_WARN() << "Failed to create dir " << dir;
         throw std::runtime_error("Failed to create dir " + dir);
     }
 }
@@ -496,9 +506,9 @@ std::vector<std::string> lgraph::Galaxy::SaveSnapshot(const std::string& dir) {
     // clear dir
     auto& fs = fma_common::FileSystem::GetFileSystem(dir);
     if (fs.IsDir(dir)) {
-        FMA_DBG_STREAM(logger_) << "Snapshot dir " << dir << " already exists, overwriting...";
+        LOG_DEBUG() << "Snapshot dir " << dir << " already exists, overwriting...";
         if (!fs.RemoveDir(dir)) {
-            FMA_WARN_STREAM(logger_) << "Failed to remove dir " << dir;
+            LOG_WARN() << "Failed to remove dir " << dir;
             throw std::runtime_error("Failed to remove dir " + dir);
         }
     }
@@ -512,7 +522,7 @@ std::vector<std::string> lgraph::Galaxy::SaveSnapshot(const std::string& dir) {
     // backup graphs
     auto files = graphs_->Backup(dir);
     for (auto& f : files) ret.push_back(f);
-    FMA_DBG_STREAM(logger_) << "Snapshot files: " << fma_common::ToString(files);
+    LOG_DEBUG() << "Snapshot files: " << fma_common::ToString(files);
     return ret;
 }
 
@@ -524,7 +534,7 @@ bool lgraph::Galaxy::IsAdmin(const std::string& user) const {
 lgraph::KillableRWLock& lgraph::Galaxy::GetReloadLock() { return reload_lock_; }
 
 void lgraph::Galaxy::ReloadFromDisk(bool create_if_not_exist) {
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Loading DB state from disk";
+    LOG_DEBUG() << "Loading DB state from disk";
     _HoldWriteLock(reload_lock_);
     // now we can do anything we want on the galaxy
     // states: meta_, token_manager_ and raft_log_index_
@@ -687,7 +697,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
                 bool b = it->GetValue().AsType<bool>();
                 AuditLogger::SetEnable(b);
                 if (b != global_config_->enable_audit_log) {
-                    FMA_INFO_STREAM(logger_)
+                    LOG_INFO()
                         << "Option \"enable_audit_log\" is overwritten by value in DB";
                     global_config_->enable_audit_log = b;
                 }
@@ -698,7 +708,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
                 bool b = it->GetValue().AsType<bool>();
                 config_.durable = b;
                 if (b != global_config_->durable) {
-                    FMA_INFO_STREAM(logger_) << "Option \"durable\" is overwritten by value in DB";
+                    LOG_INFO() << "Option \"durable\" is overwritten by value in DB";
                     global_config_->durable = b;
                 }
                 break;
@@ -708,7 +718,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
                 bool b = it->GetValue().AsType<bool>();
                 config_.optimistic_txn = b;
                 if (b != global_config_->txn_optimistic) {
-                    FMA_INFO_STREAM(logger_)
+                    LOG_INFO()
                         << "Option \"optimistic_txn\" is overwritten by value in DB";
                     global_config_->txn_optimistic = b;
                 }
@@ -718,7 +728,7 @@ void lgraph::Galaxy::LoadConfigTable(lgraph::KvTransaction& txn) {
             {
                 bool b = it->GetValue().AsType<bool>();
                 if (b != global_config_->enable_ip_check) {
-                    FMA_INFO_STREAM(logger_)
+                    LOG_INFO()
                         << "Option \"enable_ip_check\" is overwritten by value in DB";
                     global_config_->enable_ip_check = b;
                 }
@@ -758,12 +768,12 @@ void lgraph::Galaxy::CheckTuGraphVersion(KvTransaction& txn) {
     int major = std::get<0>(ver);
     int minor = std::get<1>(ver);
     if (major != _detail::VER_MAJOR) {
-        FMA_WARN_STREAM(logger_) << "Mismatching major version: DB is created with ver " << major
+        LOG_WARN() << "Mismatching major version: DB is created with ver " << major
                                  << ", while current TuGraph is ver " << _detail::VER_MAJOR;
         throw std::runtime_error("Mismatch DB and software version.");
     }
     if (minor != _detail::VER_MINOR) {
-        FMA_WARN_STREAM(logger_) << "DB is created with ver " << major << "." << minor
+        LOG_WARN() << "DB is created with ver " << major << "." << minor
                                  << ", while current TuGraph is ver " << _detail::VER_MAJOR << "."
                                  << _detail::VER_MINOR
                                  << ". TuGraph may work just fine, but be ware of compatibility "

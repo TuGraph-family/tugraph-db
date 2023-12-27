@@ -16,9 +16,7 @@
 
 #include <exception>
 #include <string>
-
-#include "fma-common/logger.h"
-
+#include "tools/lgraph_log.h"
 #include "core/data_type.h"
 #include "core/field_data_helper.h"
 
@@ -68,7 +66,8 @@ class LineParserException : public std::exception {
 
  protected:
     virtual void Print(int indent) const {
-        FMA_LOG() << std::string(indent, ' ') << "Due to: " << err_ << "\n>Error line:\n\t" << line_
+        LOG_INFO() << std::string(indent, ' ')
+                   << "Due to: " << err_ << "\n>Error line:\n\t" << line_
                   << "\n>Binary format:\n\t" << _detail::BinaryLine(line_);
     }
 };

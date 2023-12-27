@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 
 #include "./ut_utils.h"
 #include "gtest/gtest.h"
@@ -35,7 +34,6 @@ class TestBatchVertexIndex : public TuGraphTest {
             "person:agef:0,person:aged:0";
         n_dump_key = 10;
         dump_only = false;
-        verbose = 1;
     }
     void TearDown() { TuGraphTest::TearDown(); }
 
@@ -46,8 +44,6 @@ class TestBatchVertexIndex : public TuGraphTest {
     std::string indexes_str;
     size_t n_dump_key;
     bool dump_only;
-    int verbose;
-    std::string log;
     std::string user, password;
 };
 
@@ -68,27 +64,10 @@ TEST_F(TestBatchVertexIndex, BatchVertexIndex) {
     config.Add(n_dump_key, "n_dump", true)
         .Comment("Number of keys to dump for the specified index");
     config.Add(dump_only, "dump_only", true).Comment("Do not build index, only dump the index");
-    config.Add(verbose, "verbose", true).Comment("Verbose level");
-    config.Add(log, "log", true).Comment("Log location");
     config.ExitAfterHelp();
     config.ParseAndFinalize(argc, argv);
     GraphFactory gf;
     gf.create_snapshot();
-
-    fma_common::LogLevel level;
-    if (verbose == 0)
-        level = fma_common::LL_WARNING;
-    else if (verbose == 1)
-        level = fma_common::LL_INFO;
-    else
-        level = fma_common::LL_DEBUG;
-    fma_common::Logger::Get().SetLevel(level);
-    if (!log.empty()) {
-        fma_common::Logger::Get().SetDevice(
-            std::shared_ptr<fma_common::LogDevice>(new fma_common::FileLogDevice(log)));
-    }
-    fma_common::Logger::Get().SetFormatter(
-        std::shared_ptr<fma_common::LogFormatter>(new fma_common::TimedModuleLogFormatter()));
 
     if (indexes_str.empty()) {
         UT_ERR() << "Empty index.";

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <core/data_type.h>
+#include <cmath>
 #include "cypher/filter/iterator.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/execution_plan/runtime_context.h"

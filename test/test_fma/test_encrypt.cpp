@@ -15,7 +15,6 @@
 #include <random>
 
 #include "fma-common/encrypt.h"
-#include "fma-common/logger.h"
 #include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(Encrypt, "");
@@ -27,7 +26,7 @@ FMA_UNIT_TEST(Encrypt) {
     size_t n = 1024;
     size_t max_size = 1024;
 
-    FMA_LOG() << "Testing blowfish";
+    LOG_INFO() << "Testing blowfish";
     encrypt::Encryptor<encrypt::Blowfish> enc("random_pass");
     std::random_device rnd;
     std::default_random_engine eng;
@@ -44,13 +43,13 @@ FMA_UNIT_TEST(Encrypt) {
             try {
                 std::string w = wrong_pass.Decrypt(encrypted);
             } catch (std::exception &e) {
-                FMA_LOG() << "Expected exception: decrypting with wrong password. Exception info: "
+                LOG_INFO() << "Expected exception: decrypting with wrong password. Exception info: "
                           << e.what();
             }
         }
     }
 
-    FMA_LOG() << "Testing md5";
+    LOG_INFO() << "Testing md5";
     FMA_UT_CHECK_EQ(encrypt::MD5::Encrypt("hello, world"),
                  encrypt::Base16::Decode("e4d7f1b4ed2e42d15898f4b27b019da4"));
     FMA_UT_CHECK_EQ(encrypt::MD5::Encrypt("What does MD5 mean?"),
@@ -58,7 +57,7 @@ FMA_UNIT_TEST(Encrypt) {
     FMA_CHECK_NEQ(encrypt::MD5::Encrypt("What does MD5 mean?", "salt"),
                   encrypt::Base16::Decode("99a5a46cee444fafac4a8f03c3aab8d8"));
 
-    FMA_LOG() << "Testing hex16";
+    LOG_INFO() << "Testing hex16";
     std::string orig;
     for (size_t i = 0; i < 255; i++) orig.push_back((char)i);
     std::string encrypted = encrypt::Base16::Encode(orig);

@@ -210,7 +210,7 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     case FieldType::STRING:
         return FieldData(extractor->GetConstRef(record).AsString());
     case FieldType::BLOB:
-        FMA_ERR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
+        LOG_ERROR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
                      "Extractor, GetBlobKeyFunc)";
     case FieldType::POINT:
     {
@@ -276,7 +276,7 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         }
     }
     case FieldType::NUL:
-        FMA_ERR() << "FieldType NUL";
+        LOG_ERROR() << "FieldType NUL";
     }
     return FieldData();
 }

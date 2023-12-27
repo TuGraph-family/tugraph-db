@@ -368,6 +368,27 @@ std::string Result::Dump(bool is_standard) {
     }
 }
 
+std::vector<std::string> Result::BoltHeader() {
+    std::vector<std::string> ret;
+    for (auto& h : header) {
+        ret.push_back(h.first);
+    }
+    return ret;
+}
+
+std::vector<std::vector<std::any>> Result::BoltRecords() {
+    std::vector<std::vector<std::any>> ret;
+    for (auto& record : result) {
+        std::vector<std::any> line;
+        for (auto& h : header) {
+            line.push_back(record.record.at(h.first)->ToBolt());
+        }
+        ret.emplace_back(std::move(line));
+    }
+    return ret;
+}
+
+
 void Result::Load(const std::string &output) {
     try {
         auto j = json::parse(output);
@@ -500,7 +521,7 @@ void Result::Load(const std::string &output) {
         auto record = this->MutableRecord();
         record->Insert(header[0].first, FieldData(output));
         record->length_++;
-        FMA_LOG() << FMA_FMT("[Plugin Error] Error: {}", e.what());
+        LOG_INFO() << FMA_FMT("[Plugin Error] Error: {}", e.what());
     }
 }
 

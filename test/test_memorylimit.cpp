@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "gtest/gtest.h"
 

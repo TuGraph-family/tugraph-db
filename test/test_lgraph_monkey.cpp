@@ -22,7 +22,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 
@@ -498,10 +497,6 @@ TEST_P(TestLGraphMonkey, LGraphMonkey) {
     config.Add(n_monkey, "monkey", true).Comment("Number of monkey operations to perform");
     config.Add(verbose, "verbose", true).Comment("Print verbose info");
     config.ParseAndFinalize(argc, argv);
-
-    if (verbose) {
-        fma_common::Logger::Get().SetLevel(fma_common::LogLevel::LL_DEBUG);
-    }
 
     { fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir); }
     std::vector<std::string> vlabels;

@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/data_file.h"
-#include "fma-common/logging.h"
 #include "./unit_test_utils.h"
 
 using namespace fma_common;

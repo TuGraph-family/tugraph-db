@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "fma-common/logging.h"
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 
@@ -116,10 +115,8 @@ TEST_F(TestEdgeConstraint, cypher) {
     cypher::RTContext db(
         nullptr,
         &galaxy,
-        galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                            lgraph::_detail::DEFAULT_ADMIN_PASS),
         lgraph::_detail::DEFAULT_ADMIN_NAME,
-        "default", lgraph::AclManager::FieldAccess());
+        "default");
 
     eval_scripts(&db, {"CALL db.createVertexLabel('v1', 'id', 'id', STRING, false)"});
     eval_scripts(&db, {"CALL db.createVertexLabel('v2', 'id', 'id', STRING, false)"});

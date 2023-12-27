@@ -13,8 +13,7 @@
  */
 
 #pragma once
-
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 // The 'U' macro can be used to create a string or character literal of the platform type, i.e.
 // utility::char_t. If you are using a library causing conflicts with 'U' macro, it can be turned
@@ -272,6 +271,5 @@ class RestClient {
 
  private:
     std::map<std::string, std::string> _header;
-    fma_common::Logger& logger_;
     void* http_client_ = nullptr;
 };

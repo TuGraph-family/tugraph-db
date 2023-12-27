@@ -285,8 +285,6 @@ class RpcClient {
         std::shared_ptr<lgraph_rpc::m_controller> cntl;
         // Initialize the channel, NULL means using default options.
         std::shared_ptr<lgraph_rpc::m_channel_options> options;
-
-        fma_common::Logger& logger_;
     };
 
  public:
@@ -553,7 +551,6 @@ class RpcClient {
 
  private:
     ClientType client_type;
-    fma_common::Logger& logger_;
     std::string user;
     std::string password;
 

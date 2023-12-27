@@ -17,7 +17,6 @@
 
 #include <db/galaxy.h>
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
@@ -88,10 +87,7 @@ int test_cypher_plan(const nlohmann::json &conf) {
             gconf.dir = "./testdb";
             lgraph::Galaxy galaxy(gconf, true, nullptr);
             cypher::RTContext db(nullptr, &galaxy,
-                                 galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                                     lgraph::_detail::DEFAULT_ADMIN_PASS),
-                                 lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
-                                 lgraph::AclManager::FieldAccess());
+                                 lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
             db.param_tab_ = g_param_tab;
             for (auto &test_cases : el["querys"].items()) {
                 for (auto &c : test_cases.value()) {
@@ -116,14 +112,14 @@ TEST_F(TestCypherPlan, CypherPlan) {
     config.ExitAfterHelp();
     config.ParseAndFinalize(argc, argv);
 
-    fma_common::LogLevel level;
+    auto severity_level = lgraph_log::severity_level::ERROR;
     if (verbose == 0)
-        level = fma_common::LL_WARNING;
+        severity_level = lgraph_log::severity_level::WARNING;
     else if (verbose == 1)
-        level = fma_common::LL_INFO;
+        severity_level = lgraph_log::severity_level::INFO;
     else
-        level = fma_common::LL_DEBUG;
-    fma_common::Logger::Get().SetLevel(level);
+        severity_level = lgraph_log::severity_level::DEBUG;
+    lgraph_log::LoggerManager::GetInstance().Init("", severity_level);
 
     std::ifstream ifs(validate_file);
     nlohmann::json conf;

@@ -114,6 +114,43 @@ bool lgraph::GraphManager::CreateGraph(KvTransaction& txn, const std::string& na
     return true;
 }
 
+bool lgraph::GraphManager::CreateGraphWithData(KvTransaction& txn, const std::string& name,
+                                       const DBConfig& config, const std::string& data_file_path) {
+    auto it = graphs_.find(name);
+    if (it == graphs_.end()) {
+        CheckValidGraphNum(graphs_.size() + 1);
+    }
+    DBConfig real_config = config;
+    UpdateDBConfigWithGMConfig(real_config, config_);
+    real_config.name = name;
+    real_config.db_size = _detail::DEFAULT_GRAPH_SIZE;
+    // update graphs_
+    real_config.create_if_not_exist = true;
+    if (it == graphs_.end()) {
+        real_config.dir = GenNewGraphSubDir();
+        StoreConfig(txn, name, real_config);
+        std::string secret = real_config.dir;
+        real_config.dir = GetGraphActualDir(parent_dir_, real_config.dir);
+
+        std::unique_ptr<LightningGraph> graph(new LightningGraph(real_config));
+        std::string new_file_path = GetGraphActualDir(real_config.dir, "data.mdb");
+        std::rename(data_file_path.c_str(), new_file_path.c_str());
+        graph = std::make_unique<LightningGraph>(real_config);
+        graph->FlushDbSecret(secret);
+        graphs_.emplace_hint(it, name, GcDb(graph.release()));
+    } else {
+        auto origin_graph = graphs_.find(name)->second.GetScopedRef();
+        real_config.dir = GetGraphActualDir(parent_dir_, origin_graph->GetSecret());
+        std::string new_file_path = GetGraphActualDir(GetGraphActualDir(
+                                    parent_dir_, origin_graph->GetSecret()), "data.mdb");
+        std::rename(data_file_path.c_str(), new_file_path.c_str());
+        std::unique_ptr<LightningGraph> new_graph(new LightningGraph(real_config));
+        new_graph->FlushDbSecret(origin_graph->GetSecret());
+        graphs_[name] = GcDb(new_graph.release());
+    }
+    return true;
+}
+
 lgraph::GraphManager::GcDb lgraph::GraphManager::DelGraph(KvTransaction& txn,
                                                           const std::string& name) {
     auto it = graphs_.find(name);
@@ -156,7 +193,7 @@ bool lgraph::GraphManager::ModGraph(KvTransaction& txn, const std::string& name,
     // re-open
     UpdateDBConfigWithGMConfig(config, config_);
     config.dir = GetGraphActualDir(parent_dir_, config.dir);
-    FMA_DBG() << "Re-openning graph with config {" << fma_common::ToString(config) << "}";
+    LOG_DEBUG() << "Re-openning graph with config {" << fma_common::ToString(config) << "}";
     db->ReloadFromDisk(config);
     // cancel rollback
     rollback.CancelAll();
@@ -229,7 +266,7 @@ void lgraph::GraphManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
             conf.create_if_not_exist = false;
             conf.durable = config_.durable;
             conf.load_plugins = config_.load_plugins;
-            // FMA_DBG() << "Openning graph with config {" << fma_common::ToString(conf) << "}";
+            // LOG_DEBUG() << "Openning graph with config {" << fma_common::ToString(conf) << "}";
             std::unique_ptr<LightningGraph> graph(new LightningGraph(conf));
             if (!graph->CheckDbSecret(secret)) throw std::runtime_error("DB corruptted.");
             graphs_.emplace(graph_name, GcDb(graph.release()));
@@ -242,7 +279,7 @@ void lgraph::GraphManager::ReloadFromDisk(KvStore* store, KvTransaction& txn,
             std::string dir = db->GetConfig().dir;
             // db->Close();
             if (fma_common::FileSystem::GetFileSystem(dir).RemoveDir(dir))
-                FMA_WARN() << "GraphDB " << dir << " deleted.";
+                LOG_WARN() << "GraphDB " << dir << " deleted.";
         });
         graphs_.erase(g);
     }
@@ -253,13 +290,13 @@ std::vector<std::string> lgraph::GraphManager::Backup(const std::string& backup_
     // copy graphs one by one
     for (auto& kv : graphs_) {
         const std::string& name = kv.first;
-        FMA_LOG() << "Backup subgraph " << name;
+        LOG_INFO() << "Backup subgraph " << name;
         ScopedRef<LightningGraph> g = kv.second.GetScopedRef();
         std::string sub_dir = fma_common::FilePath(g->GetConfig().dir).Name();
         std::string graph_dir = GetGraphActualDir(backup_parent_dir, sub_dir);
         ret.push_back(graph_dir + "/data.mdb");
         if (!fma_common::file_system::MkDir(graph_dir)) {
-            FMA_WARN() << "Error backing up graph " << name << ": cannot create dir " << graph_dir;
+            LOG_WARN() << "Error backing up graph " << name << ": cannot create dir " << graph_dir;
             throw std::runtime_error("Error backing up graph [" + name + "]: cannot create dir " +
                                      graph_dir);
         }

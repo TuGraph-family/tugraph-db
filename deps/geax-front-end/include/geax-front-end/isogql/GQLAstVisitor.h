@@ -25,6 +25,7 @@
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/isogql/GQLResolveCtx.h"
 #include "geax-front-end/isogql/parser/GqlParserBaseVisitor.h"
+#include "parser/GqlParser.h"
 
 namespace geax {
 namespace frontend {
@@ -51,13 +52,47 @@ private:
 
     // statement
     std::any visitGqlRequest(parser::GqlParser::GqlRequestContext *ctx) override;
+    std::any visitSessionActivity(parser::GqlParser::SessionActivityContext *ctx) override;
+    std::any visitExplainActivity(parser::GqlParser::ExplainActivityContext *ctx) override;
+    std::any visitGqlFullTransaction(parser::GqlParser::GqlFullTransactionContext *ctx) override;
+    std::any visitGqlNormalTransaction(
+        parser::GqlParser::GqlNormalTransactionContext *ctx) override;
+    std::any visitGqlEndTransaction(parser::GqlParser::GqlEndTransactionContext *ctx) override;
+    std::any visitStartTransactionCommand(
+        parser::GqlParser::StartTransactionCommandContext *ctx) override;
+    std::any visitSessionSetCommand(parser::GqlParser::SessionSetCommandContext *ctx) override;
+    std::any visitSessionResetCommand(parser::GqlParser::SessionResetCommandContext *ctx) override;
+    std::any visitSessionSetValueParameterClause(
+        parser::GqlParser::SessionSetValueParameterClauseContext *ctx) override;
+    std::any visitSessionSetGraphParameterClause(
+        parser::GqlParser::SessionSetGraphParameterClauseContext *ctx) override;
+    std::any visitSessionSetBindingTableParameterClause(
+        parser::GqlParser::SessionSetBindingTableParameterClauseContext *ctx) override;
     std::any visitProcedureBody(parser::GqlParser::ProcedureBodyContext *ctx) override;
+    std::any visitBindingVariableDefinitionBlock(
+        parser::GqlParser::BindingVariableDefinitionBlockContext *ctx) override;
+    std::any visitGraphVariableDefinition(
+        parser::GqlParser::GraphVariableDefinitionContext *ctx) override;
+    std::any visitBindingTableVariableDefinition(
+        parser::GqlParser::BindingTableVariableDefinitionContext *ctx) override;
+    std::any visitValueVariableDefinition(
+        parser::GqlParser::ValueVariableDefinitionContext *ctx) override;
+    std::any visitNestedQuerySpecification(
+        parser::GqlParser::NestedQuerySpecificationContext *ctx) override;
+    std::any visitObjectExpressionPrimary(
+        parser::GqlParser::ObjectExpressionPrimaryContext *ctx) override;
+    std::any visitBindingTableReference(
+        parser::GqlParser::BindingTableReferenceContext *ctx) override;
+    std::any visitObjectNameOrBindingVariable(
+        parser::GqlParser::ObjectNameOrBindingVariableContext *ctx) override;
     std::any visitStatementBlock(parser::GqlParser::StatementBlockContext *ctx) override;
     std::any visitNextStatement(parser::GqlParser::NextStatementContext *ctx) override;
     std::any visitManagerStatement(parser::GqlParser::ManagerStatementContext *ctx) override;
     std::any visitLinearCatalogModifyingStatement(
         parser::GqlParser::LinearCatalogModifyingStatementContext *ctx) override;
     std::any visitQueryStatement(parser::GqlParser::QueryStatementContext *ctx) override;
+    std::any visitStandaloneCallStatement(
+        parser::GqlParser::StandaloneCallStatementContext *ctx) override;
     std::any visitJoinQueryExpression(parser::GqlParser::JoinQueryExpressionContext *ctx) override;
     std::any visitCompositeQueryExpression(
         parser::GqlParser::CompositeQueryExpressionContext *ctx) override;
@@ -82,6 +117,9 @@ private:
     std::any visitSetLabelItem(parser::GqlParser::SetLabelItemContext *ctx) override;
     std::any visitDeleteStatement(parser::GqlParser::DeleteStatementContext *ctx) override;
     std::any visitReplaceStatement(parser::GqlParser::ReplaceStatementContext *ctx) override;
+    std::any visitMergeStatement(parser::GqlParser::MergeStatementContext *ctx) override;
+    std::any visitGqlMergeOnMatch(parser::GqlParser::GqlMergeOnMatchContext *ctx) override;
+    std::any visitGqlMergeOnCreate(parser::GqlParser::GqlMergeOnCreateContext *ctx) override;
 
     std::any visitFilterStatement(parser::GqlParser::FilterStatementContext *ctx) override;
     std::any visitSimpleMatchStatement(
@@ -89,6 +127,7 @@ private:
     std::any visitOptionalMatchStatement(
         parser::GqlParser::OptionalMatchStatementContext *ctx) override;
     std::any visitMatchStatementBlock(parser::GqlParser::MatchStatementBlockContext *ctx) override;
+    std::any visitForStatement(parser::GqlParser::ForStatementContext *ctx) override;
 
     std::any visitReturnStatementBody(parser::GqlParser::ReturnStatementBodyContext *ctx) override;
     std::any visitReturnItemList(parser::GqlParser::ReturnItemListContext *ctx) override;
@@ -99,6 +138,7 @@ private:
     std::any visitGqlReadConsistency(parser::GqlParser::GqlReadConsistencyContext *ctx) override;
     std::any visitGqlAllowAnonymousTable(
         parser::GqlParser::GqlAllowAnonymousTableContext *ctx) override;
+    std::any visitGqlEdgeOnJoin(parser::GqlParser::GqlEdgeOnJoinContext *ctx) override;
     std::any visitSelectStatement(parser::GqlParser::SelectStatementContext *ctx) override;
     std::any visitSelectItemList(parser::GqlParser::SelectItemListContext *ctx) override;
     std::any visitSelectItem(parser::GqlParser::SelectItemContext *ctx) override;
@@ -108,6 +148,13 @@ private:
     std::any visitOrderByAndPageStatement(
         parser::GqlParser::OrderByAndPageStatementContext *ctx) override;
     std::any visitSortSpecification(parser::GqlParser::SortSpecificationContext *ctx) override;
+
+    // call procedure
+    std::any visitCallQueryStatement(parser::GqlParser::CallQueryStatementContext *ctx) override;
+    std::any visitCallProcedureStatement(
+        parser::GqlParser::CallProcedureStatementContext *ctx) override;
+    std::any visitInlineProcedureCall(parser::GqlParser::InlineProcedureCallContext *ctx) override;
+    std::any visitNamedProcedureCall(parser::GqlParser::NamedProcedureCallContext *ctx) override;
 
     // clause
     std::any visitGraphPattern(parser::GqlParser::GraphPatternContext *ctx) override;
@@ -169,8 +216,9 @@ private:
         parser::GqlParser::ElementPatternFillerContext *ctx) override;
     std::any visitElementVariableDeclaration(
         parser::GqlParser::ElementVariableDeclarationContext *ctx) override;
-    std::any visitElementPatternPredicate(
-        parser::GqlParser::ElementPatternPredicateContext *ctx) override;
+    GEAXErrorCode visitElementPatternPredicates(
+        std::vector<parser::GqlParser::ElementPatternPredicateContext *> &predicateCtxs,
+        ElementFiller *filler);
 
     GEAXErrorCode visitFullEdgePattern(EdgeDirection direction,
                                        parser::GqlParser::ElementPatternFillerContext *fillerCtx);
@@ -206,56 +254,8 @@ private:
     std::any visitGroupingElement(parser::GqlParser::GroupingElementContext *ctx) override;
 
     // non ISOGQL standard
-    std::any visitPerNodeLimitClause(
-        parser::GqlParser::PerNodeLimitClauseContext *context) override;
-    std::any visitPerNodeLimitLeftWherePredicate(
-        parser::GqlParser::PerNodeLimitLeftWherePredicateContext *ctx) override;
-    std::any visitPerNodeLimitRightWherePredicate(
-        parser::GqlParser::PerNodeLimitRightWherePredicateContext *ctx) override;
-    std::any visitPerNodeLimitBothWherePredicate(
-        parser::GqlParser::PerNodeLimitBothWherePredicateContext *ctx) override;
-    std::any visitPerNodeLimitLeftPropertyPredicate(
-        parser::GqlParser::PerNodeLimitLeftPropertyPredicateContext *ctx) override;
-    std::any visitPerNodeLimitRightPropertyPredicate(
-        parser::GqlParser::PerNodeLimitRightPropertyPredicateContext *ctx) override;
-    std::any visitPerNodeLimitBothPropertyPredicate(
-        parser::GqlParser::PerNodeLimitBothPropertyPredicateContext *ctx) override;
-    std::any visitPerShardLimitClause(
-        parser::GqlParser::PerShardLimitClauseContext *context) override;
-    std::any visitPerShardLimitLeftWherePredicate(
-        parser::GqlParser::PerShardLimitLeftWherePredicateContext *ctx) override;
-    std::any visitPerShardLimitRightWherePredicate(
-        parser::GqlParser::PerShardLimitRightWherePredicateContext *ctx) override;
-    std::any visitPerShardLimitBothWherePredicate(
-        parser::GqlParser::PerShardLimitBothWherePredicateContext *ctx) override;
-    std::any visitPerShardLimitLeftPropertyPredicate(
-        parser::GqlParser::PerShardLimitLeftPropertyPredicateContext *ctx) override;
-    std::any visitPerShardLimitRightPropertyPredicate(
-        parser::GqlParser::PerShardLimitRightPropertyPredicateContext *ctx) override;
-    std::any visitPerShardLimitBothPropertyPredicate(
-        parser::GqlParser::PerShardLimitBothPropertyPredicateContext *ctx) override;
-    GEAXErrorCode visitPerLimitFunction(
-        parser::GqlParser::UnsignedIntegerSpecificationContext *ictx,
-        antlr4::tree::TerminalNode *perName);
-    GEAXErrorCode visitPerLimitLeftWherePredicate(antlr4::ParserRuleContext *lhs,
-                                                  parser::GqlParser::WhereClauseContext *whereCtx,
-                                                  ElementFiller *filler);
-    GEAXErrorCode visitPerLimitRightWherePredicate(antlr4::ParserRuleContext *rhs,
-                                                   parser::GqlParser::WhereClauseContext *whereCtx,
-                                                   ElementFiller *filler);
-    GEAXErrorCode visitPerLimitBothWherePredicate(antlr4::ParserRuleContext *lhs,
-                                                  antlr4::ParserRuleContext *rhs,
-                                                  parser::GqlParser::WhereClauseContext *whereCtx,
-                                                  ElementFiller *filler);
-    GEAXErrorCode visitPerLimitLeftPropertyPredicate(
-        antlr4::ParserRuleContext *lhs,
-        parser::GqlParser::ElementPropertySpecificationContext *propertyCtx, ElementFiller *filler);
-    GEAXErrorCode visitPerLimitRightPropertyPredicate(
-        antlr4::ParserRuleContext *rhs,
-        parser::GqlParser::ElementPropertySpecificationContext *propertyCtx, ElementFiller *filler);
-    GEAXErrorCode visitPerLimitBothPropertyPredicate(
-        antlr4::ParserRuleContext *lhs, antlr4::ParserRuleContext *rhs,
-        parser::GqlParser::ElementPropertySpecificationContext *propertyCtx, ElementFiller *filler);
+    std::any visitElementTableFunction(
+        parser::GqlParser::ElementTableFunctionContext *ctx) override;
 
     // expression
     std::any visitGqlNotExpression(parser::GqlParser::GqlNotExpressionContext *ctx) override;
@@ -378,6 +378,9 @@ private:
     GEAXErrorCode visitFunction(
         antlr4::ParserRuleContext *funcName,
         const std::vector<parser::GqlParser::FunctionParameterContext *> &funcParams);
+    GEAXErrorCode visitTableFunction(
+        parser::GqlParser::TableFunctionNameContext *funcName,
+        const std::vector<parser::GqlParser::EleTableFuncParameterContext *> &funcParams);
 
     // cast functions
     std::any visitCastFunction(parser::GqlParser::CastFunctionContext *ctx) override;
@@ -396,6 +399,9 @@ private:
 
     // names
     std::any visitLabelName(parser::GqlParser::LabelNameContext *ctx) override;
+
+    std::any visitCatalogProcedureParentAndName(
+        parser::GqlParser::CatalogProcedureParentAndNameContext *ctx) override;
 
     std::any visitTerminal(antlr4::tree::TerminalNode *node) override;
     std::any visitChildren(antlr4::tree::ParseTree *node) override;

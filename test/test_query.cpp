@@ -33,7 +33,6 @@
 #include "cypher/parser/cypher_base_visitor.h"
 #include "cypher/parser/cypher_error_listener.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
-#include "fma-common/logger.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
 #include "cypher/execution_plan/runtime_context.h"
@@ -97,9 +96,7 @@ class TestQuery : public TuGraphTest {
         galaxy_ = std::make_shared<lgraph::Galaxy>(gconf_, true, nullptr);
         ctx_ = std::make_shared<cypher::RTContext>(
             nullptr, galaxy_.get(),
-            galaxy_->GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                  lgraph::_detail::DEFAULT_ADMIN_PASS),
-            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_, lgraph::AclManager::FieldAccess());
+            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_);
     }
 
     bool test_gql_case(const std::string& gql, std::string& result) {
@@ -222,7 +219,7 @@ class TestQuery : public TuGraphTest {
             } else if (query_type_ == lgraph::ut::QUERY_TYPE::GQL) {
                 success = test_gql_case(query, result);
             } else {
-                FMA_FATAL() << "unhandled query_type_: " << lgraph::ut::ToString(query_type_);
+                LOG_FATAL() << "unhandled query_type_: " << lgraph::ut::ToString(query_type_);
                 UT_EXPECT_TRUE(false);
                 return;
             }

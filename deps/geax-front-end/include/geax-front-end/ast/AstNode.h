@@ -19,8 +19,8 @@
 #define GEAXFRONTEND_AST_ASTNODE_H_
 
 #include <array>
-#include <unordered_map>
 #include <string_view>
+#include <unordered_map>
 
 #include "geax-front-end/ast/AstCommon.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
@@ -38,13 +38,35 @@ using StrArray = std::array<const char* const, N>;
 
 // Please add your ast node types here
 #define MAKE_AST_NODE_TYPE(TYPE)                                                          \
+    TYPE(ExplainActivity, kExplainActivity, "ExplainActivity")                            \
+    TYPE(SessionActivity, kSessionActivity, "SessionActivity")                            \
+    TYPE(SessionSet, kSessionSet, "SessionSet")                                           \
+    TYPE(SetSchemaClause, kSetSchema, "SetSchema")                                        \
+    TYPE(SetGraphClause, kSetGraph, "SetGraph")                                           \
+    TYPE(SetTimeZoneClause, kSetTimeZone, "SetTimeZone")                                  \
+    TYPE(SetParamClause, kSetParam, "SetParam")                                           \
+    TYPE(SessionReset, kSessionReset, "SessionReset")                                     \
+    TYPE(ResetAll, kResetAll, "ResetAll")                                                 \
+    TYPE(ResetGraph, kResetGraph, "ResetGraph")                                           \
+    TYPE(ResetSchema, kResetSchema, "ResetSchema")                                        \
+    TYPE(ResetTimeZone, kResetTimeZone, "ResetTimeZone")                                  \
+    TYPE(ResetParam, kResetParam, "ResetParam")                                           \
+    TYPE(TransactionActivity, kTransactionActivity, "TransactionActivity")                \
+    TYPE(FullTransaction, kFullTransaction, "FullTransaction")                            \
+    TYPE(NormalTransaction, kNormalTransaction, "NormalTransaction")                      \
+    TYPE(StartTransaction, kStartTransaction, "StartTransaction")                         \
+    TYPE(CommitTransaction, kCommitTransaction, "CommitTransaction")                      \
+    TYPE(RollBackTransaction, kRollBackTransaction, "RollBackTransaction")                \
     TYPE(ProcedureBody, kProcedureBody, "ProcedureBody")                                  \
     TYPE(SchemaFromPath, kSchemaFromPath, "SchemaFromPath")                               \
     TYPE(BindingGraph, kBindingGraph, "BindingGraph")                                     \
     TYPE(BindingTable, kBindingTable, "BindingTable")                                     \
     TYPE(BindingValue, kBindingValue, "BindingValue")                                     \
+    TYPE(BindingTableInnerQuery, kBindingTableInnerQuery, "BindingTableInnerQuery")       \
+    TYPE(BindingTableInnerExpr, kBindingTableInnerExpr, "BindingTableInnerExpr")          \
     TYPE(StatementWithYield, kStatementWithYield, "StatementWithYield")                   \
     TYPE(QueryStatement, kQueryStatement, "QueryStatement")                               \
+    TYPE(StandaloneCallStatement, kStandaloneCallStatement, "StandaloneCallStatement")    \
     TYPE(JoinQueryExpression, kJoinQuery, "JoinQuery")                                    \
     TYPE(JoinRightPart, kJoinRight, "JoinRight")                                          \
     TYPE(CompositeQueryStatement, kCompositeStatement, "CompositeStatement")              \
@@ -54,6 +76,11 @@ using StrArray = std::array<const char* const, N>;
     TYPE(FocusedResultStatement, kFocusedResultStatement, "FocusedResultStatement")       \
     TYPE(MatchStatement, kMatchStatement, "MatchStatement")                               \
     TYPE(FilterStatement, kFilterStatement, "FilterStatement")                            \
+    TYPE(ForStatement, kForStatement, "ForStatement")                                     \
+    TYPE(CallQueryStatement, kCallQueryStatement, "CallQueryStatement")                   \
+    TYPE(CallProcedureStatement, kCallProcedureStatement, "CallProcedureStatement")       \
+    TYPE(InlineProcedureCall, kInlineProcedureCall, "InlineProcedureCall")                \
+    TYPE(NamedProcedureCall, kNamedProcedureCall, "NamedProcedureCall")                   \
     TYPE(PrimitiveResultStatement, kPrimitiveResultStatement, "PrimitiveResultStatement") \
     TYPE(CatalogModifyStatement, kCatalogModifyStatement, "CatalogModifyStatement")       \
     TYPE(ManagerStatement, kManagerStatement, "ManagerStatement")                         \
@@ -65,6 +92,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(ReplaceStatement, kReplaceStatement, "ReplaceStatement")                         \
     TYPE(SetStatement, kSetStatement, "SetStatement")                                     \
     TYPE(RemoveStatement, kRemoveStatement, "RemoveStatement")                            \
+    TYPE(MergeStatement, kMergeStatement, "MergeStatement")                               \
     TYPE(OtherWise, kOtherWise, "OtherWise")                                              \
     TYPE(Union, kUnion, "Union")                                                          \
     TYPE(Except, kExcept, "Except")                                                       \
@@ -72,6 +100,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(OrderByField, kOrderByField, "OrderByField")                                     \
     TYPE(ReadConsistency, kReadConsistency, "ReadConsistency")                            \
     TYPE(AllowAnonymousTable, kAllowAnonymousTable, "AllowAnonymousTable")                \
+    TYPE(EdgeOnJoin, kEdgeOnJoin, "EdgeOnJoin")                                           \
     TYPE(OpConcurrent, kOpConcurrent, "OpConcurrent")                                     \
     TYPE(Node, kNode, "Node")                                                             \
     TYPE(Edge, kEdge, "Edge")                                                             \

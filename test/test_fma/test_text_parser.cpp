@@ -17,7 +17,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/fma_stream.h"
-#include "fma-common/logging.h"
 #include "fma-common/text_writer.h"
 #include "fma-common/text_parser.h"
 #include "./unit_test_utils.h"
@@ -153,12 +152,12 @@ FMA_UNIT_TEST(TextParser) {
                 }
             }
         } catch (std::exception &e) {
-            LOG() << e.what();
+            LOG_ERROR() << e.what();
         }
         t_parse = GetTime() - t1;
-        LOG() << "Total lines: " << n;
-        LOG() << "Time used: write " << t_write << ", parse " << t_parse;
-        LOG() << (double)total_bytes / 1024 / 1024 / t_write << "MB/s, "
+        LOG_INFO() << "Total lines: " << n;
+        LOG_INFO() << "Time used: write " << t_write << ", parse " << t_parse;
+        LOG_INFO() << (double)total_bytes / 1024 / 1024 / t_write << "MB/s, "
               << (double)stream.Size() / 1024 / 1024 / t_parse << "MB/s";
     }
 
@@ -181,12 +180,12 @@ FMA_UNIT_TEST(TextParser) {
                 }
             }
         } catch (std::exception &e) {
-            LOG() << e.what();
+            LOG_INFO() << e.what();
         }
         t_parse_tsv = GetTime() - t1;
-        LOG() << "Total lines: " << n;
-        LOG() << "Time used: write " << t_write << ", parse " << t_parse_tsv;
-        LOG() << (double)total_bytes / 1024 / 1024 / t_write << "MB/s, "
+        LOG_INFO() << "Total lines: " << n;
+        LOG_INFO() << "Time used: write " << t_write << ", parse " << t_parse_tsv;
+        LOG_INFO() << (double)total_bytes / 1024 / 1024 / t_write << "MB/s, "
               << (double)stream.Size() / 1024 / 1024 / t_parse << "MB/s";
     }
 

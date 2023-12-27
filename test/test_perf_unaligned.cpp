@@ -15,7 +15,6 @@
 #include <set>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 

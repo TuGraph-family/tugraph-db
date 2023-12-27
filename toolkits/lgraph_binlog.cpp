@@ -44,7 +44,7 @@ void ProcessLogs(const std::vector<std::string>& files, int64_t beg_time, int64_
             if (print_stats && n_processed % 100 == 0) {
                 double t2 = fma_common::GetTime();
                 if (t2 - tlast >= 1) {
-                    FMA_LOG() << "Processed " << n_processed << " log items at "
+                    LOG_INFO() << "Processed " << n_processed << " log items at "
                               << (double)n_processed / (t2 - t1) << " tps";
                     tlast = t2;
                 }
@@ -54,7 +54,7 @@ void ProcessLogs(const std::vector<std::string>& files, int64_t beg_time, int64_
     if (cleanup) cleanup();
     double t2 = fma_common::GetTime();
     if (print_stats) {
-        FMA_LOG() << "Processed " << n_processed << " log items at "
+        LOG_INFO() << "Processed " << n_processed << " log items at "
                   << (double)n_processed / (t2 - t1) << " tps";
     }
 }
@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
             }
         }
     } catch (std::exception& e) {
-        FMA_LOG() << "An error occurred:\n" << lgraph::PrintNestedException(e, 1);
+        LOG_INFO() << "An error occurred:\n" << lgraph::PrintNestedException(e, 1);
         return 1;
     }
 #ifdef __SANITIZE_ADDRESS__

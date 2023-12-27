@@ -79,7 +79,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_ASSERT(fe);
             schema->MarkFullTextIndexed(fe->GetFieldId(), true);
         } else {
-            FMA_ERR() << "Unknown index type: " << index_name;
+            LOG_ERROR() << "Unknown index type: " << index_name;
         }
     }
 }

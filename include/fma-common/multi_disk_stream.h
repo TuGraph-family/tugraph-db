@@ -138,7 +138,7 @@ class InputMultiDiskStream : public InputFileStream {
             bytes_read += read;
             off_ += read;
             if (read < to_read && off_ < size_) {
-                FMA_ERR() << "Error reading file " << meta_file_path_ << ": part " << part
+                LOG_ERROR() << "Error reading file " << meta_file_path_ << ": part " << part
                           << " is corrupted.";
                 break;
             }
@@ -276,7 +276,7 @@ class OutputMultiDiskStream : public OutputFileStream {
                           std::ofstream::openmode mode = std::ofstream::app) {
         fs_ = &(FileSystem::GetFileSystem(meta_file));
         if (!fs_->FileExists(meta_file)) {
-            FMA_ERR() << "OutputMultiDiskStream can only be created with "
+            LOG_ERROR() << "OutputMultiDiskStream can only be created with "
                       << "Open(meta_file, data_parts, buffer_size)";
         }
         Open(meta_file, buffer_size, mode);
@@ -324,7 +324,7 @@ class OutputMultiDiskStream : public OutputFileStream {
               std::ofstream::openmode mode = std::ofstream::app) override {
         fs_ = &(FileSystem::GetFileSystem(meta_file));
         if (!fs_->FileExists(meta_file)) {
-            FMA_ERR() << "OutputMultiDiskStream can only be created with "
+            LOG_ERROR() << "OutputMultiDiskStream can only be created with "
                       << "Open(meta_file, data_parts, buffer_size)";
         }
         Open(meta_file, std::vector<std::string>(), buffer_size, mode);
@@ -367,7 +367,7 @@ class OutputMultiDiskStream : public OutputFileStream {
             for (auto& p : parts) {
                 files_.emplace_back(p, buffer_per_part, mode);
                 if (!files_.back().Good()) {
-                    FMA_ERR() << "Error opening part file " << p << " of multi-disk file "
+                    LOG_ERROR() << "Error opening part file " << p << " of multi-disk file "
                               << meta_file;
                     Close();
                     return;
@@ -379,7 +379,7 @@ class OutputMultiDiskStream : public OutputFileStream {
         } else {
             // opening a new file
             if (fs_->FileExists(meta_file)) {
-                FMA_WARN() << "Overwritting existing multi-disk file " << meta_file;
+                LOG_WARN() << "Overwritting existing multi-disk file " << meta_file;
                 InputFmaStream meta_stream(meta_file);
                 std::vector<std::string> parts = StreamLineReader(meta_stream).ReadAllLines();
                 for (auto& p : parts) {
@@ -392,7 +392,7 @@ class OutputMultiDiskStream : public OutputFileStream {
                 meta << p << std::endl;
                 files_.emplace_back(p, buffer_per_part, mode);
                 if (!files_.back().Good()) {
-                    FMA_ERR() << "Error opening part file " << p << " of multi-disk file "
+                    LOG_ERROR() << "Error opening part file " << p << " of multi-disk file "
                               << meta_file;
                     Close();
                     return;

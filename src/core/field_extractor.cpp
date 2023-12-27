@@ -132,7 +132,7 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     case FieldType::STRING:
         return _ParseStringAndSet<FieldType::STRING>(record, data);
     case FieldType::BLOB:
-        FMA_ERR() << "ParseAndSet(Value, std::string) is not supposed to"
+        LOG_ERROR() << "ParseAndSet(Value, std::string) is not supposed to"
                      " be called directly. We should first parse blobs "
                      "into BlobValue and use SetBlobField(Value, FieldData)";
     case FieldType::POINT:
@@ -144,9 +144,9 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     case FieldType::SPATIAL:
         return _ParseStringAndSet<FieldType::SPATIAL>(record, data);
     case FieldType::NUL:
-        FMA_ERR() << "NUL FieldType";
+        LOG_ERROR() << "NUL FieldType";
     }
-    FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
+    LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
 }
 
 // parse data from FieldData and set field
@@ -253,7 +253,8 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         }
 
     default:
-        FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
+        LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type)
+                    << " not handled";
     }
 }
 
@@ -330,7 +331,7 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
     case lgraph_api::NUL:
         break;
     }
-    FMA_ERR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
+    LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
     return "";
 }
 

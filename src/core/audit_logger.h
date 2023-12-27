@@ -17,16 +17,15 @@
 #include <map>
 #include <thread>
 
+#include "tools/lgraph_log.h"
 #include "core/data_type.h"
 #include "fma-common/file_system.h"
 #include "fma-common/fma_stream.h"
-#include "fma-common/logger.h"
 #include "fma-common/rw_lock.h"
 #include "fma-common/stream_base.h"
 #include "fma-common/type_traits.h"
 #include "lgraph/lgraph_types.h"
 #include "protobuf/ha.pb.h"
-#include "tools/lgraph_log.h"
 
 #ifdef _WIN32
 #include <time.h>
@@ -86,9 +85,8 @@ class AuditLogger {
     char line_[64 * 1024];
     int64_t last_log_time_;
     size_t expire_second_;  // s
-    fma_common::Logger& logger_;
 
-    AuditLogger() : logger_(fma_common::Logger::Get("AuditLogger")) {}
+    AuditLogger() {}
     DISABLE_COPY(AuditLogger);
     DISABLE_MOVE(AuditLogger);
 
@@ -151,20 +149,20 @@ class AuditLogger {
         size_t s = input.Read((char*)(&len), sizeof(len));
         if (s == 0) return false;
         if (s != sizeof(len)) {
-            FMA_DBG_STREAM(logger_) << "Error reading audit log's size from file " << input.Path();
+            LOG_DEBUG() << "Error reading audit log's size from file " << input.Path();
             return false;
         }
 
         if (len >= (1 << 16)) {  // > 64KB
             std::string buf(len, 0);
             if (input.Read(&buf[0], len) != (size_t)len) {
-                FMA_DBG_STREAM(logger_) << "Error reading audit log from file " << input.Path();
+                LOG_DEBUG() << "Error reading audit log from file " << input.Path();
                 return false;
             }
             return msg.ParseFromArray(&buf[0], len);
         } else {
             if (input.Read(line_, len) != (size_t)len) {
-                FMA_DBG_STREAM(logger_) << "Error reading audit log from file " << input.Path();
+                LOG_DEBUG() << "Error reading audit log from file " << input.Path();
                 return false;
             }
             return msg.ParseFromArray(line_, len);
@@ -213,7 +211,7 @@ class AuditLogger {
         auto& fs = fma_common::FileSystem::GetFileSystem(dir_);
         if (!fs.IsDir(dir_)) {
             if (!fs.Mkdir(dir_)) {
-                FMA_ERR_STREAM(logger_) << "Failed to create the audit log dir [" << dir_ << "].";
+                LOG_ERROR() << "Failed to create the audit log dir [" << dir_ << "].";
             }
         }
 
@@ -224,10 +222,10 @@ class AuditLogger {
         }
         sort(files.begin(), files.end());
         index_ = GetLogIdx();
-        FMA_DBG_STREAM(logger_) << "VertexIndex of audit log : " << index_;
+        LOG_DEBUG() << "VertexIndex of audit log : " << index_;
         if (!SetLogFileName())
             throw std::runtime_error("Failed to get audit log file name from int64_t.");
-        FMA_DBG_STREAM(logger_) << "Open audit log file : " << file_name_;
+        LOG_DEBUG() << "Open audit log file : " << file_name_;
         file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE, std::ofstream::app);
         if (!file_.Good()) throw std::runtime_error("Failed to open audit log file for writing.");
 
@@ -246,7 +244,7 @@ class AuditLogger {
                         tnow = tnow / 1000000;
                         auto& fs = fma_common::FileSystem::GetFileSystem(dir_);
                         auto files = fs.ListFiles(dir_, nullptr);
-                        FMA_DBG_STREAM(logger_)
+                        LOG_DEBUG()
                             << "Clear the expired audit log file. files.size() = " << files.size();
                         if (files.size() > 1) {
                             sort(files.begin(), files.end());
@@ -254,16 +252,16 @@ class AuditLogger {
                                 std::string f2 = fs.GetFileName(files[f_i + 1]);
                                 int64_t t2 = tnow;
                                 if (!FilePathToTime(t2, f2)) {
-                                    FMA_WARN() << "Failed to get time from audit log file name ["
+                                    LOG_WARN() << "Failed to get time from audit log file name ["
                                                << f2 << "]";
                                 } else {
                                     t2 = t2 / 1000000;
                                     if (tnow - t2 > static_cast<int64_t>(expire_second_)) {
                                         if (!fs.Remove(files[f_i]))
-                                            FMA_WARN_STREAM(logger_) << "Clear audit log file "
+                                            LOG_WARN() << "Clear audit log file "
                                                                      << files[f_i] << " failed.";
                                         else
-                                            FMA_WARN_STREAM(logger_)
+                                            LOG_WARN()
                                                 << "Clear audit log file " << files[f_i]
                                                 << " successful.";
                                     }
@@ -289,7 +287,7 @@ class AuditLogger {
             fma_common::InputFmaStream input(files[f_i]);
             if (!input.Good()) throw std::runtime_error("Failed to open audit log file for index.");
             if (input.Size() == 0) {
-                FMA_DBG_STREAM(logger_) << "GetLogIdx. Skip " << files[f_i] << " for file_size=0";
+                LOG_DEBUG() << "GetLogIdx. Skip " << files[f_i] << " for file_size=0";
                 continue;
             }
 
@@ -321,7 +319,7 @@ class AuditLogger {
             file_.Close();
             if (!SetLogFileName(log_time))
                 throw std::runtime_error("Failed to get audit log file name from int64_t.");
-            FMA_DBG_STREAM(logger_) << "Open a new audit log file : " << file_name_;
+            LOG_DEBUG() << "Open a new audit log file : " << file_name_;
             file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE,
                        std::ofstream::app);
             if (!file_.Good())
@@ -386,7 +384,7 @@ class AuditLogger {
         } else {
             end_time = now;
         }
-        FMA_DBG_STREAM(logger_) << "Search audit log for user[" << user << "](" << user.length()
+        LOG_DEBUG() << "Search audit log for user[" << user << "](" << user.length()
                                 << ") from " << begin << " to "
                                 << lgraph_api::DateTime(end_time).ToString() << ", limit " << limit
                                 << ", log_order " << descending_order;
@@ -412,7 +410,7 @@ class AuditLogger {
 
             for (size_t f_i = 0; f_i < files.size(); f_i++) {
                 if (finished) {
-                    FMA_DBG_STREAM(logger_) << "Search audit log finished.";
+                    LOG_DEBUG() << "Search audit log finished.";
                     break;
                 }
 
@@ -422,7 +420,7 @@ class AuditLogger {
                 FilePathToTime(rawtime1, f);
                 if (rawtime1 > end) {
                     finished = true;
-                    FMA_DBG_STREAM(logger_)
+                    LOG_DEBUG()
                         << "Search audit log finished. Skip later log file : " << f;
                     break;
                 }
@@ -433,7 +431,7 @@ class AuditLogger {
                     int64_t rawtime2;
                     FilePathToTime(rawtime2, f2);
                     if (rawtime2 <= begin) {
-                        FMA_DBG_STREAM(logger_)
+                        LOG_DEBUG()
                             << "Search audit log. Skip earlier log file : " << f;
                         continue;
                     }
@@ -443,14 +441,14 @@ class AuditLogger {
                 if (!input.Good())
                     throw std::runtime_error("Failed to open audit log file for read.");
                 if (input.Size() == 0) {
-                    FMA_DBG_STREAM(logger_)
+                    LOG_DEBUG()
                         << "Search audit log. Skip " << f << " for file size = 0";
                     continue;
                 }
 
                 lgraph::LogMessage msg;
 
-                FMA_DBG_STREAM(logger_) << "Search audit log " << f;
+                LOG_DEBUG() << "Search audit log " << f;
                 fma_common::StreamLineReader reader(input);
                 auto lines = reader.ReadAllLines();
                 for (auto& line : lines) {
@@ -479,7 +477,7 @@ class AuditLogger {
                             miss_end_logs++;
                             if (miss_end_logs / 100 > (size_t)limit) {
                                 finished = true;
-                                FMA_DBG_STREAM(logger_)
+                                LOG_DEBUG()
                                     << "Too many miss(" << miss_end_logs
                                     << "), meaning that there may be broken logs without end_log, "
                                        "so finish and break";
@@ -517,7 +515,7 @@ class AuditLogger {
                 int64_t rawtime1;
                 FilePathToTime(rawtime1, f);
                 if (rawtime1 > end) {
-                    FMA_DBG_STREAM(logger_) << "Search audit log. Skip later log file : " << f;
+                    LOG_DEBUG() << "Search audit log. Skip later log file : " << f;
                     continue;
                 }
 
@@ -527,7 +525,7 @@ class AuditLogger {
                     int64_t rawtime2;
                     FilePathToTime(rawtime2, f2);
                     if (rawtime2 <= begin) {
-                        FMA_DBG_STREAM(logger_)
+                        LOG_DEBUG()
                             << "Search audit log finished. Skip earlier log file : " << f;
                         break;
                     }
@@ -537,14 +535,14 @@ class AuditLogger {
                 if (!input.Good())
                     throw std::runtime_error("Failed to open audit log file for read.");
                 if (input.Size() == 0) {
-                    FMA_DBG_STREAM(logger_)
+                    LOG_DEBUG()
                         << "Search audit log. Skip " << f << " for file size = 0";
                     continue;
                 }
 
                 lgraph::LogMessage msg;
 
-                FMA_DBG_STREAM(logger_) << "Search audit log " << f;
+                LOG_DEBUG() << "Search audit log " << f;
                 fma_common::StreamLineReader reader(input);
                 auto lines = reader.ReadAllLines();
                 for (auto& line : lines) {
@@ -591,7 +589,7 @@ class AuditLogger {
                 if (logs.size() == limit)
                     break;
                 else if (logs.size() > limit)
-                    FMA_DBG_STREAM(logger_) << "Search audit log ERROR : logs.size() > limit";
+                    LOG_DEBUG() << "Search audit log ERROR : logs.size() > limit";
             }
             auto iter_begin = logs.begin();
             auto iter_end = end_logs.begin();
@@ -607,7 +605,7 @@ class AuditLogger {
                 } else if (iter_begin->first < iter_end->first) {
                     iter_begin++;
                 } else {
-                    FMA_DBG_STREAM(logger_) << "Search audit log combine ERROR";
+                    LOG_DEBUG() << "Search audit log combine ERROR";
                 }
             }
         }
@@ -622,9 +620,9 @@ class AuditLogger {
         }
 
         // output
-        FMA_DBG_STREAM(logger_) << "Search audit log finished. Get " << ret.size() << " result";
+        LOG_DEBUG() << "Search audit log finished. Get " << ret.size() << " result";
         for (auto& r : ret) {
-            FMA_DBG_STREAM(logger_)
+            LOG_DEBUG()
                 << r.index << " " << r.begin_time << " " << r.end_time << " " << r.user << " "
                 << r.graph << " " << r.type << " " << r.read_write << " " << r.success << "\n"
                 << r.content << "\n";

@@ -39,7 +39,7 @@ struct BasicConfigs {
         , use_pthread(false)
         , verbose(1)
         , log_dir()
-        , max_log_file_size_mb(64)
+        , max_log_file_size_mb(256)
         , max_n_log_files(16)
         , audit_log_expire(0)
         , audit_log_dir("./audit_log")
@@ -123,6 +123,9 @@ struct BasicConfigs {
     bool reset_admin_password;
     // vertex and edge count
     bool enable_realtime_count{};
+    // bolt
+    int bolt_port = 0;
+    int bolt_thread_num = 10;
 };
 
 template <typename T>

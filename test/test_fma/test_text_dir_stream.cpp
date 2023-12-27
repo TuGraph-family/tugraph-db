@@ -14,7 +14,6 @@
 
 #include <atomic>
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/text_dir_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -35,10 +34,10 @@ void ReaderThread(const std::string &dir, size_t n_readers, size_t id, size_t bu
             if (buf[i] == '\n') n_lines++;
         }
         if (dump_output) {
-            LOG() << "[" << id << "] " << buf.substr(0, read);
+            LOG_INFO() << "[" << id << "] " << buf.substr(0, read);
         }
     }
-    LOG() << "[" << id << "] bytes read = " << in.GetBytesRead();
+    LOG_INFO() << "[" << id << "] bytes read = " << in.GetBytesRead();
     total_lines += n_lines;
     total_bytes += n_bytes;
 }
@@ -78,9 +77,10 @@ FMA_UNIT_TEST(TextDirStream) {
     }
     for (auto &w : workers) w.join();
     double t2 = GetTime();
-    LOG() << "Read " << total_bytes << " bytes at " << (double)total_bytes / 1024 / 1024 / (t2 - t1)
-          << "MB/s";
-    LOG() << "Number of lines: " << total_lines;
+    LOG_INFO() << "Read " << total_bytes << " bytes at "
+               << (double)total_bytes / 1024 / 1024 / (t2 - t1)
+               << "MB/s";
+    LOG_INFO() << "Number of lines: " << total_lines;
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;

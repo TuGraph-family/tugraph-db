@@ -15,29 +15,28 @@ void lgraph::HaStateMachine::Start() {
     static const int64_t BOOTSTRAP_LOG_INDEX = 1024;
 
     if (node_) {
-        GENERAL_LOG_STREAM(WARNING, logger_.GetName()) << "HaStateMachine already started.";
+        LOG_WARN() << "HaStateMachine already started.";
         return;
     }
 
     ::lgraph::StateMachine::Start();
     if (config_.ha_bootstrap_role == 1) {
 #if LGRAPH_SHARE_DIR
-        GENERAL_LOG(WARNING) << "Bootstrapping is not necessary in this version, ignored";
+        LOG_WARN() << "Bootstrapping is not necessary in this version, ignored";
 #else
         if (galaxy_->GetRaftLogIndex() != -1) {
-            GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Bootstrapping from existing data...";
+            LOG_INFO() << "Bootstrapping from existing data...";
         }
 
-        GENERAL_LOG(DEBUG) << "Bootstrapping...";
+        LOG_DEBUG() << "Bootstrapping...";
         int64_t new_log_index = galaxy_->GetRaftLogIndex() + BOOTSTRAP_LOG_INDEX;
         // change the log index in DB
         galaxy_->BootstrapRaftLogIndex(new_log_index);
         // now bootstrap
         braft::BootstrapOptions options;
-        if (options.group_conf.parse_from(config_.ha_conf) != 0) {
-            ::lgraph::StateMachine::Stop();
-            throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
-        }
+        butil::EndPoint addr;
+        butil::str2endpoint(config_.host.c_str(), config_.rpc_port, &addr);
+        options.group_conf.add_peer(braft::PeerId(addr));
         options.fsm = this;
         options.node_owns_fsm = false;
         std::string prefix = "local://" + config_.ha_dir;
@@ -55,7 +54,7 @@ void lgraph::HaStateMachine::Start() {
             throw std::runtime_error(
                 fma_common::StringFormatter::Format("Failed to bootstrap node: ec={}", r));
         }
-        GENERAL_LOG(DEBUG) << "Bootstrap succeed. Log index set to " << galaxy_->GetRaftLogIndex();
+        LOG_DEBUG() << "Bootstrap succeed. Log index set to " << galaxy_->GetRaftLogIndex();
 #endif
     }
 
@@ -66,9 +65,13 @@ void lgraph::HaStateMachine::Start() {
     }
     braft::Node* node = new braft::Node("lgraph", braft::PeerId(addr));
     braft::NodeOptions node_options;
-    if (node_options.initial_conf.parse_from(config_.ha_conf) != 0) {
-        ::lgraph::StateMachine::Stop();
-        throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
+    if (config_.ha_bootstrap_role == 1) {
+        node_options.initial_conf.add_peer(braft::PeerId(addr));
+    } else if (config_.ha_bootstrap_role == 0) {
+        if (node_options.initial_conf.parse_from(config_.ha_conf) != 0) {
+            ::lgraph::StateMachine::Stop();
+            throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
+        }
     }
     node_options.election_timeout_ms = config_.ha_election_timeout_ms;
     node_options.fsm = this;
@@ -87,10 +90,10 @@ void lgraph::HaStateMachine::Start() {
     }
     node_ = node;
     if (config_.ha_bootstrap_role != 2) {
-        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Start HA by initial_conf";
+        LOG_INFO() << "Start HA by initial_conf";
         int t = 0;
         while (!joined_group_.load(std::memory_order_acquire)) {
-            GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Waiting to join replication group...";
+            LOG_INFO() << "Waiting to join replication group...";
             if (t++ > config_.ha_node_join_group_s) {
                 break;
             }
@@ -101,7 +104,7 @@ void lgraph::HaStateMachine::Start() {
         }
     }
     if (config_.ha_bootstrap_role != 1) {
-        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Start HA by add_peer";
+        LOG_INFO() << "Start HA by add_peer";
         braft::Configuration init_conf;
         int t = 0;
         while (!joined_group_.load(std::memory_order_acquire)) {
@@ -110,11 +113,10 @@ void lgraph::HaStateMachine::Start() {
                 butil::Status status = braft::cli::add_peer(braft::GroupId("lgraph"), init_conf,
                                                             my_id, braft::cli::CliOptions());
                 if (!status.ok()) {
-                    GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                        "Failed to join group: " << status.error_str();
+                    LOG_WARN() << "Failed to join group: " << status.error_str();
                 }
             }
-            GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Waiting to join replication group...";
+            LOG_INFO() << "Waiting to join replication group...";
             if (t++ > config_.ha_node_join_group_s) {
                 throw std::runtime_error("Failed to join replication group");
             }
@@ -167,11 +169,8 @@ bool lgraph::HaStateMachine::DoRequest(bool is_write, const LGraphRequest* req,
 
 void lgraph::HaStateMachine::on_leader_start(int64_t term) {
     leader_term_.store(term, std::memory_order_release);
-    GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Node becomes leader";
+    LOG_INFO() << "Node becomes leader";
     joined_group_ = true;
-    std::lock_guard<std::mutex> l(hb_mutex_);
-    peers_changed_ = true;
-    node_state_ = NodeState::JOINED_MASTER;
 #if LGRAPH_SHARE_DIR
     _HoldWriteLock(galaxy_->GetRWLock());
     galaxy_->ReloadFromDisk();
@@ -180,44 +179,33 @@ void lgraph::HaStateMachine::on_leader_start(int64_t term) {
 
 void lgraph::HaStateMachine::on_leader_stop(const butil::Status& status) {
     leader_term_.store(-1, std::memory_order_release);
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Node stepped down : " << status;
-    std::lock_guard<std::mutex> l(hb_mutex_);
-    peers_changed_ = true;
-    node_state_ = NodeState::JOINED_FOLLOW;
+    LOG_DEBUG() << "Node stepped down : " << status;
 }
 
-void lgraph::HaStateMachine::on_shutdown() {
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "This node is down";
+void lgraph::HaStateMachine::on_shutdown() { LOG_DEBUG() << "This node is down";
 }
 
 void lgraph::HaStateMachine::on_error(const ::braft::Error& e) {
     LeaveGroup();
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Met raft error " << e;
+    LOG_DEBUG() << "Met raft error " << e;
 }
 
 void lgraph::HaStateMachine::on_configuration_committed(const ::braft::Configuration& conf) {
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Configuration of this group is " << conf;
+    LOG_DEBUG() << "Configuration of this group is " << conf;
     if (node_) {
-        GENERAL_LOG_STREAM(INFO, logger_.GetName()) <<
-            "Master becomes: " << node_->leader_id().to_string();
+        LOG_INFO() << "Master becomes: " << node_->leader_id().to_string();
     }
-    std::lock_guard<std::mutex> l(hb_mutex_);
-    peers_changed_ = true;
 }
 
 void lgraph::HaStateMachine::on_stop_following(const ::braft::LeaderChangeContext& ctx) {
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Node stops following " << ctx;
+    LOG_INFO() << "Node stops following " << ctx;
     std::lock_guard<std::mutex> l(hb_mutex_);
-    peers_changed_ = true;
-    node_state_ = NodeState::UNINITIALIZED;
 }
 
 void lgraph::HaStateMachine::on_start_following(const ::braft::LeaderChangeContext& ctx) {
-    GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Node joined the group as follower.";
+    LOG_INFO() << "Node joined the group as follower.";
     joined_group_ = true;
     std::lock_guard<std::mutex> l(hb_mutex_);
-    peers_changed_ = true;
-    node_state_ = NodeState::JOINED_FOLLOW;
 }
 
 bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,
@@ -231,7 +219,7 @@ bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,
     butil::IOBuf log;
     butil::IOBufAsZeroCopyOutputStream wrapper(&log);
     if (!req->SerializeToZeroCopyStream(&wrapper)) {
-        FMA_ERR_STREAM(logger_) << "Fail to serialize request";
+        LOG_ERROR() << "Fail to serialize request";
         return RespondException(resp, "Internal error: failed to serialize request.");
     }
     braft::Task task;
@@ -243,56 +231,52 @@ bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,
     return true;
 }
 
+void* lgraph::HaStateMachine::save_snapshot(void* arg) {
+    auto* sa = (SnapshotArg*) arg;
+    std::unique_ptr<SnapshotArg> arg_guard(sa);
+    brpc::ClosureGuard closure_guard(sa->done);
+    std::string path = sa->writer->get_path() + "/_snapshot_";
+    try {
+        LOG_DEBUG() << "Saving snapshot to " << path;
+        _HoldReadLock(sa->haStateMachine->galaxy_->GetReloadLock());
+        // bthread_usleep(30 * 1000000);
+        auto files = sa->haStateMachine->galaxy_->SaveSnapshot(path);
+        LOG_DEBUG() << "Snapshot files: " << fma_common::ToString(files);
+        for (auto& f : files) {
+            // normalize file path
+            auto pos = f.find("_snapshot_");
+            if (sa->writer->add_file(f.substr(pos)) != 0) {
+                sa->done->status().set_error(EIO, "Fail to add file to writer");
+                return NULL;
+            }
+        }
+        sa->writer->list_files(&files);
+        LOG_DEBUG() << "Actual files in snapshot: " << fma_common::ToString(files);
+    } catch (std::exception& e) {
+        LOG_ERROR() << "Failed to save snapshot to " << path << ": " << e.what();
+        sa->done->status().set_error(EIO, "Failed to save snapshot: %s", e.what());
+    }
+    return NULL;
+}
+
 void lgraph::HaStateMachine::on_snapshot_save(braft::SnapshotWriter* writer, braft::Closure* done) {
 #if LGRAPH_SHARE_DIR
     std::string path = writer->get_path() + "/snapshot.dummy";
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Saving snapshot to " << path;
+    LOG_DEBUG() << "Saving snapshot to " << path;
     braft::AsyncClosureGuard closure_guard(done);
     std::ofstream dummy_file(path);
     _HoldReadLock(galaxy_->GetReloadLock());
     dummy_file << galaxy_->GetRaftLogIndex();
     dummy_file.close();
     writer->add_file("snapshot.dummy");
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Snapshot saved";
+    LOG_DEBUG() << "Snapshot saved";
 #else
-    std::mutex mu;
-    std::condition_variable cv;
-    bool ok_to_leave = false;
-    std::thread worker([&]() {
-        // TODO: take snapshot asynchronously // NOLINT
-        {
-            std::string path = writer->get_path() + "/_snapshot_";
-            GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Saving snapshot to " << path;
-            braft::AsyncClosureGuard closure_guard(done);
-            std::lock_guard<std::mutex> l(mu);
-            try {
-                _HoldReadLock(galaxy_->GetReloadLock());
-                auto files = galaxy_->SaveSnapshot(path);
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-                    "Snapshot files: " << fma_common::ToString(files);
-                for (auto& f : files) {
-                    // normalize file path
-                    auto pos = f.find("_snapshot_");
-                    if (writer->add_file(f.substr(pos)) != 0) {
-                        done->status().set_error(EIO, "Fail to add file to writer");
-                        return;
-                    }
-                }
-                writer->list_files(&files);
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName())
-                    << "Actual files in snapshot: " << fma_common::ToString(files);
-            } catch (std::exception& e) {
-                GENERAL_LOG_STREAM(ERROR, logger_.GetName()) <<
-                    "Failed to save snapshot to " << path << ": " << e.what();
-                done->status().set_error(EIO, "Failed to save snapshot: %s", e.what());
-            }
-            ok_to_leave = true;
-            cv.notify_all();
-        }
-    });
-    worker.detach();
-    std::unique_lock<std::mutex> l(mu);
-    while (!ok_to_leave) cv.wait(l);
+    auto* arg = new SnapshotArg;
+    arg->writer = writer;
+    arg->done = done;
+    arg->haStateMachine = this;
+    bthread_t tid;
+    bthread_start_urgent(&tid, NULL, save_snapshot, arg);
 #endif
 }
 
@@ -303,23 +287,21 @@ int lgraph::HaStateMachine::on_snapshot_load(braft::SnapshotReader* reader) {
     // Load snapshot from reader, replacing the running StateMachine
     FMA_ASSERT(!IsLeader()) << "Leader is not supposed to load snapshot";
     std::string snapshot_path = reader->get_path() + "/_snapshot_";
-    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Loading snapshot from " << snapshot_path;
+    LOG_DEBUG() << "Loading snapshot from " << snapshot_path;
     try {
         braft::SnapshotMeta meta;
         int r = reader->load_meta(&meta);
         if (r != 0) {
-            GENERAL_LOG_STREAM(WARNING, logger_.GetName()) << "Error loading snapshot: " << r;
+            LOG_WARN() << "Error loading snapshot: " << r;
             return r;
         }
         std::vector<std::string> files;
         reader->list_files(&files);
-        GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-            "Snapshot files: " << fma_common::ToString(files);
+        LOG_DEBUG() << "Snapshot files: " << fma_common::ToString(files);
         galaxy_->LoadSnapshot(snapshot_path);
-        GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Successfully loaded snapshot";
+        LOG_DEBUG() << "Successfully loaded snapshot";
     } catch (std::exception& e) {
-        GENERAL_LOG_STREAM(FATAL, logger_.GetName()) <<
-            "Failed to load snapshot from " << snapshot_path << ": "
+        LOG_FATAL() << "Failed to load snapshot from " << snapshot_path << ": "
                                   << e.what();
         reader->set_error(EIO, "error loading snapshot");
     }
@@ -358,7 +340,7 @@ void lgraph::HaStateMachine::on_apply(braft::Iterator& iter) {
          */
         _HoldReadLock(galaxy_->GetReloadLock());
         int64_t committed_index = galaxy_->GetRaftLogIndex();
-        FMA_DBG_STREAM(logger_) << "Trying to apply log " << iter.index() << ", term "
+        LOG_DEBUG() << "Trying to apply log " << iter.index() << ", term "
                                 << iter.term() << ", current_idx=" << committed_index;
 
         bool should_apply = (iter.index() > committed_index);
@@ -386,14 +368,13 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
         case HARequest::kHeartbeatRequest:
             {
                 // handle heartbeat
-                if (node_state_ != NodeState::JOINED_MASTER) {
+                if (!node_->is_leader()) {
                     return RespondRedirect(resp, master_rpc_addr_);
                 }
                 auto& hbreq = hareq.heartbeat_request();
                 auto it = heartbeat_states_.find(hbreq.rpc_addr());
                 if (it == heartbeat_states_.end()) {
-                    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-                        "new peer joined: " << hbreq.DebugString();
+                    LOG_DEBUG() << "new peer joined: " << hbreq.DebugString();
                     HeartbeatStatus state;
                     state.rpc_addr = hbreq.rpc_addr();
                     state.rest_addr = hbreq.rest_addr();
@@ -406,7 +387,7 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
             }
         case HARequest::kGetMasterRequest:
             {
-                if (node_state_ != NodeState::JOINED_MASTER) {
+                if (!node_->is_leader()) {
                     return RespondRedirect(resp, master_rpc_addr_);
                 }
                 auto* gmresp = resp->mutable_ha_response()->mutable_get_master_response();
@@ -418,7 +399,7 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
             }
         case HARequest::kListPeersRequest:
             {
-                if (node_state_ != NodeState::JOINED_MASTER) {
+                if (!node_->is_leader()) {
                     return RespondRedirect(resp, master_rpc_addr_);
                 }
                 auto* peers =
@@ -438,7 +419,7 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
             }
         case HARequest::kSyncMetaRequest:
             {
-                if (node_state_ == NodeState::JOINED_MASTER) {
+                if (!node_->is_leader()) {
                     return RespondSuccess(resp);
                 }
                 _HoldReadLock(galaxy_->GetReloadLock());
@@ -451,8 +432,7 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
                 return RespondSuccess(resp);
             }
         default:
-            GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                "Unhandled ha request type: " << req->Req_case();
+            LOG_WARN() << "Unhandled ha request type: " << req->Req_case();
             return RespondException(resp, "Unhandled ha request type.");
         }
     } catch (TimeoutException& e) {
@@ -475,24 +455,14 @@ void lgraph::HaStateMachine::HeartbeatThread() {
         if (exit_flag_) return;
         if (!node_) continue;
         try {
-            NodeState state = node_state_;
-            switch (state) {
-            case NodeState::JOINED_MASTER:
+            if (node_->is_leader()) {
                 // if we have just started as master, then initialize heartbeat list
                 ScanHeartbeatStatusLocked();
-                break;
-            case NodeState::UNINITIALIZED:
-                break;
-            case NodeState::JOINED_FOLLOW:
-            case NodeState::LOADING_SNAPSHOT:
-            case NodeState::REPLAYING_LOG:
-            default:
-                SendHeartbeatToMasterLocked(state);
-                break;
+            } else {
+                SendHeartbeatToMasterLocked();
             }
         } catch (std::exception& e) {
-            GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                "Exception in heartbeat thread: " << e.what();
+            LOG_WARN() << "Exception in heartbeat thread: " << e.what();
         }
     }
 }
@@ -502,37 +472,14 @@ void lgraph::HaStateMachine::ScanHeartbeatStatusLocked() {
     double kick_timeline = now - (double)config_.ha_node_offline_ms / 1000;
     double dismiss_timeline = now - (double)config_.ha_node_remove_ms / 1000;
 
-    for (auto it = heartbeat_states_.begin(); it != heartbeat_states_.end();) {
-        auto& state = it->second;
-        if (state.last_heartbeat < kick_timeline) {
-            if (state.state == NodeState::JOINED_FOLLOW) {
-                // timeout, need to kick out, but still stays in list
-                state.state = NodeState::OFFLINE;
-                // remove peer from group
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-                    "Kicking out dead node: " << state.rpc_addr;
-                node_->remove_peer(braft::PeerId(state.rpc_addr + ":0"), nullptr);
-            }
-            if (state.last_heartbeat < dismiss_timeline) {
-                // died for a long time, remove it from list
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-                    "Removing long dead node from list: " << state.rpc_addr;
-                it = heartbeat_states_.erase(it);
-                continue;
-            }
-        }
-        ++it;
-    }
-    if (peers_changed_) {
-        peers_changed_ = false;
+    if (master_rpc_addr_ != my_rpc_addr_) {
         master_rest_addr_ = my_rest_addr_;
         master_rpc_addr_ = my_rpc_addr_;
         // if there is recent peer change, we should synchronize peer list
         std::vector<braft::PeerId> peers;
         auto status = node_->list_peers(&peers);
         if (!status.ok()) {
-            GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                "Failed to list peers: " << status.error_str();
+            LOG_WARN() << "Failed to list peers: " << status.error_str();
             return;
         }
         std::unordered_set<std::string> rpc_addrs;
@@ -549,7 +496,7 @@ void lgraph::HaStateMachine::ScanHeartbeatStatusLocked() {
                 state.last_heartbeat = now;
                 state.state = NodeState::JOINED_FOLLOW;
                 state.rpc_addr = p;
-                it = heartbeat_states_.insert(it, std::make_pair(p, state));
+                heartbeat_states_.insert(it, std::make_pair(p, state));
             }
         }
         // make sure we don't track follow that has left
@@ -557,8 +504,7 @@ void lgraph::HaStateMachine::ScanHeartbeatStatusLocked() {
             auto& p = it->second;
             if (p.state == NodeState::JOINED_FOLLOW) {
                 if (rpc_addrs.find(p.rpc_addr) == rpc_addrs.end()) {
-                    GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) <<
-                        "removing follow since it has died: " << p.rpc_addr;
+                    LOG_DEBUG() << "removing follow since it has died: " << p.rpc_addr;
                     it = heartbeat_states_.erase(it);
                     continue;
                 }
@@ -566,14 +512,33 @@ void lgraph::HaStateMachine::ScanHeartbeatStatusLocked() {
             ++it;
         }
     }
+
+    for (auto it = heartbeat_states_.begin(); it != heartbeat_states_.end();) {
+        auto& state = it->second;
+        if (state.last_heartbeat < kick_timeline) {
+            if (state.state == NodeState::JOINED_FOLLOW) {
+                // timeout, need to kick out, but still stays in list
+                state.state = NodeState::OFFLINE;
+                // remove peer from group
+                LOG_DEBUG() << "Kicking out dead node: " << state.rpc_addr;
+                node_->remove_peer(braft::PeerId(state.rpc_addr), nullptr);
+            }
+            if (state.last_heartbeat < dismiss_timeline) {
+                // died for a long time, remove it from list
+                LOG_DEBUG() << "Removing long dead node from list: " << state.rpc_addr;
+                it = heartbeat_states_.erase(it);
+                continue;
+            }
+        }
+        ++it;
+    }
 }
 
-void lgraph::HaStateMachine::SendHeartbeatToMasterLocked(lgraph::NodeState state) {
-    if (peers_changed_) {
+void lgraph::HaStateMachine::SendHeartbeatToMasterLocked() {
+    if (butil::endpoint2str(node_->leader_id().addr).c_str() != master_rpc_addr_.c_str()) {
         std::unique_ptr<brpc::Channel> channel(new brpc::Channel);
         if (channel->Init(node_->leader_id().addr, nullptr) != 0) {
-            GENERAL_LOG_STREAM(WARNING, logger_.GetName())
-                << "failed to connect to master " << node_->leader_id().to_string();
+            LOG_WARN() << "failed to connect to master " << node_->leader_id().to_string();
             return;
         }
         rpc_stub_.reset(new LGraphRPCService_Stub(channel.release(),
@@ -590,18 +555,15 @@ void lgraph::HaStateMachine::SendHeartbeatToMasterLocked(lgraph::NodeState state
         rpc_stub_->HandleRequest(&controller, &req, &resp, nullptr);
         if (controller.Failed() || resp.error_code() != LGraphResponse::SUCCESS) {
             if (controller.Failed()) {
-                GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                    "Error getting master addr: " << controller.ErrorText();
+                LOG_WARN() << "Error getting master addr: " << controller.ErrorText();
             } else {
-                GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                    "Error getting master addr: " << resp.error();
+                LOG_WARN() << "Error getting master addr: " << resp.error();
             }
             return;
         }
         auto& master = resp.ha_response().get_master_response().master();
         master_rpc_addr_ = master.rpc_addr();
         master_rest_addr_ = master.rest_addr();
-        peers_changed_ = false;
     }
     FMA_DBG_ASSERT(rpc_stub_);
     LGraphRequest req;
@@ -610,15 +572,14 @@ void lgraph::HaStateMachine::SendHeartbeatToMasterLocked(lgraph::NodeState state
     auto* hbreq = req.mutable_ha_request()->mutable_heartbeat_request();
     hbreq->set_rpc_addr(my_rpc_addr_);
     hbreq->set_rest_addr(my_rest_addr_);
-    hbreq->set_state(state);
+    hbreq->set_state(NodeState::JOINED_FOLLOW);
     LGraphResponse resp;
     brpc::Controller controller;
     controller.set_timeout_ms(1000);
     controller.set_max_retry(3);
     rpc_stub_->HandleRequest(&controller, &req, &resp, nullptr);
     if (controller.Failed() || resp.error_code() != LGraphResponse::SUCCESS) {
-        GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-            "Failed to send heartbeat: " << resp.error();
+        LOG_WARN() << "Failed to send heartbeat: " << resp.error();
         return;
     }
 }
@@ -633,17 +594,16 @@ void lgraph::HaStateMachine::LeaveGroup() {
             if (peers.size() <= 1) return;
             int ec = node_->transfer_leadership_to(braft::ANY_PEER);
             if (ec != 0) {
-                GENERAL_LOG_STREAM(WARNING, logger_.GetName())
-                    << "Failed to transfer leadership in LeaveGroup, ec=" << ec;
+                LOG_WARN() << "Failed to transfer leadership in LeaveGroup, ec=" << ec;
                 return;
             } else {
-                GENERAL_LOG_STREAM(DEBUG, logger_.GetName()) << "Node is no longer leader.";
+                LOG_DEBUG() << "Node is no longer leader.";
             }
         }
         // remove myself from replication group
         braft::Configuration conf;
         conf.add_peer(node_->leader_id());
-        GENERAL_LOG_STREAM(INFO, logger_.GetName()) << "Leaving replication group...";
+        LOG_INFO() << "Leaving replication group...";
         butil::Status status;
         for (int i = 0; i < 3; i++) {
             status = braft::cli::remove_peer(braft::GroupId("lgraph"), conf,
@@ -651,15 +611,14 @@ void lgraph::HaStateMachine::LeaveGroup() {
             if (!status.ok()) fma_common::SleepS(0.5);
         }
         if (!status.ok()) {
-            GENERAL_LOG_STREAM(WARNING, logger_.GetName()) <<
-                "Failed to leave group: " << status.error_str();
+            LOG_WARN() << "Failed to leave group: " << status.error_str();
         }
     }
 }
 
 std::vector<lgraph::HaStateMachine::Peer> lgraph::HaStateMachine::ListPeers() const {
     std::vector<Peer> ret;
-    if (IsLeader()) {
+    if (node_->is_leader()) {
         std::lock_guard<std::mutex> l(hb_mutex_);
         ret.reserve(heartbeat_states_.size());
         ret.emplace_back(my_rpc_addr_, my_rest_addr_, NodeState::JOINED_MASTER);
@@ -686,10 +645,9 @@ std::vector<lgraph::HaStateMachine::Peer> lgraph::HaStateMachine::ListPeers() co
         rpc_stub->HandleRequest(&controller, &req, &resp, nullptr);
         if (controller.Failed() || resp.error_code() != LGraphResponse::SUCCESS) {
             if (controller.Failed()) {
-                FMA_WARN_STREAM(logger_)
-                    << "Error getting peers from master: " << controller.ErrorText();
+                LOG_WARN() << "Error getting peers from master: " << controller.ErrorText();
             } else {
-                FMA_WARN_STREAM(logger_) << "Error getting peers from master: " << resp.error();
+                LOG_WARN() << "Error getting peers from master: " << resp.error();
             }
             return ret;
         }

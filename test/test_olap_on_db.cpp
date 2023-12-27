@@ -326,6 +326,21 @@ TEST_F(TestOlapOnDB, OlapOnDB) {
     UT_EXPECT_EQ(filter_graph.InDegree(20), 2);
     UT_EXPECT_EQ(filter_graph.NumVertices(), 21);
     UT_EXPECT_EQ(filter_graph.NumEdges(), 35);
+
+    std::vector<std::vector<std::string>> label_list = {{"node", "edge", "node"}};
+    OlapOnDB<Empty> filter_graph_two(db, txn,
+                label_list, SNAPSHOT_PARALLEL);
+    UT_EXPECT_EQ(filter_graph_two.OutDegree(0), 5);
+    UT_EXPECT_EQ(filter_graph_two.InDegree(0), 0);
+    UT_EXPECT_EQ(filter_graph_two.OutDegree(6), 0);
+    UT_EXPECT_EQ(filter_graph_two.InDegree(6), 2);
+    UT_EXPECT_EQ(filter_graph_two.OutDegree(13), 2);
+    UT_EXPECT_EQ(filter_graph_two.InDegree(13), 3);
+    UT_EXPECT_EQ(filter_graph_two.OutDegree(20), 0);
+    UT_EXPECT_EQ(filter_graph_two.InDegree(20), 2);
+    UT_EXPECT_EQ(filter_graph_two.NumVertices(), 21);
+    UT_EXPECT_EQ(filter_graph_two.NumEdges(), 35);
+
     txn.Commit();
 
     // WriteToGraphDB

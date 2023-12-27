@@ -41,27 +41,27 @@ void Graph::AddEdge(size_t id, size_t source_id, size_t target_id, std::set<int>
 
 void Graph::PrintGraph() {
     for (Node node : m_nodes) {
-        FMA_LOG() << "Node id:" << node.m_id;
-        FMA_LOG() << "In edges:";
+        LOG_INFO() << "Node id:" << node.m_id;
+        LOG_INFO() << "In edges:";
         for (size_t eid : node.m_inedges) {
             Edge& edge = m_edges[eid];
-            FMA_LOG() << edge.m_id << "-" << edge.m_source_id << ".";
+            LOG_INFO() << edge.m_id << "-" << edge.m_source_id << ".";
         }
-        FMA_LOG();
+        LOG_INFO();
 
-        FMA_LOG() << "Out edges:";
+        LOG_INFO() << "Out edges:";
         for (size_t eid : node.m_outedges) {
             Edge& edge = m_edges[eid];
-            FMA_LOG() << edge.m_id << "-" << edge.m_target_id << ".";
+            LOG_INFO() << edge.m_id << "-" << edge.m_target_id << ".";
         }
-        FMA_LOG();
+        LOG_INFO();
 
-        FMA_LOG() << "Undirection edges:";
+        LOG_INFO() << "Undirection edges:";
         for (size_t eid : node.m_undirectededges) {
             Edge& edge = m_edges[eid];
-            FMA_LOG() << edge.m_id << "-" << edge.m_direction << ".";
+            LOG_INFO() << edge.m_id << "-" << edge.m_direction << ".";
         }
-        FMA_LOG();
+        LOG_INFO();
     }
 }
 };  // namespace cypher::rewrite

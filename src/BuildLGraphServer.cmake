@@ -42,6 +42,8 @@ add_library(${TARGET_SERVER_LIB} STATIC
         plugin/plugin_context.cpp
         plugin/python_plugin.cpp
         plugin/cpp_plugin.cpp
+        server/bolt_handler.cpp
+        server/bolt_server.cpp
         server/lgraph_server.cpp
         server/state_machine.cpp
         server/ha_state_machine.cpp
@@ -54,6 +56,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         http/http_server.cpp
         http/import_manager.cpp
         http/import_task.cpp
+        http/algo_task.cpp
         ${PROTO_SRCS})
 
 target_compile_options(${TARGET_SERVER_LIB} PUBLIC
@@ -68,6 +71,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             lgraph
             lgraph_cypher_lib
             geax_isogql
+            bolt
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -124,6 +128,7 @@ add_executable(${TARGET_SERVER}
         server/server_main.cpp)
 
 target_link_libraries(${TARGET_SERVER}
-        ${TARGET_SERVER_LIB})
+        ${TARGET_SERVER_LIB}
+        librocksdb.a)
 
 

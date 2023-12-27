@@ -18,26 +18,37 @@
 #ifndef GEAXFRONTEND_AST_STMT_BINDINGTABLE_H_
 #define GEAXFRONTEND_AST_STMT_BINDINGTABLE_H_
 
-#include "geax-front-end/ast/stmt/BindingVar.h"
+#include "geax-front-end/ast/stmt/BindingDefinition.h"
+#include "geax-front-end/ast/stmt/BindingTableExpr.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingTable : public BindingVar {
+class BindingTable : public BindingDefinition {
 public:
-    BindingTable() : BindingVar(AstNodeType::kBindingTable) {}
+    BindingTable() : BindingDefinition(AstNodeType::kBindingTable), query_(nullptr) {}
     ~BindingTable() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
+    void setVal(std::string&& varName) { varName_ = std::move(varName); }
+    const std::string& varName() const { return varName_; }
 
-    DEFINE_FROM_AND_TO_JSON
+    void appendType(std::string&& fieldname, std::string&& filedtype) {
+        types_.emplace_back(std::move(fieldname), std::move(filedtype));
+    }
+    void setTypes(std::vector<std::tuple<std::string, std::string>>&& types) {
+        types_ = std::move(types);
+    }
+    const std::vector<std::tuple<std::string, std::string>>& types() const { return types_; }
+
+    void setQuery(BindingTableExpr* query) { query_ = query; }
+    BindingTableExpr* query() { return query_; }
+
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-    }
+    std::string varName_;
+    std::vector<std::tuple<std::string, std::string>> types_;
+    BindingTableExpr* query_;
 };  // class BindingTable
 
 }  // namespace frontend

@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 
 #include "tiny-process-library/process.hpp"
 #include "./ut_utils.h"

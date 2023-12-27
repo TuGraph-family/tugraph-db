@@ -1,5 +1,4 @@
 ﻿/* Copyright (c) 2022 AntGroup. All Rights Reserved. */
-#include "fma-common/logging.h"
 #include "./ut_utils.h"
 #include "core/global_config.h"
 

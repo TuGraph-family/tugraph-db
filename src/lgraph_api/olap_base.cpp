@@ -13,7 +13,7 @@
  */
 
 #include "lgraph/olap_base.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 namespace lgraph_api {
 namespace olap {

@@ -9,7 +9,7 @@
 
 #pragma once
 #include "tools/date.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 namespace fma_common {
 inline date::year_month_day MakeDate(int y, int m, int d) {
@@ -31,17 +31,17 @@ void CheckExpire(int y, int m, int d, int warn_before = 30) {
     auto diff = date::sys_days(exp) - date::sys_days(today);
     int day_diff = diff.count();
 
-    FMA_LOG() << "**********************************************************************";
-    FMA_LOG() << "This is a trial version, valid until " << exp << ".";
+    LOG_INFO() << "**********************************************************************";
+    LOG_INFO() << "This is a trial version, valid until " << exp << ".";
     if (day_diff > 0 && day_diff <= warn_before) {
-        FMA_WARN() << "";
-        FMA_WARN() << "Program is about to expire in " << day_diff << " days.";
-        FMA_WARN() << "Please contact your supplier to obtain a new copy before it expires.";
+        LOG_WARN() << "";
+        LOG_WARN() << "Program is about to expire in " << day_diff << " days.";
+        LOG_WARN() << "Please contact your supplier to obtain a new copy before it expires.";
     }
     if (day_diff <= 0) {
-        FMA_ERR() << "Your copy of the program has expired. Please contact your supplier to obtain "
-                     "a new copy.";
+        LOG_ERROR() << "Your copy of the program has expired. Please contact your "
+                       "supplier to obtain a new copy.";
     }
-    FMA_LOG() << "**********************************************************************";
+    LOG_INFO() << "**********************************************************************";
 }
 }  // namespace fma_common

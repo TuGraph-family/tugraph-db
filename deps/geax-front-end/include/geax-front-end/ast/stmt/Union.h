@@ -25,26 +25,15 @@ namespace frontend {
 
 class Union : public QueryConjunctionType {
 public:
-    Union()
-        : QueryConjunctionType(AstNodeType::kUnion),
-          isDistinct_(true) {}
+    Union() : QueryConjunctionType(AstNodeType::kUnion), isDistinct_(true) {}
     ~Union() = default;
 
     void setDistince(const bool& isDistinct) { isDistinct_ = isDistinct; }
     const bool distinct() const { return isDistinct_; }
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
-
-    DEFINE_FROM_AND_TO_JSON
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-        JSON_FIELD(isDistinct);
-    }
-
     bool isDistinct_;
 };  // class Union
 

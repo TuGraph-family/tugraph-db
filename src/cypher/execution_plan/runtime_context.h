@@ -28,21 +28,17 @@ class SubmitQueryContext {
  public:
     lgraph::StateMachine *sm_ = nullptr;
     lgraph::Galaxy *galaxy_ = nullptr;
-    std::string token_;
     std::string user_;
     std::string graph_;
     PARAM_TAB param_tab_;
     bool optimistic_ = false;
     bool path_unique_ = true;
-    lgraph::AclManager::FieldAccess field_access_;
 
     SubmitQueryContext() = default;
 
-    SubmitQueryContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy, const std::string &token,
-                       const std::string &user, const std::string &graph,
-                       const lgraph::AclManager::FieldAccess &field_access)
-        : sm_(sm), galaxy_(galaxy), token_(token),
-          user_(user), graph_(graph), field_access_(field_access) {}
+    SubmitQueryContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy,
+                       const std::string &user, const std::string &graph)
+        : sm_(sm), galaxy_(galaxy), user_(user), graph_(graph) {}
 
     bool Check(std::string &msg) const {
         if (!galaxy_) {
@@ -58,17 +54,16 @@ class SubmitQueryContext {
 class RTContext : public SubmitQueryContext {
  public:
     // generated context while plan execution
-    std::unique_ptr<lgraph::AccessControlledDB> ac_db_ = nullptr;
-    std::unique_ptr<lgraph_api::Transaction> txn_ = nullptr;
-    std::unique_ptr<ResultInfo> result_info_ = nullptr;
-    std::unique_ptr<lgraph_api::Result> result_ = nullptr;
+    std::unique_ptr<lgraph::AccessControlledDB> ac_db_;
+    std::unique_ptr<lgraph_api::Transaction> txn_;
+    std::unique_ptr<ResultInfo> result_info_;
+    std::unique_ptr<lgraph_api::Result> result_;
 
     RTContext() = default;
 
-    RTContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy, const std::string &token,
-              const std::string &user, const std::string &graph,
-              const lgraph::AclManager::FieldAccess& field_access)
-        : SubmitQueryContext(sm, galaxy, token, user, graph, field_access) {}
+    RTContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy,
+              const std::string &user, const std::string &graph)
+        : SubmitQueryContext(sm, galaxy, user, graph) {}
 
     bool Check(std::string &msg) const {
         if (!SubmitQueryContext::Check(msg)) return false;

@@ -16,7 +16,6 @@
 // Created by hct on 18-12-29.
 //
 
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "server/proto_convert.h"
 #include "gtest/gtest.h"

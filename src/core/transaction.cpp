@@ -191,13 +191,15 @@ Transaction::Transaction(Transaction&& rhs)
       fulltext_buffers_(std::move(rhs.fulltext_buffers_)),
       vertex_delta_count_(std::move(rhs.vertex_delta_count_)),
       edge_delta_count_(std::move(rhs.edge_delta_count_)) {
-    FMA_DBG_ASSERT(rhs.iterators_.empty()) << "Non-empty transactions should not be moved.";
+    // Non-empty transactions should not be moved.
+    FMA_DBG_ASSERT(rhs.iterators_.empty());
     rhs.read_only_ = true;
 }
 
 Transaction& Transaction::operator=(Transaction&& rhs) {
     if (this == &rhs) return *this;
-    FMA_DBG_ASSERT(rhs.iterators_.empty()) << "Non-empty transactions should not be moved.";
+    // Non-empty transactions should not be moved.
+    FMA_DBG_ASSERT(rhs.iterators_.empty());
     if (IsValid()) Abort();
     read_only_ = rhs.read_only_;
     rhs.read_only_ = true;

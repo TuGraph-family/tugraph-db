@@ -344,7 +344,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     // parse desc
     CsvDesc fd;
     std::vector<CsvDesc> cds;
-    FMA_LOG() << "desc: " << desc;
+    LOG_INFO() << "desc: " << desc;
     cds = ImportConfParser::ParseFiles(nlohmann::json::parse(desc), false);
     if (cds.size() != 1)
         std::throw_with_nested(InputError(FMA_FMT("config items number error:  {}", desc)));
@@ -395,8 +395,8 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
 std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& desc,
                                                                 AccessControlledDB& db) {
     std::string errors = "";
-    FMA_LOG() << desc;
-    FMA_LOG() << "----------";
+    LOG_INFO() << desc;
+    LOG_INFO() << "----------";
     SchemaDesc schema_new = ImportConfParser::ParseSchema(nlohmann::json::parse(desc));
     auto txn = db.CreateReadTxn();
     if (txn.GetAllLabels(true).size() != 0) {
@@ -432,7 +432,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
         for (auto& p : m) fds.emplace_back(p.second);
         bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
-            FMA_LOG() << FMA_FMT("Add {} label:{}, detach:{}", v.is_vertex ? "vertex" : "edge",
+            LOG_INFO() << FMA_FMT("Add {} label:{}, detach:{}", v.is_vertex ? "vertex" : "edge",
                                  v.name, options->detach_property);
         } else {
             throw InputError(
@@ -443,7 +443,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
         for (auto& spec : v.columns) {
             if (v.is_vertex && spec.index && !spec.primary) {
                 if (db.AddVertexIndex(v.name, spec.name, spec.idxType)) {
-                    FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                    LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
                                          v.name, spec.name, static_cast<int>(spec.idxType));
                 } else {
                     throw InputError(
@@ -452,7 +452,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                 }
             } else if (!v.is_vertex && spec.index) {
                 if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
-                    FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                    LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
                                          v.name, spec.name, static_cast<int>(spec.idxType));
                 } else {
                     throw InputError(
@@ -462,7 +462,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
             }
             if (spec.fulltext) {
                 if (db.AddFullTextIndex(v.is_vertex, v.name, spec.name)) {
-                    FMA_LOG() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
+                    LOG_INFO() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
                                          v.name, spec.name);
                 } else {
                     throw InputError(FMA_FMT("Fulltext index [label:{}, field:{}] already exists",

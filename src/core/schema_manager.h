@@ -18,7 +18,7 @@
 
 #include "fma-common/binary_buffer.h"
 #include "fma-common/binary_read_write_helper.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 
 #include "core/data_type.h"
 #include "core/defs.h"

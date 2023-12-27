@@ -21,10 +21,10 @@
 
 #ifndef NDEBUG
 #define VAR_LEN_EXP_DUMP_FOR_DEBUG()                                                         \
-    do {                                                                                     \
-        FMA_DBG() << __func__ << __LINE__ << ": hop=" << hop_ << ", edge="                   \
+    do {                                                                                       \
+        LOG_DEBUG() << __func__ << __LINE__ << ": hop=" << hop_ << ", edge="                   \
                   << (hop_ == 0 ? "na" : _detail::EdgeUid2String(eits_[hop_ - 1].GetUid())); \
-        FMA_DBG() << pattern_graph_->VisitedEdges().Dump();                                  \
+        LOG_DEBUG() << pattern_graph_->VisitedEdges().Dump();                                  \
     } while (0)
 #else
 #define VAR_LEN_EXP_DUMP_FOR_DEBUG()
@@ -60,8 +60,8 @@ class VarLenExpand : public OpBase {
                     path_buffer_.emplace(relp_->path_);
                 }
 #ifndef NDEBUG
-                FMA_DBG() << __func__ << ": hop=" << hop_ << ",vid=" << vid;
-                FMA_DBG() << pattern_graph_->VisitedEdges().Dump();
+                LOG_DEBUG() << __func__ << ": hop=" << hop_ << ",vid=" << vid;
+                LOG_DEBUG() << pattern_graph_->VisitedEdges().Dump();
 #endif
             }
             if (hop_ == max_hop) return;
@@ -90,8 +90,8 @@ class VarLenExpand : public OpBase {
                     path_buffer_.emplace(relp_->path_);
                 }
 #ifndef NDEBUG
-                FMA_LOG() << __func__ << ": hop=" << hop_ << ",vid=" << vid;
-                FMA_LOG() << pattern_graph_->VisitedEdges().Dump();
+                LOG_INFO() << __func__ << ": hop=" << hop_ << ",vid=" << vid;
+                LOG_INFO() << pattern_graph_->VisitedEdges().Dump();
 #endif
                 return;
             }
@@ -171,7 +171,7 @@ class VarLenExpand : public OpBase {
                 }
             }  // if collect all
 #ifndef NDEBUG
-            FMA_DBG() << "[" << __FILE__ << "] neighbor:" << nbr_it_->GetId();
+            LOG_DEBUG() << "[" << __FILE__ << "] neighbor:" << nbr_it_->GetId();
 #endif
             return OP_OK;
         }
