@@ -348,7 +348,7 @@ class AuditLogger {
         AUDIT_LOG() << log_msg.dump();
     }
 
-    // close sink
+    // remove sink from log core
     void Close() {
         logging::core::get()->remove_sink(audit_sink_);
     }
