@@ -2711,4 +2711,114 @@ void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record, const cyphe
         records->emplace_back(r.Snapshot());
     }
 }
+
+void SpatialFunc::Point(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_ARG_CHECK(
+        args.size() >= 1 && args.size() <= 3,
+        "wrong arguments number");
+    // construct from ewkb;
+    if (args.size() == 1) {
+        CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
+                    FMA_FMT("{} has to be a string ", args[0].ToString()));
+        auto ewkb = args[0].String();
+        auto pt = ::lgraph::FieldData::Point(ewkb);
+        Record r;
+        r.AddConstant(pt);
+        records->emplace_back(r.Snapshot());
+        return;
+    }
+
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::DOUBLE,
+                    FMA_FMT("{} has to be a double ", args[0].ToString()));
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::DOUBLE,
+                    FMA_FMT("{} has to be a double ", args[0].ToString()));
+
+    // wgs84 in default;
+    lgraph_api::SRID s = lgraph_api::SRID::WGS84;
+    auto arg1 = args[0].Double();
+    auto arg2 = args[1].Double();
+    ::lgraph::FieldData pt;
+
+    if (args.size() == 2) {
+        pt = ::lgraph::FieldData::Point(lgraph_api::Point<lgraph_api::Wgs84>(arg1, arg2, s));
+    } else {
+        CYPHER_ARG_CHECK(args[2].type == parser::Expression::INT,
+                  FMA_FMT("{} has to be a int ", args[0].ToString()));
+        auto srid = args[2].Int();
+        switch (srid) {
+            case 4326:
+                s = lgraph_api::SRID::WGS84;
+                pt = ::lgraph::FieldData::Point(lgraph_api::Point
+                <lgraph_api::Wgs84>(arg1, arg2, s));
+                break;
+            case 7203:
+                s = lgraph_api::SRID::CARTESIAN;
+                pt = ::lgraph::FieldData::Point(lgraph_api::Point
+                <lgraph_api::Cartesian>(arg1, arg2, s));
+                break;
+            default:
+                CYPHER_ARGUMENT_ERROR();
+        }
+    }
+
+    Record r;
+    r.AddConstant(pt);
+    records->emplace_back(r.Snapshot());
+}
+
+void SpatialFunc::Distance(RTContext *ctx, const cypher::Record *record,
+                           const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
+                           struct std::vector<cypher::Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 2,
+        "wrong arguments number");
+
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::VARIABLE,
+                    FMA_FMT("{} has to be a variable",
+                    args[0].ToString()));
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::VARIABLE,
+                    FMA_FMT("{} has to be a VARIABLE",
+                    args[1].ToString()));
+
+    auto s1 = record->symbol_table->symbols.find(args[0].String());
+    auto s2 = record->symbol_table->symbols.find(args[1].String());
+    if (s1 == record->symbol_table->symbols.end() ||
+        s2 == record->symbol_table->symbols.end())
+        CYPHER_TODO();
+    auto &s1_ = record->values[s1->second.id];
+    auto &s2_ = record->values[s2->second.id];
+    CYPHER_THROW_ASSERT(s1_.IsSpatial() && s2_.IsSpatial());
+
+    ::lgraph_api::SRID srid1 = s1_.constant.scalar.GetSRID();
+    ::lgraph_api::SRID srid2 = s2_.constant.scalar.GetSRID();
+    CYPHER_THROW_ASSERT(srid1 == srid2);
+
+    double d = 0;
+    switch (srid1) {
+        case ::lgraph_api::SRID::WGS84:
+        {
+            auto Spatial1 = s1_.constant.scalar.AsWgsSpatial();
+            auto Spatial2 = s2_.constant.scalar.AsWgsSpatial();
+            d = Spatial1.Distance(Spatial2);
+            break;
+        }
+
+        case ::lgraph_api::SRID::CARTESIAN:
+        {
+            auto Spatial1 = s1_.constant.scalar.AsCartesianSpatial();
+            auto Spatial2 = s2_.constant.scalar.AsCartesianSpatial();
+            d = Spatial1.Distance(Spatial2);
+            break;
+        }
+
+        default:
+            throw std::runtime_error("unsupported srid type!");
+    }
+
+    Record r;
+    r.AddConstant(::lgraph::FieldData(d));
+    records->emplace_back(r.Snapshot());
+}
+
 }  // namespace cypher

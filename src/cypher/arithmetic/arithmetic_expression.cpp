@@ -856,7 +856,7 @@ cypher::FieldData BuiltinFunction::Point(RTContext *ctx, const Record &record,
 }
 
 // create a point by point_wkb(wkb, srid(4326 in default));
-cypher::FieldData BuiltinFunction::Point_WKB(RTContext *ctx, const Record &record,
+cypher::FieldData BuiltinFunction::PointWKB(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
     CYPHER_THROW_ASSERT(args.size() <= 3);
@@ -888,7 +888,7 @@ cypher::FieldData BuiltinFunction::Point_WKB(RTContext *ctx, const Record &recor
 }
 
 // create a point by point_wkt(wkt, srid(4326 in default));
-cypher::FieldData BuiltinFunction::Point_WKT(RTContext *ctx, const Record &record,
+cypher::FieldData BuiltinFunction::PointWKT(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
     CYPHER_THROW_ASSERT(args.size() <= 3);
@@ -932,7 +932,7 @@ cypher::FieldData BuiltinFunction::LineString(RTContext *ctx, const Record &reco
 }
 
 // create linestring by linestring_wkb(wkb, srid(4326 in default));
-cypher::FieldData BuiltinFunction::LineString_WKB(RTContext *ctx, const Record &record,
+cypher::FieldData BuiltinFunction::LineStringWKB(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
     CYPHER_THROW_ASSERT(args.size() <= 3);
@@ -966,7 +966,7 @@ cypher::FieldData BuiltinFunction::LineString_WKB(RTContext *ctx, const Record &
 }
 
 // create linestring by linestring_wkt(wkt, srid(4326));
-cypher::FieldData BuiltinFunction::LineString_WKT(RTContext *ctx, const Record &record,
+cypher::FieldData BuiltinFunction::LineStringWKT(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
     CYPHER_THROW_ASSERT(args.size() <= 3);
@@ -1012,7 +1012,7 @@ cypher::FieldData BuiltinFunction::Polygon(RTContext *ctx, const Record &record,
 }
 
 // create polygon by polygon_wkb(wkb, srid(4326 in default));
-cypher::FieldData BuiltinFunction::Polygon_WKB(RTContext *ctx, const Record &record,
+cypher::FieldData BuiltinFunction::PolygonWKB(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
     CYPHER_THROW_ASSERT(args.size() <= 3);
@@ -1046,7 +1046,7 @@ cypher::FieldData BuiltinFunction::Polygon_WKB(RTContext *ctx, const Record &rec
 }
 
 // create polygon by polygon_wkt(wkt, srid(4326 in default));
-cypher::FieldData BuiltinFunction::Polygon_WKT(RTContext *ctx, const Record &record,
+cypher::FieldData BuiltinFunction::PolygonWKT(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
     CYPHER_THROW_ASSERT(args.size() <= 3);

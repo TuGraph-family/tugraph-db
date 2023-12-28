@@ -833,27 +833,18 @@ int test_expression(cypher::RTContext *ctx) {
         {"return point(3.0, 1.0, 7203)", 1},
         {"return point(2.32, 4.96)", 1},
         {"with point(1, 1, 4326) as p1, point(1, 1, 4326) as p2 return p1 = p2", 1},
-        {"return point_WKB('0101000000000000000000F03F0000000000000040'), 4326", 1},
-        {"return point_WKT('POINT(1.0 1.0)'), 7203", 1},
-        {"return point_WKB('0101000000000000000000F03F0000000000000040')", 1},
-        {"return point_WKT('POINT(1.0 1.0)')", 1},
-        {"return linestring_wkb('01020000000300000000000000000000000000000000"
+        {"return pointWKB('0101000000000000000000F03F0000000000000040'), 4326", 1},
+        {"return pointWKT('POINT(1.0 1.0)'), 7203", 1},
+        {"return pointWKB('0101000000000000000000F03F0000000000000040')", 1},
+        {"return pointWKT('POINT(1.0 1.0)')", 1},
+        {"return linestringwkb('01020000000300000000000000000000000000000000"
         "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203)",
         1},
-        {"return linestring_wkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
+        {"return linestringwkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
         {"return polygon_WKB('0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000', 4326)", 1},
-        {"return polygon_wkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
-        /*{"with point(1, 1, 4326) as p1, point(1, 1, 4326) as p2 return Distance(p1, p2)", 1},
-        {"with point(1.0, 2.0, 7203) as p,"
-        "linestring_wkb('01020000000300000000000000000000000000000000"
-        "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203) "
-        "as l return distance(l, p)", 1},
-        {"with polygon('0103000020E6100000010000000500000000000000000000000000000000"
-                       "00000000000000000000000000000000001C400000000000001040000000000000"
-                       "00400000000000000040000000000000000000000000000000000000000000000000') "
-        "as p, linestring_wkt('LINESTRING(0 0,2 2,3 1)', 4326) as l return distance(p, l)", 1},*/
+        {"return polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -2374,6 +2365,48 @@ void debug_stack_chaos(cypher::RTContext *ctx) {
     txn.Abort();
 }
 
+int test_spatial_procedure(cypher::RTContext *ctx) {
+    static const std::vector<std::string> scripts_ = {
+    "CALL db.createVertexLabel('Location', 'name', 'name', STRING, false, 'geo', POINT, false)",
+    "CREATE (a_:Location {name:'A_', geo: POINT(1.0, 2.0)})",
+    "CREATE (b_:Location {name:'B_', geo: POINT(1.0, 2.0)})",
+    "CALL db.createVertexLabel"
+    "('Location_', 'name', 'name', STRING, false, 'geo1', LINESTRING, 'geo2', POLYGON, false)",
+    "CREATE (c_:Location_ "
+    "{name:'C_', geo1: LINESTRING('0102000020E6100000030000000000000000000000000"
+    "0000000000000000000000000004000000000000000400000000000000840000000000000F03F'), "
+    "geo2: polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))})"
+    };
+    eval_scripts(ctx, scripts_);
+
+    static const std::vector<std::pair<std::string, int>> script_check = {
+    {"with point(1.0, 2.0) as p1, point(2.0, 1.0) as p2\n"
+     "CALL spatial.distance(p1, p2) YIELD distance RETURN distance > 0", 1},
+    {"with LineStringWKB('01020000000300000000000000000000000000000000') "
+     "as linestring, "
+     "PolygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 4326) as polygon\n"
+     "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance", 1},
+    {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'}) with\n"
+     "l1.geo as g1, l2.geo as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
+    {"MATCH (l1:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
+     "l1.geo as g1, l3.geo as g3\n"
+     "CALL spatial.distance(g1, g3) YIELD distance RETURN distance", 1},
+    {"MATCH (l1:Location {name:'C_'}) with\n"
+     "l1.geo1 as g1, l1.geo2 as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
+    };
+    std::vector<std::string> scripts;
+    std::vector<int> check;
+    for (auto &s : script_check) {
+        scripts.emplace_back(s.first);
+        check.emplace_back(s.second);
+    }
+    eval_scripts_check(ctx, scripts, check);
+
+    return 0;
+}
+
 enum TestCase {
     TC_FILE_SCRIPT = 1,
     TC_INTERACTIVE = 2,
@@ -2407,6 +2440,7 @@ enum TestCase {
     TC_AGGREGATE,
     TC_ALGO,
     TC_TOPN,
+    TC_SPATIAL_PROCEDURE,
     TC_ERROR_REPORT = 201,
     TC_DEBUG_STACK_CHAOS,
     TC_LDBC_SNB = 301,
@@ -2442,8 +2476,8 @@ TEST_P(TestCypher, Cypher) {
         "{}-list-comprehension"
         " {}-profile; {}-unwind; {}-procedure; {}-add; {}-set; {}-del; {}-remove; {}-order by; "
         "{}-merge;"
-        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
-        "{}-optimization; {}-fix_crash_issues;"
+        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-spatial_procedure; "
+        "{}-error report; {}-snb; {}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
         " {}-empty_graph;",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
@@ -2581,6 +2615,9 @@ TEST_P(TestCypher, Cypher) {
             case TC_TOPN:
                 test_topn(&db);
                 break;
+            case TC_SPATIAL_PROCEDURE:
+                test_spatial_procedure(&db);
+                break;
             case TC_MERGE:
                 test_merge(&db);
                 break;
@@ -2632,6 +2669,6 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
            ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
-           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
-           ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},
-           ParamCypher{500, 0}, ParamCypher{501, 1}));
+           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{113, 1},
+           ParamCypher{301, 2}, ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1},
+           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}));

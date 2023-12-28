@@ -363,12 +363,12 @@ class AlgoFunc {
                         const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
-/*class SpatialFunc {
+class SpatialFunc {
  public:
     static void Point(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void PointWKB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    /*static void PointWKB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void PointWKT(RTContext *ctx, const Record *record, const VEC_EXPR &args,
@@ -390,11 +390,11 @@ class AlgoFunc {
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void PolygonWKT(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
+                          const VEC_STR &yield_items, std::vector<Record> *records);*/
 
     static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records); 
-};*/
+};
 
 struct Procedure {
     /* <name, <index, type>> */
@@ -809,12 +809,12 @@ static std::vector<Procedure> global_procedures = {
                   {"similarity", {0, lgraph_api::LGraphType::FLOAT}},
               }),
     // spatial
-    /*Procedure("spatial.point", SpatialFunc::Point,
+    Procedure("spatial.point", SpatialFunc::Point,
               Procedure::SIG_SPEC{
                   {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"point", {0, lgraph_api::LGraphType::POINT}}}),
+              Procedure::SIG_SPEC{{"point", {0, lgraph_api::LGraphType::STRING}}}),
 
-    Procedure("spatial.pointWKB", SpatialFunc::PointWKB,
+    /*Procedure("spatial.pointWKB", SpatialFunc::PointWKB,
               Procedure::SIG_SPEC{
                   {"point_args", {0, lgraph_api::LGraphType::LIST}}},
               Procedure::SIG_SPEC{{"point", {0, lgraph_api::LGraphType::POINT}}}),
@@ -852,13 +852,13 @@ static std::vector<Procedure> global_procedures = {
     Procedure("spatial.polygonWKT", SpatialFunc::PolygonWKT,
               Procedure::SIG_SPEC{
                   {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"polygon", {0, lgraph_api::LGraphType::POLYGON}}}),
+              Procedure::SIG_SPEC{{"polygon", {0, lgraph_api::LGraphType::POLYGON}}}), */
 
     Procedure("spatial.distance", SpatialFunc::Distance,
               Procedure::SIG_SPEC{
-                 {"Spatial1", {0, lgraph_api::LGraphType::POINT}},
-                 {"Spatial2", {1, lgraph_api::LGraphType::POINT}}},
-              Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}), */
+                 {"Spatial1", {0, lgraph_api::LGraphType::STRING}},
+                 {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},

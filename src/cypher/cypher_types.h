@@ -160,6 +160,16 @@ struct FieldData {
 
     bool IsString() const { return type == SCALAR && scalar.type == lgraph::FieldType::STRING; }
 
+    bool IsPoint() const { return type == SCALAR && scalar.type == lgraph::FieldType::POINT; }
+
+    bool IsLineString() const {
+        return type == SCALAR && scalar.type == lgraph::FieldType::LINESTRING;
+    }
+
+    bool IsPolygon() const { return type == SCALAR && scalar.type == lgraph::FieldType::POLYGON; }
+
+    bool IsSpatial() const { return (IsPoint() || IsLineString() || IsPolygon()); }
+
     bool IsArray() const { return type == ARRAY; }
 
     static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }
