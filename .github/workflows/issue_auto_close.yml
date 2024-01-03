@@ -1,0 +1,24 @@
+# Usage:
+#   Close the issue automatically when the issue is inactive for a period of time,
+#   including the ones labelled as "Reproduction Needed" or "More Info Needed".
+
+name: Issue Auto Close
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # scan the issues at 10:00 every day
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Needs more info
+        uses: actions-cool/issues-helper@main
+        with:
+          actions: 'close-issues'
+          labels: 'More Info Needed'
+          inactive-day: 15
+          body: |
+            Since this issue was labeled as "More Info Needed" but no response has been received for 15 days. Now the issue is closed. Please feel free to create a new one with more info if you have more questions.
+            
+            由于该 issue 被标记为需要更多信息，却 15 天未收到回应。现关闭 issue，若有任何问题，可另开 issue 并提供更多信息。
