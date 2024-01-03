@@ -1137,7 +1137,8 @@ struct FieldData {
     bool IsPolygon() const { return type == FieldType::POLYGON; }
 
     /** @brief   Query if this object is spatial*/
-    bool IsSpatial() const { return type == FieldType::SPATIAL || type == FieldType::POINT || type == FieldType::LINESTRING; }
+    bool IsSpatial() const { return type == FieldType::SPATIAL || IsPoint() || IsLineString()
+    || IsPolygon(); }
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */

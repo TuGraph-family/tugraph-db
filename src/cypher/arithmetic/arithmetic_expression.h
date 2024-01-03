@@ -524,7 +524,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("polygon", BuiltinFunction::Polygon);
         ae_registered_funcs.emplace("polygonwkb", BuiltinFunction::PolygonWKB);
         ae_registered_funcs.emplace("polygonwkt", BuiltinFunction::PolygonWKT);
-        
+
         /* native API-like functions */
         ae_registered_funcs.emplace("native.getedgefield", BuiltinFunction::NativeGetEdgeField);
         /* internal functions */
@@ -532,7 +532,6 @@ struct ArithOpNode {
         ae_registered_funcs.emplace(BuiltinFunction::INTL_TO_LIST, BuiltinFunction::_ToList);
         ae_registered_funcs.emplace(BuiltinFunction::INTL_LIST_COMPREHENSION,
                                     BuiltinFunction::_ListComprehension);
-        
         return ae_registered_funcs;
     }
 

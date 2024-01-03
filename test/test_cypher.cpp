@@ -841,7 +841,7 @@ int test_expression(cypher::RTContext *ctx) {
         "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203)",
         1},
         {"return linestringwkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
-        {"return polygon_WKB('0103000000010000000500000000000000000000000000000000000000000"
+        {"return polygonWKB('0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000', 4326)", 1},
         {"return polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
@@ -2371,28 +2371,30 @@ int test_spatial_procedure(cypher::RTContext *ctx) {
     "CREATE (a_:Location {name:'A_', geo: POINT(1.0, 2.0)})",
     "CREATE (b_:Location {name:'B_', geo: POINT(1.0, 2.0)})",
     "CALL db.createVertexLabel"
-    "('Location_', 'name', 'name', STRING, false, 'geo1', LINESTRING, 'geo2', POLYGON, false)",
+    "('Location_', 'name', 'name', STRING, false, 'geo1', LINESTRING, false,"
+    "'geo2', POLYGON, false)",
     "CREATE (c_:Location_ "
     "{name:'C_', geo1: LINESTRING('0102000020E6100000030000000000000000000000000"
     "0000000000000000000000000004000000000000000400000000000000840000000000000F03F'), "
-    "geo2: polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))})"
+    "geo2: polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))')})"
     };
     eval_scripts(ctx, scripts_);
 
     static const std::vector<std::pair<std::string, int>> script_check = {
     {"with point(1.0, 2.0) as p1, point(2.0, 1.0) as p2\n"
      "CALL spatial.distance(p1, p2) YIELD distance RETURN distance > 0", 1},
-    {"with LineStringWKB('01020000000300000000000000000000000000000000') "
+    {"with LineStringWKB('01020000000300000000000000000000000000000000"
+     "000000000000000000004000000000000000400000000000000840000000000000F03F') "
      "as linestring, "
      "PolygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 4326) as polygon\n"
      "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance", 1},
     {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'}) with\n"
      "l1.geo as g1, l2.geo as g2\n"
      "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
-    {"MATCH (l1:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
-     "l1.geo as g1, l3.geo as g3\n"
-     "CALL spatial.distance(g1, g3) YIELD distance RETURN distance", 1},
-    {"MATCH (l1:Location {name:'C_'}) with\n"
+    {"MATCH (l2:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
+     "l2.geo as g2, l3.geo2 as g3\n"
+     "CALL spatial.distance(g2, g3) YIELD distance RETURN distance", 1},
+    {"MATCH (l1:Location_ {name:'C_'}) with\n"
      "l1.geo1 as g1, l1.geo2 as g2\n"
      "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
     };
@@ -2484,8 +2486,9 @@ TEST_P(TestCypher, Cypher) {
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
-        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
-        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH);
+        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_SPATIAL_PROCEDURE, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
+        TC_FIX_CRASH_ISSUES, TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID,
+        TC_EMPTY_GRAPH);
     test_case = GetParam().tc;
     database = GetParam().d;
     int argc = _ut_argc;

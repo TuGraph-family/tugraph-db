@@ -365,8 +365,8 @@ class AlgoFunc {
 
 class SpatialFunc {
  public:
-    static void Point(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
+    /*static void Point(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                          const VEC_STR &yield_items, std::vector<Record> *records);*/
 
     /*static void PointWKB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
@@ -393,7 +393,7 @@ class SpatialFunc {
                           const VEC_STR &yield_items, std::vector<Record> *records);*/
 
     static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records); 
+                          const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -809,51 +809,6 @@ static std::vector<Procedure> global_procedures = {
                   {"similarity", {0, lgraph_api::LGraphType::FLOAT}},
               }),
     // spatial
-    Procedure("spatial.point", SpatialFunc::Point,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"point", {0, lgraph_api::LGraphType::STRING}}}),
-
-    /*Procedure("spatial.pointWKB", SpatialFunc::PointWKB,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"point", {0, lgraph_api::LGraphType::POINT}}}),
-
-    Procedure("spatial.pointWKT", SpatialFunc::PointWKT,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"point", {0, lgraph_api::LGraphType::POINT}}}),
-
-    Procedure("spatial.lineString", SpatialFunc::LineString,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"linestring", {0, lgraph_api::LGraphType::LINESTRING}}}),
-
-    Procedure("spatial.lineStringWKB", SpatialFunc::LineStringWKB,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"linestring", {0, lgraph_api::LGraphType::LINESTRING}}}),
-
-    Procedure("spatial.lineStringWKT", SpatialFunc::LineStringWKT,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"linestring", {0, lgraph_api::LGraphType::LINESTRING}}}),
-
-    Procedure("spatial.polygon", SpatialFunc::Polygon,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"polygon", {0, lgraph_api::LGraphType::POLYGON}}}),
-
-    Procedure("spatial.polygonWKB", SpatialFunc::PolygonWKB,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"polygon", {0, lgraph_api::LGraphType::POLYGON}}}),
-
-    Procedure("spatial.polygonWKT", SpatialFunc::PolygonWKT,
-              Procedure::SIG_SPEC{
-                  {"point_args", {0, lgraph_api::LGraphType::LIST}}},
-              Procedure::SIG_SPEC{{"polygon", {0, lgraph_api::LGraphType::POLYGON}}}), */
-
     Procedure("spatial.distance", SpatialFunc::Distance,
               Procedure::SIG_SPEC{
                  {"Spatial1", {0, lgraph_api::LGraphType::STRING}},
