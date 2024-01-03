@@ -1,0 +1,42 @@
+# Usage:
+#  Auto comment on the issue after labelled
+
+name: Issue Labelled
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  issue-labeled:
+    permissions:
+      issues: write  # for actions-cool/issues-helper to update issues
+      pull-requests: write  # for actions-cool/issues-helper to update PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: help wanted
+        if: github.event.label.name == 'Help Wanted'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Hello @${{ github.event.issue.user.login }}, thank you for your proposal/feedback. Now the problem/reason is clear. Welcome to [contribute a Pull Request](https://github.com/TuGraph-family/tugraph-db/blob/master/docs/en-US/source/6.contributor-manual/1.contributing.md) for it. We will review it ASAP. Looking forward to your contribution!
+
+            你好 @${{ github.event.issue.user.login }}，感谢你的提议/反馈，现在问题已经明确。欢迎直接在此仓库 [贡献一个 Pull Request](https://github.com/TuGraph-family/tugraph-db/blob/master/docs/zh-CN/source/6.contributor-manual/1.contributing.md) 来解决这个问题，我们会尽快进行 Review，期待您的贡献。
+
+      - name: More Info Needed
+        if: github.event.label.name == 'More Info Needed'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Hello @${{ github.event.issue.user.login }}. Please provide more info for debugging. Issues labeled by `More Info Needed` will be closed if no activities in 7 days.
+
+            你好 @${{ github.event.issue.user.login }}, 我们需要你提供更多信息以便于排查问题。7 天内未跟进此 issue 将会被自动关闭。
