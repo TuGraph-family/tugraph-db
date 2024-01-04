@@ -30,6 +30,22 @@ server_2 = server
 server_3 = server
 
 @pytest.fixture(scope="function")
+def server_reset(request):
+    log.info("server start")
+    cmd = request.param.get("cmd")
+    dirs = request.param.get("cleanup_dir")
+    server = ServerWrapper(cmd, 'Server shutdown.')
+    server.run(dirs)
+    log.info("Server shutdown")
+    yield
+    server.stop(dirs)
+    log.info("Server stoped")
+
+server_reset_password_1 = server_reset
+server_reset_password_2 = server_reset
+server_reset_password_3 = server_reset
+
+@pytest.fixture(scope="function")
 def client(request):
     log.info("client start")
     for i in range(60):

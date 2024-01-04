@@ -19,8 +19,7 @@
 #include <sstream>
 #include <string>
 
-#include "fma-common/logger.h"
-
+#include "tools/lgraph_log.h"
 #include "core/lmdb/lmdb.h"
 #include "core/data_type.h"
 
@@ -34,14 +33,14 @@ class KvException : public InternalError {
     explicit KvException(int mdb_error_code)
         : InternalError(std::string("KvException: ") + mdb_strerror(mdb_error_code)),
           ec_(mdb_error_code) {
-        if (ec_ != MDB_CONFLICTS) FMA_WARN() << InternalError::what();
+        if (ec_ != MDB_CONFLICTS) LOG_WARN() << InternalError::what();
     }
 
     KvException(int mdb_error_code, const MDB_val& k, const MDB_val& v)
         : InternalError(std::string("KvException: ") + mdb_strerror(mdb_error_code) +
                         "\n\tKey: " + DumpMdbVal(k) + "\n\tValue: " + DumpMdbVal(v)),
           ec_(mdb_error_code) {
-        if (ec_ != MDB_CONFLICTS) FMA_WARN() << InternalError::what();
+        if (ec_ != MDB_CONFLICTS) LOG_WARN() << InternalError::what();
     }
 
     int code() const { return ec_; }

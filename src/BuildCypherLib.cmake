@@ -83,3 +83,6 @@ target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${ANTRL4_LIBRARY}
         geax_isogql
         lgraph)
+
+target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PRIVATE
+        lgraph_server_lib)

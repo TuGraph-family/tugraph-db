@@ -117,7 +117,7 @@ class KeyWordFunc {
                 if (kv.first > KeyWord::BLOB) break;
                 FieldType type = FieldType::NUL;
                 if (!field_data_helper::TryGetFieldType(kv.second, type)) {
-                    FMA_ERR() << FMA_FMT("Keyword string [{}] is invalid type string", kv.second);
+                    LOG_ERROR() << FMA_FMT("Keyword string [{}] is invalid type string", kv.second);
                 }
                 ret[kv.first] = type;
             }
@@ -426,7 +426,7 @@ struct LabelDesc {
 
     bool CheckValidId(std::string field_name) const {
         if (!is_vertex) {
-            FMA_LOG() << "edge label does not have primary";
+            LOG_INFO() << "edge label does not have primary";
             return true;
         }
         for (auto it = columns.begin(); it != columns.end(); ++it) {
@@ -729,7 +729,7 @@ struct SchemaDesc {
         for (const bool& is_vertex : {false, true}) {
             auto labels = txn.GetAllLabels(is_vertex);
             std::string prefix = is_vertex ? "vertex" : "edge";
-            FMA_LOG() << prefix + " label size: " << labels.size();
+            LOG_INFO() << prefix + " label size: " << labels.size();
             for (const auto& name : labels) {
                 LabelDesc ld;
                 {
@@ -762,7 +762,7 @@ struct SchemaDesc {
                     ld.edge_constraints = txn.GetEdgeConstraints(name);
                 }
                 ld.CheckValid();
-                // FMA_LOG() << "construct label: " << ld.name;
+                // LOG_INFO() << "construct label: " << ld.name;
                 label_desc.push_back(ld);
             }
         }

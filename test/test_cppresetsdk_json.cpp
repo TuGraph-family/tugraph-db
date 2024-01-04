@@ -22,8 +22,6 @@
 #include "cpprest/asyncrt_utils.h"
 #include "./ut_utils.h"
 
-#include "fma-common/logger.h"
-
 #ifdef _WIN32
 #include <codecvt>
 #include <locale>
@@ -37,7 +35,6 @@
 class TestCppRestSdkJson : public TuGraphTest {};
 
 TEST_F(TestCppRestSdkJson, CppRestSdkJson) {
-    using namespace fma_common;
     using namespace web;
     std::string binary(256, 0);
     for (size_t i = 0; i < binary.size(); i++) binary[i] = (char)i;

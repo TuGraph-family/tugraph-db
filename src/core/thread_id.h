@@ -15,8 +15,7 @@
 #pragma once
 
 #include <mutex>
-
-#include "fma-common/logger.h"
+#include "fma-common/assert.h"
 
 namespace lgraph {
 static const int LGRAPH_MAX_THREADS = 480;

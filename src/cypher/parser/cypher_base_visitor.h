@@ -911,7 +911,7 @@ class CypherBaseVisitor : public LcypherVisitor {
 
     std::any visitOC_NodeLabels(LcypherParser::OC_NodeLabelsContext *ctx) override {
         if (ctx->oC_NodeLabel().size() > 1) {
-            FMA_WARN_STREAM(ParserLogger())
+            LOG_WARN()
                 << "More than one labels are provided, the first is picked [" << ctx->getText()
                 << "]";
         }

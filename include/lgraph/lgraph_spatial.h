@@ -8,7 +8,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 /**
- * @file lgraph_spatial.h
+ * @file  lgraph_spatial.h
  * @brief Implemnets the Spatial, SpatialBase and SpatialDerive classes.
  * 
  * TODO(shw):

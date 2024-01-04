@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 
 #include "gtest/gtest.h"
@@ -594,7 +593,7 @@ int TestEdgeIndexCRUD() {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {3, 2, 0, 0, 0}));
             std::string eidx;
             idx.Dump(*txn, int_pair_unique_to_string, eidx);
-            UT_EXPECT_TRUE(eidx.substr(0, 3) == "123");
+            UT_EXPECT_TRUE(eidx.substr(0, 3) == "132");
         }
 
         // test integer non-unique non-global key
@@ -606,7 +605,7 @@ int TestEdgeIndexCRUD() {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {9, 8, 7, 6, 5}));
             std::string eidx;
             idx.Dump(*txn, int_normal_to_string, eidx);
-            UT_EXPECT_TRUE(eidx.substr(0, 6) == "189765");
+            UT_EXPECT_TRUE(eidx.substr(0, 6) == "198765");
         }
         // test unique global int32_t crd
         {

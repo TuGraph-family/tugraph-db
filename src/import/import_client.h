@@ -27,19 +27,33 @@ namespace import_v2 {
 class OnlineImportClient {
  public:
     struct Config {
-        std::string config_file = "";
+        std::string config_file;
         std::string url = "http://127.0.0.1:7071/";
-        std::string username = "";
-        std::string password = "";
+        std::string username = lgraph::_detail::DEFAULT_ADMIN_NAME;
+        std::string password = lgraph::_detail::DEFAULT_ADMIN_PASS;
         bool continue_on_error = false;
         size_t skip_packages = 0;
         std::string graph_name = "default";
         std::string delimiter = ",";
         std::string progress_log_file;
         bool breakpoint_continue = false;
+        bool delete_if_exists = false;
+        size_t parse_block_size =
+            8 << 20;  // block size used in parser, blocks will be parsed in parallel
+        uint16_t parse_block_threads = 5;
+        uint16_t parse_file_threads = 5;
+        uint16_t generate_sst_threads = 15;
+        uint16_t read_rocksdb_threads = 15;
+        size_t vid_num_per_reading = 10000;
+        size_t max_size_per_reading = 32*1024*1024;
+        bool compact = false;
+        bool keep_vid_in_memory = true;
+        bool enable_fulltext_index = false;
+        std::string fulltext_index_analyzer = "StandardAnalyzer";
     };
     explicit OnlineImportClient(const Config& config);
     void DoImport();
+    void DoFullImport() const;
 
  protected:
     Config config_;

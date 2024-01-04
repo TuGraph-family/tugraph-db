@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
@@ -555,7 +554,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
 
         auto oute = client.ListOutEdges(db_name, 0);
         for (auto& oe : oute) {
-            if (oe.dst == 1) ERR() << "  delete vertex err!";
+            if (oe.dst == 1) UT_ERR() << "  delete vertex err!";
         }
 
         UT_EXPECT_ANY_THROW(auto f = client.GetVertexField(db_name, 1, std::string("name")));

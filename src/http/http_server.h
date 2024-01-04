@@ -17,6 +17,7 @@
 #include <brpc/server.h>
 #include <brpc/restful.h>
 #include "protobuf/ha.pb.h"
+#include "protobuf/tugraph_db_management.pb.h"
 #include "core/global_config.h"
 #include "db/galaxy.h"
 #include "server/state_machine.h"
@@ -32,6 +33,7 @@ typedef const std::function<void(const brpc::Controller*, std::string&)> binding
 class HttpService : public LGraphHttpService {
  public:
     friend class ImportTask;
+    friend class AlgorithmTask;
 
     struct DoneClosure : public google::protobuf::Closure {
         std::mutex mu_;
@@ -99,6 +101,12 @@ class HttpService : public LGraphHttpService {
 
     void DoCallProcedure(const brpc::Controller* cntl, std::string& res);
 
+    void DoCreateProcedureJob(const brpc::Controller* cntl, std::string& res);
+
+    void DoListProcedureJobs(const brpc::Controller* cntl, std::string& res);
+
+    void DoGetProcedureJobResult(const brpc::Controller* cntl, std::string& res);
+
     void BuildPbGraphQueryRequest(const brpc::Controller* cntl,
                                   const lgraph_api::GraphQueryType& query_type,
                                   const std::string& token, LGraphRequest& pb);
@@ -117,6 +125,8 @@ class HttpService : public LGraphHttpService {
     int OpenUserFile(const std::string& token, std::string file_name);
 
     uint64_t GetSerialNumber() { return serial_number_.fetch_add(1); }
+
+    uint64_t GetAlgoTaskSeq() { return algo_task_seq_.fetch_add(1); }
 
     void DeleteSpecifiedFile(const std::string& token, const std::string& file_name);
 
@@ -142,12 +152,16 @@ class HttpService : public LGraphHttpService {
 
     std::string CheckTokenOrThrowException(const brpc::Controller* cntl) const;
 
+    std::string GetOrCreateTaskId(const brpc::Controller* cntl) const;
+
     StateMachine* sm_;
     lgraph::Galaxy* galaxy_;
     std::string resource_dir_;
     ImportManager import_manager_;
-    fma_common::ThreadPool pool_;
+    fma_common::ThreadPool import_pool_;
+    fma_common::ThreadPool algo_pool_;
     std::atomic<uint64_t> serial_number_;
+    std::atomic<uint64_t> algo_task_seq_;
     std::unordered_map<std::string, bindingFunction> functions_map_;
 };
 

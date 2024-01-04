@@ -18,7 +18,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_edge_iterator.h"
 #include "lgraph/lgraph_types.h"

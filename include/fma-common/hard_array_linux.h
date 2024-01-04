@@ -63,7 +63,7 @@ class HardArray {
     HardArray(const std::string& filename, bool read_only, size_t size) : filename_(filename) {
         int64_t file_size = FileSize(filename);
         if (size == 0 && file_size < 0) {
-            FMA_LOG() << "error opening file " << filename << " for read";
+            LOG_INFO() << "error opening file " << filename << " for read";
             FMA_ASSERT(false);
         }
         size_ = (size == 0) ? file_size : size;

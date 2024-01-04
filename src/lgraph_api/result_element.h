@@ -15,8 +15,11 @@
 #pragma once
 
 #include <map>
+#include <any>
 #include "tools/json.hpp"
 #include "lgraph/lgraph_types.h"
+#include "bolt/graph.h"
+#include "bolt/path.h"
 
 namespace lgraph_api {
 namespace lgraph_result {
@@ -27,6 +30,7 @@ struct Node {
     std::string label;
     std::map<std::string, lgraph_api::FieldData> properties;
     nlohmann::json ToJson();
+    bolt::Node ToBolt();
 };
 
 struct Relationship {
@@ -39,6 +43,8 @@ struct Relationship {
     bool forward;
     std::map<std::string, lgraph_api::FieldData> properties;
     nlohmann::json ToJson();
+    bolt::Relationship ToBolt();
+    bolt::RelNode ToBoltUnbound();
 };
 
 // WARNING: [PathElement] just include node and relationship
@@ -125,6 +131,7 @@ struct ResultElement {
 
     nlohmann::json ToJson();
     std::string ToString();
+    std::any ToBolt();
 };
 
 }  // namespace lgraph_api

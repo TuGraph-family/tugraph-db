@@ -59,7 +59,6 @@ class Galaxy {
     double retry_login_time = 0.0;
 
  private:
-    fma_common::Logger& logger_ = fma_common::Logger::Get("Galaxy");
     mutable KillableRWLock reload_lock_;
     Config config_;
     std::shared_ptr<GlobalConfig> global_config_;
@@ -90,8 +89,9 @@ class Galaxy {
     inline const Config& GetConfig() const { return config_; }
     inline const std::shared_ptr<GlobalConfig> GetGlobalConfigPtr() const { return global_config_; }
 
-    // get token for a user
     std::string GetUserToken(const std::string& user, const std::string& password);
+
+    bool ValidateUser(const std::string& user, const std::string& password);
 
     // parse user token to get user name
     std::string ParseAndValidateToken(const std::string& token) const;
@@ -130,7 +130,7 @@ class Galaxy {
 
     // create a graph
     bool CreateGraph(const std::string& curr_user, const std::string& graph_name,
-                     const DBConfig& config);
+                     const DBConfig& config, const std::string& data_file_path = "");
 
     // delete a graph
     bool DeleteGraph(const std::string& curr_user, const std::string& graph_name);
@@ -246,7 +246,7 @@ class Galaxy {
     bool ModUserDisable(const std::string& curr_user, const std::string& user, bool disable);
 
     bool ChangeCurrentPassword(const std::string& user, const std::string& old_password,
-                               const std::string& new_password);
+                               const std::string& new_password, bool force_reset_password = false);
 
     bool ChangeUserPassword(const std::string& current_user, const std::string& user,
                             const std::string& password);

@@ -18,26 +18,17 @@
 #ifndef GEAXFRONTEND_AST_STMT_BINDINGVALUE_H_
 #define GEAXFRONTEND_AST_STMT_BINDINGVALUE_H_
 
-#include "geax-front-end/ast/stmt/BindingVar.h"
+#include "geax-front-end/ast/stmt/BindingDefinition.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingValue : public BindingVar {
+class BindingValue : public BindingDefinition {
 public:
-    BindingValue() : BindingVar(AstNodeType::kBindingValue) {}
+    BindingValue() : BindingDefinition(AstNodeType::kBindingValue) {}
     ~BindingValue() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
-
-    DEFINE_FROM_AND_TO_JSON
-
-private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-    }
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 };  // class BindingValue
 
 }  // namespace frontend

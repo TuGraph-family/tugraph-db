@@ -13,6 +13,7 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <any>
 #include <stdexcept>
 #include <cstdint>
 #include <string>
@@ -863,6 +864,8 @@ struct FieldData {
         throw std::bad_cast();
     }
 
+    std::any ToBolt() const;
+
     /** @brief   Get string representation of this FieldData. */
     inline std::string ToString(const std::string& null_value = "NUL") const {
         switch (type) {
@@ -927,9 +930,9 @@ struct FieldData {
             case FieldType::INT64:
                 return data.int64 == rhs.data.int64;
             case FieldType::FLOAT:
-                return data.sp == rhs.data.sp;
+                return std::abs(data.sp - rhs.data.sp) < std::numeric_limits<float>::epsilon();
             case FieldType::DOUBLE:
-                return data.dp == rhs.data.dp;
+                return std::abs(data.dp - rhs.data.dp) < std::numeric_limits<double>::epsilon();
             case FieldType::DATE:
                 return data.int32 == rhs.data.int32;
             case FieldType::DATETIME:

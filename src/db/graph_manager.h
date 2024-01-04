@@ -80,6 +80,10 @@ class GraphManager {
     // create a graph
     bool CreateGraph(KvTransaction& txn, const std::string& name, const DBConfig& config);
 
+    // create a graph with data
+    bool CreateGraphWithData(KvTransaction& txn, const std::string& name, const DBConfig& config,
+                     const std::string& data_file_path);
+
     // del graph info from memory and kv
     lgraph::GraphManager::GcDb DelGraph(KvTransaction& txn, const std::string& name);
 

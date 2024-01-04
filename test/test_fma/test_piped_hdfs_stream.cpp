@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/piped_hdfs_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -34,7 +33,7 @@ FMA_UNIT_TEST(PipedHdfsStream) {
     config.Parse(argc, argv);
     config.Finalize();
 
-    LOG() << "Writing to " << path;
+    LOG_INFO() << "Writing to " << path;
     std::vector<int> v(v_size, 1);
     double t1 = GetTime();
     OutputHdfsStream out(path);
@@ -45,7 +44,7 @@ FMA_UNIT_TEST(PipedHdfsStream) {
     double t2 = GetTime();
     double mb = (double)v_size * sizeof(int) * nv;
     double mbps = mb / 1024 / 1024 / (t2 - t1);
-    LOG() << "Write finished at " << mbps << "MB/s";
+    LOG_INFO() << "Write finished at " << mbps << "MB/s";
 
     std::fill(v.begin(), v.end(), 0);
     double sum = 0;
@@ -65,7 +64,7 @@ FMA_UNIT_TEST(PipedHdfsStream) {
     in.Close();
     t2 = GetTime();
     FMA_UT_CHECK_EQ(sum, (double)v_size * nv) << "Data is corrupted";
-    LOG() << "Read finished at " << mb / 1024 / 1024 / (t2 - t1 - t_compute) << "MB/s";
+    LOG_INFO() << "Read finished at " << mb / 1024 / 1024 / (t2 - t1 - t_compute) << "MB/s";
 #endif
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();

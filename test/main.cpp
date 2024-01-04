@@ -18,7 +18,6 @@
 #include "gflags/gflags.h"
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "./ut_utils.h"
 #include "./ut_types.h"
@@ -70,20 +69,14 @@ int main(int argc, char** argv) {
     config.ParseAndRemove(&argc, &argv);
     config.Finalize();
 
-    auto level = fma_common::LogLevel::LL_ERROR;
     auto severity_level = lgraph_log::severity_level::ERROR;
     if (verbose == 0) {
-        level = fma_common::LogLevel::LL_ERROR;
         severity_level = lgraph_log::severity_level::ERROR;
     } else if (verbose == 1) {
-        level = fma_common::LogLevel::LL_INFO;
         severity_level = lgraph_log::severity_level::INFO;
     } else {
-        level = fma_common::LogLevel::LL_DEBUG;
         severity_level = lgraph_log::severity_level::DEBUG;
     }
-    fma_common::Logger::Get().SetLevel(level);
-    fma_common::Logger::Get().SetFormatter(std::make_shared<fma_common::TimedLogFormatter>());
     lgraph_log::LoggerManager::GetInstance().Init("", severity_level);
     _ut_argc = argc;
     _ut_argv = argv;

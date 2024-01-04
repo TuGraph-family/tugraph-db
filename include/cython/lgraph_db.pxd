@@ -67,8 +67,15 @@ cdef extern from "lgraph/lgraph_types.h" namespace "lgraph_api":
         FieldData(const char* buf, size_t s)
         string ToString() nogil
         int32_t AsInt32() nogil
+        int64_t AsInt64() nogil
         FieldType type
         FieldData_data data
+    
+    cdef struct FieldSpec:
+        string name
+        FieldType type
+        bint optional
+        FieldSpec()
 
 
 cdef extern from "lgraph/lgraph_vertex_index_iterator.h" namespace "lgraph_api":
@@ -79,12 +86,18 @@ cdef extern from "lgraph/lgraph_vertex_iterator.h" namespace "lgraph_api":
     cdef cppclass VertexIterator nogil:
         bint Goto(int64_t vid, bint nearest = false)
         FieldData GetField(const string& field_name) const
+        string GetLabel() const
+        int16_t GetLabelId() const
         InEdgeIterator GetInEdgeIterator() const
-        bint IsValid()
+        OutEdgeIterator GetOutEdgeIterator() const
 
 cdef extern from "lgraph/lgraph_edge_iterator.h" namespace "lgraph_api":
     cdef cppclass OutEdgeIterator nogil:
-        pass
+        string GetLabel() const
+        int16_t GetLabelId() const
+        int64_t GetDst() const
+        bint IsValid() const
+        bint Next() const
 
     cdef cppclass InEdgeIterator nogil:
         pass
@@ -163,7 +176,7 @@ cdef extern from "lgraph/lgraph_txn.h" namespace "lgraph_api":
         vector[string] ListEdgeLabels()
         size_t GetVertexLabelId(const string& label)
         size_t GetEdgeLabelId(const string& label)
-        # vector[FieldSpec] GetVertexSchema(const string& label)
+        vector[FieldSpec] GetVertexSchema(const string& label)
         # vector[FieldSpec] GetEdgeSchema(const string& label)
         size_t GetVertexFieldId(size_t label_id, const string& field_name)
         vector[size_t] GetVertexFieldIds(size_t label_id, const vector[string]& field_names)

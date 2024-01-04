@@ -45,6 +45,7 @@ set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
 # target
+set(GEAX_ENABLE_GLOG OFF)
 add_subdirectory(deps/geax-front-end)
 add_subdirectory(src)
 add_subdirectory(toolkits)

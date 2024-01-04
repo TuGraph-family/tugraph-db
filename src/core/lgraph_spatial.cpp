@@ -381,6 +381,7 @@ std::string Spatial<SRID_Type>::ToString() const {
 }
 
 template<typename SRID_Type>
+<<<<<<< HEAD
 double Spatial<SRID_Type>::Distance(Spatial<SRID_Type>& other) {
     switch (type_) {
         case SpatialType::POINT:
@@ -431,6 +432,8 @@ double Spatial<SRID_Type>::Distance(Spatial<SRID_Type>& other) {
 }
 
 template<typename SRID_Type>
+=======
+>>>>>>> FETCH_HEAD
 bool Spatial<SRID_Type>::operator==(const Spatial<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
@@ -504,6 +507,7 @@ Point<SRID_Type>::Point(const std::string& ewkb)
 }
 
 template<typename SRID_Type>
+<<<<<<< HEAD
 Point<SRID_Type>::Point(double arg1, double arg2, SRID& srid)
 : SpatialBase(srid, SpatialType::POINT) {
     bg::set<0>(point_, arg1);
@@ -520,6 +524,8 @@ Point<SRID_Type>::Point(double arg1, double arg2, SRID& srid)
 }
 
 template<typename SRID_Type>
+=======
+>>>>>>> FETCH_HEAD
 std::string Point<SRID_Type>::AsEWKT() const {
     std::string ewkt;
     std::stringstream ioss;
@@ -541,6 +547,7 @@ std::string Point<SRID_Type>::ToString() const {
 }
 
 template<typename SRID_Type>
+<<<<<<< HEAD
 double Point<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
         throw InputError("distance srid missmatch!");
@@ -562,6 +569,8 @@ double Point<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
 }
 
 template<typename SRID_Type>
+=======
+>>>>>>> FETCH_HEAD
 bool Point<SRID_Type>::operator==(const Point<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
@@ -649,6 +658,7 @@ std::string LineString<SRID_Type>::ToString() const {
 }
 
 template<typename SRID_Type>
+<<<<<<< HEAD
 double LineString<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
         throw InputError("distance srid missmatch!");
@@ -670,6 +680,8 @@ double LineString<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
 }
 
 template<typename SRID_Type>
+=======
+>>>>>>> FETCH_HEAD
 bool LineString<SRID_Type>::operator==(const LineString<SRID_Type> &other) {
     return AsEWKB() == other.AsEWKB();
 }
@@ -756,6 +768,7 @@ std::string Polygon<SRID_Type>::AsEWKT() const {
 }
 
 template<typename SRID_Type>
+<<<<<<< HEAD
 double Polygon<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
         throw InputError("distance srid missmatch!");
@@ -777,6 +790,8 @@ double Polygon<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
 }
 
 template<typename SRID_Type>
+=======
+>>>>>>> FETCH_HEAD
 std::string Polygon<SRID_Type>::ToString() const {
     return AsEWKB();
 }

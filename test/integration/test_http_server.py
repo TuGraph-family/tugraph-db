@@ -308,3 +308,5 @@ class TestHttpServer:
         assert res[0]['COUNT(n)'] == 3145728
         res = self.file_exists("./testdb/upload_files/admin/http_server_test_data_import.csv")
         assert (res == False)
+
+    # TODO(anyone): add more interface tests

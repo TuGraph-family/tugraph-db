@@ -13,7 +13,6 @@
  */
 
 #include <string>
-#include "fma-common/logging.h"
 #include "fma-common/configuration.h"
 
 #include "core/graph_edge_iterator.h"
@@ -227,7 +226,7 @@ TEST_F(TestGraphEdgeIterator, GraphEdgeIterator) {
             eid++;
         }
     } catch (std::exception& e) {
-        ERR() << e.what();
+        UT_ERR() << e.what();
     }
 
     UT_LOG() << "Checking Next()";

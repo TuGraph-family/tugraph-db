@@ -128,7 +128,7 @@ class ImportDataFile {
         dir_ = dir + fs.PathSeparater() + "_fma_tmp_";
         fs.RemoveDir(dir_);
         if (!fs.Mkdir(dir_)) {
-            FMA_ERR() << "Failed to create directory [" << dir_ << "] for intermediate files";
+            LOG_ERROR() << "Failed to create directory [" << dir_ << "] for intermediate files";
         }
     }
 
@@ -142,7 +142,7 @@ class ImportDataFile {
         v_file_offsets_[label].emplace_back(start_vid, 0);
         v_out_data_file_.Open(GetVDataFileName(v_label_), buf_size_, std::ios_base::app);
         if (!v_out_data_file_.Good()) {
-            FMA_ERR() << "Error opening file [" << v_out_data_file_.Path() << "] for write";
+            LOG_ERROR() << "Error opening file [" << v_out_data_file_.Path() << "] for write";
         }
     }
 
@@ -175,7 +175,7 @@ class ImportDataFile {
             src_oe_files_[i].Open(GetOutEdgeFileName(src_label, i), buf_size_, std::ios_base::app,
                                   std::make_tuple(), std::make_tuple(&writers_));
             if (!src_oe_files_[i].Good()) {
-                FMA_ERR() << "Error opening intermediate file [" << src_oe_files_[i].Path()
+                LOG_ERROR() << "Error opening intermediate file [" << src_oe_files_[i].Path()
                           << "] for write";
             }
         }
@@ -191,7 +191,7 @@ class ImportDataFile {
             dst_ie_files_[i].Open(GetInRefFileName(dst_label, i), buf_size_, std::ios_base::app,
                                   std::make_tuple(), std::make_tuple(&writers_));
             if (!dst_ie_files_[i].Good()) {
-                FMA_ERR() << "Error opening intermediate file [" << dst_ie_files_[i].Path()
+                LOG_ERROR() << "Error opening intermediate file [" << dst_ie_files_[i].Path()
                           << "] for write";
             }
         }
@@ -229,14 +229,14 @@ class ImportDataFile {
         sorted_buckets_.reset(new fma_common::BoundedQueue<BucketData>(1));
         bucket_sorter_.reset(new fma_common::PipelineStage<BucketData, BucketData>(
             [this](BucketData&& data) -> BucketData {
-                if (!data.vdata.empty()) FMA_DBG() << "start sorting " << data.vdata.front().vid;
+                if (!data.vdata.empty()) LOG_DEBUG() << "start sorting " << data.vdata.front().vid;
                 // LGRAPH_PSORT(data.ins.begin(), data.ins.end());
                 // LGRAPH_PSORT(data.oes.begin(), data.oes.end());
                 if (!std::is_sorted(data.ins.begin(), data.ins.end()))
                     std::stable_sort(data.ins.begin(), data.ins.end());
                 if (!std::is_sorted(data.oes.begin(), data.oes.end()))
                     std::stable_sort(data.oes.begin(), data.oes.end());
-                if (!data.vdata.empty()) FMA_DBG() << "end sorting " << data.vdata.front().vid;
+                if (!data.vdata.empty()) LOG_DEBUG() << "end sorting " << data.vdata.front().vid;
                 return std::move(data);
             },
             nullptr, 0, n_sorters, n_sorters, false, sorted_buckets_.get()));
@@ -245,7 +245,7 @@ class ImportDataFile {
             [this, ibuf_size, bucket_size, start_vid, end_vid](size_t bucket_id) -> BucketData {
                 BucketData ret;
                 if (bucket_id >= n_buckets_) return ret;
-                FMA_DBG() << "start reading " << bucket_id;
+                LOG_DEBUG() << "start reading " << bucket_id;
                 VidType first_vid = start_vid + bucket_id * bucket_size;
                 VidType last_vid = std::min(first_vid + bucket_size, end_vid);
                 fma_common::InputFmaStream vf(GetVDataFileName(v_label_), ibuf_size);
@@ -287,7 +287,7 @@ class ImportDataFile {
                     if (fma_common::BinaryRead(ief, e) == 0) break;
                     ret.ins.emplace_back(std::move(e));
                 }
-                FMA_DBG() << "end reading " << bucket_id;
+                LOG_DEBUG() << "end reading " << bucket_id;
                 return ret;
             },
             nullptr, 0, n_readers, n_buckets_, false, bucket_sorter_.get()));

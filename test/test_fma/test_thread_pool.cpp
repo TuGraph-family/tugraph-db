@@ -18,7 +18,6 @@
 #include <string>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/thread_pool.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -43,7 +42,7 @@ FMA_UNIT_TEST(ThreadPool) {
     config.Parse(argc, argv);
     config.Finalize();
 
-    FMA_LOG() << "Using " << n_threads << " threads to process " << n_tasks << " elements";
+    LOG_INFO() << "Using " << n_threads << " threads to process " << n_tasks << " elements";
 
     std::vector<int> seq(n_tasks, 0);
     std::atomic<int> curr(0);
@@ -55,7 +54,7 @@ FMA_UNIT_TEST(ThreadPool) {
                 int my_seq = curr++;
                 seq[i] = my_seq;
                 SleepS(sleep_time);
-                FMA_LOG() << i << ", seqNo " << my_seq << " sleeping for " << sleep_time << "s";
+                LOG_INFO() << i << ", seqNo " << my_seq << " sleeping for " << sleep_time << "s";
             });
         }
         while (curr != n_tasks) SleepUs(1);
@@ -82,14 +81,14 @@ FMA_UNIT_TEST(ThreadPool) {
         while (n_run < total_tasks) {
             double et = GetTime() - t1;
             if (et > long_time) {
-                FMA_ERR() << "Performance test is taking too long to execute: " << et
+                LOG_ERROR() << "Performance test is taking too long to execute: " << et
                           << "s, aborting";
             }
             SleepUs(1);
         }
     }
     t2 = GetTime();
-    FMA_LOG() << "Processed " << total_tasks << " tasks at " << (double)total_tasks / (t2 - t1)
+    LOG_INFO() << "Processed " << total_tasks << " tasks at " << (double)total_tasks / (t2 - t1)
               << "tps";
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();

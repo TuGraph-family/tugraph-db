@@ -31,7 +31,7 @@
 
 namespace cypher {
 
-class AstExprEvaluator : public geax::frontend::AstNodeVisitor {
+class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
  public:
     AstExprEvaluator() = delete;
 
@@ -77,10 +77,6 @@ class AstExprEvaluator : public geax::frontend::AstNodeVisitor {
     }
 
  private:
-    std::any visit(geax::frontend::Expr* node) {
-        return node->accept(*this);
-    }
-
     std::any visit(geax::frontend::GetField* node) override;
     std::any visit(geax::frontend::TupleGet* node) override;
     std::any visit(geax::frontend::Not* node) override;
@@ -136,73 +132,8 @@ class AstExprEvaluator : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::VNull* node) override;
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
-    std::any visit(geax::frontend::GraphPattern* node) override;
-    std::any visit(geax::frontend::PathPattern* node) override;
-    std::any visit(geax::frontend::PathChain* node) override;
-    std::any visit(geax::frontend::Node* node) override;
-    std::any visit(geax::frontend::Edge* node) override;
-    std::any visit(geax::frontend::ElementFiller* node) override;
-    std::any visit(geax::frontend::WhereClause* node) override;
-    std::any visit(geax::frontend::OrderByField* node) override;
-    std::any visit(geax::frontend::PathModePrefix* node) override;
-    std::any visit(geax::frontend::PathSearchPrefix* node) override;
-    std::any visit(geax::frontend::SingleLabel* node) override;
-    std::any visit(geax::frontend::LabelOr* node) override;
-    std::any visit(geax::frontend::LabelAnd* node) override;
-    std::any visit(geax::frontend::LabelNot* node) override;
-    std::any visit(geax::frontend::PropStruct* node) override;
-    std::any visit(geax::frontend::YieldField* node) override;
-    std::any visit(geax::frontend::TableFunctionClause* node) override;
-    std::any visit(geax::frontend::ReadConsistency* node) override;
-    std::any visit(geax::frontend::AllowAnonymousTable* node) override;
-    std::any visit(geax::frontend::OpConcurrent* node) override;
-    std::any visit(geax::frontend::SetAllProperties* node) override;
-    std::any visit(geax::frontend::SetLabel* node) override;
-    std::any visit(geax::frontend::IsNull* node) override;
-    std::any visit(geax::frontend::IsDirected* node) override;
-    std::any visit(geax::frontend::IsNormalized* node) override;
-    std::any visit(geax::frontend::IsSourceOf* node) override;
-    std::any visit(geax::frontend::IsDestinationOf* node) override;
-    std::any visit(geax::frontend::IsLabeled* node) override;
-    std::any visit(geax::frontend::Same* node) override;
-    std::any visit(geax::frontend::AllDifferent* node) override;
-    std::any visit(geax::frontend::Exists* node) override;
-    std::any visit(geax::frontend::ProcedureBody* node) override;
-    std::any visit(geax::frontend::SchemaFromPath* node) override;
-    std::any visit(geax::frontend::BindingValue* node) override;
-    std::any visit(geax::frontend::BindingGraph* node) override;
-    std::any visit(geax::frontend::BindingTable* node) override;
-    std::any visit(geax::frontend::StatementWithYield* node) override;
-    std::any visit(geax::frontend::QueryStatement* node) override;
-    std::any visit(geax::frontend::JoinQueryExpression* node) override;
-    std::any visit(geax::frontend::JoinRightPart* node) override;
-    std::any visit(geax::frontend::CompositeQueryStatement* node) override;
-    std::any visit(geax::frontend::AmbientLinearQueryStatement* node) override;
-    std::any visit(geax::frontend::SelectStatement* node) override;
-    std::any visit(geax::frontend::FocusedQueryStatement* node) override;
-    std::any visit(geax::frontend::FocusedResultStatement* node) override;
-    std::any visit(geax::frontend::MatchStatement* node) override;
-    std::any visit(geax::frontend::FilterStatement* node) override;
-    std::any visit(geax::frontend::PrimitiveResultStatement* node) override;
-    std::any visit(geax::frontend::CatalogModifyStatement* node) override;
-    std::any visit(geax::frontend::LinearDataModifyingStatement* node) override;
-    std::any visit(geax::frontend::InsertStatement* node) override;
-    std::any visit(geax::frontend::ReplaceStatement* node) override;
-    std::any visit(geax::frontend::SetStatement* node) override;
-    std::any visit(geax::frontend::DeleteStatement* node) override;
-    std::any visit(geax::frontend::RemoveStatement* node) override;
-    std::any visit(geax::frontend::OtherWise* node) override;
-    std::any visit(geax::frontend::Union* node) override;
-    std::any visit(geax::frontend::Except* node) override;
-    std::any visit(geax::frontend::Intersect* node) override;
-
-    std::any visit(geax::frontend::UpdateProperties* node) override;
-    std::any visit(geax::frontend::SetSingleProperty* node) override;
     std::any visit(geax::frontend::Param* node) override;
-    std::any visit(geax::frontend::ShowProcessListStatement* node) override;
-    std::any visit(geax::frontend::KillStatement* node) override;
-    std::any visit(geax::frontend::ManagerStatement* node) override;
-    std::any visit(geax::frontend::DummyNode* node) override;
+
     std::any reportError() override;
 
  private:

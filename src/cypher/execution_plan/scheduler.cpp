@@ -16,13 +16,13 @@
 // Created by wt on 18-8-14.
 //
 #include "./antlr4-runtime.h"
-#include "fma-common/logger.h"
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/AstDumper.h"
 #include "geax-front-end/isogql/GQLResolveCtx.h"
 #include "geax-front-end/isogql/GQLAstVisitor.h"
 #include "geax-front-end/isogql/parser/AntlrGqlParser.h"
 
+#include "tools/lgraph_log.h"
 #include "core/task_tracker.h"
 
 #include "parser/generated/LcypherLexer.h"
@@ -36,11 +36,6 @@
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 
 namespace cypher {
-
-inline fma_common::Logger &Logger() {
-    static fma_common::Logger &logger = fma_common::Logger::Get("server.cypher.execution_plan");
-    return logger;
-}
 
 void Scheduler::Eval(RTContext *ctx, const lgraph_api::GraphQueryType &type,
                      const std::string &script, ElapsedTime &elapsed) {
@@ -78,9 +73,9 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
          * add customized ErrorListener  */
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
-        FMA_DBG_STREAM(Logger()) << "-----CLAUSE TO STRING-----";
+        LOG_DEBUG() << "-----CLAUSE TO STRING-----";
         for (const auto &sql_query : visitor.GetQuery()) {
-            FMA_DBG_STREAM(Logger()) << sql_query.ToString();
+            LOG_DEBUG() << sql_query.ToString();
         }
         plan = std::make_shared<ExecutionPlan>();
         plan->Build(visitor.GetQuery(), visitor.CommandType(), ctx);
@@ -94,7 +89,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
             r->Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
             return;
         }
-        FMA_DBG_STREAM(Logger()) << "Plan cache disabled.";
+        LOG_DEBUG() << "Plan cache disabled.";
         // FMA_DBG_STREAM(Logger())
         //     << "Miss execution plan cache, build plan for this query.";
     } else {
@@ -110,7 +105,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
                 plan->Execute(ctx);
                 break;
             } catch (lgraph::TxnCommitException &e) {
-                FMA_DBG_STREAM(Logger()) << e.what();
+                LOG_DEBUG() << e.what();
             }
         }
     } else {
@@ -145,7 +140,7 @@ void Scheduler::EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &
     geax::frontend::AntlrGqlParser parser(script);
     parser::GqlParser::GqlRequestContext *rule = parser.gqlRequest();
     if (!parser.error().empty()) {
-        FMA_DBG() << "parser.gqlRequest() error: " << parser.error();
+        LOG_DEBUG() << "parser.gqlRequest() error: " << parser.error();
         result = parser.error();
         throw lgraph::ParserException(result);
     }
@@ -155,7 +150,7 @@ void Scheduler::EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &
     rule->accept(&visitor);
     auto ret = visitor.error();
     if (ret != GEAXErrorCode::GEAX_SUCCEED) {
-        FMA_DBG() << "rule->accept(&visitor) ret: " << ToString(ret);
+        LOG_DEBUG() << "rule->accept(&visitor) ret: " << ToString(ret);
         result = ToString(ret);
         throw lgraph::GqlException(result);
     }
@@ -167,27 +162,27 @@ void Scheduler::EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &
     geax::frontend::AstDumper dumper;
     ret = dumper.handle(node);
     if (ret != GEAXErrorCode::GEAX_SUCCEED) {
-        FMA_DBG() << "dumper.handle(node) gql: " << script;
-        FMA_DBG() << "dumper.handle(node) ret: " << ToString(ret);
-        FMA_DBG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+        LOG_DEBUG() << "dumper.handle(node) gql: " << script;
+        LOG_DEBUG() << "dumper.handle(node) ret: " << ToString(ret);
+        LOG_DEBUG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
         result = dumper.error_msg();
         throw lgraph::GqlException(result);
     } else {
-        FMA_DBG() << "--- dumper.handle(node) dump ---";
-        FMA_DBG() << dumper.dump();
+        LOG_DEBUG() << "--- dumper.handle(node) dump ---";
+        LOG_DEBUG() << dumper.dump();
     }
     cypher::ExecutionPlanV2 execution_plan_v2;
     ret = execution_plan_v2.Build(node);
     elapsed.t_compile = fma_common::GetTime() - t0;
     if (ret != GEAXErrorCode::GEAX_SUCCEED) {
-        FMA_DBG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
+        LOG_DEBUG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
         result = execution_plan_v2.ErrorMsg();
         throw lgraph::GqlException(result);
     } else {
         execution_plan_v2.Execute(ctx);
-        FMA_DBG() << "-----result-----";
+        LOG_DEBUG() << "-----result-----";
         result = ctx->result_->Dump(false);
-        FMA_DBG() << result;
+        LOG_DEBUG() << result;
         elapsed.t_total = fma_common::GetTime() - t0;
         elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
     }

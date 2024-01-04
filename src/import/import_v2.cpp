@@ -50,7 +50,8 @@ lgraph::AccessControlledDB lgraph::import_v2::Importer::OpenGraph(Galaxy& galaxy
                     "Graph already exists. If you want to overwrite the graph, use --overwrite "
                     "true.");
             } else {
-                FMA_LOG() << "Graph already exists, all the data in the graph will be overwritten.";
+                LOG_INFO() << "Graph already exists,"
+                              " all the data in the graph will be overwritten.";
                 AccessControlledDB db = galaxy.OpenGraph(config_.user, config_.graph);
                 db.DropAllData();
             }
@@ -120,7 +121,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             for (auto& p : m) fds.emplace_back(p.second);
             bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
             if (ok) {
-                FMA_LOG() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
+                LOG_INFO() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
                                      v.name);
             } else {
                 throw std::runtime_error(
@@ -136,7 +137,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                     spec.idxType == lgraph::IndexType::NonuniqueIndex) {
                     // create index, ID column has creadted
                     if (db.AddVertexIndex(v.name, spec.name, spec.idxType)) {
-                        FMA_LOG() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                        LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
                                              v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
@@ -154,7 +155,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
                     if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
-                        FMA_LOG() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                        LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
                                              v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
                         throw InputError(
@@ -172,7 +173,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                 if (spec.fulltext) {
                     bool ok = db.AddFullTextIndex(v.is_vertex, v.name, spec.name);
                     if (ok) {
-                        FMA_LOG() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
+                        LOG_INFO() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
                                              v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     } else {
                         throw InputError(FMA_FMT(
@@ -219,7 +220,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                 v_capacity[file.edge_dst.label] += file.size;
             }
         }
-        FMA_LOG() << "Total file size: " << (double)total_file_size / 1024 / 1024 / 1024 << "GB";
+        LOG_INFO() << "Total file size: " << (double)total_file_size / 1024 / 1024 / 1024 << "GB";
     }
 
     // calculate n_buckets for each vertex label
@@ -237,7 +238,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
         case PlanExecutor::Action::LOAD_VERTEX:
             {
                 const std::string& vlabel = vid_label[act.vid];
-                FMA_LOG() << "Load vertex label " << vlabel;
+                LOG_INFO() << "Load vertex label " << vlabel;
                 if (!config_.dry_run) {
                     LoadVertexFiles(db.GetLightningGraph(), v_label_files[vlabel],
                                     schema.FindVertexLabel(vlabel));
@@ -248,7 +249,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             {
                 const std::string& src_label = vid_label[act.edge.first];
                 const std::string& dst_label = vid_label[act.edge.second];
-                FMA_LOG() << "Load edges from vertex " << src_label << " to " << dst_label;
+                LOG_INFO() << "Load edges from vertex " << src_label << " to " << dst_label;
                 if (!config_.dry_run) {
                     std::map<std::string, std::vector<CsvDesc*>>& elabel_files =
                         src_dst_files[std::make_pair(src_label, dst_label)];
@@ -262,7 +263,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
         case PlanExecutor::Action::DUMP_VERTEX:
             {
                 const std::string& vlabel = vid_label[act.vid];
-                FMA_LOG() << "Write vertex label " << vlabel;
+                LOG_INFO() << "Write vertex label " << vlabel;
                 const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryField();
                 if (!config_.dry_run) {
                     WriteVertex(db.GetLightningGraph(), vlabel, key_spec.name, key_spec.type);
@@ -274,14 +275,14 @@ void lgraph::import_v2::Importer::DoImportOffline() {
         }
     }
     // persist
-    FMA_LOG() << "Persisting data...";
+    LOG_INFO() << "Persisting data...";
     db.Flush();
     if (!config_.keep_intermediate_files) {
-        FMA_DBG() << "Deleting tmp files...";
+        LOG_DEBUG() << "Deleting tmp files...";
         intermediate_file_.CleanTempFiles();
     }
     import_index();
-    FMA_LOG() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
+    LOG_INFO() << "Import finished in " << fma_common::GetTime() - t1 << " seconds.";
 }
 
 inline std::string LimitedLengthStr(const std::string& s, size_t max_size = 1024) {
@@ -312,7 +313,7 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
     BufferedBlobWriter blob_writer(db, 1 << 20);
     for (auto& desc : files) {
         CsvDesc fd = *desc;
-        FMA_LOG() << "\tFile [" << desc->path << "]";
+        LOG_INFO() << "\tFile [" << desc->path << "]";
         FMA_ASSERT(desc->is_vertex_file);
         std::vector<FieldSpec> fts;
         {
@@ -454,7 +455,7 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                     double t2 = fma_common::GetTime();
                     double percent = (double)(nblock * config_.parse_block_size) * 100 /
                                      std::max<size_t>(desc->size, 1);
-                    FMA_LOG() << "\t " << percent << "% - Read " << nlines << " lines at "
+                    LOG_INFO() << "\t " << percent << "% - Read " << nlines << " lines at "
                               << (double)nlines / (t2 - t1) / 1000 << " KLine/S";
                 }
             }
@@ -487,7 +488,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
     BufferedBlobWriter blob_writer(db);
     for (auto& desc : files) {
         CsvDesc fd = *desc;
-        FMA_LOG() << "\tFile [" << desc->path << "]";
+        LOG_INFO() << "\tFile [" << desc->path << "]";
         FMA_ASSERT(!desc->is_vertex_file);
         std::vector<FieldSpec> fts;
         {
@@ -696,7 +697,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                 if (++nblock % 10 == 0) {
                     double t2 = fma_common::GetTime();
                     double percent = (double)(nblock * config_.parse_block_size) * 100 / desc->size;
-                    FMA_LOG() << "\t " << percent << "% - Read " << nlines << " lines at "
+                    LOG_INFO() << "\t " << percent << "% - Read " << nlines << " lines at "
                               << (double)nlines / (t2 - t1) / 1000 << " KLine/S";
                 }
             }
@@ -728,9 +729,9 @@ void lgraph::import_v2::Importer::DumpIndexOutOfCore(LightningGraph* db, const s
             kv.is_valid = true;
         });
     }
-    FMA_DBG() << "Sorting by unique id";
+    LOG_DEBUG() << "Sorting by unique id";
     LGRAPH_PSORT(key_vids.begin(), key_vids.end());
-    FMA_DBG() << "Dumping index";
+    LOG_DEBUG() << "Dumping index";
     Transaction txn = db->CreateWriteTxn();
     auto index = txn.GetVertexIndex(label, field);
     for (auto& kv : key_vids) {
@@ -754,7 +755,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
     //             -> committer writes to db
 
     // build index
-    FMA_DBG() << "Building index for " << label;
+    LOG_DEBUG() << "Building index for " << label;
     // make index
     db->_AddEmptyIndex(label, key_field, lgraph::IndexType::GlobalUniqueIndex, true);
     switch (key_type) {
@@ -797,7 +798,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
         FMA_ASSERT(false);
     }
 
-    FMA_DBG() << "Writing vertex data";
+    LOG_DEBUG() << "Writing vertex data";
     VidType start_id = vid_tables_.GetStartVid(label);
     VidType end_id = vid_tables_.GetEndVid(label);
     vid_tables_.DeleteVidTable(label);
@@ -823,7 +824,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
             data.clear();
             double t2 = fma_common::GetTime();
             double percent = (double)total_committed * 100 / n_vertices;
-            FMA_LOG() << "\t " << percent << "% - Committed " << total_committed
+            LOG_INFO() << "\t " << percent << "% - Committed " << total_committed
                       << ", time to write batch=" << t2 - t1;
         },
         nullptr, 0, 1, 1);
@@ -836,7 +837,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
             if (vds.size() == 0) {
                 return packed_data;
             }
-            FMA_DBG() << "start packing " << vds.front().vid;
+            LOG_DEBUG() << "start packing " << vds.front().vid;
             auto& oes = data.oes;
             auto& ies = data.ins;
             auto oeit = oes.begin();
@@ -865,7 +866,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
             }
             FMA_DBG_ASSERT(oeit == oes.end());
             FMA_DBG_ASSERT(ieit == ies.end());
-            FMA_DBG() << "end packing " << vds.front().vid;
+            LOG_DEBUG() << "end packing " << vds.front().vid;
             vds.clear();
             ies.clear();
             oes.clear();
@@ -984,9 +985,9 @@ std::vector<lgraph::import_v2::PlanExecutor::Action> lgraph::import_v2::Importer
 }
 
 void lgraph::import_v2::Importer::OnErrorOffline(const std::string& msg, bool continue_on_error) {
-    FMA_WARN() << msg;
+    LOG_WARN() << msg;
     if (!continue_on_error) {
-        FMA_ERR() << "If you wish to ignore the errors, use "
+        LOG_ERROR() << "If you wish to ignore the errors, use "
                      "--continue_on_error true";
         exit(-1);
     }

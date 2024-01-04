@@ -17,7 +17,6 @@
 
 #include "core/data_type.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/utils.h"
 
 #include "gtest/gtest.h"
@@ -610,7 +609,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
         }
         {
             // testing edges with tid
-            FMA_LOG() << "Testing edges with tid";
+            LOG_INFO() << "Testing edges with tid";
             EdgeOptions options;
             options.temporal_field = "ts";
             options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;

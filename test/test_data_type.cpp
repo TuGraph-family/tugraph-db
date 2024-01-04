@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "gtest/gtest.h"
 #include "./ut_utils.h"

@@ -100,6 +100,7 @@ add_executable(unit_test
         test_schema.cpp
         test_schema_change.cpp
         test_schema_manager.cpp
+        test_bolt_hydrator.cpp
         test_service.cpp
         test_snapshot.cpp
         test_sync_file_implementations.cpp
@@ -120,13 +121,18 @@ add_executable(unit_test
         test_ha_base.cpp
         test_global_ha_config.cpp
         test_ha.cpp
+        test_full_import_online.cpp
+        test_http_tasks.cpp
+        test_lgraph_cli.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
+        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp
 )
 
 target_link_libraries(unit_test
         lgraph_server_lib
         geax_isogql
+        bolt
         librocksdb.a)
 
 target_link_libraries(unit_test

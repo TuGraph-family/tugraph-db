@@ -238,7 +238,7 @@ class SnappyInputStream : public InputFileStream {
      * \return  Always false.
      */
     bool Seek(size_t) override {
-        FMA_ERR() << "SnappyInputStream::Seek() is not supported";
+        LOG_ERROR() << "SnappyInputStream::Seek() is not supported";
         return false;
     }
 
@@ -429,7 +429,7 @@ class SnappyOutputStream : public OutputFileStream {
         }
         if (!file_->Good()) {
             is_open_ = false;
-            FMA_ERR() << "error opening file " << path << " in snappy stream";
+            LOG_ERROR() << "error opening file " << path << " in snappy stream";
             return;
         }
         is_open_ = true;
@@ -569,7 +569,7 @@ class SnappyOutputStream : public OutputFileStream {
         } else {
             int i;
             if (!empty_buffers_.PopFront(i)) {
-                FMA_ERR() << "Exiting before push finishes";
+                LOG_ERROR() << "Exiting before push finishes";
             }
             Workspace& buf = workspace_[i];
             curr_buf_.swap(buf);

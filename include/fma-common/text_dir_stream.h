@@ -252,7 +252,7 @@ class InputTextDirStream : public InputFileStream {
                 bool r = contents_->Pop(curr_block_);
                 curr_block_offset_ = 0;
                 if (!r) {
-                    FMA_WARN() << "InputTextDirStream::Read() was interruppted. "
+                    LOG_WARN() << "InputTextDirStream::Read() was interruppted. "
                                   "It seems the program was killed.";
                     break;
                 }
@@ -286,7 +286,7 @@ class InputTextDirStream : public InputFileStream {
      * \return  Always return false.
      */
     bool Seek(size_t offset) override {
-        FMA_ERR() << "InputTextDirStream::Seek() is not implemented.";
+        LOG_ERROR() << "InputTextDirStream::Seek() is not implemented.";
         return false;
     }
 

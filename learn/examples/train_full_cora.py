@@ -42,21 +42,14 @@ def get_graph(args):
 
     NodeInfo = []
     EdgeInfo = []
-
     getdb.Process(db, olapondb, feature_len, NodeInfo, EdgeInfo)
-
     del db
     del galaxy
 
-    src = EdgeInfo[0].astype('int64')
-    dst = EdgeInfo[1].astype('int64')
-    nodes_idx = NodeInfo[0].astype('int64')
-    remap(src, dst, nodes_idx)
-    features = NodeInfo[1].astype('float32')
-    labels = NodeInfo[2].astype('int64')
-    g = dgl.graph((src, dst))
-    g.ndata['feat'] = torch.tensor(features)
-    g.ndata['label'] = torch.tensor(labels)
+    remap(EdgeInfo[0], EdgeInfo[1], NodeInfo[0])
+    g = dgl.graph((EdgeInfo[0], EdgeInfo[1]))
+    g.ndata['feat'] = torch.tensor(NodeInfo[1])
+    g.ndata['label'] = torch.tensor(NodeInfo[2])
     return g
 
 

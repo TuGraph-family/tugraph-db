@@ -15,7 +15,6 @@
 #include <boost/interprocess/ipc/message_queue.hpp>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "fma-common/string_formatter.h"
 
@@ -66,7 +65,7 @@ void buil_python_extension(const std::string& so_path, const std::string& name) 
     std::string cy_cmd;
     cy_cmd = UT_FMT("cython {} -+ -3 -o {}  --module-name {}",
                     python_path, cpp_path, name);
-    FMA_LOG() << "cm:" << cy_cmd;
+    LOG_INFO() << "cm:" << cy_cmd;
     rt = system(cy_cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 
@@ -90,7 +89,7 @@ void buil_python_extension(const std::string& so_path, const std::string& name) 
     std::string cmd;
     cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, so_path,
                  cpp_path, LIBLGRAPH);
-    FMA_LOG() << "cm:" << cmd;
+    LOG_INFO() << "cm:" << cmd;
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 }

@@ -16,7 +16,6 @@
 
 #include "fma-common/bounded_queue.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
@@ -42,9 +41,9 @@ FMA_UNIT_TEST(BoundedQueue) {
             if (i >= 4) {
                 FMA_UT_ASSERT(t2 - t1 > 0.8 * sleep_time && t2 - t1 < 2 * sleep_time)
                     << "Queue didn't block properly";
-                LOG() << "Blocked for " << t2 - t1 << " seconds";
+                LOG_INFO() << "Blocked for " << t2 - t1 << " seconds";
             }
-            LOG() << "pushed " << i;
+            LOG_INFO() << "pushed " << i;
         }
     });
 
@@ -53,8 +52,8 @@ FMA_UNIT_TEST(BoundedQueue) {
         int i = 0;
         while (queue.PopFront(d)) {
             FMA_UT_ASSERT(d == i++) << "Pop sequence is wrong, expecting " << i << " but got " << d;
-            LOG() << "popped " << d;
-            LOG() << "pop sleeping for " << sleep_time << "s";
+            LOG_INFO() << "popped " << d;
+            LOG_INFO() << "pop sleeping for " << sleep_time << "s";
             SleepS(sleep_time);
         }
     });

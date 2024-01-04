@@ -852,7 +852,7 @@ inline size_t ParseStringIntoFieldData(FieldType ft, const char* b, const char* 
             if (s == 0) return 0;
             std::string decoded;
             if (!::lgraph_api::base64::TryDecode(cd, decoded)) {
-                FMA_LOG() << ("Value is not a valid BASE64 string: " + cd.substr(0, 64) +
+                LOG_INFO() << ("Value is not a valid BASE64 string: " + cd.substr(0, 64) +
                               (cd.size() > 64 ? "..." : ""));
                 return 0;
             }

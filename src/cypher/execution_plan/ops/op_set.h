@@ -241,9 +241,9 @@ class OpSet : public OpBase {
     }
 
     void DoDeleteVE(RTContext *ctx) {
-        FMA_DBG() << "vertices & edges to delete:";
-        for (auto &v : vertices_to_delete_) FMA_DBG() << "V[" << v << "]";
-        for (auto &e : edges_to_delete_) FMA_DBG() << "E[" << _detail::EdgeUid2String(e) << "]";
+        LOG_DEBUG() << "vertices & edges to delete:";
+        for (auto &v : vertices_to_delete_) LOG_DEBUG() << "V[" << v << "]";
+        for (auto &e : edges_to_delete_) LOG_DEBUG() << "E[" << _detail::EdgeUid2String(e) << "]";
 
         for (auto &e : edges_to_delete_) {
             if (ctx->txn_->GetTxn()->DeleteEdge(e)) {

@@ -66,17 +66,23 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         if (i % stop_number == 0 && ShouldKillThisTask(task_ctx)) break;
         vit.Goto(i);
         if (vit.IsValid()) {
-            auto&& feature_string = vit.GetField(feature).ToString();
-            auto&& feature_vector = fma_common::Split(feature_string, ",");
-            float* feature_value = new float[feature_vector.size()];
-            int idx = 0;
-            for (auto& fea : feature_vector) {
-                feature_value[idx] = std::stof(fea);
-                idx++;
+            for (auto& field : txn.GetVertexSchema(vit.GetLabel())) {
+                if (field.name == feature) {
+                    auto&& feature_string = vit.GetField(feature).ToString();
+                    auto&& feature_vector = fma_common::Split(feature_string, ",");
+                    float* feature_value = new float[feature_vector.size()];
+                    int idx = 0;
+                    for (auto& fea : feature_vector) {
+                        feature_value[idx] = std::stof(fea);
+                        idx++;
+                    }
+                    FieldData feature_data((char*)feature_value,
+                            feature_vector.size() * sizeof(float));
+                    feature_data_list[i] = feature_data;
+                    delete[] feature_value;
+                    break;
+                }
             }
-            FieldData feature_data((char*)feature_value, feature_vector.size() * sizeof(float));
-            feature_data_list[i] = feature_data;
-            delete[] feature_value;
         }
     }
     local_txn.Abort();
@@ -91,7 +97,12 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     for (size_t i = 0; i < num_vertices; i++) {
         vit1.Goto(i);
         if (vit1.IsValid()) {
-            vit1.SetField(feature_float, feature_data_list[i]);
+            for (auto& field : write_txn.GetVertexSchema(vit1.GetLabel())) {
+                if (field.name == feature_float) {
+                    vit1.SetField(feature_float, feature_data_list[i]);
+                    break;
+                }
+            }
         }
     }
     write_txn.Commit();

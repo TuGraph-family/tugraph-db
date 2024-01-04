@@ -129,7 +129,6 @@ class StateMachine {
     };
 
  protected:
-    fma_common::Logger& logger_ = fma_common::Logger::Get("StateMachine");
     Config config_;
     std::shared_ptr<GlobalConfig> global_config_;
     std::unique_ptr<Galaxy> galaxy_;
@@ -166,6 +165,12 @@ class StateMachine {
      * @brief  Set token to unlimited time
      */
     void SetTokenTimeUnlimited();
+
+    /**
+     * @brief  reset password if the password is forgotten
+     */
+    bool ResetAdminPassword(const std::string& user,
+        const std::string& new_password, bool set_password);
 
     /**
      * Gets current master rest address.

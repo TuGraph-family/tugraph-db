@@ -18,7 +18,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/type_traits.h"
 #include "core/kv_engine.h"
 #include "core/lmdb_exception.h"

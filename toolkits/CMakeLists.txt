@@ -46,6 +46,12 @@ set(TARGET_LGRAPH_BACKUP lgraph_backup)
 add_executable(${TARGET_LGRAPH_BACKUP} lgraph_backup.cpp)
 target_link_libraries(${TARGET_LGRAPH_BACKUP} lgraph_server_lib)
 
+############### lgraph_cli ######################
+
+set(TARGET_LGRAPH_CLI lgraph_cli)
+add_executable(${TARGET_LGRAPH_CLI} lgraph_cli.cpp ${LGRAPH_ROOT_DIR}/toolkits/linenoise/linenoise.c)
+target_link_libraries(${TARGET_LGRAPH_CLI} bolt ${Boost_LIBRARIES})
+
 ############### lgraph_warmup ###################
 
 set(TARGET_LGRAPH_WARMUP lgraph_warmup)
@@ -81,7 +87,7 @@ set(TARGET_LGRAPH_BINLOG lgraph_binlog)
 add_executable(${TARGET_LGRAPH_BINLOG} lgraph_binlog.cpp
                ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
                ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp)
-target_link_libraries(${TARGET_LGRAPH_BINLOG} lgraph_server_lib)
+target_link_libraries(${TARGET_LGRAPH_BINLOG} lgraph_server_lib librocksdb.a)
 
 
 ############### mdb_stat ######################
@@ -93,7 +99,9 @@ add_executable(${TARGET_MDB_STAT} ${LGRAPH_ROOT_DIR}/src/core/lmdb/mdb_stat.c
         ${LGRAPH_ROOT_DIR}/src/core/lmdb/midl.c)
 target_link_libraries(${TARGET_MDB_STAT} pthread)
 
-set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_WARMUP} ${TARGET_LGRAPH_PEEK} ${TARGET_LGRAPH_EXPORT} ${TARGET_LGRAPH_BINLOG} ${TARGET_LGRAPH_MONITOR} ${TARGET_MDB_STAT})
+set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_WARMUP}
+        ${TARGET_LGRAPH_PEEK} ${TARGET_LGRAPH_EXPORT} ${TARGET_LGRAPH_BINLOG}
+        ${TARGET_LGRAPH_MONITOR} ${TARGET_MDB_STAT} ${TARGET_LGRAPH_CLI})
 
 # install
 install(TARGETS ${LGRAPH_TOOLKITS}

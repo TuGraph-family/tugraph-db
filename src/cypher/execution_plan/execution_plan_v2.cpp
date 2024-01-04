@@ -31,7 +31,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
         error_msg_ = pattern_graph_maker.ErrorMsg();
         return ret;
     }
-    FMA_DBG() << DumpGraph();
+    LOG_DEBUG() << DumpGraph();
     // build execution plan
     ExecutionPlanMaker execution_plan_maker(pattern_graphs_);
     ret = execution_plan_maker.Build(astNode, root_);
@@ -40,11 +40,11 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
         return ret;
     }
     result_info_ = execution_plan_maker.GetResultInfo();
-    FMA_DBG() << DumpPlan(0, false);
+    LOG_DEBUG() << DumpPlan(0, false);
     // optimize
     LocateNodeByIndexedProp locate_node_by_indexed_prop;
     locate_node_by_indexed_prop.Execute(Root());
-    FMA_DBG() << DumpPlan(0, false);
+    LOG_DEBUG() << DumpPlan(0, false);
     return ret;
 }
 
@@ -86,7 +86,7 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
         do {
             res = root_->Consume(ctx);
 #ifndef NDEBUG
-            FMA_DBG() << "root op result: " << res << " (" << OpBase::OP_OK << " for OK)";
+            LOG_DEBUG() << "root op result: " << res << " (" << OpBase::OP_OK << " for OK)";
 #endif
         } while (res == OpBase::OP_OK);
         Reset();
@@ -116,7 +116,7 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
     ctx->ac_db_.reset(nullptr);
 #ifndef NDEBUG
     std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
-    if (entry_id != out_id) FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
+    if (entry_id != out_id) LOG_DEBUG() << "switch thread from: " << entry_id << " to " << out_id;
 #endif
     return 0;
 }

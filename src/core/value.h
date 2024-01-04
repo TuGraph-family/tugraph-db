@@ -16,7 +16,11 @@
 
 #include <cstring>
 
+<<<<<<< HEAD
 #include "fma-common/logger.h"
+=======
+#include "fma-common/assert.h"
+>>>>>>> FETCH_HEAD
 #include "core/lmdb/lmdb.h"
 #include "core/mem_profiler.h"
 #include "lgraph/lgraph_types.h"

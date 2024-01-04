@@ -14,7 +14,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_util.h"
 #include "fma-common/utils.h"
 #include "./unit_test_utils.h"
@@ -51,17 +50,17 @@ FMA_UNIT_TEST(FileSystem) {
     }
     {
         auto path = FileSystem::GetExecutablePath();
-        LOG() << "dir: " << path.Dir();
-        LOG() << "name: " << path.Name();
-        FMA_LOG() << FileSystem::GetWorkingDirectory();
+        LOG_INFO() << "dir: " << path.Dir();
+        LOG_INFO() << "name: " << path.Name();
+        LOG_INFO() << FileSystem::GetWorkingDirectory();
         // by qinwei DirSpace
-        LOG() << "dirSpace: " << GetDirSpace(path.Dir().c_str()) << " B";
+        LOG_INFO() << "dirSpace: " << GetDirSpace(path.Dir().c_str()) << " B";
         DiskInfo diskInfo;
 #ifndef _WIN32
         GetDiskInfo(diskInfo, path.Dir().c_str());
 #endif
-        LOG() << "disk total: " << diskInfo.total << " B";
-        LOG() << "disk avail: " << diskInfo.avail << " B";
+        LOG_INFO() << "disk total: " << diskInfo.total << " B";
+        LOG_INFO() << "disk avail: " << diskInfo.avail << " B";
     }
     std::string fname = LocalFileSystem::GetFileSystem().GetFileName(argv[0]);
 #ifdef _WIN32
@@ -105,7 +104,7 @@ FMA_UNIT_TEST(FileSystem) {
         dirs2 = fs.ListSubDirs(dir1);
         FMA_UT_CHECK_EQ(dirs2.size(), 0);
         fs.RemoveDir(dir1);
-        LOG() << "LocalFileSystem check passed";
+        LOG_INFO() << "LocalFileSystem check passed";
     } else if (fs_type == "hdfs") {
         std::string hpdir = "test_file_system";
         std::string hcdir = "tmp";
@@ -131,7 +130,7 @@ FMA_UNIT_TEST(FileSystem) {
         auto dirs = hfs.ListSubDirs(hpdir);
         FMA_UT_CHECK_EQ(dirs.size(), (size_t)1);
         FMA_UT_ASSERT(hfs.ListSubDirs(wdir).empty());
-        LOG() << "HdfsFileSystem check passed";
+        LOG_INFO() << "HdfsFileSystem check passed";
     }
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();

@@ -19,8 +19,10 @@
 #include "http/http_server.h"
 #include "http/http_utils.h"
 #include "http/import_task.h"
+#include "http/algo_task.h"
 #include "protobuf/ha.pb.h"
 #include "server/json_convert.h"
+#include "server/db_management_client.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/file_system.h"
 
@@ -40,6 +42,7 @@ namespace http {
                 FMA_FMT("Invalid procedure type [{}].", procedureType)); \
     } while (0)
 
+// TODO(qishipeng): check the procedure type used in each function
 #define _GET_PLUGIN_REQUEST_TYPE(procedureType, _type)                   \
     do {                                                                 \
         if (procedureType == plugin::PLUGIN_LANG_TYPE_CPP)               \
@@ -124,8 +127,10 @@ nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
     return nlohmann::json();
 }
 
+namespace DbMgr = lgraph::management;
+
 HttpService::HttpService(StateMachine* state_machine)
-    : sm_(state_machine), pool_(1), serial_number_(0) {}
+    : sm_(state_machine), import_pool_(1), algo_pool_(4), serial_number_(0) {}
 
 void HttpService::Start(lgraph::GlobalConfig* config) {
     InitFuncMap();
@@ -139,9 +144,9 @@ void HttpService::InitFuncMap() {
     functions_map_.emplace(HTTP_CYPHER_METHOD,
                            std::bind(&HttpService::DoCypherRequest, this, std::placeholders::_1,
                                      std::placeholders::_2));
-    functions_map_.emplace(HTTP_GQL_METHOD,
-                           std::bind(&HttpService::DoGqlRequest, this, std::placeholders::_1,
-                                     std::placeholders::_2));
+    functions_map_.emplace(
+        HTTP_GQL_METHOD,
+        std::bind(&HttpService::DoGqlRequest, this, std::placeholders::_1, std::placeholders::_2));
     functions_map_.emplace(HTTP_REFRESH_METHOD,
                            std::bind(&HttpService::DoRefreshRequest, this, std::placeholders::_1,
                                      std::placeholders::_2));
@@ -187,8 +192,18 @@ void HttpService::InitFuncMap() {
     functions_map_.emplace(HTTP_CALL_PROCEDURE_METHOD,
                            std::bind(&HttpService::DoCallProcedure, this, std::placeholders::_1,
                                      std::placeholders::_2));
+    functions_map_.emplace(HTTP_CREATE_PROCEDURE_JOB_METHOD,
+                           std::bind(&HttpService::DoCreateProcedureJob, this,
+                                     std::placeholders::_1, std::placeholders::_2));
+    functions_map_.emplace(HTTP_LIST_PROCEDURE_JOB_METHOD,
+                           std::bind(&HttpService::DoListProcedureJobs, this, std::placeholders::_1,
+                                     std::placeholders::_2));
+    functions_map_.emplace(HTTP_GET_PROCEDURE_JOB_RESULT_METHOD,
+                           std::bind(&HttpService::DoGetProcedureJobResult, this,
+                                     std::placeholders::_1, std::placeholders::_2));
 }
 
+// /LGraphHttpService/Query
 void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRequest*,
                         HttpResponse*, google::protobuf::Closure* done) {
     brpc::ClosureGuard done_guard(done);
@@ -215,12 +230,9 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
     return RespondSuccess(cntl, res);
 }
 
+// /LGraphHttpService/Query/upload_files
 void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
+    const std::string token = CheckTokenOrThrowException(cntl);
 
     const std::string* file_name = cntl->http_request().GetHeader(HTTP_HEADER_FILE_NAME);
     const std::string* begin_str = cntl->http_request().GetHeader(HTTP_HEADER_BEGIN_POS);
@@ -239,7 +251,7 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
         throw lgraph_api::BadRequestException(
             "beginPos and Size should be an integer of the string type");
     }
-    int fd = OpenUserFile(*token, *file_name);
+    int fd = OpenUserFile(token, *file_name);
     butil::IOBuf content = cntl->request_attachment();
     ssize_t writed_bytes = 0;
     while (!content.empty()) {
@@ -255,11 +267,9 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
     }
 }
 
+// /LGraphHttpService/Query/clear_cache
 void HttpService::DoClearCache(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
+    const std::string token = CheckTokenOrThrowException(cntl);
 
     std::string req = cntl->request_attachment().to_string();
     std::string flag_str;
@@ -277,29 +287,26 @@ void HttpService::DoClearCache(const brpc::Controller* cntl, std::string& res) {
         {
             std::string file_name;
             GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_FILE_NAME, file_name);
-            return DeleteSpecifiedFile(*token, file_name);
+            return DeleteSpecifiedFile(token, file_name);
         }
     case HTTP_SPECIFIED_USER:
         {
             std::string user_name;
             GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_USER_NAME, user_name);
-            return DeleteSpecifiedUserFiles(*token, user_name);
+            return DeleteSpecifiedUserFiles(token, user_name);
         }
     case HTTP_ALL_USER:
         {
-            return DeleteAllUserFiles(*token);
+            return DeleteAllUserFiles(token);
         }
     }
 }
 
+// /LGraphHttpService/Query/check_file
 void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
+    const std::string token = CheckTokenOrThrowException(cntl);
 
     std::string req = cntl->request_attachment().to_string();
-
     std::string flag_str;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_FLAG, flag_str);
     int16_t flag = -1;
@@ -314,7 +321,7 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
     std::string file_name;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_FILE_NAME, file_name);
 
-    const std::string user = galaxy_->ParseAndValidateToken(*token);
+    const std::string user = galaxy_->ParseAndValidateToken(token);
     std::string absolute_file_name = import_manager_.GetUserPath(user) + "/" + file_name;
     nlohmann::json js;
     switch (flag) {
@@ -345,17 +352,15 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
     res = js.dump();
 }
 
+// /LGraphHttpService/Query/import_data
 void HttpService::DoImportFile(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
+    const std::string token = CheckTokenOrThrowException(cntl);
 
     std::string req = cntl->request_attachment().to_string();
     std::string graph;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_GRAPH, graph);
 
-    std::string user = galaxy_->ParseAndValidateToken(*token);
+    std::string user = galaxy_->ParseAndValidateToken(token);
     nlohmann::json schema;
     AdjustFilePath(req, user, schema);
 
@@ -377,23 +382,18 @@ void HttpService::DoImportFile(const brpc::Controller* cntl, std::string& res) {
         }
     }
 
-    std::string id;
-    ExtractTypedField<std::string>(req, HTTP_TASK_ID, id);
-    id = id.empty() ? GetRandomUuid() : id;
-
-    ImportTask task(this, &import_manager_, id, user, *token, graph, delimiter, continue_on_error,
+    const std::string& taskId = GetOrCreateTaskId(cntl);
+    ImportTask task(this, &import_manager_, taskId, token, graph, delimiter, continue_on_error,
                     skip_packages, schema);
-    pool_.PushTask(0, GetSerialNumber(), task);
+    import_pool_.PushTask(0, GetSerialNumber(), task);
     nlohmann::json js;
-    js[HTTP_TASK_ID] = id;
+    js[HTTP_TASK_ID] = taskId;
     res = js.dump();
 }
 
+// /LGraphHttpService/Query/import_schema
 void HttpService::DoImportSchema(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
+    const std::string token = CheckTokenOrThrowException(cntl);
 
     std::string req = cntl->request_attachment().to_string();
     std::string graph;
@@ -401,15 +401,12 @@ void HttpService::DoImportSchema(const brpc::Controller* cntl, std::string& res)
     nlohmann::json desc;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, nlohmann::json, HTTP_DESCRIPTION, desc);
     LGraphRequest pb_req;
-    ProcessSchemaRequest(graph, desc.dump(), *token, pb_req);
+    ProcessSchemaRequest(graph, desc.dump(), token, pb_req);
 }
 
+// /LGraphHttpService/Query/import_progress
 void HttpService::DoImportProgress(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
-
+    const std::string token = CheckTokenOrThrowException(cntl);
     std::string req = cntl->request_attachment().to_string();
     std::string task_id;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_TASK_ID, task_id);
@@ -443,6 +440,7 @@ void HttpService::DoImportProgress(const brpc::Controller* cntl, std::string& re
     res = js.dump();
 }
 
+// /LGraphHttpService/Query/cypher
 void HttpService::DoCypherRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
     LGraphRequest pb_req;
@@ -452,6 +450,7 @@ void HttpService::DoCypherRequest(const brpc::Controller* cntl, std::string& res
     BuildJsonGraphQueryResponse(pb_res, res);
 }
 
+// /LGraphHttpService/Query/gql
 void HttpService::DoGqlRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
     LGraphRequest pb_req;
@@ -461,36 +460,43 @@ void HttpService::DoGqlRequest(const brpc::Controller* cntl, std::string& res) {
     BuildJsonGraphQueryResponse(pb_res, res);
 }
 
+// /LGraphHttpService/Query/login
 void HttpService::DoLoginRequest(const brpc::Controller* cntl, std::string& res) {
     std::string req = cntl->request_attachment().to_string();
     std::string username, password;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_USER_NAME, username);
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_PASSWORD, password);
     _HoldReadLock(galaxy_->GetReloadLock());
+    bool default_password = false;
+    if (password == lgraph::_detail::DEFAULT_ADMIN_PASS) {
+        default_password = true;
+    }
     std::string token = galaxy_->GetUserToken(username, password);
     if (!galaxy_->JudgeUserTokenNum(username)) {
         throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
     }
     nlohmann::json js;
     js[HTTP_AUTHORIZATION] = token;
+    js[HTTP_DEFAULT_PASSWORD] = default_password;
     res = js.dump();
 }
 
+// /LGraphHttpService/Query/logout
 void HttpService::DoLogoutRequest(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
+    const std::string token = CheckTokenOrThrowException(cntl);
     _HoldReadLock(galaxy_->GetReloadLock());
-    if (!galaxy_->UnBindTokenUser(*token)) {
+    if (!galaxy_->UnBindTokenUser(token)) {
         throw lgraph_api::UnauthorizedError();
     }
 }
 
+// /LGraphHttpService/Query/refresh
 void HttpService::DoRefreshRequest(const brpc::Controller* cntl, std::string& res) {
-    const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
+    const std::string token = CheckTokenOrThrowException(cntl);
+
     _HoldReadLock(galaxy_->GetReloadLock());
-    std::string user = galaxy_->ParseAndValidateToken(*token);
-    std::string new_token = galaxy_->RefreshUserToken(*token, user);
+    std::string user = galaxy_->ParseAndValidateToken(token);
+    std::string new_token = galaxy_->RefreshUserToken(token, user);
     nlohmann::json js;
     js[HTTP_AUTHORIZATION] = new_token;
     res = js.dump();
@@ -510,12 +516,10 @@ void HttpService::BuildPbGraphQueryRequest(const brpc::Controller* cntl,
     ExtractTypedField<double>(req, HTTP_TIMEOUT, timeout);
     const std::string user = galaxy_->ParseAndValidateToken(token);
     pb.set_token(token);
-    auto field_access = galaxy_->GetRoleFieldAccessLevel(user, graph);
-    cypher::RTContext ctx(sm_, galaxy_, token, user, graph, field_access);
+    cypher::RTContext ctx(sm_, galaxy_, user, graph);
     std::string name;
     std::string type;
-    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query,
-                                                    name, type);
+    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query, name, type);
     if (name.empty() || type.empty()) {
         pb.set_is_write_op(!ret);
     } else {
@@ -713,6 +717,7 @@ off_t HttpService::GetFileSize(const std::string& file_name) {
     return st.st_size;
 }
 
+// /LGraphHttpService/Query/upload_procedure
 void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& res) {
     std::string token = CheckTokenOrThrowException(cntl);
 
@@ -764,6 +769,7 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     }
 }
 
+// /LGraphHttpService/Query/list_procedures
 void HttpService::DoListProcedures(const brpc::Controller* cntl, std::string& res) {
     std::string token = CheckTokenOrThrowException(cntl);
     std::string params = cntl->request_attachment().to_string();
@@ -798,6 +804,7 @@ void HttpService::DoListProcedures(const brpc::Controller* cntl, std::string& re
     }
 }
 
+// /LGraphHttpService/Query/get_procedure
 void HttpService::DoGetProcedure(const brpc::Controller* cntl, std::string& res) {
     std::string token = CheckTokenOrThrowException(cntl);
     std::string params = cntl->request_attachment().to_string();
@@ -826,6 +833,7 @@ void HttpService::DoGetProcedure(const brpc::Controller* cntl, std::string& res)
     res = js.dump();
 }
 
+// /LGraphHttpService/Query/get_procedure_demo
 void HttpService::DoGetProcedureDemo(const brpc::Controller* cntl, std::string& res) {
     std::string token = CheckTokenOrThrowException(cntl);
     std::string params = cntl->request_attachment().to_string();
@@ -861,6 +869,7 @@ void HttpService::DoGetProcedureDemo(const brpc::Controller* cntl, std::string& 
     res = js.dump();
 }
 
+// /LGraphHttpService/Query/delete_procedure
 void HttpService::DoDeleteProcedure(const brpc::Controller* cntl, std::string& res) {
     std::string token = CheckTokenOrThrowException(cntl);
     std::string params = cntl->request_attachment().to_string();
@@ -886,6 +895,7 @@ void HttpService::DoDeleteProcedure(const brpc::Controller* cntl, std::string& r
     }
 }
 
+// /LGraphHttpService/Query/call_procedure
 void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
     const std::string user = galaxy_->ParseAndValidateToken(token);
@@ -928,8 +938,7 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
     } else if (version == plugin::PLUGIN_VERSION_2) {
         // call cypher for plugin version 2
         bool is_write_op = false;
-        auto field_access = galaxy_->GetRoleFieldAccessLevel(user, graphName);
-        cypher::RTContext ctx(sm_, galaxy_, token, user, graphName, field_access);
+        cypher::RTContext ctx(sm_, galaxy_, user, graphName);
         std::string name, type;
         bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                         procedureParam, name, type);
@@ -961,6 +970,108 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
     } else {
         throw lgraph_api::BadRequestException(FMA_FMT(
             "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1, plugin::PLUGIN_VERSION_2));
+    }
+}
+
+// /LGraphHttpService/Query/create_procedure_job
+void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string& res) {
+    const std::string token = CheckTokenOrThrowException(cntl);
+    const std::string user = galaxy_->ParseAndValidateToken(token);
+
+    std::string params = cntl->request_attachment().to_string();
+    std::string version, algoType, graphName, taskName, algoName, jobParam, nodeType, edgeType,
+        outputType;
+    double timeout = 0;
+    bool inProcess = false;
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "graphName", graphName);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "taskName", taskName);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoName", algoName);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoType", algoType);
+    if (algoType != plugin::PLUGIN_LANG_TYPE_PYTHON && algoType != plugin::PLUGIN_LANG_TYPE_CPP) {
+        throw lgraph_api::BadRequestException(FMA_FMT("AlgoType must be [{}] or [{}]",
+                                                      plugin::PLUGIN_LANG_TYPE_PYTHON,
+                                                      plugin::PLUGIN_LANG_TYPE_CPP));
+    }
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
+    if (version != plugin::PLUGIN_VERSION_1) {
+        throw lgraph_api::BadRequestException(
+            FMA_FMT("Version must be [{}] for long algo job", plugin::PLUGIN_VERSION_1));
+    }
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "jobParam", jobParam);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "nodeType", nodeType);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "edgeType", edgeType);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "outputType", outputType);
+    if (outputType != HTTP_PROCEDURE_OUTPUT_TYPE_FILE &&
+        outputType != HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH) {
+        throw lgraph_api::BadRequestException(FMA_FMT("OutputType must be [{}] or [{}]",
+                                                      HTTP_PROCEDURE_OUTPUT_TYPE_FILE,
+                                                      HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH));
+    }
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, double, "timeout", timeout);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, bool, "inProcess", inProcess);
+
+    const std::string& taskId = GetOrCreateTaskId(cntl);
+    try {
+        AlgorithmTask task(this, taskId, taskName, user, token, graphName, algoName, algoType,
+                           version, jobParam, nodeType, edgeType, outputType, timeout, inProcess);
+        algo_pool_.PushTask(0, GetAlgoTaskSeq(), task);
+
+        nlohmann::json js;
+        js[HTTP_TASK_ID] = taskId;
+        res = js.dump();
+    } catch (const std::runtime_error& e) {
+        throw lgraph_api::BadRequestException(e.what());
+    }
+}
+
+// /LGraphHttpService/Query/list_procedure_jobs
+void HttpService::DoListProcedureJobs(const brpc::Controller* cntl, std::string& res) {
+    const std::string token = CheckTokenOrThrowException(cntl);
+
+    try {
+        std::vector<DbMgr::Job> jobs = DBManagementClient::GetInstance().GetJobStatus();
+        std::vector<nlohmann::json> json_jobs;
+        for (auto& job : jobs) {
+            nlohmann::json row;
+            row["taskId"] = job.task_id();
+            row["taskName"] = job.task_name();
+            lgraph_api::DateTime start_time(job.start_time());
+            row["startTime"] = start_time.ToString();
+            row["period"] = job.period();
+            row["algorithmName"] = job.procedure_name();
+            row["algorithmType"] = job.procedure_type();
+            row["status"] = job.status();
+            row["runtime"] = job.runtime();
+            row["creator"] = job.user();
+            lgraph_api::DateTime create_time(job.create_time());
+            row["createTime"] = create_time.ToString();
+            json_jobs.emplace_back(row);
+        }
+        nlohmann::json result;
+        result["jobs"] = nlohmann::json(json_jobs);
+        result["total"] = json_jobs.size();
+        res = result.dump();
+    } catch (const std::runtime_error& e) {
+        throw lgraph_api::BadRequestException(e.what());
+    }
+}
+
+// /LGraphHttpService/Query/get_procedure_job_result
+void HttpService::DoGetProcedureJobResult(const brpc::Controller* cntl, std::string& res) {
+    const std::string token = CheckTokenOrThrowException(cntl);
+
+    std::string params = cntl->request_attachment().to_string();
+    std::string taskId;
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "task_id", taskId);
+
+    try {
+        DbMgr::AlgoResult result = DBManagementClient::GetInstance().GetJobResult(taskId);
+        nlohmann::json js;
+        js["taskId"] = taskId;
+        js["result"] = result.result();
+        res = js.dump();
+    } catch (const std::runtime_error& e) {
+        throw lgraph_api::BadRequestException(e.what());
     }
 }
 
@@ -1025,6 +1136,14 @@ std::string HttpService::CheckTokenOrThrowException(const brpc::Controller* cntl
     if (!galaxy_->JudgeRefreshTime(*token))
         throw lgraph_api::UnauthorizedError("token has already expire");
     return *token;
+}
+
+std::string HttpService::GetOrCreateTaskId(const brpc::Controller* cntl) const {
+    std::string taskId;
+    std::string req = cntl->request_attachment().to_string();
+    ExtractTypedField<std::string>(req, HTTP_TASK_ID, taskId);
+    taskId = taskId.empty() ? GetRandomUuid() : taskId;
+    return taskId;
 }
 
 }  // end of namespace http

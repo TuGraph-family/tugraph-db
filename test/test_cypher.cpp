@@ -14,7 +14,6 @@
 
 #include <db/galaxy.h>
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
@@ -2470,7 +2469,6 @@ TEST_P(TestCypher, Cypher) {
     int test_case = 0;
     int database = 0;
     std::string file;
-    int verbose = 1;
     auto str = fma_common::StringFormatter::Format(
         "Test case: {}-file script; {}-interactive; {}-find; {}-query; {}-hint;"
         " {}-multi-match; {}-optional-match; {}-union; {}-function; {}-parameter;"
@@ -2498,17 +2496,8 @@ TEST_P(TestCypher, Cypher) {
     config.Add(database, "d", true)
         .Comment("Select database: 0-current, 1-new yago, 2-empty, 3-yago with constraints");
     config.Add(file, "f", true).Comment("File path");
-    config.Add(verbose, "v", true).Comment("Verbose: 0-WARNING, 1-INFO, 2-DEBUG");
     config.ExitAfterHelp();
     config.ParseAndFinalize(argc, argv);
-    fma_common::LogLevel level;
-    if (verbose == 0)
-        level = fma_common::LL_WARNING;
-    else if (verbose == 1)
-        level = fma_common::LL_INFO;
-    else
-        level = fma_common::LL_DEBUG;
-    fma_common::Logger::Get().SetLevel(level);
 
     if (database == 0) {
         // just use existing ./test.db
@@ -2525,11 +2514,7 @@ TEST_P(TestCypher, Cypher) {
     gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
 
-    cypher::RTContext db(nullptr, &galaxy,
-                         galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                             lgraph::_detail::DEFAULT_ADMIN_PASS),
-                         lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
-                         lgraph::AclManager::FieldAccess());
+    cypher::RTContext db(nullptr, &galaxy, lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
     db.param_tab_ = g_param_tab;
 
     auto no_throw_test_case = [&] {

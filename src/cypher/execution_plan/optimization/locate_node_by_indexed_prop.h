@@ -18,13 +18,13 @@
 
 #pragma once
 
+#include "tools/lgraph_log.h"
 #include "core/data_type.h"
 #include "cypher/execution_plan/ops/op_filter.h"
 #include "cypher/execution_plan/ops/op_node_index_seek.h"
 #include "cypher/execution_plan/ops/op_all_node_scan.h"
 #include "cypher/execution_plan/ops/op_node_by_label_scan.h"
 #include "cypher/execution_plan/optimization/opt_pass.h"
-#include "fma-common/logger.h"
 #include "geax-front-end/ast/AstDumper.h"
 #include "geax-front-end/ast/expr/BEqual.h"
 #include "geax-front-end/ast/expr/GetField.h"

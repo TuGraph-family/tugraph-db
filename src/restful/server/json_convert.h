@@ -176,6 +176,7 @@ static const utility::string_t TID = _TU("termporal_id");
 static const utility::string_t TIME_USED = _TU("time_elapsed");
 static const utility::string_t TIMEOUT = _TU("timeout");
 static const utility::string_t TOKEN = _TU("jwt");
+static const utility::string_t DEFAULT_PASSWORD = _TU("default_password");
 static const utility::string_t TYPE = _TU("type");
 static const utility::string_t UP_TIME = _TU("up_time");
 static const utility::string_t USER = _TU("user");
@@ -603,10 +604,35 @@ inline web::json::value ValueToJson(const std::vector<lgraph::_detail::FieldExtr
         js[_TU("optional")] = ValueToJson(fields[idx].GetFieldSpec().optional);
         if (fields[idx].GetVertexIndex()) {
             js[_TU("index")] = ValueToJson(true);
-            if (fields[idx].GetVertexIndex()->IsUnique()) {
-                js[_TU("unique")] = ValueToJson(true);
-            } else {
+            switch (fields[idx].GetVertexIndex()->GetType()) {
+            case IndexType::NonuniqueIndex:
                 js[_TU("unique")] = ValueToJson(false);
+                break;
+            case IndexType::GlobalUniqueIndex:
+                js[_TU("unique")] = ValueToJson(true);
+                break;
+            case IndexType::PairUniqueIndex:
+                js[_TU("unique")] = ValueToJson(false);
+                break;
+            }
+        } else {
+            js[_TU("index")] = ValueToJson(false);
+        }
+        if (fields[idx].GetEdgeIndex()) {\
+            js[_TU("index")] = ValueToJson(true);
+            switch (fields[idx].GetEdgeIndex()->GetType()) {
+            case IndexType::NonuniqueIndex:
+                js[_TU("unique")] = ValueToJson(false);
+                js[_TU("pair_unique")] = ValueToJson(false);
+                break;
+            case IndexType::GlobalUniqueIndex:
+                js[_TU("unique")] = ValueToJson(true);
+                js[_TU("pair_unique")] = ValueToJson(false);
+                break;
+            case IndexType::PairUniqueIndex:
+                js[_TU("unique")] = ValueToJson(false);
+                js[_TU("pair_unique")] = ValueToJson(true);
+                break;
             }
         } else {
             js[_TU("index")] = ValueToJson(false);

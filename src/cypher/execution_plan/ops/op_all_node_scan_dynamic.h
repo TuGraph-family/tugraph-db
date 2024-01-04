@@ -84,7 +84,7 @@ class AllNodeScanDynamic : public OpBase {
             if (!it_->IsValid()) return OP_DEPLETED;
         }
 #ifndef NDEBUG
-        FMA_DBG() << "[" << __FILE__ << "] " << alias_ << ": " << it_->GetId();
+        LOG_DEBUG() << "[" << __FILE__ << "] " << alias_ << ": " << it_->GetId();
 #endif
         return OP_OK;
     }

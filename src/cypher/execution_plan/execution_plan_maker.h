@@ -78,8 +78,20 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ReadConsistency* node) override;
     std::any visit(geax::frontend::AllowAnonymousTable* node) override;
     std::any visit(geax::frontend::OpConcurrent* node) override;
+    std::any visit(geax::frontend::EdgeOnJoin* node) override;
     std::any visit(geax::frontend::SetAllProperties* node) override;
+    std::any visit(geax::frontend::UpdateProperties* node) override;
     std::any visit(geax::frontend::SetLabel* node) override;
+    std::any visit(geax::frontend::SetSingleProperty* node) override;
+    std::any visit(geax::frontend::SetSchemaClause* node) override;
+    std::any visit(geax::frontend::SetGraphClause* node) override;
+    std::any visit(geax::frontend::SetTimeZoneClause* node) override;
+    std::any visit(geax::frontend::SetParamClause* node) override;
+    std::any visit(geax::frontend::ResetAll* node) override;
+    std::any visit(geax::frontend::ResetSchema* node) override;
+    std::any visit(geax::frontend::ResetTimeZone* node) override;
+    std::any visit(geax::frontend::ResetGraph* node) override;
+    std::any visit(geax::frontend::ResetParam* node) override;
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -142,6 +154,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::VNull* node) override;
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
+    std::any visit(geax::frontend::Param* node) override;
 
     // predicates
     std::any visit(geax::frontend::IsNull* node) override;
@@ -156,13 +169,26 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
 
     //---------------------------------------------------------------------------------
     // stmt
+    std::any visit(geax::frontend::ExplainActivity* node) override;
+    std::any visit(geax::frontend::SessionActivity* node) override;
+    std::any visit(geax::frontend::TransactionActivity* node) override;
+    std::any visit(geax::frontend::FullTransaction* node) override;
+    std::any visit(geax::frontend::NormalTransaction* node) override;
+    std::any visit(geax::frontend::StartTransaction* node) override;
+    std::any visit(geax::frontend::CommitTransaction* node) override;
+    std::any visit(geax::frontend::RollBackTransaction* node) override;
+    std::any visit(geax::frontend::SessionSet* node) override;
+    std::any visit(geax::frontend::SessionReset* node) override;
     std::any visit(geax::frontend::ProcedureBody* node) override;
     std::any visit(geax::frontend::SchemaFromPath* node) override;
     std::any visit(geax::frontend::BindingValue* node) override;
     std::any visit(geax::frontend::BindingGraph* node) override;
     std::any visit(geax::frontend::BindingTable* node) override;
+    std::any visit(geax::frontend::BindingTableInnerQuery* node) override;
+    std::any visit(geax::frontend::BindingTableInnerExpr* node) override;
     std::any visit(geax::frontend::StatementWithYield* node) override;
     std::any visit(geax::frontend::QueryStatement* node) override;
+    std::any visit(geax::frontend::StandaloneCallStatement* node) override;
     std::any visit(geax::frontend::JoinQueryExpression* node) override;
     std::any visit(geax::frontend::JoinRightPart* node) override;
     std::any visit(geax::frontend::CompositeQueryStatement* node) override;
@@ -172,6 +198,11 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::FocusedResultStatement* node) override;
     std::any visit(geax::frontend::MatchStatement* node) override;
     std::any visit(geax::frontend::FilterStatement* node) override;
+    std::any visit(geax::frontend::CallQueryStatement* node) override;
+    std::any visit(geax::frontend::CallProcedureStatement* node) override;
+    std::any visit(geax::frontend::InlineProcedureCall* node) override;
+    std::any visit(geax::frontend::NamedProcedureCall* node) override;
+    std::any visit(geax::frontend::ForStatement* node) override;
     std::any visit(geax::frontend::PrimitiveResultStatement* node) override;
     std::any visit(geax::frontend::CatalogModifyStatement* node) override;
     std::any visit(geax::frontend::LinearDataModifyingStatement* node) override;
@@ -180,17 +211,15 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::SetStatement* node) override;
     std::any visit(geax::frontend::DeleteStatement* node) override;
     std::any visit(geax::frontend::RemoveStatement* node) override;
+    std::any visit(geax::frontend::MergeStatement* node) override;
     std::any visit(geax::frontend::OtherWise* node) override;
     std::any visit(geax::frontend::Union* node) override;
     std::any visit(geax::frontend::Except* node) override;
     std::any visit(geax::frontend::Intersect* node) override;
-
-    std::any visit(geax::frontend::UpdateProperties* node) override;
-    std::any visit(geax::frontend::SetSingleProperty* node) override;
-    std::any visit(geax::frontend::Param* node) override;
     std::any visit(geax::frontend::ShowProcessListStatement* node) override;
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
+
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
 };
