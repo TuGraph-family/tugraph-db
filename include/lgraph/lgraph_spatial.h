@@ -30,7 +30,8 @@
 #include <boost/geometry/io/wkt/read.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/write_wkb.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/utility.hpp>
-#include <boost/geometry.hpp>
+// #include <boost/geometry.hpp>
+#include <boost/geometry/geometry.hpp>
 #include <boost/geometry/io/wkt/wkt.hpp>
 #include <boost/geometry/extensions/gis/io/wkb/read_wkb.hpp>
 

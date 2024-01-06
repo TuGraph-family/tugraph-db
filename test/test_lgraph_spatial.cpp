@@ -15,7 +15,7 @@
 #include "lgraph/lgraph_spatial.h"
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
+#include "fma-common/assert.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 
