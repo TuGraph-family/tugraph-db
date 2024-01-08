@@ -1,9 +1,20 @@
 # TuGraph
 
-[![ci_ut](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
-[![ci_it](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
-[![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
+[![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
+[![Unit Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
+[![Integration Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
+[![Commit](https://badgen.net/github/last-commit/tugraph-family/tugraph-db/master?icon=git&label=Commit)](https://github.com/TuGraph-family/tugraph-db/commits/master)
+[![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
+
+[![Star](https://shields.io/github/stars/tugraph-family/tugraph-db?logo=startrek&label=Star&color=yellow)](https://github.com/TuGraph-family/tugraph-db/stargazers)
+[![Fork](https://shields.io/github/forks/tugraph-family/tugraph-db?logo=forgejo&label=Fork&color=orange)](https://github.com/TuGraph-family/tugraph-db/forks)
+[![Contributor](https://shields.io/github/contributors/tugraph-family/tugraph-db?logo=actigraph&label=Contributor&color=abcdef)](https://github.com/TuGraph-family/tugraph-db/contributors)
+[![Docker](https://shields.io/docker/pulls/tugraph/tugraph-runtime-centos7?logo=docker&label=Docker&color=blue)](https://hub.docker.com/r/tugraph/tugraph-runtime-centos7/tags)
+[![License](https://shields.io/github/license/tugraph-family/tugraph-db?logo=apache&label=License&color=blue)](https://www.apache.org/licenses/LICENSE-2.0.html)
+
+[![EN](https://shields.io/badge/Docs-English-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
+[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
 
 [[中文版]](README_CN.md)
 
