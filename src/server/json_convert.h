@@ -55,6 +55,10 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         {
             return json(data.AsDouble());
         }
+    case lgraph_api::FieldType::VECTOR:
+        {
+            return json(data.AsVector());
+        }
     case lgraph_api::FieldType::DATETIME:
         {
             return json(data.AsDateTime().ToString());

@@ -106,6 +106,8 @@ nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
         return nlohmann::json(data.sp());
     case ProtoFieldData::kDp:
         return nlohmann::json(data.dp());
+    case ProtoFieldData::kVector:
+        return nlohmann::json(data.vector());
     case ProtoFieldData::kDate:
         return nlohmann::json(Date(data.date()).ToString());
     case ProtoFieldData::kDatetime:

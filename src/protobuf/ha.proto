@@ -27,6 +27,7 @@ enum ProtoFieldType {
     LINESTRING = 13;
     POLYGON = 14;
     SPATIAL = 15;
+    VECTOR = 16;
 };
 
 enum ProtoAccessLevel {
@@ -54,6 +55,7 @@ message ProtoFieldData {
         string linestring = 13;
         string polygon = 14;
         string spatial = 15;
+        string vector = 16;
     }
 };
 

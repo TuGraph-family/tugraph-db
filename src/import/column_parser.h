@@ -596,6 +596,16 @@ class JsonLinesParser : public BlockParser {
                         }
                         break;
                     }
+                case FieldType::VECTOR:
+                    {
+                        const auto& val = json_obj.at(column);
+                        if (val.is_string()) {
+                            const auto& str = ToStdString(val.as_string());
+                            ParseStringIntoFieldData<FieldType::VECTOR>(
+                                str.data(), str.data() + str.size(), fd);
+                        }
+                        break;
+                    }
                 case FieldType::DATE:
                     fd = FieldData::Date(ToStdString(json_obj.at(column).as_string()));
                     break;

@@ -352,6 +352,8 @@ web::json::value ProtoFieldDataToJson(const ProtoFieldData& data) {
         return web::json::value::number(data.sp());
     case ProtoFieldData::kDp:
         return web::json::value::number(data.dp());
+    case ProtoFieldData::kVector:
+        return web::json::value(_TU(data.vector())); 
     case ProtoFieldData::kDate:
         return web::json::value::string(_TU(Date(data.date()).ToString()));
     case ProtoFieldData::kDatetime:

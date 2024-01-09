@@ -42,7 +42,11 @@ void FieldExtractor::_ParseStringAndSet<FieldType::STRING>(Value& record,
                                                            const std::string& data) const {
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
-
+template <>
+void FieldExtractor::_ParseStringAndSet<FieldType::VECTOR>(Value& record,
+                                                           const std::string& data) const {
+    return _SetVariableLengthValue(record, Value::ConstRef(data));
+}
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
                                                           const std::string& data) const {
@@ -125,6 +129,8 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
         return _ParseStringAndSet<FieldType::FLOAT>(record, data);
     case FieldType::DOUBLE:
         return _ParseStringAndSet<FieldType::DOUBLE>(record, data);
+    case FieldType::VECTOR:
+        return _ParseStringAndSet<FieldType::VECTOR>(record, data);    
     case FieldType::DATE:
         return _ParseStringAndSet<FieldType::DATE>(record, data);
     case FieldType::DATETIME:
@@ -189,6 +195,12 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         _SET_FIXED_TYPE_VALUE_FROM_FD(FLOAT);
     case FieldType::DOUBLE:
         _SET_FIXED_TYPE_VALUE_FROM_FD(DOUBLE);
+    case FieldType::VECTOR:
+        {
+            if (data.type != FieldType::VECTOR && data.type != FieldType::STRING)
+                throw ParseIncompatibleTypeException(Name(), data.type, FieldType::VECTOR);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
     case FieldType::STRING:
         if (data.type != FieldType::STRING)
             throw ParseIncompatibleTypeException(Name(), data.type, FieldType::STRING);
@@ -293,6 +305,12 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
         _COPY_FIELD_AND_RETURN_STR_(record, FLOAT);
     case FieldType::DOUBLE:
         _COPY_FIELD_AND_RETURN_STR_(record, DOUBLE);
+    case FieldType::VECTOR:
+        {
+            std::string ret(GetDataSize(record), 0);
+            GetCopyRaw(record, &ret[0], ret.size());
+            return ret;
+        }
     case FieldType::DATE:
         {
             int32_t i;

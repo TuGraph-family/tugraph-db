@@ -98,6 +98,8 @@ inline pybind11::object FieldDataToPyObj(const FieldData& data) {
         return pybind11::float_(data.data.sp);
     case FieldType::DOUBLE:
         return pybind11::float_(data.data.dp);
+    case FieldType::VECTOR:
+        return pybind11::cast(*data.data.buf);
     case FieldType::DATE:
         return pybind11::cast(
             data.AsDate().operator lgraph_api::DateTime().ConvertToUTC().TimePoint());
@@ -145,7 +147,7 @@ void register_python_api(pybind11::module& m) {
         .def_readwrite("name", &FieldSpec::name, "Name of this field.")
         .def_readwrite("type", &FieldSpec::type,
                        "Type of this field, INT8, INT16, ..., POINT, LINESTRING,"
-                       "POLYGON, SPATIAL.")
+                       "POLYGON, SPATIAL, VECTOR")
         .def_readwrite("nullable", &FieldSpec::optional, "Whether this field can be null.")
         .def("__repr__", [](const FieldSpec& a) {
             return fma_common::StringFormatter::Format("(name:{}, type:{}, nullable:{})", a.name,
@@ -303,6 +305,20 @@ void register_python_api(pybind11::module& m) {
                 return FieldData::Spatial(str);
             },
             "Make a Spatial value")
+        .def_static(
+            "Vector", [](const std::string& str) { 
+                std::vector<float> vec;
+                std::string string(str);
+                std::regex pattern("-?[0-9]+\\.?[0-9]*");
+                std::sregex_iterator begin_it(string.begin(), string.end(), pattern), end_it;
+                while (begin_it != end_it) {  
+                    std::smatch match = *begin_it;  
+                    vec.push_back(std::stof(match.str()));  
+                    ++begin_it; 
+                }    
+                return FieldData::Vector(vec); 
+            },
+            "Make a Vector value")
         .def("AsBool", &FieldData::AsBool, "Get value as bool, throws exception on type mismatch",
              pybind11::call_guard<SignalsGuard>())
         .def("AsInt8", &FieldData::AsInt8, "Get value as int8, throws exception on type mismatch",
@@ -334,6 +350,11 @@ void register_python_api(pybind11::module& m) {
             // python sees time_point as utc time and will always convert it to local time
             [](const FieldData& a) { return a.AsDateTime().ConvertToUTC().TimePoint(); },
             "Get value as datetime, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
+        .def(
+            "AsVector",
+            [](const FieldData& a) { return a.AsVector(); },
+            "Get value as vector, throws exception on type mismatch",
             pybind11::call_guard<SignalsGuard>())
         .def("AsString", &FieldData::AsString,
              "Get value as string, throws exception on type mismatch",
@@ -472,6 +493,7 @@ void register_python_api(pybind11::module& m) {
         .value("LINESTRING", FieldType::LINESTRING)
         .value("POLYGON", FieldType::POLYGON)
         .value("SPATIAL", FieldType::SPATIAL)
+        .value("VECTOR", FieldType::VECTOR)
         .export_values();
 
     pybind11::enum_<lgraph_api::AccessLevel>(m, "AccessLevel", pybind11::arithmetic(),

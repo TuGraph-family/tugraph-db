@@ -51,6 +51,19 @@ struct FieldDataConvert {
             return FieldData::Float(fd.sp());
         case ProtoFieldData::kDp:
             return FieldData::Double(fd.dp());
+        case ProtoFieldData::kVector:
+            {
+                std::vector<float> vec;
+                std::string str(std::move(*fd.release_str()));
+                std::regex pattern("-?[0-9]+\\.?[0-9]*");
+                std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+                while (begin_it != end_it) {  
+                    std::smatch match = *begin_it;  
+                    vec.push_back(std::stof(match.str()));  
+                    ++begin_it; 
+                }    
+                return FieldData::Vector(vec);
+            }          
         case ProtoFieldData::kDate:
             return FieldData::Date(Date(fd.date()));
         case ProtoFieldData::kDatetime:
@@ -90,6 +103,19 @@ struct FieldDataConvert {
             return FieldData::Float(fd.sp());
         case ProtoFieldData::kDp:
             return FieldData::Double(fd.dp());
+        case ProtoFieldData::kVector:
+            {
+                std::vector<float> vec;
+                std::string str(fd.str());
+                std::regex pattern("-?[0-9]+\\.?[0-9]*");
+                std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+                while (begin_it != end_it) {  
+                    std::smatch match = *begin_it;  
+                    vec.push_back(std::stof(match.str()));  
+                    ++begin_it; 
+                }    
+                return FieldData::Vector(vec);
+            }
         case ProtoFieldData::kDate:
             return FieldData::Date(Date(fd.date()));
         case ProtoFieldData::kDatetime:
@@ -129,6 +155,8 @@ struct FieldDataConvert {
             return ret->set_sp(fd.data.sp);
         case FieldType::DOUBLE:
             return ret->set_dp(fd.data.dp);
+        case FieldType::VECTOR:
+            return ret->set_vector(std::move(*fd.data.buf));
         case FieldType::DATE:
             return ret->set_date(fd.data.int32);
         case FieldType::DATETIME:
@@ -167,6 +195,8 @@ struct FieldDataConvert {
             return ret->set_sp(fd.data.sp);
         case FieldType::DOUBLE:
             return ret->set_dp(fd.data.dp);
+        case FieldType::VECTOR:
+            return ret->set_vector(*fd.data.buf);
         case FieldType::DATE:
             return ret->set_date(fd.data.int32);
         case FieldType::DATETIME:

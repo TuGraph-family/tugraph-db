@@ -207,6 +207,20 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         _GET_COPY_AND_RETURN_FD(FLOAT);
     case FieldType::DOUBLE:
         _GET_COPY_AND_RETURN_FD(DOUBLE);
+    case FieldType::VECTOR:
+        {
+            std::vector<float> vec;
+            std::string str(extractor->GetConstRef(record).AsString());
+            std::regex pattern("-?[0-9]+\\.?[0-9]*");
+            std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+            while (begin_it != end_it) 
+            {  
+                std::smatch match = *begin_it;  
+                vec.push_back(std::stof(match.str()));  
+                ++begin_it; 
+            }    
+            return FieldData(vec);
+        }
     case FieldType::STRING:
         return FieldData(extractor->GetConstRef(record).AsString());
     case FieldType::BLOB:

@@ -15,6 +15,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <regex>  
 
 #include "fma-common/string_formatter.h"
 #include "fma-common/string_util.h"
@@ -64,11 +65,11 @@ namespace _detail {
 static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   "INT16",
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
                                                  "DATE",  "DATETIME", "STRING", "BLOB",
-                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL"};
+                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL", "VECTOR"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
     std::unordered_map<std::string, FieldType> ret;
-    for (int i = 0; i <= (int)FieldType::SPATIAL; i++) {
+    for (int i = 0; i <= (int)FieldType::VECTOR; i++) {
         ret[FieldTypeNames[i]] = FieldType(i);
         ret[fma_common::ToLower(FieldTypeNames[i])] = FieldType(i);
     }
@@ -91,7 +92,8 @@ static constexpr size_t FieldTypeSizes[] = {
     50,  // Point
     0,   // LineString
     0,   // Polygon
-    0    // Spatial
+    0,   // Spatial
+    0    // vector
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -110,7 +112,8 @@ static constexpr bool IsFixedLengthType[] = {
     true,   // Point
     false,  // LineString
     false,  // Polygon
-    false   // Spatial
+    false,  // Spatial
+    false   // vector
 };
 
 template <class T, size_t N>
@@ -141,7 +144,7 @@ inline constexpr bool IsFixedLengthFieldType(FieldType dt) {
 }
 
 inline std::string TryGetFieldTypeName(FieldType ft) {
-    if (ft >= FieldType::NUL && ft <= FieldType::SPATIAL) return FieldTypeName(ft);
+    if (ft >= FieldType::NUL && ft <= FieldType::VECTOR) return FieldTypeName(ft);
     return fma_common::StringFormatter::Format("[Illegal FieldType, value={}]", (int)ft);
 }
 
@@ -180,6 +183,10 @@ struct FieldType2StorageType<FieldType::INT64> {
 template <>
 struct FieldType2StorageType<FieldType::FLOAT> {
     typedef float type;
+};
+template <>
+struct FieldType2StorageType<FieldType::VECTOR> {
+    typedef std::string type;
 };
 template <>
 struct FieldType2StorageType<FieldType::DOUBLE> {
@@ -221,6 +228,11 @@ struct FieldType2StorageType<FieldType::SPATIAL> {
 template <FieldType FT>
 struct FieldType2CType {
     typedef typename FieldType2StorageType<FT>::type type;
+};
+
+template <>
+struct FieldType2CType<FieldType::VECTOR> {
+    typedef std::vector<float> type;
 };
 
 template <>
@@ -272,6 +284,11 @@ template <>
 inline FieldData MakeFieldData<FieldType::INT64>(
     const typename FieldType2CType<FieldType::INT64>::type& cd) {
     return FieldData::Int64(cd);
+}
+template <>
+inline FieldData MakeFieldData<FieldType::VECTOR>(
+    const typename FieldType2CType<FieldType::VECTOR>::type& cd) {
+    return FieldData::Vector(cd);
 }
 template <>
 inline FieldData MakeFieldData<FieldType::FLOAT>(
@@ -361,6 +378,15 @@ struct FieldDataRangeCheck {
 };
 
 template <>
+struct FieldDataRangeCheck<FieldType::VECTOR> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::STRING>::type& dst) {
+        return true;
+    }
+};
+
+template <>
 struct FieldDataRangeCheck<FieldType::STRING> {
     template <typename FromT>
     static inline bool CheckAndCopy(const FromT& src,
@@ -419,7 +445,6 @@ inline bool CopyFdIntoDstStorageType(const FieldData& fd,
                                      typename FieldType2StorageType<DstType>::type& dst) {
     return false;
 }
-
 template <>
 inline bool CopyFdIntoDstStorageType<FieldType::DATE>(
     const FieldData& fd, typename FieldType2StorageType<FieldType::DATE>::type& dst) {
@@ -457,6 +482,7 @@ inline Value GetConstRefOfFieldDataContent(const FieldData& fd) {
         return Value::ConstRef(fd.data.sp);
     case FieldType::DOUBLE:
         return Value::ConstRef(fd.data.dp);
+    case FieldType::VECTOR:
     case FieldType::DATE:
         return Value::ConstRef(fd.data.int32);
     case FieldType::DATETIME:
@@ -475,14 +501,15 @@ inline Value GetConstRefOfFieldDataContent(const FieldData& fd) {
 
 template <FieldType FT>
 inline const typename FieldType2StorageType<FT>::type& GetStoredValue(const FieldData& fd) {}
+
 template <>
-inline const typename FieldType2StorageType<FieldType::BOOL>::type& GetStoredValue<FieldType::BOOL>(
-    const FieldData& fd) {
+inline const typename FieldType2StorageType<FieldType::BOOL>::type& 
+GetStoredValue<FieldType::BOOL>(const FieldData& fd) {
     return fd.data.int8;
 }
 template <>
-inline const typename FieldType2StorageType<FieldType::INT8>::type& GetStoredValue<FieldType::INT8>(
-    const FieldData& fd) {
+inline const typename FieldType2StorageType<FieldType::INT8>::type& 
+GetStoredValue<FieldType::INT8>(const FieldData& fd) {
     return fd.data.int8;
 }
 template <>
@@ -511,8 +538,13 @@ GetStoredValue<FieldType::DOUBLE>(const FieldData& fd) {
     return fd.data.dp;
 }
 template <>
-inline const typename FieldType2StorageType<FieldType::DATE>::type& GetStoredValue<FieldType::DATE>(
-    const FieldData& fd) {
+inline const typename FieldType2StorageType<FieldType::VECTOR>::type&
+GetStoredValue<FieldType::VECTOR>(const FieldData& fd) {
+    return *fd.data.buf;
+}
+template <>
+inline const typename FieldType2StorageType<FieldType::DATE>::type& 
+GetStoredValue<FieldType::DATE>(const FieldData& fd) {
     return fd.data.int32;
 }
 template <>
@@ -608,6 +640,10 @@ inline bool IsCompatibleType<FieldType::DOUBLE>(FieldType st) {
     return st <= FieldType::DOUBLE;
 }
 template <>
+inline bool IsCompatibleType<FieldType::VECTOR>(FieldType st) {
+    return st == FieldType::STRING;
+}
+template <>
 inline bool IsCompatibleType<FieldType::DATE>(FieldType st) {
     return st == FieldType::STRING || st == FieldType::DATE || st == FieldType::DATETIME;
 }
@@ -649,6 +685,24 @@ inline size_t ParseStringIntoFieldData(const char* beg, const char* end, FieldDa
     return s;
 }
 template <>
+inline size_t ParseStringIntoFieldData<FieldType::VECTOR>(const char* beg, const char* end,
+                                                          FieldData& fd) {
+    std::string cd;
+    std::vector<float> vec;
+    size_t s = fma_common::TextParserUtils::ParseCsvString(beg, end, cd);
+    if (s == 0) return 0;
+    std::string str(beg, end);
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+    while (begin_it != end_it) {  
+        std::smatch match = *begin_it;  
+        vec.push_back(std::stof(match.str()));  
+        ++begin_it; 
+    }    
+    fd = FieldData::Vector(vec);
+    return s;
+}
+template <>
 inline size_t ParseStringIntoFieldData<FieldType::STRING>(const char* beg, const char* end,
                                                           FieldData& fd) {
     std::string cd;
@@ -683,6 +737,11 @@ inline bool ParseStringIntoStorageType(const std::string& str,
 }
 template <>
 inline bool ParseStringIntoStorageType<FieldType::STRING>(const std::string& str, std::string& sd) {
+    sd.assign(str.begin(), str.end());
+    return true;
+}
+template <>
+inline bool ParseStringIntoStorageType<FieldType::VECTOR>(const std::string& str, std::string& sd) {
     sd.assign(str.begin(), str.end());
     return true;
 }
@@ -774,6 +833,8 @@ struct FieldDataTypeConvert {
             _GET_SCALAR_VALUE_AND_SET_S(FLOAT);
         case FieldType::DOUBLE:
             _GET_SCALAR_VALUE_AND_SET_S(DOUBLE);
+        case FieldType::VECTOR:
+            return ParseStringIntoStorageType<DstType>(*fd.data.buf, s);
         case FieldType::DATE:
             // date can only be converted to datetime
             return CopyFdIntoDstStorageType<DstType>(fd, s);
@@ -837,6 +898,8 @@ inline size_t ParseStringIntoFieldData(FieldType ft, const char* b, const char* 
         return ParseStringIntoFieldData<FieldType::FLOAT>(b, e, fd);
     case FieldType::DOUBLE:
         return ParseStringIntoFieldData<FieldType::DOUBLE>(b, e, fd);
+    case FieldType::VECTOR:
+        return ParseStringIntoFieldData<FieldType::VECTOR>(b, e, fd);
     case FieldType::STRING:
         {
             std::string cd;
@@ -902,6 +965,8 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         _CONVERT_AND_RETURN_COPY_AS_VALUE(FLOAT);
     case FieldType::DOUBLE:
         _CONVERT_AND_RETURN_COPY_AS_VALUE(DOUBLE);
+    case FieldType::VECTOR:
+        _CONVERT_AND_RETURN_COPY_AS_VALUE(VECTOR);
     case FieldType::DATE:
         _CONVERT_AND_RETURN_COPY_AS_VALUE(DATE);
     case FieldType::DATETIME:
@@ -1013,6 +1078,8 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
         _PARSE_STRING_AND_RETURN_VALUE(FLOAT);
     case FieldType::DOUBLE:
         _PARSE_STRING_AND_RETURN_VALUE(DOUBLE);
+    case FieldType::VECTOR:
+        return Value::ConstRef(str);
     case FieldType::STRING:
         return Value::ConstRef(str);
     case FieldType::BLOB:
@@ -1090,6 +1157,18 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
         return FieldData(v.AsType<float>());
     case FieldType::DOUBLE:
         return FieldData(v.AsType<double>());
+    case FieldType::VECTOR:
+        {
+            std::string str = v.AsString();
+            std::istringstream iss(str);  
+            std::vector<float> vec;  
+            std::string token;  
+            while (getline(iss, token, ',')) {    
+                vec.push_back(std::stof(token)); 
+                } 
+              
+            return FieldData(vec);
+        }       
     case FieldType::DATE:
         return FieldData(Date(v.AsType<int32_t>()));
     case FieldType::DATETIME:

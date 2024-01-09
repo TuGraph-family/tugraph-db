@@ -396,6 +396,8 @@ inline web::json::value ValueToJson(const FieldData& fd) {
         return web::json::value::number(fd.data.sp);
     case FieldType::DOUBLE:
         return web::json::value::number(fd.data.dp);
+    case FieldType::VECTOR:
+        return web::json::value::string(_TU(*fd.data.buf));
     case FieldType::DATE:
         return web::json::value::string(_TU(Date(fd.data.int32).ToString()));
     case FieldType::DATETIME:

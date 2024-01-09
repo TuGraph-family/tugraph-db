@@ -94,7 +94,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
             r->Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
             return;
         }
-        FMA_DBG_STREAM(Logger()) << "Plan cache disabled.";
+         FMA_DBG_STREAM(Logger()) << "Plan cache disabled.";
         // FMA_DBG_STREAM(Logger())
         //     << "Miss execution plan cache, build plan for this query.";
     } else {

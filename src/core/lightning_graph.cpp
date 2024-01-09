@@ -138,20 +138,13 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
     lgraph::CheckValidFieldNum(n_fields);
 
     std::set<std::string> unique_fds;
-    auto rn_feild = n_fields; 
-    if (is_vertex) {
-        rn_feild--;//if its vertex label ,the last one is vector
-    }
-    for (size_t i = 0; i < rn_feild; i++) {
+    for (size_t i = 0; i < n_fields; i++) {
         using namespace import_v2;
-        std::__cxx11::string str = fds[i].name;  //create a variable
-        std::transform(str.begin(), str.end(), str.begin(), ::tolower);  // lower it
         if (fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SKIP) ||
             fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
-            fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID) ||
-            str  == "vector") {
+            fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
             throw InputError(FMA_FMT(
-                R"(Label[{}]: Property name cannot be "SKIP" or "SRC_ID" or "DST_ID" or "vector")", label));
+                R"(Label[{}]: Property name cannot be "SKIP" or "SRC_ID" or "DST_ID")", label));
         }
         auto ret = unique_fds.insert(fds[i].name);
         if (!ret.second)

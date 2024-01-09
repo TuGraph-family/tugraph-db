@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <regex>  
 
 #include "lgraph/base64_encode.h"
 #include "lgraph/lgraph_date_time.h"
@@ -192,7 +193,8 @@ enum FieldType {
     POINT = 12,       // Point type of spatial data
     LINESTRING = 13,  // LineString type of spatial data
     POLYGON = 14,     // Polygon type of spatial data
-    SPATIAL = 15      // spatial data, it's now unused but may be used in the future.
+    SPATIAL = 15,     // spatial data, it's now unused but may be used in the future.
+    VECTOR = 16       // Vector type ,a FlOAT array
 };
 
 /**
@@ -222,6 +224,8 @@ inline const std::string to_string(FieldType v) {
         return "FLOAT";
     case DOUBLE:
         return "DOUBLE";
+    case VECTOR:
+        return "VECTOR";
     case DATE:
         return "DATE";
     case DATETIME:
@@ -419,7 +423,23 @@ struct FieldData {
         type = FieldType::DATETIME;
         data.int64 = d.MicroSecondsSinceEpoch();
     }
-
+    
+    explicit FieldData(const std::vector<float>& vec) {
+        type = FieldType::VECTOR;
+        std::string str;
+        bool is_first = true;
+        for (const auto& element : vec) 
+        { 
+            if (!is_first) 
+            {  
+                str += ","; 
+            }   
+            str += std::to_string(element);
+            is_first = false;  
+        }    
+        data.buf = new std::string(str);
+    }
+    
     explicit FieldData(const std::string& buf) {
         type = FieldType::STRING;
         data.buf = new std::string(buf);
@@ -542,14 +562,13 @@ struct FieldData {
         return FieldData(::lgraph_api::DateTime(str));
     }
     static inline FieldData DateTime(const ::lgraph_api::DateTime& d) { return FieldData(d); }
+    static inline FieldData Vector(const std::vector<float>& v) { return FieldData(v); }
     static inline FieldData String(const std::string& str) { return FieldData(str); }
     static inline FieldData String(std::string&& str) { return FieldData(std::move(str)); }
     static inline FieldData String(const char* str) { return FieldData(str); }
     static inline FieldData String(const char* p, size_t s) { return FieldData(p, s); }
-
-    static inline FieldData Point(const ::lgraph_api::Point<Cartesian>& p) {
-    return FieldData(p); }
-    static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) {return FieldData(p); }
+    static inline FieldData Point(const ::lgraph_api::Point<Cartesian>& p) { return FieldData(p); }
+    static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) { return FieldData(p); }
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
@@ -669,6 +688,7 @@ struct FieldData {
             return data.int64;
         case FieldType::FLOAT:
         case FieldType::DOUBLE:
+        case FieldType::VECTOR:
         case FieldType::DATE:
         case FieldType::DATETIME:
         case FieldType::STRING:
@@ -702,6 +722,7 @@ struct FieldData {
             return static_cast<double>(data.sp);
         case FieldType::DOUBLE:
             return data.dp;
+        case FieldType::VECTOR:
         case FieldType::DATE:
         case FieldType::DATETIME:
         case FieldType::STRING:
@@ -776,6 +797,23 @@ struct FieldData {
 
     inline double AsDouble() const {
         if (type == FieldType::DOUBLE) return data.dp;
+        throw std::bad_cast();
+    }
+
+    inline std::vector<float> AsVector() const {
+        if (type == FieldType::VECTOR) 
+        {
+            std::vector<float> vec;
+            std::string str(*data.buf);
+            std::regex pattern("-?[0-9]+\\.?[0-9]*");
+            std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+            while (begin_it != end_it) {  
+                std::smatch match = *begin_it;  
+                vec.push_back(std::stof(match.str()));  
+                ++begin_it; 
+            }
+            return vec;    
+        }
         throw std::bad_cast();
     }
 
@@ -885,6 +923,8 @@ struct FieldData {
             return std::to_string(data.sp);
         case FieldType::DOUBLE:
             return std::to_string(data.dp);
+        case FieldType::VECTOR:
+            return *data.buf;
         case FieldType::DATE:
             return ::lgraph_api::Date(data.int32).ToString();
         case FieldType::DATETIME:
@@ -937,6 +977,7 @@ struct FieldData {
                 return data.int32 == rhs.data.int32;
             case FieldType::DATETIME:
                 return data.int64 == rhs.data.int64;
+            case FieldType::VECTOR:
             case FieldType::STRING:
             case FieldType::BLOB:
             case FieldType::POINT:
@@ -984,6 +1025,7 @@ struct FieldData {
                 return data.sp > rhs.data.sp;
             case FieldType::DOUBLE:
                 return data.dp > rhs.data.dp;
+            case FieldType::VECTOR:
             case FieldType::DATE:
                 return data.int32 > rhs.data.int32;
             case FieldType::DATETIME:
@@ -1034,6 +1076,7 @@ struct FieldData {
                 return data.sp >= rhs.data.sp;
             case FieldType::DOUBLE:
                 return data.dp >= rhs.data.dp;
+            case FieldType::VECTOR:
             case FieldType::DATE:
                 return data.int32 >= rhs.data.int32;
             case FieldType::DATETIME:
@@ -1120,6 +1163,9 @@ struct FieldData {
 
     /** @brief   Query if this object is double */
     bool IsDouble() const { return type == FieldType::DOUBLE; }
+
+    /** @brief   Query if this object is vector */
+    bool IsVector() const { return type == FieldType::VECTOR; }
 
     /** @brief   Is this a FLOAT or DOUBLE? */
     bool IsReal() const { return IsReal(type); }
