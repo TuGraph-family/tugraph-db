@@ -239,9 +239,21 @@ cypher::FieldData BuiltinFunction::Size(RTContext *ctx, const Record &record,
 cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
                                           const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
-    auto r = args[1].Evaluate(ctx, record);
-    if (!r.IsArray()) throw lgraph::CypherException("Path expected in length(): " + r.ToString());
-    return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
+
+    auto arg1 = args[1].Evaluate(ctx, record);
+    switch (arg1.type) {
+        case Entry::CONSTANT:
+            if (arg1.constant.IsString()) {
+                auto len = arg1.constant.ToString("").length()
+                return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(len)));
+
+            } else if (arg1.constant.IsArray()) {
+                return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
+            }
+        default:
+            break;
+    }
+    CYPHER_ARGUMENT_ERROR();
 }
 
 // TODO(jinyejun.jyj): support native path in FieldData
@@ -792,6 +804,67 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     default:
         throw ::lgraph::InternalError("");
     }
+}
+
+cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &record,
+                                             const std::vector<ArithExprNode> &args) {
+    /* Arguments:
+     * start    An expression that returns an integer value.
+     * length   An expression that returns an integer value.
+     */
+    if (args.size() != 4) CYPHER_ARGUMENT_ERROR();
+
+    auto arg1 = args[1].Evaluate(ctx, record);
+    switch (arg1.type) {
+    case Entry::CONSTANT:
+        if (arg1.constant.IsString()) {
+            auto arg2 = args[2].Evaluate(ctx, record);
+            auto arg3 = args[3].Evaluate(ctx, record);
+            if (!arg2.IsInteger()) CYPHER_ARGUMENT_ERROR();
+            if (!arg3.IsInteger()) CYPHER_ARGUMENT_ERROR();
+
+            auto origin = arg1.constant.ToString("");
+            auto size = origin.length();
+            auto start = arg2.constant.scalar.integer();
+            auto length = arg3.constant.scalar.integer();
+            if (start < 1 || start > size) CYPHER_ARGUMENT_ERROR();
+            if (length < 1 || start + length > size) CYPHER_ARGUMENT_ERROR();
+
+            auto result = origin.substr(start - 1, length);
+            return cypher::FieldData(lgraph::FieldData(result));
+        }
+    default:
+        break;
+    }
+    CYPHER_ARGUMENT_ERROR();
+}
+
+cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
+                                             const std::vector<ArithExprNode> &args) {
+    /* Arguments:
+     * others[1...n]    At least one expression that returns a string value.
+     */
+    if (args.size() < 3) CYPHER_ARGUMENT_ERROR();
+
+    auto arg1 = args[1].Evaluate(ctx, record);
+    switch (arg1.type) {
+    case Entry::CONSTANT:
+        if (arg1.constant.IsString()) {
+            auto result = arg1.constant.ToString("");
+
+            for (int i = 2; i < args.size(); ++i) {
+                auto arg = args[i].Evaluate(ctx, record);
+                if (!arg.IsString()) CYPHER_ARGUMENT_ERROR();
+
+                result.append(arg2.constant.ToString(""));
+            }
+
+            return cypher::FieldData(lgraph::FieldData(result));
+        }
+    default:
+        break;
+    }
+    CYPHER_ARGUMENT_ERROR();
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
