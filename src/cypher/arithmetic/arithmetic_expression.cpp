@@ -837,7 +837,7 @@ cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &recor
                 if (start < 1 || start > size)
                     throw lgraph::CypherException("Invalid argument 2 of `SUBSTRING()`: "
                                                   + arg2.ToString());
-                if (length < 1 || start + length > size)
+                if (length < 1 || start - 1 + length > size)
                     throw lgraph::CypherException("Invalid argument 3 of `SUBSTRING()`: "
                                                   + arg3.ToString());
 
