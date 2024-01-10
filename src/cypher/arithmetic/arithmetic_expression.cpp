@@ -253,9 +253,10 @@ cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
             }
             break;
         default:
-            throw lgraph::CypherException("Function `LENGTH()` is not supported for: "
-                                          + arg1.ToString());
+            break;
     }
+
+    throw lgraph::CypherException("Function `LENGTH()` is not supported for: " + arg1.ToString());
 }
 
 // TODO(jinyejun.jyj): support native path in FieldData
@@ -845,9 +846,11 @@ cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &recor
             }
             break;
         default:
-            throw lgraph::CypherException("Function `SUBSTRING()` is not supported for: "
-                                          + arg1.ToString());
+            break;
     }
+
+    throw lgraph::CypherException("Function `SUBSTRING()` is not supported for: "
+                                  + arg1.ToString());
 }
 
 cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
@@ -877,9 +880,10 @@ cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
             }
             break;
         default:
-            throw lgraph::CypherException("Function `CONCAT()` is not supported for: "
-                                          + arg1.ToString());
+            break;
     }
+
+    throw lgraph::CypherException("Function `CONCAT()` is not supported for: " + arg1.ToString());
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
