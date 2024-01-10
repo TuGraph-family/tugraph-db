@@ -244,12 +244,12 @@ cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
     switch (arg1.type) {
         case Entry::CONSTANT:
             if (arg1.constant.IsString()) {
-                auto len = arg1.constant.ToString("").length()
+                auto len = arg1.constant.ToString("").length();
                 return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(len)));
 
             } else if (arg1.constant.IsArray()) {
                 return cypher::FieldData(
-                    lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
+                    lgraph::FieldData(static_cast<int64_t>(arg1.constant.array->size() / 2)));
             }
         default:
             break;
@@ -825,7 +825,7 @@ cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &recor
             if (!arg3.IsInteger()) CYPHER_ARGUMENT_ERROR();
 
             auto origin = arg1.constant.ToString("");
-            auto size = origin.length();
+            auto size = static_cast<int64_t>(origin.length());
             auto start = arg2.constant.scalar.integer();
             auto length = arg3.constant.scalar.integer();
             if (start < 1 || start > size) CYPHER_ARGUMENT_ERROR();
@@ -853,11 +853,11 @@ cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
         if (arg1.constant.IsString()) {
             auto result = arg1.constant.ToString("");
 
-            for (int i = 2; i < args.size(); ++i) {
+            for (int i = 2; i < (int)args.size(); ++i) {
                 auto arg = args[i].Evaluate(ctx, record);
                 if (!arg.IsString()) CYPHER_ARGUMENT_ERROR();
 
-                result.append(arg2.constant.ToString(""));
+                result.append(arg.constant.ToString(""));
             }
 
             return cypher::FieldData(lgraph::FieldData(result));
