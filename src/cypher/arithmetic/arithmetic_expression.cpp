@@ -248,7 +248,8 @@ cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
                 return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(len)));
 
             } else if (arg1.constant.IsArray()) {
-                return cypher::FieldData(lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
+                return cypher::FieldData(
+                    lgraph::FieldData(static_cast<int64_t>(r.constant.array->size() / 2)));
             }
         default:
             break;
