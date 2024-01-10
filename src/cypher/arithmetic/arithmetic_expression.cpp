@@ -866,7 +866,7 @@ cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
                 for (int i = 2; i < (int)args.size(); ++i) {
                     auto arg = args[i].Evaluate(ctx, record);
                     if (!arg.IsString())
-                        throw lgraph::CypherException(std::string("Argument ") + i
+                        throw lgraph::CypherException("Argument " + std::to_string(i)
                                                       + " of `SUBSTRING()` expects string type: "
                                                       + arg.ToString());
 
