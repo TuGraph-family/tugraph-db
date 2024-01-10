@@ -251,10 +251,11 @@ cypher::FieldData BuiltinFunction::Length(RTContext *ctx, const Record &record,
                 return cypher::FieldData(
                     lgraph::FieldData(static_cast<int64_t>(arg1.constant.array->size() / 2)));
             }
-        default:
             break;
+        default:
+            throw lgraph::CypherException("Function `LENGTH()` is not supported for: "
+                                          + arg1.ToString());
     }
-    CYPHER_ARGUMENT_ERROR();
 }
 
 // TODO(jinyejun.jyj): support native path in FieldData
@@ -817,27 +818,36 @@ cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &recor
 
     auto arg1 = args[1].Evaluate(ctx, record);
     switch (arg1.type) {
-    case Entry::CONSTANT:
-        if (arg1.constant.IsString()) {
-            auto arg2 = args[2].Evaluate(ctx, record);
-            auto arg3 = args[3].Evaluate(ctx, record);
-            if (!arg2.IsInteger()) CYPHER_ARGUMENT_ERROR();
-            if (!arg3.IsInteger()) CYPHER_ARGUMENT_ERROR();
+        case Entry::CONSTANT:
+            if (arg1.constant.IsString()) {
+                auto arg2 = args[2].Evaluate(ctx, record);
+                auto arg3 = args[3].Evaluate(ctx, record);
+                if (!arg2.IsInteger())
+                    throw lgraph::CypherException("Argument 2 of `SUBSTRING()` expects int type: "
+                                                  + arg2.ToString());
+                if (!arg3.IsInteger())
+                    throw lgraph::CypherException("Argument 3 of `SUBSTRING()` expects int type: "
+                                                  + arg3.ToString());
 
-            auto origin = arg1.constant.ToString("");
-            auto size = static_cast<int64_t>(origin.length());
-            auto start = arg2.constant.scalar.integer();
-            auto length = arg3.constant.scalar.integer();
-            if (start < 1 || start > size) CYPHER_ARGUMENT_ERROR();
-            if (length < 1 || start + length > size) CYPHER_ARGUMENT_ERROR();
+                auto origin = arg1.constant.ToString("");
+                auto size = static_cast<int64_t>(origin.length());
+                auto start = arg2.constant.scalar.integer();
+                auto length = arg3.constant.scalar.integer();
+                if (start < 1 || start > size)
+                    throw lgraph::CypherException("Invalid argument 2 of `SUBSTRING()`: "
+                                                  + arg2.ToString());
+                if (length < 1 || start + length > size)
+                    throw lgraph::CypherException("Invalid argument 3 of `SUBSTRING()`: "
+                                                  + arg3.ToString());
 
-            auto result = origin.substr(start - 1, length);
-            return cypher::FieldData(lgraph::FieldData(result));
-        }
-    default:
-        break;
+                auto result = origin.substr(start - 1, length);
+                return cypher::FieldData(lgraph::FieldData(result));
+            }
+            break;
+        default:
+            throw lgraph::CypherException("Function `SUBSTRING()` is not supported for: "
+                                          + arg1.ToString());
     }
-    CYPHER_ARGUMENT_ERROR();
 }
 
 cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
@@ -849,23 +859,27 @@ cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
 
     auto arg1 = args[1].Evaluate(ctx, record);
     switch (arg1.type) {
-    case Entry::CONSTANT:
-        if (arg1.constant.IsString()) {
-            auto result = arg1.constant.ToString("");
+        case Entry::CONSTANT:
+            if (arg1.constant.IsString()) {
+                auto result = arg1.constant.ToString("");
 
-            for (int i = 2; i < (int)args.size(); ++i) {
-                auto arg = args[i].Evaluate(ctx, record);
-                if (!arg.IsString()) CYPHER_ARGUMENT_ERROR();
+                for (int i = 2; i < (int)args.size(); ++i) {
+                    auto arg = args[i].Evaluate(ctx, record);
+                    if (!arg.IsString())
+                        throw lgraph::CypherException(std::string("Argument ") + i
+                                                      + " of `SUBSTRING()` expects string type: "
+                                                      + arg.ToString());
 
-                result.append(arg.constant.ToString(""));
+                    result.append(arg.constant.ToString(""));
+                }
+
+                return cypher::FieldData(lgraph::FieldData(result));
             }
-
-            return cypher::FieldData(lgraph::FieldData(result));
-        }
-    default:
-        break;
+            break;
+        default:
+            throw lgraph::CypherException("Function `CONCAT()` is not supported for: "
+                                          + arg1.ToString());
     }
-    CYPHER_ARGUMENT_ERROR();
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
