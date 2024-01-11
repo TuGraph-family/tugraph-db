@@ -1,7 +1,6 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
-#include "lgraph/lgraph.h"
 #include "lgraph/lgraph_rpc_client.h"
 #include "fma-common/configuration.h"
 #include "boost/algorithm/string.hpp"
