@@ -158,6 +158,7 @@ static const utility::string_t RESULT = _TU("result");
 static const utility::string_t REFRESH = _TU("refresh");
 static const utility::string_t ROLE = _TU("role");
 static const utility::string_t ROLES = _TU("roles");
+static const utility::string_t HA_ROLE = _TU("ha_role");
 static const utility::string_t RPC_ADDR = _TU("rpc_address");
 static const utility::string_t SCHEMA = _TU("schema");
 static const utility::string_t SCHEMA_TEXT = _TU("text");
@@ -176,6 +177,7 @@ static const utility::string_t TID = _TU("termporal_id");
 static const utility::string_t TIME_USED = _TU("time_elapsed");
 static const utility::string_t TIMEOUT = _TU("timeout");
 static const utility::string_t TOKEN = _TU("jwt");
+static const utility::string_t DEFAULT_PASSWORD = _TU("default_password");
 static const utility::string_t TYPE = _TU("type");
 static const utility::string_t UP_TIME = _TU("up_time");
 static const utility::string_t USER = _TU("user");
@@ -403,6 +405,55 @@ inline web::json::value ValueToJson(const FieldData& fd) {
         return web::json::value::string(_TU(*fd.data.buf));
     case FieldType::BLOB:
         return web::json::value::string(_TU(::lgraph_api::base64::Encode(*fd.data.buf)));
+    case FieldType::POINT:
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(PointWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(PointCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
+    case FieldType::LINESTRING:
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(LineStringWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(
+                        _TU(LineStringCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
+    case FieldType::POLYGON:
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(PolygonWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(PolygonCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
+    case FieldType::SPATIAL:
+        {
+            ::lgraph_api::SRID s = ::lgraph_api::ExtractSRID(*fd.data.buf);
+            switch (s) {
+                case ::lgraph_api::SRID::WGS84:
+                    return web::json::value::string(_TU(SpatialWgs84(*fd.data.buf).ToString()));
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return web::json::value::string(_TU(SpatialCartesian(*fd.data.buf).ToString()));
+                default:
+                    throw lgraph::InputError("unsupportted spatial srid");
+            }
+        }
     }
     FMA_DBG_ASSERT(false);  // unhandled FieldData type
     return web::json::value::null();
@@ -470,6 +521,7 @@ inline web::json::value ValueToJson(const StateMachine::Peer& peer) {
     v[RestStrings::RPC_ADDR] = ValueToJson(peer.rpc_addr);
     v[RestStrings::REST_ADDR] = ValueToJson(peer.rest_addr);
     v[RestStrings::STATE] = ValueToJson(peer.StateString());
+    v[RestStrings::HA_ROLE] = ValueToJson(peer.RoleString());
     return v;
 }
 
@@ -554,10 +606,35 @@ inline web::json::value ValueToJson(const std::vector<lgraph::_detail::FieldExtr
         js[_TU("optional")] = ValueToJson(fields[idx].GetFieldSpec().optional);
         if (fields[idx].GetVertexIndex()) {
             js[_TU("index")] = ValueToJson(true);
-            if (fields[idx].GetVertexIndex()->IsUnique()) {
-                js[_TU("unique")] = ValueToJson(true);
-            } else {
+            switch (fields[idx].GetVertexIndex()->GetType()) {
+            case IndexType::NonuniqueIndex:
                 js[_TU("unique")] = ValueToJson(false);
+                break;
+            case IndexType::GlobalUniqueIndex:
+                js[_TU("unique")] = ValueToJson(true);
+                break;
+            case IndexType::PairUniqueIndex:
+                js[_TU("unique")] = ValueToJson(false);
+                break;
+            }
+        } else {
+            js[_TU("index")] = ValueToJson(false);
+        }
+        if (fields[idx].GetEdgeIndex()) {\
+            js[_TU("index")] = ValueToJson(true);
+            switch (fields[idx].GetEdgeIndex()->GetType()) {
+            case IndexType::NonuniqueIndex:
+                js[_TU("unique")] = ValueToJson(false);
+                js[_TU("pair_unique")] = ValueToJson(false);
+                break;
+            case IndexType::GlobalUniqueIndex:
+                js[_TU("unique")] = ValueToJson(true);
+                js[_TU("pair_unique")] = ValueToJson(false);
+                break;
+            case IndexType::PairUniqueIndex:
+                js[_TU("unique")] = ValueToJson(false);
+                js[_TU("pair_unique")] = ValueToJson(true);
+                break;
             }
         } else {
             js[_TU("index")] = ValueToJson(false);

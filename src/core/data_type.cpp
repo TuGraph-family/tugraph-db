@@ -40,13 +40,13 @@ SubProcess::SubProcess(const std::string& cmd, bool print_output) {
     proc_.reset(new TinyProcessLib::Process(
         cmd, "./",
         [this, print_output](const char* b, size_t s) {
-            if (print_output) FMA_LOG() << std::string(b, s);
+            if (print_output) LOG_INFO() << std::string(b, s);
             std::lock_guard<std::mutex> l(out_mtx_);
             stdout_.append(b, s);
             out_cv_.notify_all();
         },
         [this, print_output](const char* b, size_t s) {
-            if (print_output) FMA_LOG() << std::string(b, s);
+            if (print_output) LOG_INFO() << std::string(b, s);
             std::lock_guard<std::mutex> l(out_mtx_);
             stderr_.append(b, s);
             out_cv_.notify_all();

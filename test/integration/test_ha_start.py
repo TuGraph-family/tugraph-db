@@ -76,7 +76,7 @@ class TestHAStart:
                   f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
                   f"--rpc_port 29094 --directory ./db --log_dir "
                   f"./log  --ha_conf {self.host}:29092,{self.host}:29093,{self.host}:29094 -c lgraph_ha.json -d start")
-        time.sleep(3)
+        time.sleep(10)
         client = start_ha_client(self.host, "29092")
         get_node_edge_and_test(client)
         client.logout()
@@ -117,7 +117,7 @@ class TestHAStart:
                   f"--rpc_port 29094 --directory ./db --log_dir "
                   f"./log  --ha_conf {self.host}:29092,{self.host}:29093,{self.host}:29094 --ha_bootstrap_role 2 "
                   f"-c lgraph_ha.json -d start")
-        time.sleep(10)
+        time.sleep(20)
         client = start_ha_client(self.host, "29092")
         log.info("----------------test_bootstrap_start--------------------")
         get_node_edge_and_test(client)

@@ -13,9 +13,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "tools/lgraph_log.h"
 #include "fma-common/check_date.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/timed_task.h"
 #include "fma-common/hardware_info.h"
 #include "import/import_v2.h"
@@ -38,6 +38,7 @@ int main(int argc, char** argv) {
 
     bool online = false;
     bool v3 = true;
+    bool full = false;
     {
         fma_common::Configuration config;
         config.Add(online, "online", true).Comment("Whether to import online");
@@ -48,10 +49,14 @@ int main(int argc, char** argv) {
     }
 
     if (online) {
+        {
+            fma_common::Configuration config;
+            config.Add(full, "full", true).Comment("Whether to full import online");
+            config.ParseAndRemove(&argc, &argv);
+            config.ExitAfterHelp(false);
+            config.Finalize();
+        }
         fma_common::Configuration config;
-        config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
-        config.Add(verbose_level, "v,verbose", true)
-            .Comment("Verbose level to use, higher means more verbose");
         config.Add(online_import_config.config_file, "c,config_file", false)
             .Comment("Config file path");
         config.Add(online_import_config.url, "r,url", false).Comment("DB REST API address");
@@ -61,12 +66,43 @@ int main(int argc, char** argv) {
             .Comment("When we hit a duplicate uid or missing uid, should we continue or abort");
         config.Add(online_import_config.graph_name, "g,graph", true)
             .Comment("The name of the graph to import into");
-        config.Add(online_import_config.skip_packages, "skip_packages", true)
-            .Comment("How many packages should we skip");
         config.Add(online_import_config.delimiter, "delimiter", true)
             .Comment("Delimiter used in the CSV files");
-        config.Add(online_import_config.breakpoint_continue, "breakpoint_continue", true)
-            .Comment("Delimiter used in the CSV files");
+        config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
+        config.Add(verbose_level, "v,verbose", true)
+            .Comment("Verbose level to use, higher means more verbose");
+        if (!full) {
+            config.Add(online_import_config.skip_packages, "skip_packages", true)
+                .Comment("How many packages should we skip");
+            config.Add(online_import_config.breakpoint_continue, "breakpoint_continue", true)
+                .Comment("Delimiter used in the CSV files");
+        } else {
+            config.Add(online_import_config.delete_if_exists, "overwrite", true)
+                .Comment("Whether to overwrite the existing DB if it already exists");
+            config.Add(online_import_config.parse_block_size, "parse_block_size", true)
+                .Comment("Block size per parse");
+            config.Add(online_import_config.parse_block_threads, "parse_block_threads", true)
+                .Comment("How many threads to parse the data block");
+            config.Add(online_import_config.parse_file_threads, "parse_file_threads", true)
+                .Comment("How many threads to parse the files");
+            config.Add(online_import_config.generate_sst_threads, "generate_sst_threads", true)
+                .Comment("How many threads to generate sst files");
+            config.Add(online_import_config.read_rocksdb_threads, "read_rocksdb_threads", true)
+                .Comment("How many threads to read rocksdb in the final stage");
+            config.Add(online_import_config.vid_num_per_reading, "vid_num_per_reading", true)
+                .Comment("How many vertex data to read each time");
+            config.Add(online_import_config.max_size_per_reading, "max_size_per_reading", true)
+                .Comment("Maximum size of kvs per reading");
+            config.Add(online_import_config.compact, "compact", true)
+                .Comment("Whether to compact");
+            config.Add(online_import_config.keep_vid_in_memory, "keep_vid_in_memory", true)
+                .Comment("Whether to keep vids in memory");
+            config.Add(online_import_config.enable_fulltext_index, "enable_fulltext_index", true)
+                .Comment("Whether to enable fulltext index");
+            config.Add(online_import_config.fulltext_index_analyzer, "fulltext_index_analyzer",
+                true).SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
+                .Comment("fulltext index analyzer");
+        }
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
     } else if (!v3) {
@@ -199,16 +235,29 @@ int main(int argc, char** argv) {
 
     try {
         if (online) {
-            FMA_LOG() << "Importing ONLINE: "
-                      << "\n\tfrom:                " << online_import_config.config_file
-                      << "\n\tto:                  " << online_import_config.url
-                      << "\n\tverbose:             " << verbose_level
-                      << "\n\tlog_dir:             " << log_dir;
-            online_import_config.delimiter = lgraph::ParseDelimiter(online_import_config.delimiter);
-            OnlineImportClient client(online_import_config);
-            client.DoImport();
+            if (!full) {
+                LOG_INFO() << "Importing ONLINE: "
+                          << "\n\tfrom:                " << online_import_config.config_file
+                          << "\n\tto:                  " << online_import_config.url
+                          << "\n\tverbose:             " << verbose_level
+                          << "\n\tlog_dir:             " << log_dir;
+                online_import_config.delimiter = lgraph::ParseDelimiter(
+                    online_import_config.delimiter);
+                OnlineImportClient client(online_import_config);
+                client.DoImport();
+            } else {
+                LOG_INFO() << "Full Importing ONLINE: "
+                          << "\n\tfrom:                " << online_import_config.config_file
+                          << "\n\tto:                  " << online_import_config.url
+                          << "\n\tverbose:             " << verbose_level
+                          << "\n\tlog_dir:             " << log_dir;
+                online_import_config.delimiter = lgraph::ParseDelimiter(
+                    online_import_config.delimiter);
+                OnlineImportClient client(online_import_config);
+                client.DoFullImport();
+            }
         } else if (!v3) {
-            FMA_LOG() << "Importing FROM SCRATCH: "
+            LOG_INFO() << "Importing FROM SCRATCH: "
                       << "\n\tfrom:                " << import_config.config_file
                       << "\n\tto:                  " << import_config.db_dir
                       << "\n\tverbose:             " << verbose_level
@@ -217,7 +266,7 @@ int main(int argc, char** argv) {
             fma_common::TimedTaskScheduler scheduler;
             if (memory_profile) {
                 scheduler.ScheduleReccurringTask(1000, [](TimedTask*) {
-                    FMA_LOG() << "Current available memory: "
+                    LOG_INFO() << "Current available memory: "
                               << fma_common::HardwareInfo::GetAvailableMemory() / 1024 / 1024 / 1024
                               << "GB";
                 });
@@ -225,7 +274,7 @@ int main(int argc, char** argv) {
             Importer importer(import_config);
             importer.DoImportOffline();
         } else {
-            FMA_LOG() << "Importing FROM SCRATCH:   "
+            LOG_INFO() << "Importing FROM SCRATCH:   "
                       << "\n\tfrom:                 " << import_config_v3.config_file
                       << "\n\tto:                   " << import_config_v3.db_dir
                       << "\n\tverbose:              " << verbose_level
@@ -243,7 +292,7 @@ int main(int argc, char** argv) {
             importer.DoImportOffline();
         }
     } catch (std::exception& e) {
-        FMA_LOG() << "An error occurred during import:\n" << PrintNestedException(e, 1);
+        LOG_INFO() << "An error occurred during import:\n" << PrintNestedException(e, 1);
         return 1;
     }
     fma_common::SleepS(3);  // waiting for memory reclaiming by async task

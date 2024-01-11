@@ -81,14 +81,14 @@ class NodeByLabelScan : public OpBase {
             if (!it_->IsValid()) return OP_DEPLETED;
         }
 #ifndef NDEBUG
-        FMA_DBG() << "[" << __FILE__ << "] " << alias_ << ": " << it_->GetId();
+        LOG_DEBUG() << alias_ << ": " << it_->GetId();
 #endif
         return OP_OK;
     }
 
     OpResult ResetImpl(bool complete) override {
 #ifndef NDEBUG
-        FMA_DBG() << "[" << __FILE__ << "] " << alias_ << " reset";
+        LOG_DEBUG() << alias_ << " reset";
 #endif
         consuming_ = false;
         if (complete) {

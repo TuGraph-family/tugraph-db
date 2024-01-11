@@ -23,6 +23,10 @@ enum ProtoFieldType {
     DATETIME = 9;
     STRING = 10;
     BLOB = 11;
+    POINT = 12;
+    LINESTRING = 13;
+    POLYGON = 14;
+    SPATIAL = 15;
 };
 
 enum ProtoAccessLevel {
@@ -46,6 +50,10 @@ message ProtoFieldData {
         int64 datetime = 9;
         string str = 10;
         bytes blob = 11;
+        string point = 12;
+        string linestring = 13;
+        string polygon = 14;
+        string spatial = 15;
     }
 };
 
@@ -633,10 +641,16 @@ enum NodeState {
     OFFLINE = 6;
 };
 
+enum NodeRole {
+    REPLICA = 1;
+    WITNESS = 2;
+};
+
 message HeartbeatRequest {
     required string rpc_addr = 1;
     required string rest_addr = 2;
     required NodeState state = 3;
+    required NodeRole role = 4;
 };
 
 message HeartbeatResponse {
@@ -646,6 +660,7 @@ message PeerInfo {
     required string rpc_addr = 1;
     required string rest_addr = 2;
     required NodeState state = 3;
+    required NodeRole role = 4;
 };
 
 message ListPeersRequest {

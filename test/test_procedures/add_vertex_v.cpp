@@ -22,7 +22,7 @@ using json = nlohmann::json;
 using namespace lgraph_api;
 
 extern "C" LGAPI bool Process(GraphDB& db, const std::string& request, std::string& response) {
-    size_t vertex_size = 3000000;
+    size_t vertex_size = 300000;
     try {
         std::cout << "  input: " << request << std::endl;
         json input = json::parse(request);

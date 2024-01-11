@@ -138,7 +138,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
     for (auto seg : pattern_graph_root_) OpBase::DumpStream(seg, 0, false, s);
-    FMA_DBG_STREAM(PlanLogger()) << s;
+    LOG_DEBUG() << s;
     return s;
 }
 
@@ -268,7 +268,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::GraphPattern* node) {
         op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
         pattern_graph_root_[cur_pattern_graph_] = op_filter;
     }
-    if (!node->yield()->items().empty()) {
+    if (node->yield().has_value()) {
         NOT_SUPPORT();
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -301,7 +301,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         auto& relp = pattern_graph.GetRelationship(relp_t_->Alias());
         auto& end = pattern_graph.GetNode(node_t_->Alias());
         OpBase* expand_op;
-        FMA_DBG() << relp.MinHop() << " " << relp.MaxHop();
+        LOG_DEBUG() << relp.MinHop() << " " << relp.MaxHop();
         if (relp.VarLen()) {
             expand_op = new VarLenExpand(&pattern_graph, &start, &end, &relp);
         } else {
@@ -452,9 +452,33 @@ std::any ExecutionPlanMaker::visit(geax::frontend::AllowAnonymousTable* node) { 
 
 std::any ExecutionPlanMaker::visit(geax::frontend::OpConcurrent* node) { NOT_SUPPORT(); }
 
+std::any ExecutionPlanMaker::visit(geax::frontend::EdgeOnJoin* node) { NOT_SUPPORT(); }
+
 std::any ExecutionPlanMaker::visit(geax::frontend::SetAllProperties* node) { NOT_SUPPORT(); }
 
+std::any ExecutionPlanMaker::visit(geax::frontend::UpdateProperties* node) { NOT_SUPPORT(); }
+
 std::any ExecutionPlanMaker::visit(geax::frontend::SetLabel* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SetSingleProperty* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SetSchemaClause* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SetGraphClause* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SetTimeZoneClause* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SetParamClause* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::ResetAll* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::ResetSchema* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::ResetTimeZone* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::ResetGraph* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::ResetParam* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::GetField* node) { NOT_SUPPORT(); }
 
@@ -584,6 +608,35 @@ std::any ExecutionPlanMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUP
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Exists* node) { NOT_SUPPORT(); }
 
+std::any ExecutionPlanMaker::visit(geax::frontend::ExplainActivity* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SessionActivity* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::TransactionActivity* node) {
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->transaction());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any ExecutionPlanMaker::visit(geax::frontend::FullTransaction* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::NormalTransaction* node) {
+    if (node->endTransaction().has_value()) {
+        NOT_SUPPORT();
+    }
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->query());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any ExecutionPlanMaker::visit(geax::frontend::StartTransaction* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::CommitTransaction* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::RollBackTransaction* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SessionSet* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::SessionReset* node) { NOT_SUPPORT(); }
+
 std::any ExecutionPlanMaker::visit(geax::frontend::ProcedureBody* node) {
     pattern_graph_size_ = node->statements().size();
     pattern_graph_root_.resize(pattern_graph_size_, nullptr);
@@ -612,6 +665,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::BindingGraph* node) { NOT_SUP
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BindingTable* node) { NOT_SUPPORT(); }
 
+std::any ExecutionPlanMaker::visit(geax::frontend::BindingTableInnerQuery* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::BindingTableInnerExpr* node) { NOT_SUPPORT(); }
+
 std::any ExecutionPlanMaker::visit(geax::frontend::StatementWithYield* node) {
     auto stmt = node->statement();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(stmt);
@@ -623,6 +680,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::QueryStatement* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(join_query);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::StandaloneCallStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::JoinQueryExpression* node) {
     auto head = node->head();
@@ -669,6 +728,16 @@ std::any ExecutionPlanMaker::visit(geax::frontend::MatchStatement* node) {
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::CallProcedureStatement* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::InlineProcedureCall* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::ForStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* node) {
     auto& items = node->items();
@@ -808,6 +877,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) { NOT_
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
+std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) { NOT_SUPPORT(); }
+
 std::any ExecutionPlanMaker::visit(geax::frontend::OtherWise* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Union* node) { NOT_SUPPORT(); }
@@ -815,10 +886,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Union* node) { NOT_SUPPORT();
 std::any ExecutionPlanMaker::visit(geax::frontend::Except* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Intersect* node) { NOT_SUPPORT(); }
-
-std::any ExecutionPlanMaker::visit(geax::frontend::UpdateProperties* node) { NOT_SUPPORT(); }
-
-std::any ExecutionPlanMaker::visit(geax::frontend::SetSingleProperty* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Param* node) { NOT_SUPPORT(); }
 

@@ -39,7 +39,7 @@ struct BasicConfigs {
         , use_pthread(false)
         , verbose(1)
         , log_dir()
-        , max_log_file_size_mb(64)
+        , max_log_file_size_mb(256)
         , max_n_log_files(16)
         , audit_log_expire(0)
         , audit_log_dir("./audit_log")
@@ -47,6 +47,7 @@ struct BasicConfigs {
         , snapshot_dir("./snapshot_log")
         , max_backup_log_file_size((size_t)1 << 30)
         , unlimited_token(false)
+        , reset_admin_password(false)
         , enable_realtime_count(true) {}
 
     BasicConfigs(const BasicConfigs &basicConfigs)
@@ -74,7 +75,8 @@ struct BasicConfigs {
           , snapshot_dir(basicConfigs.snapshot_dir)
           , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
           , ft_index_options(basicConfigs.ft_index_options)
-          , unlimited_token(basicConfigs.unlimited_token) {}
+          , unlimited_token(basicConfigs.unlimited_token)
+          , reset_admin_password(basicConfigs.reset_admin_password) {}
 
     std::string db_dir;  // db
     int thread_limit;                // number of threads, for both rpc and http
@@ -103,6 +105,9 @@ struct BasicConfigs {
     int ha_node_remove_ms = 600000;  // node will be removed from node list after 10 min
     int ha_node_join_group_s = 10;  // node will join group in 10 s
     int ha_bootstrap_role = 0;
+    bool ha_is_witness = false;    // node is witness or not
+    bool ha_enable_witness_to_leader = false;  // enable witness to leader or not
+
     // log
     int verbose;
     std::string log_dir;
@@ -117,8 +122,13 @@ struct BasicConfigs {
     FullTextIndexOptions ft_index_options;
     // token time
     bool unlimited_token;
+    // reset admin password
+    bool reset_admin_password;
     // vertex and edge count
     bool enable_realtime_count{};
+    // bolt
+    int bolt_port = 0;
+    int bolt_thread_num = 10;
 };
 
 template <typename T>

@@ -2,6 +2,15 @@ parser grammar GqlParser;
 
 options { tokenVocab = GqlLexer; }
 
+@parser::postinclude {
+#pragma push_macro("EOF")
+#undef EOF
+}
+
+@parser::epilogue {
+#pragma pop_macro("EOF")
+}
+
 gqlRequest
    : gqlProgram SEMICOLON? EOF
    ;
@@ -14,6 +23,7 @@ gqlProgram
 programActivity
    : sessionActivity
    | transactionActivity
+   | explainActivity
    ;
 
 sessionActivity
@@ -26,9 +36,9 @@ sessionActivityCommand
    ;
 
 transactionActivity
-   : startTransactionCommand (procedureSpecification endTransactionCommand?)?
-   | procedureSpecification endTransactionCommand?
-   | endTransactionCommand
+   : startTransactionCommand (procedureSpecification endTransactionCommand?)?   #gqlFullTransaction
+   | procedureSpecification endTransactionCommand?                              #gqlNormalTransaction
+   | endTransactionCommand                                                      #gqlEndTransaction
    ;
 
 endTransactionCommand
@@ -146,6 +156,10 @@ dataModifyingProcedureSpecification
 
 nestedQuerySpecification
    : LEFT_BRACE procedureSpecification RIGHT_BRACE
+   ;
+
+explainActivity
+   : (EXPLAIN | PROFILE) (FORMAT EQUALS_OPERATOR explainFormat)? procedureSpecification
    ;
 
 querySpecification
@@ -375,7 +389,7 @@ reservedWord
    | NULLIF
    | NULLS
    | OCTET_LENGTH
-   | OF
+   | OF_
    | OFFSET
    | OPEN
    | OPTIONAL
@@ -494,6 +508,7 @@ preReservedWord
 
 nonReservedWord
    : ACYCLIC
+   | ALLOW_ANONYMOUS_TABLE
    | BETWEEN
    | BINDING
    | BINDINGS
@@ -537,6 +552,8 @@ nonReservedWord
    | ORDINALITY
    | PERCENT_RANK
    | PER_NODE_LIMIT
+   | PER_SHARD_LIMIT
+   | PER_SRC_DUP_DST_LIMIT
    | PRIMARY
    | PROPERTY
    | PROPERTIES
@@ -734,6 +751,7 @@ statement
    | linearDataModifyingStatement
    | queryStatement
    | managerStatement
+   | standaloneCallStatement
    ;
 
 nextStatement
@@ -812,7 +830,6 @@ linearCatalogModifyingStatement
 
 simpleCatalogModifyingStatement
    : primitiveCatalogModifyingStatement
-   | callCatalogModifyingProcedureStatement
    ;
 
 primitiveCatalogModifyingStatement
@@ -851,7 +868,7 @@ graphTypeLikeGraph
    ;
 
 graphSource
-   : AS COPY OF graphExpression
+   : AS COPY OF_ graphExpression
    ;
 
 dropGraphStatement
@@ -869,15 +886,11 @@ graphTypeSource
    ;
 
 copyOfGraphType
-   : COPY OF (graphTypeReference | externalObjectReference)
+   : COPY OF_ (graphTypeReference | externalObjectReference)
    ;
 
 dropGraphTypeStatement
    : DROP PROPERTY? GRAPH TYPE (IF EXISTS)? catalogGraphTypeParentAndName
-   ;
-
-callCatalogModifyingProcedureStatement
-   : callProcedureStatement
    ;
 
 linearDataModifyingStatement
@@ -918,7 +931,6 @@ simpleDataAccessingStatement
 
 simpleDataModifyingStatement
    : primitiveDataModifyingStatement
-   | callDataModifyingProcedureStatement
    ;
 
 primitiveDataModifyingStatement
@@ -927,6 +939,7 @@ primitiveDataModifyingStatement
    | removeStatement
    | deleteStatement
    | replaceStatement
+   | mergeStatement
    ;
 
 insertStatement
@@ -1005,8 +1018,13 @@ replaceStatement
    : REPLACE insertGraphPattern
    ;
 
-callDataModifyingProcedureStatement
-   : callProcedureStatement
+mergeStatement
+   : MERGE pathPattern mergeAction*
+   ;
+
+mergeAction
+   : ON MATCH setStatement                                      #gqlMergeOnMatch
+   | ON CREATE setStatement                                     #gqlMergeOnCreate
    ;
 
 queryStatement
@@ -1026,14 +1044,18 @@ compositeQueryStatement
    ;
 
 managerStatement
-    : SHOW PROCESSLIST
-    | KILL killMode? integerLiteral
-    ;
+   : SHOW PROCESSLIST
+   | KILL killMode? integerLiteral
+   ;
 
 killMode
-    : CONNECTION
-    | QUERY
-    ;
+   : CONNECTION
+   | QUERY
+   ;
+
+standaloneCallStatement
+   : callProcedureStatement
+   ;
 
 compositeQueryExpression
    : linearQueryStatement (queryConjunction linearQueryStatement)*
@@ -1103,6 +1125,10 @@ simpleQueryStatement
    | callQueryStatement
    ;
 
+callQueryStatement
+   : callProcedureStatement
+   ;
+
 primitiveQueryStatement
    : matchStatement
    | letStatement
@@ -1134,10 +1160,6 @@ matchStatementBlock
    : matchStatement+
    ;
 
-callQueryStatement
-   : callProcedureStatement
-   ;
-
 filterStatement
    : FILTER (whereClause | expression)
    ;
@@ -1164,7 +1186,7 @@ forItem
    ;
 
 forItemAlias
-   : identifier IN
+   : identifier (COMMA identifier)* IN  // [Extend]: support For a,b,c IN binding_table_a
    ;
 
 forOrdinalityOrOffset
@@ -1208,6 +1230,7 @@ hintItemlist
 hintItem
    : READ_CONSISTENCY LEFT_PAREN identifier RIGHT_PAREN                         #gqlReadConsistency
    | ALLOW_ANONYMOUS_TABLE LEFT_PAREN unsignedBooleanSpecification RIGHT_PAREN  #gqlAllowAnonymousTable
+   | EDGE_ON_JOIN LEFT_PAREN identifier COMMA identifier RIGHT_PAREN            #gqlEdgeOnJoin
    ;
 
 //[EXTEND:geaphi]: contruct
@@ -1304,7 +1327,7 @@ havingClause
 selectStatementBody
    : FROM selectGraphMatchList
    | FROM selectQuerySpecification
-   | matchStatement (COMMA matchStatement)* // [EXTEND:Geabase]
+   | matchStatement // [EXTEND:Geabase]
    ;
 
 selectGraphMatchList
@@ -1553,7 +1576,7 @@ nodePattern
    ;
 
 elementPatternFiller
-   : elementVariableDeclaration? isLabelExpression? elementPatternPredicate?
+   : elementVariableDeclaration? isLabelExpression? elementPatternPredicate*
    ;
 
 elementVariableDeclaration
@@ -1573,12 +1596,7 @@ isOrColon
 elementPatternPredicate
    : whereClause
    | elementPropertySpecification
-   | perNodeLimitClause
-   | perNodeLimitWherePredicate
-   | perNodeLimitPropertyPredicate
-   | perShardLimitClause
-   | perShardLimitWherePredicate
-   | perShardLimitPropertyPredicate
+   | elementTableFunction
    ;
 
 elementPropertySpecification
@@ -1593,84 +1611,19 @@ propertyKeyValuePair
    : propertyName COLON expression
    ;
 
-perNodeLimitClause
-   : PER_NODE_LIMIT unsignedIntegerSpecification
-   | PER_NODE_LIMIT LEFT_PAREN unsignedIntegerSpecification RIGHT_PAREN
+elementTableFunction
+   : tableFunctionName LEFT_PAREN (eleTableFuncParameter (COMMA eleTableFuncParameter)*)? RIGHT_PAREN
+   | tableFunctionName (eleTableFuncParameter (COMMA eleTableFuncParameter)*)?
    ;
 
-perNodeLimitWherePredicate
-   : perNodeLimitLeftWherePredicate
-   | perNodeLimitRightWherePredicate
-   | perNodeLimitBothWherePredicate
+tableFunctionName
+   : PER_NODE_LIMIT
+   | PER_SHARD_LIMIT
+   | PER_SRC_DUP_DST_LIMIT
    ;
 
-perNodeLimitLeftWherePredicate
-   : lhs = perNodeLimitClause whereClause
-   ;
-
-perNodeLimitRightWherePredicate
-   : whereClause rhs = perNodeLimitClause
-   ;
-
-perNodeLimitBothWherePredicate
-   : lhs = perNodeLimitClause whereClause rhs = perNodeLimitClause
-   ;
-
-perNodeLimitPropertyPredicate
-   : perNodeLimitLeftPropertyPredicate
-   | perNodeLimitRightPropertyPredicate
-   | perNodeLimitBothPropertyPredicate
-   ;
-
-perNodeLimitLeftPropertyPredicate
-   : lhs = perNodeLimitClause elementPropertySpecification
-   ;
-perNodeLimitRightPropertyPredicate
-   : elementPropertySpecification rhs = perNodeLimitClause
-   ;
-perNodeLimitBothPropertyPredicate
-   : lhs = perNodeLimitClause elementPropertySpecification rhs = perNodeLimitClause
-   ;
-
-perShardLimitClause
-   : PER_SHARD_LIMIT unsignedIntegerSpecification
-   | PER_SHARD_LIMIT LEFT_PAREN unsignedIntegerSpecification RIGHT_PAREN
-   ;
-
-perShardLimitWherePredicate
-   : perShardLimitLeftWherePredicate
-   | perShardLimitRightWherePredicate
-   | perShardLimitBothWherePredicate
-   ;
-
-perShardLimitLeftWherePredicate
-   : lhs = perShardLimitClause whereClause
-   ;
-
-perShardLimitRightWherePredicate
-   : whereClause rhs = perShardLimitClause
-   ;
-
-perShardLimitBothWherePredicate
-   : lhs = perShardLimitClause whereClause rhs = perShardLimitClause
-   ;
-
-perShardLimitPropertyPredicate
-   : perShardLimitLeftPropertyPredicate
-   | perShardLimitRightPropertyPredicate
-   | perShardLimitBothPropertyPredicate
-   ;
-
-perShardLimitLeftPropertyPredicate
-   : lhs = perShardLimitClause elementPropertySpecification
-   ;
-
-perShardLimitRightPropertyPredicate
-   : elementPropertySpecification rhs = perShardLimitClause
-   ;
-
-perShardLimitBothPropertyPredicate
-   : lhs = perShardLimitClause elementPropertySpecification rhs = perShardLimitClause
+eleTableFuncParameter
+   : unsignedIntegerSpecification
    ;
 
 edgePattern
@@ -2720,7 +2673,7 @@ labeledPredicateCond
    ;
 
 sourceDestinationPredicateCond
-   : IS NOT? (SOURCE | DESTINATION) OF elementVariableReference
+   : IS NOT? (SOURCE | DESTINATION) OF_ elementVariableReference
    ;
 
 expression
@@ -2993,6 +2946,10 @@ durationString
    : characterStringLiteral
    ;
 
+explainFormat
+   : characterStringLiteral
+   ;
+
 generalFunction
    : functionName LEFT_PAREN (functionParameter (COMMA functionParameter)*)? RIGHT_PAREN
    ;
@@ -3024,6 +2981,7 @@ listValueConstructor
 listValue
    : LEFT_BRACKET expression (COMMA expression)* RIGHT_BRACKET
    | LEFT_PAREN expression (COMMA expression)* RIGHT_PAREN
+   | expression
    ;
 
 recordValueConstructor

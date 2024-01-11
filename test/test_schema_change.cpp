@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 #include "gtest/gtest.h"
 
@@ -172,7 +171,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
             for (size_t i = 0; i < _detail::MAX_NUM_FIELDS - s3.GetNumFields() + 1; i++) {
                 to_add.emplace_back(UT_FMT("a{}", i), FieldType::INT64, false);
             }
-            UT_EXPECT_THROW(s3.AddFields(to_add), TooManyFieldsException);
+            UT_EXPECT_THROW_MSG(s3.AddFields(to_add), "Invalid Field");
         }
     }
     {
@@ -225,7 +224,7 @@ TEST_P(TestSchemaChange, DelFields) {
                                txn.GetEdgeFields(eit));
             }
         }
-        FMA_LOG() << "Current Graph: \n" << str;
+        LOG_INFO() << "Current Graph: \n" << str;
     };
 
     DBConfig conf;

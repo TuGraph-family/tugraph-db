@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 
 #include "gtest/gtest.h"
 #include "client/cpp/restful/rest_client.h"

@@ -75,8 +75,8 @@ class Configuration {
 
     void Finalize() {
         if (builtin_help_ && GetValue<bool>("help")) {
-            FMA_LOG() << HelpString();
-            if (exit_after_help_) FMA_EXIT();
+            LOG_INFO() << HelpString();
+            if (exit_after_help_) exit(0);
         }
         for (auto &option : options_) {
             try {
@@ -366,7 +366,7 @@ class Configuration {
                 iter2->second->ParseJson(value.c_str());
                 continue;
             }
-            FMA_WARN() << "ParseJson skipping " << key << " : " << value;
+            LOG_WARN() << "ParseJson skipping " << key << " : " << value;
         }
     }
 

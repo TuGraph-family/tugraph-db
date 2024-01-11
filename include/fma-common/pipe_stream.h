@@ -15,8 +15,8 @@
 #define pclose _pclose
 #endif
 
+#include "tools/lgraph_log.h"
 #include "fma-common/file_stream.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_util.h"
 
 namespace fma_common {
@@ -88,7 +88,8 @@ class InputPipeStream : public InputFileStream {
         if (pipe_) {
             int r = pclose(pipe_);
             if (r != 0) {
-                FMA_ERR() << "Error closing pipe for command " << cmd_ << ": pclose returned " << r;
+                LOG_ERROR() << "Error closing pipe for command " << cmd_
+                            << ": pclose returned " << r;
             }
             pipe_ = nullptr;
             cmd_.clear();
@@ -106,7 +107,7 @@ class InputPipeStream : public InputFileStream {
      * \return    Always false.
      */
     bool Seek(size_t offset) override {
-        FMA_ERR() << "Seek() is not implemented for InputPipeStream.";
+        LOG_ERROR() << "Seek() is not implemented for InputPipeStream.";
         return false;
     }
 

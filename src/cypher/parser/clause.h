@@ -443,7 +443,7 @@ static lgraph::FieldData MakeFieldData(const Expression &expr) {
     case Expression::PARAMETER:
         break;
     default:
-        FMA_WARN() << "[Warning] " << __func__ << ": Error Type";
+        LOG_WARN() << "[Warning] " << __func__ << ": Error Type";
     }
     return ld;
 }

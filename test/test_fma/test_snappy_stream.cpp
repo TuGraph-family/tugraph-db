@@ -16,7 +16,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/local_file_stream.h"
-#include "fma-common/logging.h"
 #include "fma-common/snappy_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -64,7 +63,7 @@ FMA_UNIT_TEST(SnappyStream) {
     }
     out.Close();
     double t2 = GetTime();
-    LOG() << "write: " << (double)n_blocks * block_size / 1024 / 1024 / (t2 - t1) << "MB/s";
+    LOG_INFO() << "write: " << (double)n_blocks * block_size / 1024 / 1024 / (t2 - t1) << "MB/s";
 
     t1 = GetTime();
 #if ENABLE_SNAPPY
@@ -84,7 +83,7 @@ FMA_UNIT_TEST(SnappyStream) {
     }
     FMA_UT_CHECK_EQ(sum, sum2);
     t2 = GetTime();
-    LOG() << "read: " << (double)n_blocks * block_size / 1024 / 1024 / (t2 - t1) << "MB/s";
+    LOG_INFO() << "read: " << (double)n_blocks * block_size / 1024 / 1024 / (t2 - t1) << "MB/s";
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;

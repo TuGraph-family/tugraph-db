@@ -18,6 +18,7 @@
 #pragma once
 
 #include <core/data_type.h>
+#include <cmath>
 #include "cypher/filter/iterator.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/execution_plan/runtime_context.h"
@@ -284,6 +285,13 @@ struct BuiltinFunction {
     static cypher::FieldData DateTimeComponent(RTContext *ctx, const Record &record,
                                                const std::vector<ArithExprNode> &args);
 
+    /* String functions - string types */
+    static cypher::FieldData SubString(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Concat(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -476,6 +484,8 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("datecomponent", BuiltinFunction::DateComponent);
         ae_registered_funcs.emplace("datetime", BuiltinFunction::DateTime);
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
+        ae_registered_funcs.emplace("substring", BuiltinFunction::SubString);
+        ae_registered_funcs.emplace("concat", BuiltinFunction::Concat);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
         /* native API-like functions */

@@ -26,9 +26,9 @@
 #define popen _popen
 #define pclose _pclose
 #endif
+#include "tools/lgraph_log.h"
 #include "fma-common/buffered_file_stream.h"
 #include "fma-common/file_stream.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_util.h"
 #include "fma-common/type_traits.h"
 
@@ -40,12 +40,12 @@ inline bool GetOutputOfCmd(const std::string& cmd, size_t field_id, T& val, int 
     std::string buf(max_buf, 0);
     char* r = fgets(&buf[0], max_buf, f);
     if (!r) {
-        FMA_ERR() << "Error reading output of command " << cmd;
+        LOG_ERROR() << "Error reading output of command " << cmd;
     }
     fclose(f);
     std::vector<std::string> parts = Split(buf);
     if (parts.size() <= field_id) {
-        FMA_ERR() << "Error parsing result of command: " << cmd << "\n\tOutput: " << buf
+        LOG_ERROR() << "Error parsing result of command: " << cmd << "\n\tOutput: " << buf
                   << "\n\tfield_id: " << field_id;
     }
     return ParseString(parts[field_id], val);
@@ -195,7 +195,7 @@ class UnbufferedInputHdfsStream : public InputFileStream {
         size_t size = size_t(-1);
         bool r = _detail::GetOutputOfCmd(cmd, 4, size);
         if (!r) {
-            FMA_WARN() << "Failed to get size of " << path << ": File does not exist.";
+            LOG_WARN() << "Failed to get size of " << path << ": File does not exist.";
         }
         return size;
     }

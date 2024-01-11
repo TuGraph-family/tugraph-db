@@ -20,7 +20,24 @@
 #ifndef GEAXFRONTEND_COMMON_FOLLYMALLOC_H_
 #define GEAXFRONTEND_COMMON_FOLLYMALLOC_H_
 
-#define FOLLY_ASSUME_NO_TCMALLOC
+/**
+ * Define various MALLOCX_* macros normally provided by jemalloc.  We define
+ * them so that we don't have to include jemalloc.h, in case the program is
+ * built without jemalloc support.
+ */
+#if (defined(USE_JEMALLOC) || defined(FOLLY_USE_JEMALLOC)) && \
+    !defined(FOLLY_SANITIZE)
+// We have JEMalloc, so use it.
+#else
+#ifndef MALLOCX_LG_ALIGN
+#define MALLOCX_LG_ALIGN(la) (la)
+#endif
+#ifndef MALLOCX_ZERO
+#define MALLOCX_ZERO (static_cast<int>(0x40))
+#endif
+#endif
+
+#include "geax-front-end/common/FollyMallocImpl.h" /* nolint */
 
 #if (defined(USE_JEMALLOC) || defined(FOLLY_USE_JEMALLOC)) && \
     !defined(FOLLY_SANITIZE)
@@ -49,25 +66,6 @@ extern "C" size_t malloc_usable_size(void* ptr);
 extern "C" size_t malloc_usable_size(void* ptr);
 #endif
 #endif
-
-/**
- * Define various MALLOCX_* macros normally provided by jemalloc.  We define
- * them so that we don't have to include jemalloc.h, in case the program is
- * built without jemalloc support.
- */
-#if (defined(USE_JEMALLOC) || defined(FOLLY_USE_JEMALLOC)) && \
-    !defined(FOLLY_SANITIZE)
-// We have JEMalloc, so use it.
-#else
-#ifndef MALLOCX_LG_ALIGN
-#define MALLOCX_LG_ALIGN(la) (la)
-#endif
-#ifndef MALLOCX_ZERO
-#define MALLOCX_ZERO (static_cast<int>(0x40))
-#endif
-#endif
-
-#include "geax-front-end/common/FollyMallocImpl.h" /* nolint */
 
 #include <cstddef>
 

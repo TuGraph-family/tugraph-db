@@ -54,7 +54,7 @@ void Record::SetParameter(const PARAM_TAB &ptab) {
         if (it != symbol_table->symbols.end()) {
             values[it->second.id] = Entry(param.second);
         } else {
-            // FMA_WARN() << "Invalid parameter: " << param.first;
+            // LOG_WARN() << "Invalid parameter: " << param.first;
         }
     }
 }

@@ -16,7 +16,6 @@
 #include <set>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/file_system.h"
 #include "fma-common/type_traits.h"
 #include "./ut_utils.h"
@@ -40,10 +39,11 @@ inline std::unique_ptr<SubProcess> StartLGraphServer(const GlobalConfig& conf,
         " --ssl_auth {}"
         " --server_cert {}"
         " --server_key {}"
-        " --use_pthread {}",
+        " --use_pthread {}"
+        " --bolt_port {}",
         conf.bind_host, conf.http_port, conf.rpc_port, conf.enable_backup_log, conf.enable_ip_check,
         conf.verbose, conf.db_dir, conf.enable_ssl, conf.server_cert_file, conf.server_key_file,
-        conf.use_pthread);
+        conf.use_pthread, conf.bolt_port);
     UT_LOG() << "Starting lgraph_server with command: " << server_cmd;
     auto server = std::unique_ptr<SubProcess>(new SubProcess(server_cmd));
     if (wait_till_up && !server->ExpectOutput("Server started.", 10000)) {

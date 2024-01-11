@@ -14,7 +14,6 @@
 
 #include <random>
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "gtest/gtest.h"
 
@@ -123,7 +122,7 @@ int TestPerfDbNoncontinuous(bool durable, bool track_in) {
                     src, dst, std::string("knows"), std::vector<std::string>{"uid", "name"},
                     std::vector<std::string>{ToString(uid),
                                              std::string(prop + 256, e_prop_size - 8)});
-                DBG_ASSERT(eid.eid >= 0);
+                UT_ASSERT(eid.eid >= 0);
             }
         }
         txn.Commit();
@@ -293,7 +292,7 @@ int TestPerfDbNonbatch(bool durable, bool track_in) {
             auto eid = txn.AddEdge(
                 src, dst, std::string("knows"), std::vector<std::string>{"uid", "name"},
                 std::vector<std::string>{ToString(uid), std::string(prop + 256, e_prop_size - 8)});
-            DBG_ASSERT(eid.eid >= 0);
+            UT_ASSERT(eid.eid >= 0);
         }
         txn.Commit();
     }

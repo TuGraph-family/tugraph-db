@@ -53,25 +53,24 @@ class TugraphSample(object):
         args = self.args
         if args.method == "neighbors_sampling":
             self.algo.Process(db, olapondb, feature_len,
-                    seed_nodes, args.nbor_sample_num,
+                    seed_nodes, args.neighbor_sample_num,
                     NodeInfo, EdgeInfo)
         elif args.method == "random_walk":
             self.algo.Process(db, olapondb, feature_len,
                     seed_nodes, rw_len, NodeInfo, EdgeInfo)
         elif args.method == "edge_sampling":
-            self.algo.Process(db, olapondb, len(seed_nodes),
+            self.algo.Process(db, olapondb, feature_len, args.sample_rate,
                     NodeInfo, EdgeInfo)
-        else:
+        elif args.method == "negative_sampling":
             self.algo.Process(db, olapondb, feature_len,
-                    seed_nodes, args.nbor_sample_num,
-                    NodeInfo, EdgeInfo)
+                    len(seed_nodes), NodeInfo, EdgeInfo)
 
 
     def sample(self, g, seed_nodes):
         args = self.args
         galaxy = PyGalaxy(args.db_path)
         galaxy.SetCurrentUser(args.username, args.password)
-        db = galaxy.OpenGraph('default', False)
+        db = galaxy.OpenGraph(args.graph_name, False)
         txn = db.CreateReadTxn()
         olapondb = PyOlapOnDB('Empty', db, txn)
         del txn
@@ -83,17 +82,10 @@ class TugraphSample(object):
         del db
         del galaxy
 
-        src = EdgeInfo[0].astype('int64')
-        dst = EdgeInfo[1].astype('int64')
-
-        nodes_idx = NodeInfo[0].astype('int64')
-        remap(src, dst, nodes_idx)
-        features = NodeInfo[1].astype('float32')
-        labels = NodeInfo[2].astype('int64')
-        # g = dgl.graph((src, dst))
-        g = dgl.graph((src, dst), num_nodes=len(NodeInfo[0]))
-        g.ndata['feat'] = torch.tensor(features)
-        g.ndata['label'] = torch.tensor(labels)
+        remap(EdgeInfo[0], EdgeInfo[1], NodeInfo[0])
+        g = dgl.graph((EdgeInfo[0], EdgeInfo[1]))
+        g.ndata['feat'] = torch.tensor(NodeInfo[1])
+        g.ndata['label'] = torch.tensor(NodeInfo[2])
         return g
 
 def test_fork(args):
@@ -164,7 +156,8 @@ def train(dataloader, model):
         loss.backward()
         optimizer.step()
         train_time = time.time()
-        print('load time', load_time - s, 'train_time', train_time - load_time)
+        # print('load time', load_time - s, 'train_time', train_time - load_time)
+        print('loss:  ', float(loss))
         s = time.time()
     return float(loss)
 
@@ -191,7 +184,7 @@ def singleprocess(args):
         model.train()
         total_loss = 0
         loss = train(dataloader, model)
-        print('loss', loss)
+        print('epoch:', epoch, 'loss:', loss)
         if epoch == 1 and loss <= 0.9:
             print("The loss value is less than 0.9")
         sys.stdout.flush()
@@ -242,7 +235,7 @@ def run(proc_id, n_gpus, args, devices):
         model.train()
         total_loss = 0
         loss = train(dataloader, model)
-        print('loss', loss)
+        print('epoch:', epoch, 'loss:', loss)
         sys.stdout.flush()
 
 
@@ -263,16 +256,16 @@ if __name__ == '__main__':
                         help="database username")
     parser.add_argument("--password", type=str, default="73@TuGraph",
                         help="database password")
-    parser.add_argument("--graph_name", type=str, default="coradb",
+    parser.add_argument("--graph_name", type=str, default="default",
                         help="import graph name")
-    parser.add_argument("--sample_rate", type=float, default="0.0000001",
+    parser.add_argument("--sample_rate", type=float, default="0.01",
                         help="the rate of sample edge")
     parser.add_argument("--output_dir", type=str, default="./sample_info.txt",
                         help="the path to store vertex info")
     parser.add_argument('--method', type=str, default='neighbors_sampling',
                         help='sample method:\
-                        neighbors_sampling, edge_sampling, random_walk')
-    parser.add_argument('--nbor_sample_num', type=int, default=20,
+                        neighbors_sampling, edge_sampling, random_walk, negative_sampling')
+    parser.add_argument('--neighbor_sample_num', type=int, default=20,
                         help='neighbor sampling number.')
     parser.add_argument('--randomwalk_length', type=int, default=20,
                         help='randomwalk length.')

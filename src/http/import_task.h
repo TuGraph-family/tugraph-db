@@ -1,15 +1,15 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * Copyright 2023 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
 #pragma once
@@ -25,16 +25,9 @@ namespace http {
 
 class ImportTask {
  public:
-    ImportTask(HttpService* http_service,
-               ImportManager* import_manager,
-               const std::string& id,
-               const std::string& user,
-               const std::string& token,
-               const std::string& graph,
-               const std::string& delimiter,
-               bool continue_on_error,
-               uint64_t skip_packages,
-               const nlohmann::json& schema);
+    ImportTask(HttpService* http_service, ImportManager* import_manager, const std::string& id,
+               const std::string& token, const std::string& graph, const std::string& delimiter,
+               bool continue_on_error, uint64_t skip_packages, const nlohmann::json& schema);
 
     void operator()();
 

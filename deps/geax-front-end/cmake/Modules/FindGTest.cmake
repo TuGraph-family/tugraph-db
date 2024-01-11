@@ -55,6 +55,6 @@ if(GTest_FOUND)
             PROPERTIES
             IMPORTED_LOCATION ${GTest_${component}_LIBRARY}
             INTERFACE_INCLUDE_DIRECTORIES ${GTest_${component}_INCLUDE_DIR}
-            INTERFACE_LINK_LIBRARIES "Threads::Threads")
+            INTERFACE_LINK_LIBRARIES "Threads::Threads;GFlags::gflags")
     endforeach()
 endif()

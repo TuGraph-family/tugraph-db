@@ -58,7 +58,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make ${JFLAG} && make install \
     && python3 -m pip install --upgrade pip ${PYPI} \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ${PYPI} \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 ${PYPI} \
     && rm -rf /Python*
 
 # install cmake
@@ -129,14 +129,13 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1
 
 # install node.js
 # if it is not accessible, replace it with the link below
-# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.6.0-linux-x64.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.6.0-linux-x64.tar.gz \
-    && tar xvf node-v16.6.0-linux-x64.tar.gz && cd node-v16.6.0-linux-x64/ \
-    && ln -s /node-v16.6.0-linux-x64/bin/npm /usr/local/bin/ \
-    && ln -s /node-v16.6.0-linux-x64/bin/node /usr/local/bin/ \
+# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.20.0-linux-x64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.20.0-linux-x64.tar.gz \
+    && tar xvf node-v16.20.0-linux-x64.tar.gz && cd node-v16.20.0-linux-x64/ \
+    && ln -s /node-v16.20.0-linux-x64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.20.0-linux-x64/bin/node /usr/local/bin/ \
     && npm config set registry https://registry.npmmirror.com \
-    && rm -rf /node-v16.6.0-linux-x64.tar.gz \
-    && npm install -g npm@latest
+    && rm -rf /node-v16.20.0-linux-x64.tar.gz
 
 # install lcov
 # if it is not accessible, replace it with the link below
@@ -294,7 +293,7 @@ ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/
     ARROW_NLOHMANN_JSON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/nlohmann-json-v3.10.5.tar.gz \
     ARROW_OPENTELEMETRY_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/opentelemetry-cpp-v1.4.1.tar.gz \
     ARROW_OPENTELEMETRY_PROTO_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/opentelemetry-proto-v0.17.0.tar.gz \
-    ARROW_ORC_URL=https://mirrors.ustc.edu.cn/apache/orc/orc-1.9.0/orc-1.9.0.tar.gz \
+    ARROW_ORC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/orc-1.9.0.tar.gz \
     ARROW_PROTOBUF_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/protobuf-v21.3.tar.gz \
     ARROW_RAPIDJSON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/rapidjson-232389d4f1012dddec4ef84861face2d2ba85709.tar.gz \
     ARROW_RE2_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/re2-2022-06-01.tar.gz \
@@ -304,10 +303,10 @@ ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/
     ARROW_UTF8PROC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/utf8proc-v2.7.0.tar.gz \
     ARROW_XSIMD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/xsimd-9.0.1.tar.gz \
     ARROW_ZLIB_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zlib-1.2.13.tar.gz \
-    ARROW_ZSTD_URL=https://mirrors.cloud.tencent.com/macports/distfiles/zstd/zstd-1.5.5.tar.gz
+    ARROW_ZSTD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zstd-1.5.5.tar.gz
 
 # install Apache arrow
-RUN wget https://mirrors.ustc.edu.cn/apache/arrow/arrow-13.0.0/apache-arrow-13.0.0.tar.gz \
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/apache-arrow-13.0.0.tar.gz \
   && tar xf apache-arrow-13.0.0.tar.gz && cd apache-arrow-13.0.0/cpp && mkdir build && cd build \
   && cmake .. -DARROW_DATASET=ON -DARROW_PARQUET=ON -DARROW_ORC=ON -DARROW_CSV=ON && make ${JFLAG} \
   && make install && rm -rf /apache-arrow-*
@@ -316,6 +315,13 @@ RUN wget https://mirrors.ustc.edu.cn/apache/arrow/arrow-13.0.0/apache-arrow-13.0
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/GraphAr-0.8.0.tar.gz \
   && tar xf GraphAr-0.8.0.tar.gz && cd GraphAr-0.8.0/cpp && mkdir build && cd build \
   && cmake .. && make ${JFLAG} && make install && rm -rf /GraphAr-*
+
+# tabulate
+# if it is not accessible, replace it with the link below
+# https://github.com/p-ranav/tabulate/archive/refs/tags/v1.5.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-1.5.tar.gz \
+    && tar zxf tabulate-1.5.tar.gz && cp -rf tabulate-1.5/include/tabulate /usr/local/include \
+    && rm -rf /tabulate*
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 

@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/fma_stream.h"
 #include "./unit_test_utils.h"
 
@@ -37,7 +36,7 @@ FMA_UNIT_TEST(DD) {
         std::vector<OutputFmaStream> ofs(nf);
         for (int j = 0; j < nf; j++) {
             ofs[j].Open(path + std::to_string(i * nf + j));
-            LOG() << i << " " << j;
+            LOG_INFO() << i << " " << j;
         }
     }
 

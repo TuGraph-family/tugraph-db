@@ -20,7 +20,7 @@ void lgraph::graph::Graph::_ScanAndDelete(
     const std::function<bool(InEdgeIterator&)>& should_delete_in_edge,
     const std::function<bool(OutEdgeIterator&)>& should_delete_out_edge, size_t& n_modified,
     size_t batch_size) {
-    FMA_DBG() << "_ScanAndDelete(batch_size=" << batch_size << ")";
+    LOG_DEBUG() << "_ScanAndDelete(batch_size=" << batch_size << ")";
     bool is_vertex = (should_delete_node != nullptr);
     size_t n_node = 0;
     size_t n_edge = 0;
@@ -75,7 +75,7 @@ void lgraph::graph::Graph::_ScanAndDelete(
             vit.reset(new VertexIterator(GetUnmanagedVertexIterator(&txn, vid, true)));
 #else
             n_last_commit = n_node + n_edge;
-            FMA_LOG() << "Made " << (is_vertex ? n_last_commit : n_last_commit / 2) << " changes.";
+            LOG_INFO() << "Made " << (is_vertex ? n_last_commit : n_last_commit / 2) << " changes.";
 #endif
         }
     }

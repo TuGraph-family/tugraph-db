@@ -63,10 +63,12 @@ class Importer {
         bool quiet = false;  // do not print error messages when continue_on_error==true
         bool enable_fulltext_index = false;
         std::string fulltext_index_analyzer = "StandardAnalyzer";
+        bool import_online = false;
     };
 
     explicit Importer(Config config);
     void DoImportOffline();
+    std::string OnlineFullImportLog();
 
  private:
     AccessControlledDB OpenGraph(Galaxy& galaxy, bool empty_db);
@@ -101,6 +103,7 @@ class Importer {
     std::unordered_map<LabelId, std::atomic<int64_t>> edge_count_;
     std::unordered_map<LabelId, bool> vlid_detach_;
     std::unordered_map<LabelId, bool> elid_detach_;
+    std::stringstream online_full_import_oss;
 };
 
 }  // namespace import_v3

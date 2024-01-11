@@ -133,7 +133,7 @@ class VertexDumper {
             file_path_.append(".csv");
         }
         file_.Open(file_path_);
-        if (!file_.Good()) FMA_ERR() << "Error opening file [" << file_path_ << "] for write.";
+        if (!file_.Good()) LOG_ERROR() << "Error opening file [" << file_path_ << "] for write.";
         tmp_buf_.reserve(1024);
     }
 
@@ -248,7 +248,7 @@ class EdgeDumper {
             file_path_.append(".csv");
         }
         file_.Open(file_path_);
-        if (!file_.Good()) FMA_ERR() << "Error opening file [" << file_path_ << "] for write.";
+        if (!file_.Good()) LOG_ERROR() << "Error opening file [" << file_path_ << "] for write.";
         tmp_buf_.reserve(1024);
     }
 
@@ -381,7 +381,7 @@ bool Export(lgraph_api::GraphDB& db, const std::string& exportdir, const std::st
     for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
         n_v_dumped++;
         if (n_v_dumped % 100000 == 0) {
-            FMA_LOG() << (double)n_v_dumped / nv << " complete. Dumped " << n_v_dumped
+            LOG_INFO() << (double)n_v_dumped / nv << " complete. Dumped " << n_v_dumped
                       << " vertexes and " << n_e_dumped << " edges.";
         }
         size_t vlid = vit.GetLabelId();
@@ -445,13 +445,13 @@ bool Export(lgraph_api::GraphDB& db, const std::string& exportdir, const std::st
             n_e_dumped++;
         }
     }
-    FMA_LOG() << "100% complete. Dumped " << n_v_dumped << " vertexes and " << n_e_dumped
+    LOG_INFO() << "100% complete. Dumped " << n_v_dumped << " vertexes and " << n_e_dumped
               << " edges.";
     // now write config file
     fma_common::OutputFmaStream config_file;
     config_file.Open(exportdir + "/import.config");
     if (!config_file.Good())
-        FMA_ERR() << "Failed to open file " << config_file.Path() << " for write.";
+        LOG_ERROR() << "Failed to open file " << config_file.Path() << " for write.";
     nlohmann::json conf;
     auto vertex_indexs = txn.ListVertexIndexes();
     auto edge_indexs = txn.ListEdgeIndexes();
@@ -465,7 +465,7 @@ bool Export(lgraph_api::GraphDB& db, const std::string& exportdir, const std::st
     }
     const auto& str = conf.dump(4);
     config_file.Write(str.data(), str.size());
-    FMA_LOG() << "Config file generated in [" << config_file.Path() << "]";
+    LOG_INFO() << "Config file generated in [" << config_file.Path() << "]";
     return true;
 }
 
@@ -493,7 +493,7 @@ int main(int argc, char** argv) {
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
     } catch (std::exception& e) {
-        FMA_ERR() << "Failed to parse command line option: " << e.what();
+        LOG_ERROR() << "Failed to parse command line option: " << e.what();
         return -1;
     }
 
@@ -502,7 +502,7 @@ int main(int argc, char** argv) {
     if (!db_fs.IsDir(db_dir)) {
         throw std::runtime_error("DB directory: \"" + db_dir + "\" does not exist.");
     } else {
-        FMA_LOG() << "DB directory has been found.";
+        LOG_INFO() << "DB directory has been found.";
     }
 
     if (format != "csv" && format != "json") {
@@ -511,34 +511,34 @@ int main(int argc, char** argv) {
 
     fma_common::FileSystem& export_fs = fma_common::FileSystem::GetFileSystem(export_dir);
     if (!export_fs.IsDir(export_dir)) {
-        FMA_LOG() << "Export directory does not exist, creating...";
+        LOG_INFO() << "Export directory does not exist, creating...";
         if (!export_fs.Mkdir(export_dir)) {
             throw std::runtime_error("Creating export directory: \"" + export_dir + "\" fail.");
         } else {
-            FMA_LOG() << "Export directory has been created, now exporting...";
+            LOG_INFO() << "Export directory has been created, now exporting...";
         }
     } else {
-        FMA_LOG() << "Export directory has been found, now exporting...";
+        LOG_INFO() << "Export directory has been found, now exporting...";
     }
 
     try {
-        FMA_LOG() << "From dir:        " << db_dir;
-        FMA_LOG() << "From graph:      " << graph;
-        FMA_LOG() << "To dir:          " << export_dir;
-        FMA_LOG() << "Field separator: " << delimiter;
-        FMA_LOG() << "Format:          " << format;
+        LOG_INFO() << "From dir:        " << db_dir;
+        LOG_INFO() << "From graph:      " << graph;
+        LOG_INFO() << "To dir:          " << export_dir;
+        LOG_INFO() << "Field separator: " << delimiter;
+        LOG_INFO() << "Format:          " << format;
         // export process
         lgraph_api::Galaxy galaxy(db_dir, user, password, false, false);
         lgraph_api::GraphDB db = galaxy.OpenGraph(graph, true);
 
         double t1 = fma_common::GetTime();
         if (!Export(db, export_dir, delimiter, format)) {
-            FMA_LOG() << "Something went wrong, export failed.";
+            LOG_INFO() << "Something went wrong, export failed.";
         }
         double t2 = fma_common::GetTime();
-        FMA_LOG() << "Export successful in " << t2 - t1 << " seconds.";
+        LOG_INFO() << "Export successful in " << t2 - t1 << " seconds.";
     } catch (std::exception& e) {
-        FMA_ERR() << "Error occurred during export: " << e.what();
+        LOG_ERROR() << "Error occurred during export: " << e.what();
         return -1;
     }
     return 0;

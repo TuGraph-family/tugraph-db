@@ -33,13 +33,13 @@
 #include "cypher/parser/cypher_base_visitor.h"
 #include "cypher/parser/cypher_error_listener.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
-#include "fma-common/logger.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
 #include "cypher/execution_plan/runtime_context.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "lgraph/lgraph_utils.h"
 #include "./ut_utils.h"
+#include "./ut_config.h"
 #include "./ut_types.h"
 
 using namespace geax::frontend;
@@ -67,7 +67,7 @@ class TestQuery : public TuGraphTest {
     lgraph::ut::QUERY_TYPE query_type_ = lgraph::ut::QUERY_TYPE::GQL;
 
  protected:
-    std::string test_suite_dir_ = "../../test/resource/cases";
+    std::string test_suite_dir_ = lgraph::ut::TEST_RESOURCE_DIRECTORY + "/cases";
 
     void set_graph_type(GraphFactory::GRAPH_DATASET_TYPE graph_type) {
         graph_type_ = graph_type;
@@ -96,9 +96,7 @@ class TestQuery : public TuGraphTest {
         galaxy_ = std::make_shared<lgraph::Galaxy>(gconf_, true, nullptr);
         ctx_ = std::make_shared<cypher::RTContext>(
             nullptr, galaxy_.get(),
-            galaxy_->GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                  lgraph::_detail::DEFAULT_ADMIN_PASS),
-            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_, lgraph::AclManager::FieldAccess());
+            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_);
     }
 
     bool test_gql_case(const std::string& gql, std::string& result) {
@@ -221,7 +219,7 @@ class TestQuery : public TuGraphTest {
             } else if (query_type_ == lgraph::ut::QUERY_TYPE::GQL) {
                 success = test_gql_case(query, result);
             } else {
-                FMA_FATAL() << "unhandled query_type_: " << lgraph::ut::ToString(query_type_);
+                LOG_FATAL() << "unhandled query_type_: " << lgraph::ut::ToString(query_type_);
                 UT_EXPECT_TRUE(false);
                 return;
             }
@@ -349,6 +347,13 @@ TEST_F(TestQuery, TestGqlFinbench) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
     set_query_type(lgraph::ut::QUERY_TYPE::GQL);
     std::string dir = test_suite_dir_ + "/finbench/gql";
+    test_files(dir);
+}
+
+TEST_F(TestQuery, TestGqlSNB) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_SNB);
+    set_query_type(lgraph::ut::QUERY_TYPE::GQL);
+    std::string dir = test_suite_dir_ + "/snb/gql";
     test_files(dir);
 }
 

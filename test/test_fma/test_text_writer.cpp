@@ -20,7 +20,6 @@
 #include "fma-common/configuration.h"
 #include "fma-common/fma_stream.h"
 #include "fma-common/local_file_stream.h"
-#include "fma-common/logging.h"
 #include "fma-common/text_writer.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -77,7 +76,7 @@ FMA_UNIT_TEST(TextWriter) {
     size_t chunk_size = parser.GetValue<size_t>("chunkSize");
 
     int element_size = type == "string" ? size : sizeof(int);
-    LOG() << "Writing file " << path << "\n"
+    LOG_INFO() << "Writing file " << path << "\n"
           << "\tData type: " << type << "\n"
           << "\tSize of each element: " << element_size << "\n"
           << "\tTotal number of elements: " << n_elements;
@@ -142,7 +141,7 @@ FMA_UNIT_TEST(TextWriter) {
     }
     t2 = GetTime();
     double MB = (double)total_bytes / 1024 / 1024;
-    LOG() << "Wrote " << MB << " MB, at " << MB / (t2 - t1) << " MB/s";
+    LOG_INFO() << "Wrote " << MB << " MB, at " << MB / (t2 - t1) << " MB/s";
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;

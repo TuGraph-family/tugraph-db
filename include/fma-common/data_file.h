@@ -139,11 +139,11 @@ class DataFileReader {
     void Open(const std::string& path) {
         file_.Open(path, 0);
         if (!file_.Good()) {
-            FMA_ERR() << "Error opening file " << path << " for read";
+            LOG_ERROR() << "Error opening file " << path << " for read";
         }
         size_t read_size = file_.Read(&header_, HS);
         if (read_size != HS) {
-            FMA_ERR() << "File " << path << " seem to be corruptted: "
+            LOG_ERROR() << "File " << path << " seem to be corruptted: "
                       << "Expected header size=" << HS << ", but read " << read_size;
         }
     }

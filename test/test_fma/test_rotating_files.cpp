@@ -38,7 +38,7 @@ FMA_UNIT_TEST(RotatingFiles) {
             }
             auto files = rf.ListFiles();
             FMA_UT_CHECK_EQ(files.size(), (n_writes + write_per_file - 1) / write_per_file + 1);
-            FMA_LOG() << ToString(files);
+            LOG_INFO() << ToString(files);
             size_t write = 0;
             for (size_t i = 0; i < files.size(); i++) {
                 InputFmaStream in(files[i]);
@@ -66,7 +66,7 @@ FMA_UNIT_TEST(RotatingFiles) {
             }
             auto files = rf.ListFiles();
             FMA_UT_CHECK_EQ(files.size(), (n_writes + write_per_file - 1) / write_per_file + 1);
-            FMA_LOG() << ToString(files);
+            LOG_INFO() << ToString(files);
             size_t write = 0;
             for (size_t i = 0; i < files.size(); i++) {
                 InputFmaStream in(files[i]);

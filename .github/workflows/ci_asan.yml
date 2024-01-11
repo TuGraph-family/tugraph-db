@@ -34,6 +34,7 @@ jobs:
           tags: ${{ env.TEST_TAG }}
           build-args: |
             BUILD_TYPE=asan
+            TEST_TYPE=ut
           secrets: |
             "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
       - name: Check disk space

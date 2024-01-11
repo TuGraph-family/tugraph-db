@@ -14,7 +14,6 @@
 
 #include <db/galaxy.h>
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/utils.h"
 #include "./ut_utils.h"
@@ -804,6 +803,9 @@ int test_expression(cypher::RTContext *ctx) {
          "t1>t2,t1<t2",
          1},
         {"WITH true AS bt, false AS bf RETURN bt = false, bf = false, bt <> bf", 1},
+        {"RETURN LENGTH('abc1234')", 1},
+        {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
+        {"RETURN CONCAT('abc', '12', '34')", 1},
         {"RETURN bin('MjAyMAo=') > bin('MjAxOQo=')", 1},
         {"RETURN bin('MjAyMAo=') < bin('MjAxOQo=')", 1},
         {"RETURN bin('MjAyMAo=') = bin('MjAyMAo=')", 1},
@@ -2166,8 +2168,12 @@ int test_fix_crash_issues(cypher::RTContext *ctx) {
         {"WITH '1' as s UNWIND ['a','b']+s as k RETURN s,k", 3},
         {"MATCH (n:Person)-[]->(m:Film) WITH n.name AS nname, collect(id(m)) AS mc "
          "MATCH (n:Person {name: nname})<-[]-(o) WITH n.name AS nname, mc, collect(id(o)) AS oc "
-         "UNWIND mc+oc AS c RETURN c", 11}
-    };
+         "UNWIND mc+oc AS c RETURN c",
+         11},
+        // github issue #322
+        {"MATCH (m:Person)-[r:BORN_IN]->(n:City) "
+         "WHERE n.name = 'London' and r.weight >= 1 and r.weight <= 100 RETURN sum(r.weight)",
+         1}};
     std::vector<std::string> scripts;
     std::vector<int> check;
     for (auto &s : script_check) {
@@ -2398,7 +2404,6 @@ TEST_P(TestCypher, Cypher) {
     int test_case = 0;
     int database = 0;
     std::string file;
-    int verbose = 1;
     auto str = fma_common::StringFormatter::Format(
         "Test case: {}-file script; {}-interactive; {}-find; {}-query; {}-hint;"
         " {}-multi-match; {}-optional-match; {}-union; {}-function; {}-parameter;"
@@ -2425,17 +2430,8 @@ TEST_P(TestCypher, Cypher) {
     config.Add(database, "d", true)
         .Comment("Select database: 0-current, 1-new yago, 2-empty, 3-yago with constraints");
     config.Add(file, "f", true).Comment("File path");
-    config.Add(verbose, "v", true).Comment("Verbose: 0-WARNING, 1-INFO, 2-DEBUG");
     config.ExitAfterHelp();
     config.ParseAndFinalize(argc, argv);
-    fma_common::LogLevel level;
-    if (verbose == 0)
-        level = fma_common::LL_WARNING;
-    else if (verbose == 1)
-        level = fma_common::LL_INFO;
-    else
-        level = fma_common::LL_DEBUG;
-    fma_common::Logger::Get().SetLevel(level);
 
     if (database == 0) {
         // just use existing ./test.db
@@ -2452,11 +2448,7 @@ TEST_P(TestCypher, Cypher) {
     gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
 
-    cypher::RTContext db(nullptr, &galaxy,
-                         galaxy.GetUserToken(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                             lgraph::_detail::DEFAULT_ADMIN_PASS),
-                         lgraph::_detail::DEFAULT_ADMIN_NAME, "default",
-                         lgraph::AclManager::FieldAccess());
+    cypher::RTContext db(nullptr, &galaxy, lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
     db.param_tab_ = g_param_tab;
 
     auto no_throw_test_case = [&] {

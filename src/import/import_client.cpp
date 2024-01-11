@@ -12,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <boost/algorithm/string.hpp>
 #include "import/import_client.h"
 #include "import/file_cutter.h"
 #include "client/cpp/restful/rest_client.h"
@@ -39,14 +40,14 @@ void lgraph::import_v2::OnlineImportClient::DoImport() {
         schema_conf["schema"] = conf["schema"];
         std::string log = client.SendSchema(config_.graph_name, schema_conf.dump(4));
         if (log.size()) {
-            FMA_WARN() << log;
+            LOG_WARN() << log;
         }
     }
 
     std::vector<CsvDesc> data_files = ImportConfParser::ParseFiles(conf);
     if (data_files.empty()) {
         double t2 = fma_common::GetTime();
-        FMA_LOG() << "Import finished in " << t2 - t1 << " seconds.";
+        LOG_INFO() << "Import finished in " << t2 - t1 << " seconds.";
         return;
     }
 
@@ -57,14 +58,14 @@ void lgraph::import_v2::OnlineImportClient::DoImport() {
 
     size_t bytes_total = 0;
     for (const CsvDesc& fd : data_files) bytes_total += fd.size;
-    FMA_LOG() << "Total file size " << FormatBytes((double)bytes_total, 6);
+    LOG_INFO() << "Total file size " << FormatBytes((double)bytes_total, 6);
 
     exit_flag_ = false;
     signal(SIGINT, SignalHandler);
     signal(SIGTERM, SignalHandler);
 
     std::ifstream iplfs(config_.progress_log_file);
-    FMA_LOG() << "config_.progress_log_file " << config_.progress_log_file;
+    LOG_INFO() << "config_.progress_log_file " << config_.progress_log_file;
     size_t packages_processed = ReadProcessedPackages(iplfs);
     std::ofstream oplfs(config_.progress_log_file);
 
@@ -90,17 +91,17 @@ void lgraph::import_v2::OnlineImportClient::DoImport() {
             }
             bytes_cut += end - begin;
             if (skip_packages > 0) {
-                FMA_LOG() << "skipping package " << packages_processed - skip_packages + 1;
+                LOG_INFO() << "skipping package " << packages_processed - skip_packages + 1;
                 --skip_packages;
                 continue;
             }
             ++packages_processed;
-            FMA_LOG() << fma_common::StringFormatter::Format("importing ({}) packages",
+            LOG_INFO() << fma_common::StringFormatter::Format("importing ({}) packages",
                                                              packages_processed);
             if (is_first_package) {
                 if (fd.n_header_line >
                     static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n'))
-                    FMA_ERR() << "HEADER too large";
+                    LOG_ERROR() << "HEADER too large";
             } else {
                 fd.n_header_line = 0;
                 desc = fd.Dump();
@@ -118,11 +119,11 @@ void lgraph::import_v2::OnlineImportClient::DoImport() {
                                       config_.continue_on_error, config_.delimiter);
             WriteProcessedLinePackages(oplfs, packages_processed);
             if (log.size()) {
-                FMA_WARN() << log;
+                LOG_WARN() << log;
             }
             bytes_sent += end - begin;
             double bytes_per_sec = bytes_sent * 1. / (time(nullptr) - start_time);
-            FMA_LOG() << fma_common::StringFormatter::Format(
+            LOG_INFO() << fma_common::StringFormatter::Format(
                 "imported {} packages ({}, {}) at {}/s, approx. {} s remaining", packages_processed,
                 FormatBytes((double)bytes_cut, 6),
                 FormatPercent((double)bytes_cut * 1. / bytes_total), FormatBytes(bytes_per_sec),
@@ -133,12 +134,48 @@ void lgraph::import_v2::OnlineImportClient::DoImport() {
     oplfs.close();
     remove(config_.progress_log_file.c_str());
     double t2 = fma_common::GetTime();
-    FMA_LOG() << "Import finished in " << t2 - t1 << " seconds.";
+    LOG_INFO() << "Import finished in " << t2 - t1 << " seconds.";
+}
+
+void lgraph::import_v2::OnlineImportClient::DoFullImport() const {
+    double t1 = fma_common::GetTime();
+    RestClient client(config_.url);
+    client.Login(config_.username, config_.password);
+    std::string str = FMA_FMT("CALL db.importor.fullImportor(\\{{}:\"{}\", {}:\"{}\", {}:\"{}\", "
+        "{}:{}, {}:\"{}\", {}:\"{}\", {}:{}, {}:{}, "
+        "{}:{}, {}:{}, {}:{}, {}:{}, {}:{}, "
+        "{}:{}, {}:{}, {}:{}, {}:{}, {}:\"{}\"\\})",
+        "config_file", config_.config_file, "username", config_.username,
+        "password", config_.password, "continue_on_error",
+        config_.continue_on_error ? "true" : "false",
+        "graph_name", config_.graph_name, "delimiter", config_.delimiter, "delete_if_exists",
+        config_.delete_if_exists ? "true" : "false",
+        "parse_block_size", config_.parse_block_size,
+        "parse_block_threads", config_.parse_block_threads,
+        "parse_file_threads", config_.parse_file_threads,
+        "generate_sst_threads", config_.generate_sst_threads,
+        "read_rocksdb_threads", config_.read_rocksdb_threads,
+        "vid_num_per_reading", config_.vid_num_per_reading,
+        "max_size_per_reading", config_.max_size_per_reading,
+        "compact", config_.compact ? "true" : "false",
+        "keep_vid_in_memory", config_.keep_vid_in_memory ? "true" : "false",
+        "enable_fulltext_index", config_.enable_fulltext_index ? "true" : "false",
+        "fulltext_index_analyzer", config_.fulltext_index_analyzer);
+    auto log = client.EvalCypher("", str)["result"][0][0].as_string();
+    if (!log.empty()) {
+        std::vector<std::string> parts;
+        boost::split(parts, log, boost::is_any_of("\n"));
+        for (const auto &item : parts) {
+            if (!item.empty()) LOG_INFO() << item;
+        }
+    }
+    double t2 = fma_common::GetTime();
+    LOG_INFO() << "Full online import finished in " << t2 - t1 << " seconds.";
 }
 
 void lgraph::import_v2::OnlineImportClient::SignalHandler(int signum) {
     exit_flag_ = true;
-    FMA_WARN() << "signal received, exiting......";
+    LOG_WARN() << "signal received, exiting......";
 }
 
 // convert 0 <= p <= 1 to percentage "12.34%"

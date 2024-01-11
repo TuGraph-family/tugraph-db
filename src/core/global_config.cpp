@@ -45,6 +45,7 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
     AddOption(options, "optimistic transaction", txn_optimistic);
     AddOption(options, "Backup log enable", enable_backup_log);
     AddOption(options, "Whether the token is unlimited", unlimited_token);
+    AddOption(options, "reset admin password if you forget", reset_admin_password);
     AddOption(options, "HA enable", enable_ha);
     if (enable_ha) {
         AddOption(options, "HA init group", ha_conf);
@@ -57,6 +58,8 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
         AddOption(options, "HA node join(s)", ha_node_join_group_s);
         AddOption(options, "Bootstrap Role", ha_bootstrap_role);
     }
+    AddOption(options, "bolt_port", bolt_port);
+    AddOption(options, "bolt_thread_num", bolt_thread_num);
     return options;
 }
 
@@ -152,12 +155,12 @@ int lgraph::GlobalConfig::PrintVersion(std::string &config_file, std::string &cm
             .append(std::to_string(lgraph::_detail::VER_MINOR))
             .append(".")
             .append(std::to_string(lgraph::_detail::VER_PATCH));
-        FMA_LOG() << "TuGraph v" << version << ", compiled from " << GIT_BRANCH
+        LOG_INFO() << "TuGraph v" << version << ", compiled from " << GIT_BRANCH
                   << " branch, commit " << GIT_COMMIT_HASH << " (web commit " << WEB_GIT_COMMIT_HASH
                   << ").";
-        FMA_LOG() << "  CPP compiler version: " << CXX_COMPILER_ID << " " << CXX_COMPILER_VERSION
+        LOG_INFO() << "  CPP compiler version: " << CXX_COMPILER_ID << " " << CXX_COMPILER_VERSION
                   << ".";
-        FMA_LOG() << "  Python version : " << PYTHON_LIB_VERSION << ".";
+        LOG_INFO() << "  Python version : " << PYTHON_LIB_VERSION << ".";
         return 0;
     }
     return 1;
@@ -186,6 +189,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     thread_limit = 0;
     unlimited_token = false;
     enable_realtime_count = true;
+    reset_admin_password = false;
     // fulltext index
     ft_index_options.enable_fulltext_index = false;
     ft_index_options.fulltext_commit_interval = 0;
@@ -202,6 +206,12 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     ha_node_offline_ms = 600 * 1000;
     ha_node_remove_ms = 1200 * 1000;
     ha_node_join_group_s = 10;
+    ha_is_witness = false;
+    ha_enable_witness_to_leader = false;
+
+    // bolt
+    bolt_port = 0;
+    bolt_thread_num = 10;
 
     // parse options
     fma_common::Configuration argparser;
@@ -263,6 +273,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Maximum number of threads to use");
     argparser.Add(unlimited_token, "unlimited_token", true)
         .Comment("Unlimited token for TuGraph.");
+    argparser.Add(reset_admin_password, "reset_admin_password", true)
+        .Comment("Reset admin password if you forget.");
     argparser.Add(enable_realtime_count, "realtime vertex and edge count", true)
         .Comment("Whether to enable realtime vertex and edge count.");
 
@@ -291,6 +303,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Initial list of machines in the form of host1:port1,host2:port2");
     argparser.Add(ha_snapshot_interval_s, "ha_snapshot_interval_s", true)
         .Comment("Snapshot interval in seconds.");
+    argparser.Add(ha_election_timeout_ms, "ha_election_timeout_ms", true)
+        .Comment("leader step down timeout in ms.");
     argparser.Add(ha_heartbeat_interval_ms, "ha_heartbeat_interval_ms", true)
         .Comment("Interval for heartbeat in ms.");
     argparser.Add(ha_node_offline_ms, "ha_node_offline_ms", true)
@@ -299,6 +313,13 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Node considered completly dead and removed from list after this duration.");
     argparser.Add(ha_node_join_group_s, "ha_node_join_group_s", true)
         .Comment("Node joined replicated group during this duration.");
-
+    argparser.Add(ha_is_witness, "ha_is_witness", true)
+        .Comment("Node is witness (donot have data & can not apply request) or not.");
+    argparser.Add(ha_enable_witness_to_leader, "ha_enable_witness_to_leader", true)
+        .Comment("Node is witness (donot have data & can not apply request) or not.");
+    argparser.Add(bolt_port, "bolt_port", true)
+        .Comment("Bolt protocol port.");
+    argparser.Add(bolt_thread_num, "bolt_thread_num", true)
+        .Comment("bolt thread pool size.");
     return argparser;
 }

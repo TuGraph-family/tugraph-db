@@ -14,6 +14,7 @@
  */
 
 #pragma once
+#include <any>
 #include "lgraph/lgraph.h"
 #include "tools/json.hpp"
 #include "lgraph/lgraph_types.h"
@@ -267,6 +268,9 @@ class Result {
      * @param   json    Json string to be deserialized.
      */
     void Load(const std::string &json);
+
+    std::vector<std::string> BoltHeader();
+    std::vector<std::vector<std::any>> BoltRecords();
 
  private:
     /**

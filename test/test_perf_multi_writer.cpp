@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/utils.h"
 #include "fma-common/string_util.h"
 #include "gtest/gtest.h"
@@ -47,7 +46,7 @@ void TestKvMultiWriter() {
 #pragma omp parallel for
         for (size_t i = 0; i < n; i++) {
             auto txn = store->CreateWriteTxn();
-            ASSERT(table->AddKV(*txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
+            UT_ASSERT(table->AddKV(*txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
             txn->Commit();
         }
         auto t1 = fma_common::GetTime();
@@ -69,7 +68,7 @@ void TestKvMultiWriter() {
 #pragma omp parallel for
         for (size_t i = 0; i < n; i++) {
             auto txn = store->CreateWriteTxn(true);
-            ASSERT(table->AddKV(*txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
+            UT_ASSERT(table->AddKV(*txn, Value::ConstRef<int>(i), Value::ConstRef<int>(0)));
             txn->Commit();
         }
         auto t1 = fma_common::GetTime();

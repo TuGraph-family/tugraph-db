@@ -18,7 +18,6 @@
 #else
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 
 #include "gtest/gtest.h"
 

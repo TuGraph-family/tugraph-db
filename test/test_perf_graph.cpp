@@ -14,7 +14,6 @@
 
 #include <random>
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/string_formatter.h"
 #include "gtest/gtest.h"
 
@@ -306,7 +305,7 @@ int TestPerfGraphNoncontinuous(bool durable) {
                 eit.GetDst();
                 eit.GetEdgeId();
                 auto ep = eit.GetProperty();
-                DBG_ASSERT(ep.Size() == e_prop_size);
+                UT_ASSERT(ep.Size() == e_prop_size);
                 Value vv = Value::MakeCopy(ep);
                 (*(char*)vv.Data())++;
                 eit.SetProperty(vv);

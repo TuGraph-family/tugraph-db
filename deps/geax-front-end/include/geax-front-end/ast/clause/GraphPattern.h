@@ -62,7 +62,7 @@ inline bool ToEnum(std::string_view sv, MatchMode& mode) {
  */
 class GraphPattern : public AstNode {
 public:
-    GraphPattern() : AstNode(AstNodeType::kGraphPattern), yield_(nullptr) {}
+    GraphPattern() : AstNode(AstNodeType::kGraphPattern) {}
     ~GraphPattern() = default;
 
     void appendPathPattern(PathPattern* pathPattern) { pathPatterns_.emplace_back(pathPattern); }
@@ -82,7 +82,7 @@ public:
 
     // NOTE(yaochi): this could be confict with system function yield()
     void setYield(YieldField* yield) { yield_ = yield; }
-    YieldField* yield() const { return yield_; }
+    const std::optional<YieldField*>& yield() const { return yield_; }
 
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
@@ -91,7 +91,7 @@ private:
     std::optional<MatchMode> mode_;
     std::optional<PathPrefix*> keep_;
     std::optional<Expr*> where_;
-    YieldField* yield_;
+    std::optional<YieldField*> yield_;
 };
 
 }  // namespace frontend

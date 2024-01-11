@@ -13,7 +13,6 @@
  */
 
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "gtest/gtest.h"
 
 // The 'U' macro can be used to create a string or character literal of the platform type, i.e.

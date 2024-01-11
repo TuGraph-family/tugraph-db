@@ -582,10 +582,10 @@ class TestInFilter : public Filter {
                 }
                 timestamp++;
 #ifndef NDEBUG
-                FMA_DBG() << "[" << __FILE__ << "] "
+                LOG_DEBUG() << "[" << __FILE__ << "] "
                           << "reset set: ";
                 for (auto it = right_set_.begin(); it != right_set_.end(); ++it) {
-                    FMA_DBG() << (*it).ToString();
+                    LOG_DEBUG() << (*it).ToString();
                 }
 #endif
             }
@@ -594,7 +594,7 @@ class TestInFilter : public Filter {
             }
         } else {
             // 否则，就循环迭代，目前只处理argument这种情况
-            FMA_WARN() << "[" << __FILE__ << "] "
+            LOG_WARN() << "[" << __FILE__ << "] "
                        << "do not use unordered_set";
             for (auto &r : *right.constant.array) {
                 if (left.constant.scalar == r) return true;

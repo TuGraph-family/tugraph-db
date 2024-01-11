@@ -14,14 +14,13 @@
 
 #pragma once
 
-#include "fma-common/logger.h"
-
+#include "tools/lgraph_log.h"
 #include "core/global_config.h"
 #include "server/service.h"
 #include "server/state_machine.h"
 #include "restful/server/rest_server.h"
 #include "http/http_server.h"
-#include "tools/lgraph_log.h"
+#include "server/bolt_server.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"
@@ -76,7 +75,7 @@ class LGraphServer {
      public:
         bool OnLogMessage(int severity, const char *file, int line,
                           const butil::StringPiece &log_content) override {
-            GENERAL_LOG(INFO) << "[StateMachine] " << log_content.as_string();
+            LOG_INFO() << "[StateMachine] " << log_content.as_string();
             return true;
         }
     };

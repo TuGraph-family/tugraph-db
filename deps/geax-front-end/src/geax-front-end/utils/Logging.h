@@ -12,18 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+
 #ifndef FRONTEND_UTILS_LOGGING_H_
 #define FRONTEND_UTILS_LOGGING_H_
 
 #include <unistd.h>
 #include <iostream>
-#ifdef GEAX_ENABLE_GLOG
+#ifdef ENABLE_GLOG
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 #endif
 #include "geax-front-end/utils/Copilot.h"
 
-#ifdef GEAX_ENABLE_GLOG
+#ifdef ENABLE_GLOG
 #ifdef LOG
 #undef LOG
 #endif

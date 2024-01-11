@@ -17,7 +17,6 @@
 #include <fstream>
 
 #include "fma-common/fma_stream.h"
-#include "fma-common/logging.h"
 #include "fma-common/text_parser.h"
 #include "gtest/gtest.h"
 #include "./ut_utils.h"

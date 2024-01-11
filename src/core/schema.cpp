@@ -210,10 +210,73 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     case FieldType::STRING:
         return FieldData(extractor->GetConstRef(record).AsString());
     case FieldType::BLOB:
-        FMA_ERR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
+        LOG_ERROR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
                      "Extractor, GetBlobKeyFunc)";
+    case FieldType::POINT:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch (srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(PointWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(PointCartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
+
+    case FieldType::LINESTRING:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch (srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(LineStringWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(LineStringCartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
+
+    case FieldType::POLYGON:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch (srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(PolygonWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(PolygonCartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
+
+    case FieldType::SPATIAL:
+    {
+        std::string EWKB = extractor->GetConstRef(record).AsString();
+        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+        switch (srid) {
+            case lgraph_api::SRID::NUL:
+                throw InputError("invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(SpatialWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(SpatialCartesian(EWKB));
+            default:
+                throw InputError("invalid srid!\n");
+        }
+    }
     case FieldType::NUL:
-        FMA_ERR() << "FieldType NUL";
+        LOG_ERROR() << "FieldType NUL";
     }
     return FieldData();
 }
@@ -416,7 +479,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const std::string& primary, const std::string& temporal,
                        const TemporalFieldOrder& temporal_order,
                        const EdgeConstraints& edge_constraints) {
-    if (_F_UNLIKELY(n_fields > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
+    lgraph::CheckValidFieldNum(n_fields);
     fields_.clear();
     name_to_idx_.clear();
     // assign id to fields, starting from fixed length types
@@ -491,7 +554,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             throw FieldAlreadyExistsException(f.name);
         fields_.push_back(_detail::FieldExtractor(f));
     }
-    if (_F_UNLIKELY(fields_.size() > _detail::MAX_NUM_FIELDS)) throw TooManyFieldsException();
+    lgraph::CheckValidFieldNum(fields_.size());
     RefreshLayout();
 }
 

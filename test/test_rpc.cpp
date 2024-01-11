@@ -97,7 +97,7 @@ void on_shutdown_rpc_server() {
     try {
         ptr_state_machine->Stop();
     } catch (std::exception& e) {
-        FMA_ERR() << "Rest server shutdown failed: " << e.what();
+        LOG_ERROR() << "Rest server shutdown failed: " << e.what();
     }
     rpc_server_.Stop(0);
     return;

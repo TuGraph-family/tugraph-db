@@ -41,6 +41,7 @@ set(LGRAPH_CORE_SRC
         core/lmdb_transaction.cpp
         core/kv_table_comparators.cpp
         core/lgraph_date_time.cpp
+        core/lgraph_spatial.cpp
         core/lightning_graph.cpp
         core/schema.cpp
         core/sync_file.cpp
@@ -68,6 +69,7 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_edge_index_iterator.cpp
         lgraph_api/lgraph_traversal.cpp
         lgraph_api/lgraph_txn.cpp
+        lgraph_api/lgraph_types.cpp
         lgraph_api/lgraph_utils.cpp
         lgraph_api/lgraph_vertex_iterator.cpp
         lgraph_api/lgraph_result.cpp

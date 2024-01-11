@@ -17,7 +17,6 @@
 
 #include "core/data_type.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logging.h"
 #include "fma-common/utils.h"
 
 #include "gtest/gtest.h"
@@ -29,7 +28,68 @@
 #include "./ut_utils.h"
 using namespace lgraph_api;
 
-class TestLGraphApi : public TuGraphTest {};
+class TestLGraphApi : public TuGraphTest {
+ public:
+    bool HasVertexIndex(GraphDB& db, const std::string& label,
+                        const std::string& field, lgraph::IndexType type) {
+        auto txn = db.CreateReadTxn();
+        auto indexes = txn.ListVertexIndexes();
+        for (auto& i : indexes) {
+            if (i.label == label && i.field == field &&
+                i.type == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool HasEdgeIndex(GraphDB& db, const std::string& label,
+                      const std::string& field, lgraph::IndexType type) {
+        auto txn = db.CreateReadTxn();
+        auto indexes = txn.ListEdgeIndexes();
+        for (auto& i : indexes) {
+            if (i.label == label && i.field == field &&
+                i.type == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    size_t GetVertexIndexValueNum(GraphDB& db, const std::string& label,
+                                  const std::string& field) {
+        auto txn = db.CreateReadTxn();
+        size_t count = 0;
+        for (auto it = txn.GetVertexIndexIterator(label, field, "", ""); it.IsValid(); it.Next()) {
+            ++count;
+        }
+        return count;
+    }
+    size_t GetEdgeIndexValueNum(GraphDB& db, const std::string& label,
+                                const std::string& field) {
+        auto txn = db.CreateReadTxn();
+        size_t count = 0;
+        for (auto it = txn.GetEdgeIndexIterator(label, field, "", ""); it.IsValid(); it.Next()) {
+            ++count;
+        }
+        return count;
+    }
+    bool HasVertexIndexKey(GraphDB& db, const std::string& label,
+                           const std::string& field, const lgraph::FieldData& key) {
+        auto txn = db.CreateReadTxn();
+        for (auto it =
+                 txn.GetVertexIndexIterator(label, field, key, key); it.IsValid(); it.Next()) {
+            if (it.GetIndexValue() == key) return true;
+        }
+        return false;
+    }
+    bool HasEdgeIndexKey(GraphDB& db, const std::string& label,
+                         const std::string& field, const lgraph::FieldData& key) {
+        auto txn = db.CreateReadTxn();
+        for (auto it = txn.GetEdgeIndexIterator(label, field, key, key); it.IsValid(); it.Next()) {
+            if (it.GetIndexValue() == key) return true;
+        }
+        return false;
+    }
+};
 
 TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
     size_t n_threads = 2;
@@ -500,9 +560,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
         AddVertexWithString(id++, "alex", "");
         int64_t vid1 =
             AddVertexWithString(id++, std::string(lgraph::_detail::MAX_KEY_SIZE, 'a'), "");
-        // key size too large
-        UT_EXPECT_ANY_THROW(
-            AddVertexWithString(id++, std::string(lgraph::_detail::MAX_KEY_SIZE + 1, 'a'), ""));
+        AddVertexWithString(id++, std::string(lgraph::_detail::MAX_KEY_SIZE + 1, 'a'), "");
         // string too long
         UT_EXPECT_ANY_THROW(
             AddVertexWithString(id++, std::string(lgraph::_detail::MAX_STRING_SIZE + 1, 'a'), ""));
@@ -551,7 +609,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
         }
         {
             // testing edges with tid
-            FMA_LOG() << "Testing edges with tid";
+            LOG_INFO() << "Testing edges with tid";
             EdgeOptions options;
             options.temporal_field = "ts";
             options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
@@ -721,10 +779,7 @@ TEST_F(TestLGraphApi, LGraphApi) {
                 std::vector<std::string>{std::string("2222"),
                                          std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1')});
             txn.Commit();
-            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1",
-                                     lgraph::IndexType::GlobalUniqueIndex), "too long");
-            UT_EXPECT_THROW_MSG(db.AddVertexIndex("v1", "id1",
-                                     lgraph::IndexType::GlobalUniqueIndex), "too long");
+            db.AddVertexIndex("v1", "id1", lgraph::IndexType::GlobalUniqueIndex);
             txn = db.CreateWriteTxn();
             txn.GetVertexIterator(vid1).Delete();
             txn.Commit();
@@ -732,12 +787,10 @@ TEST_F(TestLGraphApi, LGraphApi) {
         {
             // UT_EXPECT_TRUE(db.AddVertexIndex("v1", "id", true));
             auto txn = db.CreateWriteTxn();
-            UT_EXPECT_THROW_MSG(
-                txn.AddVertex(
-                    "v1", std::vector<std::string>{"id", "id1"},
-                    std::vector<std::string>{std::string(lgraph::_detail::MAX_KEY_SIZE + 1, '1'),
-                                             std::string("333")}),
-                "key size");
+            txn.AddVertex("v1", std::vector<std::string>{"id", "id1"},
+                          std::vector<std::string>{std::string(
+                                                       lgraph::_detail::MAX_KEY_SIZE + 1, '1'),
+                                                   std::string("333")});
         }
         {
             UT_LOG() << "Test Exception";
@@ -783,4 +836,113 @@ TEST_F(TestLGraphApi, LGraphApi) {
         }
     }
 //     #endif
+}
+
+TEST_F(TestLGraphApi, CURDWithTooLongKey) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    {
+        lgraph::AutoCleanDir cleaner(path);
+        Galaxy galaxy(path);
+        galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+        GraphDB db = galaxy.OpenGraph("default");
+        UT_EXPECT_TRUE(db.AddVertexLabel("Person",
+                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                                 {"name", FieldType::STRING, false},
+                                                                 {"tel", FieldType::STRING, true}}),
+                                         VertexOptions("id")));
+
+        UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
+                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                        {"name", FieldType::STRING, false},
+                                                        {"instructions", FieldType::STRING, true}}),
+                                       EdgeOptions()));
+
+        std::vector<std::string> vp({"id", "name", "tel"});
+        std::vector<std::string> ep({"id", "name", "instructions"});
+        auto txn = db.CreateWriteTxn();
+        auto vid1 = txn.AddVertex(std::string("Person"), vp,
+                                  {std::string(lgraph::_detail::MAX_KEY_SIZE + 1, 'a'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 1, 'a'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 1, 'a')});
+
+        auto vid2 = txn.AddVertex(std::string("Person"), vp,
+                                  {std::string(lgraph::_detail::MAX_KEY_SIZE + 10, 'b'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 10, 'b'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 10, 'b')});
+
+        auto vid3 = txn.AddVertex(std::string("Person"), vp,
+                                  {std::string(lgraph::_detail::MAX_KEY_SIZE + 20, 'c'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 20, 'c'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 20, 'c')});
+
+        auto vid4 = txn.AddVertex(std::string("Person"), vp,
+                                  {std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'd'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'd'),
+                                   std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'd')});
+
+        txn.AddEdge(vid1, vid2, std::string("Relation"), ep,
+                    {std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'z'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'z'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'z')});
+        txn.AddEdge(vid2, vid3, std::string("Relation"), ep,
+                    {std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'y'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'y'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'y')});
+        txn.AddEdge(vid3, vid4, std::string("Relation"), ep,
+                    {std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'x'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'x'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'x')});
+        txn.AddEdge(vid4, vid1, std::string("Relation"), ep,
+                    {std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'w'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'w'),
+                     std::string(lgraph::_detail::MAX_KEY_SIZE + 50, 'w')});
+        txn.Commit();
+
+        db.AddVertexIndex("Person", "name", lgraph::IndexType::GlobalUniqueIndex);
+        db.AddVertexIndex("Person", "tel", lgraph::IndexType::NonuniqueIndex);
+        db.AddEdgeIndex("Relation", "id", lgraph::IndexType::GlobalUniqueIndex);
+        db.AddEdgeIndex("Relation", "name", lgraph::IndexType::PairUniqueIndex);
+        db.AddEdgeIndex("Relation", "instructions", lgraph::IndexType::NonuniqueIndex);
+
+        UT_EXPECT_TRUE(HasVertexIndex(db, "Person", "id", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "Person", "id"), 4);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "Person", "name", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "Person", "name"), 4);
+        UT_EXPECT_TRUE(HasVertexIndex(db, "Person", "tel", lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetVertexIndexValueNum(db, "Person", "tel"), 4);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "Relation", "id", lgraph::IndexType::GlobalUniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "Relation", "id"), 4);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "Relation", "name", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "Relation", "name"), 4);
+        UT_EXPECT_TRUE(HasEdgeIndex(db, "Relation", "instructions",
+                                    lgraph::IndexType::NonuniqueIndex));
+        UT_EXPECT_EQ(GetEdgeIndexValueNum(db, "Relation", "instructions"), 4);
+
+        UT_EXPECT_TRUE(HasVertexIndexKey(
+            db, "Person", "id", lgraph::FieldData(
+                                    std::string(lgraph::_detail::MAX_KEY_SIZE, 'a'))));
+        UT_EXPECT_TRUE(HasVertexIndexKey(
+            db, "Person", "name", lgraph::FieldData(
+                                    std::string(lgraph::_detail::MAX_KEY_SIZE, 'a'))));
+        // since vertex NonuniqueIndex append vid in key, max key size is
+        // lgraph::_detail::MAX_KEY_SIZE - VID_SIZE(5)
+        UT_EXPECT_TRUE(HasVertexIndexKey(
+            db, "Person", "tel", lgraph::FieldData(
+                                     std::string(lgraph::_detail::MAX_KEY_SIZE - 5, 'a'))));
+        UT_EXPECT_TRUE(HasEdgeIndexKey(
+            db, "Relation", "id", lgraph::FieldData(
+                                     std::string(lgraph::_detail::MAX_KEY_SIZE, 'z'))));
+        // since edge PairUniqueIndex append src_vid and dst_vid in key, max key size is
+        // lgraph::_detail::MAX_KEY_SIZE - 2 * VID_SIZE(5)
+        UT_EXPECT_TRUE(HasEdgeIndexKey(
+            db, "Relation", "name", lgraph::FieldData(
+                                      std::string(lgraph::_detail::MAX_KEY_SIZE - 10, 'z'))));
+        // since edge NonuniqueIndex append Euid in key, max key size is
+        // lgraph::_detail::MAX_KEY_SIZE - EUID_SIZE(24)
+        UT_EXPECT_TRUE(HasEdgeIndexKey(
+            db, "Relation", "instructions", lgraph::FieldData(
+                                        std::string(lgraph::_detail::MAX_KEY_SIZE - 24, 'z'))));
+    }
 }

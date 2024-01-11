@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "fma-common/logger.h"
 #include "gtest/gtest.h"
 
 #include "core/task_tracker.h"

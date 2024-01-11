@@ -12,6 +12,7 @@ include(BuildLGraphServer.cmake)
 include(BuildCypherLib.cmake)
 include(BuildClients.cmake)
 include(BuildCythonExtension.cmake)
+include(BuildBoltLib.cmake)
 
 install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_cpp_rpc lgraph_client_cpp_rest lgraph_client_python lgraph_db_python
         RUNTIME DESTINATION bin

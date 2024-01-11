@@ -17,7 +17,6 @@
 #include <vector>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "gtest/gtest.h"
 
 #include "core/field_data_helper.h"

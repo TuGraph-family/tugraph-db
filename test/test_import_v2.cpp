@@ -15,7 +15,6 @@
 #include <stdio.h>
 
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/utils.h"
 

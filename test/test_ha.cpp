@@ -1,79 +1,10 @@
 /* Copyright (c) 2022 AntGroup. All Rights Reserved. */
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
-#include "lgraph/lgraph.h"
 #include "lgraph/lgraph_rpc_client.h"
 #include "fma-common/configuration.h"
-#include <boost/algorithm/string.hpp>
-
-bool is_github_environment() {
-    // 检查环境变量
-    const char* github_actions = std::getenv("GITHUB_ACTIONS");
-    if (github_actions && std::string(github_actions) == "true") {
-        return true;
-    }
-    // 检查仓库地址
-    FILE* pipe = popen("git config --get remote.origin.url", "r");
-    if (pipe) {
-        char buffer[128];
-        std::string result = "";
-        while (!feof(pipe)) {
-            if (fgets(buffer, 128, pipe) != NULL) {
-                result += buffer;
-            }
-        }
-        pclose(pipe);
-
-        if (result.find("github.com") != std::string::npos) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void build_so(const std::string& so_name, const std::string& so_path) {
-    const std::string INCLUDE_DIR = "../../include";
-    const std::string DEPS_INCLUDE_DIR = "../../deps/install/include";
-    const std::string LIBLGRAPH = "./liblgraph.so";
-    int rt;
-#ifndef __clang__
-    std::string cmd_f =
-        "g++ -fno-gnu-unique -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
-        "-o {} {} {} -shared";
-#elif __APPLE__
-    std::string cmd_f =
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -Xpreprocessor "
-        "-fopenmp -DNDEBUG "
-        "-o {} {} {} -shared";
-#else
-    std::string cmd_f =
-        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
-        "-o {} {} {} -shared";
-#endif
-    std::string cmd;
-    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, so_name,
-                  so_path, LIBLGRAPH);
-    rt = system(cmd.c_str());
-    UT_EXPECT_EQ(rt, 0);
-}
-
-bool HasElement(const nlohmann::json& val, const std::string& value, const std::string& field) {
-    if (val.is_array()) {
-        for (const auto & i : val) {
-            if (i.contains(field)) {
-                if (i.at(field).get<std::string>() == value) {
-                    return true;
-                }
-            }
-        }
-    } else if (val.is_object()) {
-        if (!val.contains(field)) return false;
-        if (val.at(field).get<std::string>() == value) {
-            return true;
-        }
-    }
-    return false;
-}
+#include "boost/algorithm/string.hpp"
+#include "braft/cli.h"
 
 class TestHA : public TuGraphTest {
  protected:
@@ -98,7 +29,7 @@ class TestHA : public TuGraphTest {
             "./lgraph_server ./resource {} "
             "&& cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
             "true --enable_ha true --ha_node_offline_ms 5000 "
-            "--ha_node_remove_ms 10000 "
+            "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
             "--rpc_port {} --directory ./db --log_dir "
             "./log  --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
 #else
@@ -107,7 +38,7 @@ class TestHA : public TuGraphTest {
             "./lgraph_server ./resource {} "
             "&& cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
             "true --enable_ha true --ha_node_offline_ms 5000 "
-            "--ha_node_remove_ms 10000 "
+            "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
             "--rpc_port {} --directory ./db --log_dir "
             "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
 #endif
@@ -146,10 +77,7 @@ class TestHA : public TuGraphTest {
 
  public:
     std::string host;
-};
-
-TEST_F(TestHA, HAClient) {
-    std::string schema =
+    const std::string schema =
         "{\"schema\" :\n"
         "[  \n"
         "{ \n"
@@ -183,7 +111,7 @@ TEST_F(TestHA, HAClient) {
         "}    \n"
         "]\n"
         "}";
-    std::string data_desc =
+    const std::string data_desc =
         "{\"files\": [    \n"
         "   {        \n"
         "       \"columns\": [\"name\", \"birthyear\", \"phone\"],\n"
@@ -192,7 +120,7 @@ TEST_F(TestHA, HAClient) {
         "       \"label\": \"Person\"    \n"
         "   }]\n"
         "}";
-    std::string data_person =
+    const std::string data_person =
         "Rachel Kempson,1910,10086\n"
         "Michael Redgrave,1908,10087\n"
         "Vanessa Redgrave,1937,10088\n"
@@ -206,6 +134,9 @@ TEST_F(TestHA, HAClient) {
         "Roy Redgrave,1873,10096\n"
         "John Williams,1932,10097\n"
         "Christopher Nolan,1970,10098";
+};
+
+TEST_F(TestHA, HAClient) {
     build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
     lgraph::RpcClient client(this->host + ":29092", "admin", "73@TuGraph");
     std::string result;
@@ -249,39 +180,56 @@ TEST_F(TestHA, HAClient) {
 }
 
 TEST_F(TestHA, HAConsistency) {
-    std::thread thread = std::thread([this] {
-        lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
-        std::string result;
-        rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
-        rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
-        rpcClient.Logout();
-    });
-#ifndef __SANITIZE_ADDRESS__
-    if (!is_github_environment()) {
-        fma_common::SleepS(5);
-        std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
-        std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
-        int rt = system(cmd.c_str());
-        UT_EXPECT_EQ(rt, 0);
-        fma_common::SleepS(5);
-        cmd_f =
-            "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-            "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
-            "--rpc_port {} --directory ./db --log_dir "
-            "./log  --ha_conf {} -c lgraph_ha.json -d start";
-        cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
-                      host + ":29092," + host + ":29093," + host + ":29094");
-        rt = system(cmd.c_str());
-        UT_EXPECT_EQ(rt, 0);
-        fma_common::SleepS(10);
-    }
-#endif
-    if (thread.joinable()) thread.join();
+    std::string cmd_f = "cd {} && ./lgraph_server -c lgraph_ha.json -d stop";
+    std::string cmd = FMA_FMT(cmd_f.c_str(), "ha3");
+    int rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+    fma_common::SleepS(5);
     lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
-    fma_common::SleepS(50);
     std::string result;
+    rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
+    rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
+#ifndef __SANITIZE_ADDRESS__
+    cmd_f =
+        "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+        "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
+        "--ha_snapshot_interval_s -1 --rpc_port {} --directory ./db --log_dir "
+        "./log  --ha_conf {} -c lgraph_ha.json -d start";
+#else
+    cmd_f =
+        "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
+        "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
+        "--ha_snapshot_interval_s -1 --rpc_port {} --directory ./db --log_dir "
+        "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+#endif
+    cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
+                  host + ":29092," + host + ":29093," + host + ":29094");
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+    fma_common::SleepS(30);
     rpcClient.CallCypher(result, "MATCH (n) RETURN COUNT(n)", "default", true, 0, host + ":29094");
     nlohmann::json res = nlohmann::json::parse(result);
-    UT_EXPECT_EQ(res[0]["COUNT(n)"], 3000000);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 300000);
     rpcClient.Logout();
+}
+
+TEST_F(TestHA, AsyncSnapshot) {
+    lgraph::RpcClient rpcClient(this->host + ":29092", "admin", "73@TuGraph");
+    std::string result;
+    rpcClient.LoadProcedure(result, "add_vertex_v.so", "CPP", "add_vertex_v", "SO", "", false);
+    rpcClient.CallProcedure(result, "CPP", "add_vertex_v", "{}");
+    rpcClient.CallCypher(result, "CALL dbms.graph.createGraph('ha', 'description', 2045)");
+    rpcClient.ImportSchemaFromContent(result, schema, "ha");
+    std::thread snapshot_thread = std::thread([this]() {
+        braft::cli::snapshot("lgraph", braft::PeerId(this->host + ":29092"),
+                             braft::cli::CliOptions());
+    });
+    rpcClient.ImportDataFromContent(result, data_desc, data_person, ",", false, 8, "ha");
+    bool ret = rpcClient.CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)", "ha");
+    UT_EXPECT_TRUE(ret);
+    nlohmann::json res = nlohmann::json::parse(result);
+    UT_EXPECT_EQ(res[0]["COUNT(n)"], 13);
+    rpcClient.Logout();
+    if (snapshot_thread.joinable())
+        snapshot_thread.join();
 }
