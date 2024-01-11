@@ -35,3 +35,47 @@ void TuGraphTest::teardown() {
 void TuGraphTest::SetUp() { setup(); }
 
 void TuGraphTest::TearDown() { teardown(); }
+
+void build_so(const std::string& so_name, const std::string& so_path) {
+    const std::string INCLUDE_DIR = "../../include";
+    const std::string DEPS_INCLUDE_DIR = "../../deps/install/include";
+    const std::string LIBLGRAPH = "./liblgraph.so";
+    int rt;
+#ifndef __clang__
+    std::string cmd_f =
+        "g++ -fno-gnu-unique -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
+        "-o {} {} {} -shared";
+#elif __APPLE__
+    std::string cmd_f =
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -Xpreprocessor "
+        "-fopenmp -DNDEBUG "
+        "-o {} {} {} -shared";
+#else
+    std::string cmd_f =
+        "clang++ -stdlib=libc++ -fPIC -g --std=c++17 -I {} -I {} -rdynamic -O3 -fopenmp -DNDEBUG "
+        "-o {} {} {} -shared";
+#endif
+    std::string cmd;
+    cmd = FMA_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, so_name,
+                  so_path, LIBLGRAPH);
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
+}
+
+bool HasElement(const nlohmann::json& val, const std::string& value, const std::string& field) {
+    if (val.is_array()) {
+        for (const auto & i : val) {
+            if (i.contains(field)) {
+                if (i.at(field).get<std::string>() == value) {
+                    return true;
+                }
+            }
+        }
+    } else if (val.is_object()) {
+        if (!val.contains(field)) return false;
+        if (val.at(field).get<std::string>() == value) {
+            return true;
+        }
+    }
+    return false;
+}

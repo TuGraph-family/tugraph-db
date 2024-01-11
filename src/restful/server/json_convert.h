@@ -158,6 +158,7 @@ static const utility::string_t RESULT = _TU("result");
 static const utility::string_t REFRESH = _TU("refresh");
 static const utility::string_t ROLE = _TU("role");
 static const utility::string_t ROLES = _TU("roles");
+static const utility::string_t HA_ROLE = _TU("ha_role");
 static const utility::string_t RPC_ADDR = _TU("rpc_address");
 static const utility::string_t SCHEMA = _TU("schema");
 static const utility::string_t SCHEMA_TEXT = _TU("text");
@@ -520,6 +521,7 @@ inline web::json::value ValueToJson(const StateMachine::Peer& peer) {
     v[RestStrings::RPC_ADDR] = ValueToJson(peer.rpc_addr);
     v[RestStrings::REST_ADDR] = ValueToJson(peer.rest_addr);
     v[RestStrings::STATE] = ValueToJson(peer.StateString());
+    v[RestStrings::HA_ROLE] = ValueToJson(peer.RoleString());
     return v;
 }
 
