@@ -472,7 +472,7 @@ int test_function(cypher::RTContext *ctx) {
         {"MATCH (n) RETURN coalesce(n.birthyear, n.name)", 21},
         {"RETURN LENGTH('abc1234')", 1},
         {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
-        {"RETURN CONCAT('abc', '12', '34')", 1}
+        {"RETURN CONCAT('abc', '12', '34')", 1},
         {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1}
     };
     std::vector<std::string> scripts;
