@@ -23,5 +23,4 @@ else
 cmake .. -DCMAKE_BUILD_TYPE=Release
 fi
 
-make -j6
-
+make -j6 package
