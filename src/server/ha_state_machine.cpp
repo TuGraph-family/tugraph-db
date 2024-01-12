@@ -11,6 +11,10 @@
 #include "server/ha_state_machine.h"
 #include "restful/server/rest_server.h"
 
+namespace braft {
+    DECLARE_bool(raft_enable_witness_to_leader);
+}
+
 void lgraph::HaStateMachine::Start() {
     static const int64_t BOOTSTRAP_LOG_INDEX = 1024;
 
@@ -21,6 +25,10 @@ void lgraph::HaStateMachine::Start() {
 
     ::lgraph::StateMachine::Start();
     if (config_.ha_bootstrap_role == 1) {
+        if (config_.ha_is_witness) {
+            ::lgraph::StateMachine::Stop();
+            throw std::runtime_error("Can not bootstrap on witness node");
+        }
 #if LGRAPH_SHARE_DIR
         LOG_WARN() << "Bootstrapping is not necessary in this version, ignored";
 #else
@@ -63,7 +71,8 @@ void lgraph::HaStateMachine::Start() {
     if (butil::IP_ANY == addr.ip) {
         throw std::runtime_error("TuGraph can't be started from IP_ANY (0.0.0.0) in HA mode.");
     }
-    braft::Node* node = new braft::Node("lgraph", braft::PeerId(addr));
+    braft::Node* node = new braft::Node("lgraph", braft::PeerId(addr, 0,
+                                                                config_.ha_is_witness));
     braft::NodeOptions node_options;
     if (config_.ha_bootstrap_role == 1) {
         node_options.initial_conf.add_peer(braft::PeerId(addr));
@@ -73,6 +82,7 @@ void lgraph::HaStateMachine::Start() {
             throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
         }
     }
+    braft::FLAGS_raft_enable_witness_to_leader = config_.ha_enable_witness_to_leader;
     node_options.election_timeout_ms = config_.ha_election_timeout_ms;
     node_options.fsm = this;
     node_options.node_owns_fsm = false;
@@ -82,6 +92,7 @@ void lgraph::HaStateMachine::Start() {
     node_options.raft_meta_uri = prefix + "/raft_meta";
     node_options.snapshot_uri = prefix + "/snapshot";
     node_options.disable_cli = false;
+    node_options.witness = config_.ha_is_witness;
     int r = node->init(node_options);
     if (r != 0) {
         ::lgraph::StateMachine::Stop();
@@ -107,14 +118,16 @@ void lgraph::HaStateMachine::Start() {
         LOG_INFO() << "Start HA by add_peer";
         braft::Configuration init_conf;
         int t = 0;
+        if (init_conf.parse_from(config_.ha_conf) != 0) {
+            ::lgraph::StateMachine::Stop();
+            throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
+        }
         while (!joined_group_.load(std::memory_order_acquire)) {
-            if (init_conf.parse_from(config_.ha_conf) == 0) {
-                braft::PeerId my_id(addr);
-                butil::Status status = braft::cli::add_peer(braft::GroupId("lgraph"), init_conf,
-                                                            my_id, braft::cli::CliOptions());
-                if (!status.ok()) {
-                    LOG_WARN() << "Failed to join group: " << status.error_str();
-                }
+            braft::PeerId my_id(addr);
+            butil::Status status = braft::cli::add_peer(braft::GroupId("lgraph"), init_conf,
+                                                        my_id, braft::cli::CliOptions());
+            if (!status.ok()) {
+                LOG_WARN() << "Failed to join group: " << status.error_str();
             }
             LOG_INFO() << "Waiting to join replication group...";
             if (t++ > config_.ha_node_join_group_s) {
@@ -149,7 +162,7 @@ bool lgraph::HaStateMachine::DoRequest(bool is_write, const LGraphRequest* req,
     if (req->Req_case() == LGraphRequest::kHaRequest) {
         return ApplyHaRequest(req, resp);
     } else {
-        if (is_write && !IsCurrentMaster()) return RespondRedirect(resp, master_rest_addr_);
+        if (is_write && !IsCurrentMaster()) return RespondRedirect(resp, master_rpc_addr_);
 #if LGRAPH_SHARE_DIR
         return ApplyRequestDirectly(req, resp);
 #else
@@ -199,13 +212,11 @@ void lgraph::HaStateMachine::on_configuration_committed(const ::braft::Configura
 
 void lgraph::HaStateMachine::on_stop_following(const ::braft::LeaderChangeContext& ctx) {
     LOG_INFO() << "Node stops following " << ctx;
-    std::lock_guard<std::mutex> l(hb_mutex_);
 }
 
 void lgraph::HaStateMachine::on_start_following(const ::braft::LeaderChangeContext& ctx) {
     LOG_INFO() << "Node joined the group as follower.";
     joined_group_ = true;
-    std::lock_guard<std::mutex> l(hb_mutex_);
 }
 
 bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,
@@ -313,6 +324,11 @@ void lgraph::HaStateMachine::on_apply(braft::Iterator& iter) {
     // A batch of tasks are committed, which must be processed through
     // |iter|
     for (; iter.valid(); iter.next()) {
+        if (config_.ha_is_witness) {
+            LOG_DEBUG() << "addr " << node_->node_id().to_string()
+                                    << " skip witness apply " << iter.index();
+            continue;
+        }
         braft::AsyncClosureGuard closure_guard(iter.done());
         const LGraphRequest* req;
         bool need_delete_req_resp = false;
@@ -342,6 +358,10 @@ void lgraph::HaStateMachine::on_apply(braft::Iterator& iter) {
         int64_t committed_index = galaxy_->GetRaftLogIndex();
         LOG_DEBUG() << "Trying to apply log " << iter.index() << ", term "
                                 << iter.term() << ", current_idx=" << committed_index;
+        if (iter.index() % 1000 == 0) {
+            LOG_WARN() << "Trying to apply log " << iter.index() << ", term "
+                                    << iter.term() << ", current_idx=" << committed_index;
+        }
 
         bool should_apply = (iter.index() > committed_index);
         if (should_apply) {
@@ -381,6 +401,7 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
                     it = heartbeat_states_.insert(it, std::make_pair(hbreq.rpc_addr(), state));
                 }
                 it->second.state = hbreq.state();
+                it->second.role = hbreq.role();
                 it->second.last_heartbeat = fma_common::GetTime();
                 if (it->second.rest_addr.empty()) it->second.rest_addr = hbreq.rest_addr();
                 return RespondSuccess(resp);
@@ -395,6 +416,7 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
                 master->set_rpc_addr(my_rpc_addr_);
                 master->set_rest_addr(my_rest_addr_);
                 master->set_state(NodeState::JOINED_MASTER);
+                master->set_role(config_.ha_is_witness ? NodeRole::WITNESS : NodeRole::REPLICA);
                 return RespondSuccess(resp);
             }
         case HARequest::kListPeersRequest:
@@ -409,11 +431,13 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
                 peer->set_state(NodeState::JOINED_MASTER);
                 peer->set_rpc_addr(my_rpc_addr_);
                 peer->set_rest_addr(my_rest_addr_);
+                peer->set_role(config_.ha_is_witness ? NodeRole::WITNESS : NodeRole::REPLICA);
                 for (auto& kv : heartbeat_states_) {
                     peer = peers->Add();
                     peer->set_state(kv.second.state);
                     peer->set_rpc_addr(kv.second.rpc_addr);
                     peer->set_rest_addr(kv.second.rest_addr);
+                    peer->set_role(kv.second.role);
                 }
                 return RespondSuccess(resp);
             }
@@ -472,9 +496,9 @@ void lgraph::HaStateMachine::ScanHeartbeatStatusLocked() {
     double kick_timeline = now - (double)config_.ha_node_offline_ms / 1000;
     double dismiss_timeline = now - (double)config_.ha_node_remove_ms / 1000;
 
-    if (master_rpc_addr_ != my_rpc_addr_) {
-        master_rest_addr_ = my_rest_addr_;
-        master_rpc_addr_ = my_rpc_addr_;
+    if (!master_rpc_addr_.empty()) {
+        master_rpc_addr_.clear();
+        master_rest_addr_.clear();
         // if there is recent peer change, we should synchronize peer list
         std::vector<braft::PeerId> peers;
         auto status = node_->list_peers(&peers);
@@ -488,15 +512,21 @@ void lgraph::HaStateMachine::ScanHeartbeatStatusLocked() {
             rpc_addrs.insert(str.c_str());
         }
         rpc_addrs.erase(my_rpc_addr_);
-        for (auto& p : rpc_addrs) {
+        for (auto& p : peers) {
             // make sure every follow is in the heartbeat list
-            auto it = heartbeat_states_.find(p);
+            auto str = std::string(butil::endpoint2str(p.addr).c_str());
+            auto it = heartbeat_states_.find(str);
             if (it == heartbeat_states_.end()) {
                 HeartbeatStatus state;
                 state.last_heartbeat = now;
                 state.state = NodeState::JOINED_FOLLOW;
-                state.rpc_addr = p;
-                heartbeat_states_.insert(it, std::make_pair(p, state));
+                if (p.is_witness()) {
+                    state.role = NodeRole::WITNESS;
+                } else {
+                    state.role = NodeRole::REPLICA;
+                }
+                state.rpc_addr = str;
+                heartbeat_states_.insert(it, std::make_pair(str, state));
             }
         }
         // make sure we don't track follow that has left
@@ -555,9 +585,10 @@ void lgraph::HaStateMachine::SendHeartbeatToMasterLocked() {
         rpc_stub_->HandleRequest(&controller, &req, &resp, nullptr);
         if (controller.Failed() || resp.error_code() != LGraphResponse::SUCCESS) {
             if (controller.Failed()) {
-                LOG_WARN() << "Error getting master addr: " << controller.ErrorText();
+                LOG_WARN() << "Connection failed, error getting master addr: "
+                           << controller.ErrorText();
             } else {
-                LOG_WARN() << "Error getting master addr: " << resp.error();
+                LOG_WARN() << "Rpc failed, error getting master addr: " << resp.error();
             }
             return;
         }
@@ -573,6 +604,11 @@ void lgraph::HaStateMachine::SendHeartbeatToMasterLocked() {
     hbreq->set_rpc_addr(my_rpc_addr_);
     hbreq->set_rest_addr(my_rest_addr_);
     hbreq->set_state(NodeState::JOINED_FOLLOW);
+    if (config_.ha_is_witness) {
+        hbreq->set_role(NodeRole::WITNESS);
+    } else {
+        hbreq->set_role(NodeRole::REPLICA);
+    }
     LGraphResponse resp;
     brpc::Controller controller;
     controller.set_timeout_ms(1000);
@@ -620,10 +656,12 @@ std::vector<lgraph::HaStateMachine::Peer> lgraph::HaStateMachine::ListPeers() co
     std::vector<Peer> ret;
     if (node_->is_leader()) {
         std::lock_guard<std::mutex> l(hb_mutex_);
-        ret.reserve(heartbeat_states_.size());
-        ret.emplace_back(my_rpc_addr_, my_rest_addr_, NodeState::JOINED_MASTER);
+        ret.reserve(heartbeat_states_.size() + 1);
+        ret.emplace_back(my_rpc_addr_, my_rest_addr_, NodeState::JOINED_MASTER,
+                         config_.ha_is_witness ? NodeRole::WITNESS : NodeRole::REPLICA);
         for (auto& p : heartbeat_states_) {
-            ret.emplace_back(p.second.rpc_addr, p.second.rest_addr, p.second.state);
+            ret.emplace_back(p.second.rpc_addr, p.second.rest_addr, p.second.state,
+                             p.second.role);
         }
         return ret;
     } else {
@@ -655,7 +693,7 @@ std::vector<lgraph::HaStateMachine::Peer> lgraph::HaStateMachine::ListPeers() co
         ret.clear();
         ret.reserve(peers.size());
         for (auto& p : peers) {
-            ret.emplace_back(p.rpc_addr(), p.rest_addr(), p.state());
+            ret.emplace_back(p.rpc_addr(), p.rest_addr(), p.state(), p.role());
         }
         return ret;
     }

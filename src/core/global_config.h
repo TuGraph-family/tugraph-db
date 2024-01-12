@@ -105,6 +105,9 @@ struct BasicConfigs {
     int ha_node_remove_ms = 600000;  // node will be removed from node list after 10 min
     int ha_node_join_group_s = 10;  // node will join group in 10 s
     int ha_bootstrap_role = 0;
+    bool ha_is_witness = false;    // node is witness or not
+    bool ha_enable_witness_to_leader = false;  // enable witness to leader or not
+
     // log
     int verbose;
     std::string log_dir;

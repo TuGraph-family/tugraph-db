@@ -66,6 +66,13 @@ set(TARGET_LGRAPH_PEEK lgraph_peek)
 add_executable(${TARGET_LGRAPH_PEEK} lgraph_peek.cpp)
 target_link_libraries(${TARGET_LGRAPH_PEEK} lgraph_server_lib)
 
+############### lgraph_peer ######################
+
+set(TARGET_LGRAPH_PEER lgraph_peer)
+
+add_executable(${TARGET_LGRAPH_PEER} lgraph_peer.cpp)
+target_link_libraries(${TARGET_LGRAPH_PEER} lgraph_server_lib)
+
 ############### lgraph_validate ######################
 
 set(TARGET_LGRAPH_VALIDATE lgraph_validate)
