@@ -18,6 +18,7 @@
 #include <string>
 #include "tools/lgraph_log.h"
 #include "gtest/gtest.h"
+#include "tools/json.hpp"
 
 extern int _ut_argc;    // left-over arguments after parsing gtest flags, set in main()
 extern char** _ut_argv;
@@ -98,3 +99,7 @@ class TuGraphTestWithParam : public testing::TestWithParam<T> {
         TuGraphTest::teardown();
     }
 };
+
+void build_so(const std::string& so_name, const std::string& so_path);
+
+bool HasElement(const nlohmann::json& val, const std::string& value, const std::string& field);

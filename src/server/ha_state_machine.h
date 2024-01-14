@@ -28,6 +28,8 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
         int ha_node_remove_ms = 1200 * 1000;  // node will be removed from peer list after 20 min
         int ha_bootstrap_role;
         int ha_node_join_group_s;
+        bool ha_is_witness;
+        bool ha_enable_witness_to_leader;
 
         Config() {}
         explicit Config(const GlobalConfig& c) : ::lgraph::StateMachine::Config(c) {
@@ -40,6 +42,8 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
             ha_node_remove_ms = c.ha_node_remove_ms;
             ha_bootstrap_role = c.ha_bootstrap_role;
             ha_node_join_group_s = c.ha_node_join_group_s;
+            ha_is_witness = c.ha_is_witness;
+            ha_enable_witness_to_leader = c.ha_enable_witness_to_leader;
         }
     };
 
@@ -58,6 +62,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
         std::string rpc_addr;
         std::string rest_addr;
         NodeState state;
+        NodeRole role;
         double last_heartbeat;
     };
 
@@ -92,12 +97,18 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
 
     std::string GetMasterRestAddr() override {
         std::lock_guard<std::mutex> l(hb_mutex_);
-        return master_rest_addr_;
+        if (node_->is_leader())
+            return my_rest_addr_;
+        else
+            return master_rest_addr_;
     }
 
     std::string GetMasterRpcAddr() override {
         std::lock_guard<std::mutex> l(hb_mutex_);
-        return master_rpc_addr_;
+        if (node_->is_leader())
+            return my_rpc_addr_;
+        else
+            return master_rpc_addr_;
     }
 
     bool IsCurrentMaster() override { return IsLeader(); }

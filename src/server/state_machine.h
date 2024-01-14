@@ -17,6 +17,8 @@
 //
 #pragma once
 
+#include <utility>
+
 #include "fma-common/rotating_files.h"
 
 // The 'U' macro can be used to create a string or character literal of the platform type, i.e.
@@ -50,7 +52,7 @@ class SynchronousClosure : public google::protobuf::Closure {
  public:
     ~SynchronousClosure() {}
 
-    void Run() {
+    void Run() override {
         {
             std::lock_guard<std::mutex> l(mutex_);
             done_ = true;
@@ -89,7 +91,7 @@ class StateMachine {
         uint16_t rpc_port = 0;
         bool optimistic_txn = false;
 
-        Config() {}
+        Config() = default;
         explicit Config(const GlobalConfig& c) {
             db_dir = c.db_dir;
             durable = c.durable;
@@ -101,14 +103,15 @@ class StateMachine {
 
     struct Peer {
         Peer() {}
-        Peer(const std::string& rpca, const std::string resta, NodeState ns)
-            : rpc_addr(rpca), rest_addr(resta), state(ns) {}
+        Peer(std::string rpca, std::string resta, NodeState ns, NodeRole role = NodeRole::REPLICA)
+            : rpc_addr(std::move(rpca)), rest_addr(std::move(resta)), state(ns), role(role) {}
 
         std::string rpc_addr;
         std::string rest_addr;
         NodeState state;
+        NodeRole role;
 
-        std::string StateString() const {
+        [[nodiscard]] std::string StateString() const {
             switch (state) {
             case NodeState::UNINITIALIZED:
                 return "UNINITIALIZED";
@@ -124,6 +127,16 @@ class StateMachine {
                 return "OFFLINE";
             default:
                 return "UNKNOWN";
+            }
+        }
+
+        [[nodiscard]] std::string RoleString() const {
+            switch (role) {
+            case WITNESS:
+                return "WITNESS";
+            case REPLICA:
+            default:
+                return "REPLICA";
             }
         }
     };
@@ -218,7 +231,7 @@ class StateMachine {
      *
      * @return  A std::vector&lt;Peer&gt;
      */
-    virtual std::vector<Peer> ListPeers() const { return std::vector<Peer>(); }
+    virtual std::vector<Peer> ListPeers() const { return {}; }
 
     // list current backup log files
     std::vector<std::string> ListBackupLogFiles();
