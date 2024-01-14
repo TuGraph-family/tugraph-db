@@ -170,14 +170,11 @@ class AuditLogger {
     }
 
     inline bool ParseAuditLog(std::string path, std::string& log_line, lgraph::LogMessage& msg) {
-        LOG_DEBUG() << "[AUDIT TEST]" << log_line;
-
         if (log_line == "") {
             LOG_DEBUG() << "Error parsing audit log from string " << path;
             return false;
         }
         lgraph_log::json log_msg = lgraph_log::json::parse(log_line);
-        LOG_DEBUG() << "[AUDIT TEST]" << log_msg.dump();
         msg.set_index(log_msg["index"]);
         msg.set_time(log_msg["time"]);
         msg.set_begin_end(log_msg["is_end_log"]);
@@ -333,22 +330,7 @@ class AuditLogger {
             index = idx;
         else
             index = ++index_;
-        // msg.set_index(index);
-        // msg.set_time(log_time);
-        // msg.set_begin_end(is_end_log);
-        // msg.set_success(success);
-        // msg.set_content(content);
-        // msg.set_read_write(read_write);
-        // if (!is_end_log) {
-        //     msg.set_user(user);
-        //     msg.set_graph(graph);
-        //     msg.set_type(type);
-        // }
-        // int len = static_cast<int>(msg.ByteSizeLong());
-        // file_.Write((char*)(&len), sizeof(len));
-        // file_.Write(msg.SerializeAsString().c_str(), len);
 
-        // write log message to json file
         lgraph_log::json log_msg;
         log_msg["index"] = index;
         log_msg["time"] = log_time;

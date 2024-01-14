@@ -45,6 +45,26 @@ typedef sinks::synchronous_sink< sinks::text_file_backend > file_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > stream_sink;
 typedef sinks::synchronous_sink< sinks::text_ostream_backend > ut_sink;
 
+// Define log macro
+#define LGRAPH_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
+  ::lgraph_log::severity_level::LEVEL) \
+  << ::lgraph_log::logging::add_value("Line", __LINE__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
+
+#define LOG_DEBUG() LGRAPH_LOG(DEBUG)
+#define LOG_INFO() LGRAPH_LOG(INFO)
+#define LOG_WARN() LGRAPH_LOG(WARNING)
+#define LOG_ERROR() LGRAPH_LOG(ERROR)
+
+#define LOG_FATAL() lgraph_log::FatalLogger(__FILE__, __LINE__)
+
+#define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
+  LEVEL) \
+  << ::lgraph_log::logging::add_value("Line", __LINE__) \
+  << ::lgraph_log::logging::add_value("File", __FILE__) \
+
+#define AUDIT_LOG() BOOST_LOG(::lgraph_log::audit_logger::get())
+
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_type_attr, "LogType", std::string)
 
 enum severity_level {
@@ -260,72 +280,30 @@ BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< sever
     return lg;
 };
 
-// Define log macro
-#define LGRAPH_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
-  ::lgraph_log::severity_level::LEVEL) \
-  << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define LOG_DEBUG() LGRAPH_LOG(DEBUG)
-#define LOG_INFO() LGRAPH_LOG(INFO)
-#define LOG_WARN() LGRAPH_LOG(WARNING)
-#define LOG_ERROR() LGRAPH_LOG(ERROR)
-
-class FatalLogger {
- public:
-    FatalLogger(std::string file, int line)
-        : file_(std::move(file)), line_(line) {}
-    ~FatalLogger() {
-      BOOST_LOG_SEV(debug_logger::get(), severity_level::FATAL)
-          << logging::add_value("Line", line_)
-          << logging::add_value("File", file_) << stream_.str();
-      LoggerManager::GetInstance().FlushAllSinks();
-      std::abort();
-    }
-    template <typename T>
-    FatalLogger& operator<<(const T& value) {
-      stream_ << value;
-      return *this;
-    }
-
- private:
-    std::ostringstream stream_;
-    std::string file_;
-    int line_;
-};
-#define LOG_FATAL() lgraph_log::FatalLogger(__FILE__, __LINE__)
-
-#define FMA_UT_LOG(LEVEL) BOOST_LOG_SEV(::lgraph_log::debug_logger::get(), \
-  LEVEL) \
-  << ::lgraph_log::logging::add_value("Line", __LINE__) \
-  << ::lgraph_log::logging::add_value("File", __FILE__) \
-
-#define AUDIT_LOG() BOOST_LOG(::lgraph_log::audit_logger::get())
-
 BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(audit_logger, src::logger_mt) {
   src::logger_mt lg;
   attrs::constant< std::string > audit_type("audit");
   lg.add_attribute("LogType", audit_type);
   return lg;
-}
+};
 
 class AuditLogger {
  private:
     std::string log_dir_;
-    int rotation_size_;
+    size_t rotation_size_ = 256*1024*1024;
     boost::shared_ptr< file_sink > audit_sink_;
     bool global_inited_ = false;
 
  public:
-    void Init(std::string log_dir = "logs/") {
+    void Init(std::string log_dir = "logs/", size_t rotation_size = 256*1024*1024) {
         // Set up log directory
         log_dir_ = log_dir;
         if (log_dir_.back() != '/') {
             log_dir_ += '/';
         }
-        rotation_size_ = 5 * 1024 * 1024;
+        rotation_size_ = rotation_size;
 
-        // Set up sink for debug log
+        // Set up sink for audit log
         audit_sink_ = boost::shared_ptr< file_sink > (new file_sink(
             keywords::file_name = log_dir_ + "%Y%m%d_%H%M%S",
             keywords::open_mode = std::ios_base::out | std::ios_base::app,
@@ -357,6 +335,29 @@ class AuditLogger {
         static AuditLogger instance;
         return instance;
     }
+};
+
+class FatalLogger {
+ public:
+    FatalLogger(std::string file, int line)
+        : file_(std::move(file)), line_(line) {}
+    ~FatalLogger() {
+      BOOST_LOG_SEV(debug_logger::get(), severity_level::FATAL)
+          << logging::add_value("Line", line_)
+          << logging::add_value("File", file_) << stream_.str();
+      LoggerManager::GetInstance().FlushAllSinks();
+      std::abort();
+    }
+    template <typename T>
+    FatalLogger& operator<<(const T& value) {
+      stream_ << value;
+      return *this;
+    }
+
+ private:
+    std::ostringstream stream_;
+    std::string file_;
+    int line_;
 };
 
 }  // namespace lgraph_log
