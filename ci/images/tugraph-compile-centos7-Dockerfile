@@ -72,6 +72,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25
 # - https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
 # Geometry extensions is the `include/boost/geometry/extensions` directory in the repository and commit id below.
 # - Commit 5fbd2a11027f658decda5e43af73935e98a84ee5 @ https://github.com/boostorg/geometry.git
+# we need to solve two naming conflits;
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
     && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
     && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
@@ -79,6 +80,9 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
     && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
     && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
     && cp -r /extensions /usr/local/include/boost/geometry/ \
+    && sed -i -e '/inline V evaluate_rational(const T(\&a)\[N\], const U(\&b)\[N\], const V& z) BOOST_MATH_NOEXCEPT(V)/{i\
+       template <std::size_t N, class T, class W, class V>
+       s/const U/class W/;x;d;};x;1!p;$!N;D' /usr/local/include/boost/math/tools/rational.hpp
     && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
 
 # install protobuf
