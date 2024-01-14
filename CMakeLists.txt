@@ -57,7 +57,7 @@ endif (BUILD_PROCEDURE)
 
 # unit_test
 add_subdirectory(test)
-set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog)
+set(LGRAPH_TOOLKITS lgraph_import lgraph_backup lgraph_warmup lgraph_peek lgraph_export lgraph_binlog lgraph_peer)
 add_dependencies(unit_test ${LGRAPH_TOOLKITS} lgraph_server)
 
 set_target_properties(unit_test PROPERTIES EXCLUDE_FROM_ALL TRUE)

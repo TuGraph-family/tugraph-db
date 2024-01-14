@@ -206,6 +206,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     ha_node_offline_ms = 600 * 1000;
     ha_node_remove_ms = 1200 * 1000;
     ha_node_join_group_s = 10;
+    ha_is_witness = false;
+    ha_enable_witness_to_leader = false;
 
     // bolt
     bolt_port = 0;
@@ -311,6 +313,10 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Node considered completly dead and removed from list after this duration.");
     argparser.Add(ha_node_join_group_s, "ha_node_join_group_s", true)
         .Comment("Node joined replicated group during this duration.");
+    argparser.Add(ha_is_witness, "ha_is_witness", true)
+        .Comment("Node is witness (donot have data & can not apply request) or not.");
+    argparser.Add(ha_enable_witness_to_leader, "ha_enable_witness_to_leader", true)
+        .Comment("Node is witness (donot have data & can not apply request) or not.");
     argparser.Add(bolt_port, "bolt_port", true)
         .Comment("Bolt protocol port.");
     argparser.Add(bolt_thread_num, "bolt_thread_num", true)

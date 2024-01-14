@@ -641,10 +641,16 @@ enum NodeState {
     OFFLINE = 6;
 };
 
+enum NodeRole {
+    REPLICA = 1;
+    WITNESS = 2;
+};
+
 message HeartbeatRequest {
     required string rpc_addr = 1;
     required string rest_addr = 2;
     required NodeState state = 3;
+    required NodeRole role = 4;
 };
 
 message HeartbeatResponse {
@@ -654,6 +660,7 @@ message PeerInfo {
     required string rpc_addr = 1;
     required string rest_addr = 2;
     required NodeState state = 3;
+    required NodeRole role = 4;
 };
 
 message ListPeersRequest {

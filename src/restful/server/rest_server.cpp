@@ -1089,7 +1089,7 @@ void RestServer::HandleGetInfo(const std::string& user, const http_request& requ
         else if (state_machine_->IsCurrentMaster())
             state = "MASTER";
         else
-            state = "SLAVE";
+            state = "FOLLOW";
         return RespondSuccess(request, ValueToJson(state));
     }
     if (paths[1] == RestStrings::PEERS) {

@@ -785,10 +785,18 @@ bool RpcClient::ImportDataFromFile(std::string &result, const std::string &conf_
 }
 
 void RpcClient::Logout() {
-    if (client_type != INDIRECT_HA_CONNECTION)
-        base_client->Logout();
+    auto logoutFun = [](const std::shared_ptr<RpcSingleClient>& c) {
+        try {
+            if (c) c->Logout();
+        } catch (std::exception &e) {
+            LOG_ERROR() << e.what();
+        }
+    };
+    if (client_type != INDIRECT_HA_CONNECTION) {
+        logoutFun(base_client);
+    }
     for (auto &c : client_pool) {
-        c->Logout();
+        logoutFun(c);
     }
 }
 
@@ -811,7 +819,12 @@ void RpcClient::RefreshClientPool() {
         std::string result;
         base_client->CallCypher(result, "CALL dbms.ha.clusterInfo()", "default", true, 10);
         nlohmann::json cluster_info = nlohmann::json::parse(result.c_str());
+        if (cluster_info == nullptr || cluster_info[0]["cluster_info"] == nullptr)
+            return;
         for (auto &node : cluster_info[0]["cluster_info"]) {
+            if (node["ha_role"] == "WITNESS") {
+                continue;
+            }
             auto c = std::make_shared<RpcSingleClient>(node["rpc_address"], user, password);
             if (node["state"] == "MASTER") {
                 leader_client = c;
@@ -908,8 +921,10 @@ void RpcClient::RefreshConnection() {
 }
 
 void RpcClient::LoadBalanceClientPool() {
-    client_pool.push_back(client_pool.front());
-    client_pool.pop_front();
+    if (!client_pool.empty()) {
+        client_pool.push_back(client_pool.front());
+        client_pool.pop_front();
+    }
 }
 
 int64_t RpcClient::Restore(const std::vector<BackupLogEntry>& requests) {

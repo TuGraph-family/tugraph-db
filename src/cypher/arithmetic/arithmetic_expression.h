@@ -285,7 +285,14 @@ struct BuiltinFunction {
     static cypher::FieldData DateTimeComponent(RTContext *ctx, const Record &record,
                                                const std::vector<ArithExprNode> &args);
 
-        /* spatial functions */
+    /* String functions - string types */
+    static cypher::FieldData SubString(RTContext *ctx, const Record &record,
+                                                 const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Concat(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args);
+
+    /* spatial functions */
     /**
      * create point type data by point(x, y, srid) (srid is 4326 in default);
      * or point(EWKB); 
@@ -513,6 +520,8 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("datecomponent", BuiltinFunction::DateComponent);
         ae_registered_funcs.emplace("datetime", BuiltinFunction::DateTime);
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
+        ae_registered_funcs.emplace("substring", BuiltinFunction::SubString);
+        ae_registered_funcs.emplace("concat", BuiltinFunction::Concat);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
         /* spatial functions */
