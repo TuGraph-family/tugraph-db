@@ -29,16 +29,25 @@ namespace lgraph {
 class LightningGraph;
 
 class CppPluginManagerImpl : public PluginManagerImplBase {
+ private:
+    struct DynamicLibinfo {
+        lgraph::dll::LibHandle lib_handle;
+        lgraph_api::Process* func = nullptr;
+        lgraph_api::ProcessInTxn* func_txn = nullptr;
+        lgraph_api::GetSignature* get_sig_spec = nullptr;
+    };
+
+    void OpenDynamicLib(const PluginInfoBase* pinfo, DynamicLibinfo &dinfo);
+    void CloseDynamicLib(DynamicLibinfo &dinfo);
+
  protected:
     typedef lgraph_api::Process PluginFunc;
     typedef lgraph_api::ProcessInTxn PluginFuncInTxn;
     typedef lgraph_api::GetSignature SignatureGetter;
 
     struct PluginInfo : public PluginInfoBase {
-        lgraph::dll::LibHandle lib_handle;
-        PluginFunc* func = nullptr;
-        PluginFuncInTxn* func_txn = nullptr;
-        SignatureGetter* get_sig_spec = nullptr;
+        std::string path;
+        bool has_func = true;
     };
 
     LightningGraph* db_;

@@ -90,6 +90,10 @@ void build_so() {
                  "../../test/test_procedures/add_label_v.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
+    cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./bfs.so",
+                 "../../test/test_procedures/bfs.cpp", LIBLGRAPH);
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
 }
 
 void read_code(const std::string& code_path, std::string& code) {
@@ -211,6 +215,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
     std::string code_zip = "";
     std::string code_scan_graph = "";
     std::string code_add_label = "";
+    std::string code_bfs = "";
     {
         // read file to string
         std::string code_so_path = "./sortstr.so";
@@ -224,12 +229,14 @@ TEST_F(TestCppPlugin, CppPlugin) {
 #endif
         std::string code_scan_graph_path = "./scan_graph.so";
         std::string code_add_label_path = "./add_label.so";
+        std::string code_bfs_path = "./bfs.so";
         build_so();
         read_code(code_so_path, code_so);
         read_code(code_cpp_path, code_cpp);
         read_code(code_zip_path, code_zip);
         read_code(code_scan_graph_path, code_scan_graph);
         read_code(code_add_label_path, code_add_label);
+        read_code(code_bfs_path, code_bfs);
         UT_EXPECT_NE(code_so, "");
         UT_EXPECT_NE(code_cpp, "");
         UT_EXPECT_NE(code_zip, "");
@@ -444,6 +451,24 @@ TEST_F(TestCppPlugin, CppPlugin) {
             UT_EXPECT_ANY_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "testa",
                                                       "#include <stdlib.h>", (plugin::CodeType)6,
                                                       "test", true, "v1"));
+        }
+
+        {
+            UT_LOG() << "Testing load many plugins";
+            for (int i = 0; i < 32; i++) {
+                UT_LOG() << "try load bfs_" << i;
+                try {
+                    pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "bfs_" + std::to_string(i),
+                                                     code_bfs, plugin::CodeType::SO,
+                                                     "bfs v1", true, "v1");
+                    fma_common::SleepS(1);
+                } catch (std::exception &e) {
+                    UT_LOG() << "exception: " << e.what();
+                    UT_EXPECT_TRUE(0);
+                }
+
+            }
+            pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         }
     }
 #endif
