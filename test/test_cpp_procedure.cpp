@@ -458,15 +458,15 @@ TEST_F(TestCppPlugin, CppPlugin) {
             for (int i = 0; i < 32; i++) {
                 UT_LOG() << "try load bfs_" << i;
                 try {
-                    pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "bfs_" + std::to_string(i),
-                                                     code_bfs, plugin::CodeType::SO,
-                                                     "bfs v1", true, "v1");
+                    pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                          "bfs_" + std::to_string(i),
+                                          code_bfs, plugin::CodeType::SO,
+                                          "bfs v1", true, "v1");
                     fma_common::SleepS(1);
                 } catch (std::exception &e) {
                     UT_LOG() << "exception: " << e.what();
                     UT_EXPECT_TRUE(0);
                 }
-
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         }
