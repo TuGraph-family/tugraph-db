@@ -14,7 +14,7 @@
 
 #include <stdlib.h>
 #include "lgraph/lgraph.h"
-#include "tools/lgraph_log.h" //add log dependency
+#include "tools/lgraph_log.h"  // add log dependency
 using namespace lgraph_api;
 
 void LogExample() {

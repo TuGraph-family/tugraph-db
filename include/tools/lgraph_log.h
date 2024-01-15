@@ -69,7 +69,7 @@ typedef sinks::synchronous_sink< sinks::text_ostream_backend > ut_sink;
 // debug type for general log
 // audit type for audit log
 #define DEBUG_TYPE "debug"
-#define AUDIT_TYPE "audit" 
+#define AUDIT_TYPE "audit"
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_type_attr, "LogType", std::string)
 
 enum severity_level {
