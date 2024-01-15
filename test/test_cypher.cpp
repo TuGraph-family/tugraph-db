@@ -470,6 +470,10 @@ int test_function(cypher::RTContext *ctx) {
         {"RETURN coalesce(2021, null)", 1},
         {"RETURN coalesce(null, null)", 1},
         {"MATCH (n) RETURN coalesce(n.birthyear, n.name)", 21},
+        {"RETURN LENGTH('abc1234')", 1},
+        {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
+        {"RETURN CONCAT('abc', '12', '34')", 1},
+        {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1}
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -486,6 +490,10 @@ int test_function(cypher::RTContext *ctx) {
     UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN toboolean('haha')"));
     UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN tofloat('haha')"));
     UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN tointeger('haha')"));
+    UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN SUBSTRING('1234567', -1, 4)"));
+    UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN SUBSTRING('1234567', 10, 4)"));
+    UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN SUBSTRING('1234567', 4, 10)"));
+    UT_EXPECT_ANY_THROW(eval_script(ctx, "RETURN CONCAT('abc', 12, 1.0)"));
     return 0;
 }
 
@@ -803,9 +811,6 @@ int test_expression(cypher::RTContext *ctx) {
          "t1>t2,t1<t2",
          1},
         {"WITH true AS bt, false AS bf RETURN bt = false, bf = false, bt <> bf", 1},
-        {"RETURN LENGTH('abc1234')", 1},
-        {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
-        {"RETURN CONCAT('abc', '12', '34')", 1},
         {"RETURN bin('MjAyMAo=') > bin('MjAxOQo=')", 1},
         {"RETURN bin('MjAyMAo=') < bin('MjAxOQo=')", 1},
         {"RETURN bin('MjAyMAo=') = bin('MjAyMAo=')", 1},
