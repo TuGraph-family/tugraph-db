@@ -65,6 +65,11 @@ typedef sinks::synchronous_sink< sinks::text_ostream_backend > ut_sink;
 
 #define AUDIT_LOG() BOOST_LOG(::lgraph_log::audit_logger::get())
 
+// LogType includes the following type: debug, audit
+// debug type for general log
+// audit type for audit log
+#define DEBUG_TYPE "debug"
+#define AUDIT_TYPE "audit" 
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_type_attr, "LogType", std::string)
 
 enum severity_level {
@@ -153,7 +158,7 @@ class LoggerManager {
                 keywords::auto_flush = true,
                 keywords::rotation_size = rotation_size_));
             file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-                log_type_attr == "debug");
+                log_type_attr == DEBUG_TYPE);
             file_sink_->set_formatter(&formatter);
 
             logging::core::get()->add_sink(file_sink_);
@@ -169,7 +174,7 @@ class LoggerManager {
             }
             stream_sink_->locked_backend()->auto_flush(true);
             stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-                log_type_attr == "debug");
+                log_type_attr == DEBUG_TYPE);
             stream_sink_->set_formatter(&formatter);
 
             logging::core::get()->add_sink(stream_sink_);
@@ -193,10 +198,10 @@ class LoggerManager {
       level_ = level;
       if (!log_dir_.empty()) {
             file_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-                log_type_attr == "debug");
+                log_type_attr == DEBUG_TYPE);
       } else {
         stream_sink_->set_filter(expr::attr< severity_level >("Severity") >= level_ &&
-                log_type_attr == "debug");
+                log_type_attr == DEBUG_TYPE);
       }
     }
 
@@ -265,7 +270,7 @@ class LoggerManager {
 
 BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< severity_level >) {
     src::severity_logger_mt< severity_level > lg;
-    attrs::constant< std::string > debug_type("debug");
+    attrs::constant< std::string > debug_type(DEBUG_TYPE);
     lg.add_attribute("LogType", debug_type);
 
     // Init empty console log first if not inited
@@ -282,7 +287,7 @@ BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(debug_logger, src::severity_logger_mt< sever
 
 BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(audit_logger, src::logger_mt) {
   src::logger_mt lg;
-  attrs::constant< std::string > audit_type("audit");
+  attrs::constant< std::string > audit_type(AUDIT_TYPE);
   lg.add_attribute("LogType", audit_type);
   return lg;
 };
@@ -313,7 +318,7 @@ class AuditLogger {
         audit_sink_->locked_backend()->set_file_collector(sinks::file::make_collector(
             keywords::target = log_dir_));
         audit_sink_->locked_backend()->scan_for_files();
-        audit_sink_->set_filter(log_type_attr == "audit");
+        audit_sink_->set_filter(log_type_attr == AUDIT_TYPE);
 
         // Add sinks to log core
         logging::core::get()->add_sink(audit_sink_);
