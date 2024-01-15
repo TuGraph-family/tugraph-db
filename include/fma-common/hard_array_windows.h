@@ -60,7 +60,7 @@ class HardArray {
         : filename_(filename), read_only_(read_only) {
         int64_t file_size = FileSize(filename);
         if (size == 0 && file_size < 0) {
-            FMA_LOG() << "error opening file " << filename << " for read";
+            LOG_INFO() << "error opening file " << filename << " for read";
             FMA_ASSERT(false);
         }
         size_t s = (size == 0) ? file_size : size;

@@ -22,7 +22,7 @@
 #include <cstring>
 #include <memory>
 
-#include "fma-common/logger.h"
+#include "fma-common/assert.h"
 #include "fma-common/type_traits.h"
 
 namespace fma_common {
@@ -166,7 +166,7 @@ class BinaryBuffer {
     void DetachBuf(void** buf, size_t* size) {
         *size = GetSize();
         if (const_buf_) {
-            FMA_WARN() << "Detaching a constant stream buffer will result in a memory copy";
+            LOG_WARN() << "Detaching a constant stream buffer will result in a memory copy";
             void* new_buf = malloc(GetSize() + sizeof(void*));
             *buf = new_buf;
             *(void**)(new_buf) = new_buf;
@@ -336,7 +336,7 @@ class BinaryBuffer {
         }
         if (gpos_ < size) {
             // this should rarely happen, since we already have 64 bytes reserved
-            FMA_WARN() << "reallocating due to write_head, possible performance loss. "
+            LOG_WARN() << "reallocating due to write_head, possible performance loss. "
                        << "gpos_=" << gpos_ << ", size=" << size;
             size_t new_size = std::max(size + ppos_, ppos_ + RESERVED_HEADER_SPACE);
             char* new_buf = (char*)malloc(new_size);

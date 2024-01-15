@@ -17,10 +17,6 @@
 #include <exception>
 #include <fstream>
 
-#include "fma-common/file_system.h"
-#include "fma-common/logger.h"
-#include "fma-common/text_parser.h"
-
 #ifdef _WIN32
 #elif __APPLE__  // #ifdef _WIN32  #elif __APPLE__
 #include <sys/types.h>
@@ -44,10 +40,13 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
-#include <syslog.h>
 #include <string.h>
 #include <signal.h>
 #endif  // #ifdef _WIN32  #elif __APPLE__
+
+#include "tools/lgraph_log.h"
+#include "fma-common/file_system.h"
+#include "fma-common/text_parser.h"
 
 namespace lgraph {
 class Service {
@@ -131,38 +130,38 @@ class Service {
 #ifdef _WIN32
         return Run();
 #else
-        FMA_LOG() << "Starting " << service_name_ << "...";
+        LOG_INFO() << "Starting " << service_name_ << "...";
         // check service availability
         int oldpid = GetServicePid();
         // failed to access the pid file, probably access right problem
         if (oldpid == ACCESS_FAILED) {
-            FMA_WARN() << "Failed to open pid file. Make sure you are running as root.";
+            LOG_WARN() << "Failed to open pid file. Make sure you are running as root.";
             return ACCESS_FAILED;
         }
         // service already exist
         if (oldpid != NO_PID_FILE && ProcessRunning(oldpid)) {
-            FMA_WARN() << "Service " << service_name_ << " already exists at pid " << oldpid
+            LOG_WARN() << "Service " << service_name_ << " already exists at pid " << oldpid
                        << ". You can stop it and start again.";
             return ALREADY_STARTED;
         }
         // try and set pid file to check if we have correct access right
         if (SetServicePid(-1) != 0) {
-            FMA_WARN() << "Failed to write pid file. Make sure you are running as root. ";
+            LOG_WARN() << "Failed to write pid file. Make sure you are running as root. ";
             return ACCESS_FAILED;
         }
         std::string wdir = fma_common::FileSystem::GetWorkingDirectory();
         // fork child process
         int pid = fork();
         if (pid == -1) {
-            FMA_WARN() << "Failed to create child process: " << strerror(errno);
+            LOG_WARN() << "Failed to create child process: " << strerror(errno);
             return OTHER_ERROR;
         }
         if (pid > 0) {
             // this is parent
-            FMA_LOG() << "The service process is started at pid " << pid << ".";
+            LOG_INFO() << "The service process is started at pid " << pid << ".";
             // write pid to the pid file
             if (SetServicePid(pid) != 0) {
-                FMA_WARN() << "Failed to write pid file. Make sure you are running as root. ";
+                LOG_WARN() << "Failed to write pid file. Make sure you are running as root. ";
                 return ACCESS_FAILED;
             }
             return 0;
@@ -170,11 +169,11 @@ class Service {
             umask(0);
             int sid = setsid();
             if (sid < 0) {
-                FMA_WARN() << "Failed to create session id: " << strerror(errno);
+                LOG_WARN() << "Failed to create session id: " << strerror(errno);
                 return OTHER_ERROR;
             }
             if ((chdir(wdir.c_str())) < 0) {
-                FMA_WARN() << "Failed to chdir: " << strerror(errno);
+                LOG_WARN() << "Failed to chdir: " << strerror(errno);
                 return OTHER_ERROR;
             }
             int fd = open("/dev/null", O_RDWR);
@@ -204,26 +203,26 @@ class Service {
 #ifdef _WIN32
         return 0;
 #else
-        FMA_LOG() << "Stopping " << service_name_ << "...";
+        LOG_INFO() << "Stopping " << service_name_ << "...";
         int pid = GetServicePid();
         if (pid == ACCESS_FAILED) {
-            FMA_WARN() << "Failed to read pid file. Make sure you are running as root.";
+            LOG_WARN() << "Failed to read pid file. Make sure you are running as root.";
             return ACCESS_FAILED;
         }
         if (pid == NO_PID_FILE || !ProcessRunning(pid)) {
-            FMA_WARN() << "Service " << service_name_ << " is already dead.";
+            LOG_WARN() << "Service " << service_name_ << " is already dead.";
             return NO_PID_FILE;
         }
         // int r = kill(pid, SIGINT);
         int r = kill(pid, SIGQUIT);
         if (r == EPERM) {
-            FMA_WARN() << "Failed to kill service " << service_name_ << ": " << strerror(errno);
+            LOG_WARN() << "Failed to kill service " << service_name_ << ": " << strerror(errno);
             return OTHER_ERROR;
         }
-        FMA_LOG() << "Process stopped.";
+        LOG_INFO() << "Process stopped.";
         waitpid(pid, 0, 0);
         if (RemoveServicePidFile() != 0) {
-            FMA_WARN() << "Failed to read pid file. Make sure you are running as root.";
+            LOG_WARN() << "Failed to read pid file. Make sure you are running as root.";
             return ACCESS_FAILED;
         }
         return 0;
@@ -233,7 +232,7 @@ class Service {
     int Restart() {
         int r = Stop();
         if (r != 0 && r != NO_PID_FILE) {
-            FMA_WARN() << "Failed to stop existing service.";
+            LOG_WARN() << "Failed to stop existing service.";
             return r;
         }
         return Start();

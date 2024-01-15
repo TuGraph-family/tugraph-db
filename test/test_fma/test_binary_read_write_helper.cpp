@@ -15,7 +15,6 @@
 #include "fma-common/binary_read_write_helper.h"
 #include "fma-common/fma_stream.h"
 #include "fma-common/local_file_stream.h"
-#include "fma-common/logging.h"
 #include "fma-common/snappy_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
@@ -98,18 +97,18 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     FMA_UT_CHECK_EQ(a, 'a');
     SomePod p2;
     BinaryRead(infile, p2);
-    CHECK(p2 == p);
+    FMA_UT_ASSERT(p2 == p);
     std::vector<int> v2;
     BinaryRead(infile, v2);
     FMA_UT_CHECK_EQ(v2.size(), v.size());
     for (size_t i = 0; i < v2.size(); i++) {
-        CHECK(v[i] == v2[i]);
+        FMA_UT_ASSERT(v[i] == v2[i]);
     }
     std::map<int, std::vector<int>> m2;
     BinaryRead(infile, m2);
     FMA_UT_CHECK_EQ(m2.size(), m.size());
     for (auto &kv : m2) {
-        CHECK(m[kv.first].size() == v.size());
+        FMA_UT_ASSERT(m[kv.first].size() == v.size());
     }
     int sum = 0;
     for (const auto &kv : m) {

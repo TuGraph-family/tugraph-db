@@ -17,7 +17,7 @@
 #include <memory>
 #include <mutex>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/rw_lock.h"
 
 #include "core/blob_manager.h"
@@ -58,13 +58,13 @@ class LightningGraph {
     GCRefCountedPtr<SchemaInfo> schema_;
     KillableRWLock meta_lock_;  // lock to hold when doing meta update, especially when AlterLabel
 
-    fma_common::Logger& logger_ = fma_common::Logger::Get("LightningGraph");
-
     static thread_local bool in_transaction_;
     static inline bool& InTransaction() { return in_transaction_; }
 
     DISABLE_COPY(LightningGraph);
     DISABLE_MOVE(LightningGraph);
+
+    std::string db_secret;
 
  public:
     explicit LightningGraph(const DBConfig& conf);
@@ -291,6 +291,12 @@ class LightningGraph {
     // Check DB secret ID, used in galaxy to prevent copying LightningGraph dirs
     // Returns true if check success, otherwise false
     bool CheckDbSecret(const std::string& expected);
+
+    // Flush db secret in online full importing
+    void FlushDbSecret(const std::string& secret);
+
+    // Get db secret
+    std::string GetSecret();
 
     KillableRWLock& GetReloadLock() { return meta_lock_; }
 

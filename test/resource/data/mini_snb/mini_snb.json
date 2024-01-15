@@ -1,0 +1,529 @@
+{
+    "schema": [
+    {
+        "label" : "Comment",
+            "type" : "VERTEX",
+            "properties" : [
+            { "name" : "id", "type":"INT64"},
+            { "name" : "creationDate", "type":"INT64"},
+            { "name" : "locationIP", "type":"STRING"},
+            { "name" : "browserUsed", "type":"STRING"},
+            { "name" : "content", "type":"STRING"},
+            { "name" : "length", "type":"INT32"},
+            { "name" : "creator", "type":"INT64"},
+            { "name" : "place", "type":"INT64"},
+            { "name" : "replyOfPost", "type":"INT64", "optional":true},
+            { "name" : "replyOfComment", "type":"INT64", "optional":true}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Forum",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "title", "type":"STRING"},
+        { "name" : "creationDate", "type":"INT64"},
+        { "name" : "moderator", "type":"INT64"}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Organisation",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "type", "type":"STRING"},
+        { "name" : "name", "type":"STRING"},
+        { "name" : "url", "type":"STRING"},
+        { "name" : "place", "type":"INT64"}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Person",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "firstName", "type":"STRING"},
+        { "name" : "lastName", "type":"STRING"},
+        { "name" : "gender", "type":"STRING"},
+        { "name" : "birthday", "type":"INT64"},
+        { "name" : "creationDate", "type":"INT64"},
+        { "name" : "locationIP", "type":"STRING"},
+        { "name" : "browserUsed", "type":"STRING"},
+        { "name" : "place", "type":"INT64"},
+        { "name" : "speaks", "type":"STRING"},
+        { "name" : "email", "type":"STRING"}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Place",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "name", "type":"STRING"},
+        { "name" : "url", "type":"STRING"},
+        { "name" : "type", "type":"STRING"},
+        { "name" : "isPartOf", "type":"INT64", "optional":true}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Post",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "imageFile", "type":"STRING", "optional":true},
+        { "name" : "creationDate", "type":"INT64"},
+        { "name" : "locationIP", "type":"STRING"},
+        { "name" : "browserUsed", "type":"STRING"},
+        { "name" : "language", "type":"STRING", "optional":true},
+        { "name" : "content", "type":"STRING", "optional":true},
+        { "name" : "length", "type":"INT32"},
+        { "name" : "creator", "type":"INT64"},
+        { "name" : "container", "type":"INT64"},
+        { "name" : "place", "type":"INT64"}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Tag",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "name", "type":"STRING"},
+        { "name" : "url", "type":"STRING"},
+        { "name" : "hasType", "type":"INT64"}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "Tagclass",
+        "type" : "VERTEX",
+        "properties" : [
+        { "name" : "id", "type":"INT64"},
+        { "name" : "name", "type":"STRING"},
+        { "name" : "url", "type":"STRING"},
+        { "name" : "isSubclassOf", "type":"INT64", "optional":true}
+        ],
+            "primary" : "id"
+    },
+    {
+        "label" : "commentHasCreator",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"}
+        ],
+            "constraints" : [["Comment", "Person"]]
+    },
+    {
+        "label" : "commentHasTag",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Comment", "Tag"]]
+    },
+    {
+        "label" : "commentIsLocatedIn",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"}
+        ],
+            "constraints" : [["Comment", "Place"]]
+    },
+    {
+        "label" : "replyOf",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"}
+        ],
+            "constraints" : [["Comment", "Comment"], ["Comment", "Post"]]
+    },
+    {
+        "label" : "containerOf",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Forum", "Post"]]
+    },
+    {
+        "label" : "hasMember",
+        "type" : "EDGE",
+        "temporal" : "joinDate",
+        "properties" : [
+        { "name" : "joinDate", "type":"INT64"},
+        { "name" : "numPosts", "type":"INT32"},
+        { "name" : "forumId", "type":"INT64"}
+        ],
+            "constraints" : [["Forum", "Person"]]
+    },
+    {
+        "label" : "hasModerator",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Forum", "Person"]]
+    },
+    {
+        "label" : "forumHasTag",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Forum", "Tag"]]
+    },
+    {
+        "label" : "organisationIsLocatedIn",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Organisation", "Place"]]
+    },
+    {
+        "label" : "hasInterest",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Person", "Tag"]]
+    },
+    {
+        "label" : "personIsLocatedIn",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Person", "Place"]]
+    },
+    {
+        "label" : "knows",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"},
+        { "name" : "weight", "type":"DOUBLE"}
+        ],
+            "constraints" : [["Person", "Person"]]
+    },
+    {
+        "label" : "likes",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"}
+        ],
+            "constraints" : [["Person", "Comment"], ["Person", "Post"]]
+    },
+    {
+        "label" : "studyAt",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "classYear", "type":"INT32"}
+        ],
+            "constraints" : [["Person", "Organisation"]]
+    },
+    {
+        "label" : "workAt",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "workFrom", "type":"INT32", "optional":true}
+        ],
+            "constraints" : [["Person", "Organisation"]]
+    },
+    {
+        "label" : "isPartOf",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Place", "Place"]]
+    },
+    {
+        "label" : "postHasCreator",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"}
+        ],
+            "constraints" : [["Post", "Person"]]
+    },
+    {
+        "label" : "postHasTag",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Post", "Tag"]]
+    },
+    {
+        "label" : "postIsLocatedIn",
+        "type" : "EDGE",
+        "properties" : [
+        { "name" : "creationDate", "type":"INT64"}
+        ],
+            "constraints" : [["Post", "Place"]]
+    },
+    {
+        "label" : "hasType",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Tag", "Tagclass"]]
+    },
+    {
+        "label" : "isSubclassOf",
+        "type" : "EDGE",
+        "properties" : [],
+        "constraints" : [["Tagclass", "Tagclass"]]
+    }
+    ],
+        "files" : [
+        {
+            "path" : "../../test/resource/data/mini_snb/comment.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Comment",
+            "columns" : ["id","creationDate","locationIP","browserUsed","content","length","creator","place","replyOfPost","replyOfComment"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/forum.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Forum",
+            "columns" : ["id","title","creationDate","moderator"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/organisation.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Organisation",
+            "columns" : ["id","type","name","url","place"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Person",
+            "columns" : ["id","firstName","lastName","gender","birthday","creationDate","locationIP","browserUsed","place","speaks","email"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/place.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Place",
+            "columns" : ["id","name","url","type","isPartOf"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/post.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Post",
+            "columns" : ["id","imageFile","creationDate","locationIP","browserUsed","language","content","length","creator","container","place"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/tag.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Tag",
+            "columns" : ["id","name","url","hasType"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/tagclass.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "Tagclass",
+            "columns" : ["id","name","url","isSubclassOf"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/comment_hasCreator_person.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "commentHasCreator",
+            "SRC_ID" : "Comment",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","creationDate","SKIP","SKIP","SKIP","SKIP","DST_ID","SKIP","SKIP","SKIP"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/comment_hasTag_tag.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "commentHasTag",
+            "SRC_ID" : "Comment",
+            "DST_ID" : "Tag",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/comment_isLocatedIn_place.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "commentIsLocatedIn",
+            "SRC_ID" : "Comment",
+            "DST_ID" : "Place",
+            "columns" : ["SRC_ID","creationDate","SKIP","SKIP","SKIP","SKIP","SKIP","DST_ID","SKIP","SKIP"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/comment_replyOf_comment.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "replyOf",
+            "SRC_ID" : "Comment",
+            "DST_ID" : "Comment",
+            "columns" : ["SRC_ID","DST_ID","creationDate"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/comment_replyOf_post.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "replyOf",
+            "SRC_ID" : "Comment",
+            "DST_ID" : "Post",
+            "columns" : ["SRC_ID","DST_ID","creationDate"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/forum_containerOf_post.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "containerOf",
+            "SRC_ID" : "Forum",
+            "DST_ID" : "Post",
+            "columns" : ["DST_ID","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","SRC_ID","SKIP"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/forum_hasMember_person.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "hasMember",
+            "SRC_ID" : "Forum",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","DST_ID","joinDate","numPosts","forumId"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/forum_hasModerator_person.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "hasModerator",
+            "SRC_ID" : "Forum",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","SKIP","SKIP","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/forum_hasTag_tag.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "forumHasTag",
+            "SRC_ID" : "Forum",
+            "DST_ID" : "Tag",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/organisation_isLocatedIn_place.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "organisationIsLocatedIn",
+            "SRC_ID" : "Organisation",
+            "DST_ID" : "Place",
+            "columns" : ["SRC_ID","SKIP","SKIP","SKIP","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_hasInterest_tag.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "hasInterest",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Tag",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_isLocatedIn_place.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "personIsLocatedIn",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Place",
+            "columns" : ["SRC_ID","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","DST_ID","SKIP","SKIP"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_knows_person.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "knows",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","DST_ID","creationDate","weight"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_likes_comment.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "likes",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Comment",
+            "columns" : ["SRC_ID","DST_ID","creationDate"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_likes_post.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "likes",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Post",
+            "columns" : ["SRC_ID","DST_ID","creationDate"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_studyAt_organisation.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "studyAt",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Organisation",
+            "columns" : ["SRC_ID","DST_ID","classYear"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/person_workAt_organisation.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "workAt",
+            "SRC_ID" : "Person",
+            "DST_ID" : "Organisation",
+            "columns" : ["SRC_ID","DST_ID","workFrom"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/place_isPartOf_place.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "isPartOf",
+            "SRC_ID" : "Place",
+            "DST_ID" : "Place",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/post_hasCreator_person.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "postHasCreator",
+            "SRC_ID" : "Post",
+            "DST_ID" : "Person",
+            "columns" : ["SRC_ID","SKIP","creationDate","SKIP","SKIP","SKIP","SKIP","SKIP","DST_ID","SKIP","SKIP"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/post_hasTag_tag.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "postHasTag",
+            "SRC_ID" : "Post",
+            "DST_ID" : "Tag",
+            "columns" : ["SRC_ID","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/post_isLocatedIn_place.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "postIsLocatedIn",
+            "SRC_ID" : "Post",
+            "DST_ID" : "Place",
+            "columns" : ["SRC_ID","SKIP","creationDate","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","SKIP","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/tag_hasType_tagclass.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "hasType",
+            "SRC_ID" : "Tag",
+            "DST_ID" : "Tagclass",
+            "columns" : ["SRC_ID","SKIP","SKIP","DST_ID"]
+        },
+        {
+            "path" : "../../test/resource/data/mini_snb/tagclass_isSubclassOf_tagclass.csv",
+            "header" : 0,
+            "format" : "CSV",
+            "label" : "isSubclassOf",
+            "SRC_ID" : "Tagclass",
+            "DST_ID" : "Tagclass",
+            "columns" : ["SRC_ID","DST_ID"]
+        }
+    ]
+}

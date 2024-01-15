@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "fma-common/utils.h"
 
 #include "gtest/gtest.h"
@@ -68,7 +67,6 @@ int TestEdgeIndexImpl() {
             }
         }
         auto tit = idx.GetUnmanagedIterator(*txn, Value::ConstRef(2), Value::ConstRef(2));
-        while (tit.GetSrcVid() != 80) tit.Next();
         UT_EXPECT_TRUE(tit.IsValid());
         // delete some euids
         for (int64_t i = 88; i >= 80; i -= 2) {
@@ -440,10 +438,11 @@ int TestEdgeIndexValue() {
         // test EdgeIndexValue
         EdgeIndexValue eiv;
         for (size_t i = 1; i <= 100; ++i) {
-            eiv.InsertEUid(i, i + 1, 1, i, i);
+            eiv.InsertEUid(EdgeUid(i, i + 1, 1, i, i));
             UT_EXPECT_EQ(eiv.GetEUidCount(), i);
             bool found = false;
-            eiv.SearchEUid(i, i + 1, 1, i, i, found);
+            eiv.SearchEUid(EdgeUid(i, i + 1, 1, i, i), found);
+
             UT_EXPECT_TRUE(found);
         }
         UT_EXPECT_TRUE(eiv.TooLarge());
@@ -473,18 +472,17 @@ int TestEdgeIndexValue() {
         UT_EXPECT_EQ(eiv.GetEUidCount(), 50);
 
         for (size_t i = 1; i < 50; ++i) {
-            uint8_t ret = eiv.DeleteEUidIfExist(i, i + 1, 1, i, i);
+            uint8_t ret = eiv.DeleteEUidIfExist(EdgeUid(i, i + 1, 1, i, i));
             UT_EXPECT_EQ(ret, 1);
         }
-        UT_EXPECT_EQ(eiv.DeleteEUidIfExist(50, 51, 1, 50, 50), 2);
+        UT_EXPECT_EQ(eiv.DeleteEUidIfExist({50, 51, 1, 50, 50}), 2);
         UT_EXPECT_EQ(eiv.GetEUidCount(), 0);
-
         EdgeIndexValue giv;
         for (size_t i = 1; i <= 100; ++i) {
-            giv.InsertEUid(i, i + 1, 1, i, i);
+            giv.InsertEUid(EdgeUid(i, i + 1, 1, i, i));
             UT_EXPECT_EQ(giv.GetEUidCount(), i);
             bool found = false;
-            giv.SearchEUid(i, i + 1, 1, i, i, found);
+            giv.SearchEUid(EdgeUid(i, i + 1, 1, i, i), found);
             UT_EXPECT_TRUE(found);
         }
 
@@ -508,10 +506,10 @@ int TestEdgeIndexValue() {
         UT_EXPECT_EQ(giv.GetEUidCount(), 50);
 
         for (size_t i = 1; i < 50; ++i) {
-            uint8_t ret = giv.DeleteEUidIfExist(i, i + 1, 1, i, i);
+            uint8_t ret = giv.DeleteEUidIfExist(EdgeUid(i, i + 1, 1, i, i));
             UT_EXPECT_EQ(ret, 1);
         }
-        UT_EXPECT_EQ(giv.DeleteEUidIfExist(50, 51, 1, 50, 50), 2);
+        UT_EXPECT_EQ(giv.DeleteEUidIfExist({50, 51, 1, 50, 50}), 2);
         UT_EXPECT_EQ(giv.GetEUidCount(), 0);
     }
     return 0;
@@ -595,7 +593,7 @@ int TestEdgeIndexCRUD() {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {3, 2, 0, 0, 0}));
             std::string eidx;
             idx.Dump(*txn, int_pair_unique_to_string, eidx);
-            UT_EXPECT_TRUE(eidx.substr(0, 3) == "123");
+            UT_EXPECT_TRUE(eidx.substr(0, 3) == "132");
         }
 
         // test integer non-unique non-global key
@@ -607,7 +605,7 @@ int TestEdgeIndexCRUD() {
             UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(1), {9, 8, 7, 6, 5}));
             std::string eidx;
             idx.Dump(*txn, int_normal_to_string, eidx);
-            UT_EXPECT_TRUE(eidx.substr(0, 6) == "189765");
+            UT_EXPECT_TRUE(eidx.substr(0, 6) == "198765");
         }
         // test unique global int32_t crd
         {
@@ -1352,7 +1350,242 @@ int TestEdgeIndexCRUD() {
     return 0;
 }  // end of TestEdgeIndexCRUD
 
+int CURDEdgeWithTooLongKey() {
+    auto bytes_count = [](int i) {
+        if (i == 0) return (size_t)1;
+        size_t count = 0;
+        while (i) {
+            i /= 10;
+            ++count;
+        }
+        return count;
+    };
+
+    // test EdgeIndex
+    auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 30, true);
+    // Start test, see if we already has a db
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
+    txn = store->CreateWriteTxn();
+    // NonuniqueIndex edge index
+    {
+        auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "LongKeyWithNonUnique", FieldType::STRING,
+                                            lgraph::IndexType::NonuniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::STRING, lgraph::IndexType::NonuniqueIndex);
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string key(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+            EdgeUid edgeUid(i, i + 1, i, i, i);
+            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), edgeUid));
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                *txn, Value::ConstRef(key), Value::ConstRef(key), i, i + 1, i, i, i);
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(),
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - 24, 'a'));
+            bool find_src = false, find_dst = false, find_lid = false, find_tid = false,
+                 find_eid = false;
+            while (!find_src && it_add.IsValid()) {
+                if (it_add.GetSrcVid() == i) find_src = true;
+                if (it_add.GetDstVid() == i + 1) find_dst = true;
+                if (it_add.GetLabelId() == i) find_lid = true;
+                if (it_add.GetTemporalId() == i) find_tid = true;
+                if (it_add.GetEid() == i) find_eid = true;
+                it_add.Next();
+            }
+            UT_EXPECT_TRUE(find_src);
+            UT_EXPECT_TRUE(find_dst);
+            UT_EXPECT_TRUE(find_lid);
+            UT_EXPECT_TRUE(find_tid);
+            UT_EXPECT_TRUE(find_eid);
+        }
+
+        for (int32_t i = 0; i < 100; ++i) {
+            std::string ok(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+            std::string nk(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+            EdgeUid edgeUid(i, i + 1, i, i, i);
+            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), edgeUid));
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(
+                *txn, Value::ConstRef(nk), Value::ConstRef(nk), i, i + 1, i, i, i);
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(),
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - 24, 'b'));
+            bool find_src = false, find_dst = false, find_lid = false, find_tid = false,
+                 find_eid = false;
+            while (!find_src && it_add.IsValid()) {
+                if (it_add.GetSrcVid() == i) find_src = true;
+                if (it_add.GetDstVid() == i + 1) find_dst = true;
+                if (it_add.GetLabelId() == i) find_lid = true;
+                if (it_add.GetTemporalId() == i) find_tid = true;
+                if (it_add.GetEid() == i) find_eid = true;
+                it_add.Next();
+            }
+            UT_EXPECT_TRUE(find_src);
+            UT_EXPECT_TRUE(find_dst);
+            UT_EXPECT_TRUE(find_lid);
+            UT_EXPECT_TRUE(find_tid);
+            UT_EXPECT_TRUE(find_eid);
+        }
+
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, i, i, i);
+            std::string key(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), edgeUid));
+            EdgeIndexIterator it_del =
+                idx.GetUnmanagedIterator(*txn, Value::ConstRef(key), Value::ConstRef(key));
+            bool find_src = false, find_dst = false, find_lid = false, find_tid = false,
+                 find_eid = false;
+            while (!find_src && it_del.IsValid()) {
+                if (it_del.GetSrcVid() == i) find_src = true;
+                if (it_del.GetDstVid() == i + 1) find_dst = true;
+                if (it_del.GetLabelId() == i) find_lid = true;
+                if (it_del.GetTemporalId() == i) find_tid = true;
+                if (it_del.GetEid() == i) find_eid = true;
+                it_del.Next();
+            }
+            UT_EXPECT_FALSE(find_src);
+            UT_EXPECT_FALSE(find_dst);
+            UT_EXPECT_FALSE(find_lid);
+            UT_EXPECT_FALSE(find_tid);
+            UT_EXPECT_FALSE(find_eid);
+        }
+    }
+
+    // GlobalUniqueIndex edge index
+    {
+        auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "LongKeyWithGlobal",
+                                  FieldType::STRING, lgraph::IndexType::GlobalUniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::STRING,
+                      lgraph::IndexType::GlobalUniqueIndex);
+        std::string str(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+        std::string tmp(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, 1, i, i);
+            std::string key = std::to_string(i).append(str);
+            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), edgeUid));
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(key),
+                                                                Value::ConstRef(key));
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'a'));
+            UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+            UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+            UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+            UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+            UT_EXPECT_EQ(it_add.GetEid(), i);
+        }
+        EdgeIndexIterator it_all = idx.GetUnmanagedIterator(*txn, Value(), Value());
+        size_t vaild_keys = 0;
+        while (it_all.IsValid()) {
+            ++vaild_keys;
+            it_all.Next();
+        }
+        UT_EXPECT_EQ(vaild_keys, 100);
+
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, 1, i, i);
+            std::string ok = std::to_string(i).append(str);
+            std::string nk = std::to_string(i).append(tmp);
+            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), edgeUid));
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
+                                            Value::ConstRef(nk), Value::ConstRef(nk));
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
+                      std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'b'));
+            UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+            UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+            UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+            UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+            UT_EXPECT_EQ(it_add.GetEid(), i);
+        }
+
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, 1, i, i);
+            std::string key = std::to_string(i).append(tmp);
+            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), edgeUid));
+            EdgeIndexIterator it_del = idx.GetUnmanagedIterator(*txn,
+                                        Value::ConstRef(key), Value::ConstRef(key));
+            UT_EXPECT_FALSE(it_del.IsValid());
+        }
+
+        EdgeIndexIterator it_none = idx.GetUnmanagedIterator(*txn, Value(), Value());
+        size_t all_keys = 0;
+        while (it_none.IsValid()) {
+            ++all_keys;
+            it_none.Next();
+        }
+        UT_EXPECT_EQ(all_keys, 0);
+    }
+
+    // GlobalUniqueIndex edge index
+    {
+        auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "LongKeyWithPair",
+                                            FieldType::STRING, lgraph::IndexType::PairUniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::STRING,
+                      lgraph::IndexType::PairUniqueIndex);
+        std::string str(lgraph::_detail::MAX_KEY_SIZE + 100, 'a');
+        std::string tmp(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, 1, i, i);
+            std::string key = std::to_string(i).append(str);
+            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), edgeUid));
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(key),
+                                                                Value::ConstRef(key));
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
+                        std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i) - 10, 'a'));
+            UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+            UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+            UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+            UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+            UT_EXPECT_EQ(it_add.GetEid(), i);
+        }
+        EdgeIndexIterator it_all = idx.GetUnmanagedIterator(*txn, Value(), Value());
+        size_t vaild_keys = 0;
+        while (it_all.IsValid()) {
+            ++vaild_keys;
+            it_all.Next();
+        }
+        UT_EXPECT_EQ(vaild_keys, 100);
+
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, 1, i, i);
+            std::string ok = std::to_string(i).append(str);
+            std::string nk = std::to_string(i).append(tmp);
+            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), edgeUid));
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
+                                            Value::ConstRef(nk), Value::ConstRef(nk));
+            UT_EXPECT_TRUE(it_add.IsValid());
+            UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
+                         std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i) - 10, 'b'));
+            UT_EXPECT_EQ(it_add.GetSrcVid(), i);
+            UT_EXPECT_EQ(it_add.GetDstVid(), i + 1);
+            UT_EXPECT_EQ(it_add.GetLabelId(), 1);
+            UT_EXPECT_EQ(it_add.GetTemporalId(), i);
+            UT_EXPECT_EQ(it_add.GetEid(), i);
+        }
+
+        for (int32_t i = 0; i < 100; ++i) {
+            EdgeUid edgeUid(i, i + 1, 1, i, i);
+            std::string key = std::to_string(i).append(tmp);
+            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), edgeUid));
+            EdgeIndexIterator it_del = idx.GetUnmanagedIterator(*txn,
+                                       Value::ConstRef(key), Value::ConstRef(key));
+            UT_EXPECT_FALSE(it_del.IsValid());
+        }
+
+        EdgeIndexIterator it_none = idx.GetUnmanagedIterator(*txn, Value(), Value());
+        size_t all_keys = 0;
+        while (it_none.IsValid()) {
+            ++all_keys;
+            it_none.Next();
+        }
+        UT_EXPECT_EQ(all_keys, 0);
+    }
+    return 0;
+}
+
 TEST_F(TestEdgeIndex, TestEdgeIndexCRUD) {
     TestEdgeIndexValue();
     TestEdgeIndexCRUD();
+    CURDEdgeWithTooLongKey();
 }

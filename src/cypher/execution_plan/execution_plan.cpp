@@ -32,6 +32,7 @@
 
 namespace cypher {
 using namespace parser;
+using namespace lgraph_log;
 static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
     graph.symbol_table = part.symbol_table;
     /* Introduce nodes & relationships from MATCH pattern. */
@@ -969,7 +970,7 @@ void ExecutionPlan::_PlaceFilter(std::shared_ptr<lgraph::Filter> f, OpBase *&roo
                     opf->AddChild(root);
                     root = opf;
                 } else {
-                    FMA_WARN_STREAM(PlanLogger()) << "ignored filter: " << f->ToString();
+                    LOG_WARN() << "ignored filter: " << f->ToString();
                 }
             }
         }
@@ -1192,10 +1193,10 @@ OpBase *ExecutionPlan::BuildSgl(const parser::SglQuery &stmt, size_t parts_offse
         segments.emplace_back(segment);
     }
 #ifndef NDEBUG
-    FMA_DBG() << "Plan parts:";
+    LOG_DEBUG() << "Plan parts:";
     std::string s;
     for (auto seg : segments) OpBase::DumpStream(seg, 0, false, s);
-    FMA_DBG() << s;
+    LOG_DEBUG() << s;
 #endif
     // merge segments
     sgl_root = segments[0];
@@ -1358,7 +1359,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         do {
             res = _root->Consume(ctx);
 #ifndef NDEBUG
-            FMA_DBG() << "root op result: " << res << " (" << OpBase::OP_OK << " for OK)";
+            LOG_DEBUG() << "root op result: " << res << " (" << OpBase::OP_OK << " for OK)";
 #endif
         } while (res == OpBase::OP_OK);
         Reset();
@@ -1389,7 +1390,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     ctx->ac_db_.reset(nullptr);
 #ifndef NDEBUG
     std::thread::id out_id = std::this_thread::get_id();  // check if tid changes in this function
-    if (entry_id != out_id) FMA_DBG() << "switch thread from: " << entry_id << " to " << out_id;
+    if (entry_id != out_id) LOG_DEBUG() << "switch thread from: " << entry_id << " to " << out_id;
 #endif
     return 0;
 }
@@ -1399,8 +1400,8 @@ const ResultInfo &ExecutionPlan::GetResultInfo() const { return _result_info; }
 std::string ExecutionPlan::DumpPlan(int indent, bool statistics) const {
     std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
     OpBase::DumpStream(_root, indent, statistics, s);
-    if (PlanLogger().GetLevel() >= fma_common::LogLevel::LL_DEBUG) {
-        FMA_DBG_STREAM(PlanLogger()) << s;
+    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
+        LOG_DEBUG() << s;
     }
     return s;
 }
@@ -1408,8 +1409,8 @@ std::string ExecutionPlan::DumpPlan(int indent, bool statistics) const {
 std::string ExecutionPlan::DumpGraph() const {
     std::string s;
     for (auto &g : _pattern_graphs) s.append(g.DumpGraph());
-    if (PlanLogger().GetLevel() >= fma_common::LogLevel::LL_DEBUG) {
-        FMA_DBG_STREAM(PlanLogger()) << s;
+    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
+        LOG_DEBUG() << s;
     }
     return s;
 }

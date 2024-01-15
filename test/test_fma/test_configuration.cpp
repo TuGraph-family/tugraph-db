@@ -18,8 +18,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/fma_stream.h"
-#include "fma-common/logger.h"
-#include "fma-common/logging.h"
 #include "./unit_test_utils.h"
 
 using namespace fma_common;
@@ -153,9 +151,9 @@ FMA_UNIT_TEST(Configuration) {
     }
     d.ParseAndRemove(&argc, &argv);
     d.Finalize();
-    LOG() << d.HelpString();
+    LOG_INFO() << d.HelpString();
 #if !defined(__GNUC__) || __GNUC__ >= 5  // json.hpp does not support g++ 4
-    FMA_LOG() << "Testing ParseJsonFile";
+    LOG_INFO() << "Testing ParseJsonFile";
     {
         const std::string &json_path = "./tmp_json.json";
         {
@@ -229,9 +227,9 @@ FMA_UNIT_TEST(Configuration) {
         config.ParseJson(json.c_str());
         config.Parse(argc, argv);
         config.Finalize();
-        LOG() << dir;
-        LOG() << port;
-        LOG() << db_size;
+        LOG_INFO() << dir;
+        LOG_INFO() << port;
+        LOG_INFO() << db_size;
     } else {
         TestArg();
         Configuration conf;

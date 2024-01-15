@@ -31,15 +31,16 @@ size_t LMDBKvTable::GetVersion(LMDBKvTransaction& txn, const Value& key) {
 }
 
 static int DefaultCompareKey(const MDB_val* a, const MDB_val* b) {
-    bool b_longer = false;
-    size_t s = a->mv_size;
-    if (s > b->mv_size) {
-        b_longer = true;
-        s = b->mv_size;
-    }
+    size_t s = a->mv_size < b->mv_size ? a->mv_size : b->mv_size;
     int r = memcmp(a->mv_data, b->mv_data, s);
     if (r) return r;
-    return b_longer ? -1 : (a->mv_size > b->mv_size);
+    if (a->mv_size > b->mv_size) {
+        return 1;
+    } else if (a->mv_size < b->mv_size) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 LMDBKvTable::LMDBKvTable(LMDBKvTransaction& txn,

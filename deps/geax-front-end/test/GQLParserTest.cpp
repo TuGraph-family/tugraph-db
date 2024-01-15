@@ -24,14 +24,22 @@
 #include <queue>
 #include <string>
 
-#include "folly/Range.h"
-#include "folly/String.h"
-#include "geax-front-end/utils/Logging.h"
 #include "geax-front-end/isogql/parser/GqlLexer.h"
 #include "geax-front-end/isogql/parser/GqlParser.h"
+#include "geax-front-end/utils/Logging.h"
+#include "geax-front-end/utils/TinyScopeGuard.h"
 
 namespace geax {
 namespace frontend {
+
+const std::string trimWhitespace(const std::string& str) {
+    size_t start = str.find_first_not_of(" \t\r\n");
+    size_t end = str.find_last_not_of(" \t\r\n");
+    if (start == std::string::npos) {
+        return "";
+    }
+    return str.substr(start, end - start + 1);
+}
 
 GEAXErrorCode GQLParserTest::test(const std::string& testdir) {
     GEAXErrorCode ret = GEAXErrorCode::GEAX_SUCCEED;
@@ -71,15 +79,15 @@ GEAXErrorCode GQLParserTest::parseTest(const std::string& testPath) {
     bool multiLine = false;
     GQLCase case_;
     while (std::getline(testfile, line)) {
-        auto onExit = folly::makeGuard([&]() { lineNo++; });
-        folly::StringPiece str = folly::trimWhitespace(line);
+        auto onExit = TinyScopeGuard([&]() { lineNo++; });
+        std::string str = trimWhitespace(line);
         if (str.empty()) {
             continue;
-        } else if (str.startsWith("#")) {
+        } else if (str.find("#") == 0) {
             continue;
-        } else if (str.startsWith("--error")) {
+        } else if (str.find("--error") == 0) {
             case_.error_ = true;
-        } else if (str.startsWith("```")) {
+        } else if (str.find("```") == 0) {
             multiLine = !multiLine;
             if (!case_.gql_.empty()) {
                 case_.lineNo_ = lineNo;
@@ -199,7 +207,11 @@ GEAXErrorCode GQLParserTest::loadTestFile(const char* rootPath, const char* patt
         data.clear();
 
         dividePath(file, parent, child);
-        folly::split("_", child, data, true);
+        std::stringstream ss(child);
+        std::string item;
+        while (std::getline(ss, item, '_')) {
+            data.push_back(item);
+        }
         if (data.size() < 2) {
             ret = GEAXErrorCode::GEAX_ERROR;
             LOG(ERROR) << "Found invalid case. " << KM(file, ret);
@@ -207,7 +219,7 @@ GEAXErrorCode GQLParserTest::loadTestFile(const char* rootPath, const char* patt
         } else {
             try {
                 TestFile testFile(child, file);
-                int32_t id = folly::to<int32_t>(data[0]);
+                int32_t id = std::stoi(data[0]);
                 if (!testFileMap.emplace(id, testFile).second) {
                     ret = GEAXErrorCode::GEAX_ERROR;
                     LOG(ERROR) << "found duplicate id. " << KM(id, file, ret);

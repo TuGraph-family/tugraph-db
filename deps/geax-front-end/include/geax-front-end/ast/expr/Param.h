@@ -27,6 +27,7 @@ namespace frontend {
 
 using IntParam = std::variant<int64_t, Param*>;
 using BoolParam = std::variant<bool, Param*>;
+using StringParam = std::variant<std::string, Param*>;
 
 class Param : public Expr {
 public:

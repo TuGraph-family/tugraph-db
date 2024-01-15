@@ -18,6 +18,7 @@
 #include <string>
 #include "tools/lgraph_log.h"
 #include "gtest/gtest.h"
+#include "tools/json.hpp"
 
 extern int _ut_argc;    // left-over arguments after parsing gtest flags, set in main()
 extern char** _ut_argv;
@@ -61,10 +62,10 @@ extern bool _ut_run_benchmarks;  // whether to run benchmarks
         }                                                           \
     }
 
-#define UT_LOG() FMA_LOG()
-#define UT_DBG() FMA_DBG()
-#define UT_ERR() FMA_ERR()
-#define UT_WARN() FMA_WARN()
+#define UT_LOG() LOG_INFO()
+#define UT_DBG() LOG_DEBUG()
+#define UT_ERR() LOG_ERROR()
+#define UT_WARN() LOG_WARN()
 #define UT_EXPECT_ANY_THROW(statement) do {EXPECT_ANY_THROW(statement);} while (0)
 #define UT_EXPECT_NO_THROW(statement) do {EXPECT_NO_THROW(statement);} while (0)
 #define UT_EXPECT_LE(a, b) do {EXPECT_LE(a, b);} while (0)
@@ -98,3 +99,7 @@ class TuGraphTestWithParam : public testing::TestWithParam<T> {
         TuGraphTest::teardown();
     }
 };
+
+void build_so(const std::string& so_name, const std::string& so_path);
+
+bool HasElement(const nlohmann::json& val, const std::string& value, const std::string& field);

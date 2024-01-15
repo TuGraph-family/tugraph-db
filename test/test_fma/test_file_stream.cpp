@@ -19,7 +19,6 @@
 #include "fma-common/local_file_stream.h"
 #include "fma-common/file_stream.h"
 #include "fma-common/file_system.h"
-#include "fma-common/logging.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
@@ -42,7 +41,7 @@ FMA_UNIT_TEST(FileStream) {
     config.Parse(argc, argv);
     config.Finalize();
 
-    LOG() << "Using file " << path << "\n"
+    LOG_INFO() << "Using file " << path << "\n"
           << "\tBuffer size: " << buffer_size << " B\n"
           << "\tBlock size: " << block_size << " B\n"
           << "\tNumber of blocks: " << n_blocks;
@@ -58,7 +57,7 @@ FMA_UNIT_TEST(FileStream) {
     }
     double t2 = GetTime();
     double mb = (double)block_size * n_blocks / 1024 / 1024;
-    LOG() << "Wrote " << mb << "MB, at " << mb / (t2 - t1) << "MB/s";
+    LOG_INFO() << "Wrote " << mb << "MB, at " << mb / (t2 - t1) << "MB/s";
 
     std::fill(block.begin(), block.end(), 0);
     double sum = 0;
@@ -82,7 +81,7 @@ FMA_UNIT_TEST(FileStream) {
         FMA_UT_CHECK_EQ(total_bytes, in.Size()) << "Read bytes does not equal file size";
     }
     t2 = GetTime();
-    LOG() << "Read " << mb << "MB, at " << mb / (t2 - t1 - compute_time) << "MB/s";
+    LOG_INFO() << "Read " << mb << "MB, at " << mb / (t2 - t1 - compute_time) << "MB/s";
     FMA_UT_CHECK_EQ(sum, (double)n_blocks * block_size) << "Data is probably corruptted";
     file_system::RemoveFile(path);
 

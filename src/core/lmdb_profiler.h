@@ -15,7 +15,7 @@
 #pragma once
 #include <mutex>
 #include <unordered_map>
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
 #include "core/lmdb/lmdb.h"
 

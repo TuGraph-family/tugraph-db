@@ -369,7 +369,9 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         if (node->where().has_value()) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->where().value());
         }
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield());
+        if (node->yield().has_value()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+        }
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
@@ -479,6 +481,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::EdgeOnJoin* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     std::any visit(geax::frontend::SetAllProperties* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->structs());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -548,7 +554,7 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         if (node->schemaRef().has_value()) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->schemaRef().value());
         }
-        for (auto binding : node->bindingVars()) {
+        for (auto binding : node->bindingDefinitions()) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(binding);
         }
         for (auto statement_with_yield : node->statements()) {
@@ -574,7 +580,9 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::StatementWithYield* node) override {
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield());
+        if (node->yield().has_value()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+        }
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->statement());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
@@ -743,6 +751,156 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
 
     std::any visit(geax::frontend::SetSingleProperty* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->value());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SetSchemaClause* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->initExpr());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SetGraphClause* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->initExpr());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SetTimeZoneClause* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->initExpr());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SetParamClause* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ResetAll* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ResetSchema* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ResetTimeZone* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ResetGraph* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ResetParam* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ExplainActivity* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->procedureBody());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SessionActivity* node) override {
+        for (auto& session : node->sessions()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(session);
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::TransactionActivity* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->transaction());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::FullTransaction* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->startTransaction());
+        if (node->normalTransaction().has_value()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->normalTransaction().value());
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::NormalTransaction* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->query());
+        if (node->endTransaction().has_value()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->endTransaction().value());
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::StartTransaction* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::CommitTransaction* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::RollBackTransaction* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SessionSet* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->command());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::SessionReset* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->command());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::BindingTableInnerQuery* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->body());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::BindingTableInnerExpr* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::StandaloneCallStatement* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->procedureStatement());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::CallQueryStatement* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->procedureStatement());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::CallProcedureStatement* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->procedureCall());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::InlineProcedureCall* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::NamedProcedureCall* node) override {
+        for (auto& arg : node->args()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(arg);
+        }
+        if (node->yield().has_value()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ForStatement* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::MergeStatement* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->pathPattern());
+        for (auto& onMatch : node->onMatch()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(onMatch);
+        }
+        for (auto& onCreate : node->onCreate()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(onCreate);
+        }
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

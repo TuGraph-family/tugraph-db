@@ -33,6 +33,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <boost/algorithm/hex.hpp>
 
 #include "fma-common/type_traits.h"
 
@@ -763,4 +764,12 @@ inline std::string JoinString(const Iterator& begin, const Iterator& end, const 
     }
     return ret;
 }
+
+template <typename T>
+inline std::string ToHexString(const T& v) {
+    std::string ret;
+    boost::algorithm::hex(v.begin(), v.end(), std::back_inserter(ret));
+    return ret;
+}
+
 }  // namespace fma_common

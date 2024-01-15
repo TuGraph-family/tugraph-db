@@ -35,21 +35,11 @@ public:
     void setStructs(PropStruct* structs) { structs_ = structs; }
     PropStruct* structs() const { return structs_; }
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
-
-    DEFINE_FROM_AND_TO_JSON
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-        JSON_FIELD(v);
-        JSON_FIELD(structs);
-    }
-
-    std::string  v_;
-    PropStruct*  structs_;
+    std::string v_;
+    PropStruct* structs_;
 };
 
 }  // namespace frontend

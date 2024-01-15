@@ -4,6 +4,7 @@
     "port" : 7070,
     "rpc_port" : 9090,
     "enable_rpc" : true,
+    "bolt_port": 7687,
     "enable_ha" : false,
     "verbose" : 1,
     "log_dir" : "/var/log/lgraph_log",

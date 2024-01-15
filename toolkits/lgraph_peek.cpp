@@ -62,22 +62,22 @@ int main(int argc, char** argv) {
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
     } catch (std::exception& e) {
-        FMA_ERR() << "Failed to parse command line option: " << e.what();
+        LOG_ERROR() << "Failed to parse command line option: " << e.what();
         return -1;
     }
     if (!fma_common::FileSystem::GetFileSystem("/").IsDir(db_dir)) {
-        FMA_LOG() << "DB directory " << db_dir << " does not exist.";
+        LOG_INFO() << "DB directory " << db_dir << " does not exist.";
         return -1;
     }
     if (vid > 0) {
         begin = vid;
         end = vid;
     }
-    FMA_LOG() << "Peeking graph [" << graph << "] stored in " << db_dir;
+    LOG_INFO() << "Peeking graph [" << graph << "] stored in " << db_dir;
     if (begin < 0) {
-        FMA_LOG() << "Peeking the whole graph.";
+        LOG_INFO() << "Peeking the whole graph.";
     } else {
-        FMA_LOG() << "Peeking the graph: " << db_dir << "\n\tbegin:              " << begin
+        LOG_INFO() << "Peeking the graph: " << db_dir << "\n\tbegin:              " << begin
                   << "\n\tend:                " << end;
     }
     try {
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
         lgraph::AccessControlledDB db = galaxy.OpenGraph(user, graph);
         PeekGraph(db, begin, end);
     } catch (std::exception& e) {
-        FMA_LOG() << "Error when peek db " << db_dir << ":\n\t" << e.what();
+        LOG_INFO() << "Error when peek db " << db_dir << ":\n\t" << e.what();
         return 1;
     }
     return 0;

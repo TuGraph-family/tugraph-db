@@ -18,26 +18,17 @@
 #ifndef GEAXFRONTEND_AST_STMT_BINDINGGRAPH_H_
 #define GEAXFRONTEND_AST_STMT_BINDINGGRAPH_H_
 
-#include "geax-front-end/ast/stmt/BindingVar.h"
+#include "geax-front-end/ast/stmt/BindingDefinition.h"
 
 namespace geax {
 namespace frontend {
 
-class BindingGraph : public BindingVar {
+class BindingGraph : public BindingDefinition {
 public:
-    BindingGraph() : BindingVar(AstNodeType::kBindingGraph) {}
+    BindingGraph() : BindingDefinition(AstNodeType::kBindingGraph) {}
     ~BindingGraph() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
-
-    DEFINE_FROM_AND_TO_JSON
-
-private:
-    DECLARE_JSON_FIELDS() {
-        JSON_FIELD(type);
-    }
+    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 };  // class BindingGraph
 
 }  // namespace frontend

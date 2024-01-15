@@ -1,0 +1,113 @@
+# short 1
+MATCH (person:Person {id: 4194})-[e:personIsLocatedIn]->(city)
+RETURN
+    person.firstName AS personFirstName,
+    person.lastName AS personLastName,
+    person.birthday AS personBirthday,
+    person.locationIP AS personLocationIP,
+    person.browserUsed AS personBrowserUsed,
+    city.id AS cityId,
+    person.gender AS personGender,
+    person.creationDate AS personCreationDate;
+[{"cityId":31,"personBirthday":592790400000,"personBrowserUsed":"Internet Explorer","personCreationDate":1266194777657,"personFirstName":"Hồ Chí","personGender":"male","personLastName":"Do","personLocationIP":"103.2.223.188"}]
+
+# short 2
+MATCH (person:Person WHERE person.id = 4194)
+    <-[e1]-(message)
+    -[e2:replyOf]->{1,}(post:Post)
+    -[e3:postHasCreator]->(originalPoster:Person)
+WHERE
+    type(e1) = 'postHasCreator' OR type(e1) = 'commentHasCreator'
+RETURN
+    message.id AS messageId,
+    message.content AS messageContent,
+    message.imageFile AS messageImageFile,
+    message.creationDate AS messageCreationDate,
+    post.id AS postId,
+    originalPoster.id AS originalPosterId,
+    originalPoster.firstName AS originalPosterFirstName,
+    originalPoster.lastName AS originalPosterLastName
+ORDER BY messageCreationDate DESC, messageId DESC
+LIMIT 10;
+[{"messageContent":"About George Frideric Handel, ful with hisAbout Erwin Rommel, mandy. As onAbout","messageCreationDate":1342825695828,"messageId":2061584302089,"messageImageFile":null,"originalPosterFirstName":"Manuel","originalPosterId":21990232563931,"originalPosterLastName":"Gonzalez","postId":687194767478},{"messageContent":"About George Frideric Handel, ful with hisAbout Erwin Rommel, mandy. As onAbout","messageCreationDate":1342825695828,"messageId":2061584302089,"messageImageFile":null,"originalPosterFirstName":"Jun","originalPosterId":24189255813101,"originalPosterLastName":"Yang","postId":687194767483},{"messageContent":"About George Frideric Handel, ful with hisAbout Erwin Rommel, mandy. As onAbout","messageCreationDate":1342825695828,"messageId":2061584302089,"messageImageFile":null,"originalPosterFirstName":"Jacqueline","originalPosterId":21990232559044,"originalPosterLastName":"Ha","postId":1236950581402}]
+
+# short 3
+MATCH (person:Person {id: 21990232561712})-[knows:knows]-(friend:Person)
+RETURN
+    friend.id AS friendId,
+    friend.firstName AS friendFirstName,
+    friend.lastName AS friendLastName,
+    knows.creationDate AS creationDate
+ORDER BY
+    creationDate DESC,
+    friendLastName ASC;
+[{"creationDate":1345286688111,"friendFirstName":"Imtiaz","friendId":21990232565814,"friendLastName":"Ahmed"},{"creationDate":1325183194566,"friendFirstName":"Kamel","friendId":26388279074007,"friendLastName":"Abderrahmane"},{"creationDate":1300600424974,"friendFirstName":"Jerzy","friendId":19791209306628,"friendLastName":"Ciesla"},{"creationDate":1297135634218,"friendFirstName":"Steve","friendId":28587302322727,"friendLastName":"Moore"},{"creationDate":1289959990725,"friendFirstName":"Meera","friendId":10027,"friendLastName":"Rao"},{"creationDate":1273909650495,"friendFirstName":"Jose","friendId":26388279066636,"friendLastName":"Alonso"}]
+
+# short 4
+MATCH (message WHERE message.id = 274877907096)
+WHERE label(message) = 'Post' OR label(message) = 'Comment'
+RETURN
+    message.creationDate as messageCreationDate,
+    coalesce(message.content, message.imageFile) as messageContent;
+[{"messageContent":"photo274877907096.jpg","messageCreationDate":1275034776474}]
+
+MATCH (message WHERE message.id = 3)
+WHERE label(message) = 'Post' OR label(message) = 'Comment'
+RETURN
+    message.creationDate as messageCreationDate,
+    coalesce(message.content, message.imageFile) as messageContent;
+[{"messageContent":"About Rupert Murdoch, alised US citizen iAbout Napoleon, tinuation of the waAbout Ferdinand II of Aragon, (1","messageCreationDate":1266179421451}]
+
+# short 5
+MATCH (message WHERE message.id = 274877907096)-[e]->(person:Person)
+WHERE
+    (label(message) = 'Post' AND type(e) = 'postHasCreator') OR
+    (label(message) = 'Comment' AND type(e) = 'commentHasCreator')
+RETURN
+    person.id AS personId,
+    person.firstName AS firstName,
+    person.lastName AS lastName;
+[{"firstName":"Jun","lastName":"Matsudaira","personId":17592186048827}]
+
+MATCH (message WHERE message.id = 3)-[e]->(person:Person)
+WHERE
+    (label(message) = 'Post' AND type(e) = 'postHasCreator') OR
+    (label(message) = 'Comment' AND type(e) = 'commentHasCreator')
+RETURN
+    person.id AS personId,
+    person.firstName AS firstName,
+    person.lastName AS lastName;
+[{"firstName":"Chau","lastName":"Loan","personId":13194139544258}]
+
+# short 6
+MATCH (m WHERE m.id = 274877907096)-[e1:replyOf]->*(p:Post)<-[e2:containerOf]-(forum:Forum)-[e3:hasModerator]->(moderator:Person)
+RETURN
+    forum.id AS forumId,
+    forum.title AS forumTitle,
+    moderator.id AS moderatorId,
+    moderator.firstName AS moderatorFirstName,
+    moderator.lastName AS moderatorLastName;
+[{"forumId":274877906953,"forumTitle":"Album 8 of Mahinda Perera","moderatorFirstName":"George","moderatorId":6597069777454,"moderatorLastName":"King"}]
+
+# short 7
+MATCH (m WHERE m.id = 274877907096)<-[e1:replyOf]-(c:Comment)-[e2:commentHasCreator]->(p)
+WHERE label(m) = 'Post' OR label(m) = 'Comment'
+RETURN m, c, p
+NEXT
+OPTIONAL MATCH (m)-[e]->(a)-[r:knows]-(p)
+WHERE type(r) = 'postHasCreator' OR type(r) = 'commentHasCreator'
+RETURN
+    c.id AS commentId,
+    c.content AS commentContent,
+    c.creationDate AS commentCreationDate,
+    p.id AS replyAuthorId, p.firstName AS replyAuthorFirstName,
+    p.lastName AS replyAuthorLastName,
+    CASE WHEN r=null THEN false ELSE true END AS replyAuthorKnowsOriginalMessageAuthor
+ORDER BY commentCreationDate DESC, replyAuthorId;
+[{"commentContent":"no","commentCreationDate":1332433928615,"commentId":1786706395171,"replyAuthorFirstName":"Avraham","replyAuthorId":10995116285020,"replyAuthorKnowsOriginalMessageAuthor":false,"replyAuthorLastName":"Al-Shorabi"}]
+
+# base
+MATCH (n)-[e]->(m) RETURN n, e LIMIT 100
+NEXT
+RETURN count(n),count(e)
+[{"count(e)":100,"count(n)":100}]

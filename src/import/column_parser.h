@@ -63,7 +63,7 @@ class ColumnParser : public BlockParser {
                  const std::string& delimiter, int64_t max_err_msgs = 100) {
         std::unique_ptr<fma_common::InputFmaStream> stream(new fma_common::InputFmaStream(path));
         if (!stream->Good()) {
-            FMA_LOG() << "Failed to open input file " << path;
+            LOG_INFO() << "Failed to open input file " << path;
             throw std::runtime_error("failed to open input file [" + path + "]");
         }
         own_stream_ = true;
@@ -341,7 +341,7 @@ class ColumnParser : public BlockParser {
         bool success = true;
 #define WARN_OR_THROW(except)                                    \
     if (forgiving_) {                                            \
-        if (errors_++ < max_errors_) FMA_LOG() << except.what(); \
+        if (errors_++ < max_errors_) LOG_INFO() << except.what(); \
         success = false;                                         \
         break;                                                   \
     } else {                                                     \
@@ -381,8 +381,8 @@ class ColumnParser : public BlockParser {
         }
 #define WARN_OR_THROW2(except)                                                \
     if (forgiving_) {                                                         \
-        if (errors_++ < max_errors_) FMA_LOG() << except.what();              \
-        if (errors_ == max_errors_) FMA_LOG() << "ignore more error message"; \
+        if (errors_++ < max_errors_) LOG_INFO() << except.what();              \
+        if (errors_ == max_errors_) LOG_INFO() << "ignore more error message"; \
         success = false;                                                      \
     } else {                                                                  \
         throw except;                                                         \

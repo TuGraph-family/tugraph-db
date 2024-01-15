@@ -14,7 +14,6 @@
 
 #include "fma-common/cache_aligned_vector.h"
 #include "fma-common/configuration.h"
-#include "fma-common/logger.h"
 #include "./unit_test_utils.h"
 
 FMA_SET_TEST_PARAMS(CacheAlignedVector, "");

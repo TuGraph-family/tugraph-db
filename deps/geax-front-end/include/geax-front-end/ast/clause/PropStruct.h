@@ -18,6 +18,8 @@
 #ifndef GEAXFRONTEND_AST_CLAUSE_PROPSTRUCT_H_
 #define GEAXFRONTEND_AST_CLAUSE_PROPSTRUCT_H_
 
+#include <vector>
+
 #include "geax-front-end/ast/clause/ElementPredicate.h"
 #include "geax-front-end/ast/expr/Expr.h"
 

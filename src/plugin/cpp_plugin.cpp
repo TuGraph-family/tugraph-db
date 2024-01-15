@@ -13,8 +13,8 @@
  */
 
 #include <stdexcept>
+#include "tools/lgraph_log.h"
 #include "fma-common/binary_buffer.h"
-#include "fma-common/logger.h"
 #include "fma-common/file_system.h"
 #include "fma-common/fma_stream.h"
 

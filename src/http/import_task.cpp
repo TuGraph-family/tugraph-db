@@ -1,19 +1,19 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * Copyright 2023 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
 #include "http/import_task.h"
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "import/import_config_parser.h"
 #include "import/file_cutter.h"
 #include "import/parse_delimiter.h"
@@ -21,26 +21,19 @@
 namespace lgraph {
 namespace http {
 
-ImportTask::ImportTask(HttpService* http_service,
-                       ImportManager* import_manager,
-                       const std::string& id,
-                       const std::string& user,
-                       const std::string& token,
-                       const std::string& graph,
-                       const std::string& delimiter,
-                       bool continue_on_error,
-                       uint64_t skip_packages,
+ImportTask::ImportTask(HttpService* http_service, ImportManager* import_manager,
+                       const std::string& id, const std::string& token, const std::string& graph,
+                       const std::string& delimiter, bool continue_on_error, uint64_t skip_packages,
                        const nlohmann::json& schema)
-    : http_service_(http_service)
-    , import_manager_(import_manager)
-    , id_(std::move(id))
-    , user_(std::move(user))
-    , token_(std::move(token))
-    , graph_(std::move(graph))
-    , delimiter_(std::move(delimiter))
-    , continue_on_error_(continue_on_error)
-    , skip_packages_(skip_packages)
-    , schema_(std::move(schema)) {}
+    : http_service_(http_service),
+      import_manager_(import_manager),
+      id_(std::move(id)),
+      token_(std::move(token)),
+      graph_(std::move(graph)),
+      delimiter_(std::move(delimiter)),
+      continue_on_error_(continue_on_error),
+      skip_packages_(skip_packages),
+      schema_(std::move(schema)) {}
 
 void ImportTask::operator()() {
     try {

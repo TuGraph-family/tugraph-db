@@ -12,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+
 #ifndef GEAXFRONTEND_UTILS_ASTDUMPER_H_
 #define GEAXFRONTEND_UTILS_ASTDUMPER_H_
 
@@ -19,70 +20,63 @@
 #include <string>
 #include <tuple>
 
-#include "geax-front-end/ast/AstNodeVisitor.h"
-#include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/Ast.h"
-
+#include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/AstNodeVisitor.h"
 
 namespace geax {
 namespace frontend {
 
 #ifndef VISIT_AND_CHECK
-#define VISIT_AND_CHECK(ast)                                        \
-    do {                                                            \
-        auto res = std::any_cast<GEAXErrorCode>(visit(ast));        \
-        if (res != GEAXErrorCode::GEAX_SUCCEED) {                   \
-            return res;                                             \
-        }                                                           \
+#define VISIT_AND_CHECK(ast)                                 \
+    do {                                                     \
+        auto res = std::any_cast<GEAXErrorCode>(visit(ast)); \
+        if (res != GEAXErrorCode::GEAX_SUCCEED) {            \
+            return res;                                      \
+        }                                                    \
     } while (0)
 #endif
 
 #ifndef VISIT_AND_CHECK_WITH_MSG
-#define VISIT_AND_CHECK_WITH_MSG(ast)                                   \
-    do {                                                                \
-        auto res = std::any_cast<GEAXErrorCode>(visit(ast));            \
-        if (res != GEAXErrorCode::GEAX_SUCCEED) {                       \
-            error_msg_ = error_msg_.empty() ?                           \
-                "visit(" + std::string(#ast) + ") failed at" +          \
-                std::string(__FILE__) + ":" + std::to_string(__LINE__)  \
-                : error_msg_;                                           \
-            return res;                                                 \
-        }                                                               \
+#define VISIT_AND_CHECK_WITH_MSG(ast)                                                     \
+    do {                                                                                  \
+        auto res = std::any_cast<GEAXErrorCode>(visit(ast));                              \
+        if (res != GEAXErrorCode::GEAX_SUCCEED) {                                         \
+            error_msg_ = error_msg_.empty()                                               \
+                             ? "visit(" + std::string(#ast) + ") failed at" +             \
+                                   std::string(__FILE__) + ":" + std::to_string(__LINE__) \
+                             : error_msg_;                                                \
+            return res;                                                                   \
+        }                                                                                 \
     } while (0)
 #endif
 
 #ifndef VISIT_PARAM_AND_CHECK_WITH_MSG
-#define VISIT_PARAM_AND_CHECK_WITH_MSG(ast)                             \
-    cur_var_ = std::string(#ast);                                       \
+#define VISIT_PARAM_AND_CHECK_WITH_MSG(ast) \
+    cur_var_ = std::string(#ast);           \
     VISIT_AND_CHECK_WITH_MSG(ast)
 #endif
 
 class IndentGuard {
- public:
+public:
     explicit IndentGuard(int64_t* indent, const int64_t& indent_size)
         : indent_(indent), indent_size_(indent_size) {
         *indent_ += indent_size_;
     }
-    ~IndentGuard() {
-        *indent_ -= indent_size_;
-    }
- private:
+    ~IndentGuard() { *indent_ -= indent_size_; }
+
+private:
     int64_t* indent_;
     int64_t indent_size_;
 };
 
 class VariableGuard {
- public:
-    explicit VariableGuard(std::string& str,
-                           int64_t* indent,
-                           const std::string& var,
-                           const std::string& var_type_name,
-                           bool is_list = false,
+public:
+    explicit VariableGuard(std::string& str, int64_t* indent, const std::string& var,
+                           const std::string& var_type_name, bool is_list = false,
                            bool is_newline = true)
-        : str_(str), indent_(indent),
-          is_list_(is_list), is_newline_(is_newline) {
-        str_
-            .append(std::string(*indent, ' '))
+        : str_(str), indent_(indent), is_list_(is_list), is_newline_(is_newline) {
+        str_.append(std::string(*indent, ' '))
             .append(var.empty() ? var : var + " = ")
             .append(var_type_name)
             .append(is_list_ ? "[" : "(")
@@ -90,13 +84,13 @@ class VariableGuard {
     }
 
     ~VariableGuard() {
-        str_
-            .append(std::string(*indent_, ' '))
+        str_.append(std::string(*indent_, ' '))
             .append(is_list_ ? "]" : ")")
             .append(",")
             .append(is_newline_ ? "\n" : "");
     }
- private:
+
+private:
     std::string& str_;
     int64_t* indent_;
     bool is_list_;
@@ -104,13 +98,12 @@ class VariableGuard {
 };
 
 #ifndef INDET_GUARD
-#define INDET_GUARD()                                                   \
-    IndentGuard guard(&cur_indent_, indent_size_);
+#define INDET_GUARD() IndentGuard guard(&cur_indent_, indent_size_);
 #endif
 
 #ifndef VARIABLE_GUARD
-#define VARIABLE_GUARD_WITH_TYPE_NAME(type_name)                        \
-    VariableGuard vg(str_, &cur_indent_, cur_var_, #type_name);         \
+#define VARIABLE_GUARD_WITH_TYPE_NAME(type_name)                \
+    VariableGuard vg(str_, &cur_indent_, cur_var_, #type_name); \
     cur_var_.clear()
 #define VARIABLE_GUARD() VARIABLE_GUARD_WITH_TYPE_NAME()
 #endif
@@ -124,7 +117,7 @@ public:
     GEAXErrorCode handle(AstNode* node) {
         str_ = "";
         indent_size_ = 2;
-        cur_indent_ = - indent_size_;
+        cur_indent_ = -indent_size_;
         return std::any_cast<GEAXErrorCode>(node->accept(*this));
     }
 
@@ -132,19 +125,19 @@ public:
 
     std::string error_msg() { return error_msg_; }
 
-    template<typename T>
+    template <typename T>
     std::any visit(const std::vector<T>& v) {
         if (v.empty()) return GEAXErrorCode::GEAX_SUCCEED;
         INDET_GUARD();
         VariableGuard vg(str_, &cur_indent_, cur_var_, "", true);
         cur_var_.clear();
-        for (auto t: v) {
+        for (auto t : v) {
             VISIT_AND_CHECK_WITH_MSG(t);
         }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    template<typename T>
+    template <typename T>
     std::any visit(const std::optional<T>& t) {
         if (!t.has_value()) {
             return GEAXErrorCode::GEAX_SUCCEED;
@@ -155,13 +148,12 @@ public:
             VISIT_AND_CHECK_WITH_MSG(t.value());
         } else {
             INDET_GUARD();
-            str_.append(std::string(cur_indent_, ' '))
-                .append("null\n");
+            str_.append(std::string(cur_indent_, ' ')).append("null\n");
         }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    template<typename T1, typename T2>
+    template <typename T1, typename T2>
     std::any visit(const std::tuple<T1, T2>& t) {
         INDET_GUARD();
         VARIABLE_GUARD();
@@ -172,7 +164,7 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    template<typename T1, typename T2>
+    template <typename T1, typename T2>
     std::any visit(const std::variant<T1, T2>& t) {
         INDET_GUARD();
         VARIABLE_GUARD();
@@ -184,19 +176,17 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    template<typename T>
-    std::any reportError(T t) {
-        error_msg_ = error_msg_.empty() ?
-            "visit(" + std::string(typeid(T).name()) + ") failed at" +
-            std::string(__FILE__) + ":" + std::to_string(__LINE__)
-            : error_msg_;
+    template <typename T>
+    std::any reportError(T) {
+        error_msg_ = error_msg_.empty() ? "visit(" + std::string(typeid(T).name()) + ") failed at" +
+                                              std::string(__FILE__) + ":" + std::to_string(__LINE__)
+                                        : error_msg_;
         return reportError();
     }
 
     std::any visit(const std::string& node) {
         INDET_GUARD();
-        str_
-            .append(std::string(cur_indent_, ' '))
+        str_.append(std::string(cur_indent_, ' '))
             .append(cur_var_.empty() ? cur_var_ : cur_var_ + " = ")
             .append(node)
             .append(",\n");
@@ -206,8 +196,7 @@ public:
 
     std::any visit(const char* node) {
         INDET_GUARD();
-        str_
-            .append(std::string(cur_indent_, ' '))
+        str_.append(std::string(cur_indent_, ' '))
             .append(cur_var_.empty() ? cur_var_ : cur_var_ + " = ")
             .append(node)
             .append(",\n");
@@ -215,97 +204,70 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    std::any visit(bool node) {
-        return visit(std::to_string(node));
-    }
+    std::any visit(bool node) { return visit(std::to_string(node)); }
 
-    std::any visit(int64_t node) {
-        return visit(std::to_string(node));
-    }
+    std::any visit(int64_t node) { return visit(std::to_string(node)); }
 
-    std::any visit(double node) {
-        return visit(std::to_string(node));
-    }
+    std::any visit(double node) { return visit(std::to_string(node)); }
 
-    std::any visit(StatementMode node) {
-        return visit(ToString(node));
-    }
+    std::any visit(TransactionMode node) { return visit(ToString(node)); }
 
-    std::any visit(MatchMode node) {
-        return visit(ToString(node));
-    }
+    std::any visit(StatementMode node) { return visit(ToString(node)); }
 
-    std::any visit(ExprConjunctionType node) {
-        return visit(ToString(node));
-    }
+    std::any visit(MatchMode node) { return visit(ToString(node)); }
 
-    std::any visit(EdgeDirection node) {
-        return visit(ToString(node));
-    }
+    std::any visit(ExprConjunctionType node) { return visit(ToString(node)); }
 
-    std::any visit(GeneralSetFunction node) {
-        return visit(ToString(node));
-    }
+    std::any visit(EdgeDirection node) { return visit(ToString(node)); }
 
-    std::any visit(BinarySetFunction node) {
-        return visit(ToString(node));
-    }
+    std::any visit(GeneralSetFunction node) { return visit(ToString(node)); }
 
-    std::any visit(ModeType node) {
-        return visit(ToString(node));
-    }
+    std::any visit(BinarySetFunction node) { return visit(ToString(node)); }
 
-    std::any visit(SearchType node) {
-        return visit(ToString(node));
-    }
+    std::any visit(ModeType node) { return visit(ToString(node)); }
 
-    std::any visit(QueryJoinType node) {
-        return visit(ToString(node));
-    }
+    std::any visit(SearchType node) { return visit(ToString(node)); }
 
-    std::any visit(Statement* node) {
-        return node->accept(*this);
-    }
+    std::any visit(QueryJoinType node) { return visit(ToString(node)); }
 
-    std::any visit(LinearQueryStatement* node) {
-        return node->accept(*this);
-    }
+    std::any visit(Statement* node) { return node->accept(*this); }
 
-    std::any visit(SimpleQueryStatement* node) {
-        return node->accept(*this);
-    }
+    std::any visit(SessionParamType node) { return visit(ToString(node)); }
 
-    std::any visit(PrimitiveDataModifyStatement* node) {
-        return node->accept(*this);
-    }
+    std::any visit(LinearQueryStatement* node) { return node->accept(*this); }
 
-    std::any visit(Expr* node) {
-        return node->accept(*this);
-    }
+    std::any visit(SimpleQueryStatement* node) { return node->accept(*this); }
 
-    std::any visit(LabelTree* node) {
-        return node->accept(*this);
-    }
+    std::any visit(PrimitiveDataModifyStatement* node) { return node->accept(*this); }
 
-    std::any visit(ElementPredicate* node) {
-        return node->accept(*this);
-    }
+    std::any visit(Expr* node) { return node->accept(*this); }
 
-    std::any visit(PathPrefix* node) {
-        return node->accept(*this);
-    }
+    std::any visit(LabelTree* node) { return node->accept(*this); }
 
-    std::any visit(EdgeLike* node) {
-        return node->accept(*this);
-    }
+    std::any visit(ElementPredicate* node) { return node->accept(*this); }
 
-    std::any visit(SingleCatalogStatement* node) {
-        return node->accept(*this);
-    }
+    std::any visit(PathPrefix* node) { return node->accept(*this); }
 
-    std::any visit(SetItem* node) {
-        return node->accept(*this);
-    }
+    std::any visit(EdgeLike* node) { return node->accept(*this); }
+
+    std::any visit(SingleCatalogStatement* node) { return node->accept(*this); }
+
+    std::any visit(SetItem* node) { return node->accept(*this); }
+
+    std::any visit(BindingDefinition* node) { return node->accept(*this); }
+
+    std::any visit(BindingTableExpr* node) { return node->accept(*this); }
+
+    std::any visit(Session* node) { return node->accept(*this); }
+
+    std::any visit(Transaction* node) { return node->accept(*this); }
+
+    std::any visit(SessionSetCommand* node) { return node->accept(*this); }
+
+    std::any visit(SessionResetCommand* node) { return node->accept(*this); }
+
+    std::any visit(EndTransaction* node) { return node->accept(*this); }
+    std::any visit(ProcedureCall* node) { return node->accept(*this); }
 
     //---------------------------------------------------------------------------------
     // patterns
@@ -316,7 +278,7 @@ public:
         auto& mode = node->matchMode();
         auto& keep = node->keep();
         auto& where = node->where();
-        auto yield = node->yield();
+        auto& yield = node->yield();
         VISIT_PARAM_AND_CHECK_WITH_MSG(path_patterns);
         VISIT_PARAM_AND_CHECK_WITH_MSG(mode);
         VISIT_PARAM_AND_CHECK_WITH_MSG(keep);
@@ -346,7 +308,7 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(tails);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(Node* node) override{
+    std::any visit(Node* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(Node);
         auto filler = node->filler();
@@ -443,7 +405,7 @@ public:
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(LabelNot);
         auto expr = node->expr();
-        VISIT_PARAM_AND_CHECK_WITH_MSG(expr);;
+        VISIT_PARAM_AND_CHECK_WITH_MSG(expr);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(PropStruct* node) override {
@@ -474,14 +436,23 @@ public:
         VISIT_AND_CHECK_WITH_MSG(val);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(AllowAnonymousTable* node) override {
+    std::any visit(AllowAnonymousTable*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(AllowAnonymousTable);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(OpConcurrent* node) override {
+    std::any visit(OpConcurrent*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(OpConcurrent);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(EdgeOnJoin* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(EdgeOnJoin);
+        auto& edge = node->edge();
+        auto& joinKey = node->joinKey();
+        VISIT_AND_CHECK_WITH_MSG(edge);
+        VISIT_AND_CHECK_WITH_MSG(joinKey);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(SetAllProperties* node) override {
@@ -522,7 +493,7 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(label);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(OtherWise* node) override {
+    std::any visit(OtherWise*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(OtherWise);
         return GEAXErrorCode::GEAX_SUCCEED;
@@ -555,21 +526,25 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(path);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(BindingValue* node) override {
+    std::any visit(SetSchemaClause* node) override { return reportError(node); }
+    std::any visit(SetGraphClause* node) override { return reportError(node); }
+    std::any visit(SetTimeZoneClause* node) override { return reportError(node); }
+    std::any visit(SetParamClause* node) override {
         INDET_GUARD();
-        VARIABLE_GUARD_WITH_TYPE_NAME(BindingValue);
+        VARIABLE_GUARD_WITH_TYPE_NAME(SetParamClause);
+        auto paramType = node->paramType();
+        auto& name = node->name();
+        auto expr = node->expr();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(paramType);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(name);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(expr);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(BindingGraph* node) override {
-        INDET_GUARD();
-        VARIABLE_GUARD_WITH_TYPE_NAME(BindingGraph);
-        return GEAXErrorCode::GEAX_SUCCEED;
-    }
-    std::any visit(BindingTable* node) override {
-        INDET_GUARD();
-        VARIABLE_GUARD_WITH_TYPE_NAME(BindingTable);
-        return GEAXErrorCode::GEAX_SUCCEED;
-    }
+    std::any visit(ResetAll* node) override { return reportError(node); }
+    std::any visit(ResetSchema* node) override { return reportError(node); }
+    std::any visit(ResetTimeZone* node) override { return reportError(node); }
+    std::any visit(ResetGraph* node) override { return reportError(node); }
+    std::any visit(ResetParam* node) override { return reportError(node); }
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -1007,25 +982,25 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(VDuration* node) override {
-         INDET_GUARD();
+        INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(VDuration);
         auto& val = node->val();
         VISIT_PARAM_AND_CHECK_WITH_MSG(val);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(VTime* node) override {
-         INDET_GUARD();
+        INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(VTime);
         auto& val = node->val();
         VISIT_PARAM_AND_CHECK_WITH_MSG(val);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(VNull* node) override {
+    std::any visit(VNull*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(VNull);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(VNone* node) override {
+    std::any visit(VNone*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(VNone);
         return GEAXErrorCode::GEAX_SUCCEED;
@@ -1120,22 +1095,67 @@ public:
 
     //---------------------------------------------------------------------------------
     // stmt
+    std::any visit(ExplainActivity* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(ExplainActivity);
+        auto is_profile = node->isProfile();
+        auto& format = node->format();
+        auto stmts = node->procedureBody();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(is_profile);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(format);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(stmts);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
     std::any visit(ProcedureBody* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(ProcedureBody);
         auto& schema_ref = node->schemaRef();
-        auto& binding_vars = node->bindingVars();
+        auto& binding_defs = node->bindingDefinitions();
         auto& stmts = node->statements();
         VISIT_PARAM_AND_CHECK_WITH_MSG(schema_ref);
-        VISIT_PARAM_AND_CHECK_WITH_MSG(binding_vars);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(binding_defs);
         VISIT_PARAM_AND_CHECK_WITH_MSG(stmts);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-
+    std::any visit(BindingValue*) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BindingValue);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(BindingGraph*) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BindingGraph);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(BindingTable* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BindingTable);
+        auto& var_name = node->varName();
+        auto& types = node->types();
+        auto query = node->query();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(var_name);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(types);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(query);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(BindingTableInnerQuery* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BindingTableInnerQuery);
+        auto body = node->body();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(body);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(BindingTableInnerExpr* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BindingTableInnerExpr);
+        auto expr = node->expr();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(expr);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
     std::any visit(StatementWithYield* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(StatementWithYield);
-        auto yield = node->yield();
+        auto& yield = node->yield();
         auto stmt = node->statement();
         VISIT_PARAM_AND_CHECK_WITH_MSG(yield);
         VISIT_PARAM_AND_CHECK_WITH_MSG(stmt);
@@ -1233,6 +1253,17 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(predicate);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
+    std::any visit(ForStatement* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(ForStatement);
+        auto& items = node->itemsAlias();
+        auto& ordinalityOrOffset = node->ordinalityOrOffset();
+        auto expr = node->expr();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(items);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(ordinalityOrOffset);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(expr);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
     std::any visit(PrimitiveResultStatement* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(PrimitiveResultStatement);
@@ -1300,12 +1331,23 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(items);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(RemoveStatement* node) override {
+    std::any visit(RemoveStatement*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(RemoveStatement);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(ShowProcessListStatement* node) override {
+    std::any visit(MergeStatement* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(MergeStatement);
+        auto pathPattern = node->pathPattern();
+        auto& onCreate = node->onCreate();
+        auto& onMatch = node->onMatch();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(pathPattern);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(onCreate);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(onMatch);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(ShowProcessListStatement*) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(ShowProcessListStatement);
         return GEAXErrorCode::GEAX_SUCCEED;
@@ -1319,13 +1361,107 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(is_query);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(ManagerStatement* node) override {
-        return reportError(node);
+    std::any visit(ManagerStatement* node) override { return reportError(node); }
+    std::any visit(SessionActivity* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(SessionActivity);
+        auto& sessions = node->sessions();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(sessions);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(TransactionActivity* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(SessionActivity);
+        auto transaction = node->transaction();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(transaction);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(FullTransaction* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(FullTransaction);
+        auto start = node->startTransaction();
+        auto normal = node->normalTransaction();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(start);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(normal);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(NormalTransaction* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(NormalTransaction);
+        auto query = node->query();
+        auto& end = node->endTransaction();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(query);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(end);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(StartTransaction* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(StartTransaction);
+        auto& modes = node->modes();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(modes);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(CommitTransaction*) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(CommitTransaction);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(RollBackTransaction*) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(RollBackTransaction);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(SessionSet* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(SessionSet);
+        auto command = node->command();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(command);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(SessionReset* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(SessionReset);
+        auto command = node->command();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(command);
+        return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    std::any visit(DummyNode* node) override {
-        return reportError(node);
+    std::any visit(StandaloneCallStatement* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(CallQueryStatement);
+        auto procedure = node->procedureStatement();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(procedure);
+        return GEAXErrorCode::GEAX_SUCCEED;
     }
+    std::any visit(CallQueryStatement* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(CallQueryStatement);
+        auto procedure = node->procedureStatement();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(procedure);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(CallProcedureStatement* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(CallProcedureStatement);
+        auto isOption = node->isOption();
+        auto procedure = node->procedureCall();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(isOption);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(procedure);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(InlineProcedureCall* node) override { return reportError(node); }
+    std::any visit(NamedProcedureCall* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(NamedProcedureCall);
+        auto& name = node->name();
+        auto& args = node->args();
+        auto& yield = node->yield();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(name);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(args);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(yield);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(DummyNode* node) override { return reportError(node); }
 
 protected:
     std::any reportError() override { return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT; }
@@ -1335,7 +1471,6 @@ protected:
     int64_t cur_indent_;
     std::string cur_var_;
 };  // class AstNodeVisitor
-
 
 }  // namespace frontend
 }  // namespace geax

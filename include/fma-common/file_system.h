@@ -21,7 +21,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "fma-common/logger.h"
+#include "tools/lgraph_log.h"
 #include "fma-common/pipe_stream.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/string_util.h"
@@ -157,7 +157,7 @@ class FilePath {
                 StartsWith(uri, HDFS_PATH_START, false) ? HDFS_SCHEME_LEN : WEBHDFS_SCHEME_LEN;
             auto p1 = uri.find("/", scheme_size);
             if (p1 == uri.npos) {
-                FMA_WARN() << "failed to parse hdfs file uri: " << uri;
+                LOG_WARN() << "failed to parse hdfs file uri: " << uri;
                 return false;
             } else {
                 std::string nn = uri.substr(scheme_size, p1 - scheme_size);
@@ -671,7 +671,7 @@ class HdfsFileSystem : public FileSystem {
         if (StartsWith(lines[0], "Found ") || StartsWith(lines[0], "ls: ")) return 0;
         auto fields = Split(lines[0]);
         if (fields.size() < 8) {
-            FMA_ERR() << "Error parsing the command line output when trying to "
+            LOG_ERROR() << "Error parsing the command line output when trying to "
                          "get the size of file "
                       << file << ", output is: " << lines[0];
             return 0;
@@ -699,7 +699,7 @@ class HdfsFileSystem : public FileSystem {
         hdfsFS hdfs_fs_ = nullptr;
         hdfs_fs_ = hdfsConnect(file_path_.Host().c_str(), file_path_.Port());
         if (!hdfs_fs_) {
-            FMA_WARN() << "failed to connect to name node: " << file_path_.Host() << ":"
+            LOG_WARN() << "failed to connect to name node: " << file_path_.Host() << ":"
                        << file_path_.Port() << "\n";
             return ret;
         }
@@ -734,7 +734,7 @@ class HdfsFileSystem : public FileSystem {
             std::tie(s, success) = TextParserUtils::ParseAsTuple(&line[0], &line[line.size()], _,
                                                                  type, _, _, size, _, _, path);
             if (!success) {
-                FMA_ERR() << "Error parsing output of hdfs dfs -ls command "
+                LOG_ERROR() << "Error parsing output of hdfs dfs -ls command "
                           << " when trying to list files in dir " << dir
                           << ": line is mis-formed: " << line;
                 break;
@@ -756,7 +756,7 @@ class HdfsFileSystem : public FileSystem {
         hdfsFS hdfs_fs_ = nullptr;
         hdfs_fs_ = hdfsConnect(file_path_.Host().c_str(), file_path_.Port());
         if (!hdfs_fs_) {
-            FMA_WARN() << "failed to connect to name node: " << file_path_.Host() << ":"
+            LOG_WARN() << "failed to connect to name node: " << file_path_.Host() << ":"
                        << file_path_.Port() << "\n";
             return ret;
         }
@@ -791,7 +791,7 @@ class HdfsFileSystem : public FileSystem {
             std::tie(s, success) = TextParserUtils::ParseAsTuple(&line[0], &line[line.size()], _,
                                                                  type, _, _, size, _, _, path);
             if (!success) {
-                FMA_ERR() << "Error parsing output of hdfs dfs -ls command "
+                LOG_ERROR() << "Error parsing output of hdfs dfs -ls command "
                           << " when trying to list files in dir " << dir
                           << ": line is mis-formed: " << line;
                 break;
@@ -902,7 +902,7 @@ inline FileSystem& FileSystem::GetFileSystem(FilePath::SchemeType scheme) {
     } else if (scheme == FilePath::SchemeType::MYSQL || scheme == FilePath::SchemeType::SQLSERVER) {
         return SQLFileSystem::GetFileSystem();
     } else {
-        FMA_ERR() << "Unsupported file system type: " << (int)scheme;
+        LOG_ERROR() << "Unsupported file system type: " << (int)scheme;
         return LocalFileSystem::GetFileSystem();
     }
 }

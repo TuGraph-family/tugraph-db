@@ -26,7 +26,7 @@ geax::frontend::GEAXErrorCode PatternGraphMaker::Build(geax::frontend::AstNode* 
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::GraphPattern* node) {
-    auto &path_patterns = node->pathPatterns();
+    auto& path_patterns = node->pathPatterns();
     if (path_patterns.size() > 1) {
         NOT_SUPPORT();
     }
@@ -42,14 +42,14 @@ std::any PatternGraphMaker::visit(geax::frontend::GraphPattern* node) {
     if (node->where().has_value()) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->where().value());
     }
-    if (!node->yield()->items().empty()) {
+    if (node->yield().has_value()) {
         NOT_SUPPORT();
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::PathPattern* node) {
-    auto &chains = node->chains();
+    auto& chains = node->chains();
     for (auto chain : chains) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(chain);
     }
@@ -81,7 +81,7 @@ std::any PatternGraphMaker::visit(geax::frontend::Node* node) {
     }
     auto filler = node->filler();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(filler);
-    auto &pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     pattern_graph.AddNode(node_t_.get());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -89,7 +89,7 @@ std::any PatternGraphMaker::visit(geax::frontend::Node* node) {
 std::any PatternGraphMaker::visit(geax::frontend::Edge* node) {
     ClauseGuard cg(node->type(), cur_types_);
     relp_t_ = std::make_shared<Relationship>();
-    auto &pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_)) {
         relp_t_->derivation_ = Relationship::Derivation::MATCHED;
     } else {
@@ -109,7 +109,8 @@ std::any PatternGraphMaker::visit(geax::frontend::Edge* node) {
     case geax::frontend::EdgeDirection::kAnyDirected:
         relp_t_->direction_ = parser::LinkDirection::DIR_NOT_SPECIFIED;
         break;
-    default: NOT_SUPPORT();
+    default:
+        NOT_SUPPORT();
     }
     if (node->hopRange().has_value()) {
         auto min_hop = std::get_if<int64_t>(&std::get<0>(node->hopRange().value()));
@@ -132,7 +133,7 @@ std::any PatternGraphMaker::visit(geax::frontend::Edge* node) {
             relp_t_->max_hop_ = parser::VAR_LEN_EXPAND_MAX_HOP;
         }
     }
-    FMA_DBG() << relp_t_->MinHop() << " " << relp_t_->MaxHop();
+    LOG_DEBUG() << relp_t_->MinHop() << " " << relp_t_->MaxHop();
     pattern_graph.AddRelationship(relp_t_.get());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -158,12 +159,12 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
         variable.value(),
         SymbolNode(symbols_idx_[cur_pattern_graph_]++, symbol_node_type, SymbolNode::Scope::LOCAL));
     // label
-    auto &label = node->label();
+    auto& label = node->label();
     if (label.has_value()) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(label.value());
     }
     // predicates
-    auto &predicates = node->predicates();
+    auto& predicates = node->predicates();
     if (predicates.size() > 1) {
         NOT_SUPPORT();
     }
@@ -178,17 +179,11 @@ std::any PatternGraphMaker::visit(geax::frontend::WhereClause* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::OrderByField* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::OrderByField* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::PathModePrefix* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::PathModePrefix* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::PathSearchPrefix* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::PathSearchPrefix* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::SingleLabel* node) {
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kNode, cur_types_)) {
@@ -201,20 +196,14 @@ std::any PatternGraphMaker::visit(geax::frontend::SingleLabel* node) {
     NOT_SUPPORT();
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::LabelOr* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::LabelOr* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::LabelAnd* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::LabelAnd* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::LabelNot* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::LabelNot* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
-    auto &properties = node->properties();
+    auto& properties = node->properties();
     if (properties.size() != 1) {
         NOT_SUPPORT();
     }
@@ -224,13 +213,13 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
     p.field = key;
     if (value->type() == geax::frontend::AstNodeType::kVString) {
         p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VString*) value)->val());
+        p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
     } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
         p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VInt*) value)->val());
+        p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
     } else if (value->type() == geax::frontend::AstNodeType::kRef) {
         p.type = Property::VARIABLE;
-        p.value = lgraph::FieldData(((geax::frontend::Ref*) value)->name());
+        p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
     } else {
         NOT_SUPPORT();
     }
@@ -243,33 +232,43 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
     NOT_SUPPORT();
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::TableFunctionClause* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::TableFunctionClause* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::ReadConsistency* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::ReadConsistency* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::AllowAnonymousTable* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::AllowAnonymousTable* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::OpConcurrent* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::OpConcurrent* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::SetAllProperties* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::EdgeOnJoin* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::SetLabel* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::SetAllProperties* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::UpdateProperties* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SetLabel* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SetSingleProperty* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SetSchemaClause* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SetGraphClause* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SetTimeZoneClause* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SetParamClause* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ResetAll* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ResetSchema* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ResetTimeZone* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ResetGraph* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ResetParam* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::GetField* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
@@ -495,17 +494,11 @@ std::any PatternGraphMaker::visit(geax::frontend::AggFunc* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::BAggFunc* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::BAggFunc* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::MultiCount* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::MultiCount* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::Windowing* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::Windowing* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::MkList* node) {
     for (auto elem : node->elems()) {
@@ -591,41 +584,54 @@ std::any PatternGraphMaker::visit(geax::frontend::Ref* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsNull* node) {
-    NOT_SUPPORT();
+std::any PatternGraphMaker::visit(geax::frontend::Param* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::IsNull* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::IsDirected* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::IsNormalized* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::IsSourceOf* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::IsDestinationOf* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::IsLabeled* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::Exists* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ExplainActivity* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::SessionActivity* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::TransactionActivity* node) {
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->transaction());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsDirected* node) {
-    NOT_SUPPORT();
+std::any PatternGraphMaker::visit(geax::frontend::FullTransaction* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::NormalTransaction* node) {
+    if (node->endTransaction().has_value()) {
+        NOT_SUPPORT();
+    }
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->query());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsNormalized* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::StartTransaction* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsSourceOf* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::CommitTransaction* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsDestinationOf* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::RollBackTransaction* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsLabeled* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::SessionSet* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::Same* node) {
-    NOT_SUPPORT();
-}
-
-std::any PatternGraphMaker::visit(geax::frontend::AllDifferent* node) {
-    NOT_SUPPORT();
-}
-
-std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::SessionReset* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
     pattern_graphs_.resize(node->statements().size());
@@ -666,21 +672,17 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::SchemaFromPath* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::SchemaFromPath* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::BindingValue* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::BindingValue* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::BindingGraph* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::BindingGraph* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::BindingTable* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::BindingTable* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::BindingTableInnerQuery* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::BindingTableInnerExpr* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::StatementWithYield* node) {
     auto stmt = node->statement();
@@ -694,15 +696,15 @@ std::any PatternGraphMaker::visit(geax::frontend::QueryStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
+std::any PatternGraphMaker::visit(geax::frontend::StandaloneCallStatement* node) { NOT_SUPPORT(); }
+
 std::any PatternGraphMaker::visit(geax::frontend::JoinQueryExpression* node) {
     auto head = node->head();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::JoinRightPart* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::JoinRightPart* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node) {
     auto head = node->head();
@@ -711,7 +713,7 @@ std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node)
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
-    auto &query_stmts = node->queryStatements();
+    auto& query_stmts = node->queryStatements();
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }
@@ -720,17 +722,11 @@ std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* n
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::SelectStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::SelectStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::FocusedQueryStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::FocusedQueryStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::FocusedResultStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::FocusedResultStatement* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::MatchStatement* node) {
     ClauseGuard cg(node->type(), cur_types_);
@@ -739,12 +735,20 @@ std::any PatternGraphMaker::visit(geax::frontend::MatchStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::FilterStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::FilterStatement* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::CallProcedureStatement* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::InlineProcedureCall* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::NamedProcedureCall* node) { NOT_SUPPORT(); }
+
+std::any PatternGraphMaker::visit(geax::frontend::ForStatement* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node) {
-    auto &items = node->items();
+    auto& items = node->items();
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     for (auto item : items) {
         auto alias = std::get<0>(item);
@@ -774,77 +778,39 @@ std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::CatalogModifyStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::CatalogModifyStatement* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::LinearDataModifyingStatement* node) {
     NOT_SUPPORT();
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::InsertStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::ReplaceStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::SetStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::DeleteStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::DeleteStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::RemoveStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::OtherWise* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::MergeStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::Union* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::OtherWise* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::Except* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::Union* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::Intersect* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::Except* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::UpdateProperties* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::Intersect* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::SetSingleProperty* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::ShowProcessListStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::Param* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::KillStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::ShowProcessListStatement* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::ManagerStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::KillStatement* node) {
-    NOT_SUPPORT();
-}
-
-std::any PatternGraphMaker::visit(geax::frontend::ManagerStatement* node) {
-    NOT_SUPPORT();
-}
-
-std::any PatternGraphMaker::visit(geax::frontend::DummyNode* node) {
-    NOT_SUPPORT();
-}
+std::any PatternGraphMaker::visit(geax::frontend::DummyNode* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::reportError() { return error_msg_; }
 

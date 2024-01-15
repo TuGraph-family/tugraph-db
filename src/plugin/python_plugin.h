@@ -51,13 +51,13 @@ class PythonWorkerProcess {
 
     void PrintMessageToLog(const char* bytes, size_t n) {
         std::lock_guard<std::mutex> _l(err_lock_);
-        FMA_WARN() << "[python plugin] " << std::string(bytes, bytes + n);
+        LOG_WARN() << "[python plugin] " << std::string(bytes, bytes + n);
         err_.append(bytes, n);
     }
 
     void PrintMessageToWarn(const char* bytes, size_t n) {
         std::lock_guard<std::mutex> _l(err_lock_);
-        FMA_WARN() << "[python plugin] " << std::string(bytes, bytes + n);
+        LOG_WARN() << "[python plugin] " << std::string(bytes, bytes + n);
         err_.append(bytes, n);
     }
 

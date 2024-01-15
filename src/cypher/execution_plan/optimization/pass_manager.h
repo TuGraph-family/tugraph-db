@@ -54,6 +54,13 @@ class PassManager {
     void ExecutePasses() {
         for (auto p : all_passes_) {
             if (p->Gate()) p->Execute(root_);
+            std::function<void(cypher::OpBase *)> checkParent = [&](cypher::OpBase *op) {
+                for (auto child : op->children) {
+                    CYPHER_THROW_ASSERT(child->parent == op);
+                    checkParent(child);
+                }
+            };
+            checkParent(root_);
         }
     }
 

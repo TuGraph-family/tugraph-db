@@ -1,5 +1,41 @@
 # Change Log for TuGraph
 
+# 4.1.0 (2023-12-25)
+
+**Breaking Changes:**
+
+1. Compatibility with the Bolt protocol, supporting Java, JavaScript, Python, Go, Rust, and CLI clients.
+
+2. Support for fast online full import.
+
+3. Implementation of asynchronous task management.
+
+4. Support for spatial data types.
+
+5. Evolution of GQL functionalities.
+
+**Improvements And Bug Fixes:**
+
+1. Graph learning engine now supports labeled graphs.
+
+2. Asynchronous storage snapshot support for high availability.
+
+3. Enhancement of edge indexes, addition of pair-unique uniqueness.
+
+4. Decoupling of the KV layer abstraction.
+
+5. Support for M1 Docker.
+
+6. Optimization of the CI/CD process, significantly reducing CI time.
+
+**Interfaces Modification:**
+
+1. Addition of the Bolt protocol standard.
+
+2. Support for spatial data types.
+
+3. The is_unique parameter in indexes now uses the IndexType enumeration, affecting the AddVertexIndex and AddEdgeIndex interfaces.
+
 # 4.0.1 (2023-9-28)
 
 **Breaking Changes:**

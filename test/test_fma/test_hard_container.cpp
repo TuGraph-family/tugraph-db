@@ -16,7 +16,6 @@
 
 #include "fma-common/configuration.h"
 #include "fma-common/hard_container.h"
-#include "fma-common/logging.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
 
@@ -31,7 +30,7 @@ FMA_UNIT_TEST(HardContainer) {
     parser.Finalize();
 
     std::string path = parser.GetValue("input");
-    LOG() << "Reading " << path << " with HardContainer";
+    LOG_INFO() << "Reading " << path << " with HardContainer";
 
     int64_t d = 0;
     double t1 = GetTime();
@@ -40,9 +39,9 @@ FMA_UNIT_TEST(HardContainer) {
         d += container[i];
     }
     double t2 = GetTime();
-    LOG() << "Sum= " << d;
+    LOG_INFO() << "Sum= " << d;
     double MB = (double)container.Size() * sizeof(int64_t) / 1024 / 1024;
-    LOG() << "Read " << MB << " MB, at " << MB / (t2 - t1) << " MB/s";
+    LOG_INFO() << "Read " << MB << " MB, at " << MB / (t2 - t1) << " MB/s";
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;

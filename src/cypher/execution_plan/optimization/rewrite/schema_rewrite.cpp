@@ -96,9 +96,9 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
 
 #ifdef DEBUG
     PrintLabel2Idx();
-    FMA_DBG() << "目标图:";
+    LOG_DEBUG() << "目标图:";
     target_graph.PrintGraph();
-    FMA_DBG() << "查询图:";
+    LOG_DEBUG() << "查询图:";
     query_graph.PrintGraph();
 #endif
 
@@ -135,18 +135,18 @@ void SchemaRewrite::MatchRecursive(size_t vid, size_t t_vid) {
         std::vector<StateInfo> candidate_state_infos = GenCandidateStateInfo();
 
 #ifdef DEBUG
-        FMA_DBG() << "num of stateinfos:" << candidate_state_infos.size() << ",depth:" << depth;
+        LOG_DEBUG() << "num of stateinfos:" << candidate_state_infos.size() << ",depth:" << depth;
         for (StateInfo si : candidate_state_infos) {
-            FMA_DBG() << "vid:" << si.m_vid;
-            FMA_DBG() << "next vid:" << si.m_next_vid;
-            FMA_DBG() << "eid:" << si.m_eid;
+            LOG_DEBUG() << "vid:" << si.m_vid;
+            LOG_DEBUG() << "next vid:" << si.m_next_vid;
+            LOG_DEBUG() << "eid:" << si.m_eid;
         }
 #endif
 
         for (StateInfo si : candidate_state_infos) {
             for (auto it = si.m_id_map.begin(); it != si.m_id_map.end(); it++) {
 #ifdef DEBUG
-                FMA_DBG() << "check:query:" << si.m_next_vid << ",target:" << it->first;
+                LOG_DEBUG() << "check:query:" << si.m_next_vid << ",target:" << it->first;
 #endif
                 if (CheckNodeLabel(si.m_next_vid, it->first)) {
                     core_2[si.m_next_vid] = it->first;
@@ -343,14 +343,14 @@ void SchemaRewrite::AddMapping() {
 }
 // 打印当前匹配的路径
 void SchemaRewrite::PrintMapping() {
-    FMA_LOG() << "Node Mapping:";
+    LOG_INFO() << "Node Mapping:";
     for (size_t j = 0; j < query_size; j++) {
         int core_id = core_2[j];
         std::string label = idx2label[core_id];
-        FMA_LOG() << "(" << core_id << "[" << label << "]-" << j << ")";
+        LOG_INFO() << "(" << core_id << "[" << label << "]-" << j << ")";
     }
-    FMA_LOG();
-    FMA_LOG() << "Edge Mapping:";
+    LOG_INFO();
+    LOG_INFO() << "Edge Mapping:";
     for (Edge e : query_graph.m_edges) {
         size_t src_id = e.m_source_id, tar_id = e.m_target_id;
         size_t core_src_id = core_2[src_id], core_tar_id = core_2[tar_id];
@@ -368,14 +368,14 @@ void SchemaRewrite::PrintMapping() {
         }
         std::string src_label = idx2label[core_src_id];
         std::string tar_label = idx2label[core_tar_id];
-        FMA_LOG() << "(" << src_id << "[" << src_label << "])-[" << label_str << "]-(" << tar_id
+        LOG_INFO() << "(" << src_id << "[" << src_label << "])-[" << label_str << "]-(" << tar_id
                   << "[" << tar_label << "]) ";
     }
 }
 
 void SchemaRewrite::PrintLabel2Idx() {
     for (auto it : label2idx) {
-        FMA_LOG() << it.first << " " << it.second;
+        LOG_INFO() << it.first << " " << it.second;
     }
 }
 

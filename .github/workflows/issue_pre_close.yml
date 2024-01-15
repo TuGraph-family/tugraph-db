@@ -1,0 +1,27 @@
+# Usage:
+#  Create a comment when the issue is closed, reminding the user to star the repo.
+
+name: Issue Pre Close
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  issue-pre-close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check-star
+        uses: gacts/is-stargazer@v1
+        id: check-star
+      - name: Create comment
+        if: steps.check-star.outputs.is-stargazer != 'true'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+              Hello @${{ github.event.issue.user.login }}, please star this repo if you find it useful! Thanks :star:!
+            
+              你好 @${{ github.event.issue.user.login }}。如果这个项目帮助到你，可以在仓库右上角 star 一下，感谢你的 :star:!

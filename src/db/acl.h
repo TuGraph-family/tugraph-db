@@ -342,7 +342,8 @@ class AclManager {
                         bool disable);
 
     bool ChangeCurrentPassword(KvTransaction& txn, const std::string& user,
-                               const std::string& old_password, const std::string& new_password);
+                               const std::string& old_password, const std::string& new_password,
+                               bool force_reset_password = false);
 
     bool ChangeUserPassword(KvTransaction& txn, const std::string& current_user,
                             const std::string& user, const std::string& password);

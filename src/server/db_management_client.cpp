@@ -12,249 +12,225 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "client/cpp/rpc/rpc_exception.h"
 #include "server/db_management_client.h"
 
 namespace lgraph {
 
-bool DBManagementClient::exit_flag = false;
-std::mutex DBManagementClient::hb_mutex_;
-std::condition_variable DBManagementClient::hb_cond_;
+DEFINE_string(mgr_protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
+DEFINE_string(mgr_connection_type, "", "Connection type. Available values: single, pooled, short");
+DEFINE_int32(mgr_timeout_ms, 60 * 60 * 1000, "RPC timeout in milliseconds");
+DEFINE_int32(mgr_max_retry, 3, "Max retries(not including the first RPC)");
+DEFINE_string(mgr_load_balancer, "", "The algorithm for load balancing");
+// DEFINE_bool(usercode_in_pthread);
 
 DBManagementClient::DBManagementClient()
-    : job_stub_(db_management::JobManagementService_Stub(&channel_)),
-      heartbeat_stub_(db_management::HeartbeatService_Stub(&channel_)) {
-}
+    : exit_(false),
+      connected_(false),
+      heartbeat_count_(0),
+      heartbeat_interval_(10),
+      channel_(std::make_shared<brpc::Channel>()) {}
 
-void DBManagementClient::InitChannel(std::string server) {
-     // Initialize brpc channel to db_management.
+void DBManagementClient::Init(const std::string& hostname, const uint16_t port,
+                              const std::string& url) {
+    host_ = hostname;
+    port_ = std::to_string(port);
+
+    // Initialize brpc channel to DbManagement
     brpc::ChannelOptions options;
-    options.protocol = "baidu_std";
-    options.connection_type = "";
-    options.timeout_ms = 1000;
-    options.max_retry = 3;
-    if (this->channel_.Init(server.c_str(), "", &options) != 0) {
-        DEBUG_LOG(ERROR) << "Fail to initialize channel";
-        std::runtime_error("failed to initialize channel.");
+    options.protocol = FLAGS_mgr_protocol;
+    options.connection_type = FLAGS_mgr_connection_type;
+    options.timeout_ms = FLAGS_mgr_timeout_ms;
+    options.max_retry = FLAGS_mgr_max_retry;
+    if (channel_->Init(url.c_str(), FLAGS_mgr_load_balancer.c_str(), &options) != 0) {
+        throw RpcException("failed to initialize channel.");
     }
-}
-
-void DBManagementClient::SetHeartbeat(bool heartbeat) {
-    if (this->heartbeat_ == false && heartbeat == true) {
-        GENERAL_LOG(INFO) << "connected to db management";
-    } else if (this->heartbeat_ == true && heartbeat == false) {
-        GENERAL_LOG(INFO) << "lost connection to db management";
-    }
-    this->heartbeat_ = heartbeat;
-}
-
-bool DBManagementClient::GetHeartbeat() {
-    return this->heartbeat_;
-}
-
-void DBManagementClient::SetHeartbeatCount(int heartbeat_count) {
-    this->heartbeat_count_ = heartbeat_count;
-}
-
-int DBManagementClient::GetHeartbeatCount() {
-    return this->heartbeat_count_;
-}
-
-db_management::HeartbeatService_Stub& DBManagementClient::GetHeartbeatStub() {
-    return this->heartbeat_stub_;
-}
-
-db_management::JobManagementService_Stub& DBManagementClient::GetJobStub() {
-    return this->job_stub_;
-}
-
-DBManagementClient& DBManagementClient::GetInstance() {
-    brpc::FLAGS_usercode_in_pthread = true;
-    static DBManagementClient instance;
-    return instance;
 }
 
 void DBManagementClient::DetectHeartbeat() {
-    std::unique_lock<std::mutex> l(hb_mutex_);
-    db_management::HeartbeatService_Stub& stub =
-        DBManagementClient::GetInstance().GetHeartbeatStub();
-    while (!exit_flag) {
-        hb_cond_.wait_for(l, std::chrono::seconds(3));
-        if (exit_flag) return;
-        db_management::HeartbeatRequest request;
-        db_management::HeartbeatResponse response;
+    DbMgr::JobManagementService_Stub stub(channel_.get());
+    static const uint64_t MAX_UINT64 = std::numeric_limits<uint64_t>::max();
+
+    std::unique_lock<std::mutex> l(heartbeat_mutex_);
+    while (!exit_) {
         brpc::Controller cntl;
-        int heartbeat_count = DBManagementClient::GetInstance().GetHeartbeatCount();
+        DbMgr::HeartbeatRequest request;
+        DbMgr::HeartbeatResponse response;
         request.set_request_msg("this is a heartbeat request message.");
-        request.set_heartbeat_count(heartbeat_count);
-        stub.detectHeartbeat(&cntl, &request, &response, NULL);
-        if (!cntl.Failed()) {
-            if (response.heartbeat_count() == heartbeat_count + 1) {
-                DBManagementClient::GetInstance().SetHeartbeat(true);
-                DBManagementClient::GetInstance().SetHeartbeatCount(heartbeat_count + 1);
-            } else {
-                DBManagementClient::GetInstance().SetHeartbeat(false);
-                DBManagementClient::GetInstance().SetHeartbeatCount(0);
-            }
-        } else {
-            DBManagementClient::GetInstance().SetHeartbeat(false);
-            DBManagementClient::GetInstance().SetHeartbeatCount(0);
+        request.set_heartbeat_count(heartbeat_count_);
+        stub.detectHeartbeat(&cntl, &request, &response, nullptr);
+        if (!connected_ && !cntl.Failed()) {
+            LOG_INFO() << "connection to management service established";
+        } else if (connected_ && cntl.Failed()) {
+            LOG_INFO() << "connection to management service lost";
         }
+        connected_ = !cntl.Failed();
+        heartbeat_count_ = (heartbeat_count_ + 1) % MAX_UINT64;
+
+        heartbeat_cond_.wait_for(l, std::chrono::seconds(heartbeat_interval_));
     }
 }
 
-int DBManagementClient::CreateJob(std::string host, std::string port, std::int64_t start_time,
-                                  std::string period, std::string name, std::string type,
-                                  std::string user, std::int64_t create_time) {
-    db_management::JobManagementService_Stub& stub =
-        DBManagementClient::GetInstance().GetJobStub();
-    db_management::JobManagementRequest request;
-    db_management::JobManagementResponse response;
-    brpc::Controller cntl;
-
-    // build create_job_request
-    request.set_db_host(host);
-    request.set_db_port(port);
-    request.mutable_create_job_request()->set_start_time(start_time);
-    request.mutable_create_job_request()->set_period(period);
-    request.mutable_create_job_request()->set_procedure_name(name);
-    request.mutable_create_job_request()->set_procedure_type(type);
-    request.mutable_create_job_request()->set_user(user);
-    request.mutable_create_job_request()->set_create_time(create_time);
-
-    stub.handleRequest(&cntl, &request, &response, NULL);
-    if (!cntl.Failed()) {
-        int job_id = response.create_job_response().job_id();
-        DEBUG_LOG(INFO) << "[CREATE JOB REQUEST]: " << "success, JobId is " << job_id;
-        return job_id;
-    } else {
-        DEBUG_LOG(ERROR) << "[CREATE JOB REQUEST]: " << cntl.ErrorText();
-        throw std::runtime_error("failed to connect to db management.");
-    }
+void DBManagementClient::StopHeartbeat() {
+    exit_ = true;
+    heartbeat_cond_.notify_all();
 }
 
-void DBManagementClient::UpdateJob(std::string host, std::string port, int job_id,
-                                   std::string status, std::int64_t runtime,
-                                   std::string result) {
-    db_management::JobManagementService_Stub& stub =
-        DBManagementClient::GetInstance().GetJobStub();
-    db_management::JobManagementRequest request;
-    db_management::JobManagementResponse response;
+void DBManagementClient::CreateJob(const std::string task_id, const std::string task_name,
+                                   const int64_t create_time, const std::string period,
+                                   const std::string name, const std::string type,
+                                   const std::string user) {
+    DbMgr::JobManagementRequest request;
+    request.set_db_host(host_);
+    request.set_db_port(port_);
+    DbMgr::CreateJobRequest* creq = request.mutable_create_job_request();
+    creq->set_task_id(task_id);
+    creq->set_task_name(task_name);
+    creq->set_start_time(create_time);  // start when created for procedure calls
+    creq->set_period(period);
+    creq->set_procedure_name(name);
+    creq->set_procedure_type(type);
+    creq->set_user(user);
+    creq->set_create_time(create_time);
+
+    DbMgr::JobManagementService_Stub stub(channel_.get());
     brpc::Controller cntl;
-
-    // build create_job_request
-    request.set_db_host(host);
-    request.set_db_port(port);
-    request.mutable_update_job_status_request()->set_job_id(job_id);
-    request.mutable_update_job_status_request()->set_status(status);
-    request.mutable_update_job_status_request()->set_runtime(runtime);
-    request.mutable_update_job_status_request()->set_result(result);
-
-    stub.handleRequest(&cntl, &request, &response, NULL);
-    if (!cntl.Failed()) {
-        DEBUG_LOG(INFO) << "[UPDATE JOB REQUEST]: " << "success";
-    } else {
-        DEBUG_LOG(ERROR) << "[UPDATE JOB REQUEST]: " << cntl.ErrorText();
-        throw std::runtime_error("failed to connect to db management.");
+    DbMgr::JobManagementResponse response;
+    stub.handleRequest(&cntl, &request, &response, nullptr);
+    if (cntl.Failed()) {
+        LOG_ERROR() << "[CreateJob REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("Request failed. Reason: " + cntl.ErrorText());
     }
+    if (response.response_code() != DbMgr::ResponseCode::SUCCESS) {
+        LOG_ERROR() << "[CreateJob REQUEST]: response code is not success.";
+        throw std::runtime_error("failed to create job. Reason: " + response.message());
+    }
+    LOG_INFO() << "[CreateJob REQUEST]: success, TaskId is " << task_id;
 }
 
-std::vector<db_management::Job> DBManagementClient::ReadJob(std::string host,
-                                                            std::string port) {
-    db_management::JobManagementService_Stub& stub =
-        DBManagementClient::GetInstance().GetJobStub();
-    db_management::JobManagementRequest request;
-    db_management::JobManagementResponse response;
-    brpc::Controller cntl;
+void DBManagementClient::UpdateJobStatus(const std::string task_id, const std::string status,
+                                         const std::int64_t runtime, const std::string result) {
+    DbMgr::JobManagementRequest request;
+    request.set_db_host(host_);
+    request.set_db_port(port_);
+    DbMgr::UpdateJobStatusRequest* ureq = request.mutable_update_job_status_request();
+    ureq->set_task_id(task_id);
+    ureq->set_status(status);
+    ureq->set_runtime(runtime);
+    ureq->set_result(result);
 
-    // build create_job_request
-    request.set_db_host(host);
-    request.set_db_port(port);
+    DbMgr::JobManagementService_Stub stub(channel_.get());
+    DbMgr::JobManagementResponse response;
+    brpc::Controller cntl;
+    stub.handleRequest(&cntl, &request, &response, nullptr);
+    if (cntl.Failed()) {
+        LOG_ERROR() << "[UpdateJobStatus REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("Request failed. Reason: " + cntl.ErrorText());
+    }
+    if (response.response_code() != DbMgr::ResponseCode::SUCCESS) {
+        LOG_ERROR() << "[UpdateJobStatus REQUEST]: response code is not success.";
+        throw std::runtime_error("failed to update job status. Reason: " + response.message());
+    }
+
+    LOG_INFO() << "[UpdateJobStatus REQUEST]: success";
+}
+
+std::vector<DbMgr::Job> DBManagementClient::GetJobStatus() {
+    DbMgr::JobManagementRequest request;
+    request.set_db_host(host_);
+    request.set_db_port(port_);
     request.mutable_get_job_status_request();
 
-    stub.handleRequest(&cntl, &request, &response, NULL);
-    if (!cntl.Failed()) {
-        DEBUG_LOG(INFO) << "[READ JOB REQUEST]: " << "success";
-        std::vector<db_management::Job> job_list;
-        for (int i = 0; i < response.get_job_status_response().job_size(); i++) {
-            job_list.push_back(response.get_job_status_response().job(i));
-        }
-        return job_list;
-    } else {
-        DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
-        throw std::runtime_error("failed to connect to db management.");
+    DbMgr::JobManagementService_Stub stub(channel_.get());
+    DbMgr::JobManagementResponse response;
+    brpc::Controller cntl;
+    stub.handleRequest(&cntl, &request, &response, nullptr);
+    if (cntl.Failed()) {
+        LOG_ERROR() << "[GetJobStatus REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("Request failed. Reason: " + cntl.ErrorText());
     }
+    if (response.response_code() != DbMgr::ResponseCode::SUCCESS) {
+        LOG_ERROR() << "[GetJobStatus REQUEST]: response code is not success.";
+        throw std::runtime_error("failed to get job status. Reason: " + response.message());
+    }
+
+    std::vector<DbMgr::Job> job_list;
+    for (int i = 0; i < response.get_job_status_response().job_size(); i++) {
+        job_list.push_back(response.get_job_status_response().job(i));
+    }
+    LOG_INFO() << "[GetJobStatus REQUEST]: success";
+    return job_list;
 }
 
-db_management::Job DBManagementClient::ReadJob(std::string host,
-                                                            std::string port,
-                                                            int job_id) {
-    db_management::JobManagementService_Stub& stub =
-        DBManagementClient::GetInstance().GetJobStub();
-    db_management::JobManagementRequest request;
-    db_management::JobManagementResponse response;
+DbMgr::Job DBManagementClient::GetJobStatusById(const std::string task_id) {
+    DbMgr::JobManagementRequest request;
+    request.set_db_host(host_);
+    request.set_db_port(port_);
+    request.mutable_get_job_status_request()->set_task_id(task_id);
+
+    DbMgr::JobManagementService_Stub stub(channel_.get());
+    DbMgr::JobManagementResponse response;
     brpc::Controller cntl;
-
-    // build create_job_request
-    request.set_db_host(host);
-    request.set_db_port(port);
-    request.mutable_get_job_status_request()->set_job_id(job_id);
-
-    stub.handleRequest(&cntl, &request, &response, NULL);
-    if (!cntl.Failed()) {
-        DEBUG_LOG(INFO) << "[READ JOB REQUEST]: " << "success";
-        std::vector<db_management::Job> job_list;
-        db_management::Job job;
-        job = response.get_job_status_response().job(0);
-        return job;
-    } else {
-        DEBUG_LOG(ERROR) << "[READ JOB REQUEST]: " << cntl.ErrorText();
-        throw std::runtime_error("failed to connect to db management.");
+    stub.handleRequest(&cntl, &request, &response, nullptr);
+    if (cntl.Failed()) {
+        LOG_ERROR() << "[GetJobStatusById REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("Request failed. Reason: " + cntl.ErrorText());
     }
+    if (response.response_code() != DbMgr::ResponseCode::SUCCESS) {
+        LOG_ERROR() << "[GetJobStatusById REQUEST]: response code is not success.";
+        throw std::runtime_error("failed to get job status by id. Reason: " + response.message());
+    }
+
+    LOG_INFO() << "[GetJobStatusById REQUEST]: success";
+    std::vector<DbMgr::Job> job_list;
+    DbMgr::Job job;
+    job = response.get_job_status_response().job(0);
+    return job;
 }
 
-db_management::AlgoResult DBManagementClient::ReadJobResult(std::string host,
-                                                                    std::string port, int job_id) {
-    db_management::JobManagementService_Stub& stub =
-        DBManagementClient::GetInstance().GetJobStub();
-    db_management::JobManagementRequest request;
-    db_management::JobManagementResponse response;
+DbMgr::AlgoResult DBManagementClient::GetJobResult(const std::string task_id) {
+    DbMgr::JobManagementRequest request;
+    request.set_db_host(host_);
+    request.set_db_port(port_);
+    request.mutable_get_algo_result_request()->set_task_id(task_id);
+
+    DbMgr::JobManagementService_Stub stub(channel_.get());
+    DbMgr::JobManagementResponse response;
     brpc::Controller cntl;
-
-    // build create_job_request
-    request.set_db_host(host);
-    request.set_db_port(port);
-    request.mutable_get_algo_result_request()->set_job_id(job_id);
-
-    stub.handleRequest(&cntl, &request, &response, NULL);
-    if (!cntl.Failed()) {
-        DEBUG_LOG(INFO) << "[READ JOB RESULT REQUEST]: " << "success";
-        return response.get_algo_result_response().algo_result();
-    } else {
-        DEBUG_LOG(ERROR) << "[READ JOB RESULT REQUEST]: " << cntl.ErrorText();
-        throw std::runtime_error("failed to connect to db management.");
+    stub.handleRequest(&cntl, &request, &response, nullptr);
+    if (cntl.Failed()) {
+        LOG_ERROR() << "[GetJobResult REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("Request failed. Reason: " + cntl.ErrorText());
     }
+    if (response.response_code() != DbMgr::ResponseCode::SUCCESS) {
+        LOG_ERROR() << "[GetJobResult REQUEST]: response code is not success.";
+        throw std::runtime_error("failed to get job result. Reason: " + response.message());
+    }
+
+    LOG_INFO() << "[GetJobResult REQUEST]: success";
+    return response.get_algo_result_response().algo_result();
 }
 
-void DBManagementClient::DeleteJob(std::string host, std::string port, int job_id) {
-    db_management::JobManagementService_Stub& stub =
-        DBManagementClient::GetInstance().GetJobStub();
-    db_management::JobManagementRequest request;
-    db_management::JobManagementResponse response;
+void DBManagementClient::DeleteJob(const std::string task_id) {
+    DbMgr::JobManagementRequest request;
+    request.set_db_host(host_);
+    request.set_db_port(port_);
+    request.mutable_delete_job_request()->set_task_id(task_id);
+
+    DbMgr::JobManagementService_Stub stub(channel_.get());
+    DbMgr::JobManagementResponse response;
     brpc::Controller cntl;
-
-    // build create_job_request
-    request.set_db_host(host);
-    request.set_db_port(port);
-    request.mutable_delete_job_request()->set_job_id(job_id);
-
-    stub.handleRequest(&cntl, &request, &response, NULL);
-    if (!cntl.Failed()) {
-        DEBUG_LOG(INFO) << "[DELETE JOB REQUEST]: " << "success";
-        return;
-    } else {
-        DEBUG_LOG(ERROR) << "[DELETE JOB REQUEST]: " << cntl.ErrorText();
-        throw std::runtime_error("failed to connect to db management.");
+    stub.handleRequest(&cntl, &request, &response, nullptr);
+    if (cntl.Failed()) {
+        LOG_ERROR() << "[DeleteJob REQUEST]: " << cntl.ErrorText();
+        throw std::runtime_error("Request failed. Reason: " + cntl.ErrorText());
     }
+    if (response.response_code() != DbMgr::ResponseCode::SUCCESS) {
+        LOG_ERROR() << "[DeleteJob REQUEST]: response code is not success.";
+        throw std::runtime_error("failed to delete job. Reason: " + response.message());
+    }
+
+    LOG_INFO() << "[DeleteJob REQUEST]: success";
 }
 }  // namespace lgraph
 

@@ -13,7 +13,6 @@
  */
 
 #include <random>
-#include "fma-common/logging.h"
 #include "fma-common/configuration.h"
 #include "gtest/gtest.h"
 #include "core/lightning_graph.h"
@@ -217,11 +216,11 @@ TEST_F(TestLGraph, LGraph) {
             "", std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
             true, VertexOptions("id")));
         // label name
-        db.AddLabel(std::string(255, 'e'),
+        db.AddLabel(std::string(256, 'e'),
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
                                         true, VertexOptions("id"));
         // long label name
-        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(256, 'a'),
+        UT_EXPECT_ANY_THROW(db.AddLabel(std::string(257, 'a'),
                                         std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
                                         true, VertexOptions("id")));
         // strange label names
@@ -250,13 +249,13 @@ TEST_F(TestLGraph, LGraph) {
         // field name ok
         db.AddLabel(
             "field_name_not_long",
-            std::vector<FieldSpec>{FieldSpec(std::string(255, 'a'), FieldType::STRING, false)},
-            true, VertexOptions(std::string(255, 'a')));
+            std::vector<FieldSpec>{FieldSpec(std::string(256, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(256, 'a')));
         // field name too long
         UT_EXPECT_ANY_THROW(db.AddLabel(
             "field_name_too_long",
-            std::vector<FieldSpec>{FieldSpec(std::string(256, 'a'), FieldType::STRING, false)},
-            true, VertexOptions(std::string(256, 'a'))));
+            std::vector<FieldSpec>{FieldSpec(std::string(257, 'a'), FieldType::STRING, false)},
+            true, VertexOptions(std::string(257, 'a'))));
         // invalid character in field name
         for (auto& str : std::vector<std::string>{"#", "!", "+", "-", "*", "/"})
             UT_EXPECT_ANY_THROW(db.AddLabel(
@@ -331,6 +330,22 @@ TEST_F(TestLGraph, LGraph) {
         }
     }
 
+    UT_LOG() << "Label number limit tests";
+    {
+        DBConfig config;
+        config.dir = "./testdb";
+        AutoCleanDir(config.dir);
+        LightningGraph db(config);
+        db.DropAllData();
+        size_t max_label_num = 4096;
+        for (int i = 0; i < max_label_num; ++i) {
+            std::string label_name = "v_label_" + std::to_string(i);
+            UT_EXPECT_TRUE(db.AddLabel(label_name,
+                                       std::vector<FieldSpec>({{"id", FieldType::STRING, false}}),
+                                       true, VertexOptions("id")));
+        }
+    }
+
     UT_LOG() << "Performance tests";
     srand(0);
     size_t nv = 10;
@@ -394,7 +409,7 @@ TEST_F(TestLGraph, LGraph) {
         txn.Commit();
         UT_LOG() << "Vertex added: " << nv;
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -418,7 +433,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         txn.Abort();
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -475,7 +490,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         UT_LOG() << "Edges added: " << nedges;
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -501,25 +516,24 @@ TEST_F(TestLGraph, LGraph) {
         }
         DumpGraph(txn);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
     // Test AddEdge2
     try {
-        LOG() << "AddEdge with primary";
+        UT_LOG() << "AddEdge with primary";
         std::vector<FieldSpec> e2_fds = {{"ts", FieldType::INT64, false},
                                          {"weight", FieldType::FLOAT, false}};
         EdgeOptions options;
         options.temporal_field = "ts";
         options.temporal_field_order = TemporalFieldOrder::ASC;
-        ASSERT(db.AddLabel("e2", e2_fds, false, options));
+        UT_ASSERT(db.AddLabel("e2", e2_fds, false, options));
         auto txn = db.CreateWriteTxn();
         VertexId src = AddVertex(txn, "v10", "10");
         VertexId dst1 = AddVertex(txn, "v11", "11");
         VertexId dst2 = AddVertex(txn, "v12", "12");
         VertexId dst3 = AddVertex(txn, "v13", "13");
-        // FMA_LOG() << txn.GetAllLabels(false).size();
         AddEdge2(txn, src, dst2, 3, 0.3);
         AddEdge2(txn, src, dst3, 1, 0.1);
         AddEdge2(txn, src, dst3, 1, 0.1);
@@ -543,7 +557,7 @@ TEST_F(TestLGraph, LGraph) {
 #if 0
                 auto eit = txn.GetOutEdgeIterator(EdgeUid(src, 0, 1, 0, 0), true);
                 while (eit.IsValid()) {
-                    FMA_LOG() << "<<<< " << eit.GetUid().ToString()
+                    LOG_INFO() << "<<<< " << eit.GetUid().ToString()
                               << txn.GetEdgeField(eit, size_t(1)).AsFloat();
                     eit.Next();
 #endif
@@ -560,7 +574,7 @@ TEST_F(TestLGraph, LGraph) {
             UT_ASSERT(fabs(txn.GetEdgeField(eit2, size_t(1)).AsFloat() - 2.2) < 1e-6);
         }
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -578,7 +592,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         DumpGraph(txn);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -623,7 +637,7 @@ TEST_F(TestLGraph, LGraph) {
         auto txn = db.CreateReadTxn();
         DumpGraph(txn);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -692,7 +706,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         txn.Commit();
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
 
@@ -740,7 +754,7 @@ TEST_F(TestLGraph, LGraph) {
         }
         UT_EXPECT_EQ(ne, 0);
     } catch (std::exception& e) {
-        ERR() << "Error occurred: " << e.what();
+        UT_ERR() << "Error occurred: " << e.what();
         UT_EXPECT_TRUE(false);
     }
     UT_LOG() << "test delete all index";

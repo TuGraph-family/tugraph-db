@@ -16,8 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "fma-common/logger.h"
-#include "tools/lgraph_log.h"
+#include "fma-common/assert.h"
 
 namespace fma_common {
 class UtLogger {
@@ -32,7 +31,7 @@ class UtLogger {
         FMA_UT_LOG(level_) << ut_stream_.str();
         if (level_ >= lgraph_log::severity_level::ERROR) {
             lgraph_log::LoggerManager::GetInstance().FlushBufferLog();
-            EXIT_ON_FATAL(0);
+            std::abort();
         }
     }
 
@@ -43,32 +42,9 @@ class UtLogger {
     }
 };
 
-#define FMA_UT_ERROR() ::fma_common::UtLogger(::lgraph_log::severity_level::ERROR)
-
-#define FMA_UT_CHECK_EQ(a, b) \
-    if (!::fma_common::_detail::CheckEq((a), (b), "CHECK_EQ", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_CHECK_EQ(a, b) \
-    if (!::fma_common::_detail::CheckEq((a), (b), "CHECK_EQ", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_CHECK_NEQ(a, b)                                                                  \
-    if (!::fma_common::_detail::CheckNeq((a), (b), "CHECK_NEQ", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_CHECK_LT(a, b) \
-    if (!::fma_common::_detail::CheckLt((a), (b), "CHECK_LT", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_CHECK_LE(a, b) \
-    if (!::fma_common::_detail::CheckLe((a), (b), "CHECK_LE", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_CHECK_GT(a, b) \
-    if (!::fma_common::_detail::CheckGt((a), (b), "CHECK_GT", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_CHECK_GE(a, b) \
-    if (!::fma_common::_detail::CheckGe((a), (b), "CHECK_GE", #a, #b, __FILE__, __LINE__)) \
-    FMA_UT_ERROR()
-#define FMA_UT_ASSERT(pred) \
-    if (!(pred)) FMA_UT_ERROR() \
-    << __FILE__ << ":" << __LINE__ << "\n\tASSERT(" #pred ") failed\n"
+#define FMA_UT_CHECK_EQ(a, b)  FMA_CHECK_EQ(a, b)
+#define FMA_UT_CHECK_GT(a, b)  FMA_CHECK_GT(a, b)
+#define FMA_UT_ASSERT(pred) FMA_ASSERT(pred)
 
 struct UnitTest {
     std::string name;
@@ -86,7 +62,7 @@ inline void ValidateUnitTestSettings() {
     auto& tests = GetUnitTests();
     for (auto& kv : tests) {
         if (kv.second.func == nullptr) {
-            FMA_UT_ERROR() << "Test [" << kv.first
+            LOG_ERROR() << "Test [" << kv.first
                       << "] was registered but the test function was not defined. "
                       << "Did you misspelled the function?";
         }
@@ -132,8 +108,8 @@ inline std::string PrintNestedException(const std::exception& e, int level = 0) 
 }
 
 inline void PrintExpectedException(const std::exception& e) {
-    FMA_LOG() << "\n-----------------\nExpected exception: ";
-    FMA_LOG() << ::fma_common::_detail::PrintNestedException(e);
+    LOG_INFO() << "\n-----------------\nExpected exception: ";
+    LOG_INFO() << ::fma_common::_detail::PrintNestedException(e);
 }
 }  // namespace _detail
 
