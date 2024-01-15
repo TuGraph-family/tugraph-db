@@ -1,16 +1,16 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*/
+ * Copyright 2023 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 #include "lgraph/olap_base.h"
 #include "lgraph/olap_on_db.h"
@@ -21,39 +21,39 @@ using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
 size_t BFSCore(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent) {
-   size_t root = root_vid;
-   auto active_in = graph.AllocVertexSubset();
-   active_in.Add(root);
-   auto active_out = graph.AllocVertexSubset();
-   parent.Fill((size_t)-1);
-   parent[root] = root;
+    size_t root = root_vid;
+    auto active_in = graph.AllocVertexSubset();
+    active_in.Add(root);
+    auto active_out = graph.AllocVertexSubset();
+    parent.Fill((size_t)-1);
+    parent[root] = root;
 
-   size_t num_activations = 1;
-   size_t discovered_vertices = 0;
-   for (int ii = 0; num_activations != 0; ii++) {
-       printf("activates(%d) <= %lu\n", ii, num_activations);
-       discovered_vertices += num_activations;
-       active_out.Clear();
-       num_activations = graph.ProcessVertexActive<size_t>(
-           [&](size_t vi) {
-               size_t num_activations = 0;
-               for (auto& edge : graph.OutEdges(vi)) {
-                   size_t dst = edge.neighbour;
-                   if (parent[dst] == (size_t)-1) {
-                       auto lock = graph.GuardVertexLock(dst);
-                       if (parent[dst] == (size_t)-1) {
-                           parent[dst] = vi;
-                           num_activations += 1;
-                           active_out.Add(dst);
-                       }
-                   }
-               }
-               return num_activations;
-           },
-           active_in);
-       active_in.Swap(active_out);
-   }
-   return discovered_vertices;
+    size_t num_activations = 1;
+    size_t discovered_vertices = 0;
+    for (int ii = 0; num_activations != 0; ii++) {
+        printf("activates(%d) <= %lu\n", ii, num_activations);
+        discovered_vertices += num_activations;
+        active_out.Clear();
+        num_activations = graph.ProcessVertexActive<size_t>(
+            [&](size_t vi) {
+                size_t num_activations = 0;
+                for (auto& edge : graph.OutEdges(vi)) {
+                    size_t dst = edge.neighbour;
+                    if (parent[dst] == (size_t)-1) {
+                        auto lock = graph.GuardVertexLock(dst);
+                        if (parent[dst] == (size_t)-1) {
+                            parent[dst] = vi;
+                            num_activations += 1;
+                            active_out.Add(dst);
+                        }
+                    }
+                }
+                return num_activations;
+            },
+            active_in);
+        active_in.Swap(active_out);
+    }
+    return discovered_vertices;
 }
 
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
@@ -86,8 +86,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     auto txn = db.CreateReadTxn();
 
-    std::function<bool(VertexIterator &)> vertex_filter = nullptr;
-    std::function<bool(OutEdgeIterator &, Empty &)> edge_filter = nullptr;
+    std::function<bool(VertexIterator&)> vertex_filter = nullptr;
+    std::function<bool(OutEdgeIterator&, Empty&)> edge_filter = nullptr;
 
     if (!vertex_label_filter.empty()) {
         vertex_filter = [&vertex_label_filter](VertexIterator& vit) {
@@ -111,8 +111,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     }
 
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL, vertex_filter, edge_filter);
-    int64_t root_vid = txn.GetVertexIndexIterator(root_label,
-                                                  root_field, root_value, root_value).GetVid();
+    int64_t root_vid =
+        txn.GetVertexIndexIterator(root_label, root_field, root_value, root_value).GetVid();
     auto prepare_cost = get_time() - start_time;
 
     // core
