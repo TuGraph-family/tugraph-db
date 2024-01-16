@@ -464,7 +464,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                          code_bfs, plugin::CodeType::SO,
                          "bfs v1", true, "v1"));
                 UT_EXPECT_TRUE(r);
-                fma_common::SleepS(1);
+                fma_common::SleepS(5);
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         }
