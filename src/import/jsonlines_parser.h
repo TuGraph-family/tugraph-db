@@ -50,7 +50,7 @@ class JsonLinesParser : public BlockParser {
           forgiving_(forgiving),
           max_errors_(max_err_msgs) {
         if (!stream_->Good()) {
-            FMA_LOG() << "Failed to open input file " << path;
+            LOG_INFO() << "Failed to open input file " << path;
             throw std::runtime_error("failed to open input file [" + path + "]");
         }
         init(block_size, n_threads, n_header_lines);
@@ -86,7 +86,7 @@ class JsonLinesParser : public BlockParser {
 
 #define SKIP_OR_THROW(except)                                                           \
     if (forgiving_) {                                                                   \
-        if (errors_++ < max_errors_) FMA_LOG() << except.what();                        \
+        if (errors_++ < max_errors_) LOG_INFO() << except.what();                        \
         while (start < end && !fma_common::TextParserUtils::IsNewLine(*start)) start++; \
         while (start < end && fma_common::TextParserUtils::IsNewLine(*start)) start++;  \
         return std::tuple<size_t, bool>(start - original_starting, false);              \
@@ -222,6 +222,15 @@ class JsonLinesParser : public BlockParser {
                 case FieldType::BLOB:
                     fd = FieldData::Blob(ToStdString(json_obj.at(column).as_string()));
                     break;
+                case FieldType::POINT:
+                    // TODO(shw): Support import for point type;
+                case FieldType::LINESTRING:
+                    // TODO(shw): support import for linestring type;
+                case FieldType::POLYGON:
+                    // TODO(shw): support import for polygon type;
+                case FieldType::SPATIAL:
+                    // TODO(shw): support import for spatial type;
+                    throw std::runtime_error("do not support spatial type now!");
                 }
                 if (fd.is_null()) {
                     throw std::bad_cast();

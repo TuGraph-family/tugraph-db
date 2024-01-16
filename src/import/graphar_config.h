@@ -27,8 +27,8 @@ typedef std::vector<std::map<std::string, std::string>> Properties;
 /**
  * @brief  Parse the gar DataType to FieldType in config.
  *
- * @param   data_type  The GraphAr DataType of the vetex or edge property.
- * @param   type_name  The FieldType string which used to make json object.
+ * @param[in]   data_type  The GraphAr DataType of the vetex or edge property.
+ * @param[out]   type_name  The FieldType string which used to make json object.
  */
 inline void ParseType(const GraphArchive::DataType& data_type, std::string& type_name) {
     switch (data_type.id()) {
@@ -50,7 +50,12 @@ inline void ParseType(const GraphArchive::DataType& data_type, std::string& type
     case GraphArchive::Type::STRING:
         type_name = "STRING";
         break;
+    case GraphArchive::Type::USER_DEFINED:
+        throw InputError("GraphAr hasn't supported user defined data!");
+        // TODO(ljj): GraphAr hasn't supported user defined data. Wait to support that.
+        break;
     default:
+        throw InputError("GraphAr data type error!");
         break;
     }
 }
@@ -197,8 +202,7 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
             gar_conf["schema"].push_back(schema_node);
         } else {
             if (!CheckEdgePropsEqual(properties, edge_labels[label])) {
-                FMA_LOG() << "Same edge label has different properties." << path;
-                throw std::runtime_error("The edge [" + label + "] is not supported.");
+                throw InputError("The edge [" + label + "] has different properties!");
             }
         }
 

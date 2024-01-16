@@ -73,6 +73,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             lgraph_cypher_lib
             geax_isogql
             bolt
+            gar
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -112,6 +113,7 @@ else ()
             cpprest
             boost_thread
             boost_chrono
+            gar
             profiler
             snappy
             pthread

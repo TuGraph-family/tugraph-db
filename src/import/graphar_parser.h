@@ -25,6 +25,7 @@
 namespace lgraph {
 namespace import_v2 {
 
+// The map to get primary data of a vertex
 typedef std::unordered_map<GraphArchive::IdType, FieldData> PrimaryMap;
 
 // Parse gar file into a block of FieldData
@@ -33,7 +34,6 @@ class GraphArParser : public BlockParser {
     CsvDesc cd_;              // Schema definition and config
     bool label_read = false;  // Means the block has been read
 
-    // The maps to get primary keys of vertices.
     static std::unordered_map<std::string, PrimaryMap> primary_maps;
 
     GraphArchive::Property GetPrimaryKey(const GraphArchive::VertexInfo&);

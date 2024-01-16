@@ -17,6 +17,7 @@
 namespace lgraph {
 namespace import_v2 {
 
+// The map contains PrimaryMaps of all vertices as endpoints of edges
 std::unordered_map<std::string, PrimaryMap> GraphArParser::primary_maps = {};
 
 GraphArParser::GraphArParser(const CsvDesc& cd) : cd_(cd) {}
@@ -47,8 +48,6 @@ template <typename T>
 FieldData GraphArParser::ParseData(T& data, const std::string& prop,
                                    const GraphArchive::DataType& data_type) {
     switch (data_type.id()) {
-    case GraphArchive::Type::STRING:
-        return FieldData::String(data.template property<std::string>(prop).value());
     case GraphArchive::Type::BOOL:
         return FieldData(data.template property<bool>(prop).value());
     case GraphArchive::Type::INT32:
@@ -59,10 +58,14 @@ FieldData GraphArParser::ParseData(T& data, const std::string& prop,
         return FieldData(data.template property<float>(prop).value());
     case GraphArchive::Type::DOUBLE:
         return FieldData(data.template property<double>(prop).value());
+    case GraphArchive::Type::STRING:
+        return FieldData::String(data.template property<std::string>(prop).value());
     case GraphArchive::Type::USER_DEFINED:
+        throw InputError("GraphAr hasn't supported user defined data!");
         // TODO(ljj): GraphAr hasn't supported user defined data. Wait to support that.
         break;
     default:
+        throw InputError("GraphAr data type error!");
         break;
     }
     return FieldData();
@@ -70,8 +73,8 @@ FieldData GraphArParser::ParseData(T& data, const std::string& prop,
 
 /**
  * Map the GraphAr vertex ID and the vertex primary property FieldData, to get the
- * primary data faster.
- * @param   primary_map  To save the map.
+ * primary data.
+ * @param[out]   primary_map  To save the map.
  * @param   graph_info  The GraphAr graph information, to get the vertex information.
  * @param   ver_label  The vertex label to get the vertex information.
  */
@@ -84,8 +87,7 @@ void GraphArParser::MapIdPrimary(PrimaryMap& primary_map, const GraphArchive::Gr
     auto& ver_info = graph_info.GetVertexInfo(ver_label).value();
     GraphArchive::Property ver_prop = GetPrimaryKey(ver_info);
     if (!ver_prop.is_primary) {
-        FMA_LOG() << "The primary key of " << ver_label << " isn't found!";
-        throw std::runtime_error("the primary key of [" + ver_label + "] isn't found!");
+        throw InputError("the primary key of [" + ver_label + "] isn't found!");
     }
     auto vertices = GraphArchive::ConstructVerticesCollection(graph_info, ver_label).value();
     for (auto vertex : vertices) {
@@ -108,10 +110,10 @@ bool GraphArParser::ReadBlock(std::vector<std::vector<FieldData>>& buf) {
         auto vertices = GraphArchive::ConstructVerticesCollection(graph_info, cd_.label).value();
         auto& ver_info = graph_info.GetVertexInfo(cd_.label).value();
         for (auto it = vertices.begin(); it != vertices.end(); ++it) {
-            auto&& vertex = *it;
+            auto vertex = *it;
             std::vector<FieldData> temp_vf;
             for (std::string& prop : cd_.columns) {
-                auto&& data_type = ver_info.GetPropertyType(prop).value();
+                auto data_type = ver_info.GetPropertyType(prop).value();
                 FieldData fd = ParseData<GraphArchive::Vertex>(vertex, prop, data_type);
                 temp_vf.emplace_back(std::move(fd));
             }
@@ -137,7 +139,7 @@ bool GraphArParser::ReadBlock(std::vector<std::vector<FieldData>>& buf) {
         size_t edge_num = edges.size();
         buf.reserve(edge_num);
         for (auto it = edges.begin(); it != edges.end(); ++it) {
-            auto&& edge = *it;
+            auto edge = *it;
             std::vector<FieldData> temp_vf;
             for (auto& prop : cd_.columns) {
                 if (prop == "SRC_ID") {
@@ -147,7 +149,7 @@ bool GraphArParser::ReadBlock(std::vector<std::vector<FieldData>>& buf) {
                     FieldData dst_data = dst_id_primary[edge.destination()];
                     temp_vf.emplace_back(std::move(dst_data));
                 } else {
-                    auto&& data_type = edge_info.GetPropertyType(prop).value();
+                    auto data_type = edge_info.GetPropertyType(prop).value();
                     FieldData edge_data = ParseData<GraphArchive::Edge>(edge, prop, data_type);
                     temp_vf.emplace_back(std::move(edge_data));
                 }
