@@ -468,7 +468,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         }
-#endif // ENABLE_ASAN
+#endif  // ENABLE_ASAN
     }
 #endif
 }
