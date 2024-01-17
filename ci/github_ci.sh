@@ -23,11 +23,9 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCE
 else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
-make -j2
+make -j2 package
 
 if [[ "$TEST" == "ut" ]]; then
-  make unit_test fma_unit_test -j2
-
   # build tugraph db management
   cd $WORKSPACE/deps/tugraph-db-management/
   sh local_build.sh
