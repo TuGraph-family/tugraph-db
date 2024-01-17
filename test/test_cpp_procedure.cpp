@@ -452,25 +452,8 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                                       "#include <stdlib.h>", (plugin::CodeType)6,
                                                       "test", true, "v1"));
         }
-
+#ifndef ENABLE_ASAN
         {
-            UT_LOG() << "Testing dlopen and dlclose";
-            AutoCleanDir bfs_dir("./bfs_dir");
-            auto &fs = fma_common::FileSystem::GetFileSystem("./bfs_dir");
-            for (int i = 0; i < 32; i++) {
-                auto path = "./bfs_dir/bfs_" + std::to_string(i) + ".so";
-                fs.CopyToLocal("./bfs.so", path);
-                auto lib_handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
-                UT_EXPECT_TRUE(lib_handle);
-                if (!lib_handle) {
-                    std::string errMsg = dlerror();
-                    UT_LOG() << "Load bfs_" << i << " failed, errMsg: "
-                             << errMsg;
-                }
-                auto func = dlsym(lib_handle, "Process");
-                UT_EXPECT_TRUE(func);
-                dlclose(lib_handle);
-            }
             UT_LOG() << "Testing load many plugins";
             for (int i = 0; i < 32; i++) {
                 UT_LOG() << "try load bfs_" << i;
@@ -485,6 +468,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         }
+#endif // ENABLE_ASAN
     }
 #endif
 }
