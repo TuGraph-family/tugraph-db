@@ -33,6 +33,9 @@ void MISCore(OlapBase<Empty> &graph, ParallelVector<bool> &mis, size_t &mis_size
     while (active_num != 0) {
         active_num = graph.ProcessVertexInRange<size_t>(
             [&](size_t dst) {
+                if (mis[dst]) {
+                    return (size_t)0;
+                }
                 auto edges = graph.OutEdges(dst);
                 for (auto &edge : edges) {
                     size_t src = edge.neighbour;
