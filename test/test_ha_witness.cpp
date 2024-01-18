@@ -290,6 +290,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     UT_EXPECT_EQ(ret, 0);
     fma_common::SleepS(15);
     master_rpc.clear();
+    int times = 0;
     do {
         try {
             client = std::make_unique<lgraph::RpcClient>(
@@ -315,7 +316,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
             fma_common::SleepS(1);
             continue;
         }
-    } while (true);
+    } while (++times < 20);
     fma_common::SleepS(5);
     ret = client->CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
     UT_EXPECT_TRUE(ret);
