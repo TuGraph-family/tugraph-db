@@ -50,7 +50,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
     && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
     # dgl==1.0.0 :Could not find a version that satisfies the requirement dgl
 
@@ -227,6 +227,19 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7
 # -DFORCE_SSE42=OFF
   && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=OFF -DWITH_JEMALLOC=ON \
   && make -j6 && make install && rm -rf /rocksdb*
+
+# set maven mirror
+RUN mkdir -p ~/.m2 \
+    && echo '<settings>' > ~/.m2/settings.xml \
+    && echo '  <mirrors>' >> ~/.m2/settings.xml \
+    && echo '    <mirror>' >> ~/.m2/settings.xml \
+    && echo '      <id>alimaven</id>' >> ~/.m2/settings.xml \
+    && echo '      <mirrorOf>central</mirrorOf>' >> ~/.m2/settings.xml \
+    && echo '      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>' >> ~/.m2/settings.xml \
+    && echo '    </mirror>' >> ~/.m2/settings.xml \
+    && echo '  </mirrors>' >> ~/.m2/settings.xml \
+    && echo '</settings>' >> ~/.m2/settings.xml \
+    && cat ~/.m2/settings.xml
 
 # install antlr4-4.13.0
 # if it is not accessible, replace it with the link below
