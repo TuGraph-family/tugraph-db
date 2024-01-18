@@ -310,7 +310,7 @@ class AuditLogger {
 
         // Set up sink for audit log
         audit_sink_ = boost::shared_ptr< file_sink > (new file_sink(
-            keywords::file_name = log_dir_ + "%Y%m%d_%H%M%S",
+            keywords::file_name = log_dir_ + "audit_%Y%m%d_%H%M%S.log",
             keywords::open_mode = std::ios_base::out | std::ios_base::app,
             keywords::enable_final_rotation = false,
             keywords::auto_flush = true,
