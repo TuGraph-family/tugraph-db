@@ -65,6 +65,8 @@ typedef sinks::synchronous_sink< sinks::text_ostream_backend > ut_sink;
 
 #define AUDIT_LOG() BOOST_LOG(::lgraph_log::audit_logger::get())
 
+#define AUDIT_PREFIX "audit_"
+
 // LogType includes the following type: debug, audit
 // debug type for general log
 // audit type for audit log
@@ -310,7 +312,7 @@ class AuditLogger {
 
         // Set up sink for audit log
         audit_sink_ = boost::shared_ptr< file_sink > (new file_sink(
-            keywords::file_name = log_dir_ + "audit_%Y%m%d_%H%M%S.log",
+            keywords::file_name = log_dir_ + AUDIT_PREFIX + "%Y%m%d_%H%M%S.log",
             keywords::open_mode = std::ios_base::out | std::ios_base::app,
             keywords::enable_final_rotation = false,
             keywords::auto_flush = true,

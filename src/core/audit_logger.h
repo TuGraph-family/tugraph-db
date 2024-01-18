@@ -94,7 +94,7 @@ class AuditLogger {
     // take string of local time, then convert it to second (int64_t) of local time
     static inline bool FilePathToTime(int64_t& t, const std::string& path) {
         if (path.size() != 25) return false;
-        if (path.find("audit_") == 0) return false;
+        if (path.find(AUDIT_PREFIX) == 0) return false;
         const std::string s = path.substr(6, 15);
 
 #ifdef _WIN32
