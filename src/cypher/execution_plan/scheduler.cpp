@@ -35,6 +35,8 @@
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 
+#include "server/bolt_session.h"
+
 namespace cypher {
 
 void Scheduler::Eval(RTContext *ctx, const lgraph_api::GraphQueryType &type,
@@ -80,25 +82,48 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
         plan = std::make_shared<ExecutionPlan>();
         plan->Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         plan->Validate(ctx);
-        if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
+        if (plan->CommandType() != parser::CmdType::QUERY) {
             ctx->result_info_ = std::make_unique<ResultInfo>();
             ctx->result_ = std::make_unique<lgraph::Result>();
-
-            ctx->result_->ResetHeader({{"@plan", lgraph_api::LGraphType::STRING}});
+            std::string header, data;
+            if (plan->CommandType() == parser::CmdType::EXPLAIN) {
+                header = "@plan";
+                data = plan->DumpPlan(0, false);
+            } else {
+                header = "@profile";
+                data = plan->DumpGraph();
+            }
+            ctx->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
             auto r = ctx->result_->MutableRecord();
-            r->Insert("@plan", lgraph::FieldData(plan->DumpPlan(0, false)));
+            r->Insert(header, lgraph::FieldData(data));
+            if (ctx->bolt_conn_) {
+                auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
+                while (!session->current_msg) {
+                    session->current_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+                    if (ctx->bolt_conn_->has_closed()) {
+                        LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
+                        return;
+                    }
+                }
+                std::unordered_map<std::string, std::any> meta;
+                meta["fields"] = ctx->result_->BoltHeader();
+                bolt::PackStream ps;
+                ps.AppendSuccess(meta);
+                if (session->current_msg.value().type == bolt::BoltMsg::PullN) {
+                    ps.AppendRecords(ctx->result_->BoltRecords());
+                } else if (session->current_msg.value().type == bolt::BoltMsg::DiscardN) {
+                    // ...
+                }
+                ps.AppendSuccess();
+                ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+            }
             return;
         }
         LOG_DEBUG() << "Plan cache disabled.";
-        // FMA_DBG_STREAM(Logger())
-        //     << "Miss execution plan cache, build plan for this query.";
-    } else {
-        // FMA_DBG_STREAM(Logger())
-        //     << "Hit execution plan cache.";
     }
+    LOG_DEBUG() << plan->DumpPlan(0, false);
+    LOG_DEBUG() << plan->DumpGraph();
     elapsed.t_compile = fma_common::GetTime() - t0;
-    plan->DumpGraph();
-    plan->DumpPlan(0, false);
     if (!plan->ReadOnly() && ctx->optimistic_) {
         while (1) {
             try {
@@ -113,24 +138,6 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     }
     elapsed.t_total = fma_common::GetTime() - t0;
     elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
-    if (plan->CommandType() == CmdType::PROFILE) {
-        ctx->result_info_ = std::make_unique<ResultInfo>();
-        ctx->result_ = std::make_unique<lgraph::Result>();
-        ctx->result_->ResetHeader({{"@profile", lgraph_api::LGraphType::STRING}});
-
-        auto r = ctx->result_->MutableRecord();
-        r->Insert("@profile", lgraph::FieldData(plan->DumpGraph()));
-        return;
-    } else {
-        /* promote priority of the recent plan
-         * OR add the plan to the plan cache.  */
-        // tls_plan_cache.Put(script, plan);
-        // FMA_DBG_STREAM(Logger())
-        //     << "Current Plan Cache (tid" << std::this_thread::get_id() << "):";
-        // for (auto &p : tls_plan_cache.List())
-        //     FMA_DBG_STREAM(Logger()) << p.first << "\n";
-        // return;
-    }
 }
 
 void Scheduler::EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {

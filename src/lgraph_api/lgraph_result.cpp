@@ -368,6 +368,11 @@ std::string Result::Dump(bool is_standard) {
     }
 }
 
+void Result::ClearRecords() {
+    result.clear();
+    row_count_ = -1;
+}
+
 std::vector<std::string> Result::BoltHeader() {
     std::vector<std::string> ret;
     for (auto& h : header) {
