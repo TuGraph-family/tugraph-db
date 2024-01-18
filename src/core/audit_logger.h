@@ -222,11 +222,11 @@ class AuditLogger {
         sort(files.begin(), files.end());
         index_ = GetLogIdx();
         LOG_DEBUG() << "VertexIndex of audit log : " << index_;
-        if (!SetLogFileName())
-            throw std::runtime_error("Failed to get audit log file name from int64_t.");
-        LOG_DEBUG() << "Open audit log file : " << file_name_;
-        file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE, std::ofstream::app);
-        if (!file_.Good()) throw std::runtime_error("Failed to open audit log file for writing.");
+        // if (!SetLogFileName())
+        //     throw std::runtime_error("Failed to get audit log file name from int64_t.");
+        // LOG_DEBUG() << "Open audit log file : " << file_name_;
+        // file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE, std::ofstream::app);
+        // if (!file_.Good()) throw std::runtime_error("Failed to open audit log file for writing.");
 
         // init lgraph_log AuditLogger
         lgraph_log::AuditLogger::GetInstance().Init(dir_);
@@ -314,16 +314,16 @@ class AuditLogger {
         AutoWriteLock<RWLock> lock(lock_);
         int64_t log_time = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
 
-        if ((file_.Size() >= file_size_limit_) && (last_log_time_ < log_time)) {
-            file_.Close();
-            if (!SetLogFileName(log_time))
-                throw std::runtime_error("Failed to get audit log file name from int64_t.");
-            LOG_DEBUG() << "Open a new audit log file : " << file_name_;
-            file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE,
-                       std::ofstream::app);
-            if (!file_.Good())
-                throw std::runtime_error("Failed to open audit log file for writing.");
-        }
+        // if ((file_.Size() >= file_size_limit_) && (last_log_time_ < log_time)) {
+        //     file_.Close();
+        //     if (!SetLogFileName(log_time))
+        //         throw std::runtime_error("Failed to get audit log file name from int64_t.");
+        //     LOG_DEBUG() << "Open a new audit log file : " << file_name_;
+        //     file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE,
+        //                std::ofstream::app);
+        //     if (!file_.Good())
+        //         throw std::runtime_error("Failed to open audit log file for writing.");
+        // }
         last_log_time_ = log_time;
 
         int64_t index;
