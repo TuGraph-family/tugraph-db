@@ -14,6 +14,7 @@
 
 #include "lgraph/lgraph_spatial.h"
 #include "lgraph/lgraph_exceptions.h"
+#include <boost/geometry/geometry.hpp>
 
 namespace lgraph_api {
 

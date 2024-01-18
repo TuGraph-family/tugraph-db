@@ -61,9 +61,6 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
     && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
     && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
     && cp -r /extensions /usr/local/include/boost/geometry/ \
-    && sed -i -e '/inline V evaluate_rational(const T(\&a)\[N\], const U(\&b)\[N\], const V& z) BOOST_MATH_NOEXCEPT(V)/{i\
-       template <std::size_t N, class T, class W, class V>
-       s/const U/const W/;x;d;};x;1!p;$!N;D' /usr/local/include/boost/math/tools/rational.hpp
     && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
 
 #install maven
