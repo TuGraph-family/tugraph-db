@@ -16,15 +16,21 @@ namespace braft {
 }
 
 void lgraph::HaStateMachine::Start() {
-    static const int64_t BOOTSTRAP_LOG_INDEX = 1024;
-
+    // check ha node can be started
+    butil::EndPoint addr;
+    butil::str2endpoint(config_.host.c_str(), config_.rpc_port, &addr);
+    if (butil::IP_ANY == addr.ip) {
+        throw std::runtime_error("TuGraph can't be started from IP_ANY (0.0.0.0) in HA mode.");
+    }
     if (node_) {
         LOG_WARN() << "HaStateMachine already started.";
         return;
     }
-
     ::lgraph::StateMachine::Start();
+
+    // bootstrap
     if (config_.ha_bootstrap_role == 1) {
+        const int64_t BOOTSTRAP_LOG_INDEX = 1024;
         if (config_.ha_is_witness) {
             ::lgraph::StateMachine::Stop();
             throw std::runtime_error("Can not bootstrap on witness node");
@@ -42,8 +48,6 @@ void lgraph::HaStateMachine::Start() {
         galaxy_->BootstrapRaftLogIndex(new_log_index);
         // now bootstrap
         braft::BootstrapOptions options;
-        butil::EndPoint addr;
-        butil::str2endpoint(config_.host.c_str(), config_.rpc_port, &addr);
         options.group_conf.add_peer(braft::PeerId(addr));
         options.fsm = this;
         options.node_owns_fsm = false;
@@ -66,11 +70,7 @@ void lgraph::HaStateMachine::Start() {
 #endif
     }
 
-    butil::EndPoint addr;
-    butil::str2endpoint(config_.host.c_str(), config_.rpc_port, &addr);
-    if (butil::IP_ANY == addr.ip) {
-        throw std::runtime_error("TuGraph can't be started from IP_ANY (0.0.0.0) in HA mode.");
-    }
+    // start braft::Node
     braft::Node* node = new braft::Node("lgraph", braft::PeerId(addr, 0,
                                                                 config_.ha_is_witness));
     braft::NodeOptions node_options;
@@ -100,42 +100,38 @@ void lgraph::HaStateMachine::Start() {
             fma_common::StringFormatter::Format("Failed to init raft node: ec={}", r));
     }
     node_ = node;
+
+    // start HA by initial_conf
     if (config_.ha_bootstrap_role != 2) {
         LOG_INFO() << "Start HA by initial_conf";
-        int t = 0;
-        while (!joined_group_.load(std::memory_order_acquire)) {
+        for (int t = 0; t < config_.ha_node_join_group_s; t++) {
             LOG_INFO() << "Waiting to join replication group...";
-            if (t++ > config_.ha_node_join_group_s) {
-                break;
-            }
             fma_common::SleepS(1);
-        }
-        if (t <= config_.ha_node_join_group_s) {
-            return;
+            if (joined_group_.load(std::memory_order_acquire)) return;
         }
     }
+
+    // start HA by add_peer
     if (config_.ha_bootstrap_role != 1) {
         LOG_INFO() << "Start HA by add_peer";
         braft::Configuration init_conf;
-        int t = 0;
         if (init_conf.parse_from(config_.ha_conf) != 0) {
             ::lgraph::StateMachine::Stop();
             throw std::runtime_error("Fail to parse configuration " + config_.ha_conf);
         }
-        while (!joined_group_.load(std::memory_order_acquire)) {
+        for (int t = 0; t < config_.ha_node_join_group_s; t++) {
+            fma_common::SleepS(1);
+            LOG_INFO() << "Waiting to join replication group...";
             braft::PeerId my_id(addr);
             butil::Status status = braft::cli::add_peer(braft::GroupId("lgraph"), init_conf,
                                                         my_id, braft::cli::CliOptions());
-            if (!status.ok()) {
+            if (status.ok())
+                return;
+            else
                 LOG_WARN() << "Failed to join group: " << status.error_str();
-            }
-            LOG_INFO() << "Waiting to join replication group...";
-            if (t++ > config_.ha_node_join_group_s) {
-                throw std::runtime_error("Failed to join replication group");
-            }
-            fma_common::SleepS(1);
         }
     }
+    throw std::runtime_error("Failed to start node && join group!");
 }
 
 void lgraph::HaStateMachine::Stop() {
@@ -182,12 +178,12 @@ bool lgraph::HaStateMachine::DoRequest(bool is_write, const LGraphRequest* req,
 
 void lgraph::HaStateMachine::on_leader_start(int64_t term) {
     leader_term_.store(term, std::memory_order_release);
-    LOG_INFO() << "Node becomes leader";
-    joined_group_ = true;
+    joined_group_.store(true, std::memory_order_release);
 #if LGRAPH_SHARE_DIR
     _HoldWriteLock(galaxy_->GetRWLock());
     galaxy_->ReloadFromDisk();
 #endif
+    LOG_INFO() << "Node becomes leader";
 }
 
 void lgraph::HaStateMachine::on_leader_stop(const butil::Status& status) {
@@ -215,8 +211,8 @@ void lgraph::HaStateMachine::on_stop_following(const ::braft::LeaderChangeContex
 }
 
 void lgraph::HaStateMachine::on_start_following(const ::braft::LeaderChangeContext& ctx) {
+    joined_group_.store(true, std::memory_order_release);
     LOG_INFO() << "Node joined the group as follower.";
-    joined_group_ = true;
 }
 
 bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,

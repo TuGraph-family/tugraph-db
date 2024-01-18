@@ -241,6 +241,11 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
                 }
             }
         }
+    } else if (!stmt.create_clause.empty() || stmt.delete_clause ||
+               !stmt.merge_clause.empty() || !stmt.set_clause.empty()) {
+        CYPHER_THROW_ASSERT(result_info.header.colums.empty());
+        result_info.header.colums.emplace_back(
+            "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     }
 }
 
@@ -1354,6 +1359,14 @@ int ExecutionPlan::Execute(RTContext *ctx) {
     }
     ctx->result_ = std::make_unique<lgraph_api::Result>(lgraph_api::Result(header));
 
+    if (ctx->bolt_conn_) {
+        std::unordered_map<std::string, std::any> meta;
+        meta["fields"] = ctx->result_->BoltHeader();
+        bolt::PackStream ps;
+        ps.AppendSuccess(meta);
+        ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+    }
+
     try {
         OpBase::OpResult res;
         do {
@@ -1400,18 +1413,12 @@ const ResultInfo &ExecutionPlan::GetResultInfo() const { return _result_info; }
 std::string ExecutionPlan::DumpPlan(int indent, bool statistics) const {
     std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
     OpBase::DumpStream(_root, indent, statistics, s);
-    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
-        LOG_DEBUG() << s;
-    }
     return s;
 }
 
 std::string ExecutionPlan::DumpGraph() const {
     std::string s;
     for (auto &g : _pattern_graphs) s.append(g.DumpGraph());
-    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
-        LOG_DEBUG() << s;
-    }
     return s;
 }
 }  // namespace cypher
