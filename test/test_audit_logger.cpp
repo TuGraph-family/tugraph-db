@@ -79,26 +79,27 @@ TEST_F(TestAuditLogger, AuditLogger) {
         UT_LOG() << "logger Idx:" << idx;
 
         // test log line readability
-        // std::string line;
-        // std::vector<std::string> lines;
-        // std::vector<std::string> log_files;
-        // for (const auto & entry : std::filesystem::directory_iterator("./audit")) {
-        //     log_files.push_back(entry.path().generic_string());
-        // }
-        // UT_EXPECT_EQ(log_files.size(), 1);
-        // std::ifstream log_file(log_files[0]);
-        // UT_EXPECT_TRUE(log_file.is_open());
-        // while (getline(log_file, line)) {
-        //     lines.push_back(line);
-        // }
-        // UT_EXPECT_EQ(lines.size(), 2);
-        // lgraph_log::json log_msg_0 = lgraph_log::json::parse(lines[0]);
-        // lgraph_log::json log_msg_1 = lgraph_log::json::parse(lines[1]);
-        // UT_EXPECT_EQ(log.user, log_msg_0["user"]);
-        // UT_EXPECT_EQ(log.graph, log_msg_0["graph"]);
-        // std::string log_content = log_msg_0["content"];
-        // UT_EXPECT_EQ(log.content.substr(0, log_content.length()), log_msg_0["content"]);
-        // UT_EXPECT_EQ("", log_msg_1["content"]);
+        std::string line;
+        std::vector<std::string> lines;
+        std::vector<std::string> log_files;
+        for (const auto & entry : std::filesystem::directory_iterator("./audit")) {
+            log_files.push_back(entry.path().generic_string());
+        }
+        UT_EXPECT_EQ(log_files.size(), 1);
+        std::ifstream log_file(log_files[0]);
+        UT_EXPECT_TRUE(log_file.is_open());
+        while (getline(log_file, line)) {
+            lines.push_back(line);
+        }
+        UT_EXPECT_EQ(lines.size(), 2);
+        lgraph_log::json log_msg_0 = lgraph_log::json::parse(lines[0]);
+        lgraph_log::json log_msg_1 = lgraph_log::json::parse(lines[1]);
+        UT_EXPECT_EQ(log.user, log_msg_0["user"]);
+        UT_EXPECT_EQ(log.graph, log_msg_0["graph"]);
+        std::string log_content = log_msg_0["content"];
+        UT_EXPECT_EQ(log.content.substr(0, log_content.length()), log_msg_0["content"]);
+        UT_EXPECT_EQ("", log_msg_1["content"]);
+        log_file.close();
 
         std::string log_info(2048, 'a');
         int size = 4500;
