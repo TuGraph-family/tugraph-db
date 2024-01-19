@@ -17,6 +17,7 @@
  */
 
 #include <boost/format.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/hex.hpp>
 #include <boost/asio.hpp>
 #include "fma-common/configuration.h"
@@ -27,6 +28,12 @@
 #include "linenoise/linenoise.h"
 #include "tabulate/table.hpp"
 using namespace boost;
+
+enum class OutputFormat {
+    TABLE = 0,
+    CSV,
+    JSON
+};
 
 std::any ReadMessage(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
     hydrator.ClearErr();
@@ -53,23 +60,51 @@ std::any ReadMessage(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
     return ret.first;
 }
 
-std::pair<tabulate::Table, std::string> FetchRecords(
-    asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
+bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator, OutputFormat of) {
     std::string error;
+    std::optional<std::vector<std::string>> header;
     tabulate::Table table;
     while (true) {
         auto msg = ReadMessage(socket, hydrator);
         if (msg.type() == typeid(std::optional<bolt::Record>)) {
             const auto& val = std::any_cast<const std::optional<bolt::Record>&>(msg);
-            std::vector<std::string> values;
+            nlohmann::json values = nlohmann::json::array();
             for (auto& item : val.value().values) {
-                values.push_back(bolt::Print(item));
+                values.push_back(bolt::ToJson(item));
             }
-            table.add_row({values.begin(), values.end()});
+            if (values.size() != header.value().size()) {
+                LOG_FATAL() << FMA_FMT("mismatched data, header column size: {}, "
+                    "record column size: {}", header.value().size(), values.size());
+            }
+            if (of != OutputFormat::JSON) {
+                std::vector<std::string> strs;
+                for (const auto& v : values) {
+                    if (v.is_string()) {
+                        strs.push_back(v.get<std::string>());
+                    } else {
+                        strs.push_back(v.dump());
+                    }
+                }
+                if (of == OutputFormat::TABLE) {
+                    table.add_row({strs.begin(), strs.end()});
+                } else {
+                    LOG_INFO() << boost::algorithm::join(strs, ",");
+                }
+            } else {
+                LOG_INFO() << values.dump();
+            }
         } else if (msg.type() == typeid(bolt::Success*)) {
             auto success = std::any_cast<bolt::Success*>(msg);
-            if (table.size() == 0) {
-                table.add_row({success->fields.begin(), success->fields.end()});
+            if (!header) {
+                header = success->fields;
+                if (of == OutputFormat::TABLE) {
+                    table.add_row({header.value().begin(), header.value().end()});
+                } else if (of == OutputFormat::CSV) {
+                    LOG_INFO() << boost::algorithm::join(header.value(), ",");
+                } else {
+                    nlohmann::json j = header.value();
+                    LOG_INFO() << j.dump();
+                }
             } else {
                 break;
             }
@@ -84,7 +119,21 @@ std::pair<tabulate::Table, std::string> FetchRecords(
             break;
         }
     }
-    return {table, error};
+
+    if (error.empty()) {
+        if (of == OutputFormat::TABLE) {
+            if (table.size() > 0) {
+                LOG_INFO() << table << "\n";
+                LOG_INFO() << FMA_FMT("{} rows", table.size() - 1) << "\n";
+            } else {
+                LOG_INFO() << FMA_FMT("{} rows", table.size()) << "\n";
+            }
+        }
+        return true;
+    } else {
+        LOG_ERROR() << error << "\n";
+        return false;
+    }
 }
 
 std::string ReadStatement() {
@@ -128,22 +177,38 @@ char* hints(const char* buf, int* color, int* bold) {
 
 int main(int argc, char** argv) {
     fma_common::Configuration config;
+    std::string format = "table";
     std::string ip = "127.0.0.1";
     int port = 7687;
     std::string graph = "default";
     std::string username = "admin";
     std::string password = "73@TuGraph";
+    config.Add(format, "format", true).
+        Comment("output format (table, csv, json)").
+        SetPossibleValues({"table", "csv", "json"});
     config.Add(ip, "ip", true).Comment("TuGraph bolt protocol ip");
     config.Add(port, "port", true).Comment("TuGraph bolt protocol port");
     config.Add(graph, "graph", true).Comment("Graph to use");
     config.Add(username, "user", true).Comment("User to login");
     config.Add(password, "password", true).Comment("Password to use when connecting to server");
-    config.ExitAfterHelp(true);
-    config.ParseAndFinalize(argc, argv);
+    try {
+        config.ExitAfterHelp(true);
+        config.ParseAndFinalize(argc, argv);
+    } catch (std::exception& e) {
+        LOG_ERROR() << e.what();
+        return -1;
+    }
 
     bool is_terminal = false;
     if (isatty(STDIN_FILENO)) {
         is_terminal = true;
+    }
+
+    OutputFormat of = OutputFormat::TABLE;
+    if (format == "csv") {
+        of = OutputFormat::CSV;
+    } else if (format == "json") {
+        of = OutputFormat::JSON;
     }
 
     const char* history_file = ".lgraphcli_history";
@@ -213,23 +278,13 @@ int main(int argc, char** argv) {
             meta.clear();
             meta = {{"db", graph}};
             ps.AppendRun(statement, {}, meta);
-            ps.AppendPullN(1024);
+            ps.AppendPullN(-1);
             asio::write(socket,
                         asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
-            std::string error;
-            tabulate::Table table;
-            std::tie(table, error) = FetchRecords(socket, hydrator);
-            if (error.empty()) {
-                if (table.size() > 1) {
-                    LOG_INFO() << table << "\n";
-                }
-                LOG_INFO() << FMA_FMT("{} rows", table.size()-1) << "\n";
-                if (is_terminal) {
-                    linenoiseHistoryAdd(statement.c_str());
-                    linenoiseHistorySave(history_file);
-                }
-            } else {
-                LOG_ERROR() << error << "\n";
+            bool ret = FetchRecords(socket, hydrator, of);
+            if (is_terminal && ret) {
+                linenoiseHistoryAdd(statement.c_str());
+                linenoiseHistorySave(history_file);
             }
         } catch (std::exception& e) {
             LOG_ERROR() << e.what();

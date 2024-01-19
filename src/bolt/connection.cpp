@@ -17,6 +17,7 @@
  */
 #include <boost/endian/conversion.hpp>
 #include "fma-common/string_formatter.h"
+#include "fma-common/utils.h"
 #include "tools/json.hpp"
 #include "bolt/connection.h"
 #include "bolt/messages.h"
@@ -36,7 +37,7 @@ void BoltConnection::Start() {
     // read handshake
     async_read(socket(), buffer(handshake_buffer_),
                std::bind(&BoltConnection::ReadHandshakeDone,
-                         this, std::placeholders::_1, std::placeholders::_2));
+                         shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 }
 
 void BoltConnection::Close() {
@@ -56,11 +57,13 @@ void BoltConnection::DoSend() {
              LOG_WARN() << FMA_FMT("async write error: {}, clear {} pending message",
                                   ec.message(), msg_queue_.size());
              msg_queue_.clear();
+             msg_queue_size_ = 0;
              Close();
              return;
          }
          assert(msg_queue_.size() >= send_buffers_.size());
          msg_queue_.erase(msg_queue_.begin(), msg_queue_.begin() + send_buffers_.size());
+         msg_queue_size_ = msg_queue_.size();
          send_buffers_.clear();
          if (!msg_queue_.empty()) {
              DoSend();
@@ -76,6 +79,7 @@ void BoltConnection::Respond(std::string str) {
     }
     bool need_invoke = msg_queue_.empty();
     msg_queue_.push_back(std::move(str));
+    msg_queue_size_ = msg_queue_.size();
     if (need_invoke) {
         DoSend();
     }
@@ -84,8 +88,15 @@ void BoltConnection::Respond(std::string str) {
 // async respond
 // used in non-io thread, thread safe
 void BoltConnection::PostResponse(std::string str) {
-    io_service().post([this, msg = std::move(str)]() mutable {
-        Respond(std::move(msg));
+    while (!has_closed() && msg_queue_size_ > 1024) {
+        fma_common::SleepUs(1000);  // sleep 1 ms
+    }
+    if (has_closed()) {
+        LOG_WARN() << "connection is closed, drop this message";
+        return;
+    }
+    io_service().post([self = shared_from_this(), msg = std::move(str)]() mutable {
+        self->Respond(std::move(msg));
     });
 }
 
@@ -120,7 +131,7 @@ void BoltConnection::ReadHandshakeDone(const boost::system::error_code& ec, cons
     }
     // write accepted version
     async_write(socket(),buffer(version_buffer_), // NOLINT
-                std::bind(&BoltConnection::WriteResponseDone, this,
+                std::bind(&BoltConnection::WriteResponseDone, shared_from_this(),
                           std::placeholders::_1, std::placeholders::_2));
 }
 
@@ -132,7 +143,7 @@ void BoltConnection::WriteResponseDone(const boost::system::error_code& ec, cons
     }
     // read chunk size
     async_read(socket(),buffer(&chunk_size_, sizeof(chunk_size_)), //NOLINT
-               std::bind(&BoltConnection::ReadChunkSizeDone, this,
+               std::bind(&BoltConnection::ReadChunkSizeDone, shared_from_this(),
                          std::placeholders::_1, std::placeholders::_2));
 }
 
@@ -155,13 +166,22 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec, cons
         }
         LOG_DEBUG() << FMA_FMT("msg: {}, fields: {}",
                                ToString(tag), Print(fields));
-        handle_(*this, tag, std::move(fields));
+        try {
+            handle_(*this, tag, std::move(fields));
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Exception in bolt connection: " << e.what();
+            Close();
+            return;
+        }
+        if (has_closed()) {
+            return;
+        }
         chunk_.resize(0);
     }
     auto old_size = chunk_.size();
     chunk_.resize(old_size + chunk_size_);
     async_read(socket(),buffer(chunk_.data() + old_size, chunk_size_), // NOLINT
-               std::bind(&BoltConnection::ReadChunkDone, this,
+               std::bind(&BoltConnection::ReadChunkDone, shared_from_this(),
                          std::placeholders::_1, std::placeholders::_2));
 }
 
@@ -172,7 +192,7 @@ void BoltConnection::ReadChunkDone(const boost::system::error_code& ec, const si
         return;
     }
     async_read(socket(),  buffer(&chunk_size_, sizeof(chunk_size_)),
-               std::bind(&BoltConnection::ReadChunkSizeDone, this,
+               std::bind(&BoltConnection::ReadChunkSizeDone, shared_from_this(),
                          std::placeholders::_1, std::placeholders::_2));
 }
 
