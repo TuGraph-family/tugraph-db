@@ -78,7 +78,7 @@ TEST_F(TestAuditLogger, AuditLogger) {
         UT_EXPECT_EQ(idx, 1);
         UT_LOG() << "logger Idx:" << idx;
 
-        // test log line readability
+        // test log entry's human readability
         auto &log_0 = logs[0];
         std::string line;
         std::vector<std::string> lines;
