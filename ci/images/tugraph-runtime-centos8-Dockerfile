@@ -14,6 +14,7 @@ RUN yum update -y && yum install -y \
     make \
     wget \
     bzip2 \
+    unzip \
     openssl-devel.x86_64 \
     java-1.8.0-openjdk* \
     libcurl-devel.x86_64 \
@@ -38,7 +39,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j4 && make install \
     && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
     && rm -rf /Python*
 
 # install cmake

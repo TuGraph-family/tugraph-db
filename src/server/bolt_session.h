@@ -31,10 +31,17 @@ enum class SessionState {
     FAILED
 };
 
+struct BoltMsgDetail {
+    BoltMsg type;
+    int64_t n = 0;
+};
+
 struct BoltSession {
+    std::optional<BoltMsgDetail> current_msg;
+    PackStream ps;
     std::string user;
     SessionState state;
-    BlockingQueue<BoltMsg> msgs;
+    BlockingQueue<BoltMsgDetail> msgs;
 };
 
 }  // namespace bolt
