@@ -244,6 +244,12 @@ class PackStream {
         End();
     }
 
+    void AppendRecords(const std::vector<std::vector<std::any>>& records) {
+        for (auto& r : records) {
+            AppendRecord(r);
+        }
+    }
+
     const std::string& ConstBuffer() const {
         return chunker_.buf;
     }

@@ -259,7 +259,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     std::string cmd = FMA_FMT(cmd_f.c_str(), "ha" + std::to_string(stoi(output[1]) - 29091));
     ret = system(cmd.c_str());
     UT_EXPECT_EQ(ret, 0);
-    fma_common::SleepS(10);
+    fma_common::SleepS(15);
     ret = client->ImportSchemaFromContent(result, schema) &&
           client->ImportDataFromContent(result, data_desc, data_person, ",");
     UT_EXPECT_TRUE(ret);
@@ -270,9 +270,18 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     cmd = FMA_FMT(cmd_f.c_str(), "ha" + std::to_string(stoi(output[1]) - 29091));
     ret = system(cmd.c_str());
     UT_EXPECT_EQ(ret, 0);
-    fma_common::SleepS(10);
+    fma_common::SleepS(15);
 
     // start follower, witness which has newer log will be leader temporary
+    try {
+        client = std::make_unique<lgraph::RpcClient>(
+            this->host + ":29094", "admin", "73@TuGraph");
+    } catch (std::exception &e) {
+        cmd = FMA_FMT(witness_cmd_f, "ha3", host, "27074", "29094",
+                      host + ":29092," + host + ":29093," + host + ":29094", true);
+        UT_EXPECT_EQ(system(cmd.c_str()), 0);
+        fma_common::SleepS(5);
+    }
     boost::split(output, follower_rpc, boost::is_any_of(":"));
     std::string ha_dir = "ha" + std::to_string(stoi(output[1]) - 29091);
     cmd = FMA_FMT(server_cmd_f, ha_dir, host, stoi(output[1]) - 2020,
@@ -281,6 +290,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     UT_EXPECT_EQ(ret, 0);
     fma_common::SleepS(15);
     master_rpc.clear();
+    int times = 0;
     do {
         try {
             client = std::make_unique<lgraph::RpcClient>(
@@ -306,7 +316,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
             fma_common::SleepS(1);
             continue;
         }
-    } while (true);
+    } while (++times < 20);
     fma_common::SleepS(5);
     ret = client->CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
     UT_EXPECT_TRUE(ret);

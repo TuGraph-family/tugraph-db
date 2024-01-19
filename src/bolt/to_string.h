@@ -137,13 +137,15 @@ nlohmann::json ToJsonObj(const bolt::Path& path) {
 
 std::string Print(const std::any& boltType) {
     auto j = detail::ToJsonObj(boltType);
-    if (boltType.type() == typeid(bolt::Node) ||
-        boltType.type() == typeid(bolt::Relationship) ||
-        boltType.type() == typeid(bolt::Path)) {
+    if (j.is_string()) {
         return j.get<std::string>();
     } else {
         return j.dump();
     }
+}
+
+nlohmann::json ToJson(const std::any& boltType) {
+    return detail::ToJsonObj(boltType);
 }
 
 }  // namespace bolt
