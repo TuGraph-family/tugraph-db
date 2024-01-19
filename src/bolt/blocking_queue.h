@@ -39,6 +39,15 @@ class BlockingQueue {
         queue_.pop_back();
         return ret;
     }
+    std::optional<T> Pop(const std::chrono::milliseconds& timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (!condition_.wait_for(lock, timeout, [this] {return !queue_.empty();})) {
+            return {};
+        }
+        T ret = std::move(queue_.back());
+        queue_.pop_back();
+        return ret;
+    }
 
  private:
     std::mutex mutex_;

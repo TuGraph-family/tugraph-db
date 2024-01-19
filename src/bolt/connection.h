@@ -41,17 +41,23 @@ class Connection : private boost::asio::noncopyable {
     explicit Connection(boost::asio::io_service& io_service)
         : io_service_(io_service), socket_(io_service_), has_closed_(false) {
     }
+    virtual ~Connection() {
+        LOG_DEBUG() << FMA_FMT("destroy connection[id:{}]", conn_id_);
+    }
     tcp::socket& socket() { return socket_; }
     virtual void Close() {
-        // std::cout << "close conn[id:" << conn_id_ << "]" << std::endl;
-        socket_.close();
+        boost::system::error_code ec;
+        socket_.close(ec);
+        if (ec) {
+            LOG_WARN() << "Close error: " << ec.message();
+        }
         has_closed_ = true;
     }
-    virtual bool has_closed() {return has_closed_;}
+    bool has_closed() {return has_closed_;}
     int64_t& conn_id() { return conn_id_;}
     boost::asio::io_service& io_service() {return io_service_;}
     virtual void Start() = 0;
-    virtual void PostResponse(std::string res) {}
+
  private:
     boost::asio::io_service& io_service_;
     tcp::socket socket_;
@@ -70,7 +76,7 @@ class BoltConnection
           handle_(std::move(handle)) {}
     void Start() override;
     void Close() override;
-    void PostResponse(std::string res) override;
+    void PostResponse(std::string res);
     void Respond(std::string str);
     void SetContext(std::shared_ptr<void> ctx) {
         context_ = std::move(ctx);
@@ -78,7 +84,6 @@ class BoltConnection
     void* GetContext() {
         return context_.get();
     }
-
  private:
     void ReadHandshakeDone(const boost::system::error_code &ec, size_t size);
     void ReadChunkSizeDone(const boost::system::error_code &ec, size_t size);
@@ -95,6 +100,7 @@ class BoltConnection
     std::vector<uint8_t> chunk_;
     Unpacker unpacker_;
     std::deque<std::string> msg_queue_;
+    std::atomic<int> msg_queue_size_ = 0;
     std::vector<boost::asio::const_buffer> send_buffers_;
     // only shared_ptr can store void pointer
     std::shared_ptr<void> context_;

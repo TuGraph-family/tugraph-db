@@ -7,8 +7,9 @@ import logging
 import warnings
 from functools import partial
 import httpx
+import nest_asyncio
 
-
+nest_asyncio.apply()
 requests = httpx.AsyncClient()
 warnings.simplefilter("ignore", UserWarning)
 
