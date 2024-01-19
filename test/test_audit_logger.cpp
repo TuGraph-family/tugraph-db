@@ -100,7 +100,7 @@ TEST_F(TestAuditLogger, AuditLogger) {
         std::string log_content_1 = log_msg_1["content"];
         UT_EXPECT_EQ(log.user, log_user_0);
         UT_EXPECT_EQ(log.graph, log_graph_0);
-        UT_EXPECT_EQ(log.content.substr(0, log_content.length()), log_content_0);
+        UT_EXPECT_EQ(log.content.substr(0, log_content_0.length()), log_content_0);
         UT_EXPECT_EQ("", log_content_1);
         log_file.close();
 
