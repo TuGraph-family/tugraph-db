@@ -79,6 +79,7 @@ TEST_F(TestAuditLogger, AuditLogger) {
         UT_LOG() << "logger Idx:" << idx;
 
         // test log line readability
+        auto &log_0 = logs[0];
         std::string line;
         std::vector<std::string> lines;
         std::vector<std::string> log_files;
@@ -94,14 +95,11 @@ TEST_F(TestAuditLogger, AuditLogger) {
         UT_EXPECT_EQ(lines.size(), 2);
         lgraph_log::json log_msg_0 = lgraph_log::json::parse(lines[0]);
         lgraph_log::json log_msg_1 = lgraph_log::json::parse(lines[1]);
-        std::string log_user_0 = log_msg_0["user"];
-        std::string log_graph_0 = log_msg_0["graph"];
         std::string log_content_0 = log_msg_0["content"];
-        std::string log_content_1 = log_msg_1["content"];
-        UT_EXPECT_EQ(log.user, log_user_0);
-        UT_EXPECT_EQ(log.graph, log_graph_0);
-        UT_EXPECT_EQ(log.content.substr(0, log_content_0.length()), log_content_0);
-        UT_EXPECT_EQ("", log_content_1);
+        UT_EXPECT_EQ(log_0.user, log_msg_0["user"]);
+        UT_EXPECT_EQ(log_0.graph, log_msg_0["graph"]);
+        UT_EXPECT_EQ(log_0.content.substr(0, log_content_0.length()), log_content_0);
+        UT_EXPECT_EQ("", log_msg_1["content"]);
         log_file.close();
 
         std::string log_info(2048, 'a');
