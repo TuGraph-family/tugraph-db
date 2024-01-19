@@ -91,6 +91,11 @@ if (BUILD_PROCEDURE)
     message("Build procedures.")
 endif (BUILD_PROCEDURE)
 
+option(WITH_TESTS "build with tests" ON)
+if (WITH_TESTS)
+    message("Build with tests.")
+endif (WITH_TESTS)
+
 # disable krb5
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENSSL_NO_KRB5=1")
 
@@ -189,4 +194,3 @@ if (ENABLE_PREDOWNLOAD_DEPENDS_PACKAGE)
     execute_process(COMMAND /bin/sh install.sh
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src/python/FMA_shell/pkg)
 endif ()
-
