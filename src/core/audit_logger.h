@@ -92,8 +92,10 @@ class AuditLogger {
 
  public:
     // take string of local time, then convert it to second (int64_t) of local time
-    static inline bool FilePathToTime(int64_t& t, const std::string& s) {
-        if (s.size() != 15) return false;
+    static inline bool FilePathToTime(int64_t& t, const std::string& path) {
+        if (path.size() != 25) return false;
+        if (path.find(AUDIT_PREFIX) == 0) return false;
+        const std::string s = path.substr(6, 15);
 
 #ifdef _WIN32
         lgraph_api::DateTime::YMDHMSF ymdhms;
@@ -169,6 +171,26 @@ class AuditLogger {
         }
     }
 
+    inline bool ParseAuditLog(std::string path, std::string& log_line, lgraph::LogMessage& msg) {
+        if (log_line == "") {
+            LOG_DEBUG() << "Error parsing audit log from string " << path;
+            return false;
+        }
+        lgraph_log::json log_msg = lgraph_log::json::parse(log_line);
+        msg.set_index(log_msg["index"]);
+        msg.set_time(log_msg["time"]);
+        msg.set_begin_end(log_msg["is_end_log"]);
+        msg.set_success(log_msg["success"]);
+        msg.set_content(log_msg["content"]);
+        msg.set_read_write(log_msg["read_write"]);
+        if (!log_msg["is_end_log"]) {
+            msg.set_user(log_msg["user"]);
+            msg.set_graph(log_msg["graph"]);
+            msg.set_type(log_msg["type"]);
+        }
+        return true;
+    }
+
     static bool IsEnabled() { return enabled_.load(std::memory_order_acquire); }
 
     static void SetEnable(bool enable) { enabled_.store(enable, std::memory_order_release); }
@@ -200,11 +222,9 @@ class AuditLogger {
         sort(files.begin(), files.end());
         index_ = GetLogIdx();
         LOG_DEBUG() << "VertexIndex of audit log : " << index_;
-        if (!SetLogFileName())
-            throw std::runtime_error("Failed to get audit log file name from int64_t.");
-        LOG_DEBUG() << "Open audit log file : " << file_name_;
-        file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE, std::ofstream::app);
-        if (!file_.Good()) throw std::runtime_error("Failed to open audit log file for writing.");
+
+        // init lgraph_log AuditLogger
+        lgraph_log::AuditLogger::GetInstance().Init(dir_);
 
         // thread clear the expired AuditLog in certain time, execute each hour
         if (expire_second_ > 0) {
@@ -266,8 +286,10 @@ class AuditLogger {
             }
 
             lgraph::LogMessage msg;
-            while (input.Good()) {
-                if (!ReadNextAuditLog(input, msg)) break;  // broken log entry
+            fma_common::StreamLineReader reader(input);
+            auto lines = reader.ReadAllLines();
+            for (auto& line : lines) {
+                if (!ParseAuditLog(input.Path(), line, msg)) break;  // broken log entry
                 int64_t idx = msg.index();
                 if (!msg.begin_end()) {  // begin
                     if (begin_idx < idx) begin_idx = idx;
@@ -287,16 +309,6 @@ class AuditLogger {
         AutoWriteLock<RWLock> lock(lock_);
         int64_t log_time = lgraph_api::DateTime::LocalNow().MicroSecondsSinceEpoch();
 
-        if ((file_.Size() >= file_size_limit_) && (last_log_time_ < log_time)) {
-            file_.Close();
-            if (!SetLogFileName(log_time))
-                throw std::runtime_error("Failed to get audit log file name from int64_t.");
-            LOG_DEBUG() << "Open a new audit log file : " << file_name_;
-            file_.Open(file_name_, fma_common::OutputFmaStream::DEFAULT_BLOCK_SIZE,
-                       std::ofstream::app);
-            if (!file_.Good())
-                throw std::runtime_error("Failed to open audit log file for writing.");
-        }
         last_log_time_ = log_time;
 
         int64_t index;
@@ -305,20 +317,21 @@ class AuditLogger {
             index = idx;
         else
             index = ++index_;
-        msg.set_index(index);
-        msg.set_time(log_time);
-        msg.set_begin_end(is_end_log);
-        msg.set_success(success);
-        msg.set_content(content);
-        msg.set_read_write(read_write);
+
+        lgraph_log::json log_msg;
+        log_msg["index"] = index;
+        log_msg["time"] = log_time;
+        log_msg["is_end_log"] = is_end_log;
+        log_msg["success"] = success;
+        log_msg["content"] = content;
+        log_msg["read_write"] = read_write;
         if (!is_end_log) {
-            msg.set_user(user);
-            msg.set_graph(graph);
-            msg.set_type(type);
+            log_msg["user"] = user;
+            log_msg["graph"] = graph;
+            log_msg["type"] = type;
         }
-        int len = static_cast<int>(msg.ByteSizeLong());
-        file_.Write((char*)(&len), sizeof(len));
-        file_.Write(msg.SerializeAsString().c_str(), len);
+        lgraph_log::AuditLogger::GetInstance().WriteLog(log_msg);
+
         return index;
     }
 
@@ -405,9 +418,10 @@ class AuditLogger {
                 lgraph::LogMessage msg;
 
                 LOG_DEBUG() << "Search audit log " << f;
-
-                while (input.Good()) {
-                    if (!ReadNextAuditLog(input, msg)) break;          // broken log entry
+                fma_common::StreamLineReader reader(input);
+                auto lines = reader.ReadAllLines();
+                for (auto& line : lines) {
+                    if (!ParseAuditLog(input.Path(), line, msg)) break;          // broken log entry
                     if ((user.length() != 0) && (user != msg.user()))  // check user
                         continue;
                     auto msg_time = msg.time();
@@ -443,6 +457,7 @@ class AuditLogger {
                         }
                         log->second.end_time = lgraph_api::DateTime(msg_time).ToString();
                         log->second.success = msg.success();
+
                         if (log->second.success)
                             log->second.content = log->second.content + "    Successful";
                         else
@@ -497,9 +512,10 @@ class AuditLogger {
                 lgraph::LogMessage msg;
 
                 LOG_DEBUG() << "Search audit log " << f;
-
-                while (input.Good()) {
-                    if (!ReadNextAuditLog(input, msg)) break;          // broken log entry
+                fma_common::StreamLineReader reader(input);
+                auto lines = reader.ReadAllLines();
+                for (auto& line : lines) {
+                    if (!ParseAuditLog(input.Path(), line, msg)) break;          // broken log entry
                     if ((user.length() != 0) && (user != msg.user()))  // check user
                         continue;
                     auto msg_time = msg.time();
@@ -587,6 +603,7 @@ class AuditLogger {
     void Close() {
         AutoWriteLock<RWLock> lock(lock_);
         file_.Close();
+        lgraph_log::AuditLogger::GetInstance().Close();
     }
 };
 
