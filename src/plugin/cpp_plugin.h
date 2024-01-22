@@ -36,8 +36,31 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
         lgraph_api::ProcessInTxn* func_txn = nullptr;
         lgraph_api::GetSignature* get_sig_spec = nullptr;
     };
-
+    /**
+     * Open the dynamic library and find the run-time address
+     * refers to of the symbol "Process".
+     *
+     * Opening multiple algorithm libraries at the same time will cause the problem
+     * of "cannot allocate memory in static TLS block". Use OpenDynamicLib to load the
+     * plugin each time before calling the plugin, and use CloseDynamicLib to unload
+     * the plugin after calling the plugin.
+     *
+     * @param [in]      pinfo    If non-null, the pinfo.
+     * @param [in,out]  dinfo    plugin handle.
+     *
+     * */
     void OpenDynamicLib(const PluginInfoBase* pinfo, DynamicLibinfo &dinfo);
+
+    /**
+     * Close the dynamic library.
+     *
+     * Opening multiple algorithm libraries at the same time will cause the problem
+     * of "cannot allocate memory in static TLS block". Use OpenDynamicLib to load the
+     * plugin each time before calling the plugin, and use CloseDynamicLib to unload
+     * the plugin after calling the plugin.
+     *
+     * @param [in,out]  dinfo    plugin handle.
+     * */
     void CloseDynamicLib(DynamicLibinfo &dinfo);
 
  protected:
@@ -64,6 +87,11 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
     /**
      * Loads a plugin and sets contents in pinfo accordingly.
      *
+     * Opening multiple algorithm libraries at the same time will cause the problem
+     * of "cannot allocate memory in static TLS block". Call OpenDynamicLib to verify
+     * that there are no errors in the plugin file and then call CloseDynamicLib to
+     * uninstall the dynamic library.
+     *
      * @param          name     The name.
      * @param [in,out] pinfo    If non-null, the pinfo.
      * @param [in,out] error    The error.
@@ -75,6 +103,9 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
 
     /**
      * Unload plugin and set pinfo if necessary.
+     *
+     * Does nothing because the dynamic library has already been unloaded
+     * in CloseDynamicLib.
      *
      * @param [in,out] pinfo    If non-null, the pinfo.
      * @param [in,out] error    The error.

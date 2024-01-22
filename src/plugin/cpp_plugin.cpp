@@ -141,10 +141,5 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string
 }
 
 void CppPluginManagerImpl::UnloadPlugin(const std::string& user, const std::string& name,
-                                        PluginInfoBase* pinfo) {
-//    using namespace lgraph::dll;
-//    PluginInfo* info = dynamic_cast<PluginInfo*>(pinfo);
-//    if (!UnloadDynamicLibrary(info->lib_handle))
-//        throw InternalError("Failed to unload library [{}].", name);
-}
+                                        PluginInfoBase* pinfo) {}
 }  // namespace lgraph

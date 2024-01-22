@@ -452,7 +452,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                                       "#include <stdlib.h>", (plugin::CodeType)6,
                                                       "test", true, "v1"));
         }
-#ifndef ENABLE_ASAN
+#ifndef __SANITIZE_ADDRESS__
         {
             UT_LOG() << "Testing load many plugins";
             for (int i = 0; i < 32; i++) {
@@ -468,7 +468,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
         }
-#endif  // ENABLE_ASAN
+#endif  // __SANITIZE_ADDRESS__
     }
 #endif
 }
