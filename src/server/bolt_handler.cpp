@@ -62,17 +62,18 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         auto session = (BoltSession*)conn.GetContext();
         session->state = SessionState::STREAMING;
         // Now only implicit transactions are supported
-        workers.post([&conn, fields = std::move(fields)](){
+        workers.post([conn = conn.shared_from_this(),
+                      fields = std::move(fields)](){
             if (fields.size() < 3) {
                 LOG_ERROR() << "Run msg fields size error, size: " << fields.size();
                 bolt::PackStream ps;
                 ps.AppendFailure({{"code", "error"},
                                   {"message", "Run msg fields size error"}});
                 ps.AppendIgnored();
-                conn.PostResponse(std::move(ps.MutableBuffer()));
+                conn->PostResponse(std::move(ps.MutableBuffer()));
                 return;
             }
-            auto session = (BoltSession*)conn.GetContext();
+            auto session = (BoltSession*)conn->GetContext();
             auto& cypher = std::any_cast<const std::string&>(fields[0]);
             auto& extra = std::any_cast<
                 const std::unordered_map<std::string, std::any>&>(fields[2]);
@@ -84,12 +85,13 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                     {{"code", "error"},
                      {"message", "Missing 'db' item in the 'extra' info of 'Run' msg"}});
                 ps.AppendIgnored();
-                conn.PostResponse(std::move(ps.MutableBuffer()));
+                conn->PostResponse(std::move(ps.MutableBuffer()));
                 return;
             }
             auto& graph = std::any_cast<const std::string&>(db_iter->second);
             auto sm = BoltServer::Instance().StateMachine();
             cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph);
+            ctx.SetBoltConnection(conn.get());
             cypher::ElapsedTime elapsed;
             LOG_DEBUG() << "Bolt run " << cypher;
             try {
@@ -101,38 +103,38 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 ps.AppendFailure({{"code", "error"},
                                   {"message", ex.what()}});
                 ps.AppendIgnored();
-                conn.PostResponse(std::move(ps.MutableBuffer()));
+                conn->PostResponse(std::move(ps.MutableBuffer()));
                 return;
             }
             LOG_DEBUG() << "Cypher execution completed";
-            std::unordered_map<std::string, std::any> meta;
-            meta["fields"] = ctx.result_->BoltHeader();
-            bolt::PackStream ps;
-            ps.AppendSuccess(meta);
-            conn.PostResponse(std::move(ps.MutableBuffer()));
-            auto msg = session->msgs.Pop();
-            ps.Reset();
-            if (msg == BoltMsg::PullN) {
-                for (const auto& r : ctx.result_->BoltRecords()) {
-                    ps.AppendRecord(r);
-                }
-                ps.AppendSuccess();
-            } else if (msg == BoltMsg::DiscardN) {
-                ps.AppendSuccess();
-            } else {
-                LOG_WARN() << "Unexpected bolt msg: " << ToString(msg) << " after RUN";
-                ps.AppendSuccess();
-            }
-            conn.PostResponse(std::move(ps.MutableBuffer()));
-            LOG_DEBUG() << "Posting response completed";
             session->state = SessionState::READY;
         });
     } else if (msg == BoltMsg::PullN) {
+        if (fields.size() != 1) {
+            LOG_ERROR() << "PullN msg fields size error, size: " << fields.size();
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "PullN msg fields size error"}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
+        auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
+        auto n = std::any_cast<int64_t>(val.at("n"));
         auto session = (BoltSession*)conn.GetContext();
-        session->msgs.Push(BoltMsg::PullN);
+        session->msgs.Push({BoltMsg::PullN, n});
     } else if (msg == BoltMsg::DiscardN) {
+        if (fields.size() != 1) {
+            LOG_ERROR() << "DiscardN msg fields size error, size: " << fields.size();
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "DiscardN msg fields size error"}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
+        auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
+        auto n = std::any_cast<int64_t>(val.at("n"));
         auto session = (BoltSession*)conn.GetContext();
-        session->msgs.Push(BoltMsg::DiscardN);
+        session->msgs.Push({BoltMsg::DiscardN, n});
     } else if (msg == BoltMsg::Begin ||
                msg == BoltMsg::Commit ||
                msg == BoltMsg::Rollback) {

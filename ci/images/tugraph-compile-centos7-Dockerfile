@@ -55,7 +55,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make ${JFLAG} && make install \
     && python3 -m pip install --upgrade pip ${PYPI} \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 ${PYPI} \
+    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 ${PYPI} \
     && rm -rf /Python*
 
 # install cmake
@@ -233,6 +233,19 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7.8.3.tar.gz \
   && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=ON -DWITH_JEMALLOC=ON \
   && make ${JFLAG} && make install && rm -rf /rocksdb*
+
+# set maven mirror
+RUN mkdir -p ~/.m2 \
+    && echo '<settings>' > ~/.m2/settings.xml \
+    && echo '  <mirrors>' >> ~/.m2/settings.xml \
+    && echo '    <mirror>' >> ~/.m2/settings.xml \
+    && echo '      <id>alimaven</id>' >> ~/.m2/settings.xml \
+    && echo '      <mirrorOf>central</mirrorOf>' >> ~/.m2/settings.xml \
+    && echo '      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>' >> ~/.m2/settings.xml \
+    && echo '    </mirror>' >> ~/.m2/settings.xml \
+    && echo '  </mirrors>' >> ~/.m2/settings.xml \
+    && echo '</settings>' >> ~/.m2/settings.xml \
+    && cat ~/.m2/settings.xml
 
 # install antlr4-4.13.0
 # if it is not accessible, replace it with the link below
