@@ -16,6 +16,7 @@
 
 #include <gar/graph.h>
 #include <gar/graph_info.h>
+#include <gar/api.h>
 
 #include "core/data_type.h"
 #include "core/field_data_helper.h"
@@ -37,12 +38,13 @@ class GraphArParser : public BlockParser {
     static std::unordered_map<std::string, PrimaryMap> primary_maps;
 
     GraphArchive::Property GetPrimaryKey(const GraphArchive::VertexInfo&);
-
     template <typename T>
-    FieldData ParseData(T& data, const std::string& prop, const GraphArchive::DataType& data_type);
-
-    void MapIdPrimary(PrimaryMap& primary_map, const GraphArchive::GraphInfo& graph_info,
+    FieldData ParseData(T& data, const std::string& prop,
+                        const std::shared_ptr<GraphArchive::DataType>& data_type);
+    void MapIdPrimary(PrimaryMap& primary_map,
+                      const std::shared_ptr<GraphArchive::GraphInfo>& graph_info,
                       const std::string& ver_label);
+    GraphArchive::AdjListType GetOneAdjListType(const GraphArchive::EdgeInfo &edge_info);
 
  public:
     explicit GraphArParser(const CsvDesc& cd);

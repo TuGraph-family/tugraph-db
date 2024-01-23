@@ -10,10 +10,10 @@ adj_lists:
   - ordered: true
     aligned_by: src
     file_type: parquet
-    property_groups:
-      - file_type: parquet
-        properties:
-          - name: rate
-            data_type: string
-            is_primary: false
+property_groups:
+  - file_type: parquet
+    properties:
+      - name: rate
+        data_type: string
+        is_primary: false
 version: gar/v1
