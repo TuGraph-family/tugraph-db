@@ -145,7 +145,5 @@ target_link_libraries(unit_test
 
 target_compile_definitions(unit_test PRIVATE
         FMA_IN_UNIT_TEST=1)
-# install
-install(TARGETS unit_test
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib64)
+
+add_dependencies(unit_test ${LGRAPH_TOOLKITS} lgraph_server)

@@ -546,13 +546,15 @@ void Importer::EdgeDataToSST() {
     BufferedBlobWriter blob_writer(db_->GetLightningGraph());
     std::atomic<uint64_t> pending_tasks(0);
     std::atomic<uint64_t> sst_file_id(0);
+    cuckoohash_map<std::string, char> unique_index_keys;
     for (auto& file : data_files_) {
         // skip vertex files
         if (file.is_vertex_file) {
             continue;
         }
         boost::asio::post(*parse_file_threads_,
-                          [this, &file, &blob_writer, &pending_tasks, &sst_file_id](){
+                          [this, &file, &blob_writer, &pending_tasks,
+                           &sst_file_id, &unique_index_keys](){
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -576,7 +578,6 @@ void Importer::EdgeDataToSST() {
                 LabelId src_label_id, dst_label_id;
                 std::vector<size_t> field_ids;
                 std::vector<size_t> unique_index_info;
-                cuckoohash_map<std::string, char> unique_index_keys;
                 Schema* schema;
                 {
                     auto txn = db_->CreateReadTxn();

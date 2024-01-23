@@ -227,10 +227,7 @@ class OpSet : public OpBase {
             summary.append("set ")
                 .append(std::to_string(ctx->result_info_->statistics.properties_set))
                 .append(" properties.");
-            // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
-            auto header = ctx->result_->Header();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
-            ctx->result_->ResetHeader(header);
+            CYPHER_THROW_ASSERT(ctx->result_->Header().size() == 1);
             CYPHER_THROW_ASSERT(record);
             record->values.clear();
             record->AddConstant(lgraph::FieldData(summary));

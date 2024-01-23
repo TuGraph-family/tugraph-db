@@ -34,7 +34,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         return false;
     }
 
-    size_t construct_param = SNAPSHOT_PARALLEL;
+    size_t construct_param = SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING;
     if (make_symmetric != 0) {
         construct_param = SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED;
     }

@@ -20,6 +20,7 @@
 #include "cypher/parser/data_typedef.h"
 #include "cypher/resultset/result_info.h"
 #include "lgraph/lgraph_result.h"
+#include "bolt/connection.h"
 
 namespace cypher {
 
@@ -58,6 +59,7 @@ class RTContext : public SubmitQueryContext {
     std::unique_ptr<lgraph_api::Transaction> txn_;
     std::unique_ptr<ResultInfo> result_info_;
     std::unique_ptr<lgraph_api::Result> result_;
+    bolt::BoltConnection* bolt_conn_ = nullptr;
 
     RTContext() = default;
 
@@ -74,6 +76,10 @@ class RTContext : public SubmitQueryContext {
             return false;
         }
         return true;
+    }
+
+    void SetBoltConnection(bolt::BoltConnection* c) {
+        bolt_conn_ = c;
     }
 };
 }  // namespace cypher

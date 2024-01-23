@@ -49,7 +49,6 @@ class Record {
 
  public:
     friend class Result;
-
     Record(const Record &);
     Record(Record &&);
     Record &operator=(const Record &);
@@ -268,6 +267,11 @@ class Result {
      * @param   json    Json string to be deserialized.
      */
     void Load(const std::string &json);
+
+    /**
+     * @brief Clear all the records, Size() will be 0.
+     */
+    void ClearRecords();
 
     std::vector<std::string> BoltHeader();
     std::vector<std::vector<std::any>> BoltRecords();
