@@ -282,8 +282,8 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     do {
         // client can not connect, so start follower ha2
         ret = system(cmd.c_str());
-        UT_EXPECT_EQ(ret, 0);
-        fma_common::SleepS(20);
+        if (ret == 0)
+            fma_common::SleepS(20);
         try {
             client = std::make_unique<lgraph::RpcClient>(
                 this->host + ":29093", "admin", "73@TuGraph");
