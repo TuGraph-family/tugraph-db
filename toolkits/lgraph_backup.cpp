@@ -32,7 +32,12 @@ int main(int argc, char** argv) {
         .Comment(
             "Whether to compact the DB during backup. Compaction results in smaller DB, but "
             "increases backup time");
-    config.ParseAndFinalize(argc, argv);
+    try {
+        config.ParseAndFinalize(argc, argv);
+    } catch (std::exception& e) {
+        LOG_ERROR() << e.what();
+        return -1;
+    }
 
     LOG_INFO() << "Backing up data from [" << src << "] to [" << dst << "]";
     // check if src exists

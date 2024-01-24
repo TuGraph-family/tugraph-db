@@ -110,8 +110,12 @@ int main(int argc, char** argv) {
             .Comment(
                 "Output file to print log to, if action==print. Empty value means printing to "
                 "stdout.");
-        argparser.ParseAndFinalize(argc, argv);
-
+        try {
+            argparser.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            LOG_ERROR() << e.what();
+            return -1;
+        }
         // check validity of options
         // input files
         if (files.empty()) throw lgraph::InputError("Input file list cannot be empty.");
