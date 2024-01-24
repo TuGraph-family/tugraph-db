@@ -38,7 +38,12 @@ class MyConfig : public ConfigBase<Empty> {
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);
-        config.ParseAndFinalize(argc, argv);
+        try {
+            config.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            std::exit(-1);
+        }
         printf("query = %s\n", query_s.c_str());
 
         json input = json::parse("{\"query\":" + query_s + "}");
