@@ -27,7 +27,12 @@ int main(int argc, char** argv) {
     config.Add(dir, "d,directory", false).Comment("Data directory");
     config.Add(graph_list, "g,graph_list", true)
         .Comment("List of graphs to warmup, separated with commas");
-    config.ParseAndFinalize(argc, argv);
+    try {
+        config.ParseAndFinalize(argc, argv);
+    } catch (std::exception& e) {
+        LOG_ERROR() << e.what();
+        return -1;
+    }
     std::vector<std::string> graphs = fma_common::Split(graph_list, ",");
 
     double t1 = fma_common::GetTime();

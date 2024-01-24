@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
         argparser.ExitAfterHelp(true);
         argparser.ParseAndFinalize(argc, argv);
     } catch (std::exception& e) {
-        LOG_ERROR() << "Failed to parse command line option: " << e.what();
+        LOG_ERROR() << e.what();
         return -1;
     }
     // now run the service
