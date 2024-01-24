@@ -33,6 +33,41 @@ CppPluginManagerImpl::CppPluginManagerImpl(LightningGraph* db, const std::string
 
 CppPluginManagerImpl::~CppPluginManagerImpl() {}
 
+void CppPluginManagerImpl::OpenDynamicLib(const PluginInfoBase* pinfo, DynamicLibinfo &dinfo) {
+    using namespace lgraph::dll;
+    const auto* info = dynamic_cast<const PluginInfo*>(pinfo);
+    dinfo.lib_handle = LoadDynamicLibrary(info->path);
+    if (!dinfo.lib_handle) {
+        auto errMsg = GetLastErrorMsg();
+        if (errMsg.find("cannot allocate memory in static TLS block") != std::string::npos) {
+            errMsg += ". Wait for other tasks to finish and try again";
+        }
+        throw InputError("Failed to load the DLL: " + errMsg);
+    }
+    if (info->has_func) {
+        dinfo.func = GetDllFunction<PluginFunc*>(dinfo.lib_handle, "Process");
+        if (!dinfo.func) {
+            UnloadDynamicLibrary(dinfo.lib_handle);
+            throw InputError("Failed to get Process() function in the DLL: " + GetLastErrorMsg());
+        }
+    } else {
+        dinfo.get_sig_spec = GetDllFunction<SignatureGetter*>(dinfo.lib_handle, "GetSignature");
+        dinfo.func_txn = GetDllFunction<PluginFuncInTxn*>(dinfo.lib_handle, "ProcessInTxn");
+        if (!dinfo.func_txn) {
+            UnloadDynamicLibrary(dinfo.lib_handle);
+            throw InputError(
+                "Failed to get ProcessInTxn() function in the DLL: "
+                + GetLastErrorMsg());
+        }
+    }
+}
+
+void CppPluginManagerImpl::CloseDynamicLib(DynamicLibinfo &dinfo) {
+    using namespace lgraph::dll;
+    if (!UnloadDynamicLibrary(dinfo.lib_handle))
+        throw InternalError("Failed to unload library.");
+}
+
 void CppPluginManagerImpl::DoCall(lgraph_api::Transaction* txn,
                                   const std::string& user,
                                   AccessControlledDB* db_with_access_control,
@@ -45,15 +80,18 @@ void CppPluginManagerImpl::DoCall(lgraph_api::Transaction* txn,
 
     // TODO: support in_process // NOLINT
     bool r = false;
-    const PluginInfo* info = dynamic_cast<const PluginInfo*>(pinfo);
-    if (info->func) {
-        PluginFunc* procedure = info->func;
-        lgraph_api::GraphDB db(db_with_access_control, info->read_only);
+    DynamicLibinfo info;
+    OpenDynamicLib(pinfo, info);
+    if (info.func) {
+        PluginFunc* procedure = info.func;
+        lgraph_api::GraphDB db(db_with_access_control, pinfo->read_only);
         r = procedure(db, request, output);
-    } else if (info->func_txn && txn != nullptr) {
-        PluginFuncInTxn * procedure = info->func_txn;
+    } else if (info.func_txn && txn != nullptr) {
+        PluginFuncInTxn * procedure = info.func_txn;
         r = procedure(*txn, request, output);
     }
+    CloseDynamicLib(info);
+
     if (!r) throw InputError(FMA_FMT("Plugin returned false. Output: {}.", output));
 }
 
@@ -61,38 +99,47 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string
                                       PluginInfoBase* pinfo) {
     using namespace lgraph::dll;
     PluginInfo* info = dynamic_cast<PluginInfo*>(pinfo);
-    std::string path = GetPluginPath(name);
-    info->lib_handle = LoadDynamicLibrary(path);
-    if (!info->lib_handle) throw InputError("Failed to load the DLL: " + GetLastErrorMsg());
-    info->get_sig_spec = GetDllFunction<SignatureGetter*>(info->lib_handle, "GetSignature");
-    // it's ok for plugin which DOES NOT have `GetSignature` function.
-    // Plugins without `GetSignature` are not guaranteed to call safely in InQueryCall context.
-    if (!info->get_sig_spec) {
-        info->func = GetDllFunction<PluginFunc*>(info->lib_handle, "Process");
-        if (!info->func) {
-            UnloadDynamicLibrary(info->lib_handle);
-            throw InputError("Failed to get Process() function in the DLL: " + GetLastErrorMsg());
+    info->path = GetPluginPath(name);
+    auto lib_handle = LoadDynamicLibrary(info->path);
+    if (!lib_handle) {
+        auto errMsg = GetLastErrorMsg();
+        if (errMsg.find("cannot allocate memory in static TLS block") != std::string::npos) {
+            errMsg += ". Wait for other tasks to finish and try again";
         }
-        info->sig_spec = nullptr;
-        return;
-    } else {
-        info->func_txn = GetDllFunction<PluginFuncInTxn*>(info->lib_handle, "ProcessInTxn");
-        if (!info->func_txn) {
-            UnloadDynamicLibrary(info->lib_handle);
-            throw InputError("Failed to get Process() function in the DLL: " + GetLastErrorMsg());
+        throw InputError("Failed to load the DLL: " + errMsg);
+    }
+    {
+        auto get_sig_spec = GetDllFunction<SignatureGetter*>(lib_handle, "GetSignature");
+        // it's ok for plugin which DOES NOT have `GetSignature` function.
+        // Plugins without `GetSignature` are not guaranteed to call safely in InQueryCall context.
+        if (!get_sig_spec) {
+            auto func = GetDllFunction<PluginFunc*>(lib_handle, "Process");
+            if (!func) {
+                UnloadDynamicLibrary(lib_handle);
+                throw InputError("Failed to get Process() function in the DLL: " +
+                                 GetLastErrorMsg());
+            }
+            info->sig_spec = nullptr;
+            info->has_func = true;
+        } else {
+            auto func_txn = GetDllFunction<PluginFuncInTxn*>(lib_handle, "ProcessInTxn");
+            if (!func_txn) {
+                UnloadDynamicLibrary(lib_handle);
+                throw InputError("Failed to get Process() function in the DLL: " +
+                                 GetLastErrorMsg());
+            }
+            auto sig_spec = std::make_unique<lgraph_api::SigSpec>();
+            bool r = get_sig_spec(*sig_spec);
+            if (!r) throw InputError(FMA_FMT("Failed to get Signature"));
+            info->sig_spec = std::move(sig_spec);
+            info->has_func = false;
         }
-        auto sig_spec = std::make_unique<lgraph_api::SigSpec>();
-        bool r = info->get_sig_spec(*sig_spec);
-        if (!r) throw InputError(FMA_FMT("Failed to get Signature"));
-        info->sig_spec = std::move(sig_spec);
+    }
+    if (!UnloadDynamicLibrary(lib_handle)) {
+        throw InputError("Failed to unload DLL: " + GetLastErrorMsg());
     }
 }
 
 void CppPluginManagerImpl::UnloadPlugin(const std::string& user, const std::string& name,
-                                        PluginInfoBase* pinfo) {
-    using namespace lgraph::dll;
-    PluginInfo* info = dynamic_cast<PluginInfo*>(pinfo);
-    if (!UnloadDynamicLibrary(info->lib_handle))
-        throw InternalError("Failed to unload library [{}].", name);
-}
+                                        PluginInfoBase* pinfo) {}
 }  // namespace lgraph

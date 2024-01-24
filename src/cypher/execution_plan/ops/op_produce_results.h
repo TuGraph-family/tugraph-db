@@ -22,6 +22,7 @@
 #include "lgraph/lgraph_types.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
+#include "server/bolt_session.h"
 
 /* Runtime Record to User Record */
 static void RRecordToURecord(
@@ -203,14 +204,64 @@ class ProduceResults : public OpBase {
             Initialize(ctx);
             state_ = Consuming;
         }
-
         if (children.empty()) return OP_DEPLETED;
-        auto child = children[0];
-        auto res = child->Consume(ctx);
-        if (res != OP_OK) return res;
-        auto record = ctx->result_->MutableRecord();
-        RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
-        return OP_OK;
+        if (ctx->bolt_conn_) {
+            if (ctx->bolt_conn_->has_closed()) {
+                LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
+                return OP_ERR;
+            }
+            auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
+            while (!session->current_msg) {
+                session->current_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+                if (ctx->bolt_conn_->has_closed()) {
+                    LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
+                    return OP_ERR;
+                }
+            }
+            auto child = children[0];
+            auto res = child->Consume(ctx);
+            if (res != OP_OK) {
+                session->ps.AppendSuccess();
+                ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));
+                session->ps.Reset();
+                return res;
+            }
+            if (session->current_msg.value().type == bolt::BoltMsg::PullN) {
+                auto record = ctx->result_->MutableRecord();
+                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
+                session->ps.AppendRecords(ctx->result_->BoltRecords());
+                ctx->result_->ClearRecords();
+                bool sync = false;
+                if (--session->current_msg.value().n == 0) {
+                    std::unordered_map<std::string, std::any> meta;
+                    meta["has_more"] = true;
+                    session->ps.AppendSuccess(meta);
+                    session->current_msg.reset();
+                    sync = true;
+                }
+                if (sync || session->ps.ConstBuffer().size() > 1024) {
+                    ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));
+                    session->ps.Reset();
+                }
+            } else if (session->current_msg.value().type == bolt::BoltMsg::DiscardN) {
+                if (--session->current_msg.value().n == 0) {
+                    std::unordered_map<std::string, std::any> meta;
+                    meta["has_more"] = true;
+                    session->ps.AppendSuccess(meta);
+                    session->current_msg.reset();
+                    ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));
+                    session->ps.Reset();
+                }
+            }
+            return OP_OK;
+        } else {
+            auto child = children[0];
+            auto res = child->Consume(ctx);
+            if (res != OP_OK) return res;
+            auto record = ctx->result_->MutableRecord();
+            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
+            return OP_OK;
+        }
     }
 
     /* Restart */
