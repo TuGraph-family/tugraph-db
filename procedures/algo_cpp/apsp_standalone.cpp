@@ -26,7 +26,12 @@ class MyConfig : public ConfigBase<double> {
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);
-        config.ParseAndFinalize(argc, argv);
+        try {
+            config.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            std::exit(-1);
+        }
         // this->GetDataFromParameter();
         Print();
     }

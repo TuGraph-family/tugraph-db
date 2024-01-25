@@ -83,7 +83,22 @@ To contribute, please read [doc](docs/en-US/source/6.contributor-manual/1.contri
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
-## 5. Contact
+## 5. Partners
+
+<table cellspacing="0" cellpadding="0">
+  <tr align="center">
+    <td height="80"><a href="https://github.com/CGCL-codes/YiTu"><img src="docs/images/partners/hust.png" width="300" alt="HUST" /></a></td>
+    <td height="80"><a href="http://kw.fudan.edu.cn/"><img src="docs/images/partners/fu.png" width="300" alt="FU" /></a></td>
+    <td height="80"><img src="docs/images/partners/zju.png" width="300" alt="ZJU" /></td>
+  </tr>
+  <tr align="center">
+    <td height="80"><a href="http://www.whaleops.com/"><img src="docs/images/partners/whaleops.png" width="300" alt="WhaleOps" /></a></td>
+    <td height="80"><a href="https://github.com/oceanbase/oceanbase"><img src="docs/images/partners/oceanbase.png" width="300" alt="OceanBase" /></a></td>
+    <td height="80"><a href="https://github.com/secretflow/secretflow"><img src="docs/images/partners/secretflow.png" width="300" alt="SecretFlow" /></a></td>
+  </tr>
+</table>
+
+## 6. Contact
 
 Email: tugraph@service.alipay.com
 
