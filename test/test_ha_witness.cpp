@@ -11,17 +11,17 @@ const char ha_mkdir[] = "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
 #ifndef __SANITIZE_ADDRESS__
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 5000 "
-    "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --ha_snapshot_interval_s -1 "
     "--rpc_port {} --directory ./db --log_dir "
-    "./log  --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
+    "./log  --ha_conf {} --verbose 1 --ha_node_join_group_s 20 "
+    "-c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 5000 --ha_is_witness 1 "
-    "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --ha_is_witness 1 "
+    "--ha_snapshot_interval_s -1 "
     "--rpc_port {} --directory ./db --log_dir "
-    "./log --ha_conf {} --verbose 1 -c lgraph_ha.json "
-    "--ha_enable_witness_to_leader {} -d start";
+    "./log --ha_conf {} --verbose 1 --ha_node_join_group_s 20 "
+    "-c lgraph_ha.json --ha_enable_witness_to_leader {} -d start";
 #else
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
@@ -277,18 +277,12 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     std::string ha_dir = "ha" + std::to_string(stoi(output[1]) - 29091);
     cmd = FMA_FMT(server_cmd_f, ha_dir, host, stoi(output[1]) - 2020,
                   output[1], host + ":29092," + host + ":29093," + host + ":29094");
-    std::string witness_cmd = FMA_FMT(witness_cmd_f, "ha3", host, "27074", "29094",
-                host + ":29092," + host + ":29093," + host + ":29094", true);
+    ret = system(cmd.c_str());
+    UT_EXPECT_TRUE(ret);
+    fma_common::SleepS(20);
     master_rpc.clear();
     int times = 0;
     do {
-        // client can not connect, so start follower ha2
-        ret = system(witness_cmd.c_str());
-        if (ret == 0)
-            fma_common::SleepS(5);
-        ret &= system(cmd.c_str());
-        if (ret == 0)
-            fma_common::SleepS(20);
         try {
             client = std::make_unique<lgraph::RpcClient>(
                 this->host + ":29093", "admin", "73@TuGraph");
@@ -313,8 +307,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
             fma_common::SleepS(1);
             continue;
         }
-    } while (++times < 10);
-    fma_common::SleepS(5);
+    } while (++times < 20);
     ret = client->CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
     UT_EXPECT_TRUE(ret);
     nlohmann::json res = nlohmann::json::parse(result);
