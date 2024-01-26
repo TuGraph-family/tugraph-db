@@ -278,7 +278,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     cmd = FMA_FMT(server_cmd_f, ha_dir, host, stoi(output[1]) - 2020,
                   output[1], host + ":29092," + host + ":29093," + host + ":29094");
     ret = system(cmd.c_str());
-    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(ret, 0);
     fma_common::SleepS(20);
     master_rpc.clear();
     int times = 0;
