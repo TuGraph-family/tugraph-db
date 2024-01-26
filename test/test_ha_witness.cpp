@@ -285,7 +285,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     do {
         try {
             client = std::make_unique<lgraph::RpcClient>(
-                this->host + ":29093", "admin", "73@TuGraph");
+                this->host + (stoi(output[1]) - 2020), "admin", "73@TuGraph");
             client->CallCypher(result, "CALL dbms.ha.clusterInfo()");
             cluster_info = nlohmann::json::parse(result.c_str());
             if (cluster_info == nullptr || cluster_info[0]["cluster_info"] == nullptr)
