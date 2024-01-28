@@ -201,7 +201,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     ha_bootstrap_role = 0;
     ha_log_dir = "";
     ha_election_timeout_ms = 500;
-    ha_snapshot_interval_s = 3600 * 24;
+    ha_snapshot_interval_s = 3600 * 24 * 7;
     ha_heartbeat_interval_ms = 1000;
     ha_node_offline_ms = 600 * 1000;
     ha_node_remove_ms = 1200 * 1000;
