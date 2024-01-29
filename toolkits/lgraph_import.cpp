@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +104,12 @@ int main(int argc, char** argv) {
                 .Comment("fulltext index analyzer");
         }
         config.ExitAfterHelp(true);
-        config.ParseAndFinalize(argc, argv);
+        try {
+            config.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            LOG_ERROR() << e.what();
+            return -1;
+        }
     } else if (!v3) {
         fma_common::Configuration config;
         config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
@@ -171,7 +176,12 @@ int main(int argc, char** argv) {
                 .SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
                 .Comment("fulltext index analyzer");
         config.ExitAfterHelp(true);
-        config.ParseAndFinalize(argc, argv);
+        try {
+            config.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            LOG_ERROR() << e.what();
+            return -1;
+        }
     } else {
         fma_common::Configuration config;
         config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
@@ -214,7 +224,12 @@ int main(int argc, char** argv) {
             .SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
             .Comment("fulltext index analyzer");
         config.ExitAfterHelp(true);
-        config.ParseAndFinalize(argc, argv);
+        try {
+            config.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            LOG_ERROR() << e.what();
+            return -1;
+        }
     }
 
     // Setup lgraph log

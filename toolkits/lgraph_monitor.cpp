@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,12 @@ int main(int argc, char** argv) {
             .Comment("Host on which the monitor restful server runs.");
     config.Add(sampling_interval_ms, "sampling_interval_ms", true)
             .Comment("sampling interval in millisecond");
-    config.ParseAndFinalize(argc, argv);
-
+    try {
+        config.ParseAndFinalize(argc, argv);
+    } catch (std::exception& e) {
+        LOG_ERROR() << e.what();
+        return -1;
+    }
     lgraph::RpcClient client(server_host, user, password);
     lgraph::monitor::ResourceMonitor monitor(monitor_host);
 

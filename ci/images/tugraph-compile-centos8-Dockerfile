@@ -313,8 +313,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/ap
   && make install && rm -rf /apache-arrow-*
 
 # GraphAr
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/GraphAr-0.8.0.tar.gz \
-  && tar xf GraphAr-0.8.0.tar.gz && cd GraphAr-0.8.0/cpp && mkdir build && cd build \
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/GraphAr-0.11.1.tar.gz \
+  && tar xf GraphAr-0.11.1.tar.gz && cd GraphAr-0.11.1/cpp && mkdir build && cd build \
   && cmake .. && make ${JFLAG} && make install && rm -rf /GraphAr-*
 
 # tabulate

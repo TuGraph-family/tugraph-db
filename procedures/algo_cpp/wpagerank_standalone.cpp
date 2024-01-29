@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,12 @@ class MyConfig : public ConfigBase<double> {
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);
-        config.ParseAndFinalize(argc, argv);
+        try {
+            config.ParseAndFinalize(argc, argv);
+        } catch (std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            std::exit(-1);
+        }
         Print();
     }
 };
