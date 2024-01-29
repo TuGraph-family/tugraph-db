@@ -368,33 +368,6 @@ class AlgoFunc {
 
 class SpatialFunc {
  public:
-    /*static void Point(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);*/
-
-    /*static void PointWKB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void PointWKT(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void LineString(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void LineStringWKB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void LineStringWKT(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void Polygon(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void PolygonWKB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);
-
-    static void PolygonWKT(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                          const VEC_STR &yield_items, std::vector<Record> *records);*/
-
     static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 };

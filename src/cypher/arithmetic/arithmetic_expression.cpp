@@ -762,6 +762,53 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
     }
 }
 
+/* TODO(anyone) Consider the following 2 style:
+ * 1.
+ * RETURN datetimeComponent({epochMillis:1347062400000, component:year}),
+ * datetimeComponent({epochMillis:1347062400, component:day}) 2. WITH datetime({ year:1984,
+ * month:11, day:11, hour:12, minute:31, second:14, nanosecond: 645876123,
+ * timezone:'Europe/Stockholm' }) AS d RETURN d.year, d.quarter, d.month, d.week, d.weekYear, d.day,
+ * d.ordinalDay, d.dayOfWeek, d.dayOfQuarter, d.hour, d.minute, d.second, d.millisecond,
+ * d.microsecond, d.nanosecond, d.timezone, d.offset, d.offsetMinutes, d.epochSeconds, d.epochMillis
+ */
+cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Record &record,
+                                                     const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    static const int64_t MAX_MICROSECONDS_EPOCH = 100000000000000000;  // 5138-11-16 09:46:40
+    static const std::unordered_map<std::string, int> COMPONENT_MAP{
+        {"year", 0}, {"month", 1}, {"day", 2}, {"hour", 3}, {"minute", 4}, {"second", 5},
+        {"microsecond", 6}
+    };
+    auto time_stamp = args[1].Evaluate(ctx, record);
+    auto component = args[2].Evaluate(ctx, record);
+    if (!time_stamp.IsInteger() || !component.IsString()) CYPHER_ARGUMENT_ERROR();
+    auto microseconds_epoch = time_stamp.constant.scalar.AsInt64();
+    if (microseconds_epoch > MAX_MICROSECONDS_EPOCH) microseconds_epoch /= 1000;
+    auto dt = lgraph::DateTime(microseconds_epoch);
+    auto ymdhmsf = dt.GetYMDHMSF();
+    auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
+    if (it == COMPONENT_MAP.end())
+        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+    switch (it->second) {
+    case 0:
+        return cypher::FieldData(::lgraph::FieldData(ymdhmsf.year));
+    case 1:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.month)));
+    case 2:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.day)));
+    case 3:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.hour)));
+    case 4:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.minute)));
+    case 5:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.second)));
+    case 6:
+        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.fraction)));
+    default:
+        throw ::lgraph::InternalError("");
+    }
+}
+
 cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &record,
                                              const std::vector<ArithExprNode> &args) {
     /* Arguments:
@@ -839,55 +886,6 @@ cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
     throw lgraph::CypherException("Function `CONCAT()` is not supported for: " + arg1.ToString());
 }
 
-/* TODO(anyone) Consider the following 2 style:
- * 1.
- * RETURN datetimeComponent({epochMillis:1347062400000, component:year}),
- * datetimeComponent({epochMillis:1347062400, component:day}) 2. WITH datetime({ year:1984,
- * month:11, day:11, hour:12, minute:31, second:14, nanosecond: 645876123,
- * timezone:'Europe/Stockholm' }) AS d RETURN d.year, d.quarter, d.month, d.week, d.weekYear, d.day,
- * d.ordinalDay, d.dayOfWeek, d.dayOfQuarter, d.hour, d.minute, d.second, d.millisecond,
- * d.microsecond, d.nanosecond, d.timezone, d.offset, d.offsetMinutes, d.epochSeconds, d.epochMillis
- */
-cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Record &record,
-                                                     const std::vector<ArithExprNode> &args) {
-    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
-    static const int64_t MAX_MICROSECONDS_EPOCH = 100000000000000000;  // 5138-11-16 09:46:40
-    static const std::unordered_map<std::string, int> COMPONENT_MAP{
-        {"year", 0}, {"month", 1}, {"day", 2}, {"hour", 3}, {"minute", 4}, {"second", 5},
-        {"microsecond", 6}
-    };
-    auto time_stamp = args[1].Evaluate(ctx, record);
-    auto component = args[2].Evaluate(ctx, record);
-    if (!time_stamp.IsInteger() || !component.IsString()) CYPHER_ARGUMENT_ERROR();
-    auto microseconds_epoch = time_stamp.constant.scalar.AsInt64();
-    if (microseconds_epoch > MAX_MICROSECONDS_EPOCH) microseconds_epoch /= 1000;
-    auto dt = lgraph::DateTime(microseconds_epoch);
-    auto ymdhmsf = dt.GetYMDHMSF();
-    auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
-    if (it == COMPONENT_MAP.end())
-        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
-    switch (it->second) {
-    case 0:
-        return cypher::FieldData(::lgraph::FieldData(ymdhmsf.year));
-    case 1:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.month)));
-    case 2:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.day)));
-    case 3:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.hour)));
-    case 4:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.minute)));
-    case 5:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.second)));
-    case 6:
-        return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.fraction)));
-    default:
-        throw ::lgraph::InternalError("");
-    }
-}
-
-// create a point by point(double a, double b, srid(4326 in default))
-// or point(EWKB);
 cypher::FieldData BuiltinFunction::Point(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() == 1 || args.size() > 4) CYPHER_ARGUMENT_ERROR();
@@ -943,7 +941,6 @@ cypher::FieldData BuiltinFunction::Point(RTContext *ctx, const Record &record,
     }
 }
 
-// create a point by point_wkb(wkb, srid(4326 in default));
 cypher::FieldData BuiltinFunction::PointWKB(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
@@ -975,7 +972,6 @@ cypher::FieldData BuiltinFunction::PointWKB(RTContext *ctx, const Record &record
     }
 }
 
-// create a point by point_wkt(wkt, srid(4326 in default));
 cypher::FieldData BuiltinFunction::PointWKT(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
@@ -1007,7 +1003,6 @@ cypher::FieldData BuiltinFunction::PointWKT(RTContext *ctx, const Record &record
     }
 }
 
-// create linestring by LinieString(EKWB);
 cypher::FieldData BuiltinFunction::LineString(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
@@ -1019,7 +1014,6 @@ cypher::FieldData BuiltinFunction::LineString(RTContext *ctx, const Record &reco
     return cypher::FieldData(l);
 }
 
-// create linestring by linestring_wkb(wkb, srid(4326 in default));
 cypher::FieldData BuiltinFunction::LineStringWKB(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
@@ -1053,7 +1047,6 @@ cypher::FieldData BuiltinFunction::LineStringWKB(RTContext *ctx, const Record &r
     }
 }
 
-// create linestring by linestring_wkt(wkt, srid(4326));
 cypher::FieldData BuiltinFunction::LineStringWKT(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
@@ -1087,7 +1080,6 @@ cypher::FieldData BuiltinFunction::LineStringWKT(RTContext *ctx, const Record &r
     }
 }
 
-// create polygon by polygon(ewkb);
 cypher::FieldData BuiltinFunction::Polygon(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
@@ -1099,7 +1091,6 @@ cypher::FieldData BuiltinFunction::Polygon(RTContext *ctx, const Record &record,
     return cypher::FieldData(pl);
 }
 
-// create polygon by polygon_wkb(wkb, srid(4326 in default));
 cypher::FieldData BuiltinFunction::PolygonWKB(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();
@@ -1133,7 +1124,6 @@ cypher::FieldData BuiltinFunction::PolygonWKB(RTContext *ctx, const Record &reco
     }
 }
 
-// create polygon by polygon_wkt(wkt, srid(4326 in default));
 cypher::FieldData BuiltinFunction::PolygonWKT(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 3) CYPHER_ARGUMENT_ERROR();

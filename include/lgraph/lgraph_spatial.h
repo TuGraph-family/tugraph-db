@@ -328,9 +328,9 @@ class Spatial {
     }
 
     /**
-     *  @brief return the distance between two spatial type data;
+     *  @brief return the distance between two spatial data;
      * 
-     *  @param other the other spatial type data;
+     *  @param other the other data of spatial type;
     */
     double Distance(Spatial<SRID_Type>& other);
 
@@ -404,7 +404,7 @@ class Point : public SpatialBase {
     explicit Point(const std::string& ewkb);
 
     /**
-     *  @brief construct Point class from Coordinate pairs and srid;
+     *  @brief construct Point from Coordinate pairs and srid;
      *  
      *  @param arg1 the first coordinate datum;
      * 
@@ -432,23 +432,23 @@ class Point : public SpatialBase {
     }
 
     /**
-     *  @brief caculate the distance between point and point;
+     *  @brief caculate the distance between data of point type;
      * 
-     *  @param other the other point type data;
+     *  @param other the other data of point type;
     */
     double Distance(Point<SRID_Type>& other);
 
     /**
      *  @brief caculate the distance between point and linestring;
      *  
-     *  @param other the other linsetring type data;
+     *  @param other the other data of linestring type;
     */
     double Distance(LineString<SRID_Type>& other);
 
     /**
      *  @brief caculate the distance between point and polygon;
      *  
-     *  @param other the other polygon type data;
+     *  @param other the other data of polygon type;
     */
     double Distance(Polygon<SRID_Type>& other);
 
@@ -487,21 +487,21 @@ class LineString : public SpatialBase {
     /**
      *  @brief caculate the distance between linestring and point;
      * 
-     *  @param other the other point type data;
+     *  @param other the other data of distance type;
     */
     double Distance(Point<SRID_Type>& other);
 
     /**
      *  @brief caculate the distance between linestring and linestring;
      *  
-     *  @param other the other linsetring type data;
+     *  @param other the other data of linestring type;
     */
     double Distance(LineString<SRID_Type>& other);
 
     /**
      *  @brief caculate the distance between linestring and polygon;
      *  
-     *  @param other the other polygon type data;
+     *  @param other the other data of polygon type;
     */
     double Distance(Polygon<SRID_Type>& other);
 
@@ -540,21 +540,21 @@ class Polygon : public SpatialBase {
     /**
      *  @brief caculate the distance between linestring and point;
      * 
-     *  @param other the other point type data;
+     *  @param other the other data of point type;
     */
     double Distance(Point<SRID_Type>& other);
 
     /**
      *  @brief caculate the distance between linestring and linestring;
      *  
-     *  @param other the other linsetring type data;
+     *  @param other the other data of linestring type;
     */
     double Distance(LineString<SRID_Type>& other);
 
     /**
      *  @brief caculate the distance between linestring and polygon;
      *  
-     *  @param other the other polygon type data;
+     *  @param other the other data of polygon type;
     */
     double Distance(Polygon<SRID_Type>& other);
 

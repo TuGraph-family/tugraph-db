@@ -90,6 +90,16 @@ struct FieldDataHash {
                     throw lgraph::InputError("unsupported spatial srid");
             }
         }
+        case FieldType::SPATIAL: {
+            switch (fd.GetSRID()) {
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsSpatial().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
+                default:
+                    throw lgraph::InputError("unsupported spatial srid");
+            }
+        }
         default:
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         }

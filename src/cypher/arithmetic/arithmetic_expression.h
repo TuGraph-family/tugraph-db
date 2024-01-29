@@ -294,37 +294,49 @@ struct BuiltinFunction {
 
     /* spatial functions */
     /**
-     * create point type data by point(x, y, srid) (srid is 4326 in default);
-     * or point(EWKB); 
+     * create point type data by point(double a, double b, srid(4326 in default))
+     * or point(EWKB);
     */
     static cypher::FieldData Point(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
     /**
-     * create point type data by PointWKB(WKB, SRID) (srid is 4326 in default);
+     * create point type data by pointwkb(wkb, srid(4326 in default)); 
     */
     static cypher::FieldData PointWKB(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
     /**
-     * create point type data by PointWKB(WKT, SRID) (srid is 4326 in default);
+     * create point type data by pointwkt(wkt, srid(4326 in default));
     */
     static cypher::FieldData PointWKT(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
+    /**
+     * create linestring by LinieString(EKWB);
+    */
     static cypher::FieldData LineString(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
+    /**
+     *  create linestring by linestringwkb(wkb, srid(4326 in default)); 
+    */
     static cypher::FieldData LineStringWKB(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
+    /**
+     *  create linestring by linestringwkt(wkt, srid(4326 in default));
+    */
     static cypher::FieldData LineStringWKT(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
+    /**
+     *  create polygon by polygon(EWKB); 
+    */
     static cypher::FieldData Polygon(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
+    /**
+     *  create polygon by polygonwkb(wkb, srid(4326 in default)); 
+    */
     static cypher::FieldData PolygonWKB(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
+    /**
+     *  create polygon by polygonwkt(wkt, srid(4326 in default)); 
+    */
     static cypher::FieldData PolygonWKT(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 
