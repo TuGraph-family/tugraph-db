@@ -30,9 +30,7 @@
 
 namespace cypher {
 
-// key为pattern graph中的点id,value为label值
 typedef std::map<NodeID, std::string> SchemaNodeMap;
-// key为pattern graph中的边id,value为(源点id,终点id,边label值,边方向,最小跳数,最大跳数)的六元组
 typedef std::map<RelpID, std::tuple<NodeID, NodeID, std::set<std::string>, parser::LinkDirection>>
     SchemaRelpMap;
 typedef std::pair<SchemaNodeMap, SchemaRelpMap> SchemaGraphMap;
@@ -41,15 +39,15 @@ namespace rewrite {
 
 class SchemaRewrite {
  public:
-    std::map<std::string, int> label2idx;        // 每个label对应一个id
+    std::map<std::string, int> label2idx;        // label to index
     int label_cnt = 0;
-    std::vector<std::string> idx2label;          // id到label的对应
+    std::vector<std::string> idx2label;          // index to label
 
-    std::map<size_t, cypher::NodeID> vidx2pidx;  // 顶点id到pattern graph中id对应
-    std::map<cypher::NodeID, size_t> pidx2vidx;  // pattern graph中id到顶点id对应
-    std::map<size_t, cypher::NodeID> eidx2pidx;  // 边id到pattern graph中id对应
+    std::map<size_t, cypher::NodeID> vidx2pidx;  // vertex id to pattern graph id
+    std::map<cypher::NodeID, size_t> pidx2vidx;  // pattern graph id to vertex id
+    std::map<size_t, cypher::NodeID> eidx2pidx;  // edge id to pattern graph id
 
-    std::vector<std::set<size_t>> edge_core;  // 保存查询图中边id到目标图中边id的对应关系
+    std::vector<std::set<size_t>> edge_core;  // pattern graph edge id to dst graph edge id
     std::vector<cypher::SchemaGraphMap> sgm;
     cypher::SchemaNodeMap* m_schema_node_map;
     cypher::SchemaRelpMap* m_schema_relp_map;
@@ -59,11 +57,11 @@ class SchemaRewrite {
 
     Graph target_graph;
     Graph query_graph;
-    std::vector<int> core_2;  // 保存查询图中点id到目标图中点id的对应关系
+    std::vector<int> core_2;
     size_t query_size;
     size_t target_size;
-    size_t map_cnt = 0;  // 查询图中点已经匹配的个数
-    size_t depth = 0;    // 遍历的深度
+    size_t map_cnt = 0;  // matched vertices count in graph
+    size_t depth = 0;    // depth in traversal
 
     SchemaRewrite() {}
     ~SchemaRewrite() {}

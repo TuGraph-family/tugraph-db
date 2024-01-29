@@ -76,7 +76,8 @@ class OptRewriteWithSchemaInference : public OptPass {
         return true;
     }
 
-    // match子句中的模式图可以分为多个极大连通子图，该函数提取每个极大连通子图的点和边，经过分析后加上标签信息
+    // pattern graph in match cluase can be divided to multipe maximal conntected subgraphs
+    // this function extracts V and E of each subgraphs and labels them after analysis
     void _ExtractStreamAndAddLabels(OpBase *root, const lgraph::SchemaInfo *schema_info) {
         CYPHER_THROW_ASSERT(root->type == OpType::EXPAND_ALL);
         SchemaNodeMap schema_node_map;
@@ -103,7 +104,7 @@ class OptRewriteWithSchemaInference : public OptPass {
                     relp_map_value(start->ID(), neighbor->ID(), relp->Types(), relp->direction_);
                 schema_relp_map[relp->ID()] = relp_map_value;
             } else if (op->type == OpType::VAR_LEN_EXPAND) {
-                // 含有可变长算子的情况暂不处理
+                // currently do not process when var len ops exist
                 return;
             } else if ((op->IsScan() || op->IsDynamicScan()) && op->type != OpType::ARGUMENT) {
                 NodeID id;
@@ -140,12 +141,12 @@ class OptRewriteWithSchemaInference : public OptPass {
             CYPHER_THROW_ASSERT(op->children.size() == 1);
             op = op->children[0];
         }
-        // 调用schema函数
+        // call schema function
         rewrite::SchemaRewrite schema_rewrite;
         std::vector<SchemaGraphMap> schema_graph_maps;
         schema_graph_maps =
             schema_rewrite.GetEffectivePath(*schema_info, &schema_node_map, &schema_relp_map);
-        // 目前只对一条可行路径的情况进行重写
+        // currently rewrite only when there is just one effeactive path
         if (schema_graph_maps.size() != 1) {
             return;
         }
@@ -219,7 +220,7 @@ class OptRewriteWithSchemaInference : public OptPass {
     }
 
     void _RewriteWithSchemaInference(OpBase *root, const lgraph::SchemaInfo *schema_info) {
-        // 对单独的点和可变长不予优化
+        // do not optimize on single node and var len
         if (root->type == OpType::EXPAND_ALL) {
             _ExtractStreamAndAddLabels(root, schema_info);
         } else {

@@ -66,7 +66,7 @@ class NodeByIdSeek : public OpBase {
     }
 
     OpResult RealConsume(RTContext *ctx) override {
-        // 记得每次都要设为-1！！！！！
+        // remember set vid to -1 every time
         node_->SetVid(-1);
 
         if (!it_ || !it_->IsValid()) return OP_DEPLETED;
