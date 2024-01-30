@@ -29,6 +29,7 @@
 #include "procedure/procedure.h"
 #include "cypher/execution_plan/validation/graph_name_checker.h"
 #include "cypher/execution_plan/execution_plan.h"
+#include "server/bolt_session.h"
 
 namespace cypher {
 using namespace parser;
@@ -1365,6 +1366,8 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         bolt::PackStream ps;
         ps.AppendSuccess(meta);
         ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+        auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
+        session->state = bolt::SessionState::STREAMING;
     }
 
     try {
