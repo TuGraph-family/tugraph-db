@@ -565,7 +565,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                     it->second.scope == SymbolNode::ARGUMENT) {
                     // the previous argument op added
                     skip_hanging_argument_op =
-                        true;  // avoid `MATCH (a),(b) WITH a, b a,b` generates multiple argument
+                        true;  // avoid `MATCH (a),(b) WITH a, b a,b` generates multiple arguments
                 }
             } else if (relp.VarLen()) {
                 // expand when neighbor is not null

@@ -98,7 +98,7 @@ class Apply : public OpBase {
         if (state == StreamDepleted) return OP_DEPLETED;
         if (state == StreamUnInitialized) {
             if (PullFromLhs(ctx) != OP_OK) {
-                // Apply from lhs
+                // starting with lhs first
                 state = StreamDepleted;
                 return OP_DEPLETED;
             }

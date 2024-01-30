@@ -69,7 +69,7 @@ class OpFilter : public OpBase {
         for (auto child : op->children) {
             allModified = true;
             if (child->type == cypher::OpType::ARGUMENT) {
-                // containModifies is true when all ae_right symbols included in arguments
+                // containModifies is true when all ae_right symbols are included in arguments
                 for (auto alias : tif->RhsAlias()) {
                     if (std::find(child->modifies.begin(), child->modifies.end(), alias) ==
                         child->modifies.end()) {

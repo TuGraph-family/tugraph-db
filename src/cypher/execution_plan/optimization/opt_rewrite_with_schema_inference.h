@@ -76,7 +76,7 @@ class OptRewriteWithSchemaInference : public OptPass {
         return true;
     }
 
-    // pattern graph in match cluase can be divided to multipe maximal conntected subgraphs
+    // pattern graph in match clause can be divided to multiple maximal connected subgraphs
     // this function extracts V and E of each subgraphs and labels them after analysis
     void _ExtractStreamAndAddLabels(OpBase *root, const lgraph::SchemaInfo *schema_info) {
         CYPHER_THROW_ASSERT(root->type == OpType::EXPAND_ALL);
@@ -146,7 +146,7 @@ class OptRewriteWithSchemaInference : public OptPass {
         std::vector<SchemaGraphMap> schema_graph_maps;
         schema_graph_maps =
             schema_rewrite.GetEffectivePath(*schema_info, &schema_node_map, &schema_relp_map);
-        // currently rewrite only when there is just one effeactive path
+        // currently rewrite only when there is just one effective path
         if (schema_graph_maps.size() != 1) {
             return;
         }

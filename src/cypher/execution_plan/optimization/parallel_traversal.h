@@ -124,7 +124,7 @@ class ParallelTraversal : public OptPass {
                 }
             }
         } else {
-            return false;  // leaf end node can only be node_by_label_scan in plan
+            return false;  // the leaf node must be a node_by_label_scan in the plan
         }
         if (start_alias.empty() || end_alias.empty()) {
             return false;
