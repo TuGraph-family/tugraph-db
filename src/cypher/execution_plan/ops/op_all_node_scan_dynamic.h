@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ class AllNodeScanDynamic : public OpBase {
         auto child = children[0];
         if (child->type != OpType::ARGUMENT) CYPHER_TODO();
         if (!consuming_) {
-            // 第一次进来需要child->Consume
+            // call child->Consume first time
             if (child->Consume(ctx) != OP_OK) {
                 return OP_DEPLETED;
             }

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -195,7 +195,7 @@ struct OpBase {
 
     bool IsDynamicScan() const {
         return type == OpType::NODE_INDEX_SEEK_DYNAMIC || type == OpType::ALL_NODE_SCAN_DYNAMIC ||
-               type == OpType::NODE_BY_LABEL_SCAN_DYNAMIC;  // 新增
+               type == OpType::NODE_BY_LABEL_SCAN_DYNAMIC;
     }
 
     bool IsStreamRoot() const {

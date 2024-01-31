@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,10 +61,10 @@ class ParallelTraversal : public OptPass {
     }
 
     bool _AdjustTraversal(OpBase *root) {
-        // 遍历查询计划，判断是否满足变换traversal条件
+        // traverse the plan to see if the condition is satisfied.
         OpBase *leaf_op = root;
         while (!leaf_op->children.empty() && leaf_op->type != OpType::AGGREGATE) {
-            // 由于txn_.Abort()，无法传递以及处理其他需要txn的op
+            // can not pass or process other OPs that needs txn due to txn_.Abort()
             if (leaf_op->children.size() > 1 ||
                 (leaf_op->type != OpType::PRODUCE_RESULTS && leaf_op->type != OpType::SORT)) {
                 return false;
@@ -76,7 +76,7 @@ class ParallelTraversal : public OptPass {
         }
 
         Aggregate *aggregate = dynamic_cast<Aggregate *>(leaf_op);
-        // 目前仅处理单个聚合函数，且key的数量为0或1
+        // only process single aggregation functions
         if (aggregate->GetAggregatedExpressions().size() != 1 ||
             aggregate->GetNoneAggregatedExpressions().size() > 1) {
             return false;
@@ -85,16 +85,17 @@ class ParallelTraversal : public OptPass {
         std::string start_alias;
         std::string end_alias;
         std::string start_label;
+        // <start, neighbor, relp, towards, has_filter> has_filter is not used currently
         std::vector<
             std::tuple<cypher::Node *, cypher::Node *, cypher::Relationship *, ExpandTowards, bool>>
-            expands;  // <start, neighbor, relp, towards, has_filter> has_filter暂时不用
+            expands;
         while (!leaf_op->children.empty()) {
             if (leaf_op->children.size() > 1) {
                 return false;
             }
             leaf_op = leaf_op->children[0];
             if (leaf_op->type == OpType::EXPAND_ALL) {
-                // 目前暂不考虑对expand进行filter
+                // do not filter on expand currently
                 if (leaf_op->parent->type == OpType::FILTER) {
                     return false;
                 }
@@ -117,13 +118,13 @@ class ParallelTraversal : public OptPass {
             if (leaf_op->parent->type == OpType::FILTER) {
                 OpFilter *op_filter = dynamic_cast<OpFilter *>(leaf_op->parent);
                 filter = op_filter->Filter();
-                // 目前只处理RANGE_FILTER，可嵌套
+                // only process RANGE_FILTER, it can be recursive
                 if (!_JudgeRangeFilter(filter)) {
                     return false;
                 }
             }
         } else {
-            return false;  // plan最后节点必须为node_by_label_scan
+            return false;  // the leaf node must be a node_by_label_scan in the plan
         }
         if (start_alias.empty() || end_alias.empty()) {
             return false;
@@ -131,16 +132,16 @@ class ParallelTraversal : public OptPass {
 
         ArithExprNode agg_expr;
         ArithExprNode noneagg_expr;
-        if (aggregate->GetNoneAggregatedExpressions().size() == 1) {  // 有key
+        if (aggregate->GetNoneAggregatedExpressions().size() == 1) {  // has key
             agg_expr = aggregate->GetAggregatedExpressions()[0];
             noneagg_expr = aggregate->GetNoneAggregatedExpressions()[0];
             if (noneagg_expr.operand.variadic.alias != end_alias ||
                 agg_expr.op.func_name != "count" ||
                 agg_expr.op.children[1].operand.variadic.alias !=
-                    start_alias) {  // 判断是否为头+尾+count
+                    start_alias) {  // judge if head+end+count
                 return false;
             }
-        } else {  // 无key
+        } else {  // has no key
             agg_expr = aggregate->GetAggregatedExpressions()[0];
             if (agg_expr.op.func_name != "count" ||
                 agg_expr.op.children[1].operand.variadic.alias != start_alias) {
