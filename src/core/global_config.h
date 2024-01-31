@@ -128,7 +128,6 @@ struct BasicConfigs {
     bool enable_realtime_count{};
     // bolt
     int bolt_port = 0;
-    int bolt_thread_num = 10;
 };
 
 template <typename T>
