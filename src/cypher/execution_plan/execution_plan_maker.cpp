@@ -192,7 +192,7 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
         }
     }
     if (!has_arg) {
-        // 符号表中没有type为argument的
+        // no argument type in symbol table
         if (pf.type == Property::VALUE || pf.type == Property::PARAMETER) {
             /* use index when possible. weak index lookup if label absent */
             scan_op = new NodeIndexSeek(node, sym_tab);
@@ -217,7 +217,7 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
         }
         ops.emplace_back(scan_op);
     } else {
-        // 符号表有type为argument的
+        // has argument type in symbol table
         if (it->second.scope == SymbolNode::ARGUMENT) {
             if (skip_arg_op) return;
         } else if (pf.type == Property::VALUE || pf.type == Property::PARAMETER) {

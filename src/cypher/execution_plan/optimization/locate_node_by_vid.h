@@ -79,7 +79,7 @@ class LocateNodeByVid : public OptPass {
             range_filter->GetAeLeft().op.func_name == "id" &&
             range_filter->GetCompareOp() == lgraph::LBR_EQ) {
             if (!range_filter->GetAeRight().operand.constant.IsInteger()) {
-                return -1;  // TODO(anyone): 右值可能不是integer,这里用-1做flag合适嘛？
+                return -1;  // TODO(anyone): return -1 is not ok when AeRight is not an integer.
             }
             return range_filter->GetAeRight().operand.constant.scalar.integer();
         }

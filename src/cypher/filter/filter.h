@@ -573,9 +573,8 @@ class TestInFilter : public Filter {
 
         // optimize with hash_set
         if (producer_op_ != nullptr) {
-            // producer_op_ != nullptr，说明可以使用set优化
+            // producer_op_ != nullptr means it can be optimized with hash_set
             if (timestamp != producer_op_->stats.profileRecordCount) {
-                // 需要重置set
                 right_set_.clear();
                 for (auto &r : *right.constant.array) {
                     right_set_.emplace(r);
@@ -593,7 +592,7 @@ class TestInFilter : public Filter {
                 return true;
             }
         } else {
-            // 否则，就循环迭代，目前只处理argument这种情况
+            // only process argument in a loop
             LOG_WARN() << "[" << __FILE__ << "] "
                        << "do not use unordered_set";
             for (auto &r : *right.constant.array) {

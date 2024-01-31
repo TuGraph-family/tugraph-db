@@ -21,11 +21,11 @@
 
 namespace cypher::rewrite {
 
-// 根据schema信息和cypher信息获取有效路径
+// extract effective path based on schema and cypher information
 std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
     const lgraph::SchemaInfo& schema_info, cypher::SchemaNodeMap* schema_node_map,
     cypher::SchemaRelpMap* schema_relp_map) {
-    // 根据schema构建目标图
+    // build the target graph based on schema
     m_schema_node_map = schema_node_map;
     m_schema_relp_map = schema_relp_map;
     label2idx.insert({"", -2});
@@ -56,7 +56,7 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
         label_num++;
     }
 
-    // cypher语句构建查询图
+    // build query graph
     size_t cnt = 0;
     for (auto it = schema_node_map->begin(); it != schema_node_map->end(); it++) {
         vidx2pidx.insert({cnt, it->first});
@@ -86,7 +86,7 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
         e_cnt++;
     }
 
-    // 初始化相关参数
+    // initialization
     target_size = target_graph.m_nodes.size();
     query_size = query_graph.m_nodes.size();
     edge_core.resize(query_graph.m_edges.size());
@@ -96,13 +96,13 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
 
 #ifdef DEBUG
     PrintLabel2Idx();
-    LOG_DEBUG() << "目标图:";
+    LOG_DEBUG() << "target graph:";
     target_graph.PrintGraph();
-    LOG_DEBUG() << "查询图:";
+    LOG_DEBUG() << "query graph:";
     query_graph.PrintGraph();
 #endif
 
-    // 回溯
+    // back track
     for (size_t i = 0; i < target_size; i++) {
         Reset();
         if (CheckNodeLabel(0, i)) {
@@ -115,7 +115,7 @@ std::vector<cypher::SchemaGraphMap> SchemaRewrite::GetEffectivePath(
     return sgm;
 }
 
-// 重置所有状态
+// reset all flags
 void SchemaRewrite::Reset() {
     for (size_t i = 0; i < query_size; i++) {
         core_2[i] = -1;
@@ -211,14 +211,14 @@ std::vector<StateInfo> SchemaRewrite::GenCandidateStateInfo() {
     return candidate_state_infos;
 }
 
-// //回溯
+// //backtrack
 // void SchemaRewrite::Backtrack(size_t vid){
 //     map_cnt--;
 //     visited[vid]=false;
 //     core_2[vid]=-1;
 // }
 
-// 检查目标图和查询图上当前点的label是否一致
+// Check if the labels are same on the target graph and query graph
 bool SchemaRewrite::CheckNodeLabel(size_t vid, size_t t_vid) {
     Node* query_node = &query_graph.m_nodes[vid];
     Node* target_node = &target_graph.m_nodes[t_vid];
@@ -227,7 +227,7 @@ bool SchemaRewrite::CheckNodeLabel(size_t vid, size_t t_vid) {
     }
     return false;
 }
-// 根据目标图上的边id集合获取点id集合
+// extract vid set using edge id set of target graph
 std::map<size_t, std::set<size_t>> SchemaRewrite::GetNextTVidByEdgeId(std::set<size_t>& edge_ids,
                                                                       size_t t_vid) {
     std::map<size_t, std::set<size_t>> id2eidset;
@@ -248,7 +248,7 @@ std::map<size_t, std::set<size_t>> SchemaRewrite::GetNextTVidByEdgeId(std::set<s
     }
     return id2eidset;
 }
-// 根据查询图上query_edge获取目标图上可行的边id集合
+// extract edge id set using query_edge on query graph
 std::set<size_t> SchemaRewrite::GetNextEdgeIds(Edge* query_edge, size_t t_vid, size_t direction) {
     std::set<size_t> edge_ids;
     Node& target_node = target_graph.m_nodes[t_vid];
@@ -290,7 +290,7 @@ std::set<size_t> SchemaRewrite::GetNextEdgeIds(Edge* query_edge, size_t t_vid, s
     }
     return edge_ids;
 }
-// 根据label获取其唯一的id
+// get unique id using label
 int SchemaRewrite::GetLabelNum(std::string label) {
     auto it = label2idx.find(label);
     int label_num = -1;
@@ -303,7 +303,7 @@ int SchemaRewrite::GetLabelNum(std::string label) {
     }
     return label_num;
 }
-// 将匹配的路径加入到schema graph map中
+// add matched path to schema graph map
 void SchemaRewrite::AddMapping() {
     cypher::SchemaNodeMap snm(*m_schema_node_map);
     cypher::SchemaRelpMap srm(*m_schema_relp_map);
@@ -341,7 +341,7 @@ void SchemaRewrite::AddMapping() {
     }
     sgm.push_back(std::make_pair(snm, srm));
 }
-// 打印当前匹配的路径
+// print matched path
 void SchemaRewrite::PrintMapping() {
     LOG_INFO() << "Node Mapping:";
     for (size_t j = 0; j < query_size; j++) {

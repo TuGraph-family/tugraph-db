@@ -195,7 +195,7 @@ struct OpBase {
 
     bool IsDynamicScan() const {
         return type == OpType::NODE_INDEX_SEEK_DYNAMIC || type == OpType::ALL_NODE_SCAN_DYNAMIC ||
-               type == OpType::NODE_BY_LABEL_SCAN_DYNAMIC;  // 新增
+               type == OpType::NODE_BY_LABEL_SCAN_DYNAMIC;
     }
 
     bool IsStreamRoot() const {

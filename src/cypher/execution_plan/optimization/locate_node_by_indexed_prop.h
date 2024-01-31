@@ -62,7 +62,7 @@ class LocateNodeByIndexedProp : public OptPass {
             Node *node;
             const SymbolTable *symtab;
 
-            // TODO(anyone) 2/9/22 gelincheng: 这里可以写的再优雅些嘛？
+            // TODO(anyone): rewrite this more elegantly
             if (op_filter->children[0]->type == OpType::ALL_NODE_SCAN) {
                 node = dynamic_cast<AllNodeScan *>(op_filter->children[0])->GetNode();
                 symtab = dynamic_cast<AllNodeScan *>(op_filter->children[0])->sym_tab_;
@@ -71,9 +71,9 @@ class LocateNodeByIndexedProp : public OptPass {
                 symtab = dynamic_cast<NodeByLabelScan *>(op_filter->children[0])->sym_tab_;
             }
 
-            // try to reuse  NodeIndexSeek
-            // 这里修改了NodeIndexSeek的实现，使其支持静态多值
-            // 不选择直接构造一个unwind的原因：因为unwind需要增加一个符号，需要修改原先的symtab
+            // try to reuse NodeIndexSeek
+            // Here implemention of NodeIndexSeek is tweaked to support multiple static values
+            // Reason that not to build unwind：unwind needs one more symbol in symbol table
             if (target_value_datas.empty()) target_value_datas.emplace_back(value);
             auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, target_value_datas);
             op_node_index_seek->parent = op_post;
@@ -96,13 +96,13 @@ class LocateNodeByIndexedProp : public OptPass {
             range_filter->GetCompareOp() == lgraph::LBR_EQ &&
             range_filter->GetAeRight().operand.type == ArithOperandNode::AR_OPERAND_CONSTANT) {
             if (field.empty()) {
-                // 右值可能会不是constant? 如果是para类型？需要处理嘛？
+                // right value may not be constant? need to process when it is para type.
                 field = range_filter->GetAeLeft().operand.variadic.entity_prop;
             }
             if (field != range_filter->GetAeLeft().operand.variadic.entity_prop) {
                 return false;
             }
-            // 这里默认是scalar,数组情况后续处理
+            // assume the operand is scalar by default. Array will be supported later
             value = range_filter->GetAeRight().operand.constant.scalar;
             return true;
         }
@@ -145,9 +145,9 @@ class LocateNodeByIndexedProp : public OptPass {
                           std::vector<lgraph::FieldData> &target_value_datas) {
         /**
          * @brief
-         *  检查Filter是不是符合属性值等值判断的filter
+         *  Check if Filter is filters to filter prop values
          *
-         * 2/8 适用情况： where n.prop = value  || OR || IN
+         *  where n.prop = value  || OR || IN
          */
 
         auto filter = op_filter->Filter();
@@ -182,7 +182,6 @@ class LocateNodeByIndexedProp : public OptPass {
             }
             if (!getValueFromRangeFilter(filter->Left(), field, value)) return false;
             target_value_datas.emplace_back(value);
-            // 如果需要按照原来的输入顺序输出的话
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
         } else if (filter->Type() == lgraph::Filter::GEAX_EXPR_FILTER) {
