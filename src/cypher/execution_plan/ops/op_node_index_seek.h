@@ -22,7 +22,7 @@
 namespace cypher {
 
 class NodeIndexSeek : public OpBase {
-    std::unique_ptr<lgraph::Transaction> *txn_ = nullptr;
+    // std::unique_ptr<lgraph::Transaction> *txn_ = nullptr;
     Node *node_ = nullptr;
     lgraph::VIter *it_ = nullptr;           // also can be derived from node
     std::string alias_;                     // also can be derived from node
