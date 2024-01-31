@@ -1970,6 +1970,55 @@ void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *reco
     }
 }
 
+void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *record,
+                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              std::vector<Record> *records) {
+    ctx->txn_.reset();
+    ctx->ac_db_.reset();
+    CYPHER_ARG_CHECK((args.size() == 2 || args.size() == 3),
+                     "need no more than three parameters and no less than two parameters. "
+                     "e.g. db.importor.fullFileImportor({\"ha\",\"data.mdb\",[false]})")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "graph_name type should be string")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "path type should be string")
+    bool remote = false;
+    if (args.size() == 3) {
+        CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "remote type should be bool")
+        remote = args[2].Bool();
+    }
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        throw lgraph::AuthError("Admin access right required.");
+    std::string graph_name = args[0].String(), path = args[1].String();
+    if (remote) {
+        std::string outputFilename = ctx->galaxy_->GetConfig().dir +
+                                     "/.import.file.data.mdb";
+        std::string command = "wget -O " + outputFilename + " " + path;
+        int result = std::system(command.c_str());
+        if (result == 0) {
+            LOG_INFO() << "Downloaded file saved as: " << outputFilename;
+        } else {
+            LOG_ERROR() << "Failed to download file";
+            throw lgraph::CypherException("Failed to download file");
+        }
+        path = ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb";
+    }
+
+    auto& fs = fma_common::FileSystem::GetFileSystem(ctx->galaxy_->GetConfig().dir +
+                                                     "/.import_tmp");
+    lgraph::DBConfig dbConfig;
+    dbConfig.dir = ctx->galaxy_->GetConfig().dir;
+    dbConfig.name = graph_name;
+    dbConfig.create_if_not_exist = true;
+    ctx->galaxy_->CreateGraph(ctx->user_,
+                              graph_name, dbConfig,
+                              path);
+    fs.RemoveDir(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
+    if (remote) {
+        auto& fs_download = fma_common::FileSystem::GetFileSystem(
+            ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
+        fs_download.Remove(ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
+    }
+}
+
 void BuiltinProcedure::DbImportorSchemaImportor(RTContext *ctx, const Record *record,
                                                 const VEC_EXPR &args, const VEC_STR &yield_items,
                                                 std::vector<Record> *records) {

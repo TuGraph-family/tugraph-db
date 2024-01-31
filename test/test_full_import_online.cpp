@@ -66,7 +66,7 @@ class TestFullImportOnline : public TuGraphTest {
 
 TEST_F(TestFullImportOnline, MFByOtherProcess) {
     using namespace lgraph;
-    std::string import_cmd = FMA_FMT("./lgraph_import --online true --full true "
+    std::string import_cmd = FMA_FMT("./lgraph_import --online true --online_type 1 "
         "-c {} -r http://127.0.0.1:{} -u {} -p {} --overwrite true --delimiter \"|\"",
         lgraph::ut::TEST_RESOURCE_DIRECTORY + "/data/mini_finbench/mini_finbench.json",
         port, lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);
@@ -106,7 +106,7 @@ TEST_F(TestFullImportOnline, MFByCurrentProcess) {
 
 TEST_F(TestFullImportOnline, FBByOtherProcess) {
     using namespace lgraph;
-    std::string import_cmd = FMA_FMT("./lgraph_import --online true --full true "
+    std::string import_cmd = FMA_FMT("./lgraph_import --online true --online_type 1 "
         "-c {} -r http://127.0.0.1:{} -u {} -p {} -g test --delimiter ,",
         lgraph::ut::TEST_RESOURCE_DIRECTORY + "/../integration/data/algo/fb.conf",
         port, lgraph::_detail::DEFAULT_ADMIN_NAME, lgraph::_detail::DEFAULT_ADMIN_PASS);

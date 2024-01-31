@@ -315,6 +315,10 @@ class BuiltinProcedure {
     static void DbImportorFullImportor(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                        const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbImportorFullFileImportor(RTContext *ctx, const Record *record,
+                                           const VEC_EXPR &args, const VEC_STR &yield_items,
+                                           std::vector<Record> *records);
+
     static void DbImportorSchemaImportor(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                          const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -925,6 +929,11 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.importor.fullImportor", BuiltinProcedure::DbImportorFullImportor,
               Procedure::SIG_SPEC{{"conf", {0, lgraph_api::LGraphType::MAP}}},
               Procedure::SIG_SPEC{{"result", {0, lgraph_api::LGraphType::STRING}}}, false, true),
+
+    Procedure("db.importor.fullFileImportor", BuiltinProcedure::DbImportorFullFileImportor,
+              Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"path", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.importor.schemaImportor", BuiltinProcedure::DbImportorSchemaImportor,
               Procedure::SIG_SPEC{{"description", {0, lgraph_api::LGraphType::STRING}}},
