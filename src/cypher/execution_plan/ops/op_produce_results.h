@@ -283,7 +283,6 @@ class ProduceResults : public OpBase {
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
                 RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
-                LOG_INFO() << "AppendRecords";
                 session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
