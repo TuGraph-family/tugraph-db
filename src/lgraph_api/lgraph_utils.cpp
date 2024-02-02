@@ -183,4 +183,11 @@ void dealloc_buffer(void* buffer, size_t bytes) {
     }
 #endif
 }
+
+size_t GetVidFromNodeString(const std::string& node_string) {
+    // node_string format: V[{id}]
+    auto id_begin = node_string.find('[');
+    return strtoll(node_string.c_str() + id_begin + 1, NULL, 10);
+}
+
 }  // namespace lgraph_api

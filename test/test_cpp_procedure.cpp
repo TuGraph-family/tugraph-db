@@ -25,6 +25,7 @@
 #include "plugin/plugin_manager.h"
 
 #include "./test_tools.h"
+#include "graph_factory.h"
 
 class TestCppPlugin : public TuGraphTest {};
 
@@ -94,6 +95,10 @@ void build_so() {
                  "../../test/test_procedures/bfs.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
+    cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./custom_pagerank.so",
+                 "../../test/test_procedures/custom_pagerank.cpp", LIBLGRAPH);
+    rt = system(cmd.c_str());
+    UT_EXPECT_EQ(rt, 0);
 }
 
 void read_code(const std::string& code_path, std::string& code) {
@@ -120,6 +125,12 @@ TEST_F(TestCppPlugin, CppPlugin) {
 
     AutoCleanDir _1(db_dir);
     AutoCleanDir _2(plugin_dir);
+
+    GraphFactory::WriteYagoFiles();
+    SubProcess import_client(
+        FMA_FMT("./lgraph_import -c yago.conf -d {}", db_dir));
+    import_client.Wait();
+    UT_EXPECT_EQ(import_client.GetExitCode(), 0);
 
     UT_LOG() << "Test Begin...";
     Galaxy galaxy(db_dir);
@@ -216,6 +227,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
     std::string code_scan_graph = "";
     std::string code_add_label = "";
     std::string code_bfs = "";
+    std::string code_custom_pagerank = "";
     {
         // read file to string
         std::string code_so_path = "./sortstr.so";
@@ -230,6 +242,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
         std::string code_scan_graph_path = "./scan_graph.so";
         std::string code_add_label_path = "./add_label.so";
         std::string code_bfs_path = "./bfs.so";
+        std::string code_custom_pagerank_path = "./custom_pagerank.so";
         build_so();
         read_code(code_so_path, code_so);
         read_code(code_cpp_path, code_cpp);
@@ -237,11 +250,13 @@ TEST_F(TestCppPlugin, CppPlugin) {
         read_code(code_scan_graph_path, code_scan_graph);
         read_code(code_add_label_path, code_add_label);
         read_code(code_bfs_path, code_bfs);
+        read_code(code_custom_pagerank_path, code_custom_pagerank);
         UT_EXPECT_NE(code_so, "");
         UT_EXPECT_NE(code_cpp, "");
         UT_EXPECT_NE(code_zip, "");
         UT_EXPECT_NE(code_scan_graph, "");
-        UT_EXPECT_NE(code_add_label, "");
+        UT_EXPECT_NE(code_bfs_path, "");
+        UT_EXPECT_NE(code_custom_pagerank, "");
     }
     {
         // test PluginInfo
@@ -344,10 +359,14 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label",
                                              code_add_label, plugin::CodeType::SO, "add label v1",
                                              false, "v1"));
+        UT_LOG() << "Load custom_pagerank plugin";
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank",
+                                             code_custom_pagerank, plugin::CodeType::SO, "custom pagerank",
+                                             true, "v2"));
 
         UT_LOG() << "Test loaded plugins info";
         auto& funcs = pm.procedures_;
-        UT_EXPECT_EQ(funcs.size(), 5);
+        UT_EXPECT_EQ(funcs.size(), 6);
         auto& zip = funcs["_fma_sortstr_zip"];
         UT_EXPECT_EQ(zip->desc, "sortstr zip");
         UT_EXPECT_EQ(zip->read_only, true);
@@ -357,6 +376,9 @@ TEST_F(TestCppPlugin, CppPlugin) {
         auto& add_label = funcs["_fma_add_label"];
         UT_EXPECT_EQ(add_label->desc, "add label v1");
         UT_EXPECT_EQ(add_label->read_only, false);
+        auto& custom_pagerank = funcs["_fma_custom_pagerank"];
+        UT_EXPECT_EQ(custom_pagerank->desc, "custom pagerank");
+        UT_EXPECT_EQ(custom_pagerank->read_only, true);
 
         // test call
         std::string output;
@@ -367,7 +389,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
 
         UT_EXPECT_TRUE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
                                "{\"scan_edges\":true, \"times\":2}", 0, true, output));
-        UT_EXPECT_EQ(output, "{\"num_edges\":0,\"num_vertices\":0}");
+        UT_EXPECT_EQ(output, "{\"num_edges\":56,\"num_vertices\":42}");
         UT_EXPECT_TRUE(!pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "no_such_plugin",
                                 "{\"scan_edges\":true}", 2, true, output));
         // bad argument causes Process to return false and output is used to return error
@@ -385,12 +407,22 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                 "{\"label\":\"vertex1\"}", 0, true, output),
                         InputError);
 
+        {  // test call v2
+            Result output_v2;
+            UT_LOG() << "Test call v2 plugin";
+            lgraph_api::GraphDB gdb(&db, true, false);
+            auto txn = gdb.CreateReadTxn();
+            UT_EXPECT_TRUE(pm.CallV2(&txn, lgraph::_detail::DEFAULT_ADMIN_NAME, nullptr,
+                                     "custom_pagerank", "{\"num_iteration\": 10}", 0, true, output_v2));
+            UT_EXPECT_EQ(output_v2.Size(), txn.GetNumVertices());
+        }
+
         {
             lgraph_api::GraphDB gdb(&db, true, false);
             auto txn = gdb.CreateReadTxn();
             auto labels = txn.ListVertexLabels();
-            UT_EXPECT_EQ(labels.size(), 1);
-            UT_EXPECT_EQ(labels.front(), "vertex1");
+            UT_EXPECT_EQ(labels.size(), 4);
+            UT_EXPECT_EQ(labels.back(), "vertex1");
         }
         {
             UT_EXPECT_EQ(pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"), 1);
@@ -416,6 +448,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank"));
 
                 // pm.UnloadAllPlugins();
                 // pm.DeleteAllPlugins("admin");

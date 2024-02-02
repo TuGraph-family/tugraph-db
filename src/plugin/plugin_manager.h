@@ -104,6 +104,11 @@ class SingleLanguagePluginManager {
                       const std::string& request, double timeout, bool in_process,
                       std::string& output);
 
+    virtual bool CallV2(lgraph_api::Transaction* txn, const std::string& user,
+                        AccessControlledDB* db_with_access_control, const std::string& name_,
+                        const std::string& request, double timeout, bool in_process,
+                        Result& output);
+
  protected:
     void LoadAllPlugins(KvTransaction& txn);
 
@@ -287,6 +292,10 @@ class PluginManager {
     bool Call(lgraph_api::Transaction* txn, PluginType type, const std::string& user,
               AccessControlledDB* db_with_access_control, const std::string& name_,
               const std::string& request, double timeout, bool in_process, std::string& output);
+
+    bool CallV2(lgraph_api::Transaction* txn, PluginType type, const std::string& user,
+                AccessControlledDB* db_with_access_control, const std::string& name_,
+                const std::string& request, double timeout, bool in_process, Result& output);
 
  protected:
     inline std::unique_ptr<SingleLanguagePluginManager>& SelectManager(PluginType type) {

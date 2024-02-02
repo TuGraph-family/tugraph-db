@@ -139,6 +139,14 @@ void PythonPluginManagerImpl::DoCall(lgraph_api::Transaction* txn, const std::st
     }
 }
 
+void PythonPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn, const std::string& user,
+                                       AccessControlledDB* db_with_access_control,
+                                       const std::string name, const PluginInfoBase* pinfo,
+                                       const std::string& request, double timeout, bool in_process,
+                                       Result& output) {
+    throw InputError("Python does not yet support the V2 version procedure");
+}
+
 // Run by the rest handling threads. Pushes the task to Python and wait for its finish.
 python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
     const std::string& user, const std::string& function, const std::string& input, double timeout,

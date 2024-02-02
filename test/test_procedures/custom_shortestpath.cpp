@@ -38,14 +38,19 @@ extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
 }
 extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
                                    const std::string &request,
-                                   std::string &response) {
+                                   Result &response) {
     std::string start_node, end_node;
     try {
         json input = json::parse(request);
         start_node = input["start"].get<std::string>();
         end_node = input["end"].get<std::string>();
     } catch (std::exception &e) {
-        response = std::string("error parsing json: ") + e.what();
+        response.ResetHeader({
+            {"errMsg", LGraphType::STRING}
+        });
+        response.MutableRecord()->Insert(
+            "errMsg",
+            FieldData::String(std::string("error parsing json: ") + e.what()));
         return false;
     }
     // handle the shortest path algo in dummy mode
@@ -55,18 +60,17 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
         return strtoll(s.c_str() + id_begin + 1, NULL, 10);
     };
 
-    Result result({{"length", LGraphType::INTEGER},
+    response.ResetHeader({{"length", LGraphType::INTEGER},
         {"nodeIds", LGraphType::LIST},
     });
 
-    auto r = result.MutableRecord();
+    auto r = response.MutableRecord();
     r->Insert("length", FieldData::Int32(5));
     r->Insert("nodeIds",  std::vector<FieldData>{
                             FieldData::Int64(parse_vertex_node(start_node)),
                             FieldData::Int64(100), FieldData::Int64(200), FieldData::Int64(300),
                             FieldData::Int64(parse_vertex_node(end_node))
                         });
-    response = result.Dump();
     return true;
 }
 

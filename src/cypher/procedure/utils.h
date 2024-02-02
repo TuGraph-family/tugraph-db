@@ -89,7 +89,9 @@ class PluginAdapter {
         Node& AllocNode(NodeID id, const std::string& alias) {
             // N.B. alloc node when exceeding buffer capacity makes reallocation.
             // It will invalid the old nodes allocated before.
-            CYPHER_THROW_ASSERT(buffer_.size() < buffer_.capacity());
+            if (buffer_.size() >= buffer_.capacity()) {
+                buffer_.clear();
+            }
             buffer_.emplace_back(id, "", alias, cypher::Node::Derivation::YIELD);
             return buffer_.back();
         }
@@ -198,13 +200,15 @@ class PluginAdapter {
         }
         request.append("}");
 
-        std::string response;
-        ctx->ac_db_->CallPlugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
-                                request, 0, false, response);
+        lgraph_api::Result api_result;
+        bool ret = ctx->ac_db_->CallV2Plugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
+                                  request, 0, false, api_result);
+        if (!ret) {
+            throw lgraph::CypherException("Plugin return false, errMsg: " + api_result.Dump());
+        }
 
         try {
-            lgraph_api::Result api_result;
-            api_result.Load(response);
+            results->reserve(results->size() + api_result.Size());
             for (int64_t i = 0; i < api_result.Size(); i++) {
                 const auto& rview = api_result.RecordView(i);
                 Record r;
@@ -255,7 +259,7 @@ class PluginAdapter {
                 results->emplace_back(std::move(r));
             }
         } catch (std::exception& e) {
-            response = std::string("error parsing json: ") + e.what();
+            LOG_WARN() << "error parsing json: " << e.what();
             return false;
         }
         return true;

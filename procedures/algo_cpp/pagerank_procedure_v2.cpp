@@ -10,85 +10,18 @@
 * Unless required by applicable law or agreed to in writing, software
 * distributed under the License is distributed on an "AS IS" BASIS,
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
-
+*/
 
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
 #include "lgraph/lgraph_result.h"
-
 #include "tools/json.hpp"
+#include "./algo.h"
 
 using json = nlohmann::json;
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
-
-#define __ADD_DANGLING__
-
-void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<double>& curr) {
-    auto all_vertices = graph.AllocVertexSubset();
-    all_vertices.Fill();
-    auto next = graph.AllocVertexArray<double>();
-    size_t num_vertices = graph.NumVertices();
-
-    double one_over_n = (double)1 / num_vertices;
-    double delta = 1;
-    double dangling = graph.ProcessVertexActive<double>(
-        [&](size_t vi) {
-            curr[vi] = one_over_n;
-            if (graph.OutDegree(vi) > 0) {
-                curr[vi] /= graph.OutDegree(vi);
-                return 0.0;
-            }
-#ifdef __ADD_DANGLING__
-            return one_over_n;
-#else
-            return 0.0;
-#endif
-        },
-        all_vertices);
-    dangling /= num_vertices;
-
-    double d = (double)0.85;
-    for (int ii = 0; ii < num_iterations; ii++) {
-        printf("delta(%d)=%lf\n", ii, delta);
-        next.Fill((double)0);
-        delta = graph.ProcessVertexActive<double>(
-            [&](size_t vi) {
-                double sum = 0;
-                for (auto& edge : graph.InEdges(vi)) {
-                    size_t src = edge.neighbour;
-                    sum += curr[src];
-                }
-                next[vi] = sum;
-                next[vi] = (1 - d) * one_over_n + d * next[vi] + d * dangling;
-                if (ii == num_iterations - 1) {
-                    return (double)0;
-                } else {
-                    if (graph.OutDegree(vi) > 0) {
-                        next[vi] /= graph.OutDegree(vi);
-                        return fabs(next[vi] - curr[vi]) * graph.OutDegree(vi);
-                    } else {
-                        return fabs(next[vi] - curr[vi]);
-                    }
-                }
-            },
-            all_vertices);
-        curr.Swap(next);
-
-#ifdef __ADD_DANGLING__
-        dangling = graph.ProcessVertexActive<double>(
-            [&](size_t vi) {
-                if (graph.OutDegree(vi) == 0)
-                    return curr[vi];
-                return 0.0;
-            },
-            all_vertices);
-        dangling /= num_vertices;
-#endif
-    }
-}
 
 extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
     sig_spec.input_list = {
@@ -145,7 +78,8 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
             r->Insert("weight", FieldData::Double(pr[vid]));
             return 0;
         },
-        0, pr.Size());
+        0, pr.Size()
+    );
     auto output_cost = get_time() - start_time;
 
     LOG_DEBUG() << "prepare_cost: " << prepare_cost << " (s)\n"

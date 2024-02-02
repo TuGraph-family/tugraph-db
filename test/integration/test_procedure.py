@@ -20,6 +20,10 @@ BUILDOPT = {"cmd":["g++ -fno-gnu-unique -fPIC -g --std=c++17 -I ../../include -I
                        "g++ -fno-gnu-unique -fPIC -g --std=c++17 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./sortstr.so ../../test/test_procedures/sortstr.cpp ./liblgraph.so -shared"],
                 "so_name":["./scan_graph.so", "./sortstr.so"]}
 
+BUILDV2OPT = {"cmd": ["g++ -fno-gnu-unique -fPIC -g --std=c++17 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./custom_pagerank.so ../../test/test_procedures/custom_pagerank.cpp ./liblgraph.so -shared",
+                      "g++ -fno-gnu-unique -fPIC -g --std=c++17 -I ../../include -I ../../deps/install/include -rdynamic -O3 -fopenmp -DNDEBUG -o ./custom_shortestpath.so ../../test/test_procedures/custom_shortestpath.cpp ./liblgraph.so -shared"],
+              "so_name": ["custom_pagerank.so", "custom_shortestpath.so"]}
+
 IMPORTCONTENT = {
     "schema" : '''{"schema" : [
                     {
@@ -745,6 +749,32 @@ class TestProcedure:
         assert ret[0]
         plugins = json.loads(ret[1])
         assert len(plugins) == 1
+
+    @pytest.mark.parametrize("build_v2_so", [BUILDV2OPT], indirect=True)
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
+    @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
+    def test_plugin_v2(self, build_v2_so, importor, server, client):
+        pagerank_so = BUILDV2OPT.get("so_name")[0]
+        ret = client.loadProcedure(pagerank_so, "CPP", "custom_pagerank", "SO", "test plugin", True, "v2")
+        assert ret[0]
+        shortestpath_so = BUILDV2OPT.get("so_name")[1]
+        ret = client.loadProcedure(shortestpath_so, "CPP", "custom_shortestpath", "SO", "test plugin", True, "v2")
+        assert ret[0]
+        ret = client.callCypher("MATCH (a:Person {name:\"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
+                                "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+                                "RETURN length")
+        assert ret[0]
+        result = json.loads(ret[1])[0].get("length")
+        assert result == 5
+        ret = client.callCypher("CALL plugin.cpp.custom_pagerank(10) "
+                                "YIELD node, weight WITH node, weight "
+                                "RETURN MAX(weight)")
+        assert ret[0]
+        result = json.loads(ret[1])[0].get("MAX(weight)")
+        import math
+        assert math.isclose(result, 0.07308246478538732, rel_tol=1e-5)
+
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

@@ -561,6 +561,21 @@ bool lgraph::SingleLanguagePluginManager::Call(lgraph_api::Transaction* txn,
     return true;
 }
 
+bool lgraph::SingleLanguagePluginManager::CallV2(lgraph_api::Transaction* txn,
+                                                 const std::string& user,
+                                                 AccessControlledDB* db_with_access_control,
+                                                 const std::string& name_, const std::string& request,
+                                                 double timeout, bool in_process,
+                                                 Result& output) {
+    std::string name = ToInternalName(name_);
+    AutoReadLock lock(lock_, GetMyThreadId());
+    auto it = procedures_.find(name);
+    if (it == procedures_.end()) return false;
+    impl_->DoCallV2(txn, user, db_with_access_control, name, it->second, request, timeout, in_process,
+                    output);
+    return true;
+}
+
 bool lgraph::SingleLanguagePluginManager::isHashUpTodate(KvTransaction& txn, std::string name) {
     std::string hash_key = GetHashKey(name);
     auto hash_it = table_->GetIterator(txn, Value::ConstRef(hash_key));
@@ -723,3 +738,13 @@ bool lgraph::PluginManager::Call(lgraph_api::Transaction* txn, PluginType type,
     return SelectManager(type)->Call(txn, user, db_with_access_control, name_, request, timeout,
                                      in_process, output);
 }
+
+bool lgraph::PluginManager::CallV2(lgraph_api::Transaction* txn, PluginType type,
+                                   const std::string& user,
+                                   AccessControlledDB* db_with_access_control,
+                                   const std::string& name_, const std::string& request,
+                                   double timeout, bool in_process, Result& output) {
+    return SelectManager(type)->CallV2(txn, user, db_with_access_control, name_, request, timeout,
+                                       in_process, output);
+}
+

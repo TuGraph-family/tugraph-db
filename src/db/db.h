@@ -60,6 +60,10 @@ class AccessControlledDB {
                     const std::string& request, double timeout_seconds, bool in_process,
                     std::string& output);
 
+    bool CallV2Plugin(lgraph_api::Transaction* txn, plugin::Type plugin_type,
+                      const std::string& user, const std::string& name, const std::string& request,
+                      double timeout_seconds, bool in_process, Result& output);
+
     std::vector<PluginDesc> ListPlugins(plugin::Type plugin_type, const std::string& token);
 
     bool GetPluginCode(plugin::Type plugin_type, const std::string& token, const std::string& name,

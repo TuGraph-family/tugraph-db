@@ -92,6 +92,26 @@ bool lgraph::AccessControlledDB::CallPlugin(lgraph_api::Transaction* txn,
                     output);
 }
 
+bool lgraph::AccessControlledDB::CallV2Plugin(lgraph_api::Transaction* txn,
+                                              plugin::Type plugin_type, const std::string& user,
+                                              const std::string& name, const std::string& request,
+                                              double timeout_seconds, bool in_process,
+                                              Result& output) {
+    auto pm = graph_->GetPluginManager();
+    bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
+    if (access_level_ < AccessLevel::WRITE && !is_readonly)
+        throw AuthError("Write permission needed to call this plugin.");
+    return pm->CallV2(txn,
+                      plugin_type,
+                      user,
+                      this,
+                      name,
+                      request,
+                      timeout_seconds,
+                      in_process,
+                      output);
+}
+
 std::vector<lgraph::PluginDesc> lgraph::AccessControlledDB::ListPlugins(plugin::Type plugin_type,
                                                                         const std::string& user) {
     return graph_->GetPluginManager()->ListPlugins(plugin_type, user);

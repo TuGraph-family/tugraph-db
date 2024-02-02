@@ -1041,6 +1041,7 @@ class OlapBase {
                 num_threads = omp_get_num_threads();
             }
         };
+        // TODO: move ThreadState to Construct
         ThreadState **thread_state;
         thread_state = new ThreadState *[num_threads];
         for (int t_i = 0; t_i < num_threads; t_i++) {
@@ -1166,6 +1167,7 @@ class OlapBase {
                 num_threads = omp_get_num_threads();
             }
         };
+        // TODO: move ThreadState to Construct
         ThreadState **thread_state;
         thread_state = new ThreadState *[num_threads];
         for (int t_i = 0; t_i < num_threads; t_i++) {

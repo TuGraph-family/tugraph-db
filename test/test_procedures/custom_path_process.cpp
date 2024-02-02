@@ -37,13 +37,18 @@ extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
 }
 extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
                                    const std::string &request,
-                                   std::string &response) {
+                                   Result &response) {
     std::vector<int64_t> nodeIds;
     try {
         json input = json::parse(request);
         nodeIds = input["nodeIds"].get<std::vector<std::int64_t>>();
     } catch (std::exception &e) {
-        response = std::string("error parsing json: ") + e.what();
+        response.ResetHeader({
+            {"errMsg", LGraphType::STRING}
+        });
+        response.MutableRecord()->Insert(
+            "errMsg",
+            FieldData::String(std::string("error parsing json: ") + e.what()));
         return false;
     }
 
@@ -52,10 +57,9 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
         sum += id;
     }
 
-    Result result({{"idSum", LGraphType::INTEGER}});
+    response.ResetHeader({{"idSum", LGraphType::INTEGER}});
 
-    auto r = result.MutableRecord();
+    auto r = response.MutableRecord();
     r->Insert("idSum", FieldData::Int64(sum));
-    response = result.Dump();
     return true;
 }
