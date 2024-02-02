@@ -978,7 +978,6 @@ class OlapBase {
      * @param   vertices     The vertex id (in the Graph) to lock/unlock.
      *
      */
-
     void set_num_vertices(size_t vertices) {
         if (this->num_vertices_ == 0) {
             this->num_vertices_ = vertices;
@@ -1041,7 +1040,7 @@ class OlapBase {
                 num_threads = omp_get_num_threads();
             }
         };
-        // TODO: move ThreadState to Construct
+        // TODO(niyan.zy): move ThreadState to Construct
         ThreadState **thread_state;
         thread_state = new ThreadState *[num_threads];
         for (int t_i = 0; t_i < num_threads; t_i++) {
@@ -1167,7 +1166,7 @@ class OlapBase {
                 num_threads = omp_get_num_threads();
             }
         };
-        // TODO: move ThreadState to Construct
+        // TODO(niyan.zy): move ThreadState to Construct
         ThreadState **thread_state;
         thread_state = new ThreadState *[num_threads];
         for (int t_i = 0; t_i < num_threads; t_i++) {

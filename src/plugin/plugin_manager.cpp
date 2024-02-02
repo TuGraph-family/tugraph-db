@@ -564,14 +564,16 @@ bool lgraph::SingleLanguagePluginManager::Call(lgraph_api::Transaction* txn,
 bool lgraph::SingleLanguagePluginManager::CallV2(lgraph_api::Transaction* txn,
                                                  const std::string& user,
                                                  AccessControlledDB* db_with_access_control,
-                                                 const std::string& name_, const std::string& request,
+                                                 const std::string& name_,
+                                                 const std::string& request,
                                                  double timeout, bool in_process,
                                                  Result& output) {
     std::string name = ToInternalName(name_);
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
     if (it == procedures_.end()) return false;
-    impl_->DoCallV2(txn, user, db_with_access_control, name, it->second, request, timeout, in_process,
+    impl_->DoCallV2(txn, user, db_with_access_control,
+                    name, it->second, request, timeout, in_process,
                     output);
     return true;
 }

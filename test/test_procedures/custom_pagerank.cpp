@@ -90,9 +90,6 @@ void PageRankCore(OlapBase<Empty>& graph, int num_iterations, ParallelVector<dou
     }
 }
 
-
-//using namespace lgraph_api;
-
 extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
     sig_spec.input_list = {
         {.name = "num_iteration", .index = 0, .type = LGraphType::INTEGER},

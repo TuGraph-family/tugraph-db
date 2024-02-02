@@ -977,7 +977,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
     }
 
  public:
-
     /**
      * @brief Generate a graph with LightningGraph. For V1/V2 Procedures
      */

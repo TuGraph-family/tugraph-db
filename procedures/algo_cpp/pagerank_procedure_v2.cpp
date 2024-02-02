@@ -78,8 +78,7 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
             r->Insert("weight", FieldData::Double(pr[vid]));
             return 0;
         },
-        0, pr.Size()
-    );
+        0, pr.Size());
     auto output_cost = get_time() - start_time;
 
     LOG_DEBUG() << "prepare_cost: " << prepare_cost << " (s)\n"

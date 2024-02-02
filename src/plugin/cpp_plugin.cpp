@@ -100,7 +100,8 @@ void CppPluginManagerImpl::DoCall(lgraph_api::Transaction* txn,
 void CppPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn,
                                     const std::string& user,
                                     AccessControlledDB* db_with_access_control,
-                                    const std::string name, const PluginInfoBase* pinfo, const std::string& request,
+                                    const std::string name, const PluginInfoBase* pinfo,
+                                    const std::string& request,
                                     double timeout, bool in_process, Result& output) {
     if (timeout > 0) {
         // TODO: schedule a timer event to kill this task // NOLINT

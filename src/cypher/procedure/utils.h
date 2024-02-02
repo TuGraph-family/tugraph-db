@@ -201,8 +201,9 @@ class PluginAdapter {
         request.append("}");
 
         lgraph_api::Result api_result;
-        bool ret = ctx->ac_db_->CallV2Plugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
-                                  request, 0, false, api_result);
+        bool ret = ctx->ac_db_->CallV2Plugin(ctx->txn_.get(),
+                                             type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
+                                             request, 0, false, api_result);
         if (!ret) {
             throw lgraph::CypherException("Plugin return false, errMsg: " + api_result.Dump());
         }

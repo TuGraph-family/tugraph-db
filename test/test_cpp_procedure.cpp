@@ -25,7 +25,7 @@
 #include "plugin/plugin_manager.h"
 
 #include "./test_tools.h"
-#include "graph_factory.h"
+#include "./graph_factory.h"
 
 class TestCppPlugin : public TuGraphTest {};
 
@@ -361,8 +361,8 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                              false, "v1"));
         UT_LOG() << "Load custom_pagerank plugin";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank",
-                                             code_custom_pagerank, plugin::CodeType::SO, "custom pagerank",
-                                             true, "v2"));
+                                             code_custom_pagerank, plugin::CodeType::SO,
+                                             "custom pagerank", true, "v2"));
 
         UT_LOG() << "Test loaded plugins info";
         auto& funcs = pm.procedures_;
@@ -412,8 +412,10 @@ TEST_F(TestCppPlugin, CppPlugin) {
             UT_LOG() << "Test call v2 plugin";
             lgraph_api::GraphDB gdb(&db, true, false);
             auto txn = gdb.CreateReadTxn();
-            UT_EXPECT_TRUE(pm.CallV2(&txn, lgraph::_detail::DEFAULT_ADMIN_NAME, nullptr,
-                                     "custom_pagerank", "{\"num_iteration\": 10}", 0, true, output_v2));
+            UT_EXPECT_TRUE(pm.CallV2(&txn, lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                     nullptr, "custom_pagerank",
+                                     "{\"num_iteration\": 10}",
+                                     0, true, output_v2));
             UT_EXPECT_EQ(output_v2.Size(), txn.GetNumVertices());
         }
 
@@ -455,7 +457,8 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 // UT_LOG() << "del succ";
 
                 UT_EXPECT_ANY_THROW(
-                    pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
+                    pm.IsReadOnlyPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME,
+                                        "scan_graph"));
                 UT_EXPECT_TRUE(pm.procedures_.empty());
             }
             {
