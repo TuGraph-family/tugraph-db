@@ -450,7 +450,8 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip"));
-                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank"));
+                UT_EXPECT_TRUE(
+                    pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank"));
 
                 // pm.UnloadAllPlugins();
                 // pm.DeleteAllPlugins("admin");
