@@ -235,7 +235,11 @@ struct Record {
 
     explicit Record(size_t size) { values.resize(size); }
 
-    Record(size_t size, const SymbolTable *sym_tab) : symbol_table(sym_tab) { values.resize(size); }
+    Record(size_t size, const SymbolTable *sym_tab, const PARAM_TAB &ptab)
+        : symbol_table(sym_tab) {
+        values.resize(size);
+        SetParameter(ptab);
+    }
 
     Record(const Record &rhs) {
         values = rhs.values;

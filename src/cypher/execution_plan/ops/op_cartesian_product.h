@@ -73,7 +73,7 @@ class CartesianProduct : public OpBase {
             }
         }
         if (!sym_tab) throw lgraph::CypherException("CartesianProduct initialize failed");
-        record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab);
+        record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab, ctx->param_tab_);
         return OP_OK;
     }
 

@@ -208,7 +208,8 @@ class OpCreate : public OpBase {
         for (auto child : children) {
             child->Initialize(ctx);
         }
-        record = children.empty() ? std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_)
+        record = children.empty() ?
+            std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_, ctx->param_tab_)
                                   : children[0]->record;
         return OP_OK;
     }
