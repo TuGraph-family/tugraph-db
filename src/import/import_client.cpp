@@ -173,6 +173,18 @@ void lgraph::import_v2::OnlineImportClient::DoFullImport() const {
     LOG_INFO() << "Full online import finished in " << t2 - t1 << " seconds.";
 }
 
+void lgraph::import_v2::OnlineImportClient::DoFullImportFile() const {
+    double t1 = fma_common::GetTime();
+    RestClient client(config_.url);
+    client.Login(config_.username, config_.password);
+    std::string cypher = FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",{}))",
+                                 config_.graph_name, config_.path,
+                                 config_.remote ? "true" : "false");
+    client.EvalCypher("", cypher);
+    double t2 = fma_common::GetTime();
+    LOG_INFO() << "Full online import file finished in " << t2 - t1 << " seconds.";
+}
+
 void lgraph::import_v2::OnlineImportClient::SignalHandler(int signum) {
     exit_flag_ = true;
     LOG_WARN() << "signal received, exiting......";

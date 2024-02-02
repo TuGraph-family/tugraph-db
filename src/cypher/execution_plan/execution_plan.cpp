@@ -29,6 +29,7 @@
 #include "procedure/procedure.h"
 #include "cypher/execution_plan/validation/graph_name_checker.h"
 #include "cypher/execution_plan/execution_plan.h"
+#include "server/bolt_session.h"
 
 namespace cypher {
 using namespace parser;
@@ -325,7 +326,7 @@ void ExecutionPlan::_AddScanOp(const parser::QueryPart &part, const SymbolTable 
         }
     }
     if (!has_arg) {
-        // 符号表中没有type为argument的
+        // no argument type in symbol table
         if (pf.type == Property::VALUE || pf.type == Property::PARAMETER) {
             /* use index when possible. weak index lookup if label absent */
             scan_op = new NodeIndexSeek(node, sym_tab);
@@ -348,7 +349,7 @@ void ExecutionPlan::_AddScanOp(const parser::QueryPart &part, const SymbolTable 
         }
         ops.emplace_back(scan_op);
     } else {
-        // 符号表有type为argument的
+        // argument type exists in symbol table
         if (it->second.scope == SymbolNode::ARGUMENT) {
             if (skip_arg_op) return;
             scan_op = new Argument(sym_tab);
@@ -551,7 +552,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
             auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
             if (relp.Empty() && neighbor.Empty()) {
-                // 邻居节点和关系都为空，证明是悬挂点 hanging为true
+                // neighbor and relationship are both empty, it's a hanging node
                 /* Node doesn't have any incoming nor outgoing edges,
                  * this is an hanging node "()", create a scan operation. */
                 CYPHER_THROW_ASSERT(stream.size() == 1);
@@ -565,10 +566,10 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                     it->second.scope == SymbolNode::ARGUMENT) {
                     // the previous argument op added
                     skip_hanging_argument_op =
-                        true;  // 避免MATCH (a),(b) WITH a, b a,b会导致生成多个argument
+                        true;  // avoid `MATCH (a),(b) WITH a, b a,b` generates multiple arguments
                 }
             } else if (relp.VarLen()) {
-                // 邻居不为空，进行expand
+                // expand when neighbor is not null
                 OpBase *expand_op = new VarLenExpand(&pattern_graph, &start, &neighbor, &relp);
                 expand_ops.emplace_back(expand_op);
             } else {
@@ -606,7 +607,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
         /* Locates expand all operations which do not have a child operation,
          * And adds a scan operation as a new child. */
         if (!hanging) {
-            // 如果不是悬挂点，就补一个scanop
+            // add a scan op when it is not a hanging node
             CYPHER_THROW_ASSERT(!stream.empty());
             std::vector<OpBase *> scan_ops;
             auto &start_node = pattern_graph.GetNode(std::get<0>(stream[0]));
@@ -633,8 +634,9 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
         }
     }  // end for streams
     if (!traversal_root) {
-        // 如果traversal_root为空，则判断stream里面是否是悬挂点，且为argument，如果是这种情况_AddScanOp就会跳过，不产生任何op
-        // 1. 判断符号表中是否有argument
+        // judge if nodes in stream are dangling and of type ARGUMENT when traversal_root is null
+        // _AddScanOp will be skipped in this case. No op will be generated
+        // 1. judge if ARGUMENT type exists in symbol table
         bool has_arg = false;
         for (auto &a : pattern_graph.symbol_table.symbols) {
             if (a.second.scope == SymbolNode::ARGUMENT) {
@@ -643,23 +645,22 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             }
         }
         if (!has_arg) CYPHER_TODO();
-        // 2. 判断是否都是悬挂点
-        // 所有stream都是悬挂点
+        // 2. judge if all nodes are dangiling
+        // all streams are dangling nodes
         for (auto &stream : expand_streams) {
             if (stream.size() != 1 ||
                 !pattern_graph.GetRelationship(std::get<1>(stream[0])).Empty()) {
                 CYPHER_TODO();
             }
         }
-        // 没有argument 或 整个流不是悬挂点，就抛出异常
-        // 符合条件的话，就在这里追加一个argument
+        // throw exception when argument or the stream is not dangling node
+        // add one more argument when condition is true
         traversal_root = new Argument(&pattern_graph.symbol_table);
     }
-    /* 调整树结构，使得笛卡尔积下的argument放到scan下
-     * 删掉笛卡尔积，即children[1]作为根节点
-     * 并且更改scan为dynamic
-     * 目前只处理CARTESIAN_PRODUCT下只有两个孩子的情况
-     * 例如：
+    /* Restructure the tree to move the argument down
+     * 1. remove cartesian product and emplace children[1] as the root
+     * 2. update the scan op to the dynamic one
+     * Only works when there are only two children of CARTESIAN_PRODUCT. E.g,
      * before：
      * Cartesian Product
             Argument [c,f]
@@ -1365,6 +1366,8 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         bolt::PackStream ps;
         ps.AppendSuccess(meta);
         ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+        auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
+        session->state = bolt::SessionState::STREAMING;
     }
 
     try {

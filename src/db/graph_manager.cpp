@@ -134,7 +134,8 @@ bool lgraph::GraphManager::CreateGraphWithData(KvTransaction& txn, const std::st
 
         std::unique_ptr<LightningGraph> graph(new LightningGraph(real_config));
         std::string new_file_path = GetGraphActualDir(real_config.dir, "data.mdb");
-        std::rename(data_file_path.c_str(), new_file_path.c_str());
+        std::filesystem::copy_file(data_file_path, new_file_path,
+                                   std::filesystem::copy_options::overwrite_existing);
         graph = std::make_unique<LightningGraph>(real_config);
         graph->FlushDbSecret(secret);
         graphs_.emplace_hint(it, name, GcDb(graph.release()));
@@ -143,7 +144,8 @@ bool lgraph::GraphManager::CreateGraphWithData(KvTransaction& txn, const std::st
         real_config.dir = GetGraphActualDir(parent_dir_, origin_graph->GetSecret());
         std::string new_file_path = GetGraphActualDir(GetGraphActualDir(
                                     parent_dir_, origin_graph->GetSecret()), "data.mdb");
-        std::rename(data_file_path.c_str(), new_file_path.c_str());
+        std::filesystem::copy_file(data_file_path, new_file_path,
+                                   std::filesystem::copy_options::overwrite_existing);
         std::unique_ptr<LightningGraph> new_graph(new LightningGraph(real_config));
         new_graph->FlushDbSecret(origin_graph->GetSecret());
         graphs_[name] = GcDb(new_graph.release());

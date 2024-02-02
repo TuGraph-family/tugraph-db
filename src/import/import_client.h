@@ -50,10 +50,13 @@ class OnlineImportClient {
         bool keep_vid_in_memory = true;
         bool enable_fulltext_index = false;
         std::string fulltext_index_analyzer = "StandardAnalyzer";
+        std::string path;
+        bool remote = false;
     };
     explicit OnlineImportClient(const Config& config);
     void DoImport();
     void DoFullImport() const;
+    void DoFullImportFile() const;
 
  protected:
     Config config_;

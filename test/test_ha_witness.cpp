@@ -13,14 +13,14 @@ const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_snapshot_interval_s -1 "
     "--rpc_port {} --directory ./db --log_dir "
-    "./log  --ha_conf {} --verbose 1 --ha_node_join_group_s 20 "
+    "./log  --ha_conf {} --verbose 1 "
     "-c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_is_witness 1 "
     "--ha_snapshot_interval_s -1 "
     "--rpc_port {} --directory ./db --log_dir "
-    "./log --ha_conf {} --verbose 1 --ha_node_join_group_s 20 "
+    "./log --ha_conf {} --verbose 1 "
     "-c lgraph_ha.json --ha_enable_witness_to_leader {} -d start";
 #else
 const char server_cmd_f[] =

@@ -98,14 +98,14 @@ class Apply : public OpBase {
         if (state == StreamDepleted) return OP_DEPLETED;
         if (state == StreamUnInitialized) {
             if (PullFromLhs(ctx) != OP_OK) {
-                // Apply的计算，是这里是先计算lhs的
+                // starting with lhs first
                 state = StreamDepleted;
                 return OP_DEPLETED;
             }
             state = StreamConsuming;
         }
         auto res = rhs->Consume(ctx);
-        // 然后处理rhs
+        // then process rhs
         while (res != OP_OK) {
             if (PullFromLhs(ctx) != OP_OK) {
                 state = StreamDepleted;

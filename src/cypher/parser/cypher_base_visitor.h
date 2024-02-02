@@ -113,7 +113,7 @@ class CypherBaseVisitor : public LcypherVisitor {
 
  public:
     CypherBaseVisitor() = default;
-    // TODO(anyone): 考虑在parser visit阶段之后，再处理yield items
+    // TODO(anyone): consider yield items after parser visit
     CypherBaseVisitor(cypher::RTContext *ctx, antlr4::tree::ParseTree *tree) : ctx_(ctx) {
         // The default implementation of visit()
         tree->accept(this);

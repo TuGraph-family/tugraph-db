@@ -69,7 +69,7 @@ class OpFilter : public OpBase {
         for (auto child : op->children) {
             allModified = true;
             if (child->type == cypher::OpType::ARGUMENT) {
-                // 判断ae_right的符号是否包含在argument中，全包含则containModifies为true
+                // containModifies is true when all ae_right symbols are included in arguments
                 for (auto alias : tif->RhsAlias()) {
                     if (std::find(child->modifies.begin(), child->modifies.end(), alias) ==
                         child->modifies.end()) {
@@ -77,18 +77,16 @@ class OpFilter : public OpBase {
                         break;
                     }
                 }
-                // 如果ARGUMENT符合条件，则直接返回true，无需再找；否则，继续查找孩子的孩子
                 if (allModified == true) {
                     tif->SetProducerOp(child);
                     return true;
                 } else {
-                    // 如果孩子树中找到了ARGUMENT，那么直接返回true，不继续迭代寻找
                     if (LocateAndSetProducer(child, tif) == true) {
                         return true;
                     }
                 }
             } else {
-                // 如果孩子树中找到了ARGUMENT，那么直接返回true，不继续迭代寻找
+                // return true when ARGUMENT found in the child tree
                 if (LocateAndSetProducer(child, tif) == true) {
                     return true;
                 }

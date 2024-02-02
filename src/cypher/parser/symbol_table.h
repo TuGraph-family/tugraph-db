@@ -16,6 +16,7 @@
 // Created by wt on 19-2-25.
 //
 #pragma once
+#include "geax-front-end/ast/expr/Ref.h"
 #include "cypher/parser/data_typedef.h"
 
 namespace cypher {
@@ -69,6 +70,8 @@ struct SymbolNode {
 struct AnnotationCollection {
     /* Note that symbol table will be copyed into execution plan. */
     std::unordered_map<std::string, std::shared_ptr<parser::TUP_PATTERN_ELEMENT> > named_paths;
+    std::unordered_map<std::string, std::vector<
+        std::shared_ptr<geax::frontend::Ref>>> path_elements;
 };
 
 struct SymbolTable {

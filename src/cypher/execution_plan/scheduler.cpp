@@ -98,8 +98,8 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
             r->Insert(header, lgraph::FieldData(data));
             if (ctx->bolt_conn_) {
                 auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
-                while (!session->current_msg) {
-                    session->current_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+                while (!session->streaming_msg) {
+                    session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
                     if (ctx->bolt_conn_->has_closed()) {
                         LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
                         return;
@@ -109,9 +109,9 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
                 meta["fields"] = ctx->result_->BoltHeader();
                 bolt::PackStream ps;
                 ps.AppendSuccess(meta);
-                if (session->current_msg.value().type == bolt::BoltMsg::PullN) {
+                if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                     ps.AppendRecords(ctx->result_->BoltRecords());
-                } else if (session->current_msg.value().type == bolt::BoltMsg::DiscardN) {
+                } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
                     // ...
                 }
                 ps.AppendSuccess();
