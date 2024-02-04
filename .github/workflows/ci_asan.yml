@@ -1,6 +1,7 @@
 name: ci_asan
 
 on:
+  push:
   pull_request:
     branches:
       - '*'
