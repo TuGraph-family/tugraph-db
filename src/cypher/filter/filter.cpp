@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,8 +87,7 @@ void TestExists::BuildNestedExecutionPlan() {
     if (expand_streams.size() > 1) CYPHER_TODO();
     CYPHER_THROW_ASSERT(!expand_streams.empty() && !expand_streams[0].empty());
     std::vector<cypher::OpBase *> expand_ops;
-    // TODO(anyone) use dummy RTContext here.
-    auto *ia = new cypher::ImmediateArgument(nullptr, nested_pattern_.get());
+    auto *ia = new cypher::ImmediateArgument(nested_pattern_.get());
     expand_ops.emplace_back(ia);
     for (auto &step : expand_streams[0]) {
         auto &start = nested_pattern_->GetNode(std::get<0>(step));

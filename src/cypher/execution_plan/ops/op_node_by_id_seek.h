@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ class NodeByIdSeek : public OpBase {
     }
 
     OpResult Initialize(RTContext *ctx) override {
-        record = std::make_shared<Record>(rec_length_, sym_tab_);
+        record = std::make_shared<Record>(rec_length_, sym_tab_, ctx->param_tab_);
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
         record->SetParameter(ctx->param_tab_);
@@ -66,7 +66,7 @@ class NodeByIdSeek : public OpBase {
     }
 
     OpResult RealConsume(RTContext *ctx) override {
-        // 记得每次都要设为-1！！！！！
+        // remember set vid to -1 every time
         node_->SetVid(-1);
 
         if (!it_ || !it_->IsValid()) return OP_DEPLETED;

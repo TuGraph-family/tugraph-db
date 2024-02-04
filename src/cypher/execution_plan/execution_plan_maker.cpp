@@ -192,7 +192,7 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
         }
     }
     if (!has_arg) {
-        // 符号表中没有type为argument的
+        // no argument type in symbol table
         if (pf.type == Property::VALUE || pf.type == Property::PARAMETER) {
             /* use index when possible. weak index lookup if label absent */
             scan_op = new NodeIndexSeek(node, sym_tab);
@@ -217,7 +217,7 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
         }
         ops.emplace_back(scan_op);
     } else {
-        // 符号表有type为argument的
+        // has argument type in symbol table
         if (it->second.scope == SymbolNode::ARGUMENT) {
             if (skip_arg_op) return;
         } else if (pf.type == Property::VALUE || pf.type == Property::PARAMETER) {
@@ -727,7 +727,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::MatchStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) {
+    auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
+        node->predicate(), pattern_graphs_[cur_pattern_graph_].symbol_table);
+    auto op_filter = new OpFilter(expr_filter);
+    op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+    pattern_graph_root_[cur_pattern_graph_] = op_filter;
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
 

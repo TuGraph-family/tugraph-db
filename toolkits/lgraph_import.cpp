@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  */
 
 #include "tools/lgraph_log.h"
-#include "fma-common/check_date.h"
 #include "fma-common/configuration.h"
 #include "fma-common/timed_task.h"
 #include "fma-common/hardware_info.h"
@@ -38,7 +37,7 @@ int main(int argc, char** argv) {
 
     bool online = false;
     bool v3 = true;
-    bool full = false;
+    int online_type = 0;
     {
         fma_common::Configuration config;
         config.Add(online, "online", true).Comment("Whether to import online");
@@ -51,57 +50,67 @@ int main(int argc, char** argv) {
     if (online) {
         {
             fma_common::Configuration config;
-            config.Add(full, "full", true).Comment("Whether to full import online");
+            config.Add(online_type, "online_type", true).
+                Comment("The type of import online, 0 for increment, 1 for full import data,"
+                    "2 for full import file");
             config.ParseAndRemove(&argc, &argv);
             config.ExitAfterHelp(false);
             config.Finalize();
         }
         fma_common::Configuration config;
-        config.Add(online_import_config.config_file, "c,config_file", false)
-            .Comment("Config file path");
         config.Add(online_import_config.url, "r,url", false).Comment("DB REST API address");
         config.Add(online_import_config.username, "u,user", false).Comment("DB username");
         config.Add(online_import_config.password, "p,password", false).Comment("DB password");
-        config.Add(online_import_config.continue_on_error, "i,continue_on_error", true)
-            .Comment("When we hit a duplicate uid or missing uid, should we continue or abort");
         config.Add(online_import_config.graph_name, "g,graph", true)
             .Comment("The name of the graph to import into");
-        config.Add(online_import_config.delimiter, "delimiter", true)
-            .Comment("Delimiter used in the CSV files");
-        config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
-        config.Add(verbose_level, "v,verbose", true)
-            .Comment("Verbose level to use, higher means more verbose");
-        if (!full) {
-            config.Add(online_import_config.skip_packages, "skip_packages", true)
-                .Comment("How many packages should we skip");
-            config.Add(online_import_config.breakpoint_continue, "breakpoint_continue", true)
-                .Comment("Delimiter used in the CSV files");
+        if (online_type == 2) {
+            config.Add(online_import_config.path, "path", false)
+                .Comment("The path of data file");
+            config.Add(online_import_config.remote, "remote", true)
+                .Comment("Whether to download file from remote server");
         } else {
-            config.Add(online_import_config.delete_if_exists, "overwrite", true)
-                .Comment("Whether to overwrite the existing DB if it already exists");
-            config.Add(online_import_config.parse_block_size, "parse_block_size", true)
-                .Comment("Block size per parse");
-            config.Add(online_import_config.parse_block_threads, "parse_block_threads", true)
-                .Comment("How many threads to parse the data block");
-            config.Add(online_import_config.parse_file_threads, "parse_file_threads", true)
-                .Comment("How many threads to parse the files");
-            config.Add(online_import_config.generate_sst_threads, "generate_sst_threads", true)
-                .Comment("How many threads to generate sst files");
-            config.Add(online_import_config.read_rocksdb_threads, "read_rocksdb_threads", true)
-                .Comment("How many threads to read rocksdb in the final stage");
-            config.Add(online_import_config.vid_num_per_reading, "vid_num_per_reading", true)
-                .Comment("How many vertex data to read each time");
-            config.Add(online_import_config.max_size_per_reading, "max_size_per_reading", true)
-                .Comment("Maximum size of kvs per reading");
-            config.Add(online_import_config.compact, "compact", true)
-                .Comment("Whether to compact");
-            config.Add(online_import_config.keep_vid_in_memory, "keep_vid_in_memory", true)
-                .Comment("Whether to keep vids in memory");
-            config.Add(online_import_config.enable_fulltext_index, "enable_fulltext_index", true)
-                .Comment("Whether to enable fulltext index");
-            config.Add(online_import_config.fulltext_index_analyzer, "fulltext_index_analyzer",
-                true).SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
-                .Comment("fulltext index analyzer");
+            config.Add(online_import_config.config_file, "c,config_file", false)
+                .Comment("Config file path");
+            config.Add(online_import_config.continue_on_error, "i,continue_on_error", true)
+                .Comment("When we hit a duplicate uid or missing uid, should we continue or abort");
+            config.Add(online_import_config.delimiter, "delimiter", true)
+                .Comment("Delimiter used in the CSV files");
+            config.Add(log_dir, "log", true).Comment("Log dir to use, empty means stderr");
+            config.Add(verbose_level, "v,verbose", true)
+                .Comment("Verbose level to use, higher means more verbose");
+            if (online_type == 0) {
+                config.Add(online_import_config.skip_packages, "skip_packages", true)
+                    .Comment("How many packages should we skip");
+                config.Add(online_import_config.breakpoint_continue, "breakpoint_continue", true)
+                    .Comment("Delimiter used in the CSV files");
+            } else {
+                config.Add(online_import_config.delete_if_exists, "overwrite", true)
+                    .Comment("Whether to overwrite the existing DB if it already exists");
+                config.Add(online_import_config.parse_block_size, "parse_block_size", true)
+                    .Comment("Block size per parse");
+                config.Add(online_import_config.parse_block_threads, "parse_block_threads", true)
+                    .Comment("How many threads to parse the data block");
+                config.Add(online_import_config.parse_file_threads, "parse_file_threads", true)
+                    .Comment("How many threads to parse the files");
+                config.Add(online_import_config.generate_sst_threads, "generate_sst_threads", true)
+                    .Comment("How many threads to generate sst files");
+                config.Add(online_import_config.read_rocksdb_threads, "read_rocksdb_threads", true)
+                    .Comment("How many threads to read rocksdb in the final stage");
+                config.Add(online_import_config.vid_num_per_reading, "vid_num_per_reading", true)
+                    .Comment("How many vertex data to read each time");
+                config.Add(online_import_config.max_size_per_reading, "max_size_per_reading", true)
+                    .Comment("Maximum size of kvs per reading");
+                config.Add(online_import_config.compact, "compact", true)
+                    .Comment("Whether to compact");
+                config.Add(online_import_config.keep_vid_in_memory, "keep_vid_in_memory", true)
+                    .Comment("Whether to keep vids in memory");
+                config.Add(online_import_config.enable_fulltext_index,
+                           "enable_fulltext_index", true)
+                    .Comment("Whether to enable fulltext index");
+                config.Add(online_import_config.fulltext_index_analyzer, "fulltext_index_analyzer",
+                           true).SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
+                    .Comment("fulltext index analyzer");
+            }
         }
         config.ExitAfterHelp(true);
         try {
@@ -250,7 +259,7 @@ int main(int argc, char** argv) {
 
     try {
         if (online) {
-            if (!full) {
+            if (online_type == 0) {
                 LOG_INFO() << "Importing ONLINE: "
                           << "\n\tfrom:                " << online_import_config.config_file
                           << "\n\tto:                  " << online_import_config.url
@@ -260,8 +269,8 @@ int main(int argc, char** argv) {
                     online_import_config.delimiter);
                 OnlineImportClient client(online_import_config);
                 client.DoImport();
-            } else {
-                LOG_INFO() << "Full Importing ONLINE: "
+            } else if (online_type == 1) {
+                LOG_INFO() << "Full Importing data ONLINE: "
                           << "\n\tfrom:                " << online_import_config.config_file
                           << "\n\tto:                  " << online_import_config.url
                           << "\n\tverbose:             " << verbose_level
@@ -270,6 +279,12 @@ int main(int argc, char** argv) {
                     online_import_config.delimiter);
                 OnlineImportClient client(online_import_config);
                 client.DoFullImport();
+            } else {
+                LOG_INFO() << "Full Importing file ONLINE: "
+                           << "\n\tfrom:                " << online_import_config.path
+                           << "\n\tto:                  " << online_import_config.url;
+                OnlineImportClient client(online_import_config);
+                client.DoFullImportFile();
             }
         } else if (!v3) {
             LOG_INFO() << "Importing FROM SCRATCH: "

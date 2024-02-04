@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,10 +50,13 @@ class OnlineImportClient {
         bool keep_vid_in_memory = true;
         bool enable_fulltext_index = false;
         std::string fulltext_index_analyzer = "StandardAnalyzer";
+        std::string path;
+        bool remote = false;
     };
     explicit OnlineImportClient(const Config& config);
     void DoImport();
     void DoFullImport() const;
+    void DoFullImportFile() const;
 
  protected:
     Config config_;

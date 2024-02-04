@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -208,7 +208,8 @@ class OpCreate : public OpBase {
         for (auto child : children) {
             child->Initialize(ctx);
         }
-        record = children.empty() ? std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_)
+        record = children.empty() ?
+            std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_, ctx->param_tab_)
                                   : children[0]->record;
         return OP_OK;
     }

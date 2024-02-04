@@ -41,6 +41,19 @@
     return Entry(cypher::func(expr.constant));
 #endif
 
+cypher::FieldData doCallBuiltinFunc(const std::string& name, cypher::RTContext* ctx,
+                                      const cypher::Record& record,
+                                      const std::vector<cypher::ArithExprNode> &args) {
+    static std::unordered_map<std::string, cypher::BuiltinFunction::FUNC> ae_registered_funcs =
+        cypher::ArithOpNode::RegisterFuncs();
+    auto it = ae_registered_funcs.find(name);
+    if (it == ae_registered_funcs.end())
+        NOT_SUPPORT_AND_THROW();
+    cypher::BuiltinFunction::FUNC func = it->second;
+    auto data = func(ctx, record, args);
+    return data;
+}
+
 namespace cypher {
 
 static cypher::FieldData And(const cypher::FieldData& x, const cypher::FieldData& y) {
@@ -363,7 +376,26 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::VNone* node) { NOT_SUPP
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
     auto it = sym_tab_->symbols.find(node->name());
-    return record_->values[it->second.id];
+    switch (it->second.type) {
+    case SymbolNode::NODE:
+    case SymbolNode::RELATIONSHIP:
+    case SymbolNode::CONSTANT:
+    case SymbolNode::PARAMETER:
+        return record_->values[it->second.id];
+    case SymbolNode::NAMED_PATH:
+        {
+            auto iter = sym_tab_->anot_collection.path_elements.find(node->name());
+            if (iter == sym_tab_->anot_collection.path_elements.end())
+                throw lgraph::CypherException("path_elements error: " + node->name());
+            const std::vector<std::shared_ptr<geax::frontend::Ref>>& elements = iter->second;
+            std::vector<ArithExprNode> params;
+            for (auto ref : elements) {
+                params.emplace_back(ref.get(), *sym_tab_);
+            }
+            return Entry(doCallBuiltinFunc(BuiltinFunction::INTL_TO_PATH, ctx_, *record_, params));
+        }
+    }
+    return std::any();
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) { NOT_SUPPORT_AND_THROW(); }

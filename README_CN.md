@@ -98,28 +98,11 @@ $ make package
 
 ## 5. 联系我们
 
-邮箱: tugraph@service.alipay.com
-
 官网: [www.tugraph.org](https://www.tugraph.org)
-
-Github Issue (错误反馈、功能讨论)
-[Issue](https://github.com/TuGraph-db/tugraph-db/issues)
-
-Github Discussions (技术讨论)
-[Discussions](https://github.com/TuGraph-db/tugraph-db/discussions)
 
 Slack (在线开发沟通):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
-钉钉群 (技术交流)
-
-![alert](./docs/images/dingtalk.png)
-
-微信群 (技术交流)
-
-![alert](./docs/images/wechat_tech.png)
-
-微信公众号 (信息发布)
-
-![alert](./docs/images/wechat.png)
+通过钉钉群、微信群、微信公众号、邮箱和电话联系我们:
+![contacts](./docs/images/contact_us.png)
 

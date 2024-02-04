@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -171,6 +171,18 @@ void lgraph::import_v2::OnlineImportClient::DoFullImport() const {
     }
     double t2 = fma_common::GetTime();
     LOG_INFO() << "Full online import finished in " << t2 - t1 << " seconds.";
+}
+
+void lgraph::import_v2::OnlineImportClient::DoFullImportFile() const {
+    double t1 = fma_common::GetTime();
+    RestClient client(config_.url);
+    client.Login(config_.username, config_.password);
+    std::string cypher = FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",{}))",
+                                 config_.graph_name, config_.path,
+                                 config_.remote ? "true" : "false");
+    client.EvalCypher("", cypher);
+    double t2 = fma_common::GetTime();
+    LOG_INFO() << "Full online import file finished in " << t2 - t1 << " seconds.";
 }
 
 void lgraph::import_v2::OnlineImportClient::SignalHandler(int signum) {

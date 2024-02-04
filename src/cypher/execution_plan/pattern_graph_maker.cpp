@@ -16,6 +16,7 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
+#include "tools/lgraph_log.h"
 
 namespace cypher {
 
@@ -49,9 +50,44 @@ std::any PatternGraphMaker::visit(geax::frontend::GraphPattern* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::PathPattern* node) {
+    if (node->prefix().has_value()) {
+        NOT_SUPPORT();
+    }
     auto& chains = node->chains();
     for (auto chain : chains) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(chain);
+    }
+    if (node->alias().has_value()) {
+        auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+        pattern_graph.symbol_table.symbols.emplace(
+            node->alias().value(),
+            SymbolNode(symbols_idx_[cur_pattern_graph_]++,
+            cypher::SymbolNode::NAMED_PATH, SymbolNode::Scope::LOCAL));
+
+        auto& path_elements = pattern_graph.symbol_table.anot_collection.path_elements;
+        std::vector<Node>& nodes = pattern_graph.GetNodes();
+        std::vector<Relationship>& relationships = pattern_graph.GetRelationships();
+        if (nodes.size() != relationships.size() + 1)
+            throw lgraph::CypherException("PathPattern error: " + node->alias().value());
+        std::vector<std::shared_ptr<geax::frontend::Ref>> paths;
+        paths.reserve(nodes.size() + relationships.size());
+        size_t idx;
+        std::string alias;
+        for (idx = 0; idx < relationships.size(); ++idx) {
+            std::shared_ptr<geax::frontend::Ref> node_ref = std::make_shared<geax::frontend::Ref>();
+            alias = nodes[idx].Alias();
+            node_ref->setName(std::move(alias));
+            paths.push_back(node_ref);
+            std::shared_ptr<geax::frontend::Ref> relp_ref = std::make_shared<geax::frontend::Ref>();
+            alias = relationships[idx].Alias();
+            relp_ref->setName(std::move(alias));
+            paths.push_back(relp_ref);
+        }
+        std::shared_ptr<geax::frontend::Ref> node_ref = std::make_shared<geax::frontend::Ref>();
+        alias = nodes[idx].Alias();
+        node_ref->setName(std::move(alias));
+        paths.push_back(node_ref);
+        path_elements.emplace(node->alias().value(), paths);
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -735,7 +771,12 @@ std::any PatternGraphMaker::visit(geax::frontend::MatchStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::FilterStatement* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::FilterStatement* node) {
+    ClauseGuard cg(node->type(), cur_types_);
+    auto predicate = node->predicate();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(predicate);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
 
