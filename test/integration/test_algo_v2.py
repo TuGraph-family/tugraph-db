@@ -25,7 +25,11 @@ class TestAlgoV2:
         algo_dir = "./algo/"
         for algo in algos:
             ret = client.loadProcedure(algo_dir + algo, "CPP", algo.split('.')[0], "SO", "test plugin", True, "v2")
-            assert ret[0]
+            try:
+                assert ret[0]
+            except:
+                log.info(ret)
+                raise
 
         # Test BFS
         ret = client.callCypher("MATCH (n:node{id: 0}) "
