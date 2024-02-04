@@ -8,7 +8,7 @@ RUN echo "The value of TEST_TYPE is: ${TEST_TYPE}"
 
 RUN mkdir -p /root/tugraph-db/
 ENV WORKSPACE=/root/tugraph-db/
-COPY . /root/tugraph-db/
+COPY ubuntu-latest /root/tugraph-db/
 WORKDIR /root/tugraph-db/
 
 RUN --mount=type=secret,id=CODECOV_TOKEN \
