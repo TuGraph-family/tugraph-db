@@ -750,11 +750,11 @@ class TestProcedure:
         plugins = json.loads(ret[1])
         assert len(plugins) == 1
 
-    @pytest.mark.parametrize("build_v2_so", [BUILDV2OPT], indirect=True)
+    @pytest.mark.parametrize("build_so", [BUILDV2OPT], indirect=True)
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
-    def test_plugin_v2(self, build_v2_so, importor, server, client):
+    def test_plugin_v2(self, build_so, importor, server, client):
         pagerank_so = BUILDV2OPT.get("so_name")[0]
         ret = client.loadProcedure(pagerank_so, "CPP", "custom_pagerank", "SO", "test plugin", True, "v2")
         assert ret[0]
