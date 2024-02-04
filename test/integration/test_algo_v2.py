@@ -20,7 +20,7 @@ class TestAlgoV2:
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
-    def test_plugin_v2(self, build_v2_so, importor, server, client):
+    def test_plugin_v2(self, importor, server, client):
         algos = ["libbfs_v2.so", "liblcc_v2.so", "liblpa_v2.so", "libpagerank_v2.so", "libsssp_v2.so", "libwcc_v2.so"]
         algo_dir = "./algo/"
         for algo in algos:
@@ -71,7 +71,7 @@ class TestAlgoV2:
 
         # Test SSSP
         ret = client.callCypher("MATCH (n:node{id:0}) "
-                                "CALL plugin.cpp.libsssp_v22(n) "
+                                "CALL plugin.cpp.libsssp_v2(n) "
                                 "YIELD node, distance WITH node, distance "
                                 "RETURN COUNT(DISTINCT distance)")
         assert ret[0]
