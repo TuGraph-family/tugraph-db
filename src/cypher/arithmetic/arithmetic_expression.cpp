@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1273,7 +1273,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
             /* if !func, custom function */
             std::string input, output;
             std::string name = func_name.substr(std::string(CUSTOM_FUNCTION_PREFIX).size());
-            // 将children都分别进行evaluate操作，并且添加到input进行输出
+            // evaluate every child and add to input for output
             for (int i = 1; i < (int)children.size(); i++) {
                 auto v = children[i].Evaluate(ctx, record);
                 input.append(v.ToString());

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,7 @@ void Argument::Receive(std::shared_ptr<Record> *input_record, PatternGraph *patt
 
 OpBase::OpResult Argument::Initialize(RTContext *ctx) {
     // allocate a new record
-    record = std::make_shared<Record>(sym_tab_->symbols.size(), sym_tab_);
-    record->SetParameter(ctx->param_tab_);
+    record = std::make_shared<Record>(sym_tab_->symbols.size(), sym_tab_, ctx->param_tab_);
     for (auto &arg : args_) {
         if (arg.type == SymbolNode::NODE) {
             auto &node = pattern_graph_->GetNode(arg.alias);

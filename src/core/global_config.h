@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,7 +128,6 @@ struct BasicConfigs {
     bool enable_realtime_count{};
     // bolt
     int bolt_port = 0;
-    int bolt_thread_num = 10;
 };
 
 template <typename T>

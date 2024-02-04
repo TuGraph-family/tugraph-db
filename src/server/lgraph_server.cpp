@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ int LGraphServer::Start() {
                << "\n"
                << "*                                                                    *"
                << "\n"
-               << "*    Copyright(C) 2018-2023 Ant Group. All rights reserved.          *"
+               << "*    Copyright(C) 2018-2024 Ant Group. All rights reserved.          *"
                << "\n"
                << "*                                                                    *"
                << "\n"
@@ -276,8 +276,7 @@ int LGraphServer::Start() {
 
         if (config_->bolt_port > 0) {
             if (!bolt::BoltServer::Instance().Start(state_machine_.get(),
-                                               config_->bolt_port,
-                                               config_->bolt_thread_num)) {
+                                               config_->bolt_port)) {
                 return -1;
             }
         }

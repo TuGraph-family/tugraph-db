@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,10 +54,9 @@ class AllNodeScan : public OpBase {
 
     OpResult Initialize(RTContext *ctx) override {
         // allocate a new record
-        record = std::make_shared<Record>(rec_length_, sym_tab_);
+        record = std::make_shared<Record>(rec_length_, sym_tab_, ctx->param_tab_);
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
-        record->SetParameter(ctx->param_tab_);
         // transaction allocated before in plan:execute
         // TODO(anyone) remove patternGraph's state (ctx)
         node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::VERTEX_ITER);

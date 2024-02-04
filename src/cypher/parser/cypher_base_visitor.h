@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ class CypherBaseVisitor : public LcypherVisitor {
 
  public:
     CypherBaseVisitor() = default;
-    // TODO(anyone): 考虑在parser visit阶段之后，再处理yield items
+    // TODO(anyone): consider yield items after parser visit
     CypherBaseVisitor(cypher::RTContext *ctx, antlr4::tree::ParseTree *tree) : ctx_(ctx) {
         // The default implementation of visit()
         tree->accept(this);

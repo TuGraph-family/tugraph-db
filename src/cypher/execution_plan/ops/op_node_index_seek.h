@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 namespace cypher {
 
 class NodeIndexSeek : public OpBase {
-    std::unique_ptr<lgraph::Transaction> *txn_ = nullptr;
+    // std::unique_ptr<lgraph::Transaction> *txn_ = nullptr;
     Node *node_ = nullptr;
     lgraph::VIter *it_ = nullptr;           // also can be derived from node
     std::string alias_;                     // also can be derived from node
@@ -64,13 +64,12 @@ class NodeIndexSeek : public OpBase {
 
     OpResult Initialize(RTContext *ctx) override {
         // allocate a new record
-        record = std::make_shared<Record>(rec_length_, sym_tab_);
+        record = std::make_shared<Record>(rec_length_, sym_tab_, ctx->param_tab_);
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
-        record->SetParameter(ctx->param_tab_);
 
         auto &pf = node_->Prop();
-        field_ = pf.type != Property::NUL ? pf.field : field_;  // 优先用prop形式指定的field
+        field_ = pf.type != Property::NUL ? pf.field : field_;  // use pf.field if applicable
         if (pf.type == Property::VALUE) {
             target_values_.emplace_back(pf.value);
         } else if (pf.type == Property::PARAMETER) {

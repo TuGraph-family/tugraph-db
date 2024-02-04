@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ class Unwind : public OpBase {
         if (children.size() > 1) CYPHER_TODO();
         if (children.empty()) {
             // No child operation, list must be static.
-            record = std::make_shared<Record>(sym_tab_->symbols.size(), sym_tab_);
+            record = std::make_shared<Record>(sym_tab_->symbols.size(), sym_tab_, ctx->param_tab_);
             // Set parameter, use uniform runtime context
             for (auto &p : ctx->param_tab_) {
                 auto it = record->symbol_table->symbols.find(p.first);

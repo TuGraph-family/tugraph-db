@@ -11,17 +11,17 @@ const char ha_mkdir[] = "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
 #ifndef __SANITIZE_ADDRESS__
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 5000 "
-    "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --ha_snapshot_interval_s -1 "
     "--rpc_port {} --directory ./db --log_dir "
-    "./log  --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
+    "./log  --ha_conf {} --verbose 1 "
+    "-c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 5000 --ha_is_witness 1 "
-    "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --ha_is_witness 1 "
+    "--ha_snapshot_interval_s -1 "
     "--rpc_port {} --directory ./db --log_dir "
-    "./log --ha_conf {} --verbose 1 -c lgraph_ha.json "
-    "--ha_enable_witness_to_leader {} -d start";
+    "./log --ha_conf {} --verbose 1 "
+    "-c lgraph_ha.json --ha_enable_witness_to_leader {} -d start";
 #else
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
@@ -273,28 +273,19 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     fma_common::SleepS(15);
 
     // start follower, witness which has newer log will be leader temporary
-    try {
-        client = std::make_unique<lgraph::RpcClient>(
-            this->host + ":29094", "admin", "73@TuGraph");
-    } catch (std::exception &e) {
-        cmd = FMA_FMT(witness_cmd_f, "ha3", host, "27074", "29094",
-                      host + ":29092," + host + ":29093," + host + ":29094", true);
-        UT_EXPECT_EQ(system(cmd.c_str()), 0);
-        fma_common::SleepS(5);
-    }
     boost::split(output, follower_rpc, boost::is_any_of(":"));
     std::string ha_dir = "ha" + std::to_string(stoi(output[1]) - 29091);
     cmd = FMA_FMT(server_cmd_f, ha_dir, host, stoi(output[1]) - 2020,
                   output[1], host + ":29092," + host + ":29093," + host + ":29094");
     ret = system(cmd.c_str());
     UT_EXPECT_EQ(ret, 0);
-    fma_common::SleepS(15);
+    fma_common::SleepS(20);
     master_rpc.clear();
     int times = 0;
     do {
         try {
             client = std::make_unique<lgraph::RpcClient>(
-                this->host + ":29093", "admin", "73@TuGraph");
+                follower_rpc, "admin", "73@TuGraph");
             client->CallCypher(result, "CALL dbms.ha.clusterInfo()");
             cluster_info = nlohmann::json::parse(result.c_str());
             if (cluster_info == nullptr || cluster_info[0]["cluster_info"] == nullptr)
@@ -317,7 +308,6 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
             continue;
         }
     } while (++times < 20);
-    fma_common::SleepS(5);
     ret = client->CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
     UT_EXPECT_TRUE(ret);
     nlohmann::json res = nlohmann::json::parse(result);

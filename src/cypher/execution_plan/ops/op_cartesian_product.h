@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ class CartesianProduct : public OpBase {
             }
         }
         if (!sym_tab) throw lgraph::CypherException("CartesianProduct initialize failed");
-        record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab);
+        record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab, ctx->param_tab_);
         return OP_OK;
     }
 

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ class InQueryCall : public OpBase {
     OpResult Initialize(RTContext *ctx) override {
         auto &sym_tab = pattern_->symbol_table;
         if (children.empty()) {
-            record = std::make_shared<Record>(sym_tab.symbols.size(), &sym_tab);
+            record = std::make_shared<Record>(sym_tab.symbols.size(), &sym_tab, ctx->param_tab_);
         } else {
             CYPHER_THROW_ASSERT(children.size() == 1);
             if (children[0]->Initialize(ctx) != OP_OK) return OP_ERR;

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2022 AntGroup CO., Ltd.
+ * Copyright 2024 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,6 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
         AddOption(options, "Bootstrap Role", ha_bootstrap_role);
     }
     AddOption(options, "bolt_port", bolt_port);
-    AddOption(options, "bolt_thread_num", bolt_thread_num);
     return options;
 }
 
@@ -201,7 +200,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     ha_bootstrap_role = 0;
     ha_log_dir = "";
     ha_election_timeout_ms = 500;
-    ha_snapshot_interval_s = 3600 * 24;
+    ha_snapshot_interval_s = 3600 * 24 * 7;
     ha_heartbeat_interval_ms = 1000;
     ha_node_offline_ms = 600 * 1000;
     ha_node_remove_ms = 1200 * 1000;
@@ -211,7 +210,6 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
 
     // bolt
     bolt_port = 0;
-    bolt_thread_num = 10;
 
     // parse options
     fma_common::Configuration argparser;
@@ -319,7 +317,5 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Node is witness (donot have data & can not apply request) or not.");
     argparser.Add(bolt_port, "bolt_port", true)
         .Comment("Bolt protocol port.");
-    argparser.Add(bolt_thread_num, "bolt_thread_num", true)
-        .Comment("bolt thread pool size.");
     return argparser;
 }
