@@ -36,10 +36,10 @@ class TestAlgoV2:
                                 "CALL plugin.cpp.libbfs_v2(n) "
                                 "YIELD node, parent "
                                 "WITH node, parent "
-                                "RETURN node, parent limit 1")
+                                "RETURN COUNT(parent)")
         assert ret[0]
-        result = json.loads(ret[1])[0].get("parent").get("identity")
-        assert result == 3980
+        result = json.loads(ret[1])[0].get("COUNT(parent)")
+        assert result == 3829
 
         # Test PageRank
         ret = client.callCypher("CALL plugin.cpp.libpagerank_v2(10) "
@@ -68,7 +68,8 @@ class TestAlgoV2:
         # Test LCC
         ret = client.callCypher("CALL plugin.cpp.liblcc_v2() "
                                 "YIELD node, score WITH node, score "
-                                "RETURN score LIMIT 1")
+                                "WHERE node.id = 0 "
+                                "RETURN score")
         assert ret[0]
         result = json.loads(ret[1])[0].get("score")
         assert math.isclose(result, 0.041961653145874626, rel_tol=1e-5)
@@ -77,7 +78,8 @@ class TestAlgoV2:
         ret = client.callCypher("MATCH (n:node{id:0}) "
                                 "CALL plugin.cpp.libsssp_v2(n) "
                                 "YIELD node, distance WITH node, distance "
-                                "RETURN COUNT(DISTINCT distance)")
+                                "WHERE node.id = 10 "
+                                "RETURN distance")
         assert ret[0]
-        result = json.loads(ret[1])[0].get("COUNT(DISTINCT distance)")
-        assert result == 7
+        result = json.loads(ret[1])[0].get("distance")
+        assert result == 1

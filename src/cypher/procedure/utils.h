@@ -84,14 +84,14 @@ class PluginAdapter {
      public:
         NodeBuffer() { buffer_.reserve(128); }
         ~NodeBuffer() = default;
+        void Reserver(int64_t size) { buffer_.reserve(size); }
+        int64_t Capacity() { return buffer_.capacity(); }
         DISABLE_COPY(NodeBuffer);
         DISABLE_MOVE(NodeBuffer);
         Node& AllocNode(NodeID id, const std::string& alias) {
             // N.B. alloc node when exceeding buffer capacity makes reallocation.
             // It will invalid the old nodes allocated before.
-            if (buffer_.size() >= buffer_.capacity()) {
-                buffer_.clear();
-            }
+            CYPHER_THROW_ASSERT(buffer_.size() < buffer_.capacity());
             buffer_.emplace_back(id, "", alias, cypher::Node::Derivation::YIELD);
             return buffer_.back();
         }
@@ -210,6 +210,14 @@ class PluginAdapter {
 
         try {
             results->reserve(results->size() + api_result.Size());
+            int64_t node_num_in_result = 0;
+            for (const auto& result : sig_spec_->result_list) {
+                if (result.type == lgraph_api::LGraphType::NODE) {
+                    node_num_in_result += api_result.Size();
+                }
+            }
+            node_buffer_.Reserver(node_num_in_result);
+
             for (int64_t i = 0; i < api_result.Size(); i++) {
                 const auto& rview = api_result.RecordView(i);
                 Record r;

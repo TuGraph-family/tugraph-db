@@ -58,7 +58,7 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
     start_time = get_time();
     auto parent = graph.AllocVertexArray<size_t>();
     size_t root_vid = graph.MappedVid(GetVidFromNodeString(root_node));
-    BFSCore(graph, root_vid, parent);
+    auto discovered_vertices = BFSCore(graph, root_vid, parent);
     auto core_cost = get_time() - start_time;
 
     start_time = get_time();
@@ -67,15 +67,17 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
         {"parent", LGraphType::NODE},
     });
 
-    response.Resize(parent.Size());
-    graph.ProcessVertexInRange<char>(
-        [&] (size_t vid) {
-            auto r = response.At(vid);
-            r->InsertVertexByID("node", graph.OriginalVid(vid));
-            r->InsertVertexByID("parent", graph.OriginalVid(parent[vid]));
-            return 0;
-        },
-        0, parent.Size());
+    response.Resize(discovered_vertices);
+    size_t idx = 0;
+    for (size_t vid = 0; vid < parent.Size(); vid++) {
+        if (parent[vid] == (size_t)-1) {
+            continue ;
+        }
+        auto r = response.At(idx);
+        r->InsertVertexByID("node", graph.OriginalVid(vid));
+        r->InsertVertexByID("parent", graph.OriginalVid(parent[vid]));
+        idx++;
+    }
     auto output_cost = get_time() - start_time;
 
     LOG_DEBUG() << "prepare_cost: " << prepare_cost << " (s)\n"
