@@ -71,7 +71,7 @@ extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
     size_t idx = 0;
     for (size_t vid = 0; vid < parent.Size(); vid++) {
         if (parent[vid] == (size_t)-1) {
-            continue ;
+            continue;
         }
         auto r = response.At(idx);
         r->InsertVertexByID("node", graph.OriginalVid(vid));
