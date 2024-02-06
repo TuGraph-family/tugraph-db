@@ -2890,8 +2890,7 @@ void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record, const cyphe
 void SpatialFunc::Distance(RTContext *ctx, const cypher::Record *record,
                            const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
                            struct std::vector<cypher::Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 2,
-        "wrong arguments number");
+    CYPHER_ARG_CHECK(args.size() == 2, "wrong arguments number");
 
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::VARIABLE,
                     FMA_FMT("{} has to be a variable",

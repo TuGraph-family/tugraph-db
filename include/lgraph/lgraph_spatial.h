@@ -351,13 +351,9 @@ class SpatialBase {
      */
     SpatialBase(SRID srid, SpatialType type) : srid_(srid), type_(type) {}
 
-    // virtual ~SpatialBase();
-
     virtual std::string AsEWKB() const = 0;
 
     virtual std::string AsEWKT() const = 0;
-
-    // virtual std::string ToString() const = 0;
 
     SpatialType GetType() const {
         return type_;

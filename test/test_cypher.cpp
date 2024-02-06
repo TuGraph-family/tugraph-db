@@ -832,29 +832,29 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
          "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
-         {"return point('0101000020E6100000000000000000F03F0000000000000040') as p3", 1},
-        {"return linestring('0102000020231C000003000000000000000000000000000000000000000"
+        {"RETURN point('0101000020E6100000000000000000F03F0000000000000040') as p3", 1},
+        {"RETURN linestring('0102000020231C000003000000000000000000000000000000000000000"
                             "00000000000004000000000000000400000000000000840000000000000F03F')", 1},
-        {"return polygon('0103000020E6100000010000000500000000000000000000000000000000"
+        {"RETURN polygon('0103000020E6100000010000000500000000000000000000000000000000"
                          "00000000000000000000000000000000001C400000000000001040000000000000"
                          "00400000000000000040000000000000000000000000000000000000000000000000')"
                          , 1},
-        {"return point(1.0, 2.0, 4326)", 1},   // (p1, p2), srid
-        {"return point(3.0, 1.0, 7203)", 1},
-        {"return point(2.32, 4.96)", 1},
-        {"with point(1, 1, 4326) as p1, point(1, 1, 4326) as p2 return p1 = p2", 1},
-        {"return pointWKB('0101000000000000000000F03F0000000000000040'), 4326", 1},
-        {"return pointWKT('POINT(1.0 1.0)'), 7203", 1},
-        {"return pointWKB('0101000000000000000000F03F0000000000000040')", 1},
-        {"return pointWKT('POINT(1.0 1.0)')", 1},
-        {"return linestringwkb('01020000000300000000000000000000000000000000"
+        {"RETURN point(1.0, 2.0, 4326)", 1},   // (p1, p2), srid
+        {"RETURN point(3.0, 1.0, 7203)", 1},
+        {"RETURN point(2.32, 4.96)", 1},
+        {"WITH point(1, 1, 4326) AS p1, point(1, 1, 4326) AS p2 RETURN p1 = p2", 1},
+        {"RETURN pointwkb('0101000000000000000000F03F0000000000000040'), 4326", 1},
+        {"RETURN pointwkt('POINT(1.0 1.0)'), 7203", 1},
+        {"RETURN pointwkb('0101000000000000000000F03F0000000000000040')", 1},
+        {"RETURN pointwkt('POINT(1.0 1.0)')", 1},
+        {"RETURN linestringwkb('01020000000300000000000000000000000000000000"
         "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203)",
         1},
-        {"return linestringwkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
-        {"return polygonWKB('0103000000010000000500000000000000000000000000000000000000000"
+        {"RETURN linestringwkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
+        {"RETURN polygonwkb('0103000000010000000500000000000000000000000000000000000000000"
         "00000000000000000000000001C4000000000000010400000000000000040"
         "0000000000000040000000000000000000000000000000000000000000000000', 4326)", 1},
-        {"return polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
+        {"RETURN polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -2391,22 +2391,22 @@ int test_spatial_procedure(cypher::RTContext *ctx) {
     eval_scripts(ctx, scripts_);
 
     static const std::vector<std::pair<std::string, int>> script_check = {
-    {"with point(1.0, 2.0) as p1, point(2.0, 1.0) as p2\n"
-     "CALL spatial.distance(p1, p2) YIELD distance RETURN distance > 0", 1},
+    {"with point(2.0, 2.0, 7203) as p1, point(2.0, 1.0, 7203) as p2\n"
+     "CALL spatial.distance(p1, p2) YIELD distance RETURN distance = 1", 1},
     {"with LineStringWKB('01020000000300000000000000000000000000000000"
      "000000000000000000004000000000000000400000000000000840000000000000F03F') "
      "as linestring, "
      "PolygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 4326) as polygon\n"
-     "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance", 1},
+     "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance = 0", 1},
     {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'}) with\n"
      "l1.geo as g1, l2.geo as g2\n"
-     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance = 0", 1},
     {"MATCH (l2:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
      "l2.geo as g2, l3.geo2 as g3\n"
-     "CALL spatial.distance(g2, g3) YIELD distance RETURN distance", 1},
+     "CALL spatial.distance(g2, g3) YIELD distance RETURN distance = 0", 1},
     {"MATCH (l1:Location_ {name:'C_'}) with\n"
      "l1.geo1 as g1, l1.geo2 as g2\n"
-     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance", 1},
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance = 0", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;

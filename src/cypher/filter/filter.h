@@ -60,7 +60,7 @@ struct FieldDataHash {
             return std::hash<std::string>()(fd.AsString());
         case FieldType::BLOB:
             return std::hash<std::string>()(fd.AsBlob());
-                case FieldType::POINT: {
+        case FieldType::POINT: {
             switch (fd.GetSRID()) {
                 case ::lgraph_api::SRID::WGS84:
                     return std::hash<std::string>()(fd.AsWgsPoint().AsEWKB());
