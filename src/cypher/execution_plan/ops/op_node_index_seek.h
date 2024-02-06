@@ -64,10 +64,9 @@ class NodeIndexSeek : public OpBase {
 
     OpResult Initialize(RTContext *ctx) override {
         // allocate a new record
-        record = std::make_shared<Record>(rec_length_, sym_tab_);
+        record = std::make_shared<Record>(rec_length_, sym_tab_, ctx->param_tab_);
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
-        record->SetParameter(ctx->param_tab_);
 
         auto &pf = node_->Prop();
         field_ = pf.type != Property::NUL ? pf.field : field_;  // use pf.field if applicable

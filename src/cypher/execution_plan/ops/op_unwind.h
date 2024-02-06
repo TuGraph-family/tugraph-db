@@ -53,7 +53,7 @@ class Unwind : public OpBase {
         if (children.size() > 1) CYPHER_TODO();
         if (children.empty()) {
             // No child operation, list must be static.
-            record = std::make_shared<Record>(sym_tab_->symbols.size(), sym_tab_);
+            record = std::make_shared<Record>(sym_tab_->symbols.size(), sym_tab_, ctx->param_tab_);
             // Set parameter, use uniform runtime context
             for (auto &p : ctx->param_tab_) {
                 auto it = record->symbol_table->symbols.find(p.first);

@@ -28,7 +28,7 @@ class ImmediateArgument : public OpBase {
     std::vector<ArgIndex> args_;
 
  public:
-    ImmediateArgument(RTContext *ctx, PatternGraph *pattern)
+    explicit ImmediateArgument(PatternGraph *pattern)
         : OpBase(OpType::ARGUMENT, "Immediate Argument"), pattern_graph_(pattern) {
         auto sym_tab = &pattern_graph_->symbol_table;
         for (auto &s : sym_tab->symbols) {
@@ -37,13 +37,14 @@ class ImmediateArgument : public OpBase {
                 args_.emplace_back(s.first, s.second.id, s.second.type);
             }
         }
-        // allocate a new record
-        record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab);
     }
 
     void Receive(const Record *input_record) { input_record_ = input_record; }
 
     OpResult Initialize(RTContext *ctx) override {
+        auto sym_tab = &pattern_graph_->symbol_table;
+        // allocate a new record
+        record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab, ctx->param_tab_);
         for (auto &arg : args_) {
             if (arg.type == SymbolNode::NODE) {
                 auto &node = pattern_graph_->GetNode(arg.alias);

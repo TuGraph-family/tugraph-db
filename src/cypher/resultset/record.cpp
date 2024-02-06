@@ -48,7 +48,7 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
 }
 
 void Record::SetParameter(const PARAM_TAB &ptab) {
-    if (!symbol_table) return;
+    if (!symbol_table || ptab.empty()) return;
     for (auto &param : ptab) {
         auto it = symbol_table->symbols.find(param.first);
         if (it != symbol_table->symbols.end()) {
