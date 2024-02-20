@@ -11,8 +11,10 @@ cd $WORKSPACE
 bash ./cpplint/check_all.sh
 
 # build deps
+if [[ "$ASAN" != "asan" ]]; then
 cd deps
 SKIP_WEB=1 bash ./build_deps.sh -j2
+fi
 
 # build tugraph
 cd $WORKSPACE
@@ -21,6 +23,7 @@ if [[ "$ASAN" == "asan" ]]; then
 echo 'build with asan ...'
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCEDURE
 make -j2
+rm -rf $WORKSPACE/deps/geax-front-end $WORKSPACE/deps/tugraph-db-client-java $WORKSPACE/deps/tugraph-web
 else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 make -j2 package
