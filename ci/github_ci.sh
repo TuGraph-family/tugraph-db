@@ -20,10 +20,11 @@ mkdir build && cd build
 if [[ "$ASAN" == "asan" ]]; then
 echo 'build with asan ...'
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCEDURE
+make -j2
 else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
-fi
 make -j2 package
+fi
 
 if [[ "$TEST" == "ut" ]]; then
   # build tugraph db management
