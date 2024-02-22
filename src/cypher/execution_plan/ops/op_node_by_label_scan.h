@@ -53,10 +53,9 @@ class NodeByLabelScan : public OpBase {
 
     OpResult Initialize(RTContext *ctx) override {
         // allocate a new record
-        record = std::make_shared<Record>(rec_length_, sym_tab_);
+        record = std::make_shared<Record>(rec_length_, sym_tab_, ctx->param_tab_);
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
-        record->SetParameter(ctx->param_tab_);
         // transaction allocated before in plan:execute
         // TODO(anyone) remove patternGraph's state (ctx)
         auto primary_filed = ctx->txn_->GetVertexPrimaryField(node_->Label());

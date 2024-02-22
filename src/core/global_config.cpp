@@ -58,8 +58,8 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
         AddOption(options, "HA node join(s)", ha_node_join_group_s);
         AddOption(options, "Bootstrap Role", ha_bootstrap_role);
     }
-    AddOption(options, "bolt_port", bolt_port);
-    AddOption(options, "bolt_thread_num", bolt_thread_num);
+    AddOption(options, "bolt port", bolt_port);
+    AddOption(options, "number of bolt io threads", bolt_io_thread_num);
     return options;
 }
 
@@ -211,7 +211,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
 
     // bolt
     bolt_port = 0;
-    bolt_thread_num = 10;
+    bolt_io_thread_num = 1;
 
     // parse options
     fma_common::Configuration argparser;
@@ -319,7 +319,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Node is witness (donot have data & can not apply request) or not.");
     argparser.Add(bolt_port, "bolt_port", true)
         .Comment("Bolt protocol port.");
-    argparser.Add(bolt_thread_num, "bolt_thread_num", true)
-        .Comment("bolt thread pool size.");
+    argparser.Add(bolt_io_thread_num, "bolt_io_thread_num", true)
+        .Comment("Number of bolt io threads.");
     return argparser;
 }

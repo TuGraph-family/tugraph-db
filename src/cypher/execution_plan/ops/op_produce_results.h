@@ -211,44 +211,100 @@ class ProduceResults : public OpBase {
                 return OP_ERR;
             }
             auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
-            while (!session->current_msg) {
-                session->current_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+            while (session->state == bolt::SessionState::STREAMING && !session->streaming_msg) {
+                session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
                 if (ctx->bolt_conn_->has_closed()) {
                     LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
                     return OP_ERR;
                 }
+                if (!session->streaming_msg) {
+                    continue;
+                }
+                if (session->streaming_msg.value().type == bolt::BoltMsg::PullN ||
+                    session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
+                    const auto &fields = session->streaming_msg.value().fields;
+                    if (fields.size() != 1) {
+                        std::string err =
+                            FMA_FMT("{} msg fields size error, size: {}",
+                                    bolt::ToString(session->streaming_msg.value().type).c_str(),
+                                    fields.size());
+                        LOG_ERROR() << err;
+                        bolt::PackStream ps;
+                        ps.AppendFailure({{"code", "error"}, {"message", err}});
+                        ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+                        session->state = bolt::SessionState::FAILED;
+                        return OP_ERR;
+                    }
+                    auto &val =
+                        std::any_cast<const std::unordered_map<std::string, std::any> &>(fields[0]);
+                    auto n = std::any_cast<int64_t>(val.at("n"));
+                    session->streaming_msg.value().n = n;
+                } else if (session->streaming_msg.value().type == bolt::BoltMsg::Reset) {
+                    LOG_INFO() << "Receive RESET, cancel the op execution.";
+                    bolt::PackStream ps;
+                    ps.AppendSuccess();
+                    ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+                    session->state = bolt::SessionState::READY;
+                    return OP_ERR;
+                } else {
+                    LOG_ERROR() << FMA_FMT(
+                        "Unexpected msg:{} in STREAMING state, cancel the op execution, "
+                        "close the connection.",
+                        bolt::ToString(session->streaming_msg.value().type));
+                    ctx->bolt_conn_->Close();
+                    return OP_ERR;
+                }
+                break;
+            }
+            if (session->state == bolt::SessionState::INTERRUPTED) {
+                LOG_WARN() << "The session state is INTERRUPTED, cancel the op execution.";
+                return OP_ERR;
+            } else if (session->state != bolt::SessionState::STREAMING) {
+                LOG_ERROR() << "Unexpected state: {} in op execution, close the connection.";
+                ctx->bolt_conn_->Close();
+                return OP_ERR;
+            } else if (session->streaming_msg.value().type != bolt::BoltMsg::PullN &&
+                       session->streaming_msg.value().type != bolt::BoltMsg::DiscardN) {
+                LOG_ERROR() << FMA_FMT("Unexpected msg: {} in op execution, "
+                    "cancel the op execution, close the connection.",
+                    bolt::ToString(session->streaming_msg.value().type));
+                ctx->bolt_conn_->Close();
+                return OP_ERR;
             }
             auto child = children[0];
             auto res = child->Consume(ctx);
             if (res != OP_OK) {
                 session->ps.AppendSuccess();
+                session->state = bolt::SessionState::READY;
                 ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));
                 session->ps.Reset();
                 return res;
             }
-            if (session->current_msg.value().type == bolt::BoltMsg::PullN) {
+            if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
                 RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
                 session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
-                if (--session->current_msg.value().n == 0) {
+                if (--session->streaming_msg.value().n == 0) {
                     std::unordered_map<std::string, std::any> meta;
                     meta["has_more"] = true;
                     session->ps.AppendSuccess(meta);
-                    session->current_msg.reset();
+                    session->state = bolt::SessionState::STREAMING;
+                    session->streaming_msg.reset();
                     sync = true;
                 }
                 if (sync || session->ps.ConstBuffer().size() > 1024) {
                     ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));
                     session->ps.Reset();
                 }
-            } else if (session->current_msg.value().type == bolt::BoltMsg::DiscardN) {
-                if (--session->current_msg.value().n == 0) {
+            } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
+                if (--session->streaming_msg.value().n == 0) {
                     std::unordered_map<std::string, std::any> meta;
                     meta["has_more"] = true;
                     session->ps.AppendSuccess(meta);
-                    session->current_msg.reset();
+                    session->state = bolt::SessionState::STREAMING;
+                    session->streaming_msg.reset();
                     ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));
                     session->ps.Reset();
                 }
