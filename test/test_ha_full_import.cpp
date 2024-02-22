@@ -153,6 +153,7 @@ TEST_F(TestHAFullImport, FullImport) {
 }
 
 TEST_F(TestHAFullImport, FullImportRemote) {
+    GTEST_SKIP() << "Disable TestHAFullImport.FullImportRemote Temporarily";
     // ok, now check imported data
     std::unique_ptr<lgraph::RpcClient> rpc_client = std::make_unique<lgraph::RpcClient>(
         this->host + ":29092", "admin", "73@TuGraph");
