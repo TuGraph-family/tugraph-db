@@ -164,11 +164,10 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
 std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                    std::vector<std::any> fields)> BoltHandler =
 [](BoltConnection& conn, BoltMsg msg, std::vector<std::any> fields) {
-    static bolt::PackStream ps;
     if (msg == BoltMsg::Hello) {
-        ps.Reset();
         if (fields.size() != 1) {
             LOG_ERROR() << "Hello msg fields size error, size: " << fields.size();
+            bolt::PackStream ps;
             ps.AppendFailure({{"code", "error"},
                               {"message", "Hello msg fields size error"}});
             conn.Respond(std::move(ps.MutableBuffer()));
@@ -181,6 +180,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
         if (!galaxy->ValidateUser(principal, credentials)) {
             LOG_ERROR() << "Bolt authentication failed";
+            bolt::PackStream ps;
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});
             conn.Respond(std::move(ps.MutableBuffer()));
@@ -197,6 +197,7 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());
         session->fsm_thread.detach();
         conn.SetContext(std::move(session));
+        bolt::PackStream ps;
         ps.AppendSuccess(meta);
         conn.Respond(std::move(ps.MutableBuffer()));
     } else if (msg == BoltMsg::Run ||
