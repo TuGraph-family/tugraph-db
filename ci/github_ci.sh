@@ -23,7 +23,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCE
 else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
-make -j2 package
+make -j2
 
 if [[ "$TEST" == "ut" ]]; then
   # build tugraph db management
