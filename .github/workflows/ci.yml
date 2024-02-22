@@ -19,6 +19,23 @@ jobs:
   ut_no_asan:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete huge unnecessary tools folder
+        run: |
+          df -h
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          echo "Removing large packages"
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get remove -y azure-cli google-chrome-stable firefox powershell mono-devel
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          df -h
+          echo "Removing large directories"
+          rm -rf /usr/share/dotnet/
+          rm -rf /opt/hostedtoolcache
+          df -h
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -45,6 +62,23 @@ jobs:
   ut_asan:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete huge unnecessary tools folder
+        run: |
+          df -h
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          echo "Removing large packages"
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get remove -y azure-cli google-chrome-stable firefox powershell mono-devel
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          df -h
+          echo "Removing large directories"
+          rm -rf /usr/share/dotnet/
+          rm -rf /opt/hostedtoolcache
+          df -h
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -71,6 +105,23 @@ jobs:
   it:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete huge unnecessary tools folder
+        run: |
+          df -h
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          echo "Removing large packages"
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get remove -y azure-cli google-chrome-stable firefox powershell mono-devel
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          df -h
+          echo "Removing large directories"
+          rm -rf /usr/share/dotnet/
+          rm -rf /opt/hostedtoolcache
+          df -h
       - name: Checkout
         uses: actions/checkout@v3
         with:

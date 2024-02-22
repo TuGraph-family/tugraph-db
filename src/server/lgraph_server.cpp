@@ -276,7 +276,8 @@ int LGraphServer::Start() {
 
         if (config_->bolt_port > 0) {
             if (!bolt::BoltServer::Instance().Start(state_machine_.get(),
-                                               config_->bolt_port)) {
+                                               config_->bolt_port,
+                                                    config_->bolt_io_thread_num)) {
                 return -1;
             }
         }
