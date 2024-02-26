@@ -29,7 +29,7 @@ class BoltServer final {
     }
     DISABLE_COPY(BoltServer);
     DISABLE_MOVE(BoltServer);
-    bool Start(lgraph::StateMachine* sm, int port);
+    bool Start(lgraph::StateMachine* sm, int port, int io_thread_num);
     void Stop();
     ~BoltServer() {Stop();}
     lgraph::StateMachine* StateMachine() {
@@ -38,7 +38,6 @@ class BoltServer final {
  private:
     BoltServer() = default;
     lgraph::StateMachine* sm_ = nullptr;
-    int port_ = 0;
     std::vector<std::thread> threads_;
     bool stopped_ = false;
 };
