@@ -4,6 +4,10 @@ set -e
 ASAN=$1
 TEST=$2
 WITH_PROCEDURE=${3:-"OFF"}
+if [[ "$TEST" == "it" ]]]; then
+  WITH_PROCEDURE="ON"
+  echo "WITH_PROCEDURE: $WITH_PROCEDURE"
+fi
 
 cd $WORKSPACE
 
