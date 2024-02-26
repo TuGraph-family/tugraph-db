@@ -8,7 +8,6 @@ if [[ "$TEST" == "it" ]]; then
   WITH_PROCEDURE="ON"
   echo "WITH_PROCEDURE: $WITH_PROCEDURE"
 fi
-exit 0
 
 cd $WORKSPACE
 
