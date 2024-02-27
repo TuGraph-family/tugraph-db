@@ -183,6 +183,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     bool succeed = rpc_client->CallCypher(res, FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",true))",
                                                        "ha", "http://localhost:28082/data.mdb"));
     UT_EXPECT_TRUE(succeed);
+    fma_common::SleepS(20);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
     UT_EXPECT_TRUE(succeed);
     web::json::value v = web::json::value::parse(res);
@@ -208,6 +209,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
     UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
+    fma_common::SleepS(20);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
     UT_EXPECT_TRUE(succeed);
     v = web::json::value::parse(res);
