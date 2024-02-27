@@ -2002,8 +2002,6 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
         path = ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb";
     }
 
-    auto& fs = fma_common::FileSystem::GetFileSystem(ctx->galaxy_->GetConfig().dir +
-                                                     "/.import_tmp");
     lgraph::DBConfig dbConfig;
     dbConfig.dir = ctx->galaxy_->GetConfig().dir;
     dbConfig.name = graph_name;
@@ -2011,7 +2009,6 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
     ctx->galaxy_->CreateGraph(ctx->user_,
                               graph_name, dbConfig,
                               path);
-    fs.RemoveDir(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
     if (remote) {
         auto& fs_download = fma_common::FileSystem::GetFileSystem(
             ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
