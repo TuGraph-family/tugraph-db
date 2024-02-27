@@ -2014,6 +2014,7 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
             ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
         fs_download.Remove(ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
     }
+    ctx->galaxy_->ReloadFromDisk();
 }
 
 void BuiltinProcedure::DbImportorSchemaImportor(RTContext *ctx, const Record *record,
