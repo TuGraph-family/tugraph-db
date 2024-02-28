@@ -604,6 +604,7 @@ bool RpcClient::CallCypherToLeader(std::string& result, const std::string& cyphe
         return base_client->CallCypher(result, cypher, graph, json_format, timeout);
     } else {
         return DoubleCheckQuery([&] {
+            RefreshConnection();
             return leader_client->CallCypher(result, cypher, graph, json_format, timeout);
         });
     }
