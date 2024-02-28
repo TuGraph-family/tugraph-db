@@ -1847,12 +1847,11 @@ void BuiltinProcedure::DbImportorDataImportor(RTContext *ctx, const Record *reco
 void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *record,
                                               const VEC_EXPR &args, const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
-    ctx->txn_.reset();
-    ctx->ac_db_.reset();
     CYPHER_ARG_CHECK(args.size() == 1,
                      "need exactly one parameter. "
                      "e.g. db.importor.fullImportor({})")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::MAP, "conf type should be map")
+    if (ctx->txn_) ctx->txn_->Abort();
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         throw lgraph::AuthError("Admin access right required.");
 
@@ -1973,8 +1972,6 @@ void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *reco
 void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *record,
                                               const VEC_EXPR &args, const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
-    ctx->txn_.reset();
-    ctx->ac_db_.reset();
     CYPHER_ARG_CHECK((args.size() == 2 || args.size() == 3),
                      "need no more than three parameters and no less than two parameters. "
                      "e.g. db.importor.fullFileImportor({\"ha\",\"data.mdb\",[false]})")
@@ -1985,6 +1982,7 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
         CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "remote type should be bool")
         remote = args[2].Bool();
     }
+    if (ctx->txn_) ctx->txn_->Abort();
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         throw lgraph::AuthError("Admin access right required.");
     std::string graph_name = args[0].String(), path = args[1].String();
@@ -2014,7 +2012,6 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
             ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
         fs_download.Remove(ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
     }
-    ctx->galaxy_->ReloadFromDisk();
 }
 
 void BuiltinProcedure::DbImportorSchemaImportor(RTContext *ctx, const Record *record,
