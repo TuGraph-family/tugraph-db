@@ -126,10 +126,13 @@ TEST_F(TestHAFullImport, FullImport) {
     bool succeed = rpc_client->CallCypher(res, FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}"))",
                                                        "ha", data_file_path));
     UT_EXPECT_TRUE(succeed);
-    fma_common::SleepS(20);
-    succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
-    UT_LOG() << res;
-    UT_EXPECT_TRUE(succeed);
+    do {
+        succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
+        if (!succeed) {
+            UT_LOG() << res;
+            fma_common::SleepS(1);
+        }
+    } while (!succeed);
     web::json::value v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     bool ret = rpc_client->CallCypher(res, "CALL dbms.ha.clusterInfo()");
@@ -153,10 +156,13 @@ TEST_F(TestHAFullImport, FullImport) {
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
     UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
-    fma_common::SleepS(20);
-    succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
-    UT_LOG() << res;
-    UT_EXPECT_TRUE(succeed);
+    do {
+        succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
+        if (!succeed) {
+            UT_LOG() << res;
+            fma_common::SleepS(1);
+        }
+    } while (!succeed);
     v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     rpc_client->Logout();
@@ -193,10 +199,13 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     bool succeed = rpc_client->CallCypher(res, FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",true))",
                                                        "ha", "http://localhost:28082/data.mdb"));
     UT_EXPECT_TRUE(succeed);
-    fma_common::SleepS(20);
-    succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
-    UT_LOG() << res;
-    UT_EXPECT_TRUE(succeed);
+    do {
+        succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
+        if (!succeed) {
+            UT_LOG() << res;
+            fma_common::SleepS(1);
+        }
+    } while (!succeed);
     web::json::value v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     bool ret = rpc_client->CallCypher(res, "CALL dbms.ha.clusterInfo()");
@@ -220,10 +229,13 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
     UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
-    fma_common::SleepS(20);
-    succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
-    UT_LOG() << res;
-    UT_EXPECT_TRUE(succeed);
+    do {
+        succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
+        if (!succeed) {
+            UT_LOG() << res;
+            fma_common::SleepS(1);
+        }
+    } while (!succeed);
     v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     rpc_client->Logout();

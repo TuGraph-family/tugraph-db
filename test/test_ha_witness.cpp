@@ -230,8 +230,8 @@ TEST_F(TestHAWitness, HAWitness) {
 }
 
 TEST_F(TestHAWitness, HAWitnessDisableLeader) {
-    GTEST_SKIP() << "Disable TestHAWitness.HAWitnessDisableLeader Temporarily";
     start_server(this->host, true);
+    GTEST_SKIP() << "Disable TestHAWitness.HAWitnessDisableLeader Temporarily";
     build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
     std::unique_ptr<lgraph::RpcClient> client = std::make_unique<lgraph::RpcClient>(
         this->host + ":29092", "admin", "73@TuGraph");
