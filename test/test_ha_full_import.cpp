@@ -12,6 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 */
 
+#include <gflags/gflags_declare.h>
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 #include "lgraph/lgraph_rpc_client.h"
@@ -22,9 +23,14 @@
 #include "./graph_factory.h"
 #include "tiny-process-library/process.hpp"
 
+namespace braft {
+DECLARE_int32(raft_apply_batch);
+}
+
 class TestHAFullImport : public TuGraphTest {
  protected:
     void SetUp() override {
+        braft::FLAGS_raft_apply_batch = 1;
         FILE *fp;
         char buf[100] = {0};
         fp = popen("hostname -I", "r");
@@ -120,6 +126,7 @@ TEST_F(TestHAFullImport, FullImport) {
     bool succeed = rpc_client->CallCypher(res, FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}"))",
                                                        "ha", data_file_path));
     UT_EXPECT_TRUE(succeed);
+    fma_common::SleepS(20);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
     UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
@@ -146,6 +153,7 @@ TEST_F(TestHAFullImport, FullImport) {
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
     UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
+    fma_common::SleepS(20);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
     UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
@@ -185,7 +193,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     bool succeed = rpc_client->CallCypher(res, FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",true))",
                                                        "ha", "http://localhost:28082/data.mdb"));
     UT_EXPECT_TRUE(succeed);
-    // fma_common::SleepS(20);
+    fma_common::SleepS(20);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
     UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
@@ -212,7 +220,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
     UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
-    // fma_common::SleepS(20);
+    fma_common::SleepS(20);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
     UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
