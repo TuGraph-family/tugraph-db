@@ -374,7 +374,8 @@ void lgraph::HaStateMachine::on_apply(braft::Iterator& iter) {
         if (need_delete_req_resp) {
             delete req;
             delete resp;
-        } /* else {
+        }
+        /* else {
             std::unique_lock<std::mutex> lock(apply_mutex_);
             apply_cond_.notify_all();
         }*/

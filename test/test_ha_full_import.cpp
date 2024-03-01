@@ -23,9 +23,9 @@
 #include "./graph_factory.h"
 #include "tiny-process-library/process.hpp"
 
-//namespace braft {
-//DECLARE_int32(raft_apply_batch);
-//}
+// namespace braft {
+// DECLARE_int32(raft_apply_batch);
+// }
 
 class TestHAFullImport : public TuGraphTest {
  protected:
