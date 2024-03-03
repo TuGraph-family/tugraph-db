@@ -12,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <memory>
 #include <random>
 
 #include "fma-common/binary_buffer.h"
@@ -133,6 +134,8 @@ bool lgraph::GraphManager::CreateGraphWithData(KvTransaction& txn, const std::st
         real_config.dir = GetGraphActualDir(parent_dir_, real_config.dir);
 
         std::unique_ptr<LightningGraph> graph(new LightningGraph(real_config));
+        graph->Close();
+        graph.reset();
         std::string new_file_path = GetGraphActualDir(real_config.dir, "data.mdb");
         std::filesystem::copy_file(data_file_path, new_file_path,
                                    std::filesystem::copy_options::overwrite_existing);
@@ -144,6 +147,7 @@ bool lgraph::GraphManager::CreateGraphWithData(KvTransaction& txn, const std::st
         real_config.dir = GetGraphActualDir(parent_dir_, origin_graph->GetSecret());
         std::string new_file_path = GetGraphActualDir(GetGraphActualDir(
                                     parent_dir_, origin_graph->GetSecret()), "data.mdb");
+        origin_graph->Close();
         std::filesystem::copy_file(data_file_path, new_file_path,
                                    std::filesystem::copy_options::overwrite_existing);
         std::unique_ptr<LightningGraph> new_graph(new LightningGraph(real_config));
