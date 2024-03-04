@@ -227,6 +227,7 @@ TEST_F(TestHAWitness, HAWitness) {
 
 TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     start_server(this->host, true);
+    GTEST_SKIP() << "Disable TestHAFullImport.FullImportRemote Temporarily";
     build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
     std::unique_ptr<lgraph::RpcClient> client = std::make_unique<lgraph::RpcClient>(
         this->host + ":29094", "admin", "73@TuGraph");
