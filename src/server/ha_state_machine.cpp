@@ -353,7 +353,7 @@ void lgraph::HaStateMachine::on_apply(braft::Iterator& iter) {
         _HoldReadLock(galaxy_->GetReloadLock());
         int64_t committed_index = galaxy_->GetRaftLogIndex();
         LOG_DEBUG() << "Trying to apply log " << iter.index() << ", term "
-                                << iter.term() << ", current_idx=" << committed_index;
+                    << iter.term() << ", current_idx=" << committed_index;
         if (iter.index() % 1000 == 0) {
             LOG_WARN() << "Trying to apply log " << iter.index() << ", term "
                                     << iter.term() << ", current_idx=" << committed_index;

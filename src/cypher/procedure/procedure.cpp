@@ -2006,7 +2006,7 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
     dbConfig.dir = ctx->galaxy_->GetConfig().dir;
     dbConfig.name = graph_name;
     dbConfig.create_if_not_exist = true;
-    ctx->galaxy_->CreateGraph(ctx->user_,
+    bool success = ctx->galaxy_->CreateGraph(ctx->user_,
                               graph_name, dbConfig,
                               path);
     if (remote) {
@@ -2014,6 +2014,8 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
             ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
         fs_download.Remove(ctx->galaxy_->GetConfig().dir + "/.import.file.data.mdb");
     }
+    if (!success)
+        throw lgraph::GraphCreateException(args[0].String());
 }
 
 void BuiltinProcedure::DbImportorSchemaImportor(RTContext *ctx, const Record *record,
