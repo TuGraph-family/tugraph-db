@@ -206,8 +206,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
         "-r http://{} -u {} -p {} -g test --path {} --remote true",
         master_rest, lgraph::_detail::DEFAULT_ADMIN_NAME,
         lgraph::_detail::DEFAULT_ADMIN_PASS,
-        "https://tugraph-web.oss-cn-beijing.aliyuncs.com/"
-        "tugraph/deps/ha_full_import.mdb");
+        "http://localhost:28082/data.mdb");
     UT_LOG() << import_cmd;
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
