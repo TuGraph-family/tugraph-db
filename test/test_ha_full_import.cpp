@@ -125,6 +125,32 @@ TEST_F(TestHAFullImport, FullImport) {
     UT_EXPECT_TRUE(succeed);
     web::json::value v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
+    bool ret = rpc_client->CallCypher(res, "CALL dbms.ha.clusterInfo()");
+    UT_EXPECT_TRUE(ret);
+    std::string master_rest;
+    nlohmann::json cluster_info = nlohmann::json::parse(res.c_str());
+    for (auto &node : cluster_info[0]["cluster_info"]) {
+        if (node["state"] == "MASTER") {
+            master_rest = to_string(node["rest_address"]);
+            std::vector<std::string> output;
+            boost::split(output, master_rest, boost::is_any_of("\\\""));
+            master_rest = output[1];
+        }
+    }
+    std::string import_cmd = FMA_FMT("./lgraph_import --online true --online_type 2 "
+        "-r http://{} -u {} -p {} -g test --path {}",
+        master_rest, lgraph::_detail::DEFAULT_ADMIN_NAME,
+        lgraph::_detail::DEFAULT_ADMIN_PASS,
+        data_file_path);
+    UT_LOG() << import_cmd;
+    lgraph::SubProcess online_import_client(import_cmd);
+    online_import_client.Wait();
+    UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
+    fma_common::SleepS(20);
+    succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
+    UT_EXPECT_TRUE(succeed);
+    v = web::json::value::parse(res);
+    UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     rpc_client->Logout();
 }
 
@@ -163,6 +189,33 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
     web::json::value v = web::json::value::parse(res);
+    UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
+    bool ret = rpc_client->CallCypher(res, "CALL dbms.ha.clusterInfo()");
+    UT_EXPECT_TRUE(ret);
+    std::string master_rest;
+    nlohmann::json cluster_info = nlohmann::json::parse(res.c_str());
+    for (auto &node : cluster_info[0]["cluster_info"]) {
+        if (node["state"] == "MASTER") {
+            master_rest = to_string(node["rest_address"]);
+            std::vector<std::string> output;
+            boost::split(output, master_rest, boost::is_any_of("\\\""));
+            master_rest = output[1];
+        }
+    }
+    std::string import_cmd = FMA_FMT("./lgraph_import --online true --online_type 2 "
+        "-r http://{} -u {} -p {} -g test --path {} --remote true",
+        master_rest, lgraph::_detail::DEFAULT_ADMIN_NAME,
+        lgraph::_detail::DEFAULT_ADMIN_PASS,
+        "https://tugraph-web.oss-cn-beijing.aliyuncs.com/"
+        "tugraph/deps/ha_full_import.mdb");
+    UT_LOG() << import_cmd;
+    lgraph::SubProcess online_import_client(import_cmd);
+    online_import_client.Wait();
+    UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
+    fma_common::SleepS(20);
+    succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
+    UT_EXPECT_TRUE(succeed);
+    v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     rpc_client->Logout();
     server_for_mdb.Kill();
