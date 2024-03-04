@@ -75,9 +75,6 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
 
     std::thread heartbeat_thread_;
 
-    mutable std::mutex apply_mutex_;
-    std::condition_variable apply_cond_;
-
  public:
     HaStateMachine(const Config& config, const std::shared_ptr<GlobalConfig>& global_config)
         : ::lgraph::StateMachine(config, global_config),

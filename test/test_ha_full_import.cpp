@@ -12,7 +12,6 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include <gflags/gflags_declare.h>
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
 #include "lgraph/lgraph_rpc_client.h"
@@ -23,14 +22,9 @@
 #include "./graph_factory.h"
 #include "tiny-process-library/process.hpp"
 
-// namespace braft {
-// DECLARE_int32(raft_apply_batch);
-// }
-
 class TestHAFullImport : public TuGraphTest {
  protected:
     void SetUp() override {
-        // braft::FLAGS_raft_apply_batch = 1;
         FILE *fp;
         char buf[100] = {0};
         fp = popen("hostname -I", "r");

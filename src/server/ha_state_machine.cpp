@@ -234,10 +234,7 @@ bool lgraph::HaStateMachine::ReplicateAndApplyRequest(const LGraphRequest* req,
     task.expected_term = leader_term_.load(std::memory_order_acquire);
     task.done = new ReqRespClosure(this, req, resp, done_guard.release());
     // Now the task is applied to the group, waiting for the result.
-    // int64_t log_idx = galaxy_->GetRaftLogIndex();
     node_->apply(task);
-    // std::unique_lock<std::mutex> lock(apply_mutex_);
-    // apply_cond_.wait(lock, [this, log_idx] {return galaxy_->GetRaftLogIndex() > log_idx;});
     return true;
 }
 
@@ -375,10 +372,6 @@ void lgraph::HaStateMachine::on_apply(braft::Iterator& iter) {
             delete req;
             delete resp;
         }
-        /* else {
-            std::unique_lock<std::mutex> lock(apply_mutex_);
-            apply_cond_.notify_all();
-        }*/
     }
 }
 
