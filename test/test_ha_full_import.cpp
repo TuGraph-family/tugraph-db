@@ -121,6 +121,7 @@ TEST_F(TestHAFullImport, FullImport) {
                                                        "ha", data_file_path));
     UT_EXPECT_TRUE(succeed);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
+    UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
     web::json::value v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
@@ -156,14 +157,36 @@ TEST_F(TestHAFullImport, FullImport) {
 TEST_F(TestHAFullImport, FullImportRemote) {
     // GTEST_SKIP() << "Disable TestHAFullImport.FullImportRemote Temporarily";
     // ok, now check imported data
+    GraphFactory::WriteYagoFiles();
+    lgraph::SubProcess import_client(
+        FMA_FMT("./lgraph_import -c yago.conf -d ./test_ha_import_db --overwrite 1"));
+    import_client.Wait();
+    UT_EXPECT_EQ(import_client.GetExitCode(), 0);
+    fma_common::SleepS(5);
+
+    // get lmdb data file
+    std::string data_file_dir;
+    for (const auto& entry : std::filesystem::directory_iterator("./test_ha_import_db")) {
+        if (entry.is_directory() && entry.path().filename().string() != ".meta" &&
+            std::filesystem::exists(entry.path().string() + "/data.mdb")) {
+            data_file_dir = entry.path().string();
+            break;
+        }
+    }
+    data_file_dir = std::filesystem::absolute(data_file_dir).string();
+    lgraph::SubProcess server_for_mdb(
+        FMA_FMT("cd {} && python3 -m http.server 28082", data_file_dir));
+    UT_LOG() << FMA_FMT("cd {} && python3 -m http.server 28082", data_file_dir);
+    fma_common::SleepS(10);
+
     std::unique_ptr<lgraph::RpcClient> rpc_client = std::make_unique<lgraph::RpcClient>(
         this->host + ":29092", "admin", "73@TuGraph");
     std::string res;
     bool succeed = rpc_client->CallCypher(res, FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",true))",
-                               "ha", "https://tugraph-web.oss-cn-beijing.aliyuncs.com/"
-                               "tugraph/deps/ha_full_import.mdb"));
+                                                       "ha", "http://localhost:28082/data.mdb"));
     UT_EXPECT_TRUE(succeed);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "ha");
+    UT_LOG() << res;
     UT_EXPECT_TRUE(succeed);
     web::json::value v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
@@ -183,8 +206,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
         "-r http://{} -u {} -p {} -g test --path {} --remote true",
         master_rest, lgraph::_detail::DEFAULT_ADMIN_NAME,
         lgraph::_detail::DEFAULT_ADMIN_PASS,
-        "https://tugraph-web.oss-cn-beijing.aliyuncs.com/"
-        "tugraph/deps/ha_full_import.mdb");
+        "http://localhost:28082/data.mdb");
     UT_LOG() << import_cmd;
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
@@ -195,4 +217,5 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     v = web::json::value::parse(res);
     UT_EXPECT_EQ(v[0]["count(n)"].as_integer(), 21);
     rpc_client->Logout();
+    server_for_mdb.Kill();
 }
