@@ -14,7 +14,7 @@
 [![License](https://shields.io/github/license/tugraph-family/tugraph-db?logo=apache&label=License&color=blue)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 [![EN](https://shields.io/badge/Docs-English-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
-[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
+[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/zh-cn/latest)
 
 [[中文版]](README_CN.md)
 
