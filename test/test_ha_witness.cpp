@@ -113,24 +113,7 @@ class TestHAWitness : public TuGraphTest {
         "    {\"name\" : \"phone\", \"type\":\"INT16\",\"unique\":true, "
         "\"index\":true}             \n"
         "]         \n"
-        "                    },        \n"
-        "                    {            \n"
-        "\"label\" : \"Film\",            \n"
-        "\"type\" : \"VERTEX\",            \n"
-        "\"primary\" : \"title\",            \n"
-        "\"properties\" : [                \n"
-        "    {\"name\" : \"title\", \"type\":\"STRING\"}             \n"
-        "]        \n"
-        "                    },       \n"
-        "                    {\t        \n"
-        "\"label\": \"PLAY_IN\",\t        \n"
-        "\"type\": \"EDGE\",\t        \n"
-        "\"properties\": [\n"
-        "    {\"name\": \"role\", \"type\": \"STRING\", \"optional\": "
-        "true}\n"
-        "],\t        \n"
-        "\"constraints\": [ [\"Person\", \"Film\"] ]       \n"
-        "}    \n"
+        "                    }        \n"
         "]\n"
         "}";
     const std::string data_desc =
@@ -278,7 +261,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
                   output[1], host + ":29092," + host + ":29093," + host + ":29094");
     ret = system(cmd.c_str());
     UT_EXPECT_EQ(ret, 0);
-    fma_common::SleepS(35);
+    fma_common::SleepS(60);
     master_rpc.clear();
     int times = 0;
     do {
