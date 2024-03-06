@@ -11,30 +11,26 @@ const char ha_mkdir[] = "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
 #ifndef __SANITIZE_ADDRESS__
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 1000 "
-    "--ha_node_remove_ms 2000 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --ha_snapshot_interval_s -1 --ha_node_join_group_s 60 "
     "--rpc_port {} --directory ./db --log_dir "
     "./log --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 1000 "
-    "--ha_node_remove_ms 2000 --ha_is_witness 1 "
-    "--ha_snapshot_interval_s -1 "
+    "true --enable_ha true --ha_is_witness 1 "
+    "--ha_snapshot_interval_s -1 --ha_node_join_group_s 60 "
     "--rpc_port {} --directory ./db --log_dir "
     "./log --ha_conf {} --verbose 1 "
     "-c lgraph_ha.json --ha_enable_witness_to_leader {} -d start";
 #else
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 1000 "
-    "--ha_node_remove_ms 2000 --ha_snapshot_interval_s -1 "
-    "--rpc_port {} --directory ./db --log_dir "
+    "true --enable_ha true --ha_snapshot_interval_s -1 "
+    "--ha_node_join_group_s 60 --rpc_port {} --directory ./db --log_dir "
     "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_node_offline_ms 1000 --ha_is_witness 1 "
-    "--ha_node_remove_ms 2000 --ha_snapshot_interval_s -1 "
-    "--rpc_port {} --directory ./db --log_dir "
+    "true --enable_ha true --ha_is_witness 1 --ha_snapshot_interval_s -1 "
+    "--ha_node_join_group_s 60 --rpc_port {} --directory ./db --log_dir "
     "./log --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json "
     "--ha_enable_witness_to_leader {} -d start";
 #endif
@@ -117,24 +113,7 @@ class TestHAWitness : public TuGraphTest {
         "    {\"name\" : \"phone\", \"type\":\"INT16\",\"unique\":true, "
         "\"index\":true}             \n"
         "]         \n"
-        "                    },        \n"
-        "                    {            \n"
-        "\"label\" : \"Film\",            \n"
-        "\"type\" : \"VERTEX\",            \n"
-        "\"primary\" : \"title\",            \n"
-        "\"properties\" : [                \n"
-        "    {\"name\" : \"title\", \"type\":\"STRING\"}             \n"
-        "]        \n"
-        "                    },       \n"
-        "                    {\t        \n"
-        "\"label\": \"PLAY_IN\",\t        \n"
-        "\"type\": \"EDGE\",\t        \n"
-        "\"properties\": [\n"
-        "    {\"name\": \"role\", \"type\": \"STRING\", \"optional\": "
-        "true}\n"
-        "],\t        \n"
-        "\"constraints\": [ [\"Person\", \"Film\"] ]       \n"
-        "}    \n"
+        "                    }        \n"
         "]\n"
         "}";
     const std::string data_desc =
@@ -227,7 +206,6 @@ TEST_F(TestHAWitness, HAWitness) {
 
 TEST_F(TestHAWitness, HAWitnessDisableLeader) {
     start_server(this->host, true);
-    GTEST_SKIP() << "Disable TestHAWitness.HAWitnessDisableLeader Temporarily";
     build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
     std::unique_ptr<lgraph::RpcClient> client = std::make_unique<lgraph::RpcClient>(
         this->host + ":29094", "admin", "73@TuGraph");
@@ -282,7 +260,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
                   output[1], host + ":29092," + host + ":29093," + host + ":29094");
     ret = system(cmd.c_str());
     UT_EXPECT_EQ(ret, 0);
-    fma_common::SleepS(20);
+    fma_common::SleepS(60);
     master_rpc.clear();
     int times = 0;
     do {

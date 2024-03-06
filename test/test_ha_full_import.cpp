@@ -155,7 +155,6 @@ TEST_F(TestHAFullImport, FullImport) {
 }
 
 TEST_F(TestHAFullImport, FullImportRemote) {
-    // GTEST_SKIP() << "Disable TestHAFullImport.FullImportRemote Temporarily";
     // ok, now check imported data
     GraphFactory::WriteYagoFiles();
     lgraph::SubProcess import_client(
