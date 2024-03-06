@@ -12,7 +12,7 @@ bash ./cpplint/check_all.sh
 
 # build deps
 cd deps
-SKIP_WEB=1 bash ./build_deps.sh -j2
+bash ./build_deps.sh -j2
 
 # build tugraph
 cd $WORKSPACE
