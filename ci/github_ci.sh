@@ -4,10 +4,6 @@ set -e
 ASAN=$1
 TEST=$2
 WITH_PROCEDURE=${3:-"OFF"}
-if [[ "$TEST" == "it" ]]; then
-  WITH_PROCEDURE="ON"
-  echo "WITH_PROCEDURE: $WITH_PROCEDURE"
-fi
 
 cd $WORKSPACE
 
@@ -82,7 +78,6 @@ else
   if [[ "$WITH_PROCEDURE" == "OFF" ]]; then
       rm -rf test_algo.py test_sampling.py test_train.py test_algo_v2.py
   fi
-  rm -rf test_sampling.py test_train.py
   pytest ./
   # codecov
   cd $WORKSPACE
