@@ -96,7 +96,7 @@ bool Transaction::IsIndexed(const std::string& label, const std::string& field) 
 
 void Transaction::EnterTxn() {
     if (LightningGraph::InTransaction()) {
-        throw InternalError(
+        THROW_CODE(InternalError,
             "Nested transaction is forbidden. "
             "Note that db.AddLabel/AddVertexIndex should NOT be used inside a "
             "transaction.");
@@ -260,7 +260,7 @@ std::vector<std::pair<std::string, FieldData>> Transaction::GetVertexFields(
 size_t Transaction::GetFieldId(bool is_vertex, const std::string& label, const std::string& field) {
     SchemaManager& sm = is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
     const Schema* schema = sm.GetSchema(label);
-    if (!schema) throw InputError(FMA_FMT("Label with id={} does not exist.", label));
+    if (!schema) THROW_CODE(InputError, "Label with id={} does not exist.", label);
     return schema->GetFieldId(field);
 }
 
@@ -269,7 +269,7 @@ std::vector<size_t> Transaction::GetFieldIds(bool is_vertex, size_t label_id,
     std::vector<size_t> fids(field_names.size());
     SchemaManager& sm = is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
     const Schema* schema = sm.GetSchema(label_id);
-    if (!schema) throw InputError(FMA_FMT("Label with id={} does not exist.", label_id));
+    if (!schema) THROW_CODE(InputError, "Label with id={} does not exist.", label_id);
     for (size_t i = 0; i < field_names.size(); i++) {
         fids[i] = schema->GetFieldId(field_names[i]);
     }
@@ -279,7 +279,7 @@ std::vector<size_t> Transaction::GetFieldIds(bool is_vertex, size_t label_id,
 size_t Transaction::GetFieldId(bool is_vertex, size_t label_id, const std::string& field_name) {
     SchemaManager& sm = is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
     const Schema* schema = sm.GetSchema(label_id);
-    if (!schema) throw InputError(FMA_FMT("Label with id={} does not exist.", label_id));
+    if (!schema) THROW_CODE(InputError, "Label with id={} does not exist.", label_id);
     return schema->GetFieldId(field_name);
 }
 
@@ -528,28 +528,28 @@ void Transaction::GetStartAndEndVid(VertexId& start, VertexId& end) {
 
 VertexIndex* Transaction::GetVertexIndex(const std::string& label, const std::string& field) {
     const Schema* s = curr_schema_->v_schema_manager.GetSchema(label);
-    if (!s) throw InputError(FMA_FMT("Label \"{}\" does not exist.", label));
+    if (!s) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
     auto fe = s->GetFieldExtractor(field);
     return fe->GetVertexIndex();
 }
 
 VertexIndex* Transaction::GetVertexIndex(size_t label, size_t field) {
     const Schema* s = curr_schema_->v_schema_manager.GetSchema(label);
-    if (!s) throw InputError(FMA_FMT("Label \"{}\" does not exist.", label));
+    if (!s) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
     auto fe = s->GetFieldExtractor(field);
     return fe->GetVertexIndex();
 }
 
 EdgeIndex* Transaction::GetEdgeIndex(const std::string& label, const std::string& field) {
     const Schema* s = curr_schema_->e_schema_manager.GetSchema(label);
-    if (!s) throw InputError(FMA_FMT("Label \"{}\" does not exist.", label));
+    if (!s) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
     auto fe = s->GetFieldExtractor(field);
     return fe->GetEdgeIndex();
 }
 
 EdgeIndex* Transaction::GetEdgeIndex(size_t label, size_t field) {
     const Schema* s = curr_schema_->e_schema_manager.GetSchema(label);
-    if (!s) throw InputError(FMA_FMT("Label \"{}\" does not exist.", label));
+    if (!s) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
     auto fe = s->GetFieldExtractor(field);
     return fe->GetEdgeIndex();
 }
@@ -560,7 +560,7 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                                         const FieldData& key_end) {
     VertexIndex* index = GetVertexIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError(FMA_FMT("VertexIndex is not created for {}:{}", label, field));
+        THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label, field);
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -577,7 +577,7 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(size_t label_id, size_t 
                                                         const FieldData& key_end) {
     VertexIndex* index = GetVertexIndex(label_id, field_id);
     if (!index || !index->IsReady()) {
-        throw InputError("VertexIndex is not created for this field");
+        THROW_CODE(InputError, "VertexIndex is not created for this field");
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -595,7 +595,7 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                                         const std::string& key_end = "") {
     VertexIndex* index = GetVertexIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError(FMA_FMT("VertexIndex is not created for {}:{}", label, field));
+        THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label, field);
     }
     Value ks, ke;
     if (!key_start.empty()) {
@@ -613,7 +613,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const FieldData& key_end) {
     EdgeIndex* index = GetEdgeIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError(FMA_FMT("EdgeIndex is not created for {}:{}", label, field));
+        THROW_CODE(InputError, "EdgeIndex is not created for {}:{}", label, field);
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -630,7 +630,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t fiel
                                                     const FieldData& key_end) {
     EdgeIndex* index = GetEdgeIndex(label_id, field_id);
     if (!index || !index->IsReady()) {
-        throw InputError("EdgeIndex is not created for this field");
+        THROW_CODE(InputError, "EdgeIndex is not created for this field");
     }
     Value ks, ke;
     if (!key_start.IsNull()) {
@@ -648,7 +648,7 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const std::string& key_end = "") {
     EdgeIndex* index = GetEdgeIndex(label, field);
     if (!index || !index->IsReady()) {
-        throw InputError(FMA_FMT("EdgeIndex is not created for {}:{}", label, field));
+        THROW_CODE(InputError, "EdgeIndex is not created for {}:{}", label, field);
     }
     Value ks, ke;
     if (!key_start.empty()) {
@@ -720,7 +720,7 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             std::string msg =
                 FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
             if (!continue_on_error) {
-                throw ::lgraph::InputError(msg);
+                THROW_CODE(InputError, msg);
             }
             error.append(msg);
             continue;
@@ -747,7 +747,7 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
             std::string msg =
                 FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
             if (!continue_on_error) {
-                throw ::lgraph::InputError(msg);
+                THROW_CODE(InputError, msg);
             }
             error.append(msg);
             continue;
@@ -788,7 +788,7 @@ std::string Transaction::_OnlineImportBatchAddEdges(
                 FMA_FMT("When importing edge label {}:\n{}\n",
                         schema->GetLabel(), PrintNestedException(e, 1));
             if (!continue_on_error) {
-                throw ::lgraph::InputError(msg);
+                THROW_CODE(InputError, msg);
             }
             error.append(msg);
             return;
@@ -861,16 +861,16 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                     bool r = index->Update(*txn_, fe->GetConstRef(old_prop),
                                            fe->GetConstRef(new_prop), vid);
                     if (!r)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "failed to update vertex index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop)));
+                                                 fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), vid);
                     if (!r)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "failed to add vertex index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop)));
+                                                 fe->FieldToString(new_prop));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
                     bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), vid);
@@ -1039,16 +1039,16 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                     bool r = index->Update(*txn_, fe->GetConstRef(old_prop),
                                            fe->GetConstRef(new_prop), euid);
                     if (!r)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "failed to update edge index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop)));
+                                                 fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), euid);
                     if (!r)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "failed to add edge index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop)));
+                                                 fe->FieldToString(new_prop));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
                     bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), euid);
@@ -1089,7 +1089,7 @@ typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type Transaction::Get
     VertexId vid, const FieldT& fd) {
     _detail::CheckVid(vid);
     auto vit = graph_->GetUnmanagedVertexIterator(txn_.get(), vid);
-    if (!vit.IsValid()) throw InputError(FMA_FMT("Vertex {} does not exist.", vid));
+    if (!vit.IsValid()) THROW_CODE(InputError, "Vertex {} does not exist.", vid);
     Value prop = vit.GetProperty();
     FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
@@ -1115,7 +1115,7 @@ Transaction::GetVertexFields(VertexId vid, const std::vector<FieldT>& fds) {
     _detail::CheckVid(vid);
     std::vector<FieldData> fields(fds.size());
     auto vit = graph_->GetUnmanagedVertexIterator(txn_.get(), vid);
-    if (!vit.IsValid()) throw InputError(FMA_FMT("Vertex {} does not exist.", vid));
+    if (!vit.IsValid()) THROW_CODE(InputError,"Vertex {} does not exist.", vid);
     Value prop = vit.GetProperty();
     FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);
@@ -1145,7 +1145,7 @@ typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type Transaction::Get
     const EdgeUid& uid, const FieldT& fd) {
     _detail::CheckEdgeUid(uid);
     auto eit = graph_->GetUnmanagedOutEdgeIterator(txn_.get(), uid, false);
-    if (!eit.IsValid()) throw InputError("Edge does not exist");
+    if (!eit.IsValid()) THROW_CODE(InputError, "Edge does not exist");
     auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
     FMA_DBG_ASSERT(schema);
     Value prop = eit.GetProperty();
@@ -1161,7 +1161,7 @@ typename std::enable_if<IS_FIELD_TYPE(FieldT), void>::type Transaction::GetEdgeF
     const EdgeUid& uid, const size_t n_fields, const FieldT* fds, FieldData* fields) {
     _detail::CheckEdgeUid(uid);
     auto eit = graph_->GetUnmanagedOutEdgeIterator(txn_.get(), uid, false);
-    if (!eit.IsValid()) throw InputError("Edge does not exist");
+    if (!eit.IsValid()) THROW_CODE(InputError, "Edge does not exist");
     auto schema = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
     FMA_DBG_ASSERT(schema);
     Value prop = eit.GetProperty();
@@ -1181,7 +1181,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
                        const DataT* values) {
     ThrowIfReadOnlyTxn();
     Schema* schema = curr_schema_->v_schema_manager.GetSchema(label);
-    if (!schema) throw InputError(FMA_FMT("Vertex label {} does not exist.", label));
+    if (!schema) THROW_CODE(InputError, "Vertex label {} does not exist.", label);
     Value prop = schema->HasBlob()
                      ? schema->CreateRecordWithBlobs(
                            n_fields, fields, values,
@@ -1215,7 +1215,7 @@ TemporalId Transaction::ParseTemporalId(const std::string& str,
                                         const TemporalFieldOrder& temporal_order) {
     TemporalId tid = 0;
     if (fma_common::TextParserUtils::ParseT(str, tid) != str.size())
-        throw InputError(FMA_FMT("Incorrect tid format: {}", str));
+        THROW_CODE(InputError, "Incorrect tid format: {}", str);
     if (temporal_order == TemporalFieldOrder::ASC) {
         return tid;
     } else {
@@ -1247,7 +1247,7 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     _detail::CheckVid(dst);
     ThrowIfReadOnlyTxn();
     auto schema = curr_schema_->e_schema_manager.GetSchema(label);
-    if (!schema) throw InputError(FMA_FMT("Edge label {} does not exist", label));
+    if (!schema) THROW_CODE(InputError, "Edge label {} does not exist", label);
     Value prop = schema->HasBlob()
                      ? schema->CreateRecordWithBlobs(
                            n_fields, fields, values,
@@ -1287,7 +1287,7 @@ Transaction::UpsertEdge(VertexId src, VertexId dst, const LabelT& label, size_t 
     auto lid = GetLabelId(false, label);
     TemporalId tid = 0;
     auto schema = curr_schema_->e_schema_manager.GetSchema(label);
-    if (!schema) throw InputError(FMA_FMT("Edge label {} does not exist", label));
+    if (!schema) THROW_CODE(InputError, "Edge label {} does not exist", label);
     if (schema->HasTemporalField()) {
         // NOTE: if one edge has primary id, different primary id will be insert rather than update.
         int pos = schema->GetTemporalPos(n_fields, fields);

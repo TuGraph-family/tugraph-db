@@ -167,7 +167,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                             "{\"scan_edges\":true}", 2, true, output));
     // bad argument causes Process to return false and output is used to return error
     // message
-    UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
+    UT_EXPECT_THROW_CODE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
         "{\"scan_edges\":true, \"times\":2}", 0, true, output),
                     InputError);
     UT_EXPECT_TRUE(StartsWith(output, "error parsing json: "));
@@ -176,7 +176,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
     UT_EXPECT_TRUE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
                            "{\"label\":\"vertex1\"}", 0, true, output));
     // second insert fails because label already exists and Process returns false
-    UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+    UT_EXPECT_THROW_CODE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
                             "{\"label\":\"vertex1\"}", 0, true, output),
                     InputError);
 
@@ -263,30 +263,30 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_TRUE(pm.procedures_.empty());
 
         // test exception branch
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "#name", "",
+        UT_EXPECT_THROW_CODE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "#name", "",
                                               plugin::CodeType::SO, "desc", true, "v1"),
                         InputError);
 
         UT_LOG() << "Test loading empty plugin code";
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "",
+        UT_EXPECT_THROW_CODE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "",
                                               plugin::CodeType::SO, "desc", true, "v1"),
                         InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: so)";
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "invalid_code",
                                   plugin::CodeType::SO, "desc", true, "v1"),
             InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: zip)";
 
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "invalid_code",
                                   plugin::CodeType::ZIP, "desc", true, "v1"),
             InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: cpp)";
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "invalid_code",
                                   plugin::CodeType::CPP, "desc", true, "v1"),
             InputError);
@@ -372,7 +372,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                 "{\"scan_edges\":true}", 2, true, output));
         // bad argument causes Process to return false and output is used to return error
         // message
-        UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph", "",
+        UT_EXPECT_THROW_CODE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph", "",
                                 0, true, output),
                         InputError);
         UT_EXPECT_TRUE(StartsWith(output, "error parsing json: "));
@@ -381,7 +381,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_TRUE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
                                "{\"label\":\"vertex1\"}", 0, true, output));
         // second insert fails because label already exists and Process returns false
-        UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+        UT_EXPECT_THROW_CODE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
                                 "{\"label\":\"vertex1\"}", 0, true, output),
                         InputError);
 
@@ -402,7 +402,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                                  code_add_label, plugin::CodeType::SO,
                                                  "add label v2", true, "v1"));
             // since add_label is now declared read-only, it should fail with an exception
-            UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
+            UT_EXPECT_THROW_CODE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
                                     "{\"label\":\"vertex1\"}", 0, true, output),
                             InputError);
         }

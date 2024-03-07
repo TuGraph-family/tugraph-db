@@ -135,19 +135,19 @@ class AccessControlledDB {
 
  private:
     inline void CheckReadAccess() const {
-        if (access_level_ < AccessLevel::READ) throw AuthError("No read permission.");
+        if (access_level_ < AccessLevel::READ) THROW_CODE(UnauthorizedError, "No read permission.");
     }
 
     inline void CheckWriteAccess() const {
-        if (access_level_ < AccessLevel::WRITE) throw AuthError("No write permission.");
+        if (access_level_ < AccessLevel::WRITE) THROW_CODE(UnauthorizedError, "No write permission.");
     }
 
     inline void CheckFullAccess() const {
-        if (access_level_ < AccessLevel::FULL) throw AuthError("No full permission.");
+        if (access_level_ < AccessLevel::FULL) THROW_CODE(UnauthorizedError, "No full permission.");
     }
 
     inline void CheckAdmin() const {
-        if (user_ != _detail::DEFAULT_ADMIN_NAME) throw AuthError("Not the admin user.");
+        if (user_ != _detail::DEFAULT_ADMIN_NAME) THROW_CODE(UnauthorizedError, "Not the admin user.");
     }
 };
 }  // namespace lgraph

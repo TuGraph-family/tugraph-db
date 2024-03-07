@@ -80,7 +80,7 @@ bool lgraph::AccessControlledDB::CallPlugin(lgraph_api::Transaction* txn,
     auto pm = graph_->GetPluginManager();
     bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
     if (access_level_ < AccessLevel::WRITE && !is_readonly)
-        throw AuthError("Write permission needed to call this plugin.");
+        THROW_CODE(UnauthorizedError, "Write permission needed to call this plugin.");
     return pm->Call(txn,
                     plugin_type,
                     user,

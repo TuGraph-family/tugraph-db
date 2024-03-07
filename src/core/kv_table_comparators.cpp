@@ -236,14 +236,14 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
             else if (desc.comp_type == ComparatorDesc::BOTH_SIDE_VID)
                 return _detail::LexicalKeyBothVidCompareFunc;
         case FieldType::BLOB:
-            throw KvException("Blob fields cannot act as key.");
+            THROW_CODE(KvException, "Blob fields cannot act as key.");
         default:
-            throw KvException(FMA_FMT("Unknown data type: {}", desc.data_type));
+            THROW_CODE(KvException, "Unknown data type: {}", desc.data_type);
         }
     case ComparatorDesc::GRAPH_KEY:
         return nullptr;
     default:
-        throw KvException(FMA_FMT("Unrecognized comparator type: {}", desc.comp_type));
+        THROW_CODE(KvException, "Unrecognized comparator type: {}", desc.comp_type);
     }
 }
 }  // namespace lgraph

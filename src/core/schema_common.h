@@ -45,210 +45,212 @@ inline std::string LimitLengthString(const std::string& str) {
 }
 }  // namespace _detail
 
-class FieldNotFoundException : public InputError {
+using lgraph_api::LgraphException;
+using lgraph_api::ErrorCode;
+class FieldNotFoundException : public LgraphException {
  public:
     explicit FieldNotFoundException(const std::string& fname)
-        : InputError(FMA_FMT("Field [{}] does not exist.", fname)) {}
+        : LgraphException(ErrorCode::FieldNotFoundException, FMA_FMT("Field [{}] does not exist.", fname)) {}
 
     explicit FieldNotFoundException(size_t fid)
-        : InputError(FMA_FMT("Field [#{}] does not exist.", fid)) {}
+        : LgraphException(ErrorCode::FieldNotFoundException, FMA_FMT("Field [#{}] does not exist.", fid)) {}
 };
 
-class FieldAlreadyExistsException : public InputError {
+class FieldAlreadyExistsException : public LgraphException {
  public:
     explicit FieldAlreadyExistsException(const std::string& fname)
-        : InputError(FMA_FMT("Field [{}] defined more than once.", fname)) {}
+        : LgraphException(ErrorCode::FieldAlreadyExistsException, FMA_FMT("Field [{}] defined more than once.", fname)) {}
 
     explicit FieldAlreadyExistsException(size_t fid)
-        : InputError(FMA_FMT("Field [#{}] defined more than once.", fid)) {}
+        : LgraphException(ErrorCode::FieldAlreadyExistsException, FMA_FMT("Field [#{}] defined more than once.", fid)) {}
 };
 
-class FieldCannotBeNullTypeException : public InputError {
+class FieldCannotBeNullTypeException : public LgraphException {
  public:
     explicit FieldCannotBeNullTypeException(const std::string& fname)
-        : InputError(FMA_FMT("Field [{}] cannot be NUL type.", fname)) {}
+        : LgraphException(ErrorCode::FieldCannotBeNullTypeException, FMA_FMT("Field [{}] cannot be NUL type.", fname)) {}
 
     explicit FieldCannotBeNullTypeException(size_t fid)
-        : InputError(FMA_FMT("Field [#{}] cannot be NUL type.", fid)) {}
+        : LgraphException(ErrorCode::FieldCannotBeNullTypeException, FMA_FMT("Field [#{}] cannot be NUL type.", fid)) {}
 };
 
-class FieldCannotBeDeletedException : public InputError {
+class FieldCannotBeDeletedException : public LgraphException {
  public:
     explicit FieldCannotBeDeletedException(const std::string& fname)
-        : InputError(FMA_FMT("Field [{}] cannot be deleted.", fname)) {}
+        : LgraphException(ErrorCode::FieldCannotBeDeletedException, FMA_FMT("Field [{}] cannot be deleted.", fname)) {}
 
     explicit FieldCannotBeDeletedException(size_t fid)
-        : InputError(FMA_FMT("Field [#{}] cannot be deleted.", fid)) {}
+        : LgraphException(ErrorCode::FieldCannotBeDeletedException, FMA_FMT("Field [#{}] cannot be deleted.", fid)) {}
 };
 
-class FieldCannotBeSetNullException : public InputError {
+class FieldCannotBeSetNullException : public LgraphException {
  public:
     explicit FieldCannotBeSetNullException(const std::string& fname)
-        : InputError(FMA_FMT("Field [{}] is not optional.", fname)) {}
+        : LgraphException(ErrorCode::FieldCannotBeSetNullException, FMA_FMT("Field [{}] is not optional.", fname)) {}
 
     explicit FieldCannotBeSetNullException(size_t fid)
-        : InputError(FMA_FMT("Field [#{}] is not optional.", fid)) {}
+        : LgraphException(ErrorCode::FieldCannotBeSetNullException, FMA_FMT("Field [#{}] is not optional.", fid)) {}
 };
 
-class TooManyFieldsException : public InputError {
+class TooManyFieldsException : public LgraphException {
  public:
     TooManyFieldsException()
-        : InputError(FMA_FMT("Too many fields. Maximum={}", _detail::MAX_NUM_FIELDS)) {}
+        : LgraphException(ErrorCode::TooManyFieldsException, FMA_FMT("Too many fields. Maximum={}", _detail::MAX_NUM_FIELDS)) {}
 };
 
-class ParseStringException : public InputError {
+class ParseStringException : public LgraphException {
  public:
     ParseStringException(const std::string& field, const std::string& str, FieldType dst_type)
-        : InputError(FMA_FMT(
+        : LgraphException(ErrorCode::ParseStringException, FMA_FMT(
               "Failed to set field [{}]: Failed to parse string into type [{}], string is:{}",
               field, field_data_helper::TryGetFieldTypeName(dst_type),
               _detail::LimitLengthString(str))) {}
 };
 
-class ParseIncompatibleTypeException : public InputError {
+class ParseIncompatibleTypeException : public LgraphException {
  public:
     ParseIncompatibleTypeException(const std::string& field, FieldType src, FieldType dst)
-        : InputError(FMA_FMT("Failed to set field [{}]: Cannot convert data of type [{}] into [{}]",
+        : LgraphException(ErrorCode::ParseIncompatibleTypeException, FMA_FMT("Failed to set field [{}]: Cannot convert data of type [{}] into [{}]",
                              field, field_data_helper::TryGetFieldTypeName(src),
                              field_data_helper::TryGetFieldTypeName(dst))) {}
 };
 
-class ParseFieldDataException : public InputError {
+class ParseFieldDataException : public LgraphException {
  public:
     ParseFieldDataException(const std::string& field, const FieldData& in, FieldType dst_type)
-        : InputError(FMA_FMT("Failed to set field [{}]: Cannot convert input [{}] into type [{}]",
+        : LgraphException(ErrorCode::ParseFieldDataException, FMA_FMT("Failed to set field [{}]: Cannot convert input [{}] into type [{}]",
                              field, in, field_data_helper::TryGetFieldTypeName(dst_type))) {}
 };
 
-class DataSizeTooLargeException : public InputError {
+class DataSizeTooLargeException : public LgraphException {
  public:
     DataSizeTooLargeException(const std::string& field, size_t dsize, size_t max_size)
-        : InputError(FMA_FMT("Failed to set field [{}]: Data size too big, max is {}, given {}",
+        : LgraphException(ErrorCode::DataSizeTooLargeException, FMA_FMT("Failed to set field [{}]: Data size too big, max is {}, given {}",
                              field, max_size, dsize)) {}
 };
 
-class RecordSizeLimitExceededException : public InputError {
+class RecordSizeLimitExceededException : public LgraphException {
  public:
     RecordSizeLimitExceededException(const std::string& field, size_t dsize, size_t max_size)
-        : InputError(
+        : LgraphException(ErrorCode::RecordSizeLimitExceededException,
               FMA_FMT("Failed to set field [{}]: Record size limit exceeded, max is {}, given {}",
                       field, max_size, dsize)) {}
 };
 
-class LabelNotExistException : public InputError {
+class LabelNotExistException : public LgraphException {
  public:
     explicit LabelNotExistException(const std::string& lname)
-        : InputError(FMA_FMT("Label [{}] does not exist.", lname)) {}
+        : LgraphException(ErrorCode::LabelNotExistException, FMA_FMT("Label [{}] does not exist.", lname)) {}
 
     explicit LabelNotExistException(size_t lid)
-        : InputError(FMA_FMT("Label [#{}] does not exist.", lid)) {}
+        : LgraphException(ErrorCode::LabelNotExistException, FMA_FMT("Label [#{}] does not exist.", lid)) {}
 };
 
-class LabelExistException : public InputError {
+class LabelExistException : public LgraphException {
  public:
     LabelExistException(const std::string& label, bool is_vertex)
-        : InputError(
+        : LgraphException(ErrorCode::LabelExistException,
               FMA_FMT("{} label [{}] already exists.", is_vertex ? "Vertex" : "Edge", label)) {}
 };
 
-class PrimaryIndexCannotBeDeletedException : public InputError {
+class PrimaryIndexCannotBeDeletedException : public LgraphException {
  public:
     explicit PrimaryIndexCannotBeDeletedException(const std::string& fname)
-        : InputError(FMA_FMT("Primary index [{}] can not be deleted.", fname)) {}
+        : LgraphException(ErrorCode::PrimaryIndexCannotBeDeletedException, FMA_FMT("Primary index [{}] can not be deleted.", fname)) {}
 
     explicit PrimaryIndexCannotBeDeletedException(size_t fid)
-        : InputError(FMA_FMT("Primary index [#{}] can not be deleted.", fid)) {}
+        : LgraphException(ErrorCode::PrimaryIndexCannotBeDeletedException, FMA_FMT("Primary index [#{}] can not be deleted.", fid)) {}
 };
 
-class IndexNotExistException : public InputError {
+class IndexNotExistException : public LgraphException {
  public:
     IndexNotExistException(const std::string& label, const std::string& field)
-        : InputError(FMA_FMT("VertexIndex [{}:{}] does not exist.", label, field)) {}
+        : LgraphException(ErrorCode::IndexNotExistException, FMA_FMT("VertexIndex [{}:{}] does not exist.", label, field)) {}
 };
 
-class IndexExistException : public InputError {
+class IndexExistException : public LgraphException {
  public:
     IndexExistException(const std::string& label, const std::string& field)
-        : InputError(FMA_FMT("VertexIndex [{}:{}] already exist.", label, field)) {}
+        : LgraphException(ErrorCode::IndexExistException, FMA_FMT("VertexIndex [{}:{}] already exist.", label, field)) {}
 };
 
-class FullTextIndexNotExistException : public InputError {
+class FullTextIndexNotExistException : public LgraphException {
  public:
     FullTextIndexNotExistException(const std::string& label, const std::string& field)
-        : InputError(FMA_FMT("FullText Index [{}:{}] does not exist.", label, field)) {}
+        : LgraphException(ErrorCode::FullTextIndexNotExistException, FMA_FMT("FullText Index [{}:{}] does not exist.", label, field)) {}
 };
 
-class FullTextIndexExistException : public InputError {
+class FullTextIndexExistException : public LgraphException {
  public:
     FullTextIndexExistException(const std::string& label, const std::string& field)
-        : InputError(FMA_FMT("FullText Index [{}:{}] already exist.", label, field)) {}
+        : LgraphException(ErrorCode::FullTextIndexExistException, FMA_FMT("FullText Index [{}:{}] already exist.", label, field)) {}
 };
 
-class UserNotExistException : public InputError {
+class UserNotExistException : public LgraphException {
  public:
     explicit UserNotExistException(const std::string& user)
-        : InputError(FMA_FMT("User [{}] does not exist.", user)) {}
+        : LgraphException(ErrorCode::UserNotExistException, FMA_FMT("User [{}] does not exist.", user)) {}
 };
 
-class UserExistException : public InputError {
+class UserExistException : public LgraphException {
  public:
     explicit UserExistException(const std::string& user)
-        : InputError(FMA_FMT("User [{}] already exist.", user)) {}
+        : LgraphException(ErrorCode::UserExistException, FMA_FMT("User [{}] already exist.", user)) {}
 };
 
-class GraphNotExistException : public InputError {
+class GraphNotExistException : public LgraphException {
  public:
     explicit GraphNotExistException(const std::string& graph)
-        : InputError(FMA_FMT("graph [{}] does not exist.", graph)) {}
+        : LgraphException(ErrorCode::GraphNotExistException, FMA_FMT("graph [{}] does not exist.", graph)) {}
 };
 
-class GraphExistException : public InputError {
+class GraphExistException : public LgraphException {
  public:
     explicit GraphExistException(const std::string& graph)
-        : InputError(FMA_FMT("graph [{}] already exist.", graph)) {}
+        : LgraphException(ErrorCode::GraphExistException, FMA_FMT("graph [{}] already exist.", graph)) {}
 };
 
-class GraphCreateException : public InputError {
+class GraphCreateException : public LgraphException {
  public:
     explicit GraphCreateException(const std::string& graph)
-        : InputError(FMA_FMT("Failed to create graph [{}] with lmdb file.", graph)) {}
+        : LgraphException(FMA_FMT("Failed to create graph [{}] with lmdb file.", graph)) {}
 };
 
-class RoleNotExistException : public InputError {
+class RoleNotExistException : public LgraphException {
  public:
     explicit RoleNotExistException(const std::string& role)
-        : InputError(FMA_FMT("role [{}] does not exist.", role)) {}
+        : LgraphException(ErrorCode::RoleNotExistException, FMA_FMT("role [{}] does not exist.", role)) {}
 };
 
-class RoleExistException : public InputError {
+class RoleExistException : public LgraphException {
  public:
     explicit RoleExistException(const std::string& role)
-        : InputError(FMA_FMT("role [{}] already exist.", role)) {}
+        : LgraphException(ErrorCode::RoleExistException, FMA_FMT("role [{}] already exist.", role)) {}
 };
 
-class PluginNotExistException : public InputError {
+class PluginNotExistException : public LgraphException {
  public:
     explicit PluginNotExistException(const std::string& plugin)
-        : InputError(FMA_FMT("plugin [{}] does not exist.", plugin)) {}
+        : LgraphException(ErrorCode::PluginNotExistException, FMA_FMT("plugin [{}] does not exist.", plugin)) {}
 };
 
-class PluginExistException : public InputError {
+class PluginExistException : public LgraphException {
  public:
     explicit PluginExistException(const std::string& plugin)
-        : InputError(FMA_FMT("plugin [{}] already exist.", plugin)) {}
+        : LgraphException(ErrorCode::PluginExistException, FMA_FMT("plugin [{}] already exist.", plugin)) {}
 };
 
-class TaskNotExistException : public InputError {
+class TaskNotExistException : public LgraphException {
  public:
     explicit TaskNotExistException(const std::string& task_id)
-        : InputError(
+        : LgraphException(ErrorCode::TaskNotExistException,
               FMA_FMT("Task [{}] not exist.", task_id)) {}
 };
 
-class TaskKilledFailedException : public InputError {
+class TaskKilledFailedException : public LgraphException {
  public:
     explicit TaskKilledFailedException(const std::string& task_id)
-        : InputError(
+        : LgraphException(ErrorCode::TaskKilledFailedException,
               FMA_FMT("Task [{}]  did not respond to kill signal.", task_id)) {}
 };
 

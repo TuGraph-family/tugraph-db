@@ -126,8 +126,12 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
             try {
                 txn.Commit();
                 n_success++;
-            } catch (lgraph_api::TxnConflictError&) {
-                n_fail++;
+            } catch (lgraph_api::LgraphException& e) {
+                if (e.code() == lgraph_api::ErrorCode::TxnConflictError) {
+                    n_fail++;
+                } else {
+                    throw;
+                }
             }
         });
     }
@@ -794,14 +798,13 @@ TEST_F(TestLGraphApi, LGraphApi) {
         }
         {
             UT_LOG() << "Test Exception";
-            UT_EXPECT_THROW(throw OutOfRangeError("Out of Range"), OutOfRangeError);
-            UT_EXPECT_THROW_MSG(throw InvalidGalaxyError(), "Invalid Galaxy");
-            UT_EXPECT_THROW_MSG(throw InvalidGraphDBError(), "Invalid GraphDB.");
-            UT_EXPECT_THROW_MSG(throw InvalidTxnError(), "Invalid transaction.");
-            UT_EXPECT_THROW_MSG(throw InvalidIteratorError(), "Invalid iterator.");
-            UT_EXPECT_THROW_MSG(throw InvalidForkError(), "Write transactions cannot be forked.");
-            UT_EXPECT_THROW_MSG(throw TaskKilledException(), "Task killed.");
-            UT_EXPECT_THROW_MSG(throw IOError(), "IO Error.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGalaxyError), "Invalid Galaxy");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGraphDBError), "Invalid GraphDB.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidTxnError), "Invalid transaction.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidIteratorError), "Invalid iterator.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidForkError), "Write transactions cannot be forked.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(TaskKilledException), "Task killed.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(IOError), "IO Error.");
         }
         {
             UT_LOG() << "Test Lgraph Types";

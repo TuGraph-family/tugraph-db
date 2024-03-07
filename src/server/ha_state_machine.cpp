@@ -455,14 +455,24 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
             LOG_WARN() << "Unhandled ha request type: " << req->Req_case();
             return RespondException(resp, "Unhandled ha request type.");
         }
-    } catch (TimeoutException& e) {
-        return RespondTimeout(resp, e.what());
-    } catch (InputError& e) {
-        return RespondBadInput(resp, e.what());
-    } catch (AuthError& e) {
-        return RespondDenied(resp, e.what());
-    } catch (TaskKilledException& e) {
-        return RespondException(resp, e.what());
+    } catch (lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::TaskKilledException: {
+                return RespondException(resp, e.what());
+            }
+            case lgraph_api::ErrorCode::UnauthorizedError: {
+                return RespondDenied(resp, e.what());
+            }
+            case lgraph_api::ErrorCode::TimeoutException: {
+                return RespondTimeout(resp, e.what());
+            }
+            case lgraph_api::ErrorCode::InputError: {
+                return RespondBadInput(resp, e.what());
+            }
+            default: {
+                return RespondException(resp, e.what());
+            }
+        }
     } catch (std::exception& e) {
         return RespondException(resp, e.what());
     }

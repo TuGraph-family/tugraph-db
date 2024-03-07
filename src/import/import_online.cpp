@@ -136,7 +136,7 @@ std::string lgraph::import_v2::ImportOnline::ImportVertexes(
             } catch (std::exception& e) {
                 std::string msg = FMA_FMT("When importing vertex label [{}]:\n{}\n", label,
                                           PrintNestedException(e, 1));
-                if (!config.continue_on_error) throw InputError(msg);
+                if (!config.continue_on_error) THROW_CODE(InputError, msg);
                 std::lock_guard<std::mutex> lg(err_mtx);
                 error.append(msg);
             }
@@ -164,7 +164,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     {
         auto schema = txn.GetSchema(label, false);
         if (!schema)
-            throw InputError(FMA_FMT("Edge Label [{}] does not exist.", label));
+            THROW_CODE(InputError, "Edge Label [{}] does not exist.", label);
         const auto& ec = schema->GetEdgeConstraintsLids();
         if (!ec.empty()) {
             graph::EdgeConstraintsChecker ecc(ec);
@@ -200,14 +200,14 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
 
     VertexIndex* src_index = txn.GetVertexIndex(src_label, fd.edge_src.id);
     if (!src_index || !src_index->IsReady()) {
-        throw ::lgraph::InputError(fma_common::StringFormatter::Format(
-            "Src {} field {} has no available index!", src_label, fd.edge_src.id));
+        THROW_CODE(InputError,
+            "Src {} field {} has no available index!", src_label, fd.edge_src.id);
     }
 
     VertexIndex* dst_index = txn.GetVertexIndex(dst_label, fd.edge_dst.id);
     if (!dst_index || !dst_index->IsReady()) {
-        throw ::lgraph::InputError(fma_common::StringFormatter::Format(
-            "Dst {} field {} has no available index!", dst_label, fd.edge_dst.id));
+        THROW_CODE(InputError,
+            "Dst {} field {} has no available index!", dst_label, fd.edge_dst.id);
     }
 
     // lookup index for src vid
@@ -229,7 +229,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
                 src_vid = src_it.GetVid();
             } else {
                 std::string msg = "Missing src uid " + src_id.ToString() + "\n";
-                if (!config.continue_on_error) throw InputError(msg);
+                if (!config.continue_on_error) THROW_CODE(InputError, msg);
                 std::lock_guard<std::mutex> lg(err_mtx);
                 error.append(msg);
                 src_vid = -1;
@@ -255,7 +255,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
                 dst_vid = dst_it.GetVid();
             } else {
                 std::string msg = "Missing dst uid " + dst_id.ToString() + "\n";
-                if (!config.continue_on_error) throw InputError(msg);
+                if (!config.continue_on_error) THROW_CODE(InputError, msg);
                 std::lock_guard<std::mutex> lg(err_mtx);
                 error.append(msg);
                 dst_vid = -1;
@@ -296,7 +296,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
             } catch (std::exception& e) {
                 std::string msg = fma_common::StringFormatter::Format(
                     "When importing edge label [{}]:\n{}\n", label, PrintNestedException(e, 1));
-                if (!config.continue_on_error) throw ::lgraph::InputError(msg);
+                if (!config.continue_on_error) THROW_CODE(InputError, msg);
                 std::lock_guard<std::mutex> l(err_mtx);
                 error.append(msg);
             }
@@ -347,7 +347,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     LOG_INFO() << "desc: " << desc;
     cds = ImportConfParser::ParseFiles(nlohmann::json::parse(desc), false);
     if (cds.size() != 1)
-        std::throw_with_nested(InputError(FMA_FMT("config items number error:  {}", desc)));
+        THROW_CODE(InputError, "config items number error:  {}", desc);
     fd = cds[0];
     if (!fd.is_vertex_file) {
         auto txn = db->CreateReadTxn();
@@ -435,8 +435,8 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
             LOG_INFO() << FMA_FMT("Add {} label:{}, detach:{}", v.is_vertex ? "vertex" : "edge",
                                  v.name, options->detach_property);
         } else {
-            throw InputError(
-                FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
+            THROW_CODE(InputError,
+                "{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name);
         }
 
         // create index
@@ -446,18 +446,18 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                     LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
                                          v.name, spec.name, static_cast<int>(spec.idxType));
                 } else {
-                    throw InputError(
-                        FMA_FMT("Vertex index [label:{}, field:{}] already exists",
-                                v.name, spec.name));
+                    THROW_CODE(InputError,
+                        "Vertex index [label:{}, field:{}] already exists",
+                                v.name, spec.name);
                 }
             } else if (!v.is_vertex && spec.index) {
                 if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                     LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
                                          v.name, spec.name, static_cast<int>(spec.idxType));
                 } else {
-                    throw InputError(
-                        FMA_FMT("Edge index [label:{}, field:{}] already exists",
-                                v.name, spec.name));
+                    THROW_CODE(InputError,
+                        "Edge index [label:{}, field:{}] already exists",
+                                v.name, spec.name);
                 }
             }
             if (spec.fulltext) {
@@ -465,8 +465,8 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                     LOG_INFO() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
                                          v.name, spec.name);
                 } else {
-                    throw InputError(FMA_FMT("Fulltext index [label:{}, field:{}] already exists",
-                                                     v.name, spec.name));
+                    THROW_CODE(InputError,"Fulltext index [label:{}, field:{}] already exists",
+                                                     v.name, spec.name);
                 }
             }
         }

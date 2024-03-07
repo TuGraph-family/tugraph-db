@@ -199,7 +199,7 @@ class InMemoryGraph {
     EdgeUid AddEdge(VertexId src, VertexId dst, const std::string& label, const Properties& props) {
         auto vgit = vgraph_.find(src);
         if (vgit == vgraph_.end() || vgraph_.find(dst) == vgraph_.end())
-            throw lgraph::InputError("no such source");
+            THROW_CODE(InputError, "no such source");
         auto lid = eschema_.GetLabelId(label);
         auto& out_edges = vgit->second.outs;
         EdgeId eid;

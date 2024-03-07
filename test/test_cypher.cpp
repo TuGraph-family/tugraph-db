@@ -141,7 +141,8 @@ void expected_exception_undefined_var(cypher::RTContext *ctx, const std::string 
     try {
         eval_script(ctx, script);
         UT_EXPECT_TRUE(false);
-    } catch (lgraph::InputError &e) {
+    } catch (lgraph_api::LgraphException& e) {
+        UT_EXPECT_EQ(e.code(), lgraph_api::ErrorCode::InputError);
         std::string exception_msg(e.what());
         if (exception_msg.find("Variable") == 0 &&
             exception_msg.find("not defined") != std::string::npos) {

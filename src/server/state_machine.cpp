@@ -65,7 +65,7 @@ bool lgraph::StateMachine::ResetAdminPassword(const std::string& user,
     if (galaxy_->IsAdmin(user)) {
         return galaxy_->ChangeCurrentPassword(user, "", new_password, set_password);
     } else {
-        throw AuthError("Only admin can reset password.");
+        THROW_CODE(UnauthorizedError, "Only admin can reset password.");
     }
 }
 
@@ -81,13 +81,13 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
         // determine if this is a write op
         if (req->Req_case() != LGraphRequest::kGraphQueryRequest &&
             req->Req_case() != LGraphRequest::kPluginRequest) {
-            throw InputError(
+            THROW_CODE(InputError,
                 "is_write_op must be set for non-Cypher/non-Gql and non-plugin request.");
         }
         _HoldReadLock(galaxy_->GetReloadLock());
         if (req->Req_case() == LGraphRequest::kGraphQueryRequest) {
 #ifdef _WIN32
-            throw InternalError("Cypher is not supported on Windows yet.");
+            THROW_CODE(InternalError, "Cypher is not supported on Windows yet.");
 #else
             // determine if this is a write op
             const GraphQueryRequest& cypher_req = req->graph_query_request();
@@ -117,7 +117,7 @@ bool lgraph::StateMachine::IsWriteRequest(const lgraph::LGraphRequest* req) {
             FMA_DBG_CHECK_EQ(req->Req_case(), LGraphRequest::kPluginRequest);
             const PluginRequest& preq = req->plugin_request();
             if (preq.Req_case() != PluginRequest::kCallPluginRequest) {
-                throw InputError("is_write_op must be set for load/unload plugin requests.");
+                THROW_CODE(InputError, "is_write_op must be set for load/unload plugin requests.");
             }
             const std::string& user = GetCurrUser(req);
             AccessControlledDB db = galaxy_->OpenGraph(user, preq.graph());
@@ -164,14 +164,29 @@ void lgraph::StateMachine::HandleRequest(::google::protobuf::RpcController* cont
     }
     // typically only TaskKilledException can occur here
     // other types of exceptions are already handled in ApplyRequestDirectly
-    catch (TimeoutException& e) {
-        RespondTimeout(resp, e.what());
-    } catch (InputError& e) {
-        RespondBadInput(resp, e.what());
-    } catch (AuthError& e) {
-        RespondDenied(resp, e.what());
-    } catch (TaskKilledException& e) {
-        RespondException(resp, e.what());
+    catch (lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::TaskKilledException: {
+                RespondException(resp, e.what());
+                break;
+            }
+            case lgraph_api::ErrorCode::UnauthorizedError: {
+                RespondDenied(resp, e.what());
+                break;
+            }
+            case lgraph_api::ErrorCode::TimeoutException: {
+                RespondTimeout(resp, e.what());
+                break;
+            }
+            case lgraph_api::ErrorCode::InputError: {
+                RespondBadInput(resp, e.what());
+                break;
+            }
+            default: {
+                RespondException(resp, std::string("Unhandled exception: ") + e.what());
+                break;
+            }
+        }
     } catch (std::exception& e) {
         RespondException(resp, std::string("Unhandled exception: ") + e.what());
     }
@@ -185,7 +200,7 @@ std::vector<std::string> lgraph::StateMachine::ListBackupLogFiles() {
 }
 
 std::string lgraph::StateMachine::TakeSnapshot() {
-    if (!global_config_) throw InputError("Snapshot cannot be taken in embedded mode.");
+    if (!global_config_) THROW_CODE(InputError, "Snapshot cannot be taken in embedded mode.");
     // get old snapshot
     std::vector<std::string> old =
         fma_common::file_system::ListSubDirs(global_config_->snapshot_dir, false);
@@ -300,14 +315,6 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
                     break;
                 }
             }
-        } catch (TimeoutException& e) {
-            RespondTimeout(resp, e.what());
-        } catch (InputError& e) {
-            RespondBadInput(resp, e.what());
-        } catch (AuthError& e) {
-            RespondDenied(resp, e.what());
-        } catch (TaskKilledException& e) {
-            RespondException(resp, e.what());
         } catch (LockUpgradeFailedException& e) {
             if (retry_time < max_retries) {
                 std::default_random_engine engine;
@@ -317,6 +324,29 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
                 retry_time += 1;
             } else {
                 RespondException(resp, e.what());
+            }
+        } catch (lgraph_api::LgraphException& e) {
+            switch (e.code()) {
+                case lgraph_api::ErrorCode::TaskKilledException: {
+                    RespondException(resp, e.what());
+                    break;
+                }
+                case lgraph_api::ErrorCode::UnauthorizedError: {
+                    RespondDenied(resp, e.what());
+                    break;
+                }
+                case lgraph_api::ErrorCode::TimeoutException: {
+                    RespondTimeout(resp, e.what());
+                    break;
+                }
+                case lgraph_api::ErrorCode::InputError: {
+                    RespondBadInput(resp, e.what());
+                    break;
+                }
+                default: {
+                    RespondException(resp, e.what());
+                    break;
+                }
             }
         } catch (std::exception& e) {
             RespondException(resp, e.what());

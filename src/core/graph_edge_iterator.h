@@ -75,12 +75,12 @@ inline void ThrowVertexNotExist() {}
 
 template <>
 inline void ThrowVertexNotExist<PackType::IN_EDGE>() {
-    throw InputError("Destination vertex does not exist");
+    THROW_CODE(InputError, "Destination vertex does not exist");
 }
 
 template <>
 inline void ThrowVertexNotExist<PackType::OUT_EDGE>() {
-    throw InputError("Source vertex does not exist");
+    THROW_CODE(InputError, "Source vertex does not exist");
 }
 }  // namespace _detail
 
@@ -95,13 +95,13 @@ struct EdgeConstraintsChecker {
         if (PackType::OUT_EDGE == pt) {
             auto iter = constraints.find(lid);
             if (iter == constraints.end()) {
-                throw InputError("Does not meet the edge constraints");
+                THROW_CODE(InputError, "Does not meet the edge constraints");
             } else {
                 dst_lids = &(iter->second);
             }
         } else if (PackType::IN_EDGE == pt) {
             if (!dst_lids->count(lid)) {
-                throw InputError("Does not meet the edge constraints");
+                THROW_CODE(InputError, "Does not meet the edge constraints");
             }
         }
     }
@@ -109,10 +109,10 @@ struct EdgeConstraintsChecker {
     void Check(LabelId src_lid, LabelId dst_lid) {
         auto iter = constraints.find(src_lid);
         if (iter == constraints.end()) {
-            throw InputError("Does not meet the edge constraints");
+            THROW_CODE(InputError, "Does not meet the edge constraints");
         }
         if (!iter->second.count(dst_lid)) {
-            throw InputError("Does not meet the edge constraints");
+            THROW_CODE(InputError, "Does not meet the edge constraints");
         }
     }
 };
@@ -141,7 +141,7 @@ class EdgeIteratorImpl {
 
     static void CheckPropSize(const Value& prop) {
         if (prop.Size() > ::lgraph::_detail::MAX_PROP_SIZE)
-            throw InputError("Edge property size is too big.");
+            THROW_CODE(InputError, "Edge property size is too big.");
     }
 
     static void UpdatePackedNode(KvIterator* it, EdgeValue& ev) {

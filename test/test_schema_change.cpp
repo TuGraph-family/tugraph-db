@@ -327,11 +327,11 @@ TEST_P(TestSchemaChange, ModData) {
                 std::vector<FieldSpec>({FieldSpec("no_such_field", FieldType::STRING, true)}), true,
                 &n_changed),
             lgraph::FieldNotFoundException);
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
                 "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}), true,
                 &n_changed),
-            lgraph::InputError);  // blob cannot be converted to other types
+            InputError);  // blob cannot be converted to other types
         UT_EXPECT_THROW(
             graph.AlterLabelModFields(
                 "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}), true,
@@ -446,12 +446,12 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
                 "no_such_label",
                 std::vector<FieldSpec>({FieldSpec("img3", FieldType::STRING, true)}),
                 std::vector<FieldData>({FieldData()}), true, &n_changed));
-            UT_EXPECT_THROW(
+            UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person",
                     std::vector<FieldSpec>({FieldSpec("some_field", FieldType::STRING, true)}),
                     std::vector<FieldData>(), true, &n_changed),
-                lgraph::InputError);  // # field and default_values does not match
+                InputError);  // # field and default_values does not match
             UT_EXPECT_THROW(
                 graph.AlterLabelAddFields(
                     "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}),
@@ -575,15 +575,15 @@ TEST_P(TestSchemaChange, DelLabel) {
                                              FieldSpec("blob", FieldType::BLOB, true),
                                              FieldSpec("age", FieldType::FLOAT, false)}),
                      "id", "", {}, {});
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),
-            lgraph::InputError);
-        UT_EXPECT_THROW(
+            InputError);
+        UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SRC_ID", FieldType::STRING, false)})),
-            lgraph::InputError);
-        UT_EXPECT_THROW(
+            InputError);
+        UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("DST_ID", FieldType::STRING, false)})),
-            lgraph::InputError);
+            InputError);
     }
 
     UT_LOG() << "Testing delete field name";

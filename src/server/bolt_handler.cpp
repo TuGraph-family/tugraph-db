@@ -41,8 +41,8 @@ std::unordered_map<std::string, cypher::FieldData> ConvertParameters(
         } else if (pair.second.type() == typeid(void)) {
             ret.emplace("$" + pair.first, lgraph_api::FieldData());
         } else {
-            throw lgraph_api::InputError(FMA_FMT(
-                "Unexpected cypher parameter type, parameter: {}", pair.first));
+            THROW_CODE(InputError,
+                "Unexpected cypher parameter type, parameter: {}", pair.first);
         }
     }
     return ret;
@@ -122,15 +122,15 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
             } else if (type == bolt::BoltMsg::Run) {
                 try {
                     if (fields.size() < 3) {
-                        throw lgraph_api::InputError(FMA_FMT(
-                            "Run msg fields size error, size: {}", fields.size()));
+                        THROW_CODE(InputError,
+                            "Run msg fields size error, size: {}", fields.size());
                     }
                     auto& cypher = std::any_cast<const std::string&>(fields[0]);
                     auto& extra = std::any_cast<
                         const std::unordered_map<std::string, std::any>&>(fields[2]);
                     auto db_iter = extra.find("db");
                     if (db_iter == extra.end()) {
-                        throw lgraph_api::InputError(
+                        THROW_CODE(InputError,
                             "Missing 'db' item in the 'extra' info of 'Run' msg");
                     }
                     auto& graph = std::any_cast<const std::string&>(db_iter->second);
