@@ -1,8 +1,7 @@
 # TuGraph
 
 [![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
-[![Unit Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
-[![Integration Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
+[![UT&&IT](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 [![Commit](https://badgen.net/github/last-commit/tugraph-family/tugraph-db/master?icon=git&label=Commit)](https://github.com/TuGraph-family/tugraph-db/commits/master)
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
