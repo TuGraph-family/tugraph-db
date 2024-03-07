@@ -208,6 +208,12 @@ class GraphExistException : public InputError {
         : InputError(FMA_FMT("graph [{}] already exist.", graph)) {}
 };
 
+class GraphCreateException : public InputError {
+ public:
+    explicit GraphCreateException(const std::string& graph)
+        : InputError(FMA_FMT("Failed to create graph [{}] with lmdb file.", graph)) {}
+};
+
 class RoleNotExistException : public InputError {
  public:
     explicit RoleNotExistException(const std::string& role)
