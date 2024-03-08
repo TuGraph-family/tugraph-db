@@ -1219,7 +1219,12 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
         FMA_DBG_ASSERT(field_extractor);
         EdgeIndex* edge_index = field_extractor->GetEdgeIndex();
         FMA_DBG_ASSERT(edge_index);
-        static const size_t max_block_size = 1 << 28;
+        //
+        // see issue #406 https://github.com/TuGraph-family/tugraph-db/issues/406
+        // Reduce max_block_size from 1<<28 to 1<<24 to fix issues caused by overly large block
+        // sizes.
+        //
+        static const size_t max_block_size = 1 << 24;
         for (VertexId vid = start_vid; vid < end_vid; vid += max_block_size) {
             std::vector<KeyEUid<T>> key_euids;
             VertexId curr_end = std::min<VertexId>(end_vid, vid + max_block_size);
@@ -1393,8 +1398,6 @@ void LightningGraph::RebuildFullTextIndex(const std::set<std::string>& v_labels,
                 boost::algorithm::join(e_labels, ","));
     std::set<LabelId> v_lids, e_lids;
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
-    const auto& all_vertex_labels = curr_schema_info->v_schema_manager.GetAllLabels();
-    const auto& all_edge_labels = curr_schema_info->e_schema_manager.GetAllLabels();
     for (const auto& label : v_labels) {
         auto* schema = curr_schema_info->v_schema_manager.GetSchema(label);
         if (!schema) {
