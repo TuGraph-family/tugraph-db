@@ -1221,7 +1221,8 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
         FMA_DBG_ASSERT(edge_index);
         //
         // see issue #406 https://github.com/TuGraph-family/tugraph-db/issues/406
-        // Reduce max_block_size from 1<<28 to 1<<24 to fix issues caused by overly large block sizes.
+        // Reduce max_block_size from 1<<28 to 1<<24 to fix issues caused by overly large block
+        // sizes.
         //
         static const size_t max_block_size = 1 << 24;
         for (VertexId vid = start_vid; vid < end_vid; vid += max_block_size) {
