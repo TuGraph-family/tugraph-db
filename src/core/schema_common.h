@@ -213,7 +213,7 @@ class GraphExistException : public LgraphException {
 class GraphCreateException : public LgraphException {
  public:
     explicit GraphCreateException(const std::string& graph)
-        : LgraphException(FMA_FMT("Failed to create graph [{}] with lmdb file.", graph)) {}
+        : LgraphException(ErrorCode::GraphCreateException, FMA_FMT("Failed to create graph [{}] with lmdb file.", graph)) {}
 };
 
 class RoleNotExistException : public LgraphException {

@@ -73,8 +73,8 @@ X(LexerException, "LexerException.") \
 X(ParserException, "ParserException.") \
 X(EvaluationException, "EvaluationException.") \
 X(TxnCommitException, "TxnCommitException.") \
-X(ReminderException, "ReminderException.")
-
+X(ReminderException, "ReminderException.") \
+X(GraphCreateException, "GraphCreateException.")
 
 
 enum class ErrorCode {
