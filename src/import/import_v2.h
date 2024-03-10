@@ -17,6 +17,7 @@
 #include "core/lightning_graph.h"
 #include "core/type_convert.h"
 #include "import/column_parser.h"
+#include "import/jsonlines_parser.h"
 #include "import/import_config_parser.h"
 #include "import/import_data_file.h"
 #include "import/import_planner.h"

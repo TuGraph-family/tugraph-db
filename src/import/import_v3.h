@@ -21,6 +21,8 @@
 #include "core/lightning_graph.h"
 #include "core/type_convert.h"
 #include "import/column_parser.h"
+#include "import/jsonlines_parser.h"
+#include "import/graphar_parser.h"
 #include "import/import_config_parser.h"
 #include "import/dense_string.h"
 
@@ -45,6 +47,7 @@ class Importer {
         std::string db_dir = "./lgraph_db";  // db data dir to use
         std::string user = "admin";
         std::string password = "73@TuGraph";
+        bool is_graphar = false;         // import Graphar file, config file must be absolute path
         std::string graph = "default";   // graph name
         bool delete_if_exists = false;   // force import, delete data if already exists
         bool continue_on_error = false;  // whether to continue when there are data errors

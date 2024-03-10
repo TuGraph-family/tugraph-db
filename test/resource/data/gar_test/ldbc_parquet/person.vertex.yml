@@ -1,0 +1,21 @@
+label: person
+chunk_size: 100
+prefix: vertex/person/
+property_groups:
+  - properties:
+      - name: id
+        data_type: int64
+        is_primary: true
+    file_type: parquet
+  - properties:
+      - name: firstName
+        data_type: string
+        is_primary: false
+      - name: lastName
+        data_type: string
+        is_primary: false
+      - name: gender
+        data_type: string
+        is_primary: false
+    file_type: parquet
+version: gar/v1
