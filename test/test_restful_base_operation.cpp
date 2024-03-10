@@ -345,10 +345,10 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         auto response = client1->request(methods::POST, _TU("/login"), body).get();
         auto token = _TS(response.extract_json().get().at(_TU("jwt")).as_string());
         UT_EXPECT_EQ(client.Logout(token), true);
-        UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: Authentication failed.");
-        UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: Authentication failed.");
+        UT_EXPECT_THROW_MSG(client.Logout(token), "Unauthorized: [UnauthorizedError] Authentication failed.");
+        UT_EXPECT_THROW_MSG(client.Refresh(token), "Unauthorized: [UnauthorizedError] Authentication failed.");
         UT_EXPECT_THROW_MSG(client.EvalCypher(db_name, "CALL db.addIndex('person', 'age', false)"),
-                            "Unauthorized: Authentication failed.");
+                            "Unauthorized: [UnauthorizedError] Authentication failed.");
     }
     UT_LOG() << "Testing logout succeeded";
 
