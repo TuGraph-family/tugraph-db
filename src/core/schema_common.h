@@ -201,7 +201,7 @@ class GraphNotExistException : public LgraphException {
 class GraphExistException : public LgraphException {
  public:
     explicit GraphExistException(const std::string& graph)
-        : LgraphException(ErrorCode::GraphExistException, FMA_FMT("graph [{}] already exist.", graph)) {}
+        : LgraphException(ErrorCode::GraphExist, FMA_FMT("graph [{}] already exist.", graph)) {}
 };
 
 class GraphCreateException : public LgraphException {
@@ -213,38 +213,38 @@ class GraphCreateException : public LgraphException {
 class RoleNotExistException : public LgraphException {
  public:
     explicit RoleNotExistException(const std::string& role)
-        : LgraphException(ErrorCode::RoleNotExistException, FMA_FMT("role [{}] does not exist.", role)) {}
+        : LgraphException(ErrorCode::RoleNotExist, FMA_FMT("role [{}] does not exist.", role)) {}
 };
 
 class RoleExistException : public LgraphException {
  public:
     explicit RoleExistException(const std::string& role)
-        : LgraphException(ErrorCode::RoleExistException, FMA_FMT("role [{}] already exist.", role)) {}
+        : LgraphException(ErrorCode::RoleExist, FMA_FMT("role [{}] already exist.", role)) {}
 };
 
 class PluginNotExistException : public LgraphException {
  public:
     explicit PluginNotExistException(const std::string& plugin)
-        : LgraphException(ErrorCode::PluginNotExistException, FMA_FMT("plugin [{}] does not exist.", plugin)) {}
+        : LgraphException(ErrorCode::PluginNotExist, FMA_FMT("plugin [{}] does not exist.", plugin)) {}
 };
 
 class PluginExistException : public LgraphException {
  public:
     explicit PluginExistException(const std::string& plugin)
-        : LgraphException(ErrorCode::PluginExistException, FMA_FMT("plugin [{}] already exist.", plugin)) {}
+        : LgraphException(ErrorCode::PluginExist, FMA_FMT("plugin [{}] already exist.", plugin)) {}
 };
 
 class TaskNotExistException : public LgraphException {
  public:
     explicit TaskNotExistException(const std::string& task_id)
-        : LgraphException(ErrorCode::TaskNotExistException,
+        : LgraphException(ErrorCode::TaskNotExist,
               FMA_FMT("Task [{}] not exist.", task_id)) {}
 };
 
 class TaskKilledFailedException : public LgraphException {
  public:
     explicit TaskKilledFailedException(const std::string& task_id)
-        : LgraphException(ErrorCode::TaskKilledFailedException,
+        : LgraphException(ErrorCode::TaskKilledFailed,
               FMA_FMT("Task [{}]  did not respond to kill signal.", task_id)) {}
 };
 

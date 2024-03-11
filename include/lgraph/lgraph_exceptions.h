@@ -56,23 +56,23 @@ X(FullTextIndexExist, "FullText index exist.") \
 X(UserNotExist, "User not exist.") \
 X(UserExist, "User exist.") \
 X(GraphNotExist, "Graph not exist.") \
-X(GraphExistException, "GraphExistException.") \
-X(RoleNotExistException, "RoleNotExistException.") \
-X(RoleExistException, "RoleExistException.") \
-X(PluginNotExistException, "PluginNotExistException.") \
-X(PluginExistException, "PluginExistException.") \
-X(TaskNotExistException, "TaskNotExistException.") \
-X(TaskKilledFailedException, "TaskKilledFailedException.") \
-X(InvalidPluginNameException, "InvalidPluginNameException.") \
-X(InvalidPluginVersionException, "InvalidPluginVersionException.") \
-X(CypherException, "CypherException.") \
-X(GqlException, "GqlException.") \
-X(LexerException, "LexerException.") \
-X(ParserException, "ParserException.") \
-X(EvaluationException, "EvaluationException.") \
-X(TxnCommitException, "TxnCommitException.") \
-X(ReminderException, "ReminderException.") \
-X(GraphCreateException, "GraphCreateException.")
+X(GraphExist, "Graph exist.") \
+X(RoleNotExist, "Role not exist.") \
+X(RoleExist, "Role exist.") \
+X(PluginNotExist, "Plugin not exist.") \
+X(PluginExist, "Plugin exist.") \
+X(TaskNotExist, "Task not exist.") \
+X(TaskKilledFailed, "Task killed failed.") \
+X(InvalidPluginName, "Invalid plugin name.") \
+X(InvalidPluginVersion, "Invalid plugin version.") \
+X(CypherException, "Cypher exception.") \
+X(GqlException, "Gql exception.") \
+X(LexerException, "Lexer exception.") \
+X(ParserException, "Parser exception.") \
+X(EvaluationException, "Evaluation exception.") \
+X(TxnCommitException, "Txn commit exception.") \
+X(ReminderException, "Reminder exception.") \
+X(GraphCreateException, "Graph create exception.")
 
 
 enum class ErrorCode {

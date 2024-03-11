@@ -183,7 +183,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);
-        UT_EXPECT_THROW(s2.DelFields(std::vector<std::string>({"no_such_field"})),
+        UT_EXPECT_THROW_CODE(s2.DelFields(std::vector<std::string>({"no_such_field"})),
                         FieldNotFound);
     }
     {
