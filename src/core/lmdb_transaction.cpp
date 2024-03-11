@@ -176,7 +176,7 @@ void LMDBKvTransaction::Commit() {
             }
             if (commit_status_ != 1) {
                 if (commit_ec_ == MDB_CONFLICTS)
-                    THROW_CODE(TxnConflictError);
+                    THROW_CODE(TxnConflict);
                 else
                     THROW_ERR(commit_ec_);
             }

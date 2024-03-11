@@ -95,7 +95,7 @@ static const uint32_t HTTP_ALL_USER = 2;
 #define GET_FIELD_OR_THROW_BAD_REQUEST(req, type, field, value)               \
     do {                                                                      \
         if (!ExtractTypedField<type>(req, field, value)) {                    \
-            THROW_CODE(BadRequestException, "`{}` is not specified.", field); \
+            THROW_CODE(BadRequest, "`{}` is not specified.", field); \
         }                                                                     \
     } while (0)
 
@@ -106,7 +106,7 @@ inline bool ExtractTypedField(const std::string& input, const string_t& field, T
         if (!js.contains(field)) return false;
         value = js[field].get<Type>();
     } catch (const std::exception& exception) {
-        THROW_CODE(BadRequestException, "{} {}", field, exception.what());
+        THROW_CODE(BadRequest, "{} {}", field, exception.what());
     }
     return true;
 }

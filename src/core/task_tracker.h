@@ -455,7 +455,7 @@ class AutoTaskTracker {
 inline void ThrowIfTaskKilled() {
     if (TaskTracker::GetInstance().ShouldKillCurrentTask()) {
         LOG_WARN() << "Task killed";
-        THROW_CODE(TaskKilledException);
+        THROW_CODE(TaskKilled);
     }
 }
 

@@ -457,20 +457,20 @@ bool lgraph::HaStateMachine::ApplyHaRequest(const LGraphRequest* req, LGraphResp
         }
     } catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-            case lgraph_api::ErrorCode::TaskKilledException: {
-                return RespondException(resp, e.what());
+            case lgraph_api::ErrorCode::TaskKilled: {
+                return RespondException(resp, e.msg());
             }
-            case lgraph_api::ErrorCode::UnauthorizedError: {
-                return RespondDenied(resp, e.what());
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondDenied(resp, e.msg());
             }
-            case lgraph_api::ErrorCode::TimeoutException: {
-                return RespondTimeout(resp, e.what());
+            case lgraph_api::ErrorCode::Timeout: {
+                return RespondTimeout(resp, e.msg());
             }
             case lgraph_api::ErrorCode::InputError: {
-                return RespondBadInput(resp, e.what());
+                return RespondBadInput(resp, e.msg());
             }
             default: {
-                return RespondException(resp, e.what());
+                return RespondException(resp, e.msg());
             }
         }
     } catch (std::exception& e) {

@@ -57,7 +57,7 @@ TimeZone& TimeZone::LocalTZ() {
 
 TimeZone::TimeZone(int time_diff_hours) {
     if (time_diff_hours < -10 || time_diff_hours > 14)
-        THROW_CODE(InvalidParameterError, "time_diff_hours must be within [-10, 14]");
+        THROW_CODE(InvalidParameter, "time_diff_hours must be within [-10, 14]");
     time_diff_microseconds_ = time_diff_hours * 3600 * 1000000LL;
 }
 
@@ -103,7 +103,7 @@ static char* PrintNDigits(char* buf, unsigned d) {
 
 void CheckDaysOverflow(int32_t days) {
     if (days < MinDaysSinceEpochForDate() || days > MaxDaysSinceEpochForDate()) {
-        THROW_CODE(OutOfRangeError, std::string("Failed to represent value with Date: out-of-bound.") +
+        THROW_CODE(OutOfRange, std::string("Failed to represent value with Date: out-of-bound.") +
                          "Value=" + std::to_string(days));
     }
 }
@@ -111,7 +111,7 @@ void CheckDaysOverflow(int32_t days) {
 void CheckDateTimeOverflow(int64_t microseconds_since_epoch) {
     if (microseconds_since_epoch < MinMicroSecondsSinceEpochForDateTime() ||
         microseconds_since_epoch > MaxMicroSecondsSinceEpochForDateTime()) {
-        THROW_CODE(OutOfRangeError,
+        THROW_CODE(OutOfRange,
             std::string("Failed to represent value with DateTime: out-of-bound.") +
                          "Value=" + std::to_string(microseconds_since_epoch));
     }

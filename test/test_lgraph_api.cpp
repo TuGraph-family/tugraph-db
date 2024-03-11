@@ -127,7 +127,7 @@ TEST_F(TestLGraphApi, ConcurrentVertexAdd) {
                 txn.Commit();
                 n_success++;
             } catch (lgraph_api::LgraphException& e) {
-                if (e.code() == lgraph_api::ErrorCode::TxnConflictError) {
+                if (e.code() == lgraph_api::ErrorCode::TxnConflict) {
                     n_fail++;
                 } else {
                     throw;
@@ -798,12 +798,12 @@ TEST_F(TestLGraphApi, LGraphApi) {
         }
         {
             UT_LOG() << "Test Exception";
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGalaxyError), "Invalid Galaxy");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGraphDBError), "Invalid GraphDB.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidTxnError), "Invalid transaction.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidIteratorError), "Invalid iterator.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidForkError), "Write transactions cannot be forked.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(TaskKilledException), "Task killed.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGalaxy), "Invalid Galaxy");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGraphDB), "Invalid GraphDB.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidTxn), "Invalid transaction.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidIterator), "Invalid iterator.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidFork), "Write transactions cannot be forked.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(TaskKilled), "Task killed.");
             UT_EXPECT_THROW_MSG(THROW_CODE(IOError), "IO Error.");
         }
         {

@@ -54,7 +54,7 @@ lgraph::Galaxy::Galaxy(const lgraph::Galaxy::Config& config, bool create_if_not_
     auto& fs = fma_common::FileSystem::GetFileSystem(config.dir);
     if (!fs.IsDir(config.dir)) {
         if (!create_if_not_exist) {
-            THROW_CODE(DBNotExistError, "Database directory " + config.dir +
+            THROW_CODE(DBNotExist, "Database directory " + config.dir +
                                               " does not exist!");
         } else if (!fs.Mkdir(config.dir)) {
             THROW_CODE(IOError,"Failed to create data directory " + config.dir);
@@ -94,9 +94,9 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::str
             if (++failed_times >= MAX_LOGIN_FAILED_TIMES) {
                 retry_login_time = fma_common::GetTime();
             }
-            THROW_CODE(BadRequestException, "Bad user/password.");
+            THROW_CODE(BadRequest, "Bad user/password.");
         } else {
-            THROW_CODE(BadRequestException,
+            THROW_CODE(BadRequest,
                 "Too many login failures, please try again in a minute");
         }
         return "";
@@ -123,7 +123,7 @@ bool lgraph::Galaxy::JudgeUserTokenNum(const std::string& user) {
 std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) const {
     std::string user, password;
     _HoldReadLock(acl_lock_);
-    if (!acl_->DecipherToken(token, user, password)) THROW_CODE(UnauthorizedError);
+    if (!acl_->DecipherToken(token, user, password)) THROW_CODE(Unauthorized);
     return user;
 }
 
@@ -176,7 +176,7 @@ std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token
                                                         bool* is_admin) const {
     std::string user, password;
     _HoldReadLock(acl_lock_);
-    if (!acl_->DecipherToken(token, user, password)) THROW_CODE(UnauthorizedError, "Invalid token.");
+    if (!acl_->DecipherToken(token, user, password)) THROW_CODE(Unauthorized, "Invalid token.");
     if (is_admin) *is_admin = acl_->IsAdmin(user);
     return user;
 }
@@ -186,7 +186,7 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
                                  const std::string& data_file_path) {
     CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin cannot create graphs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin cannot create graphs.");
     AutoWriteLock l1(acl_lock_, GetMyThreadId());  // upgrade to write lock
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
@@ -210,7 +210,7 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
 bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string& graph) {
     lgraph::CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin cannot create graphs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin cannot create graphs.");
     AutoWriteLock l1(acl_lock_, GetMyThreadId());
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     // remove graph from list and then wait till no ref so we can destroy the db
@@ -240,7 +240,7 @@ bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string
 bool lgraph::Galaxy::ModGraph(const std::string& curr_user, const std::string& graph_name,
                               const GraphManager::ModGraphActions& actions) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot modify graph configs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify graph configs.");
     auto wt = store_->CreateWriteTxn(false);
     auto& txn = *wt;
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
@@ -255,7 +255,7 @@ bool lgraph::Galaxy::ModGraph(const std::string& curr_user, const std::string& g
 std::map<std::string, lgraph::DBConfig> lgraph::Galaxy::ListGraphs(
     const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot list graphs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot list graphs.");
     return ListGraphsInternal();
 }
 
@@ -381,7 +381,7 @@ lgraph::AccessControlledDB lgraph::Galaxy::OpenGraph(const std::string& user,
     _HoldReadLock(acl_lock_);
     AccessLevel ar = acl_->GetAccessRight(user, user, graph);
     if (ar == AccessLevel::NONE)
-        THROW_CODE(UnauthorizedError, "User does not have access to the graph specified.");
+        THROW_CODE(Unauthorized, "User does not have access to the graph specified.");
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
     return AccessControlledDB(graphs_->GetGraphRef(graph), ar, user);
 }
@@ -412,7 +412,7 @@ lgraph::AccessLevel lgraph::Galaxy::GetAcl(const std::string& curr_user, const s
 
 std::unordered_set<std::string> lgraph::Galaxy::GetIpWhiteList(const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoReadLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     return ip_whitelist_;
 }
@@ -426,7 +426,7 @@ bool lgraph::Galaxy::IsIpInWhitelist(const std::string& ip) const {
 size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
                                          const std::vector<std::string>& ips) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoWriteLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     std::unordered_set<std::string> new_ips;
     auto txn = store_->CreateWriteTxn();
@@ -448,7 +448,7 @@ size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
 size_t lgraph::Galaxy::RemoveIpsFromWhitelist(const std::string& curr_user,
                                               const std::vector<std::string>& ips) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoWriteLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     std::unordered_set<std::string> to_remove;
     auto txn = store_->CreateWriteTxn();
@@ -623,7 +623,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
     {
         _HoldReadLock(acl_lock_);
         if (!acl_->IsAdmin(user))
-            THROW_CODE(UnauthorizedError, "Non-admin user is not allowed to update configs.");
+            THROW_CODE(Unauthorized, "Non-admin user is not allowed to update configs.");
     }
     bool need_reload_galaxy = false;
     auto txn = store_->CreateWriteTxn();

@@ -18,46 +18,44 @@
 namespace lgraph_api {
 
 #define ERROR_CODES \
-X(InvalidGalaxyError, "Invalid Galaxy.") \
-X(InvalidGraphDBError, "Invalid GraphDB.") \
-X(InvalidTxnError, "Invalid transaction.") \
-X(InvalidIteratorError, "Invalid iterator.") \
-X(InvalidForkError, "Write transactions cannot be forked.") \
-X(TaskKilledException, "Task killed.") \
-X(TxnConflictError, "Transaction conflicts with an earlier one.") \
-X(WriteNotAllowedError, "Access denied.") \
-X(DBNotExistError, "The specified TuGraph DB does not exist.") \
+X(InvalidGalaxy, "Invalid Galaxy.") \
+X(InvalidGraphDB, "Invalid GraphDB.") \
+X(InvalidTxn, "Invalid transaction.") \
+X(InvalidIterator, "Invalid iterator.") \
+X(InvalidFork, "Write transactions cannot be forked.") \
+X(TaskKilled, "Task is killed.") \
+X(TxnConflict, "Transaction conflicts with an earlier one.") \
+X(WriteNotAllowed, "Access denied.") \
+X(DBNotExist, "The specified TuGraph DB does not exist.") \
 X(IOError, "IO Error.") \
-X(UnauthorizedError, "Authentication failed.") \
-X(InternalErrorException, "InternalErrorException.") \
-X(OutOfRangeError, "OutOfRangeError.") \
-X(BadRequestException, "BadRequestException.") \
-X(InvalidParameterError, "InvalidParameterError.") \
-X(InternalError, "InternalError.") \
-X(TimeoutException, "TimeoutException.") \
-X(KvException, "KvException.") \
-X(InputError, "InputError.") \
-X(FieldNotFoundException, "FieldNotFoundException.") \
-X(FieldAlreadyExistsException, "FieldAlreadyExistsException.") \
-X(FieldCannotBeNullTypeException, "FieldCannotBeNullTypeException.") \
-X(FieldCannotBeDeletedException, "FieldCannotBeDeletedException.") \
-X(FieldCannotBeSetNullException, "FieldCannotBeSetNullException.") \
-X(TooManyFieldsException, "TooManyFieldsException.") \
-X(ParseStringException, "ParseStringException.") \
-X(ParseIncompatibleTypeException, "ParseIncompatibleTypeException.") \
-X(ParseFieldDataException, "ParseFieldDataException.") \
-X(DataSizeTooLargeException, "DataSizeTooLargeException.") \
-X(RecordSizeLimitExceededException, "RecordSizeLimitExceededException.") \
-X(LabelNotExistException, "LabelNotExistException.") \
-X(LabelExistException, "LabelExistException.") \
-X(PrimaryIndexCannotBeDeletedException, "PrimaryIndexCannotBeDeletedException.") \
-X(IndexNotExistException, "IndexNotExistException.") \
-X(IndexExistException, "IndexExistException.") \
-X(FullTextIndexNotExistException, "FullTextIndexNotExistException.") \
-X(FullTextIndexExistException, "FullTextIndexExistException.") \
-X(UserNotExistException, "UserNotExistException.") \
-X(UserExistException, "UserExistException.") \
-X(GraphNotExistException, "GraphNotExistException.") \
+X(Unauthorized, "Authentication failed.") \
+X(InternalError, "Internal error.") \
+X(OutOfRange, "Out of range.") \
+X(BadRequest, "Bad request.") \
+X(InvalidParameter, "Invalid parameter.") \
+X(Timeout, "Timeout.") \
+X(KvException, "Kv exception.") \
+X(InputError, "Input error.") \
+X(FieldNotFound, "Field not found.") \
+X(FieldAlreadyExists, "Field already exists.") \
+X(FieldCannotBeNullType, "Field cannot be null type.") \
+X(FieldCannotBeDeleted, "Field cannot be deleted.") \
+X(FieldCannotBeSetNull, "Field cannot be set null.") \
+X(ParseStringException, "Parse string exception.") \
+X(ParseIncompatibleType, "Parse incompatible type.") \
+X(ParseFieldDataException, "Parse field data exception.") \
+X(DataSizeTooLarge, "Data size too large.") \
+X(RecordSizeLimitExceeded, "Record size limit exceeded.") \
+X(LabelNotExist, "Label not exist.") \
+X(LabelExist, "Label exist.") \
+X(PrimaryIndexCannotBeDeleted, "Primary index cannot be deleted.") \
+X(IndexNotExist, "Index not exist.") \
+X(IndexExist, "Index exist.") \
+X(FullTextIndexNotExist, "FullText index not exist.") \
+X(FullTextIndexExist, "FullText index exist.") \
+X(UserNotExist, "User not exist.") \
+X(UserExist, "User exist.") \
+X(GraphNotExist, "Graph not exist.") \
 X(GraphExistException, "GraphExistException.") \
 X(RoleNotExistException, "RoleNotExistException.") \
 X(RoleExistException, "RoleExistException.") \
@@ -97,7 +95,7 @@ class LgraphException : public std::exception {
         what_ = FMA_FMT("[{}] {}", ErrorCodeToString(code_), msg_);
     }
     ErrorCode code() const {return code_;};
-    const std::string& msg() {return msg_;};
+    const std::string& msg() const {return msg_;};
     const char* what() const noexcept override {
         return what_.c_str();
     };

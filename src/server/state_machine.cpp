@@ -65,7 +65,7 @@ bool lgraph::StateMachine::ResetAdminPassword(const std::string& user,
     if (galaxy_->IsAdmin(user)) {
         return galaxy_->ChangeCurrentPassword(user, "", new_password, set_password);
     } else {
-        THROW_CODE(UnauthorizedError, "Only admin can reset password.");
+        THROW_CODE(Unauthorized, "Only admin can reset password.");
     }
 }
 
@@ -162,19 +162,19 @@ void lgraph::StateMachine::HandleRequest(::google::protobuf::RpcController* cont
         }
         DoRequest(is_write, req, resp, done_guard.Release());
     }
-    // typically only TaskKilledException can occur here
+    // typically only TaskKilled can occur here
     // other types of exceptions are already handled in ApplyRequestDirectly
     catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-            case lgraph_api::ErrorCode::TaskKilledException: {
+            case lgraph_api::ErrorCode::TaskKilled: {
                 RespondException(resp, e.what());
                 break;
             }
-            case lgraph_api::ErrorCode::UnauthorizedError: {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 RespondDenied(resp, e.what());
                 break;
             }
-            case lgraph_api::ErrorCode::TimeoutException: {
+            case lgraph_api::ErrorCode::Timeout: {
                 RespondTimeout(resp, e.what());
                 break;
             }
@@ -327,24 +327,24 @@ bool lgraph::StateMachine::ApplyRequestDirectly(const lgraph::LGraphRequest* req
             }
         } catch (lgraph_api::LgraphException& e) {
             switch (e.code()) {
-                case lgraph_api::ErrorCode::TaskKilledException: {
-                    RespondException(resp, e.what());
+                case lgraph_api::ErrorCode::TaskKilled: {
+                    RespondException(resp, e.msg());
                     break;
                 }
-                case lgraph_api::ErrorCode::UnauthorizedError: {
-                    RespondDenied(resp, e.what());
+                case lgraph_api::ErrorCode::Unauthorized: {
+                    RespondDenied(resp, e.msg());
                     break;
                 }
-                case lgraph_api::ErrorCode::TimeoutException: {
-                    RespondTimeout(resp, e.what());
+                case lgraph_api::ErrorCode::Timeout: {
+                    RespondTimeout(resp, e.msg());
                     break;
                 }
                 case lgraph_api::ErrorCode::InputError: {
-                    RespondBadInput(resp, e.what());
+                    RespondBadInput(resp, e.msg());
                     break;
                 }
                 default: {
-                    RespondException(resp, e.what());
+                    RespondException(resp, e.msg());
                     break;
                 }
             }

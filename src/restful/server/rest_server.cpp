@@ -562,11 +562,11 @@ std::string RestServer::GetUser(const web::http::http_request& request,
     auto& headers = request.headers();
     auto it = headers.find(_TU("Authorization"));
     if (it == headers.end()) {
-        THROW_CODE(UnauthorizedError, "No token given in the request.");
+        THROW_CODE(Unauthorized, "No token given in the request.");
     }
     const std::string& auth_str = _TS(it->second);
     if (!fma_common::StartsWith(auth_str, "Bearer ")) {
-        THROW_CODE(UnauthorizedError, "Malformed token: " + auth_str);
+        THROW_CODE(Unauthorized, "Malformed token: " + auth_str);
     }
     std::string token = auth_str.substr(7);
     if (token_ret) *token_ret = token;
@@ -1526,7 +1526,7 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
     if (!galaxy_->JudgeUserTokenNum(username)) {
-        THROW_CODE(BadRequestException, "The number of tokens has reached the upper limit");
+        THROW_CODE(BadRequest, "The number of tokens has reached the upper limit");
     }
     web::json::value response;
     response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
@@ -2937,11 +2937,11 @@ void RestServer::handle_delete(http_request request) {
         }
     } catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-            case lgraph_api::ErrorCode::UnauthorizedError: {
-                return RespondUnauthorized(request, e.what());
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondUnauthorized(request, e.msg());
             }
             case lgraph_api::ErrorCode::InputError: {
-                return RespondBadRequest(request, e.what());
+                return RespondBadRequest(request, e.msg());
             }
             default: {
                 return RespondInternalException(request, e);
@@ -3024,7 +3024,7 @@ void RestServer::handle_get(http_request request) {
         FMA_ASSERT(false);  // we should have treated every case in switch()
     } catch (lgraph_api::LgraphException& e) {
         switch(e.code()) {
-            case lgraph_api::ErrorCode::UnauthorizedError: {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
             case lgraph_api::ErrorCode::InputError: {
@@ -3069,7 +3069,7 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
             && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
             if (!galaxy_->JudgeRefreshTime(token)) {
                 LOG_WARN() << "token has already expire";
-                THROW_CODE(UnauthorizedError, "token has already expire");
+                THROW_CODE(Unauthorized, "token has already expire");
             }
         }
         LOG_DEBUG() << "\n----------------"
@@ -3147,7 +3147,7 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         FMA_ASSERT(false);
     } catch (lgraph_api::LgraphException& e) {
         switch(e.code()) {
-            case lgraph_api::ErrorCode::UnauthorizedError: {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
             case lgraph_api::ErrorCode::InputError: {
@@ -3222,7 +3222,7 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
         }
     } catch (lgraph_api::LgraphException& e) {
         switch(e.code()) {
-            case lgraph_api::ErrorCode::UnauthorizedError: {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
             case lgraph_api::ErrorCode::InputError: {

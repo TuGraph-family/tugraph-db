@@ -187,7 +187,7 @@ lgraph::AccessLevel lgraph::AclManager::GetAccessRight(const std::string& curr_u
                                                        const std::string& user,
                                                        const std::string& graph) const {
     if (curr_user != user && !IsAdmin(curr_user))
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot get other users' access right.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot get other users' access right.");
     auto it = user_cache_.find(user);
     if (it == user_cache_.end()) {
         THROW_CODE(InputError, "User does not exist.");
@@ -207,7 +207,7 @@ bool lgraph::AclManager::AddUser(KvTransaction& txn, const std::string& curr_use
     lgraph::CheckValidPassword(password);
     lgraph::CheckValidDescLength(desc.size());
     lgraph::CheckValidUserNum(user_cache_.size());
-    if (!IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot add user.");
+    if (!IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot add user.");
     if (user_cache_.find(name) != user_cache_.end()) return false;
     if (!CreateRoleInternal(txn, name, "primary role for user " + name, true))
         THROW_CODE(InputError, "A primary group named [{}] already exists.", name);
@@ -237,7 +237,7 @@ void lgraph::AclManager::CheckRolesExist(KvTransaction& txn, const T& roles) {
 bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_user,
                                  const ModUserRequest& request) {
     if (request.user() != curr_user && !IsAdmin(curr_user))
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot modify other users.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     lgraph::CheckValidUserName(request.user());
     // check if user exists
     const std::string& user = request.user();
@@ -278,14 +278,14 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
         {
             lgraph::CheckValidDescLength(request.set_desc().size());
             if (curr_user != user && !IsAdmin(curr_user))
-                THROW_CODE(UnauthorizedError, "Non-admin user cannot modify other user's description.");
+                THROW_CODE(Unauthorized, "Non-admin user cannot modify other user's description.");
             uinfo.desc = request.set_desc();
             need_refresh_acl_table = false;
             break;
         }
     case ModUserRequest::kSetRoles:
         {
-            if (!IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin uesr cannot modify roles.");
+            if (!IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin uesr cannot modify roles.");
             auto& new_roles = request.set_roles().values();
             CheckRolesExist(txn, new_roles);
             uinfo.roles.clear();
@@ -314,7 +314,7 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
 
 bool lgraph::AclManager::DelUser(KvTransaction& txn, const std::string& curr_user,
                                  const std::string& user) {
-    if (!IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot delete users.");
+    if (!IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot delete users.");
     if (curr_user == user) THROW_CODE(InputError, "User cannot delete itself.");
     lgraph::CheckValidUserName(user);
     if (user == _detail::DEFAULT_ADMIN_NAME)
@@ -331,7 +331,7 @@ bool lgraph::AclManager::DelUser(KvTransaction& txn, const std::string& curr_use
 std::map<std::string, lgraph::AclManager::UserInfo> lgraph::AclManager::ListUsers(
     KvTransaction& txn, const std::string& curr_user) {
     if (!IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot list users.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot list users.");
     }
     std::map<std::string, UserInfo> users;
     for (auto& kv : user_cache_) users.emplace(kv.first, GetUserInfoFromKv(txn, kv.first));
@@ -342,7 +342,7 @@ lgraph::AclManager::UserInfo lgraph::AclManager::GetUserInfo(KvTransaction& txn,
                                                              const std::string& curr_user,
                                                              const std::string& user) {
     if (curr_user != user && !IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot get other users' info.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot get other users' info.");
     }
     lgraph::CheckValidUserName(user);
     if (user_cache_.find(user) == user_cache_.end())
@@ -353,7 +353,7 @@ lgraph::AclManager::UserInfo lgraph::AclManager::GetUserInfo(KvTransaction& txn,
 size_t lgraph::AclManager::GetUserMemoryLimit(KvTransaction& txn, const std::string& curr_user,
                                               const std::string& user) {
     if (curr_user != user && !IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot get other users' info.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot get other users' info.");
     }
     lgraph::CheckValidUserName(user);
     if (user_cache_.find(user) == user_cache_.end())
@@ -365,7 +365,7 @@ size_t lgraph::AclManager::GetUserMemoryLimit(KvTransaction& txn, const std::str
 std::unordered_map<std::string, lgraph::AccessLevel> lgraph::AclManager::ListUserGraphs(
     KvTransaction& txn, const std::string& curr_user, const std::string& user) {
     if (curr_user != user && !IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot get other users' access right.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot get other users' access right.");
     }
     auto it = user_cache_.find(user);
     if (it == user_cache_.end()) {
@@ -384,7 +384,7 @@ std::unordered_map<std::string, lgraph::AccessLevel> lgraph::AclManager::ListUse
 bool lgraph::AclManager::CreateRole(KvTransaction& txn, const std::string& curr_user,
                                     const std::string& role_name, const std::string& desc) {
     if (!IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot add roles.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot add roles.");
     }
     lgraph::CheckValidRoleName(role_name);
     lgraph::CheckValidDescLength(desc.size());
@@ -393,7 +393,7 @@ bool lgraph::AclManager::CreateRole(KvTransaction& txn, const std::string& curr_
 
 bool lgraph::AclManager::ModRole(KvTransaction& txn, const std::string& curr_user,
                                  const ModRoleRequest& request) {
-    if (!IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot modify roles.");
+    if (!IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify roles.");
     if (IsBuiltinRole(request.role())) THROW_CODE(InputError, "Builtin roles cannot be modified.");
     const std::string& role = request.role();
     lgraph::CheckValidRoleName(role);
@@ -473,7 +473,7 @@ bool lgraph::AclManager::ModRole(KvTransaction& txn, const std::string& curr_use
 bool lgraph::AclManager::DelRole(KvTransaction& txn, const std::string& curr_user,
                                  const std::string& role) {
     if (!IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot delete roles.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot delete roles.");
     }
     if (IsBuiltinRole(role)) THROW_CODE(InputError, "Builtin roles cannot be deleted.");
     lgraph::CheckValidRoleName(role);
@@ -482,7 +482,7 @@ bool lgraph::AclManager::DelRole(KvTransaction& txn, const std::string& curr_use
 
 std::map<std::string, lgraph::AclManager::RoleInfo> lgraph::AclManager::ListRoles(
     KvTransaction& txn, const std::string& curr_user) {
-    if (!IsAdmin(curr_user)) THROW_CODE(UnauthorizedError, "Non-admin users cannot list roles.");
+    if (!IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin users cannot list roles.");
     auto roles = GetAllRolesFromKv(txn);
     return std::map<std::string, RoleInfo>(roles.begin(), roles.end());
 }
@@ -493,7 +493,7 @@ lgraph::AclManager::RoleInfo lgraph::AclManager::GetRoleInfo(KvTransaction& txn,
     if (!IsAdmin(curr_user)) {
         UserInfo uinfo = GetUserInfoFromKv(txn, curr_user);
         if (uinfo.roles.find(role) == uinfo.roles.end())
-            THROW_CODE(UnauthorizedError, "User is not an admin and does not have the specified role.");
+            THROW_CODE(Unauthorized, "User is not an admin and does not have the specified role.");
     }
     lgraph::CheckValidRoleName(role);
     auto v = role_tbl_->GetValue(txn, Value::ConstRef(role));
@@ -523,7 +523,7 @@ void lgraph::AclManager::AddGraph(KvTransaction& txn, const std::string& curr_us
 void lgraph::AclManager::DelGraph(KvTransaction& txn, const std::string& curr_user,
                                   const std::string& graph) {
     if (!IsAdmin(curr_user)) {
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot delete graphs.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot delete graphs.");
     }
     if (graph == _detail::META_GRAPH) THROW_CODE(InputError, "Builtin graph cannot be deleted.");
     lgraph::CheckValidGraphName(graph);
@@ -739,7 +739,7 @@ lgraph::AclManager::FieldAccess lgraph::AclManager::GetRoleFieldAccessLevel(
 bool lgraph::AclManager::ModUserDisable(KvTransaction& txn, const std::string& curr_user,
                                         const std::string& user, bool disable) {
     if (curr_user != user && !IsAdmin(curr_user))
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot modify other user's description.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other user's description.");
     if (user == curr_user) THROW_CODE(InputError, "User cannot disable itself.");
     lgraph::CheckValidRoleName(user);
     // check if user exists
@@ -782,7 +782,7 @@ bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::st
 
 bool lgraph::AclManager::ChangeUserPassword(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const std::string& password) {
-    if (!IsAdmin(current_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot modify other users.");
+    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     lgraph::CheckValidUserName(user);
     lgraph::CheckValidPassword(password);
     auto ait = user_cache_.find(user);
@@ -801,7 +801,7 @@ bool lgraph::AclManager::ChangeUserPassword(KvTransaction& txn, const std::strin
 bool lgraph::AclManager::SetUserDescription(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const std::string& desc) {
     if (current_user != user && !IsAdmin(current_user))
-        THROW_CODE(UnauthorizedError, "Non-admin user cannot modify other user's description.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other user's description.");
     lgraph::CheckValidUserName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
@@ -818,7 +818,7 @@ bool lgraph::AclManager::SetUserDescription(KvTransaction& txn, const std::strin
 bool lgraph::AclManager::DeleteUserRoles(KvTransaction& txn, const std::string& current_user,
                                          const std::string& user,
                                          const std::vector<std::string>& roles) {
-    if (!IsAdmin(current_user)) THROW_CODE(UnauthorizedError, "Non-admin uesr cannot modify roles.");
+    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin uesr cannot modify roles.");
     lgraph::CheckValidUserName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
@@ -846,7 +846,7 @@ bool lgraph::AclManager::DeleteUserRoles(KvTransaction& txn, const std::string& 
 bool lgraph::AclManager::RebuildUserRoles(KvTransaction& txn, const std::string& current_user,
                                           const std::string& user,
                                           const std::vector<std::string>& roles) {
-    if (!IsAdmin(current_user)) THROW_CODE(UnauthorizedError, "Non-admin uesr cannot modify roles.");
+    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin uesr cannot modify roles.");
     lgraph::CheckValidUserName(user);
     // check if user exists
     auto ait = user_cache_.find(user);
@@ -872,7 +872,7 @@ bool lgraph::AclManager::RebuildUserRoles(KvTransaction& txn, const std::string&
 bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& current_user,
                                       const std::string& user,
                                       const std::vector<std::string>& roles) {
-    if (!IsAdmin(current_user)) THROW_CODE(UnauthorizedError, "Non-admin uesr cannot modify roles.");
+    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin uesr cannot modify roles.");
     lgraph::CheckValidUserName(user);
     // check if user exists
     if (roles.empty()) return true;
@@ -896,7 +896,7 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
 
 bool lgraph::AclManager::SetUserMemoryLimit(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const size_t& memory_limit) {
-    if (!IsAdmin(current_user)) THROW_CODE(UnauthorizedError, "Non-admin user cannot modify other users.");
+    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     lgraph::CheckValidUserName(user);
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;

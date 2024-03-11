@@ -34,9 +34,9 @@ lgraph::AccessControlledDB lgraph::import_v2::Importer::OpenGraph(Galaxy& galaxy
     }
 
     if (galaxy.GetUserToken(config_.user, config_.password).empty())
-        THROW_CODE(UnauthorizedError, "Bad user/password.");
+        THROW_CODE(Unauthorized, "Bad user/password.");
     if (!galaxy.IsAdmin(config_.user))
-        THROW_CODE(UnauthorizedError, "Non-admin users are not allowed to perform offline import.");
+        THROW_CODE(Unauthorized, "Non-admin users are not allowed to perform offline import.");
 
     const std::map<std::string, lgraph::DBConfig>& graphs = galaxy.ListGraphs(config_.user);
     if (graphs.find(config_.graph) != graphs.end()) {

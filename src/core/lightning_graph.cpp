@@ -2457,7 +2457,7 @@ Transaction LightningGraph::CreateReadTxn() {
 }
 
 Transaction LightningGraph::ForkTxn(Transaction& txn) {
-    if (!txn.read_only_) THROW_CODE(InvalidForkError);
+    if (!txn.read_only_) THROW_CODE(InvalidFork);
     return Transaction(this, txn.GetTxn());
 }
 

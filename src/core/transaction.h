@@ -85,7 +85,7 @@ class Transaction {
     std::unordered_map<LabelId, int64_t> edge_delta_count_;
     void ThrowIfReadOnlyTxn() const {
         if (read_only_)
-            THROW_CODE(WriteNotAllowedError,
+            THROW_CODE(WriteNotAllowed,
                 "Write operation not allowed in read-only transaction.");
     }
 

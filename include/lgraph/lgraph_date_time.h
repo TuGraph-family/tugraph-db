@@ -34,7 +34,7 @@ class TimeZone {
     /**
      * @brief   Create a timezone which has time difference with UTC in hours time_diff_hours.
      *
-     * @exception   InvalidParameterError   Thrown if time_diff_hours is invalid.
+     * @exception   InvalidParameter   Thrown if time_diff_hours is invalid.
      *
      * @param   time_diff_hours (Optional) Difference between local timezone and UTC. Must be &gt;
      *                          =-10 &amp;&amp; &lt;=14. Otherwise the function will throw.
@@ -44,7 +44,7 @@ class TimeZone {
     /**
      * @brief   Convert a DateTime from UTC time to this time zone.
      *
-     * @exception   OutOfRangeError Thrown if the resulting value is out of range.
+     * @exception   OutOfRange Thrown if the resulting value is out of range.
      *
      * @param   dt  DateTime in UTC time.
      *
@@ -55,7 +55,7 @@ class TimeZone {
     /**
      * @brief   Convert a DateTime from this timezone to UTC time.
      *
-     * @exception   OutOfRangeError Thrown if the resulting value is out of range.
+     * @exception   OutOfRange Thrown if the resulting value is out of range.
      *
      * @param   dt  DateTime in local timezone.
      *
@@ -115,7 +115,7 @@ class Date {
      * @brief   Construct a new Date object with date set to the specified time. The time point
      *          must be in the range of 0/1/1 to 12/31/9999.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   tp  Time point to set the date to.
      */
@@ -125,7 +125,7 @@ class Date {
      * @brief   Construct a new Date object with date set to the specified date. The date must be
      *          in the range of 0/1/1 to 12/31/9999.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   ymd Date in the form of year, month and day.
      */
@@ -136,7 +136,7 @@ class Date {
      *          i.e. the date is set to the specified number of days from epoch. The result date
      *          must be in the range of 0/1/1 to 12/31/9999.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   days_since_epoch    Number of days since epoch.
      */
@@ -196,7 +196,7 @@ class Date {
     /**
      * @brief   Add a number of days to the Date object.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   days    Number of days to add.
      *
@@ -208,7 +208,7 @@ class Date {
      * @brief   Add a number of days to the current Date object. In case of overflow, current
      *          object is not modified.
      *
-     * @exception   OutOfRangeError Thrown if the resulting date is out of range.
+     * @exception   OutOfRange Thrown if the resulting date is out of range.
      *
      * @param   days    Number of days to add.
      *
@@ -219,7 +219,7 @@ class Date {
     /**
      * @brief   Subtract a number of days from the Date object.
      *
-     * @exception   OutOfRangeError Thrown if the resulting date is out of range.
+     * @exception   OutOfRange Thrown if the resulting date is out of range.
      *
      * @param   days    Number of days to subtract.
      *
@@ -231,7 +231,7 @@ class Date {
      * @brief   Subtract a number of days from the current Date object. In case of overflow,
      *          current object is not modified.
      *
-     * @exception   OutOfRangeError Thrown if the resulting date is out of range.
+     * @exception   OutOfRange Thrown if the resulting date is out of range.
      *
      * @param   days    Number of days to subtract.
      *
@@ -307,7 +307,7 @@ class DateTime {
     /**
      * @brief   Construct a new DateTime object with date set to the specified timepoint.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   tp  Timepoint to set the DateTime to.
      */
@@ -317,7 +317,7 @@ class DateTime {
      * @brief   Construct a new DateTime object with date set to the specified date and time
      *          given in YMDHMSF.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   ymdhmsf  Date and time to set the DateTime to.
      */
@@ -327,7 +327,7 @@ class DateTime {
      * @brief   Construct a new DateTime object with date set to specified number of microseconds
      *          since epoch.
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
+     * @exception   OutOfRange Thrown if the time point is out of range.
      *
      * @param   microseconds_since_epoch Number of microseconds since epoch.
      */
@@ -337,8 +337,8 @@ class DateTime {
      * @brief   Construct a new DateTime object with date set to the specified date and time
      *          given in the form of YYYY-MM-DD HH:MM:SS[.FFFFFF].
      *
-     * @exception   OutOfRangeError Thrown if the time point is out of range.
-     * @exception   InputError      Thrown if str has invalid format.
+     * @exception   OutOfRange Thrown if the time point is out of range.
+     * @exception   InputError Thrown if str has invalid format.
      *
      * @param   str String representation of the date and time in the form of YYYY-MM-DD HH:MM:SS.
      */
@@ -389,7 +389,7 @@ class DateTime {
     /**
      * @brief   Add a number of microseconds to the DateTime.
      *
-     * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
+     * @exception   OutOfRange Thrown if the resulting DateTime is out of range.
      *
      * @param   n_microseconds   Number of micorseconds to add.
      *
@@ -401,7 +401,7 @@ class DateTime {
      * @brief   Adds a number of microseconds to the current DateTime object. In case of overflow, the
      *          current DateTime object is not modified.
      *
-     * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
+     * @exception   OutOfRange Thrown if the resulting DateTime is out of range.
      *
      * @param   n_microseconds   Number of microseconds to add.
      *
@@ -412,7 +412,7 @@ class DateTime {
     /**
      * @brief   Subtract a number of microseconds from the DateTime.
      *
-     * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
+     * @exception   OutOfRange Thrown if the resulting DateTime is out of range.
      *
      * @param   n_microseconds   Number of microseconds to subtract.
      *
@@ -424,7 +424,7 @@ class DateTime {
      * @brief   Subtract a number of microseconds from the current DateTime object. In case of
      *          overflow, the current DateTime object is not modified.
      *
-     * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
+     * @exception   OutOfRange Thrown if the resulting DateTime is out of range.
      *
      * @param   n_microseconds   Number of microseconds to subtract.
      *
@@ -465,7 +465,7 @@ class DateTime {
      *
      * @returns Object converted to an UTC.
      *
-     * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
+     * @exception   OutOfRange Thrown if the resulting DateTime is out of range.
      */
     DateTime ConvertToUTC();
 
@@ -475,7 +475,7 @@ class DateTime {
      *
      * @returns Object converted to a local.
      *
-     * @exception   OutOfRangeError Thrown if the resulting DateTime is out of range.
+     * @exception   OutOfRange Thrown if the resulting DateTime is out of range.
      */
     DateTime ConvertToLocal();
 };

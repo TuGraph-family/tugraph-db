@@ -188,7 +188,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
             proc->Kill();
             std::lock_guard<std::mutex> l(_mtx);
             _marked_processes.insert(std::move(proc));
-            THROW_CODE(TaskKilledException);
+            THROW_CODE(TaskKilled);
         }
         // if process failed, break
         if (!proc->IsAlive()) {
@@ -210,7 +210,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
             std::lock_guard<std::mutex> l(_mtx);
             output = proc->Stderr();
             _marked_processes.insert(std::move(proc));
-            THROW_CODE(TimeoutException, "Task timed out, timeout = [{}] seconds.", timeout);
+            THROW_CODE(Timeout, "Task timed out, timeout = [{}] seconds.", timeout);
         }
     }
     rollback.Cancel();

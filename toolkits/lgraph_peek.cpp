@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     try {
         lgraph::Galaxy galaxy(db_dir);
         if (galaxy.GetUserToken(user, password).empty())
-            THROW_CODE(UnauthorizedError, "Bad user/password.");
+            THROW_CODE(Unauthorized, "Bad user/password.");
         lgraph::AccessControlledDB db = galaxy.OpenGraph(user, graph);
         PeekGraph(db, begin, end);
     } catch (std::exception& e) {
