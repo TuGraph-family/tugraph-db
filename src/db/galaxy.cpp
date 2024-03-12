@@ -57,7 +57,7 @@ lgraph::Galaxy::Galaxy(const lgraph::Galaxy::Config& config, bool create_if_not_
             THROW_CODE(DBNotExist, "Database directory " + config.dir +
                                               " does not exist!");
         } else if (!fs.Mkdir(config.dir)) {
-            THROW_CODE(IOError,"Failed to create data directory " + config.dir);
+            THROW_CODE(IOError, "Failed to create data directory " + config.dir);
         }
     }
     std::string meta_dir = GetMetaStoreDir(config.dir);
@@ -240,7 +240,8 @@ bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string
 bool lgraph::Galaxy::ModGraph(const std::string& curr_user, const std::string& graph_name,
                               const GraphManager::ModGraphActions& actions) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify graph configs.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify graph configs.");
     auto wt = store_->CreateWriteTxn(false);
     auto& txn = *wt;
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
@@ -412,7 +413,8 @@ lgraph::AccessLevel lgraph::Galaxy::GetAcl(const std::string& curr_user, const s
 
 std::unordered_set<std::string> lgraph::Galaxy::GetIpWhiteList(const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoReadLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     return ip_whitelist_;
 }
@@ -426,7 +428,8 @@ bool lgraph::Galaxy::IsIpInWhitelist(const std::string& ip) const {
 size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
                                          const std::vector<std::string>& ips) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoWriteLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     std::unordered_set<std::string> new_ips;
     auto txn = store_->CreateWriteTxn();
@@ -448,7 +451,8 @@ size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
 size_t lgraph::Galaxy::RemoveIpsFromWhitelist(const std::string& curr_user,
                                               const std::vector<std::string>& ips) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoWriteLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     std::unordered_set<std::string> to_remove;
     auto txn = store_->CreateWriteTxn();

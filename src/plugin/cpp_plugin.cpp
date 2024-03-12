@@ -48,7 +48,8 @@ void CppPluginManagerImpl::OpenDynamicLib(const PluginInfoBase* pinfo, DynamicLi
         dinfo.func = GetDllFunction<PluginFunc*>(dinfo.lib_handle, "Process");
         if (!dinfo.func) {
             UnloadDynamicLibrary(dinfo.lib_handle);
-            THROW_CODE(InputError, "Failed to get Process() function in the DLL: " + GetLastErrorMsg());
+            THROW_CODE(InputError,
+                       "Failed to get Process() function in the DLL: " + GetLastErrorMsg());
         }
     } else {
         dinfo.get_sig_spec = GetDllFunction<SignatureGetter*>(dinfo.lib_handle, "GetSignature");

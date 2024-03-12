@@ -995,7 +995,7 @@ void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoName", algoName);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoType", algoType);
     if (algoType != plugin::PLUGIN_LANG_TYPE_PYTHON && algoType != plugin::PLUGIN_LANG_TYPE_CPP) {
-        THROW_CODE(BadRequest,"AlgoType must be [{}] or [{}]",
+        THROW_CODE(BadRequest, "AlgoType must be [{}] or [{}]",
                                                       plugin::PLUGIN_LANG_TYPE_PYTHON,
                                                       plugin::PLUGIN_LANG_TYPE_CPP);
     }

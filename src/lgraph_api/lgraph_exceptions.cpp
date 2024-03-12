@@ -48,4 +48,4 @@ LgraphException::LgraphException(ErrorCode code, const char* msg)
     what_ = FMA_FMT("[{}] {}", ErrorCodeToString(code_), msg_);
 }
 
-}
+}  // namespace lgraph_api

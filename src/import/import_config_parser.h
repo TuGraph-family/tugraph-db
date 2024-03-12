@@ -438,7 +438,7 @@ struct LabelDesc {
                         "[{}] is not primary field of label [{}]", field_name, name);
             }
         }
-        THROW_CODE(InputError,"[{}] is not valid field name of label [{}]", field_name, name);
+        THROW_CODE(InputError, "[{}] is not valid field name of label [{}]", field_name, name);
         return false;
     }
 
@@ -687,11 +687,11 @@ struct SchemaDesc {
             ld.CheckValid();
             if (ld.IsVertex()) {
                 if (set_vertex.find(ld.name) != set_vertex.end())
-                    THROW_CODE(InputError,"Vertex label [{}] appears more than once!", ld.name);
+                    THROW_CODE(InputError, "Vertex label [{}] appears more than once!", ld.name);
                 set_vertex.insert(ld.name);
             } else {
                 if (set_edge.find(ld.name) != set_edge.end())
-                    THROW_CODE(InputError,"Edge label [{}] appears more than once!", ld.name);
+                    THROW_CODE(InputError, "Edge label [{}] appears more than once!", ld.name);
                 set_edge.insert(ld.name);
             }
         }
@@ -717,7 +717,7 @@ struct SchemaDesc {
             } else {
                 // find, check if equal
                 if (!(x == ld)) {
-                    THROW_CODE(InputError,"{} and {} not comparable in two schema", x.ToString(),
+                    THROW_CODE(InputError, "{} and {} not comparable in two schema", x.ToString(),
                                              ld.ToString());
                 }
             }
@@ -775,7 +775,7 @@ class ImportConfParser {
     static SchemaDesc ParseSchema(const nlohmann::json& conf) {
         SchemaDesc sd;
         if (!conf.contains("schema")) {
-            THROW_CODE(InputError,"Missing `schema` definition");
+            THROW_CODE(InputError, "Missing `schema` definition");
         }
         if (!conf["schema"].is_array()) {
             THROW_CODE(InputError, "\"schema\" is not array");

@@ -76,12 +76,14 @@ class GqlException : public LgraphException {
 
 class LexerException : public LgraphException {
  public:
-    explicit LexerException(const std::string& msg) : LgraphException(ErrorCode::LexerException, "LexerException: " + msg) {}
+    explicit LexerException(const std::string& msg)
+        : LgraphException(ErrorCode::LexerException, "LexerException: " + msg) {}
 };
 
 class ParserException : public LgraphException {
  public:
-    explicit ParserException(const std::string& msg) : LgraphException(ErrorCode::ParserException, "ParserException: " + msg) {}
+    explicit ParserException(const std::string& msg)
+        : LgraphException(ErrorCode::ParserException, "ParserException: " + msg) {}
 };
 
 class EvaluationException : public LgraphException {
@@ -98,6 +100,7 @@ class TxnCommitException : public LgraphException {
 
 class ReminderException : public LgraphException {
  public:
-    explicit ReminderException(const std::string& msg) : LgraphException(ErrorCode::ReminderException, msg) {}
+    explicit ReminderException(const std::string& msg)
+        : LgraphException(ErrorCode::ReminderException, msg) {}
 };
 }  // namespace lgraph

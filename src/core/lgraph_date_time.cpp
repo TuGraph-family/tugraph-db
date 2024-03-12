@@ -261,7 +261,8 @@ DateTime::DateTime(int64_t seconds_since_epoch) : microseconds_since_epoch_(seco
 }
 
 DateTime::DateTime(const std::string& str) {
-    if (!Parse(str, *this)) THROW_CODE(InputError, "failed to parse string " + str + " into DateTime");
+    if (!Parse(str, *this)) THROW_CODE(InputError,
+                                       "failed to parse string " + str + " into DateTime");
     CheckDateTimeOverflow(microseconds_since_epoch_);
 }
 

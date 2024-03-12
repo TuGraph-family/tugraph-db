@@ -94,8 +94,8 @@ class LgraphException : public std::exception {
         : code_(code), msg_(FMA_FMT(format, ds...)) {
         what_ = FMA_FMT("[{}] {}", ErrorCodeToString(code_), msg_);
     }
-    ErrorCode code() const {return code_;};
-    const std::string& msg() const {return msg_;};
+    ErrorCode code() const {return code_;}
+    const std::string& msg() const {return msg_;}
     const char* what() const noexcept override {
         return what_.c_str();
     };
@@ -105,6 +105,7 @@ class LgraphException : public std::exception {
     std::string what_;
 };
 
-#define THROW_CODE(code,...) throw lgraph_api::LgraphException(lgraph_api::ErrorCode::code, ##__VA_ARGS__)
+#define THROW_CODE(code, ...) throw lgraph_api::LgraphException( \
+    lgraph_api::ErrorCode::code, ##__VA_ARGS__)
 
 }  // namespace lgraph_api

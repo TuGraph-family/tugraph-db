@@ -539,7 +539,7 @@ class CypherBaseVisitor : public LcypherVisitor {
                 lgraph_api::SigSpec *sig_spec = nullptr;
                 if (!pm->GetPluginSignature(type, ctx_->user_, names[2], &sig_spec) ||
                     sig_spec == nullptr) {
-                    THROW_CODE(InputError,"cannot find procedure name {}", names[2]);
+                    THROW_CODE(InputError, "cannot find procedure name {}", names[2]);
                 }
                 for (auto &yield_item : yield_items) {
                     const auto iter = std::find_if(

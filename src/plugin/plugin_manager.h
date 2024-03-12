@@ -298,12 +298,13 @@ using lgraph_api::ErrorCode;
 class InvalidPluginNameException : public LgraphException {
  public:
     explicit InvalidPluginNameException(const std::string& name)
-        : LgraphException(ErrorCode::InvalidPluginName,  FMA_FMT("Invalid plugin name [{}].", name)) {}
+        : LgraphException(ErrorCode::InvalidPluginName, "Invalid plugin name [{}].", name) {}
 };
 
 class InvalidPluginVersionException : public LgraphException {
  public:
     explicit InvalidPluginVersionException(const std::string& version)
-        : LgraphException(ErrorCode::InvalidPluginVersion, FMA_FMT("Invalid plugin version [{}].", version)) {}
+        : LgraphException(ErrorCode::InvalidPluginVersion,
+                          "Invalid plugin version [{}].", version) {}
 };
 }  // namespace lgraph

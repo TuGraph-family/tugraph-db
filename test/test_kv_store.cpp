@@ -182,8 +182,8 @@ TEST_F(TestKvStore, KvStore) {
 #else
     const std::string no_permission_dir = "/dev/null";
 #endif
-    UT_EXPECT_THROW(std::make_unique<LMDBKvStore>(
-                        no_permission_dir, (size_t)1 << db_size, true), lgraph_api::LgraphException);
+    UT_EXPECT_THROW(std::make_unique<LMDBKvStore>(no_permission_dir, (size_t)1 << db_size, true),
+        lgraph_api::LgraphException);
 
 #if (!LGRAPH_USE_MOCK_KV)
     try {
@@ -469,7 +469,7 @@ TEST_F(TestKvStore, KvStore) {
             FMA_ASSERT(false);
         } catch (lgraph_api::LgraphException& e) {
             // TODO(botu.wzy): check lmdb error code
-            //UT_EXPECT_EQ(e.code(), EACCES);
+            // UT_EXPECT_EQ(e.code(), EACCES);
             UT_LOG() << "Expected exception: Trying to write in read transaction yields an "
                         "exception "
                      << " and error message: " << e.what();
@@ -496,7 +496,8 @@ TEST_F(TestKvStore, KvStore) {
         UT_EXPECT_TRUE(name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->HasKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
-        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")), lgraph_api::LgraphException);
+        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")),
+                        lgraph_api::LgraphException);
         UT_LOG() << "Now name-age table becomes:";
         DumpTable(
             *name_age, *txn, [](const Value& v) { return v.AsString(); },
@@ -738,7 +739,8 @@ TEST_F(TestKvStore, KvStore) {
         UT_EXPECT_TRUE(name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->HasKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
-        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")), lgraph_api::LgraphException);
+        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")),
+                        lgraph_api::LgraphException);
 
         UT_LOG() << "All passed!";
         UT_LOG() << "Now name-age table becomes:";

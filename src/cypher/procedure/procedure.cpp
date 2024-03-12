@@ -448,7 +448,8 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
                 THROW_CODE(InputError, "The size of each constraint tuple should be 2");
             }
             if (!item[0].is_string() || !item[1].is_string()) {
-                THROW_CODE(InputError, "The element of each constraint tuple should be string type");
+                THROW_CODE(InputError,
+                           "The element of each constraint tuple should be string type");
             }
             edge_constraints.push_back(std::make_pair(item[0], item[1]));
         }
@@ -570,7 +571,7 @@ void BuiltinProcedure::DbAlterLabelAddFields(RTContext *ctx, const Record *recor
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     if (args.size() < 3)
-        THROW_CODE(InputError,"Too few arguments. This function takes 3 or more arguments.");
+        THROW_CODE(InputError, "Too few arguments. This function takes 3 or more arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
     // get field_spec_value
@@ -1261,7 +1262,8 @@ void BuiltinProcedure::DbmsListBackupLogFiles(RTContext *ctx, const cypher::Reco
                                               const cypher::VEC_EXPR &args,
                                               const cypher::VEC_STR &yield_items,
                                               std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.listBackupFiles()",
                                            args.size()))
@@ -1277,7 +1279,8 @@ void BuiltinProcedure::DbmsTakeSnapshot(RTContext *ctx, const cypher::Record *re
                                         const cypher::VEC_EXPR &args,
                                         const cypher::VEC_STR &yield_items,
                                         std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.takeSnapshot()",
                                            args.size()))
@@ -1292,7 +1295,8 @@ void BuiltinProcedure::DbmsSecurityListRoles(RTContext *ctx, const cypher::Recor
                                              const cypher::VEC_EXPR &args,
                                              const cypher::VEC_STR &yield_items,
                                              std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.security.listRoles()",
                                            args.size()))
@@ -1317,7 +1321,8 @@ void BuiltinProcedure::DbmsSecurityListRoles(RTContext *ctx, const cypher::Recor
 void BuiltinProcedure::DbmsSecurityCreateRole(RTContext *ctx, const Record *record,
                                               const VEC_EXPR &args, const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.createRole(role, desc)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string");
@@ -1332,7 +1337,8 @@ void BuiltinProcedure::DbmsSecurityCreateRole(RTContext *ctx, const Record *reco
 void BuiltinProcedure::DbmsSecurityDeleteRole(RTContext *ctx, const Record *record,
                                               const VEC_EXPR &args, const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.deleteRole(role)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1345,7 +1351,8 @@ void BuiltinProcedure::DbmsSecurityDeleteRole(RTContext *ctx, const Record *reco
 void BuiltinProcedure::DbmsSecurityGetUserInfo(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getUserInfo(user)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1359,7 +1366,8 @@ void BuiltinProcedure::DbmsSecurityGetUserPermissions(RTContext *ctx, const Reco
                                                       const VEC_EXPR &args,
                                                       const VEC_STR &yield_items,
                                                       std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1,
                      "need one parameters, e.g. dbms.security.getUserPermissions(user_name)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user_name type should be string");
@@ -1374,7 +1382,8 @@ void BuiltinProcedure::DbmsSecurityGetUserMemoryUsage(RTContext *ctx, const Reco
                                                       const VEC_EXPR &args,
                                                       const VEC_STR &yield_items,
                                                       std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getUserInfo(user)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1387,7 +1396,8 @@ void BuiltinProcedure::DbmsSecurityGetUserMemoryUsage(RTContext *ctx, const Reco
 void BuiltinProcedure::DbmsSecurityGetRoleInfo(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getRoleInfo(role)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string");
     auto rinfo = ctx->galaxy_->GetRoleInfo(ctx->user_, args[0].String());
@@ -1400,7 +1410,8 @@ void BuiltinProcedure::DbmsSecurityGetRoleInfo(RTContext *ctx, const Record *rec
 void BuiltinProcedure::DbmsSecurityDisableRole(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.disableRole(role, disable)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string")
@@ -1415,7 +1426,8 @@ void BuiltinProcedure::DbmsSecurityDisableRole(RTContext *ctx, const Record *rec
 void BuiltinProcedure::DbmsSecurityModRoleDesc(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.modRoleDesc(role, description)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string")
@@ -1432,7 +1444,8 @@ void BuiltinProcedure::DbmsSecurityRebuildRoleAccessLevel(RTContext *ctx, const 
                                                           const VEC_EXPR &args,
                                                           const VEC_STR &yield_items,
                                                           std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(
         args.size() == 2,
         "need two parameters, e.g. dbms.security.modAllRoleAccessLevel(role, access_level)")
@@ -1453,7 +1466,8 @@ void BuiltinProcedure::DbmsSecurityModRoleAccessLevel(RTContext *ctx, const Reco
                                                       const VEC_EXPR &args,
                                                       const VEC_STR &yield_items,
                                                       std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(
         args.size() == 2,
         "need two parameters, e.g. dbms.security.modRoleAccessLevel(role, access_level)")
@@ -1474,7 +1488,8 @@ void BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const
                                                            const VEC_EXPR &args,
                                                            const VEC_STR &yield_items,
                                                            std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 6,
                      "need five parameters, "
                      "e.g. dbms.security.modRoleFieldAccessLevel"
@@ -1569,7 +1584,8 @@ void BuiltinProcedure::DbmsSecuritySetUserDesc(RTContext *ctx, const Record *rec
 void BuiltinProcedure::DbmsSecurityDeleteUserRoles(RTContext *ctx, const Record *record,
                                                    const VEC_EXPR &args, const VEC_STR &yield_items,
                                                    std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.deleteUserRoles(user, roles)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string")
@@ -1591,7 +1607,8 @@ void BuiltinProcedure::DbmsSecurityRebuildUserRoles(RTContext *ctx, const Record
                                                     const VEC_EXPR &args,
                                                     const VEC_STR &yield_items,
                                                     std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.rebuildUserRoles(user, roles)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string")
@@ -1612,7 +1629,8 @@ void BuiltinProcedure::DbmsSecurityRebuildUserRoles(RTContext *ctx, const Record
 void BuiltinProcedure::DbmsSecurityAddUserRoles(RTContext *ctx, const Record *record,
                                                 const VEC_EXPR &args, const VEC_STR &yield_items,
                                                 std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.addUserRoles(user, roles)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string")
@@ -2067,7 +2085,8 @@ void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, c
 void BuiltinProcedure::DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.flushDB()",
                                            args.size()))
@@ -2078,7 +2097,8 @@ void BuiltinProcedure::DbDropDB(RTContext *ctx, const Record *record, const VEC_
                                 const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.dropDB()",
                                            args.size()))
@@ -2105,7 +2125,8 @@ void BuiltinProcedure::DbTaskListTasks(RTContext *ctx, const Record *record, con
 void BuiltinProcedure::DbTaskTerminateTask(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
                                            std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) THROW_CODE(Unauthorized, "Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.task.terminateTask(task_id)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "task_id type should be string")
     lgraph::TaskTracker::TaskId task_id = lgraph::TaskTracker::TaskId();

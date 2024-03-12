@@ -332,7 +332,8 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromZip(const std:
             break;
         }
     }
-    if (plugin_file == "") THROW_CODE(InputError, "Failed to find any .so file in compiled directory.");
+    if (plugin_file == "") THROW_CODE(InputError,
+                                      "Failed to find any .so file in compiled directory.");
     return ReadWholeFile(plugin_file, "plugin binary file");
 }
 

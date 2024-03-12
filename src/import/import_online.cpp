@@ -465,7 +465,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
                     LOG_INFO() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
                                          v.name, spec.name);
                 } else {
-                    THROW_CODE(InputError,"Fulltext index [label:{}, field:{}] already exists",
+                    THROW_CODE(InputError, "Fulltext index [label:{}, field:{}] already exists",
                                                      v.name, spec.name);
                 }
             }

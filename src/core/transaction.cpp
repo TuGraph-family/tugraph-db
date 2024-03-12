@@ -1115,7 +1115,7 @@ Transaction::GetVertexFields(VertexId vid, const std::vector<FieldT>& fds) {
     _detail::CheckVid(vid);
     std::vector<FieldData> fields(fds.size());
     auto vit = graph_->GetUnmanagedVertexIterator(txn_.get(), vid);
-    if (!vit.IsValid()) THROW_CODE(InputError,"Vertex {} does not exist.", vid);
+    if (!vit.IsValid()) THROW_CODE(InputError, "Vertex {} does not exist.", vid);
     Value prop = vit.GetProperty();
     FMA_DBG_ASSERT(prop.IsSlice());
     auto schema = curr_schema_->v_schema_manager.GetSchema(prop);

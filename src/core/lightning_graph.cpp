@@ -860,7 +860,7 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         std::unordered_set<std::string> s;
         for (auto& f : to_mod) {
             if (s.find(f.name) != s.end())
-                THROW_CODE(InputError,"Field [{}] is specified more than once.", f.name);
+                THROW_CODE(InputError, "Field [{}] is specified more than once.", f.name);
             s.insert(f.name);
         }
     }
@@ -1324,7 +1324,7 @@ std::vector<std::pair<int64_t, float>> LightningGraph::QueryVertexByFullTextInde
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     auto schema = curr_schema_info->v_schema_manager.GetSchema(label);
     if (!schema) {
-        THROW_CODE(InputError,"Vertex Label [{}] does not exist.", label);
+        THROW_CODE(InputError, "Vertex Label [{}] does not exist.", label);
     }
     if (fulltext_index_) {
         return fulltext_index_->QueryVertex(schema->GetLabelId(), query, top_n);
@@ -1582,7 +1582,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                                : new_schema->e_schema_manager.GetSchema(label);
     if (!schema) {
         if (is_vertex)
-            THROW_CODE(InputError,"Vertex label \"{}\" does not exist.", label);
+            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
         else
             THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
     }
@@ -1598,7 +1598,8 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
 
     if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
                                     type == IndexType::PairUniqueIndex)) {
-        THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]", label, field);
+        THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
+                   label, field);
     }
     if (extractor->Type() == FieldType::BLOB) {
         THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
@@ -2330,7 +2331,8 @@ void LightningGraph::Snapshot(Transaction& txn, const std::string& path) {
     // create parent dir if not exist
     auto& fs = fma_common::FileSystem::GetFileSystem(path);
     if (!fs.IsDir(path)) {
-        if (!fs.Mkdir(path)) THROW_CODE(InternalError, "Failed to create dir " + path + " for snapshot.");
+        if (!fs.Mkdir(path)) THROW_CODE(InternalError,
+                                        "Failed to create dir " + path + " for snapshot.");
     } else {
         fs.Remove(path + fma_common::LocalFileSystem::PATH_SEPERATOR() + "data.mdb");
         fs.Remove(path + fma_common::LocalFileSystem::PATH_SEPERATOR() + "lock.mdb");

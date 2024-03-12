@@ -262,7 +262,8 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
     case ModUserRequest::kSetPassword:
         {
             if (!ait->second.builtin_auth)
-                THROW_CODE(InputError, "Cannot set password to users using external authentication.");
+                THROW_CODE(InputError,
+                           "Cannot set password to users using external authentication.");
             auto r = request.set_password();
             lgraph::CheckValidPassword(r.new_pass());
             if (user == curr_user) {
@@ -285,7 +286,8 @@ bool lgraph::AclManager::ModUser(KvTransaction& txn, const std::string& curr_use
         }
     case ModUserRequest::kSetRoles:
         {
-            if (!IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin uesr cannot modify roles.");
+            if (!IsAdmin(curr_user))
+                THROW_CODE(Unauthorized, "Non-admin uesr cannot modify roles.");
             auto& new_roles = request.set_roles().values();
             CheckRolesExist(txn, new_roles);
             uinfo.roles.clear();
@@ -782,7 +784,8 @@ bool lgraph::AclManager::ChangeCurrentPassword(KvTransaction& txn, const std::st
 
 bool lgraph::AclManager::ChangeUserPassword(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const std::string& password) {
-    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
+    if (!IsAdmin(current_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     lgraph::CheckValidUserName(user);
     lgraph::CheckValidPassword(password);
     auto ait = user_cache_.find(user);
@@ -896,7 +899,8 @@ bool lgraph::AclManager::AddUserRoles(KvTransaction& txn, const std::string& cur
 
 bool lgraph::AclManager::SetUserMemoryLimit(KvTransaction& txn, const std::string& current_user,
                                             const std::string& user, const size_t& memory_limit) {
-    if (!IsAdmin(current_user)) THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
+    if (!IsAdmin(current_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     lgraph::CheckValidUserName(user);
     auto ait = user_cache_.find(user);
     if (ait == user_cache_.end()) return false;

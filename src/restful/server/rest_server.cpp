@@ -432,7 +432,8 @@ void RestServer::Start() {
 #ifndef _WIN32
         // for http over ssl, https
         fma_common::InputFmaStream is(config_.server_key);
-        if (!is.Good()) THROW_CODE(InternalError, "Failed to open server key file " + config_.server_key);
+        if (!is.Good()) THROW_CODE(InternalError,
+                                   "Failed to open server key file " + config_.server_key);
         std::string key_buf(is.Size(), 0);
         is.Read(&key_buf[0], key_buf.size());
         is.Close();
@@ -3023,7 +3024,7 @@ void RestServer::handle_get(http_request request) {
         }
         FMA_ASSERT(false);  // we should have treated every case in switch()
     } catch (lgraph_api::LgraphException& e) {
-        switch(e.code()) {
+        switch (e.code()) {
             case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
@@ -3146,7 +3147,7 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         }
         FMA_ASSERT(false);
     } catch (lgraph_api::LgraphException& e) {
-        switch(e.code()) {
+        switch (e.code()) {
             case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
@@ -3221,7 +3222,7 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
             return RespondBadURI(request);
         }
     } catch (lgraph_api::LgraphException& e) {
-        switch(e.code()) {
+        switch (e.code()) {
             case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
