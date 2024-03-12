@@ -798,13 +798,15 @@ TEST_F(TestLGraphApi, LGraphApi) {
         }
         {
             UT_LOG() << "Test Exception";
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGalaxy), "Invalid Galaxy");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGraphDB), "Invalid GraphDB.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidTxn), "Invalid transaction.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidIterator), "Invalid iterator.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidFork), "Write transactions cannot be forked.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(TaskKilled), "Task killed.");
-            UT_EXPECT_THROW_MSG(THROW_CODE(IOError), "IO Error.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGalaxy), "[InvalidGalaxy] Invalid Galaxy.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidGraphDB), "[InvalidGraphDB] Invalid GraphDB.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidTxn), "[InvalidTxn] Invalid transaction.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidIterator),
+                                "[InvalidIterator] Invalid iterator.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(InvalidFork),
+                                "[InvalidFork] Write transactions cannot be forked.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(TaskKilled), "[TaskKilled] Task is killed.");
+            UT_EXPECT_THROW_MSG(THROW_CODE(IOError), "[IOError] IO Error.");
         }
         {
             UT_LOG() << "Test Lgraph Types";

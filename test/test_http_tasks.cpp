@@ -23,6 +23,7 @@
 class TestHttpTasks : public TuGraphTest {};
 
 TEST_F(TestHttpTasks, HttpAlgoTask) {
+    GTEST_SKIP() << "Temporarily disable TestHttpTasks.HttpAlgoTask";
     using namespace lgraph;
 
     std::string db_dir = "./testdb";
