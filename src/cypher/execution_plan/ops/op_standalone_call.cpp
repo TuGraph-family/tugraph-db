@@ -42,7 +42,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
             // TODO(anyone): return records other than just strings
             auto &header = ctx->result_->Header();
             if (header.size() > 1)
-                throw lgraph::InputError(FMA_FMT("Plugin [{}] header is excaption.", names[2]));
+                THROW_CODE(InputError, "Plugin [{}] header is excaption.", names[2]);
             auto title = header[0].first;
             for (auto &p : plugins) {
                 std::string s;
@@ -55,7 +55,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         } else {
             if (ctx->txn_) ctx->txn_->Abort();
             bool exists = Utils::CallPlugin(*ctx, type, names[2], parameters, output);
-            if (!exists) throw lgraph::InputError("Plugin [{}] does not exist.", names[2]);
+            if (!exists) THROW_CODE(InputError, "Plugin [{}] does not exist.", names[2]);
             ctx->result_->Load(output);
 #if 0
             /* TODO(anyone): redundant parse */

@@ -62,7 +62,7 @@ class Transaction {
 
     /**
      * @brief   Commits this transaction. Note that optimistic write transactions may fail to
-     *          commit (an TxnConflictError would be thrown).
+     *          commit (an TxnConflict would be thrown).
      */
     void Commit();
 

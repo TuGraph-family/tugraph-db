@@ -275,10 +275,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
         }
 
         if (this->num_vertices_ == 0) {
-            throw InputError("The graph vertex cannot be empty");
+            THROW_CODE(InputError, "The graph vertex cannot be empty");
         }
         if (this->num_edges_ == 0) {
-            throw InputError("The graph edge cannot be empty");
+            THROW_CODE(InputError, "The graph edge cannot be empty");
         }
         if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
         if (this->num_vertices_ == 0) {
@@ -1179,10 +1179,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
         }
 
         if (this->num_vertices_ == 0) {
-            throw InputError("The graph vertex cannot be empty");
+            THROW_CODE(InputError, "The graph vertex cannot be empty");
         }
         if (this->num_edges_ == 0) {
-            throw InputError("The graph edge cannot be empty");
+            THROW_CODE(InputError, "The graph edge cannot be empty");
         }
         if (ShouldKillThisTask(task_ctx)) throw std::runtime_error("Task killed");
         if (this->num_vertices_ == 0) {

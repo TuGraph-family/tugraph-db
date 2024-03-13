@@ -24,7 +24,7 @@ lgraph::SingleLanguagePluginManager::SingleLanguagePluginManager(
     plugin_dir_ = plugin_dir;
     auto& fs = fma_common::FileSystem::GetFileSystem(plugin_dir);
     if (!fs.IsDir(plugin_dir) && !fs.Mkdir(plugin_dir)) {
-        throw InternalError("Failed to create plugin dir [{}].", plugin_dir);
+        THROW_CODE(InternalError, "Failed to create plugin dir [{}].", plugin_dir);
     }
     table_ = store.OpenTable(txn, table_name, true, ComparatorDesc::DefaultComparator());
     LoadAllPlugins(txn);
@@ -40,7 +40,7 @@ lgraph::SingleLanguagePluginManager::SingleLanguagePluginManager(
     plugin_dir_ = plugin_dir;
     auto& fs = fma_common::FileSystem::GetFileSystem(plugin_dir);
     if (!fs.IsDir(plugin_dir) && !fs.Mkdir(plugin_dir)) {
-        throw InternalError("Failed to create plugin dir [{}].", plugin_dir);
+        THROW_CODE(InternalError, "Failed to create plugin dir [{}].", plugin_dir);
     }
     auto txn = db_->CreateWriteTxn();
     table_ = db_->GetStore().OpenTable(txn.GetTxn(), table_name, true,
@@ -208,11 +208,11 @@ static void ExecuteCommand(const std::string& cmd, size_t timeout_ms,
                            const std::string& msg_timeout, const std::string& msg_fail) {
     lgraph::SubProcess proc(cmd, false);
     if (!proc.Wait(lgraph::_detail::MAX_UNZIP_TIME_MS))
-        throw lgraph::InputError(FMA_FMT("{} \nStdout:----\n{}\nStderr:----\n{}", msg_timeout,
-                                         proc.Stdout(), proc.Stderr()));
+        THROW_CODE(InputError, "{} \nStdout:----\n{}\nStderr:----\n{}", msg_timeout,
+                                         proc.Stdout(), proc.Stderr());
     if (proc.GetExitCode())
-        throw lgraph::InputError(FMA_FMT("{} \nStdout:----\n{}\nStderr:----\n{}", msg_fail,
-                                         proc.Stdout(), proc.Stderr()));
+        THROW_CODE(InputError, "{} \nStdout:----\n{}\nStderr:----\n{}", msg_fail,
+                                         proc.Stdout(), proc.Stderr());
 }
 
 static inline std::string GenUniqueTempDir(const std::string& base, const std::string& name) {
@@ -224,25 +224,25 @@ static inline std::string GenUniqueTempDir(const std::string& base, const std::s
 static inline void WriteWholeFile(const std::string& path, const std::string& code,
                                   const std::string& file_desc) {
     fma_common::OutputFmaStream ofs(path);
-    if (!ofs.Good()) throw lgraph::InternalError("Failed to write {} [{}].", file_desc, path);
+    if (!ofs.Good()) THROW_CODE(InternalError, "Failed to write {} [{}].", file_desc, path);
     ofs.Write(code.data(), code.size());
 }
 
 static inline std::string ReadWholeFile(const std::string& path, const std::string& file_desc) {
     fma_common::InputFmaStream ifs(path, 0);
-    if (!ifs.Good()) throw lgraph::InternalError("Failed to open {} [{}].", file_desc, path);
+    if (!ifs.Good()) THROW_CODE(InternalError, "Failed to open {} [{}].", file_desc, path);
     size_t sz = ifs.Size();
     std::string code;
     code.resize(sz);
     size_t ssz = ifs.Read(&code[0], sz);
-    if (ssz != sz) throw lgraph::InternalError("Failed to read {} [{}].", file_desc, path);
+    if (ssz != sz) THROW_CODE(InternalError, "Failed to read {} [{}].", file_desc, path);
     return code;
 }
 
 std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
     const std::string& name, const std::string& cython) {
 #ifdef _WIN32
-    throw InputError("Compiling cython is not supported on Windows.");
+    THROW_CODE(InputError, "Compiling cython is not supported on Windows.");
 #endif
     std::string base_dir = impl_->GetPluginDir();
     auto& fs = fma_common::FileSystem::GetFileSystem(base_dir);
@@ -283,9 +283,9 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
         "g++ -fno-gnu-unique -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
         CFLAGS, plugin_path, cpp_file_path, LDFLAGS);
 #elif __APPLE__
-    throw InputError("Compiling cython is not supported on APPLE.");
+    THROW_CODE(InputError, "Compiling cython is not supported on APPLE.");
 #else
-    throw InputError("Compiling cython is not supported on clang.");
+    THROW_CODE(InputError, "Compiling cython is not supported on clang.");
 #endif
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while compiling plugin.",
                    "Failed to compile plugin.");
@@ -297,7 +297,7 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCython(
 std::string lgraph::SingleLanguagePluginManager::CompilePluginFromZip(const std::string& name,
                                                                       const std::string& zip) {
 #ifdef _WIN32
-    throw InputError("Compiling ZIP is not supported on Windows.");
+    THROW_CODE(InputError, "Compiling ZIP is not supported on Windows.");
 #endif
     std::string base_dir = impl_->GetPluginDir();
     auto& fs = fma_common::FileSystem::GetFileSystem(base_dir);
@@ -332,7 +332,8 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromZip(const std:
             break;
         }
     }
-    if (plugin_file == "") throw InputError("Failed to find any .so file in compiled directory.");
+    if (plugin_file == "") THROW_CODE(InputError,
+                                      "Failed to find any .so file in compiled directory.");
     return ReadWholeFile(plugin_file, "plugin binary file");
 }
 
@@ -417,7 +418,7 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     plugin::CodeType code_type, const std::string& desc, bool read_only,
     const std::string& version) {
     // check input
-    if (code.empty()) throw InputError("Code cannot be empty.");
+    if (code.empty()) THROW_CODE(InputError, "Code cannot be empty.");
     if (!IsValidPluginName(name_)) throw InvalidPluginNameException(name_);
     if (version != plugin::PLUGIN_VERSION_1 && version != plugin::PLUGIN_VERSION_2) {
         throw InvalidPluginVersionException(version);
@@ -463,7 +464,7 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
         exe = CompilePluginFromZip(name, code);
         break;
     default:
-        throw InternalError("Unhandled code_type [{}].", code_type);
+        THROW_CODE(InternalError, "Unhandled code_type [{}].", code_type);
         return false;
     }
 
@@ -487,7 +488,7 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
         UpdateZipToKvStore(txn.GetTxn(), name, code);
         break;
     default:
-        throw InternalError("Unhandled code_type [{}].", code_type);
+        THROW_CODE(InternalError, "Unhandled code_type [{}].", code_type);
         return false;
     }
     // commit
@@ -542,7 +543,7 @@ bool lgraph::SingleLanguagePluginManager::IsReadOnlyPlugin(const std::string& us
     std::string name = ToInternalName(name_);
     AutoReadLock lock(lock_, GetMyThreadId());
     auto it = procedures_.find(name);
-    if (it == procedures_.end()) throw InputError("Plugin [{}] does not exist.", name);
+    if (it == procedures_.end()) THROW_CODE(InputError, "Plugin [{}] does not exist.", name);
     return it->second->read_only;
 }
 
@@ -638,8 +639,7 @@ void lgraph::SingleLanguagePluginManager::LoadAllPlugins(KvTransaction& txn) {
             procedures_.emplace(std::make_pair(name, pinfo.release()));
             LOG_DEBUG() << "Loaded plugin " << name;
         } catch (const std::exception& e) {
-            std::throw_with_nested(
-                InternalError("Failed to load plugin [{}], err: {}", name, e.what()));
+            THROW_CODE(InternalError, "Failed to load plugin [{}], err: {}", name, e.what());
         }
     }
 }

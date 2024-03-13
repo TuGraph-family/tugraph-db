@@ -85,7 +85,7 @@ class Transaction {
     std::unordered_map<LabelId, int64_t> edge_delta_count_;
     void ThrowIfReadOnlyTxn() const {
         if (read_only_)
-            throw lgraph_api::WriteNotAllowedError(
+            THROW_CODE(WriteNotAllowed,
                 "Write operation not allowed in read-only transaction.");
     }
 
@@ -307,7 +307,7 @@ class Transaction {
     SetVertexProperty(graph::VertexIterator& it, const std::vector<FieldT>& fields,
                       const std::vector<DataT>& data) {
         if (fields.size() != data.size())
-            throw InputError("Number of fields and number of data values does not match");
+            THROW_CODE(InputError, "Number of fields and number of data values does not match");
         SetVertexProperty(it, fields.size(), fields.data(), data.data());
     }
 
@@ -428,7 +428,7 @@ class Transaction {
                             void>::type
     SetEdgeProperty(EIT& it, const std::vector<FieldT>& fields, const std::vector<DataT>& values) {
         if (fields.size() != values.size())
-            throw InputError("Number of fields and number of data values does not match");
+            THROW_CODE(InputError, "Number of fields and number of data values does not match");
         return SetEdgeProperty(it, fields.size(), fields.data(), values.data());
     }
 
@@ -494,9 +494,8 @@ class Transaction {
             is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
         Schema* schema = sm.GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("{} Label \"{}\" does not exist.",
-                                                    is_vertex ? "vertex" : "edge", label));
+            THROW_CODE(InputError, "{} Label \"{}\" does not exist.",
+                                  is_vertex ? "vertex" : "edge", label);
         return schema->GetFieldSpecs();
     }
 
@@ -505,40 +504,35 @@ class Transaction {
             is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
         Schema* schema = sm.GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
         return schema->GetFieldSpecsAsMap();
     }
 
     const std::string& GetVertexPrimaryField(const std::string& label) {
         Schema* schema = curr_schema_->v_schema_manager.GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Vertex label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
         return schema->GetPrimaryField();
     }
 
     bool HasTemporalField(const std::string& label) {
         Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Edge label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
         return schema->HasTemporalField();
     }
 
     const std::string& GetEdgeTemporalField(const std::string& label) {
         Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Edge label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
         return schema->GetTemporalField();
     }
 
     const EdgeConstraints& GetEdgeConstraints(const std::string& label) {
         Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Edge Label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Edge Label \"{}\" does not exist.", label);
         return schema->GetEdgeConstraints();
     }
 
@@ -636,7 +630,7 @@ class Transaction {
         const EdgeUid& uid, const std::vector<FieldT>& fds) {
         _detail::CheckEdgeUid(uid);
         auto eit = graph_->GetUnmanagedOutEdgeIterator(txn_.get(), uid, false);
-        if (!eit.IsValid()) throw InputError("Edge does not exist");
+        if (!eit.IsValid()) THROW_CODE(InputError, "Edge does not exist");
         return GetEdgeFields(eit, fds);
     }
 
@@ -679,7 +673,7 @@ class Transaction {
     AddVertex(const LabelT& label, const std::vector<FieldT>& fields,
               const std::vector<DataT>& values) {
         if (fields.size() != values.size())
-            throw InputError("Number of fields and data values do not match");
+            THROW_CODE(InputError, "Number of fields and data values do not match");
         return AddVertex(label, fields.size(), fields.data(), values.data());
     }
 
@@ -748,7 +742,7 @@ class Transaction {
         _detail::CheckVid(src);
         _detail::CheckVid(dst);
         if (fields.size() != values.size())
-            throw InputError("Number of fields and data values do not match");
+            THROW_CODE(InputError, "Number of fields and data values do not match");
         return AddEdge(src, dst, label, fields.size(), fields.data(), values.data());
     }
 
@@ -764,7 +758,7 @@ class Transaction {
     UpsertEdge(VertexId src, VertexId dst, const LabelT& label, const std::vector<FieldT>& fields,
                const std::vector<DataT>& values) {
         if (fields.size() != values.size())
-            throw InputError("Number of fields and data values do not match");
+            THROW_CODE(InputError, "Number of fields and data values do not match");
         return UpsertEdge(src, dst, label, fields.size(), fields.data(), values.data());
     }
 
@@ -818,7 +812,7 @@ class Transaction {
                       const std::vector<DataT>& values) {
         _detail::CheckVid(id);
         if (fields.size() != values.size())
-            throw InputError("Number of fields and data values do not match");
+            THROW_CODE(InputError, "Number of fields and data values do not match");
         return SetVertexProperty(id, fields.size(), fields.data(), values.data());
     }
 
@@ -863,7 +857,7 @@ class Transaction {
                     const std::vector<DataT>& values) {
         _detail::CheckEdgeUid(uid);
         if (fields.size() != values.size())
-            throw InputError("Number of fields and data values do not match");
+            THROW_CODE(InputError, "Number of fields and data values do not match");
         return SetEdgeProperty(uid, fields.size(), fields.data(), values.data());
     }
 

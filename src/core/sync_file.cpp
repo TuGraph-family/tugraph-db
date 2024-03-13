@@ -36,7 +36,7 @@ void lgraph::SyncFile::Open(const std::string &path) {
     path_ = path;
     file_.open(path, std::ios_base::binary | std::ios_base::trunc);
     if (!file_.good())
-        throw lgraph_api::IOError(FMA_FMT("Failed to open file {} for write", path_));
+        THROW_CODE(IOError, "Failed to open file {} for write", path_);
 }
 
 void lgraph::SyncFile::Close() {
@@ -61,9 +61,9 @@ void lgraph::SyncFile::Open(const std::string &path) {
     path_ = path;
     file_ = open(path_.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
     if (file_ == -1)
-        throw lgraph_api::IOError(
-            FMA_FMT("Failed to open file {} for write: {}",
-                    path_, std::string(strerror(errno))));
+        THROW_CODE(IOError,
+            "Failed to open file {} for write: {}",
+                    path_, std::string(strerror(errno)));
 }
 
 void lgraph::SyncFile::Close() {
@@ -87,9 +87,8 @@ void lgraph::SyncFile::Sync() {
     auto& buf = buffer_.GetBuf();
     ssize_t r = write(file_, buf.data(), buf.size());
     if (r == -1)
-        throw lgraph_api::IOError(
-            FMA_FMT("Failed to write to file {}: {}",
-                    path_, std::string(strerror(errno))));
+        THROW_CODE(IOError, "Failed to write to file {}: {}",
+                   path_, std::string(strerror(errno)));
     buf.clear();
     // sync
     fsync(file_);

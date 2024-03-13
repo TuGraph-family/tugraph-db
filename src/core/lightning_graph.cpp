@@ -143,47 +143,44 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         if (fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SKIP) ||
             fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
             fds[i].name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
-            throw InputError(FMA_FMT(
-                R"(Label[{}]: Property name cannot be "SKIP" or "SRC_ID" or "DST_ID")", label));
+            THROW_CODE(InputError,
+                R"(Label[{}]: Property name cannot be "SKIP" or "SRC_ID" or "DST_ID")", label);
         }
         auto ret = unique_fds.insert(fds[i].name);
         if (!ret.second)
-            throw InputError(
-                FMA_FMT("Label[{}]: Duplicate property definition: [{}]", label, fds[i].name));
+            THROW_CODE(InputError,
+                "Label[{}]: Duplicate property definition: [{}]", label, fds[i].name);
     }
 
     // check constraints
     if (is_vertex) {
         const auto& primary_field = dynamic_cast<const VertexOptions&>(options).primary_field;
         if (n_fields == 0)
-            throw InputError(FMA_FMT("Vertex[{}]: Schema must have properties", label));
+            THROW_CODE(InputError, "Vertex[{}]: Schema must have properties", label);
         if (primary_field.empty())
-            throw InputError(
-                FMA_FMT("Vertex[{}]: Schema must specify the primary property", label));
+            THROW_CODE(InputError, "Vertex[{}]: Schema must specify the primary property", label);
         bool found = false;
         for (size_t i = 0; i < n_fields; i++) {
             if (fds[i].name != primary_field) continue;
             found = true;
             if (fds[i].optional)
-                throw InputError(
-                    FMA_FMT("Vertex[{}]: Primary property can not be optional", label));
+                THROW_CODE(InputError, "Vertex[{}]: Primary property can not be optional", label);
         }
-        if (!found) throw InputError(FMA_FMT("Vertex[{}]: No primary property found", label));
+        if (!found) THROW_CODE(InputError, "Vertex[{}]: No primary property found", label);
     } else {
         const auto& edge_constraints = dynamic_cast<const EdgeOptions&>(options).edge_constraints;
         auto temp = edge_constraints;
         std::sort(temp.begin(), temp.end());
         auto iter = std::unique(temp.begin(), temp.end());
         if (iter != temp.end()) {
-            throw InputError(
-                FMA_FMT("Duplicate constraints: [{}, {}]", iter->first, iter->second));
+            THROW_CODE(InputError, "Duplicate constraints: [{}, {}]", iter->first, iter->second);
         }
         ScopedRef<SchemaInfo> schema = schema_.GetScopedRef();
         auto schema_info = schema.Get();
         for (auto& constraint : edge_constraints) {
             for (auto& vertex_label : {constraint.first, constraint.second}) {
                 if (!schema_info->v_schema_manager.GetSchema(vertex_label)) {
-                    throw InputError(FMA_FMT("No such vertex label: {}", vertex_label));
+                    THROW_CODE(InputError, "No such vertex label: {}", vertex_label);
                 }
             }
         }
@@ -573,7 +570,7 @@ bool LightningGraph::ClearEdgeConstraints(const std::string& edge_label) {
     std::unique_ptr<SchemaInfo> new_schema_info(new SchemaInfo(*curr_schema_info.Get()));
     Schema* e_schema = new_schema_info->e_schema_manager.GetSchema(edge_label);
     if (!e_schema) {
-        throw InputError("No such edge label: " + edge_label);
+        THROW_CODE(InputError, "No such edge label: " + edge_label);
     }
     Schema new_e_schema(*e_schema);
     new_e_schema.SetEdgeConstraints(EdgeConstraints());
@@ -590,15 +587,14 @@ bool LightningGraph::AddEdgeConstraints(const std::string& edge_label,
     {
         // check empty
         if (constraints.empty()) {
-            throw InputError(FMA_FMT("Constraints are empty"));
+            THROW_CODE(InputError, "Constraints are empty");
         }
         // check duplicate
         auto temp = constraints;
         std::sort(temp.begin(), temp.end());
         auto iter = std::unique(temp.begin(), temp.end());
         if (iter != temp.end()) {
-            throw InputError(
-                FMA_FMT("Duplicate constraints: [{}, {}]", iter->first, iter->second));
+            THROW_CODE(InputError, "Duplicate constraints: [{}, {}]", iter->first, iter->second);
         }
     }
     _HoldWriteLock(meta_lock_);
@@ -607,25 +603,25 @@ bool LightningGraph::AddEdgeConstraints(const std::string& edge_label,
     std::unique_ptr<SchemaInfo> new_schema_info(new SchemaInfo(*curr_schema_info.Get()));
     Schema* e_schema = new_schema_info->e_schema_manager.GetSchema(edge_label);
     if (!e_schema) {
-        throw InputError("No such edge label: " + edge_label);
+        THROW_CODE(InputError, "No such edge label: " + edge_label);
     }
     Schema new_e_schema(*e_schema);
     EdgeConstraints ecs = new_e_schema.GetEdgeConstraints();
     if (ecs.empty()) {
-        throw InputError(FMA_FMT("Failed to add constraint: "
-            "edge[{}] constraints are empty", edge_label));
+        THROW_CODE(InputError, "Failed to add constraint: "
+            "edge[{}] constraints are empty", edge_label);
     }
     for (auto& ec : constraints) {
         for (auto& vertex_label : {ec.first, ec.second}) {
             if (!new_schema_info->v_schema_manager.GetSchema(vertex_label)) {
-                throw InputError(FMA_FMT("No such vertex label: {}", vertex_label));
+                THROW_CODE(InputError, "No such vertex label: {}", vertex_label);
             }
         }
         auto iter = std::find_if(ecs.begin(), ecs.end(),
                                  [&ec](auto &item){return ec == item;});
         if (iter != ecs.end()) {
-            throw InputError(FMA_FMT("Failed to add constraint: "
-                "constraint [{},{}] already exist", ec.first, ec.second));
+            THROW_CODE(InputError, "Failed to add constraint: "
+                "constraint [{},{}] already exist", ec.first, ec.second);
         }
     }
     ecs.insert(ecs.end(), constraints.begin(), constraints.end());
@@ -687,7 +683,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
     std::vector<std::string> del_fields(del_fields_);
     std::sort(del_fields.begin(), del_fields.end());
     del_fields.erase(std::unique(del_fields.begin(), del_fields.end()), del_fields.end());
-    if (del_fields.empty()) throw InputError("No fields specified.");
+    if (del_fields.empty()) THROW_CODE(InputError, "No fields specified.");
 
     // get fids of the fields in new schema
     std::vector<size_t> new_fids;
@@ -772,15 +768,15 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
     LOG_INFO() << FMA_FMT("Adding fields {} with values {} to {} label [{}].", to_add,
                                         default_values, is_vertex ? "vertex" : "edge", label);
     _HoldReadLock(meta_lock_);
-    if (to_add.empty()) throw InputError("No fields specified.");
+    if (to_add.empty()) THROW_CODE(InputError, "No fields specified.");
     if (to_add.size() != default_values.size())
-        throw InputError("Number of fields and default values are not equal.");
+        THROW_CODE(InputError, "Number of fields and default values are not equal.");
     // de-duplicate
     {
         std::unordered_set<std::string> s;
         for (auto& f : to_add) {
             if (s.find(f.name) != s.end())
-                throw InputError(FMA_FMT("Field [{}] is defined more than once.", f.name));
+                THROW_CODE(InputError, "Field [{}] is defined more than once.", f.name);
             s.insert(f.name);
         }
     }
@@ -789,9 +785,9 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
         for (size_t i = 0; i < to_add.size(); i++) {
             auto& fs = to_add[i];
             if (!fs.optional && default_values[i].IsNull())
-                throw InputError(
-                    FMA_FMT("Field [{}] is declared as non-optional but the default value is NULL.",
-                            fs.name));
+                THROW_CODE(InputError,
+                           "Field [{}] is declared as non-optional but the default value is NULL.",
+                           fs.name);
         }
     }
 
@@ -858,13 +854,13 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
     LOG_INFO() << FMA_FMT("Modifying fields {} in {} label [{}].", to_mod,
                                         is_vertex ? "vertex" : "edge", label);
     _HoldReadLock(meta_lock_);
-    if (to_mod.empty()) throw InputError("No fields specified.");
+    if (to_mod.empty()) THROW_CODE(InputError, "No fields specified.");
     // de-duplicate
     {
         std::unordered_set<std::string> s;
         for (auto& f : to_mod) {
             if (s.find(f.name) != s.end())
-                throw InputError(FMA_FMT("Field [{}] is specified more than once.", f.name));
+                THROW_CODE(InputError, "Field [{}] is specified more than once.", f.name);
             s.insert(f.name);
         }
     }
@@ -879,15 +875,15 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         for (auto& f : to_mod) {
             auto* extractor = curr_schema->GetFieldExtractor(f.name);
             if (extractor->Type() == FieldType::BLOB && f.type != FieldType::BLOB) {
-                throw InputError(
-                    FMA_FMT("Field [{}] is of type BLOB, which cannot be converted to other types.",
-                            f.name));
+                THROW_CODE(InputError,
+                           "Field [{}] is of type BLOB, which cannot be converted to other types.",
+                            f.name);
             }
             if (extractor->FullTextIndexed()) {
-                throw InputError(
-                    FMA_FMT("Field [{}] has fulltext index, which cannot be converted to other "
+                THROW_CODE(InputError,
+                    "Field [{}] has fulltext index, which cannot be converted to other "
                             "non-STRING types.",
-                            f.name));
+                            f.name);
             }
         }
         Schema new_schema(*curr_schema);
@@ -1172,9 +1168,9 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         // but still good to find duplicates early
                         for (size_t i = 1; i < key_vids.size(); i++) {
                             if (key_vids[i].key == key_vids[i - 1].key)
-                                throw InputError(FMA_FMT(
+                                THROW_CODE(InputError,
                                     "Duplicate vertex keys [{}] found for vids {} and {}.",
-                                    key_vids[i].key, key_vids[i - 1].vid, key_vids[i].vid));
+                                    key_vids[i].key, key_vids[i - 1].vid, key_vids[i].vid);
                         }
                         for (auto& kv : key_vids)
                             index->_AppendVertexIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
@@ -1203,7 +1199,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         break;
                     }
                 case IndexType::PairUniqueIndex:
-                    throw InputError("vertex index do not support pair-unique attributes");
+                    THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
                 }
             } else {
                 // multiple blocks, use regular index calls
@@ -1261,12 +1257,12 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                         // but still good to find duplicates early
                         for (size_t i = 1; i < key_euids.size(); i++) {
                             if (key_euids[i].key == key_euids[i - 1].key)
-                                throw InputError(FMA_FMT(
+                                THROW_CODE(InputError,
                                     "Duplicate edge index keys [{}] found for vid {} dst {} eid {},"
                                     "and {} {} {}.",
                                     key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
                                     key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                                    key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                                    key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid);
                         }
                         for (auto& kv : key_euids)
                             edge_index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
@@ -1279,12 +1275,12 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                             if (key_euids[i].key == key_euids[i - 1].key &&
                                 key_euids[i].euid.src == key_euids[i - 1].euid.src &&
                                 key_euids[i].euid.dst == key_euids[i - 1].euid.dst)
-                                throw InputError(FMA_FMT(
+                                THROW_CODE(InputError,
                                     "Duplicate edge index keys-vid [{}] found for vid {} "
                                     "dst{} eid {}, and {} {} {}.",
                                     key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
                                     key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                                    key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                                    key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid);
                         }
                         for (auto& kv : key_euids)
                             edge_index->_AppendIndexEntry(txn.GetTxn(), GetKeyConstRef(kv.key),
@@ -1328,7 +1324,7 @@ std::vector<std::pair<int64_t, float>> LightningGraph::QueryVertexByFullTextInde
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     auto schema = curr_schema_info->v_schema_manager.GetSchema(label);
     if (!schema) {
-        throw InputError(FMA_FMT("Vertex Label [{}] does not exist.", label));
+        THROW_CODE(InputError, "Vertex Label [{}] does not exist.", label);
     }
     if (fulltext_index_) {
         return fulltext_index_->QueryVertex(schema->GetLabelId(), query, top_n);
@@ -1342,7 +1338,7 @@ std::vector<std::pair<EdgeUid, float>> LightningGraph::QueryEdgeByFullTextIndex(
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
     auto schema = curr_schema_info->e_schema_manager.GetSchema(label);
     if (!schema) {
-        throw InputError(FMA_FMT("Edge Label [{}] does not exist.", label));
+        THROW_CODE(InputError, "Edge Label [{}] does not exist.", label);
     }
     if (fulltext_index_) {
         return fulltext_index_->QueryEdge(schema->GetLabelId(), query, top_n);
@@ -1401,20 +1397,20 @@ void LightningGraph::RebuildFullTextIndex(const std::set<std::string>& v_labels,
     for (const auto& label : v_labels) {
         auto* schema = curr_schema_info->v_schema_manager.GetSchema(label);
         if (!schema) {
-            throw InputError(FMA_FMT("Vertex Label [{}] does not exist.", label));
+            THROW_CODE(InputError, "Vertex Label [{}] does not exist.", label);
         }
         if (schema->GetFullTextFields().empty()) {
-            throw InputError(FMA_FMT("Vertex Label [{}] has no fulltext index.", label));
+            THROW_CODE(InputError, "Vertex Label [{}] has no fulltext index.", label);
         }
         v_lids.emplace(schema->GetLabelId());
     }
     for (const auto& label : e_labels) {
         auto* schema = curr_schema_info->e_schema_manager.GetSchema(label);
         if (!schema) {
-            throw InputError(FMA_FMT("Edge Label [{}] does not exist.", label));
+            THROW_CODE(InputError, "Edge Label [{}] does not exist.", label);
         }
         if (schema->GetFullTextFields().empty()) {
-            throw InputError(FMA_FMT("Edge Label [{}] has no fulltext index.", label));
+            THROW_CODE(InputError, "Edge Label [{}] has no fulltext index.", label);
         }
         e_lids.emplace(schema->GetLabelId());
     }
@@ -1504,7 +1500,7 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
 bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
                                       const std::string& field) {
     if (!fulltext_index_) {
-        throw InputError("Fulltext index is not enabled");
+        THROW_CODE(InputError, "Fulltext index is not enabled");
     }
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
@@ -1516,11 +1512,11 @@ bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
         schema = new_schema->e_schema_manager.GetSchema(label);
     }
     if (!schema) {
-        throw InputError(FMA_FMT("label \"{}\" does not exist.", label));
+        THROW_CODE(InputError, "label \"{}\" does not exist.", label);
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
-        throw InputError(FMA_FMT("field \"{}\":\"{}\" does not exist.", label, field));
+        THROW_CODE(InputError, "field \"{}\":\"{}\" does not exist.", label, field);
     }
     if (extractor->FullTextIndexed()) {
         return false;
@@ -1586,34 +1582,34 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                                : new_schema->e_schema_manager.GetSchema(label);
     if (!schema) {
         if (is_vertex)
-            throw InputError(FMA_FMT("Vertex label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
         else
-            throw InputError(FMA_FMT("Edge label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
         if (is_vertex)
-            throw InputError(FMA_FMT("Vertex field \"{}\":\"{}\" does not exist.", label, field));
+            THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
         else
-            throw InputError(FMA_FMT("Edge field \"{}\":\"{}\" does not exist.", label, field));
+            THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
     }
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
 
     if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
                                     type == IndexType::PairUniqueIndex)) {
-        throw InputError(
-            FMA_FMT("Unique index cannot be added to an optional field [{}:{}]", label, field));
+        THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
+                   label, field);
     }
     if (extractor->Type() == FieldType::BLOB) {
-        throw InputError("Field with type BLOB cannot be indexed");
+        THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
     }
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
         bool success = index_manager_->AddVertexIndex(txn.GetTxn(), label, field,
                                    extractor->Type(), type, vertex_index);
         if (!success)
-            throw InputError(FMA_FMT("build index {}-{} failed", label, field));
+            THROW_CODE(InputError, "build index {}-{} failed", label, field);
 
         vertex_index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
@@ -1627,9 +1623,9 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto prop = kv_iter->GetValue();
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
-                    throw InternalError(FMA_FMT(
+                    THROW_CODE(InternalError,
                         "Failed to index vertex [{}] with field value [{}:{}]",
-                        vid, extractor->Name(), extractor->FieldToString(prop)));
+                        vid, extractor->Name(), extractor->FieldToString(prop));
                 }
                 count++;
                 if (count % 100000 == 0) {
@@ -1669,7 +1665,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
         bool success = index_manager_->AddEdgeIndex(txn.GetTxn(), label, field,
                                        extractor->Type(), type, edge_index);
         if (!success)
-            throw InputError(FMA_FMT("build index {}-{} failed", label, field));
+            THROW_CODE(InputError, "build index {}-{} failed", label, field);
 
         edge_index->SetReady();
         schema->MarkEdgeIndexed(extractor->GetFieldId(), edge_index.release());
@@ -1685,9 +1681,9 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 auto prop = kv_iter->GetValue();
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop),
                                 {euid.src, euid.dst, euid.lid, euid.tid, euid.eid})) {
-                    throw InternalError(FMA_FMT(
+                    THROW_CODE(InternalError,
                         "Failed to index edge [{}] with field value [{}:{}]",
-                        euid.ToString(), extractor->Name(), extractor->FieldToString(prop)));
+                        euid.ToString(), extractor->Name(), extractor->FieldToString(prop));
                 }
                 count++;
                 if (count % 100000 == 0) {
@@ -1774,7 +1770,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                                         end_vid, is_vertex);
         break;
     case FieldType::BLOB:
-        throw InputError(std::string("Field of type ") +
+        THROW_CODE(InputError, std::string("Field of type ") +
                          field_data_helper::FieldTypeName(extractor->Type()) +
                          " cannot be indexed.");
     default:
@@ -1809,8 +1805,8 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
     std::deque<KeyVid<T>> key_vids;
     std::deque<KeyEUid<T>> key_euids;
     if (!_AddEmptyIndex(spec.label, spec.field, spec.type, is_vertex) && is_vertex) {
-        throw InputError(FMA_FMT("Failed to create index {}:{}: index already exists",
-                                 spec.label, spec.field));
+        THROW_CODE(InputError, "Failed to create index {}:{}: index already exists",
+                                 spec.label, spec.field);
     }
     if (is_vertex) {
         auto txn = CreateReadTxn();
@@ -1850,9 +1846,9 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             {
                 for (size_t i = 1; i < key_vids.size(); i++) {
                     if (key_vids[i].key == key_vids[i - 1].key)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "Duplicate vertex keys [{}] found for vids {} and {}.",
-                            key_vids[i].key, key_vids[i - 1].vid, key_vids[i].vid));
+                            key_vids[i].key, key_vids[i - 1].vid, key_vids[i].vid);
                 }
 
                 for (size_t i = 0; i < key_vids.size(); i++) {
@@ -1894,7 +1890,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 break;
             }
         case IndexType::PairUniqueIndex:
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
         txn.Commit();
         index->SetReady();
@@ -1946,12 +1942,12 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             {
                 for (size_t i = 1; i < key_euids.size(); i++) {
                     if (key_euids[i].key == key_euids[i - 1].key)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "Duplicate edge index keys [{}] found for vid {} dst{} eid {},"
                             "and {} {} {}.",
                             key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
                             key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid);
                 }
                 LOG_DEBUG() << "add unique index";
                 for (size_t i = 0; i < key_euids.size(); i++) {
@@ -1972,12 +1968,12 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                     if (key_euids[i].key == key_euids[i - 1].key &&
                         key_euids[i].euid.src == key_euids[i - 1].euid.src &&
                         key_euids[i].euid.dst == key_euids[i - 1].euid.dst)
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "Duplicate edge index keys-vid [{}] found for vid {} "
                             "dst{} eid {}, and {} {} {}.",
                             key_euids[i].key, key_euids[i].euid.src, key_euids[i].euid.dst,
                             key_euids[i].euid.eid, key_euids[i - 1].euid.src,
-                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid));
+                            key_euids[i - 1].euid.dst, key_euids[i - 1].euid.eid);
                 }
                 LOG_DEBUG() << "add pair_unique index";
                 for (size_t i = 0; i < key_euids.size(); i++) {
@@ -2042,8 +2038,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         });
         for (size_t i = 1; i < v.size(); i++) {
             if (v[i].spec.field == v[i - 1].spec.field) {
-                throw InputError(FMA_FMT("Duplicate index specified for {}:{}",
-                                         kv.first, v[i].spec.field));
+                THROW_CODE(InputError, "Duplicate index specified for {}:{}",
+                                         kv.first, v[i].spec.field);
             }
         }
         // get field types
@@ -2054,8 +2050,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         for (auto& st : v) {
             auto it = fts.find(st.spec.field);
             if (it == fts.end()) {
-                throw InputError(FMA_FMT("Field {} does not exist for label {}",
-                                         st.spec.field, st.spec.label));
+                THROW_CODE(InputError, "Field {} does not exist for label {}",
+                                         st.spec.field, st.spec.label);
             }
             st.type = it->second;
         }
@@ -2066,8 +2062,8 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         for (auto& fd : fields) fts[fd.name] = fd.type;
         auto it = fts.find(label.spec.field);
         if (it == fts.end()) {
-            throw InputError(FMA_FMT("Field {} does not exist for label {}",
-                                     label.spec.field, label.spec.label));
+            THROW_CODE(InputError, "Field {} does not exist for label {}",
+                                     label.spec.field, label.spec.label);
         }
         label.type = it->second;
     }
@@ -2090,10 +2086,10 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
         start_vid = vit.GetId();
         if (!is_vertex || label_id_done.find(curr_lid) != label_id_done.end()) {
             if (is_vertex && label_id_done[curr_lid]) {
-                throw InternalError(FMA_FMT("Vertex Ids are not totally ordered: "
+                THROW_CODE(InternalError, "Vertex Ids are not totally ordered: "
                     "found vertex vid={} with label {} after scanning the last range. "
                     "Please delete the indexes of this label and retry.",
-                    vit.GetId(), txn.GetVertexLabel(vit)));
+                    vit.GetId(), txn.GetVertexLabel(vit));
             }
             // need to build index for this label
             std::string label = txn.GetVertexLabel(vit);
@@ -2139,7 +2135,7 @@ void LightningGraph::OfflineCreateBatchIndex(const std::vector<IndexSpec>& index
                                                is_vertex);
                     break;
                 case FieldType::BLOB:
-                    throw InputError(std::string("Field of type ") +
+                    THROW_CODE(InputError, std::string("Field of type ") +
                                      field_data_helper::FieldTypeName(idx.type) +
                                      " cannot be indexed.");
                 default:
@@ -2203,11 +2199,11 @@ bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& labe
         schema = new_schema->e_schema_manager.GetSchema(label);
     }
     if (!schema) {
-        throw InputError(FMA_FMT("label \"{}\" does not exist.", label));
+        THROW_CODE(InputError, "label \"{}\" does not exist.", label);
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
-        throw InputError(FMA_FMT("field \"{}\":\"{}\" does not exist.", label, field));
+        THROW_CODE(InputError, "field \"{}\":\"{}\" does not exist.", label, field);
     }
     if (!extractor->FullTextIndexed()) {
         return false;
@@ -2335,7 +2331,8 @@ void LightningGraph::Snapshot(Transaction& txn, const std::string& path) {
     // create parent dir if not exist
     auto& fs = fma_common::FileSystem::GetFileSystem(path);
     if (!fs.IsDir(path)) {
-        if (!fs.Mkdir(path)) throw InternalError("Failed to create dir " + path + " for snapshot.");
+        if (!fs.Mkdir(path)) THROW_CODE(InternalError,
+                                        "Failed to create dir " + path + " for snapshot.");
     } else {
         fs.Remove(path + fma_common::LocalFileSystem::PATH_SEPERATOR() + "data.mdb");
         fs.Remove(path + fma_common::LocalFileSystem::PATH_SEPERATOR() + "lock.mdb");
@@ -2462,7 +2459,7 @@ Transaction LightningGraph::CreateReadTxn() {
 }
 
 Transaction LightningGraph::ForkTxn(Transaction& txn) {
-    if (!txn.read_only_) throw lgraph_api::InvalidForkError();
+    if (!txn.read_only_) THROW_CODE(InvalidFork);
     return Transaction(this, txn.GetTxn());
 }
 

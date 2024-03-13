@@ -31,7 +31,7 @@ inline std::string ParseDelimiter(const std::string& delimiter) {
             const char* start_p = p;
             p++;
             if (p >= e) {
-                throw InputError("Illegal escape sequence, do you mean \\\\?");
+                THROW_CODE(InputError, "Illegal escape sequence, do you mean \\\\?");
             }
             switch (*p) {
             case ('\\'):
@@ -83,7 +83,8 @@ inline std::string ParseDelimiter(const std::string& delimiter) {
                     uint8_t c = 0;
                     for (int i = 0; i < 2; i++) {
                         if (p >= e)
-                            throw InputError("Illegal escape sequence: " + std::string(start_p, p));
+                            THROW_CODE(InputError,
+                                       "Illegal escape sequence: " + std::string(start_p, p));
                         if (*p >= '0' && *p <= '9')
                             c = c * 16 + *p - '0';
                         else if (*p >= 'a' && *p <= 'f')
@@ -91,7 +92,7 @@ inline std::string ParseDelimiter(const std::string& delimiter) {
                         else if (*p >= 'A' && *p <= 'F')
                             c = c * 16 + (*p - 'A' + 10);
                         else
-                            throw InputError("Illegal escape sequence: " +
+                            THROW_CODE(InputError, "Illegal escape sequence: " +
                                              std::string(start_p, p + 1));
                         p++;
                     }
@@ -105,20 +106,22 @@ inline std::string ParseDelimiter(const std::string& delimiter) {
                         uint16_t c = 0;
                         for (int i = 0; i < 3; i++) {
                             if (p >= e)
-                                throw InputError("Illegal escape sequence: " +
+                                THROW_CODE(InputError, "Illegal escape sequence: " +
                                                  std::string(start_p, p));
                             if (*p < '0' || *p > '7')
-                                throw InputError("Illegal escape sequence: " +
+                                THROW_CODE(InputError, "Illegal escape sequence: " +
                                                  std::string(start_p, p + 1));
                             c = c * 8 + *p - '0';
                             p++;
                         }
                         if (c >= 256)
-                            throw InputError("Illegal escape sequence: " + std::string(start_p, p));
+                            THROW_CODE(InputError,
+                                       "Illegal escape sequence: " + std::string(start_p, p));
                         ret.push_back((char)c);
                         break;
                     } else {
-                        throw InputError("Illegal escape sequence: " + std::string(start_p, p + 1));
+                        THROW_CODE(InputError,
+                                   "Illegal escape sequence: " + std::string(start_p, p + 1));
                     }
                 }
             }

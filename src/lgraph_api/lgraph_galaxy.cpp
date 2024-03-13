@@ -18,15 +18,15 @@
 
 #include "lgraph/lgraph_galaxy.h"
 
-#define CHECK_DB_NOT_NULL()                                          \
-    do {                                                             \
-        if (!db_) throw lgraph_api::InvalidGalaxyError();            \
+#define CHECK_DB_NOT_NULL()                             \
+    do {                                                \
+        if (!db_) THROW_CODE(InvalidGalaxy);            \
     } while (0)
 
-#define CHECK_DB_AND_USER()                                                                    \
-    do {                                                                                       \
-        if (!db_) throw lgraph_api::InvalidGalaxyError();                                      \
-        if (user_.empty()) throw lgraph_api::UnauthorizedError("User is not authorized yet."); \
+#define CHECK_DB_AND_USER()                                                             \
+    do {                                                                                \
+        if (!db_) THROW_CODE(InvalidGalaxy);                                            \
+        if (user_.empty()) THROW_CODE(Unauthorized, "User is not authorized yet."); \
     } while (0)
 
 lgraph_api::Galaxy::Galaxy(lgraph::Galaxy* db) : db_(db) {}
@@ -67,7 +67,7 @@ lgraph_api::Galaxy::~Galaxy() { Close(); }
 void lgraph_api::Galaxy::SetCurrentUser(const std::string& user, const std::string& password) {
     CHECK_DB_NOT_NULL();
     std::string token = db_->GetUserToken(user, password);
-    if (token.empty()) throw lgraph_api::UnauthorizedError("Bad user/password.");
+    if (token.empty()) THROW_CODE(Unauthorized, "Bad user/password.");
     user_ = user;
 }
 

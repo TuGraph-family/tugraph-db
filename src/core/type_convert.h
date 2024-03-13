@@ -67,7 +67,8 @@ inline bool ConstRefOfFieldData(const FieldData& d, FieldType dt, Value& v) {
         v.Copy(d.string());
         return true;
     default:
-        throw InternalError("Failed to convert FieldData of type " + std::to_string((int)d.type) +
+        THROW_CODE(InternalError,
+                   "Failed to convert FieldData of type " + std::to_string((int)d.type) +
                             " into " + FieldTypeName(dt));
         return false;
     }

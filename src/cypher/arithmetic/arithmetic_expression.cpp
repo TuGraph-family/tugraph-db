@@ -733,7 +733,7 @@ cypher::FieldData BuiltinFunction::DateComponent(RTContext *ctx, const Record &r
     auto YMD = d.GetYearMonthDay();
     auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
     if (it == COMPONENT_MAP.end())
-        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+        THROW_CODE(InputError, "Invalid input: " + component.constant.scalar.AsString());
     switch (it->second) {
     case 0:
         return cypher::FieldData(::lgraph::FieldData(YMD.year));
@@ -742,7 +742,7 @@ cypher::FieldData BuiltinFunction::DateComponent(RTContext *ctx, const Record &r
     case 2:
         return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(YMD.day)));
     default:
-        throw ::lgraph::InternalError("");
+        THROW_CODE(InternalError);
     }
 }
 
@@ -788,7 +788,7 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     auto ymdhmsf = dt.GetYMDHMSF();
     auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
     if (it == COMPONENT_MAP.end())
-        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+        THROW_CODE(InputError, "Invalid input: " + component.constant.scalar.AsString());
     switch (it->second) {
     case 0:
         return cypher::FieldData(::lgraph::FieldData(ymdhmsf.year));
@@ -805,7 +805,7 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     case 6:
         return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.fraction)));
     default:
-        throw ::lgraph::InternalError("");
+        THROW_CODE(InternalError);
     }
 }
 
@@ -1284,7 +1284,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
                 ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP,
                                  "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false, output);
             if (!exists) {
-                throw lgraph::InputError(FMA_FMT("Plugin [{}] does not exist.", name));
+                THROW_CODE(InputError, "Plugin [{}] does not exist.", name);
             }
             return Entry(cypher::FieldData(lgraph::FieldData(output)));
         }

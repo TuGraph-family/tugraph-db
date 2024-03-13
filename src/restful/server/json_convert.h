@@ -414,7 +414,7 @@ inline web::json::value ValueToJson(const FieldData& fd) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return web::json::value::string(_TU(PointCartesian(*fd.data.buf).ToString()));
                 default:
-                    throw lgraph::InputError("unsupportted spatial srid");
+                    THROW_CODE(InputError, "unsupportted spatial srid");
             }
         }
     case FieldType::LINESTRING:
@@ -427,7 +427,7 @@ inline web::json::value ValueToJson(const FieldData& fd) {
                     return web::json::value::string(
                         _TU(LineStringCartesian(*fd.data.buf).ToString()));
                 default:
-                    throw lgraph::InputError("unsupportted spatial srid");
+                    THROW_CODE(InputError, "unsupportted spatial srid");
             }
         }
     case FieldType::POLYGON:
@@ -439,7 +439,7 @@ inline web::json::value ValueToJson(const FieldData& fd) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return web::json::value::string(_TU(PolygonCartesian(*fd.data.buf).ToString()));
                 default:
-                    throw lgraph::InputError("unsupportted spatial srid");
+                    THROW_CODE(InputError, "unsupportted spatial srid");
             }
         }
     case FieldType::SPATIAL:
@@ -451,7 +451,7 @@ inline web::json::value ValueToJson(const FieldData& fd) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return web::json::value::string(_TU(SpatialCartesian(*fd.data.buf).ToString()));
                 default:
-                    throw lgraph::InputError("unsupportted spatial srid");
+                    THROW_CODE(InputError, "unsupportted spatial srid");
             }
         }
     }
