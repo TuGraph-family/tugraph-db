@@ -1818,7 +1818,6 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
     lgraph::PluginManager::PluginType type = plugin_type_it->second;
     lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     std::string name = args[1].String();
-
     lgraph::TimeoutTaskKiller timeout_killer;
     if (args[3].Double() > 0) {
         timeout_killer.SetTimeout(args[3].Double());
