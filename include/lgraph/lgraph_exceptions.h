@@ -18,6 +18,7 @@
 namespace lgraph_api {
 
 #define ERROR_CODES \
+X(UnknownError, "Unknown error.") \
 X(InvalidGalaxy, "Invalid Galaxy.") \
 X(InvalidGraphDB, "Invalid GraphDB.") \
 X(InvalidTxn, "Invalid transaction.") \
