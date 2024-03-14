@@ -274,6 +274,10 @@ class ProduceResults : public OpBase {
             auto child = children[0];
             auto res = child->Consume(ctx);
             if (res != OP_OK) {
+                if (ctx->result_->Size() > 0 &&
+                    session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
+                    session->ps.AppendRecords(ctx->result_->BoltRecords());
+                }
                 session->ps.AppendSuccess();
                 session->state = bolt::SessionState::READY;
                 ctx->bolt_conn_->PostResponse(std::move(session->ps.MutableBuffer()));

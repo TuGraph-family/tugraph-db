@@ -20,6 +20,7 @@
 #include "server/bolt_server.h"
 #include "server/bolt_session.h"
 #include "db/galaxy.h"
+using namespace lgraph_api;
 namespace bolt {
 extern boost::asio::io_service workers;
 std::unordered_map<std::string, cypher::FieldData> ConvertParameters(
@@ -53,6 +54,14 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
     auto conn_id = conn->conn_id();
     LOG_DEBUG() << FMA_FMT("bolt fsm thread[conn_id:{}] start.", conn_id);
     auto session = (BoltSession*)conn->GetContext();
+    auto RespondFailure = [&conn, &session](ErrorCode code, const std::string& msg){
+        bolt::PackStream ps;
+        ps.AppendFailure(
+            {{"code", ErrorCodeToString(code)},
+             {"message", msg}});
+        conn->PostResponse(std::move(ps.MutableBuffer()));
+        session->state = SessionState::FAILED;
+    };
     while (!conn->has_closed()) {
         auto msg = session->msgs.Pop(std::chrono::milliseconds(100));
         if (!msg) {  // msgs pop timeout
@@ -147,13 +156,12 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                    cypher, elapsed);
                     LOG_DEBUG() << "Cypher execution completed";
+                } catch (const lgraph_api::LgraphException& e) {
+                    LOG_ERROR() << e.what();
+                    RespondFailure(e.code(), e.msg());
                 } catch (std::exception& e) {
                     LOG_ERROR() << e.what();
-                    bolt::PackStream ps;
-                    ps.AppendFailure({{"code", "error"},
-                                      {"message", e.what()}});
-                    conn->PostResponse(std::move(ps.MutableBuffer()));
-                    session->state = SessionState::FAILED;
+                    RespondFailure(ErrorCode::UnknownError, e.what());
                 }
             }
         }
