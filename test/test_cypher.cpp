@@ -506,7 +506,6 @@ int test_parameter(cypher::RTContext *ctx) {
         {"MATCH (n:Person {name:$name}) RETURN n", 1},
         {"CREATE (n:Person {name:$new_name}) RETURN n", 1},
         {"MATCH (n:Person {name:$new_name}) DELETE n", 1},
-        {"MATCH (n:Person {name:$new_name}) DELETE n", 1},
         {"CALL db.plugin.listPlugin($plugin_type, 'any')", 0}
     };
     std::vector<std::string> scripts;
