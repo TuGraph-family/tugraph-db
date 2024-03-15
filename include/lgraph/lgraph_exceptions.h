@@ -73,8 +73,8 @@ X(ParserException, "Parser exception.") \
 X(EvaluationException, "Evaluation exception.") \
 X(TxnCommitException, "Txn commit exception.") \
 X(ReminderException, "Reminder exception.") \
-X(GraphCreateException, "Graph create exception.")
-
+X(GraphCreateException, "Graph create exception.") \
+X(CypherParameterTypeError, "Cypher parameter type error.")
 
 enum class ErrorCode {
 #define X(code, msg) code,
