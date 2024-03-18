@@ -120,7 +120,8 @@ void CppPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn,
         r = procedure(*txn, request, output);
     }
     CloseDynamicLib(info);
-    if (!r) THROW_CODE(InputError, FMA_FMT("Plugin returned false. Output: {}.", output.Dump(false)));
+    if (!r) THROW_CODE(InputError,
+                       FMA_FMT("Plugin returned false. Output: {}.", output.Dump(false)));
 }
 
 void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string& name,

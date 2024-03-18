@@ -281,7 +281,8 @@ std::string RpcClient::RpcSingleClient::GraphQueryResponseExtractor(const GraphQ
     return "";
 }
 
-bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result, const std::vector<std::string>& source_files,
+bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result,
+                   const std::vector<std::string>& source_files,
                    const std::string& procedure_type, const std::string& procedure_name,
                    const std::string& code_type, const std::string& procedure_description,
                    bool read_only, const std::string& version, const std::string& graph) {

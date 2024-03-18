@@ -554,11 +554,12 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so"));
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
-            UT_EXPECT_ANY_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "testa",
-                                                      std::vector<std::string>{"#include <stdlib.h>"},
-                                                      std::vector<std::string>{"testa.cpp"},
-                                                      (plugin::CodeType)6,
-                                                      "test", true, "v1"));
+            UT_EXPECT_ANY_THROW(
+                pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "testa",
+                                      std::vector<std::string>{"#include <stdlib.h>"},
+                                      std::vector<std::string>{"testa.cpp"},
+                                      (plugin::CodeType)6,
+                                      "test", true, "v1"));
         }
 #ifndef __SANITIZE_ADDRESS__
         {

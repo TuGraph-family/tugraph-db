@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include "multi_files.h"
+#include "./multi_files.h"
 
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     auto start_time = get_time();

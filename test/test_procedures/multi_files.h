@@ -12,9 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
-#ifndef TUGRAPH_MULTI_FILES_H
-#define TUGRAPH_MULTI_FILES_H
+#pragma once
 
 #include "lgraph/olap_base.h"
 #include "lgraph/olap_on_db.h"
@@ -25,5 +23,3 @@ using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
 size_t BFSCore(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& parent);
-
-#endif  // TUGRAPH_MULTI_FILES_H

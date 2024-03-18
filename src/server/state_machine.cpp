@@ -1107,8 +1107,8 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
                     FMA_FMT("Get {} files but {} file_names.",
                             file_codes.size(), file_names.size()));
             }
-            bool r = db->LoadPlugin(type, user, preq.name(), file_codes, file_names, code_type, preq.desc(),
-                                    preq.read_only(), req.version());
+            bool r = db->LoadPlugin(type, user, preq.name(), file_codes, file_names, code_type,
+                                    preq.desc(), preq.read_only(), req.version());
             if (r)
                 return RespondSuccess(resp);
             else
