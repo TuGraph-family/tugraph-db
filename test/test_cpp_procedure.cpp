@@ -228,10 +228,19 @@ TEST_F(TestCppPlugin, CppPlugin) {
     std::string code_add_label = "";
     std::string code_bfs = "";
     std::string code_custom_pagerank = "";
+    std::string multi_procedure_name = "multi_files.cpp";
+    std::string code_multi_procedure = "";
+    std::string multi_core_name = "multi_files_core.cpp";
+    std::string code_multi_core = "";
+    std::string multi_header_name = "multi_files.h";
+    std::string code_multi_header = "";
     {
         // read file to string
         std::string code_so_path = "./sortstr.so";
         std::string code_cpp_path = "../../test/test_procedures/sortstr.cpp";
+        std::string multi_procedure_path = "../../test/test_procedures/multi_files.cpp";
+        std::string multi_header_path = "../../test/test_procedures/multi_files.h";
+        std::string multi_core_path = "../../test/test_procedures/multi_files_core.cpp";
 #ifndef __clang__
         std::string code_zip_path = "../../test/test_procedures/sortstr.zip";
 #elif __APPLE__
@@ -251,12 +260,18 @@ TEST_F(TestCppPlugin, CppPlugin) {
         read_code(code_add_label_path, code_add_label);
         read_code(code_bfs_path, code_bfs);
         read_code(code_custom_pagerank_path, code_custom_pagerank);
+        read_code(multi_procedure_path, code_multi_procedure);
+        read_code(multi_core_path, code_multi_core);
+        read_code(multi_header_path, code_multi_header);
         UT_EXPECT_NE(code_so, "");
         UT_EXPECT_NE(code_cpp, "");
         UT_EXPECT_NE(code_zip, "");
         UT_EXPECT_NE(code_scan_graph, "");
         UT_EXPECT_NE(code_bfs_path, "");
         UT_EXPECT_NE(code_custom_pagerank, "");
+        UT_EXPECT_NE(code_multi_procedure, "");
+        UT_EXPECT_NE(code_multi_core, "");
+        UT_EXPECT_NE(code_multi_header, "");
     }
     {
         // test PluginInfo
@@ -278,31 +293,41 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_TRUE(pm.procedures_.empty());
 
         // test exception branch
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "#name", "",
+        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "#name",
+                                              std::vector<std::string>{""},
+                                              std::vector<std::string>{"invalid.so"},
                                               plugin::CodeType::SO, "desc", true, "v1"),
                         InputError);
 
         UT_LOG() << "Test loading empty plugin code";
-        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "",
+        UT_EXPECT_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name",
+                                              std::vector<std::string>{""},
+                                              std::vector<std::string>{"empty.so"},
                                               plugin::CodeType::SO, "desc", true, "v1"),
                         InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: so)";
         UT_EXPECT_THROW(
-            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "invalid_code",
+            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name",
+                                  std::vector<std::string>{"invalid_code"},
+                                  std::vector<std::string>{"invalid.so"},
                                   plugin::CodeType::SO, "desc", true, "v1"),
             InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: zip)";
 
         UT_EXPECT_THROW(
-            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "invalid_code",
+            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name",
+                                  std::vector<std::string>{"invalid_code"},
+                                  std::vector<std::string>{"invalid.zip"},
                                   plugin::CodeType::ZIP, "desc", true, "v1"),
             InputError);
 
         UT_LOG() << "Test loading invalid plugin code (code_type: cpp)";
         UT_EXPECT_THROW(
-            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name", "invalid_code",
+            pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "name",
+                                  std::vector<std::string>{"invalid_code"},
+                                  std::vector<std::string>{"invalid.cpp"},
                                   plugin::CodeType::CPP, "desc", true, "v1"),
             InputError);
 
@@ -314,17 +339,38 @@ TEST_F(TestCppPlugin, CppPlugin) {
 
         UT_LOG() << "Test loading of plugins (code_type: so)";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so",
-                                             code_so, plugin::CodeType::SO, "sortstr so", true,
+                                             std::vector<std::string>{code_so},
+                                             std::vector<std::string>{"sort.so"},
+                                             plugin::CodeType::SO, "sortstr so", true,
                                              "v1"));
 
         UT_LOG() << "Test loading of plugins (code_type: cpp)";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp",
-                                             code_cpp, plugin::CodeType::CPP, "sortstr cpp", true,
+                                             std::vector<std::string>{code_cpp},
+                                             std::vector<std::string>{"sort.cpp"},
+                                             plugin::CodeType::CPP, "sortstr cpp", true,
+                                             "v1"));
+
+        UT_LOG() << "Test loading multiple files for cpp";
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "multi_file",
+                                             std::vector<std::string>{
+                                                 code_multi_core,
+                                                 code_multi_procedure,
+                                                 code_multi_header
+                                             },
+                                             std::vector<std::string>{
+                                                 multi_core_name,
+                                                 multi_procedure_name,
+                                                 multi_header_name
+                                             },
+                                             plugin::CodeType::CPP, "multiple files", true,
                                              "v1"));
 
         UT_LOG() << "Test loading of plugins (code_type: zip)";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip",
-                                             code_zip, plugin::CodeType::ZIP, "sortstr zip", true,
+                                             std::vector<std::string>{code_zip},
+                                             std::vector<std::string>{"sort.zip"},
+                                             plugin::CodeType::ZIP, "sortstr zip", true,
                                              "v1"));
 
         PluginCode pc;
@@ -341,32 +387,46 @@ TEST_F(TestCppPlugin, CppPlugin) {
 
         UT_LOG() << "Test retrieving plugin (code_type: cpp)";
         UT_EXPECT_TRUE(pm.GetPluginCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp", pc));
-        UT_EXPECT_TRUE(pc.code.compare(code_cpp) == 0 && pc.code_type == "cpp");
+        std::string code_cpp_merged;
+        UT_EXPECT_NO_THROW(code_cpp_merged = pm.MergeCodeFiles(std::vector<std::string>{code_cpp},
+                                                               std::vector<std::string>{"sort.cpp"},
+                                                               "sortstr_cpp"));
+        UT_EXPECT_TRUE(pc.code.compare(code_cpp_merged) == 0 && pc.code_type == "cpp");
 
         UT_LOG() << "Load scan_graph plugin";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
-                                             code_scan_graph, plugin::CodeType::SO, "scan graph v1",
+                                             std::vector<std::string>{code_scan_graph},
+                                             std::vector<std::string>{"scan.so"},
+                                             plugin::CodeType::SO, "scan graph v1",
                                              true, "v1"));
         UT_EXPECT_TRUE(!pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
-                                              code_scan_graph, plugin::CodeType::SO, "scan graph",
+                                              std::vector<std::string>{code_scan_graph},
+                                              std::vector<std::string>{"scan.so"},
+                                              plugin::CodeType::SO, "scan graph",
                                               true, "v1"));
         UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph"));
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
-                                             code_scan_graph, plugin::CodeType::SO, "scan graph v2",
+                                             std::vector<std::string>{code_scan_graph},
+                                             std::vector<std::string>{"scan.so"},
+                                             plugin::CodeType::SO, "scan graph v2",
                                              true, "v1"));
 
         UT_LOG() << "Load add_label plugin";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label",
-                                             code_add_label, plugin::CodeType::SO, "add label v1",
+                                             std::vector<std::string>{code_add_label},
+                                             std::vector<std::string>{"add_label.so"},
+                                             plugin::CodeType::SO, "add label v1",
                                              false, "v1"));
         UT_LOG() << "Load custom_pagerank plugin";
         UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank",
-                                             code_custom_pagerank, plugin::CodeType::SO,
+                                             std::vector<std::string>{code_custom_pagerank},
+                                             std::vector<std::string>{"custom_pagerank.so"},
+                                             plugin::CodeType::SO,
                                              "custom pagerank", true, "v2"));
 
         UT_LOG() << "Test loaded plugins info";
         auto& funcs = pm.procedures_;
-        UT_EXPECT_EQ(funcs.size(), 6);
+        UT_EXPECT_EQ(funcs.size(), 7);
         auto& zip = funcs["_fma_sortstr_zip"];
         UT_EXPECT_EQ(zip->desc, "sortstr zip");
         UT_EXPECT_EQ(zip->read_only, true);
@@ -433,7 +493,9 @@ TEST_F(TestCppPlugin, CppPlugin) {
         {
             UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label"));
             UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "add_label",
-                                                 code_add_label, plugin::CodeType::SO,
+                                                 std::vector<std::string>{code_add_label},
+                                                 std::vector<std::string>{"add_label.so"},
+                                                 plugin::CodeType::SO,
                                                  "add label v2", true, "v1"));
             // since add_label is now declared read-only, it should fail with an exception
             UT_EXPECT_THROW(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "add_label",
@@ -450,6 +512,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_so"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_cpp"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip"));
+                UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "multi_file"));
                 UT_EXPECT_TRUE(
                     pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank"));
 
@@ -471,13 +534,18 @@ TEST_F(TestCppPlugin, CppPlugin) {
         {
             UT_LOG() << "Testing repeated load/delete";
             UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "scan_graph",
-                                                 code_scan_graph, plugin::CodeType::SO,
+                                                 std::vector<std::string>{code_scan_graph},
+                                                 std::vector<std::string>{"scan.so"},
+                                                 plugin::CodeType::SO,
                                                  "scan graph v1", true, "v1"));
             UT_EXPECT_TRUE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db, "scan_graph",
                                    "{\"scan_edges\":true, \"times\":2}", 0, true, output));
             for (size_t i = 0; i < 300; i++) {
                 UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                                     "sortstr_so", code_so, plugin::CodeType::SO,
+                                                     "sortstr_so",
+                                                     std::vector<std::string>{code_so},
+                                                     std::vector<std::string>{"sort.so"},
+                                                     plugin::CodeType::SO,
                                                      "sortstr so", true, "v1"));
                 std::string output;
                 UT_EXPECT_TRUE(pm.Call(nullptr, lgraph::_detail::DEFAULT_ADMIN_NAME, &db,
@@ -486,7 +554,9 @@ TEST_F(TestCppPlugin, CppPlugin) {
             }
             pm.DeleteAllPlugins(lgraph::_detail::DEFAULT_ADMIN_NAME);
             UT_EXPECT_ANY_THROW(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "testa",
-                                                      "#include <stdlib.h>", (plugin::CodeType)6,
+                                                      std::vector<std::string>{"#include <stdlib.h>"},
+                                                      std::vector<std::string>{"testa.cpp"},
+                                                      (plugin::CodeType)6,
                                                       "test", true, "v1"));
         }
 #ifndef __SANITIZE_ADDRESS__
@@ -498,7 +568,8 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 UT_EXPECT_NO_THROW(
                     r = pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME,
                          "bfs_" + std::to_string(i),
-                         code_bfs, plugin::CodeType::SO,
+                         std::vector<std::string>{code_bfs}, std::vector<std::string>{"bfs.so"},
+                         plugin::CodeType::SO,
                          "bfs v1", true, "v1"));
                 UT_EXPECT_TRUE(r);
                 fma_common::SleepS(5);

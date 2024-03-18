@@ -1660,7 +1660,8 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
     fma_common::encrypt::Base64 base64;
     std::string content = base64.Decode(args[2].String());
     bool success =
-        db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), content,
+        db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(),
+                      std::vector<std::string>{content}, std::vector<std::string>{},
                       code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
     if (!success) {
         throw lgraph::PluginExistException(args[1].String());

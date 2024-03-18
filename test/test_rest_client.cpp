@@ -119,6 +119,7 @@ TEST_P(TestRestClient, RestClient) {
             },
             std::exception);
     }
+    auto give_me_a_name = std::vector<std::string> {"aa", "b"};
 
     DefineTest("CreateUser") {
         Setup();
@@ -217,6 +218,23 @@ TEST_P(TestRestClient, RestClient) {
         UT_EXPECT_EQ(client->GetUserInfo(new_user).desc, new_desc1);
         client->SetUserDesc(new_user, new_desc2);
         UT_EXPECT_EQ(client->GetUserInfo(new_user).desc, new_desc2);
+    }
+
+    DefineTest("LoadPlugin") {
+        Setup();
+        auto ReadCode = [](const std::string& path) {
+            std::string ret;
+            fma_common::InputFmaStream ifs(path);
+            ret.resize(ifs.Size());
+            ifs.Read(&ret[0], ret.size());
+            return ret;
+        };
+        std::string file_path = "../../test/test_procedures/sortstr.cpp";
+        bool ret;
+        UT_EXPECT_NO_THROW(ret = client->LoadPlugin(db_name, lgraph_api::PluginCodeType::CPP,
+                           lgraph::PluginDesc("sort", lgraph::plugin::PLUGIN_CODE_TYPE_CPP, "sort",
+                           lgraph::plugin::PLUGIN_VERSION_1, true, ""), ReadCode(file_path)));
+        UT_EXPECT_EQ(ret, true);
     }
     fma_common::file_system::RemoveDir(db_dir);
 }

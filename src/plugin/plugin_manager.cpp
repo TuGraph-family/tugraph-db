@@ -336,21 +336,28 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromZip(const std:
     return ReadWholeFile(plugin_file, "plugin binary file");
 }
 
-std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std::string& name,
-                                                                      const std::string& file) {
+std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(
+    const std::string& name, const std::string& all_codes) {
 #ifdef _WIN32
 
 #endif
     std::string base_dir = impl_->GetPluginDir();
     auto& fs = fma_common::FileSystem::GetFileSystem(base_dir);
     std::string tmp_dir = GenUniqueTempDir(base_dir, name);
-    std::string file_path = tmp_dir + fs.PathSeparater() + name + ".cpp";
+    std::string file_path = tmp_dir + fs.PathSeparater() + "/";
     std::string plugin_path = tmp_dir + fs.PathSeparater() + name + ".so";
 
     AutoCleanDir tmp_dir_cleaner(tmp_dir);
 
     // compile
-    WriteWholeFile(file_path, file, "plugin source file");
+    std::vector<std::string> filename;
+    std::vector<std::string> code;
+    SplitCode(code, filename, all_codes);
+    std::string source_files = "";
+        for (size_t i = 0; i < filename.size(); i++) {
+        WriteWholeFile(file_path + filename[i], code[i], "plugin source file-" + std::to_string(i));
+        source_files += FMA_FMT(" {}/{}", file_path, filename[i]);
+    }
     std::string exec_dir = fma_common::FileSystem::GetExecutablePath().Dir();
     std::string CFLAGS = FMA_FMT("-I{}/../../include -I/usr/local/include", exec_dir);
     std::string LDFLAGS = FMA_FMT("-llgraph -L{}/ -L/usr/local/lib64/", exec_dir);
@@ -365,7 +372,7 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(const std:
     std::string cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g "
         " --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
-        CFLAGS, plugin_path, file_path, LDFLAGS);
+        CFLAGS, plugin_path, source_files, LDFLAGS);
 #endif
 #elif __APPLE__
     std::string cmd = FMA_FMT(
@@ -413,7 +420,9 @@ void lgraph::SingleLanguagePluginManager::LoadPlugin(const std::string& user, Kv
 }
 
 bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
-    const std::string& user, const std::string& name_, const std::string& code,
+    const std::string& user, const std::string& name_,
+    const std::vector<std::string>& code,
+    const std::vector<std::string>& filename,
     plugin::CodeType code_type, const std::string& desc, bool read_only,
     const std::string& version) {
     // check input
@@ -450,17 +459,27 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
 
     // load plugin from different type
     std::string exe;
+    std::string all_codes;
+    if (code_type == plugin::CodeType::CPP) {
+        all_codes = MergeCodeFiles(code, filename, name);
+    }
     switch (code_type) {
     case plugin::CodeType::SO:
         break;
     case plugin::CodeType::PY:
-        exe = CompilePluginFromCython(name, code);
+        if (code.size() != 1) {
+            throw InternalError("code_type [{}] only supports uploading a single file.", code_type);
+        }
+        exe = CompilePluginFromCython(name, code[0]);
         break;
     case plugin::CodeType::CPP:
-        exe = CompilePluginFromCpp(name, code);
+        exe = CompilePluginFromCpp(name, all_codes);
         break;
     case plugin::CodeType::ZIP:
-        exe = CompilePluginFromZip(name, code);
+        if (code.size() != 1) {
+            throw InternalError("code_type [{}] only supports uploading a single file.", code_type);
+        }
+        exe = CompilePluginFromZip(name, code[0]);
         break;
     default:
         throw InternalError("Unhandled code_type [{}].", code_type);
@@ -473,18 +492,19 @@ bool lgraph::SingleLanguagePluginManager::LoadPluginFromCode(
     switch (code_type) {
     case plugin::CodeType::PY:
         LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only, version);
-        UpdateCythonToKvStore(txn.GetTxn(), name, code);
+        UpdateCythonToKvStore(txn.GetTxn(), name, code[0]);
         break;
     case plugin::CodeType::SO:
-        LoadPlugin(user, txn.GetTxn(), name, code, desc, read_only, version);
+        LoadPlugin(user, txn.GetTxn(), name, code[0], desc, read_only, version);
         break;
     case plugin::CodeType::CPP:
         LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only, version);
-        UpdateCppToKvStore(txn.GetTxn(), name, code);
+
+        UpdateCppToKvStore(txn.GetTxn(), name, all_codes);
         break;
     case plugin::CodeType::ZIP:
         LoadPlugin(user, txn.GetTxn(), name, exe, desc, read_only, version);
-        UpdateZipToKvStore(txn.GetTxn(), name, code);
+        UpdateZipToKvStore(txn.GetTxn(), name, code[0]);
         break;
     default:
         throw InternalError("Unhandled code_type [{}].", code_type);
@@ -715,11 +735,13 @@ bool lgraph::PluginManager::GetPluginCode(PluginType type, const std::string& us
 }
 
 bool lgraph::PluginManager::LoadPluginFromCode(PluginType type, const std::string& user,
-                                               const std::string& name, const std::string& code,
+                                               const std::string& name,
+                                               const std::vector<std::string>& code,
+                                               const std::vector<std::string>& filename,
                                                plugin::CodeType code_type, const std::string& desc,
                                                bool read_only, const std::string& version) {
-    return SelectManager(type)->LoadPluginFromCode(user, name, code, code_type, desc, read_only,
-                                                   version);
+    return SelectManager(type)->LoadPluginFromCode(user, name, code, filename, code_type, desc,
+                                                   read_only, version);
 }
 
 bool lgraph::PluginManager::DelPlugin(PluginType type, const std::string& user,

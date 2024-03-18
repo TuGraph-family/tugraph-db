@@ -1988,24 +1988,29 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
 
         LoadPluginRequest* req = preq->mutable_load_plugin_request();
         bool read_only = false;
-        std::string code, version;
+        std::string version;
+        ::google::protobuf::RepeatedPtrField<std::string> codes;
         if (!ExtractStringField(body, RestStrings::NAME, *req->mutable_name()) ||
             !ExtractBoolField(body, RestStrings::READONLY, read_only) ||
-            !ExtractStringField(body, RestStrings::CODE, code)) {
+            !ExtractObjectArray(body, RestStrings::CODE, &codes) ||
+            (codes.size() > 1 && !ExtractObjectArray(
+                                     body, RestStrings::FILENAMES, req->mutable_file_name()))) {
             BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::Plugin, true,
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
         }
+        LOG_WARN() << "code size: " << codes.size() <<  " code: " << codes[0];
         // use v1 by default for compatibility
         if (!ExtractStringField(body, RestStrings::VERSION, version)) {
             version = "v1";
         }
         preq->set_version(version);
         req->set_read_only(read_only);
-        {
+        for (auto &code : codes) {
             std::vector<unsigned char> decoded = utility::conversions::from_base64(_TU(code));
-            req->set_code(std::string(decoded.begin(), decoded.end()));
+            req->add_code(std::string(decoded.begin(), decoded.end()));
         }
+        LOG_WARN() << "req codes.size: " << req->code_size();
         ExtractStringField(body, RestStrings::DESC, *req->mutable_desc());
         LoadPluginRequest::CodeType code_type = (type == PluginManager::PluginType::CPP)
                                                     ? LoadPluginRequest::SO

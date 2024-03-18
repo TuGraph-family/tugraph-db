@@ -1051,8 +1051,17 @@ bool RestClient::LoadPlugin(const std::string& db, lgraph_api::PluginCodeType ty
     body[RestStrings::READONLY] = json::value::boolean(plugin_info.read_only);
     body[RestStrings::DESC] = json::value::string(_TU(plugin_info.desc));
     body[RestStrings::VERSION] = json::value::string(_TU(plugin_info.version));
-    body[RestStrings::CODE] = json::value::string(_TU(lgraph_api::base64::Encode(code)));
+    body[RestStrings::CODE] = json::value::array(
+        std::vector<json::value>{json::value::string(_TU(lgraph_api::base64::Encode(code)))});
     body[RestStrings::CODE_TYPE] = json::value::string(_TU(lgraph_api::PluginCodeTypeStr(type)));
+    if (type == lgraph_api::PluginCodeType::CPP) {
+        body[RestStrings::FILENAMES] = json::value::array(
+            std::vector<json::value>{json::value::string(_TU(plugin_info.name + ".cpp"))});
+    } else {
+        body[RestStrings::FILENAMES] = json::value::array(
+            std::vector<json::value>{json::value::string(_TU(plugin_info.name))});
+    }
+
     DoGraphPost(db,
                 FMA_FMT("/{}_plugin", type == lgraph_api::PluginCodeType::PY ? "python" : "cpp"),
                 body, false);

@@ -744,19 +744,26 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     }
     preq->set_type(type);
 
-    std::string procedureName, content, description, codeType;
+    std::string procedureName, description, codeType;
+    std::vector<std::string> content, filenames;
     bool readonly;
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "procedureName", procedureName);
-    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "content", content);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "description", description);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "codeType", codeType);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, bool, "readonly", readonly);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::vector<std::string>, "content", content);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::vector<std::string>, "file_name", filenames);
 
     LoadPluginRequest* req = preq->mutable_load_plugin_request();
     req->set_name(procedureName);
     req->set_read_only(readonly);
-    std::vector<unsigned char> decoded = utility::conversions::from_base64(content);
-    req->set_code(std::string(decoded.begin(), decoded.end()));
+    for (auto &code : content) {
+        std::vector<unsigned char> decoded = utility::conversions::from_base64(code);
+        req->add_code(std::string(decoded.begin(), decoded.end()));
+    }
+    for (const auto& filename : filenames) {
+        req->add_file_name(filename);
+    }
     req->set_desc(description);
     lgraph::LoadPluginRequest::CodeType _codeType;
     _GET_PLUGIN_REQUEST_CODE_TYPE(codeType, _codeType);

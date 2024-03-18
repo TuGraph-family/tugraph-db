@@ -58,12 +58,14 @@ lgraph::Transaction lgraph::AccessControlledDB::ForkTxn(Transaction& txn) {
 }
 
 bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std::string& user,
-                                            const std::string& name, const std::string& code,
+                                            const std::string& name,
+                                            const std::vector<std::string>& code,
+                                            const std::vector<std::string>& filename,
                                             plugin::CodeType code_type, const std::string& desc,
                                             bool is_read_only, const std::string& version) {
     CheckAdmin();
-    return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, code_type,
-                                                          desc, is_read_only, version);
+    return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, filename,
+                                                          code_type, desc, is_read_only, version);
 }
 
 bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& user,

@@ -1067,7 +1067,17 @@ bool lgraph::StateMachine::ApplyPluginRequest(const LGraphRequest* lgraph_req,
             plugin::CodeType code_type = GetPluginCodeType(preq.code_type());
             BEG_AUDIT_LOG(user, req.graph(), lgraph::LogApiType::Plugin, true,
                           FMA_FMT("Load plugin [{}]", preq.name()));
-            bool r = db->LoadPlugin(type, user, preq.name(), preq.code(), code_type, preq.desc(),
+            std::vector<std::string> file_codes(preq.code().begin(), preq.code().end());
+            std::vector<std::string> file_names(preq.file_name().begin(), preq.file_name().end());
+            if (file_codes.size() > 1 && code_type != plugin::CodeType::CPP) {
+                throw InputError("Only cpp files support uploading multiple files");
+            }
+            if (file_codes.size() > 1 && file_names.size() != file_codes.size()) {
+                throw InputError(
+                    FMA_FMT("Get {} files but {} file_names.",
+                            file_codes.size(), file_names.size()));
+            }
+            bool r = db->LoadPlugin(type, user, preq.name(), file_codes, file_names, code_type, preq.desc(),
                                     preq.read_only(), req.version());
             if (r)
                 return RespondSuccess(resp);
