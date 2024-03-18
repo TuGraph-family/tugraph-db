@@ -93,7 +93,7 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
     // cannot be null
     FieldSpec fs("fs", ft, false);
     _detail::FieldExtractor fe(fs);
-    UT_EXPECT_THROW(fe.ParseAndSet(v, FieldData()), lgraph::FieldCannotBeSetNullException);
+    UT_EXPECT_THROW_CODE(fe.ParseAndSet(v, FieldData()), FieldCannotBeSetNull);
 
     // check parse from string
     fe.ParseAndSet(v, str_ok);
@@ -136,13 +136,13 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         UT_EXPECT_TRUE(fe_nul.GetConstRef(v).Empty());
         FieldSpec fs("fs", ft, false);
         _detail::FieldExtractor fe(fs);
-        UT_EXPECT_THROW(fe.ParseAndSet(v, FieldData()), lgraph::FieldCannotBeSetNullException);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSet(v, FieldData()), FieldCannotBeSetNull);
         fe.ParseAndSet(v, str_ok);
         UT_EXPECT_EQ(fe.GetConstRef(v).AsType<std::string>(), str_ok);
         fe.ParseAndSet(v, fd_ok);
         UT_EXPECT_TRUE(fe.GetConstRef(v).AsType<std::string>() == fd_ok.AsString());
-        UT_EXPECT_THROW(fe.ParseAndSet(v, str_fail), lgraph::DataSizeTooLargeException);
-        UT_EXPECT_THROW(fe.ParseAndSet(v, fd_fail), lgraph::ParseIncompatibleTypeException);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSet(v, str_fail), DataSizeTooLarge);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSet(v, fd_fail), ParseIncompatibleType);
     } else {
         std::map<BlobManager::BlobKey, std::string> blob_map;
         BlobManager::BlobKey curr_key = 0;
@@ -159,8 +159,8 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         UT_EXPECT_TRUE(fe_nul.GetConstRef(v).Empty());
         FieldSpec fs("fs", ft, false);
         _detail::FieldExtractor fe(fs);
-        UT_EXPECT_THROW(fe.ParseAndSetBlob(v, FieldData(), blob_add),
-                        lgraph::FieldCannotBeSetNullException);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, FieldData(), blob_add),
+                        FieldCannotBeSetNull);
         fe.ParseAndSetBlob(v, str_ok, blob_add);
         std::string read_str = fe.GetBlobConstRef(v, blob_get).AsType<std::string>();
         std::string decoded = lgraph_api::base64::Decode(str_ok);
@@ -168,8 +168,8 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         fe.ParseAndSetBlob(v, fd_ok, blob_add);
         UT_EXPECT_TRUE(fe.GetBlobConstRef(v, blob_get).AsType<std::string>() == fd_ok.AsBlob());
         UT_EXPECT_THROW(fe.ParseAndSetBlob(v, str_fail, blob_add), lgraph::ParseStringException);
-        UT_EXPECT_THROW(fe.ParseAndSetBlob(v, fd_fail, blob_add),
-                        lgraph::ParseIncompatibleTypeException);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, fd_fail, blob_add),
+                        ParseIncompatibleType);
     }
 }
 

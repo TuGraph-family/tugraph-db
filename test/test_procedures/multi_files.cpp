@@ -64,7 +64,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
             root_label = "node";
             root_field = "id";
         } else {
-            throw InputError("root_label or root_field is empty");
+            THROW_CODE(InputError, "root_label or root_field is empty");
         }
     }
 

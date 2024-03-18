@@ -70,7 +70,7 @@ bool LMDBKvTable::HasKey(KvTransaction& txn, const Value& key) {
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
     if (!lmdb_txn.read_only_ && lmdb_txn.optimistic_) {
         // treat empty key as we would in lmdb
-        if (key.Empty()) throw KvException(MDB_INVALID);
+        if (key.Empty()) THROW_CODE(KvException, mdb_strerror(MDB_INVALID));
         DeltaStore& delta = lmdb_txn.GetDelta(*this);
         auto status_value = delta.Get(key);
         if (status_value.first != 0) {
@@ -184,7 +184,7 @@ bool LMDBKvTable::DeleteKey(KvTransaction& txn, const Value& key) {
     ThrowIfTaskKilled();
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
     if (!lmdb_txn.read_only_ && lmdb_txn.optimistic_) {
-        if (key.Empty()) throw KvException(MDB_INVALID);
+        if (key.Empty()) THROW_CODE(KvException, mdb_strerror(MDB_INVALID));
         DeltaStore& delta = lmdb_txn.GetDelta(*this);
         auto it = delta.write_set_.find(key);
         if (it != delta.write_set_.end()) {

@@ -876,7 +876,7 @@ std::map<std::string, lgraph_api::UserInfo> RestClient::ListUsers() {
     if (!JsonToType(response, ret)) {
         std::string err = "Error parsing result:\n" + _TS(response.serialize());
         LOG_ERROR() << err;
-        throw InternalError(err);
+        THROW_CODE(InternalError, err);
     }
     LOG_DEBUG() << "[RestClient] ListUsers succeeded";
     return ret;
@@ -921,7 +921,7 @@ void RestClient::SetUserRoles(const std::string& user, const std::vector<std::st
 lgraph_api::UserInfo RestClient::GetUserInfo(const std::string& user) {
     auto resp = DoGet("/user/" + user, true);
     lgraph_api::UserInfo ret;
-    if (!JsonToType(resp, ret)) throw InternalError("Error parsing result.");
+    if (!JsonToType(resp, ret)) THROW_CODE(InternalError, "Error parsing result.");
     return ret;
 }
 
@@ -1078,7 +1078,7 @@ std::vector<PluginDesc> RestClient::GetPlugin(const std::string& db, bool is_cpp
         bool b = JsonToType(r, pd);
         if (!b) {
             LOG_WARN() << "[RestClient] " << __func__ << " failed";
-            throw InternalError("[RestClient] {} parse response failed", __func__);
+            THROW_CODE(InternalError, "[RestClient] {} parse response failed", __func__);
             ret.clear();
             return ret;
         }
@@ -1096,7 +1096,7 @@ PluginCode RestClient::GetPluginDetail(const std::string& db, const std::string&
     bool b = JsonToType(response, pc);
     if (!b) {
         LOG_WARN() << "[RestClient] " << __func__ << " failed";
-        throw InternalError("[RestClient] {} parse response failed", __func__);
+        THROW_CODE(InternalError, "[RestClient] {} parse response failed", __func__);
     }
     LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return pc;

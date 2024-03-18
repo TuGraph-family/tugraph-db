@@ -57,45 +57,50 @@ namespace lgraph {
                                                 __func__));                                       \
     } while (0)
 
-class CypherException : public InputError {
+using lgraph_api::LgraphException;
+using lgraph_api::ErrorCode;
+class CypherException : public LgraphException {
  public:
     CypherException() = delete;
 
     explicit CypherException(const std::string& err)
-        : InputError(std::string("CypherException: ") + err) {}
+        : LgraphException(ErrorCode::CypherException, std::string("CypherException: ") + err) {}
 };
-class GqlException : public InputError {
+class GqlException : public LgraphException {
  public:
     GqlException() = delete;
 
     explicit GqlException(const std::string& err)
-        : InputError(std::string("GqlException: ") + err) {}
+        : LgraphException(ErrorCode::GqlException, std::string("GqlException: ") + err) {}
 };
 
-class LexerException : public CypherException {
+class LexerException : public LgraphException {
  public:
-    explicit LexerException(const std::string& msg) : CypherException("LexerException: " + msg) {}
+    explicit LexerException(const std::string& msg)
+        : LgraphException(ErrorCode::LexerException, "LexerException: " + msg) {}
 };
 
-class ParserException : public CypherException {
+class ParserException : public LgraphException {
  public:
-    explicit ParserException(const std::string& msg) : CypherException("ParserException: " + msg) {}
+    explicit ParserException(const std::string& msg)
+        : LgraphException(ErrorCode::ParserException, "ParserException: " + msg) {}
 };
 
-class EvaluationException : public CypherException {
+class EvaluationException : public LgraphException {
  public:
     explicit EvaluationException(const std::string& msg)
-        : CypherException("EvaluationException: " + msg) {}
+        : LgraphException(ErrorCode::EvaluationException, "EvaluationException: " + msg) {}
 };
 
-class TxnCommitException : public CypherException {
+class TxnCommitException : public LgraphException {
  public:
     explicit TxnCommitException(const std::string& msg)
-        : CypherException("TxnCommitException: " + msg) {}
+        : LgraphException(ErrorCode::TxnCommitException, "TxnCommitException: " + msg) {}
 };
 
-class ReminderException : public InputError {
+class ReminderException : public LgraphException {
  public:
-    explicit ReminderException(const std::string& msg) : InputError(msg) {}
+    explicit ReminderException(const std::string& msg)
+        : LgraphException(ErrorCode::ReminderException, msg) {}
 };
 }  // namespace lgraph

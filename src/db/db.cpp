@@ -82,7 +82,7 @@ bool lgraph::AccessControlledDB::CallPlugin(lgraph_api::Transaction* txn,
     auto pm = graph_->GetPluginManager();
     bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
     if (access_level_ < AccessLevel::WRITE && !is_readonly)
-        throw AuthError("Write permission needed to call this plugin.");
+        THROW_CODE(Unauthorized, "Write permission needed to call this plugin.");
     return pm->Call(txn,
                     plugin_type,
                     user,
@@ -102,7 +102,7 @@ bool lgraph::AccessControlledDB::CallV2Plugin(lgraph_api::Transaction* txn,
     auto pm = graph_->GetPluginManager();
     bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
     if (access_level_ < AccessLevel::WRITE && !is_readonly)
-        throw AuthError("Write permission needed to call this plugin.");
+        THROW_CODE(Unauthorized, "Write permission needed to call this plugin.");
     return pm->CallV2(txn,
                       plugin_type,
                       user,

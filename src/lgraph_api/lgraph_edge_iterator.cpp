@@ -21,8 +21,8 @@
 namespace lgraph_api {
 #define ThrowIfInvalid()                                    \
     do {                                                    \
-        if (!txn_->IsValid()) throw InvalidTxnError();      \
-        if (!it_->IsValid()) throw InvalidIteratorError();  \
+        if (!txn_->IsValid()) THROW_CODE(InvalidTxn);      \
+        if (!it_->IsValid())  THROW_CODE(InvalidIterator);  \
     } while (0)
 
 OutEdgeIterator::OutEdgeIterator(lgraph::graph::OutEdgeIterator&& impl,
@@ -43,7 +43,7 @@ OutEdgeIterator::~OutEdgeIterator() {}
 void OutEdgeIterator::Close() noexcept { it_->Close(); }
 
 bool OutEdgeIterator::Goto(EdgeUid euid, bool nearest) {
-    if (!txn_->IsValid()) throw InvalidTxnError();
+    if (!txn_->IsValid()) THROW_CODE(InvalidTxn);
     return it_->Goto(euid, nearest);
 }
 
@@ -187,7 +187,7 @@ bool InEdgeIterator::Next() {
 }
 
 bool InEdgeIterator::Goto(EdgeUid euid, bool nearest) {
-    if (!txn_->IsValid()) throw InvalidTxnError();
+    if (!txn_->IsValid()) THROW_CODE(InvalidTxn);
     return it_->Goto(euid, nearest);
 }
 

@@ -337,16 +337,18 @@ class PluginManager {
         return type == PluginType::CPP ? cpp_manager_ : python_manager_;
     }
 };
-
-class InvalidPluginNameException : public InputError {
+using lgraph_api::LgraphException;
+using lgraph_api::ErrorCode;
+class InvalidPluginNameException : public LgraphException {
  public:
     explicit InvalidPluginNameException(const std::string& name)
-        : InputError(FMA_FMT("Invalid plugin name [{}].", name)) {}
+        : LgraphException(ErrorCode::InvalidPluginName, "Invalid plugin name [{}].", name) {}
 };
 
-class InvalidPluginVersionException : public InputError {
+class InvalidPluginVersionException : public LgraphException {
  public:
     explicit InvalidPluginVersionException(const std::string& version)
-        : InputError(FMA_FMT("Invalid plugin version [{}].", version)) {}
+        : LgraphException(ErrorCode::InvalidPluginVersion,
+                          "Invalid plugin version [{}].", version) {}
 };
 }  // namespace lgraph

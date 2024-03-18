@@ -352,14 +352,14 @@ class MockKvStore {
         : data_file_(path + "/data.mem") {
         if (!fma_common::file_system::DirExists(path)) {
             if (!create_if_not_exist)
-                throw KvException("Data directory " + path + " does not exist.");
+                THROW_CODE(KvException, "Data directory " + path + " does not exist.");
             if (!fma_common::file_system::MkDir(path))
-                throw KvException("Failed to create data directoy " + path);
+                THROW_CODE(KvException, "Failed to create data directoy " + path);
         }
         if (fma_common::file_system::FileExists(data_file_)) {
             fma_common::InputFmaStream in(data_file_);
             if (fma_common::BinaryRead(in, tables_) != in.Size()) {
-                throw KvException("KvException: failed to read file " + data_file_);
+                THROW_CODE(KvException, "KvException: failed to read file " + data_file_);
             }
         }
     }
@@ -401,7 +401,7 @@ class MockKvStore {
         if (it != tables_.end()) {
             return it->second;
         } else {
-            throw KvException("Table not found");
+            THROW_CODE(KvException, "Table not found");
         }
     }
 
@@ -411,7 +411,7 @@ class MockKvStore {
             try {
                 MockKvTable t = MockKvTable(txn, table_name, false);
                 it = tables_.emplace_hint(it, table_name, t);
-            } catch (KvException&) {
+            } catch (lgraph_api::LgraphException& e) {
                 // no such table
                 return false;
             }

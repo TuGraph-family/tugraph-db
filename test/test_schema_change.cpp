@@ -152,9 +152,9 @@ TEST_P(TestSchemaChange, ModifyFields) {
         UT_EXPECT_TRUE(s2.HasBlob());
         {
             Schema s3(s2);
-            UT_EXPECT_THROW(
+            UT_EXPECT_THROW_CODE(
                 s2.AddFields(std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false)})),
-                FieldAlreadyExistsException);
+                FieldAlreadyExists);
         }
         {
             Schema s3(s2);
@@ -183,8 +183,8 @@ TEST_P(TestSchemaChange, ModifyFields) {
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);
-        UT_EXPECT_THROW(s2.DelFields(std::vector<std::string>({"no_such_field"})),
-                        FieldNotFoundException);
+        UT_EXPECT_THROW_CODE(s2.DelFields(std::vector<std::string>({"no_such_field"})),
+                        FieldNotFound);
     }
     {
         Schema s2(s1);
@@ -197,12 +197,12 @@ TEST_P(TestSchemaChange, ModifyFields) {
         auto old_fields = fields;
         for (auto& f : mod) old_fields[f.name] = f;
         UT_EXPECT_TRUE(fmap == old_fields);
-        UT_EXPECT_THROW(s2.ModFields(std::vector<FieldSpec>(
+        UT_EXPECT_THROW_CODE(s2.ModFields(std::vector<FieldSpec>(
                             {FieldSpec("no_such_field", FieldType::BLOB, true)})),
-                        FieldNotFoundException);
-        UT_EXPECT_THROW(
+                        FieldNotFound);
+        UT_EXPECT_THROW_CODE(
             s2.ModFields(std::vector<FieldSpec>({FieldSpec("blob", FieldType::NUL, true)})),
-            FieldCannotBeNullTypeException);
+            FieldCannotBeNullType);
     }
 }
 
@@ -321,22 +321,22 @@ TEST_P(TestSchemaChange, ModData) {
         UT_EXPECT_TRUE(!graph.AlterLabelModFields(
             "no_such_label", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}),
             true, &n_changed));
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
                 "person",
                 std::vector<FieldSpec>({FieldSpec("no_such_field", FieldType::STRING, true)}), true,
                 &n_changed),
-            lgraph::FieldNotFoundException);
-        UT_EXPECT_THROW(
+            FieldNotFound);
+        UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
                 "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}), true,
                 &n_changed),
-            lgraph::InputError);  // blob cannot be converted to other types
-        UT_EXPECT_THROW(
+            InputError);  // blob cannot be converted to other types
+        UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
                 "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}), true,
                 &n_changed),
-            lgraph::ParseIncompatibleTypeException);  // cannot convert float to string
+            ParseIncompatibleType);  // cannot convert float to string
     }
     {
         LightningGraph graph(conf);
@@ -446,23 +446,23 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
                 "no_such_label",
                 std::vector<FieldSpec>({FieldSpec("img3", FieldType::STRING, true)}),
                 std::vector<FieldData>({FieldData()}), true, &n_changed));
-            UT_EXPECT_THROW(
+            UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person",
                     std::vector<FieldSpec>({FieldSpec("some_field", FieldType::STRING, true)}),
                     std::vector<FieldData>(), true, &n_changed),
-                lgraph::InputError);  // # field and default_values does not match
-            UT_EXPECT_THROW(
+                InputError);  // # field and default_values does not match
+            UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}),
                     std::vector<FieldData>({FieldData(FieldData())}), true, &n_changed),
-                lgraph::FieldAlreadyExistsException);  // field already exists
-            UT_EXPECT_THROW(
+                FieldAlreadyExists);  // field already exists
+            UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person",
                     std::vector<FieldSpec>({FieldSpec("string_field", FieldType::STRING, true)}),
                     std::vector<FieldData>({FieldData(123)}), true, &n_changed),
-                lgraph::ParseIncompatibleTypeException);  // cannot convert 123 to string
+                ParseIncompatibleType);  // cannot convert 123 to string
         }
         {
             LightningGraph graph(conf);
@@ -575,15 +575,15 @@ TEST_P(TestSchemaChange, DelLabel) {
                                              FieldSpec("blob", FieldType::BLOB, true),
                                              FieldSpec("age", FieldType::FLOAT, false)}),
                      "id", "", {}, {});
-        UT_EXPECT_THROW(
+        UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),
-            lgraph::InputError);
-        UT_EXPECT_THROW(
+            InputError);
+        UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SRC_ID", FieldType::STRING, false)})),
-            lgraph::InputError);
-        UT_EXPECT_THROW(
+            InputError);
+        UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("DST_ID", FieldType::STRING, false)})),
-            lgraph::InputError);
+            InputError);
     }
 
     UT_LOG() << "Testing delete field name";

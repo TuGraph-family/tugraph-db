@@ -1,8 +1,7 @@
 # TuGraph
 
 [![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
-[![Unit Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
-[![Integration Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
+[![UT&&IT](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 [![Commit](https://badgen.net/github/last-commit/tugraph-family/tugraph-db/master?icon=git&label=Commit)](https://github.com/TuGraph-family/tugraph-db/commits/master)
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
@@ -53,7 +52,7 @@ For more details, please refer to [quick start doc](docs/en-US/source/3.quick-st
 It's recommended to build TuGraph in linux system, and docker environment is a good choice. If you want to setup a new environment, please refer to [Dockerfile](ci/images).
 
 Here are steps to compile TuGraph:
-1. `deps/build_deps.sh` or to skip building web interface `SKIP_WEB=1 deps/build_deps.sh` 
+1. run `deps/build_deps.sh` to build tugraph-web if you need. Skip this step otherwise.
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 4. `make`

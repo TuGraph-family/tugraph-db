@@ -1,8 +1,7 @@
 # TuGraph
 
 [![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
-[![Unit Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
-[![Integration Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
+[![UT&&IT](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 [![Commit](https://badgen.net/github/last-commit/tugraph-family/tugraph-db/master?icon=git&label=Commit)](https://github.com/TuGraph-family/tugraph-db/commits/master)
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
@@ -54,7 +53,7 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 
 以下是编译TuGraph的步骤：
 
-1. 如果需要web接口运行`deps/build_deps.sh`，不需要web接口则运行`SKIP_WEB=1 deps/build_deps.sh`
+1. 如果需要web接口运行`deps/build_deps.sh`，不需要web接口则跳过此步骤
 2. 根据容器系统信息执行`cmake .. -DOURSYSTEM=centos`或者`cmake .. -DOURSYSTEM=ubuntu`，如果需要shell运行lgraph_cypher，加上`-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 3. `make`
 4. `make package` 或者 `cpack --config CPackConfig.cmake`

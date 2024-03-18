@@ -42,20 +42,21 @@ void CppPluginManagerImpl::OpenDynamicLib(const PluginInfoBase* pinfo, DynamicLi
         if (errMsg.find("cannot allocate memory in static TLS block") != std::string::npos) {
             errMsg += ". Wait for other tasks to finish and try again";
         }
-        throw InputError("Failed to load the DLL: " + errMsg);
+        THROW_CODE(InputError, "Failed to load the DLL: " + errMsg);
     }
     if (info->has_func) {
         dinfo.func = GetDllFunction<PluginFunc*>(dinfo.lib_handle, "Process");
         if (!dinfo.func) {
             UnloadDynamicLibrary(dinfo.lib_handle);
-            throw InputError("Failed to get Process() function in the DLL: " + GetLastErrorMsg());
+            THROW_CODE(InputError,
+                       "Failed to get Process() function in the DLL: " + GetLastErrorMsg());
         }
     } else {
         dinfo.get_sig_spec = GetDllFunction<SignatureGetter*>(dinfo.lib_handle, "GetSignature");
         dinfo.func_txn = GetDllFunction<PluginFuncInTxn*>(dinfo.lib_handle, "ProcessInTxn");
         if (!dinfo.func_txn) {
             UnloadDynamicLibrary(dinfo.lib_handle);
-            throw InputError(
+            THROW_CODE(InputError,
                 "Failed to get ProcessInTxn() function in the DLL: "
                 + GetLastErrorMsg());
         }
@@ -65,7 +66,7 @@ void CppPluginManagerImpl::OpenDynamicLib(const PluginInfoBase* pinfo, DynamicLi
 void CppPluginManagerImpl::CloseDynamicLib(DynamicLibinfo &dinfo) {
     using namespace lgraph::dll;
     if (!UnloadDynamicLibrary(dinfo.lib_handle))
-        throw InternalError("Failed to unload library.");
+        THROW_CODE(InternalError, "Failed to unload library.");
 }
 
 void CppPluginManagerImpl::DoCall(lgraph_api::Transaction* txn,
@@ -94,7 +95,7 @@ void CppPluginManagerImpl::DoCall(lgraph_api::Transaction* txn,
     }
     CloseDynamicLib(info);
 
-    if (!r) throw InputError(FMA_FMT("Plugin returned false. Output: {}.", output));
+    if (!r) THROW_CODE(InputError, "Plugin returned false. Output: {}.", output);
 }
 
 void CppPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn,
@@ -113,13 +114,13 @@ void CppPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn,
     OpenDynamicLib(pinfo, info);
     if (info.func) {
         CloseDynamicLib(info);
-        throw InputError("Only support the V2 version procedure");
+        THROW_CODE(InputError, "Only support the V2 version procedure");
     } else if (info.func_txn && txn != nullptr) {
         PluginFuncInTxn * procedure = info.func_txn;
         r = procedure(*txn, request, output);
     }
     CloseDynamicLib(info);
-    if (!r) throw InputError(FMA_FMT("Plugin returned false. Output: {}.", output.Dump(false)));
+    if (!r) THROW_CODE(InputError, FMA_FMT("Plugin returned false. Output: {}.", output.Dump(false)));
 }
 
 void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string& name,
@@ -133,7 +134,7 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string
         if (errMsg.find("cannot allocate memory in static TLS block") != std::string::npos) {
             errMsg += ". Wait for other tasks to finish and try again";
         }
-        throw InputError("Failed to load the DLL: " + errMsg);
+        THROW_CODE(InputError, "Failed to load the DLL: " + errMsg);
     }
     {
         auto get_sig_spec = GetDllFunction<SignatureGetter*>(lib_handle, "GetSignature");
@@ -143,7 +144,7 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string
             auto func = GetDllFunction<PluginFunc*>(lib_handle, "Process");
             if (!func) {
                 UnloadDynamicLibrary(lib_handle);
-                throw InputError("Failed to get Process() function in the DLL: " +
+                THROW_CODE(InputError, "Failed to get Process() function in the DLL: " +
                                  GetLastErrorMsg());
             }
             info->sig_spec = nullptr;
@@ -152,18 +153,18 @@ void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string
             auto func_txn = GetDllFunction<PluginFuncInTxn*>(lib_handle, "ProcessInTxn");
             if (!func_txn) {
                 UnloadDynamicLibrary(lib_handle);
-                throw InputError("Failed to get Process() function in the DLL: " +
+                THROW_CODE(InputError, "Failed to get Process() function in the DLL: " +
                                  GetLastErrorMsg());
             }
             auto sig_spec = std::make_unique<lgraph_api::SigSpec>();
             bool r = get_sig_spec(*sig_spec);
-            if (!r) throw InputError(FMA_FMT("Failed to get Signature"));
+            if (!r) THROW_CODE(InputError, "Failed to get Signature");
             info->sig_spec = std::move(sig_spec);
             info->has_func = false;
         }
     }
     if (!UnloadDynamicLibrary(lib_handle)) {
-        throw InputError("Failed to unload DLL: " + GetLastErrorMsg());
+        THROW_CODE(InputError, "Failed to unload DLL: " + GetLastErrorMsg());
     }
 }
 

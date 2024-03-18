@@ -296,7 +296,6 @@ TEST_F(TestDataType, DataType) {
 
     // exception with stacktrace
     {
-        UT_EXPECT_THROW(throw InternalError(""), InternalError);
         std::runtime_error e("my exception");
         std::string ret = PrintNestedException(e, 1);
         UT_EXPECT_EQ(ret, "  my exception");

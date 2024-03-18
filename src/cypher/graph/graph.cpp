@@ -176,7 +176,7 @@ static void ExtractNodePattern(const parser::TUP_NODE_PATTERN &node_pattern, std
                 prop.type = Property::VALUE;
                 prop.value = MakeFieldData(m.second);
                 if (prop.value.is_null()) {
-                    throw lgraph::InputError("Invalid expression: " + m.second.ToString());
+                    THROW_CODE(InputError, "Invalid expression: " + m.second.ToString());
                 }
             }
         }

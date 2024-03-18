@@ -98,17 +98,6 @@ struct EdgeSid {
 //===============================
 // Exceptions
 //===============================
-class InputError : public lgraph_api::InputError {
- public:
-    explicit InputError(const std::string& msg) : lgraph_api::InputError(msg) {}
-    explicit InputError(const char* msg) : lgraph_api::InputError(msg) {}
-    template <typename... Ts>
-    InputError(const char* format, const Ts&... ds)
-        : lgraph_api::InputError(FMA_FMT(format, ds...)) {}
-};
-
-typedef lgraph_api::UnauthorizedError AuthError;
-typedef lgraph_api::TaskKilledException TaskKilledException;
 
 class InternalError : public std::exception {
  private:
@@ -117,30 +106,14 @@ class InternalError : public std::exception {
  public:
     explicit InternalError(const std::string& msg) {
         err_ = msg;
-#if LGRAPH_ENABLE_BOOST_STACKTRACE
-        std::ostringstream oss;
-        oss << boost::stacktrace::stacktrace();
-        err_.append("\nBEGIN_STACK =============\n" + oss.str() + "\nEND_STACK =============\n");
-#endif
     }
 
     template <typename... Ts>
     InternalError(const char* format, const Ts&... ds) {
         FMA_FMT(err_, format, ds...);
-#if LGRAPH_ENABLE_BOOST_STACKTRACE
-        std::ostringstream oss;
-        oss << boost::stacktrace::stacktrace();
-        err_.append("\nBEGIN_STACK =============\n" + oss.str() + "\nEND_STACK =============\n");
-#endif
     }
 
     const char* what() const noexcept override { return err_.c_str(); }
-};
-
-class TimeoutException : public InputError {
- public:
-    explicit TimeoutException(double t)
-        : InputError(FMA_FMT("Task timed out, timeout = [{}] seconds.", t)) {}
 };
 
 //===============================
@@ -404,25 +377,25 @@ inline void SetOffset(char* offset_array, size_t i, size_t off) {
 
 inline void CheckVid(VertexId vid) {
     if (vid < 0 || vid > ::lgraph::_detail::MAX_VID) {
-        throw InputError("vertex id out of range: must be a number between 0 and 1<<40 - 2");
+        THROW_CODE(InputError, "vertex id out of range: must be a number between 0 and 1<<40 - 2");
     }
 }
 
 inline void CheckEid(EdgeId eid) {
     if (eid < 0 || eid > ::lgraph::_detail::MAX_EID) {
-        throw InputError("edge id out of range: must be a number between 0 and 1<<32 - 2");
+        THROW_CODE(InputError, "edge id out of range: must be a number between 0 and 1<<32 - 2");
     }
 }
 
 inline void CheckTid(TemporalId tid) {
     if (tid > ::lgraph::_detail::MAX_TID) {
-        throw InputError("edge id out of range: must be a number between 0 and 1<<32 - 2");
+        THROW_CODE(InputError, "edge id out of range: must be a number between 0 and 1<<32 - 2");
     }
 }
 
 inline void CheckLid(size_t lid) {
     if (lid > ::lgraph::_detail::MAX_LID) {
-        throw InputError("label id out of range: must be a number between 0 and 65534");
+        THROW_CODE(InputError, "label id out of range: must be a number between 0 and 65534");
     }
 }
 

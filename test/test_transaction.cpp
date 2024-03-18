@@ -50,8 +50,12 @@ TEST_F(TestTransaction, TestConcurrentVertexAdd) {
             try {
                 txn.Commit();
                 n_success++;
-            } catch (lgraph_api::TxnConflictError&) {
-                n_fail++;
+            } catch (const lgraph_api::LgraphException& e) {
+                if (e.code() == lgraph_api::ErrorCode::TxnConflict) {
+                    n_fail++;
+                } else {
+                    throw;
+                }
             }
         });
     }

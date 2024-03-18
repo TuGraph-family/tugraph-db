@@ -41,7 +41,7 @@ class VertexIterator;
  *
  *          An OutEdgeIterator is valid iff it points to a valid out-going edge, otherwise it is
  *          invalid. Calling member function on an invalid OutEdgeIterator throws an
- *          InvalidIteratorError, except for the IsValid() and Goto() functions.
+ *          InvalidIterator, except for the IsValid() and Goto() functions.
  *
  *          The following operations invalidates an OutEdgeIterator:
  *          1. Constructing an OutEdgeIterator for non-existing edge.
@@ -52,7 +52,7 @@ class VertexIterator;
  *
  *          In TuGraph, every iterator belongs to a transaction, and can only be used when the
  *          transaction is valid. Calling member functions on an iterator inside an invalid
- *          transaction yields InvalidTxnError, except for Invalid().
+ *          transaction yields InvalidTxn, except for Invalid().
  */
 class OutEdgeIterator {
     friend class Transaction;
@@ -85,7 +85,7 @@ class OutEdgeIterator {
      *          tid, dst, eid) order. The iterator becomes invalid if there is no outgoing edge
      *          from euid.src that sorts after euid.
      *
-     * @exception   InvalidTxnError Thrown when called inside an invalid transaction.
+     * @exception   InvalidTxn Thrown when called inside an invalid transaction.
      *
      * @param   euid    Edge Unique ID.
      * @param   nearest (Optional) True to get the nearest edge if the specified one cannot be
@@ -106,8 +106,8 @@ class OutEdgeIterator {
      * @brief   Move to the next edge. Invalidates iterator if there is no more out edges from
      *          current source vertex.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns True if it succeeds, false if it fails (no more out edge from current source).
      */
@@ -116,8 +116,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the Edge Unique Id
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn	    Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The UID.
      */
@@ -126,8 +126,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets destination of the edge.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The destination vertex id.
      */
@@ -136,8 +136,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets edge id.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The edge identifier.
      */
@@ -146,8 +146,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets primary id.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The primary id of the edge.
      */
@@ -156,8 +156,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the source vertex id.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The source vertex id.
      */
@@ -166,8 +166,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the label of this edge.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The label.
      */
@@ -176,8 +176,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets label id of this edge.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	The label identifier.
      */
@@ -186,8 +186,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the fields specified.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param 	field_names	List of names of the fields.
@@ -199,8 +199,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the field specified.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param 	field_name	Field name.
@@ -212,8 +212,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the fields specified.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param 	field_ids	List of ids for the fields.
@@ -225,8 +225,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets the field specified.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param 	field_id	Field ID.
@@ -238,8 +238,8 @@ class OutEdgeIterator {
     /**
      * @brief	Get field identified by field_name.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param 	field_name	The name of the field to get.
@@ -252,8 +252,8 @@ class OutEdgeIterator {
      * @brief	Get field identified by field id. FieldId can be obtained with
      * 			txn.GetEdgeFieldId()
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param 	fid	fid  The field id.
@@ -265,8 +265,8 @@ class OutEdgeIterator {
     /**
      * @brief	Gets all fields of current vertex.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
      *
      * @returns	All fields in a dictionary of {(field_name, field_value),...}.
      */
@@ -275,9 +275,9 @@ class OutEdgeIterator {
     /**
      * @brief   Sets the specified field.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
      * @exception   InputError              Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_name  Field name.
@@ -288,9 +288,9 @@ class OutEdgeIterator {
     /**
      * @brief   Sets the specified field.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
      * @exception   InputError              Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_id    Field id.
@@ -301,9 +301,9 @@ class OutEdgeIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
      * @exception   InputError              Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_names         List of names of the fields.
@@ -315,9 +315,9 @@ class OutEdgeIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
      * @exception   InputError              Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_names     List of names of the fields.
@@ -329,9 +329,9 @@ class OutEdgeIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
      * @exception   InputError              Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_ids       List of identifiers for the fields.
@@ -345,17 +345,17 @@ class OutEdgeIterator {
      * 			(label, tid, dst, eid) if there is any. If there is no more out-going edges for
      * 			this source vertex, the iterator becomes invalid.
      *
-     * @exception	InvalidTxnError			Thrown when called inside an invalid transaction.
-     * @exception	InvalidIteratorError	Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError       Thrown when called in a read-only transaction.
+     * @exception	InvalidTxn		Thrown when called inside an invalid transaction.
+     * @exception	InvalidIterator	Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed Thrown when called in a read-only transaction.
      */
     void Delete();
 
     /**
      * @brief   Get string representation of the edge.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns A std::string that represents this object.
      */
@@ -380,7 +380,7 @@ class OutEdgeIterator {
  *
  *          In TuGraph, every iterator belongs to a transaction, and can only be used when the
  *          transaction is valid. Calling member functions on an iterator inside an invalid
- *          transaction yields InvalidTxnError, except for Invalid().
+ *          transaction yields InvalidTxn, except for Invalid().
  */
 class InEdgeIterator {
     friend class Transaction;
@@ -409,8 +409,8 @@ class InEdgeIterator {
      * @brief   Move to the next incoming edge to current destination vertex. If there is no more
      *          edge, the iterator becomes invalid and false is returned.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns True if it succeeds, false if it fails.
      */
@@ -422,8 +422,8 @@ class InEdgeIterator {
      *          sorted by (label, tid, src, eid). If there is no such edge, iterator is
      *          invalidated and false is returned.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @param   euid    Edge Unique Id.
      * @param   nearest (Optional) True to get the nearest edge if the specified one cannot be
@@ -436,8 +436,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the Edge Unique Id
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns The UID.
      */
@@ -446,8 +446,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the source vertex id.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @return  The source vertex id.
      */
@@ -456,8 +456,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets destination vertex id.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns The destination vertex id.
      */
@@ -466,8 +466,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets edge id.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns The edge id.
      */
@@ -476,8 +476,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets temporal id.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns  The temporal id.
      */
@@ -486,8 +486,8 @@ class InEdgeIterator {
     /**
      * @brief   Query if this iterator is valid.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns True if valid, false if not.
      */
@@ -496,8 +496,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the label of this edge.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns The label.
      */
@@ -506,8 +506,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets label id of this edge.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      *
      * @returns The label identifier.
      */
@@ -516,8 +516,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if any field does not exist.
      *
      * @param   field_names List of names of the fields.
@@ -529,8 +529,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the field specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if field does not exist.
      *
      * @param   field_name  Field name.
@@ -542,8 +542,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if any field does not exist.
      *
      * @param   field_ids   List of ids for the fields.
@@ -555,8 +555,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets the field specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if field does not exist.
      *
      * @param   field_id    Field ID.
@@ -568,8 +568,8 @@ class InEdgeIterator {
     /**
      * @brief   Get field identified by field_name
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if field does not exist.
      *
      * @param   field_name  Filename of the file.
@@ -581,8 +581,8 @@ class InEdgeIterator {
     /**
      * @brief   Get field identified by field id
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if field does not exist.
      *
      * @param   fid The field id.
@@ -594,8 +594,8 @@ class InEdgeIterator {
     /**
      * @brief   Gets all fields of current vertex.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
      * @exception   InputError              Thrown if any field does not exist.
      *
      * @returns All field names and values stored as a {(field_name, field_value),...} map.
@@ -605,9 +605,9 @@ class InEdgeIterator {
     /**
      * @brief   Sets the specified field.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown if called inside a read-only transaction.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown if called inside a read-only transaction.
      * @exception   InputError              Thrown if any field does not exist.
      *
      * @param   field_name  Field name.
@@ -618,9 +618,9 @@ class InEdgeIterator {
     /**
      * @brief   Sets the specified field.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown if called inside a read-only transaction.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown if called inside a read-only transaction.
      * @exception   InputError              Thrown if field does not exist.
      *
      * @param   field_id    Field id.
@@ -631,9 +631,9 @@ class InEdgeIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown if called inside a read-only transaction.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown if called inside a read-only transaction.
      * @exception   InputError              Thrown if any field does not exist or field value
      *                                      type is incorrect.
      *
@@ -646,9 +646,9 @@ class InEdgeIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown if called inside a read-only transaction.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown if called inside a read-only transaction.
      * @exception   InputError              Thrown if any field does not exist or field value
      *                                      type is incorrect.
      *
@@ -661,9 +661,9 @@ class InEdgeIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown if called inside a read-only transaction.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown if called inside a read-only transaction.
      * @exception   InputError              Thrown if any field does not exist or field value
      *                                      type is incorrect.
      *
@@ -678,9 +678,9 @@ class InEdgeIterator {
      *          (lid, tid, src, eid) if there is any. If no in-coming edge is left for this
      *          vertex, the iterator becomes invalid.
      *
-     * @exception   InvalidTxnError         Thrown if the transaction is invalid.
-     * @exception   InvalidIteratorError    Thrown if the iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown if called inside a read-only transaction.
+     * @exception   InvalidTxn         Thrown if the transaction is invalid.
+     * @exception   InvalidIterator    Thrown if the iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown if called inside a read-only transaction.
      */
     void Delete();
 

@@ -30,6 +30,7 @@ set(TARGET_CLIENT_CPP_RPC lgraph_client_cpp_rpc)
 
 add_library(${TARGET_CLIENT_CPP_RPC} SHARED
         client/cpp/rpc/lgraph_rpc_client.cpp
+        lgraph_api/lgraph_exceptions.cpp
         ${PROTO_SRCS})
 
 target_include_directories(${TARGET_CLIENT_CPP_RPC} PRIVATE

@@ -41,7 +41,7 @@ TimeZone TimeZone::GetLocalTZ() {
     localtime_r(&rawtime, &timeinfo);
     char buf[128];
     size_t s = std::strftime(buf, 128, "%Y-%m-%d %H:%M:%S", &timeinfo);
-    if (s != 19) throw InputError("failed to convert from DateTime to Local DateTime");
+    if (s != 19) THROW_CODE(InputError, "failed to convert from DateTime to Local DateTime");
     DateTime local(buf);
     int64_t microtime_diff_seconds = static_cast<int64_t>(local.MicroSecondsSinceEpoch()
     - (utc.MicroSecondsSinceEpoch() / 1000000 * 1000000));
@@ -57,7 +57,7 @@ TimeZone& TimeZone::LocalTZ() {
 
 TimeZone::TimeZone(int time_diff_hours) {
     if (time_diff_hours < -10 || time_diff_hours > 14)
-        throw InvalidParameterError("time_diff_hours must be within [-10, 14]");
+        THROW_CODE(InvalidParameter, "time_diff_hours must be within [-10, 14]");
     time_diff_microseconds_ = time_diff_hours * 3600 * 1000000LL;
 }
 
@@ -103,7 +103,7 @@ static char* PrintNDigits(char* buf, unsigned d) {
 
 void CheckDaysOverflow(int32_t days) {
     if (days < MinDaysSinceEpochForDate() || days > MaxDaysSinceEpochForDate()) {
-        throw OutOfRangeError(std::string("Failed to represent value with Date: out-of-bound.") +
+        THROW_CODE(OutOfRange, std::string("Failed to represent value with Date: out-of-bound.") +
                          "Value=" + std::to_string(days));
     }
 }
@@ -111,7 +111,7 @@ void CheckDaysOverflow(int32_t days) {
 void CheckDateTimeOverflow(int64_t microseconds_since_epoch) {
     if (microseconds_since_epoch < MinMicroSecondsSinceEpochForDateTime() ||
         microseconds_since_epoch > MaxMicroSecondsSinceEpochForDateTime()) {
-        throw OutOfRangeError(
+        THROW_CODE(OutOfRange,
             std::string("Failed to represent value with DateTime: out-of-bound.") +
                          "Value=" + std::to_string(microseconds_since_epoch));
     }
@@ -137,7 +137,7 @@ Date::Date(int32_t days_since_epoch) {
 
 Date::Date(const std::string& str) {
     bool r = Parse(str, *this);
-    if (!r) throw InputError("failed to parse string " + str + " into Date");
+    if (!r) THROW_CODE(InputError, "failed to parse string " + str + " into Date");
     CheckDaysOverflow(days_since_epoch_);
 }
 
@@ -261,7 +261,8 @@ DateTime::DateTime(int64_t seconds_since_epoch) : microseconds_since_epoch_(seco
 }
 
 DateTime::DateTime(const std::string& str) {
-    if (!Parse(str, *this)) throw InputError("failed to parse string " + str + " into DateTime");
+    if (!Parse(str, *this)) THROW_CODE(InputError,
+                                       "failed to parse string " + str + " into DateTime");
     CheckDateTimeOverflow(microseconds_since_epoch_);
 }
 
