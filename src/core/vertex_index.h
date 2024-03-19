@@ -28,10 +28,10 @@
 
 int TestVertexIndexImpl();
 int CURDVertexWithTooLongKey();
+int TestVRefreshContentIfKvIteratorModified();
 
 namespace lgraph {
 class Transaction;
-
 class VertexIndex;
 class VertexIndexIterator;
 
@@ -255,6 +255,7 @@ class VertexIndex {
     friend class Transaction;
     friend int ::TestVertexIndexImpl();
     friend int ::CURDVertexWithTooLongKey();
+    friend int ::TestVRefreshContentIfKvIteratorModified();
 
     std::shared_ptr<KvTable> table_;
     FieldType key_type_;

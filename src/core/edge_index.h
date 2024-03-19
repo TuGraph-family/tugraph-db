@@ -30,6 +30,7 @@ int TestEdgeIndexImpl();
 int TestEdgeIndexValue();
 int TestEdgeIndexCRUD();
 int CURDEdgeWithTooLongKey();
+int TestERefreshContentIfKvIteratorModified();
 
 namespace lgraph {
 class Transaction;
@@ -314,6 +315,7 @@ class EdgeIndex {
     friend int ::TestEdgeIndexImpl();
     friend int ::TestEdgeIndexCRUD();
     friend int ::CURDEdgeWithTooLongKey();
+    friend int ::TestERefreshContentIfKvIteratorModified();
 
     std::shared_ptr<KvTable> table_;
     FieldType key_type_;
