@@ -391,26 +391,25 @@ void EdgeIndexIterator::RefreshContentIfKvIteratorModified() {
         switch (type_) {
         case IndexType::GlobalUniqueIndex:
             {
-                it_->GotoClosestKey(curr_key_);
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(curr_key_)) return;
                 if (KeyOutOfRange()) return;
                 LoadContentFromIt();
                 return;
             }
         case IndexType::PairUniqueIndex:
             {
-                it_->GotoClosestKey(
-                    _detail::PatchPairUniqueIndexKey(curr_key_, src_vid_, dst_vid_));
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(
+                    _detail::PatchPairUniqueIndexKey(curr_key_, src_vid_, dst_vid_)))
+                    return;
                 if (KeyOutOfRange()) return;
                 LoadContentFromIt();
                 return;
             }
         case IndexType::NonuniqueIndex:
             {
-                it_->GotoClosestKey(_detail::PatchNonuniqueIndexKey(
-                    curr_key_, src_vid_, dst_vid_, lid_, tid_, eid_));
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(_detail::PatchNonuniqueIndexKey(
+                    curr_key_, src_vid_, dst_vid_, lid_, tid_, eid_)))
+                    return;
                 if (KeyOutOfRange()) return;
                 iv_ = EdgeIndexValue(it_->GetValue());
                 pos_ = iv_.SearchEUid({src_vid_, dst_vid_, lid_, tid_, eid_}, valid_);
