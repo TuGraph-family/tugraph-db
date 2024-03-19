@@ -196,7 +196,7 @@ class SingleLanguagePluginManager {
     std::string SignatureToJsonString(const lgraph_api::SigSpec& spec);
 
     inline std::string MergeCodeFiles(const std::vector<std::string>& code,
-                               const std::vector<std::string>& filename, std::string name) {
+                               const std::vector<std::string>& filename, const std::string& name) {
         std::string all_codes;
         if (filename.empty()) {
             all_codes += FMA_FMT("//{}\n{}{}", name + ".cpp", code[0],

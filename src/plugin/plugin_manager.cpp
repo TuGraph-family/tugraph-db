@@ -368,7 +368,7 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(
         "g++ -fno-gnu-unique "
         " -fPIC -g --std=c++17 {} -Wl,-z,nodelete "
         " -rdynamic -O3 -fopenmp -o {} {} {} -shared ",
-        CFLAGS, plugin_path, file_path, LDFLAGS);
+        CFLAGS, plugin_path, source_files, LDFLAGS);
 #else
     std::string cmd = FMA_FMT(
         "g++ -fno-gnu-unique -fPIC -g "
@@ -380,12 +380,12 @@ std::string lgraph::SingleLanguagePluginManager::CompilePluginFromCpp(
         "clang++ -stdlib=libc++ "
         " -fPIC -g --std=c++17 {} -rdynamic -O3 -Xpreprocessor -fopenmp -o "
         "{} {} {} -shared",
-        CFLAGS, plugin_path, file_path, LDFLAGS);
+        CFLAGS, plugin_path, source_files, LDFLAGS);
 #else
     std::string cmd = FMA_FMT(
         "clang++ -stdlib=libc++ "
         " -fPIC -g --std=c++17 {} -rdynamic -O3 -fopenmp -o {} {} {} -shared",
-        CFLAGS, plugin_path, file_path, LDFLAGS);
+        CFLAGS, plugin_path, source_files, LDFLAGS);
 #endif
     ExecuteCommand(cmd, _detail::MAX_COMPILE_TIME_MS, "Timeout while compiling plugin.",
                    "Failed to compile plugin.");
