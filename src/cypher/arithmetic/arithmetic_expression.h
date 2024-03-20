@@ -512,6 +512,7 @@ struct ArithOpNode {
         agg_registered_funcs.emplace("max", [] { return std::make_shared<MaxAggCtx>(); });
         agg_registered_funcs.emplace("min", [] { return std::make_shared<MinAggCtx>(); });
         agg_registered_funcs.emplace("count", [] { return std::make_shared<CountAggCtx>(); });
+        agg_registered_funcs.emplace("count(*)", [] { return std::make_shared<CountStarAggCtx>(); });
         agg_registered_funcs.emplace("collect", [] { return std::make_shared<CollectAggCtx>(); });
         agg_registered_funcs.emplace("percentilecont",
                                      [] { return std::make_shared<PercentileContAggCtx>(); });
@@ -650,7 +651,7 @@ struct ArithExprNode {
                 // Trying to understand: clang's side-effect warnings for typeid on a polymorphic
                 // object
                 auto &agg_ctx = *op.agg_func;
-                if (typeid(agg_ctx) == typeid(CountAggCtx) && args.empty()) {
+                if (typeid(agg_ctx) == typeid(CountStarAggCtx) && args.empty()) {
                     /* count(*), only count in when record is not null */
                     Entry count_in = record.Null()
                                          ? Entry(cypher::FieldData())
