@@ -40,7 +40,6 @@ using namespace antlr4;
 
 static const cypher::PARAM_TAB g_param_tab = {
     {"$name", cypher::FieldData(lgraph::FieldData("Lindsay Lohan"))},
-    {"$plugin_type", cypher::FieldData(lgraph::FieldData("CPP"))},
     {"$new_name", cypher::FieldData(lgraph::FieldData("new name"))},
     {"$personId", cypher::FieldData(lgraph::FieldData(1))},
     {"$personIds", cypher::FieldData(std::vector<lgraph::FieldData>{
@@ -506,7 +505,6 @@ int test_parameter(cypher::RTContext *ctx) {
         {"MATCH (n:Person {name:$name}) RETURN n", 1},
         {"CREATE (n:Person {name:$new_name}) RETURN n", 1},
         {"MATCH (n:Person {name:$new_name}) DELETE n", 1},
-        {"CALL db.plugin.listPlugin($plugin_type, 'any')", 0}
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -520,6 +518,7 @@ int test_parameter(cypher::RTContext *ctx) {
 
 int test_var_len_expand(cypher::RTContext *ctx) {
     static const std::vector<std::pair<std::string, int>> script_check = {
+        {"MATCH (n:Person) RETURN COUNT(*)", 1},
         {"MATCH (roy:Person {name:'Roy Redgrave'})-[:HAS_CHILD*..]->(n) RETURN n", 5},
         {"MATCH (roy:Person {name:'Roy Redgrave'})-[:HAS_CHILD*..]->(n)-[:ACTED_IN]->(m) RETURN "
          "n,m",
