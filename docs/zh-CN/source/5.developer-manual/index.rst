@@ -5,12 +5,10 @@
    :maxdepth: 2
    :glob:
 
-   1.installation/index.rst
-   2.running/index.rst
-   3.server-tools/index.rst
-   4.client-tools/index.rst
-   5.ecosystem-tools/index.rst
-   6.interface/index.rst
-   7.quality/index.rst
-   8.other/index.rst
-
+   1.installation&running/index.rst
+   2.server-tools/index.rst
+   3.client-tools/index.rst
+   4.ecosystem-tools/index.rst
+   5.interface/index.rst
+   6.quality/index.rst
+   7.other/index.rst
