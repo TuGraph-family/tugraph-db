@@ -5,7 +5,7 @@
    :maxdepth: 2
    :glob:
 
-   1.installation&running/index.rst
+   1.installation/index.rst
    2.running/index.rst
    3.server-tools/index.rst
    4.client-tools/index.rst
