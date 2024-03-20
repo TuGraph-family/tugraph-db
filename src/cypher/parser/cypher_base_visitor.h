@@ -1413,9 +1413,20 @@ class CypherBaseVisitor : public LcypherVisitor {
             function_name.type = Expression::STRING;
             function_name.data = std::make_shared<std::string>("count");
             list->emplace_back(function_name);
+
+            Expression distinct;
+            distinct.type = Expression::BOOL;
+            distinct.data = false;
+            list->emplace_back(distinct);
+
+            Expression function_param;
+            function_param.type = Expression::STRING;
+            function_param.data = std::make_shared<std::string>("*");
+            list->emplace_back(function_param);
             Expression ret;
             ret.type = Expression::FUNCTION;
             ret.data = list;
+
             return ret;
         } else if (ctx->oC_CaseExpression()) {
             return visit(ctx->oC_CaseExpression());
