@@ -633,7 +633,8 @@ struct CsvDesc {
     }
 
  private:
-    FieldSpec GetFieldSpec(const std::vector<FieldSpec>& field_specs, const std::string& name) const {
+    FieldSpec GetFieldSpec(const std::vector<FieldSpec>& field_specs,
+                           const std::string& name) const {
         for (const auto& fs : field_specs) {
             if (fs.name == name) {
                 return fs;
