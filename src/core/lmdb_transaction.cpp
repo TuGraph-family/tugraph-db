@@ -135,7 +135,7 @@ LMDBKvTransaction& LMDBKvTransaction::operator=(LMDBKvTransaction&& rhs) noexcep
 LMDBKvTransaction::~LMDBKvTransaction() { LMDBKvTransaction::Abort(); }
 
 std::unique_ptr<KvTransaction> LMDBKvTransaction::Fork() {
-    if (!read_only_) throw KvException("Write transactions cannot be forked.");
+    if (!read_only_) THROW_CODE(KvException, "Write transactions cannot be forked.");
     auto txn = std::make_unique<LMDBKvTransaction>();
     txn->store_ = store_;
     txn->wal_ = wal_;
@@ -176,7 +176,7 @@ void LMDBKvTransaction::Commit() {
             }
             if (commit_status_ != 1) {
                 if (commit_ec_ == MDB_CONFLICTS)
-                    throw lgraph_api::TxnConflictError();
+                    THROW_CODE(TxnConflict);
                 else
                     THROW_ERR(commit_ec_);
             }

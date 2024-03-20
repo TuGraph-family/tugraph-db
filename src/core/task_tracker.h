@@ -455,7 +455,7 @@ class AutoTaskTracker {
 inline void ThrowIfTaskKilled() {
     if (TaskTracker::GetInstance().ShouldKillCurrentTask()) {
         LOG_WARN() << "Task killed";
-        throw lgraph_api::TaskKilledException();
+        THROW_CODE(TaskKilled);
     }
 }
 

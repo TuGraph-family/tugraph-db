@@ -104,7 +104,7 @@ bool IndexManager::AddFullTextIndex(KvTransaction& txn, bool is_vertex, const st
 bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
                                   const std::string& field, FieldType dt, IndexType type,
                                   std::unique_ptr<VertexIndex>& index) {
-    if (dt == FieldType::BLOB) throw InputError("BLOB fields cannot be indexed.");
+    if (dt == FieldType::BLOB) THROW_CODE(InputError, "BLOB fields cannot be indexed.");
     _detail::IndexEntry idx;
     idx.label = label;
     idx.field = field;
@@ -125,7 +125,7 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 bool IndexManager::AddEdgeIndex(KvTransaction& txn, const std::string& label,
                                 const std::string& field, FieldType dt, IndexType type,
                                 std::unique_ptr<EdgeIndex>& index) {
-    if (dt == FieldType::BLOB) throw InputError("BLOB fields cannot be indexed.");
+    if (dt == FieldType::BLOB) THROW_CODE(InputError, "BLOB fields cannot be indexed.");
     _detail::IndexEntry idx;
     idx.label = label;
     idx.field = field;

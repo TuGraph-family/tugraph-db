@@ -116,12 +116,12 @@ TEST_F(TestImportColumnParser, ImportColumnParser) {
         MarkTestBegin("GetParseFunc()");
         {
             MarkTestBegin("illegal delimiter");
-            UT_EXPECT_THROW(test.ParseOneLine("1\002\0032\002\0033\n", output, fs, "\r", false),
-                            lgraph::InputError);
-            UT_EXPECT_THROW(test.ParseOneLine("1\002\0032\002\0033\n", output, fs, "\n", false),
-                            lgraph::InputError);
-            UT_EXPECT_THROW(test.ParseOneLine("1\002\0032\002\0033\n", output, fs, "x\n", false),
-                            lgraph::InputError);
+            UT_EXPECT_THROW_CODE(
+                test.ParseOneLine("1\002\0032\002\0033\n", output, fs, "\r", false), InputError);
+            UT_EXPECT_THROW_CODE(
+                test.ParseOneLine("1\002\0032\002\0033\n", output, fs, "\n", false), InputError);
+            UT_EXPECT_THROW_CODE(
+                test.ParseOneLine("1\002\0032\002\0033\n", output, fs, "x\n", false), InputError);
         }
         {
             MarkTestBegin("parsing CSV");

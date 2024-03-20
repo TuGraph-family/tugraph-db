@@ -375,9 +375,37 @@ int CURDVertexWithTooLongKey() {
     }
     return 0;
 }
+
+int TestVRefreshContentIfKvIteratorModified() {
+    // test EdgeIndex
+    auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 30, true);
+    // Start test, see if we already has a db
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
+    // NonuniqueIndex vertex index
+    {
+        txn = store->CreateWriteTxn();
+        auto idx_tab = VertexIndex::OpenTable(*txn, *store, "refresh",
+                                              FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+        VertexIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+        UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(10), 10));
+        txn->Commit();
+
+
+        txn = store->CreateWriteTxn();
+        VertexIndexIterator it = idx.GetUnmanagedIterator(*txn,
+                                             Value::ConstRef(10), Value::ConstRef(10));
+        UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(10), Value::ConstRef(1), 10));
+        it.RefreshContentIfKvIteratorModified();
+    }
+    return 0;
+}
+
 TEST_F(TestVertexIndex, VertexIndex) {
     TestVertexIndexImpl();
     CURDVertexWithTooLongKey();
+    TestVRefreshContentIfKvIteratorModified();
 }
 
 TEST_F(TestVertexIndex, addIndexDetach) {

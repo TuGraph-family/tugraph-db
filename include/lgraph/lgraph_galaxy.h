@@ -40,11 +40,11 @@ class Galaxy {
     /**
      * @brief   Constructor.
      *
-     * @exception   DBNotExistError Thrown if DB does not exist and create_if_not_exist is false.
-     * @exception   IOError         Thrown if DB does not exist, but we failed to create the DB
-     *                              due to IO error.
-     * @exception   InputError      Thrown if there are other input errors. e.g., dir is actually
-     *                              a plain file, or DB is corruptted.
+     * @exception   DBNotExist Thrown if DB does not exist and create_if_not_exist is false.
+     * @exception   IOError    Thrown if DB does not exist, but we failed to create the DB
+     *                         due to IO error.
+     * @exception   InputError Thrown if there are other input errors. e.g., dir is actually
+     *                         a plain file, or DB is corruptted.
      *
      * @param   dir                 The TuGraph dir.
      * @param   durable             (Optional) True to open in durable mode. If set to false, ALL
@@ -58,13 +58,13 @@ class Galaxy {
     /**
      * @brief   Constructor. Open the Galaxy and try to login with specified user and password.
      *
-     * @exception   DBNotExistError     Thrown if DB does not exist and create_if_not_exist is
-     *                                  false.
-     * @exception   IOError             Thrown if DB does not exist, but we failed to create the
-     *                                  DB due to IO error.
-     * @exception   InputError          Thrown if there are other input errors. e.g., dir is
-     *                                  actually a plain file, or DB is corruptted.
-     * @exception   UnauthorizedError   Thrown if user/password is not correct.
+     * @exception   DBNotExist     Thrown if DB does not exist and create_if_not_exist is
+     *                             false.
+     * @exception   IOError        Thrown if DB does not exist, but we failed to create the
+     *                             DB due to IO error.
+     * @exception   InputError     Thrown if there are other input errors. e.g., dir is
+     *                             actually a plain file, or DB is corruptted.
+     * @exception   Unauthorized   Thrown if user/password is not correct.
      *
      * @param   dir                 The dir.
      * @param   user                The user.
@@ -84,8 +84,8 @@ class Galaxy {
     /**
      * @brief   Validate and set current user
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user/password is incorrect.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user/password is incorrect.
      *
      * @param   user        The user.
      * @param   password    The password.
@@ -95,8 +95,8 @@ class Galaxy {
     /**
      * @brief   Set current user
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if token is incorrect.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if token is incorrect.
      *
      * @param   user   The current user.
      */
@@ -105,9 +105,9 @@ class Galaxy {
     /**
      * @brief   Validate token and set current user
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission to create graph.
-     * @exception   InputError          Other input errors such as invalid graph name, size, etc.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission to create graph.
+     * @exception   InputError     Other input errors such as invalid graph name, size, etc.
      *
      * @param   graph_name      Name of the graph to create.
      *          description     (Optional) Description of the graph.
@@ -121,8 +121,8 @@ class Galaxy {
     /**
      * @brief   Delete a graph
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission to delete graph.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission to delete graph.
      *
      * @param   graph_name  Name of the graph.
      *
@@ -133,8 +133,8 @@ class Galaxy {
     /**
      * @brief   Modify graph info
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission to modify graph.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission to modify graph.
      *
      * @param   graph_name      Name of the graph.
      * @param   mod_desc        True to modifier description.
@@ -150,8 +150,8 @@ class Galaxy {
     /**
      * @brief   List graphs
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission to list graphs.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission to list graphs.
      *
      * @returns A dictionary of {graph_name: (description, max_size)}
      */
@@ -160,8 +160,8 @@ class Galaxy {
     /**
      * @brief   Creates a user
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
      * @exception   InputError          Thrown if other input errors, such as illegal user name,
      *                                  password, etc.
      *
@@ -177,8 +177,8 @@ class Galaxy {
     /**
      * @brief   Deletes the user.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
      *
      * @param   user    The user.
      *
@@ -189,10 +189,10 @@ class Galaxy {
     /**
      * @brief   Set the password of the specified user.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission, or
-     *                                  curr_user==user, but old_password is incorrect.
-     * @exception   InputError          Thrown if new_password is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission, or
+     *                             curr_user==user, but old_password is incorrect.
+     * @exception   InputError     Thrown if new_password is illegal.
      *
      * @param   user            The user to modify.
      * @param   old_password    The old password, required if curr_user==user.
@@ -206,9 +206,9 @@ class Galaxy {
     /**
      * @brief   Sets user description.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if desc is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if desc is illegal.
      *
      * @param   user    The user.
      * @param   desc    The new description.
@@ -221,9 +221,9 @@ class Galaxy {
      * @brief   Set the roles of the specified user. If you need to add or delete a role, you
      *          will need to use GetUserInfo to get the roles first.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if any role does not exist.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if any role does not exist.
      *
      * @param   user    The user.
      * @param   roles   A list of roles.
@@ -235,9 +235,9 @@ class Galaxy {
     /**
      * @brief   Sets user access rights on a graph.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if graph does not exist.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if graph does not exist.
      *
      * @param   user    The user.
      * @param   graph   The graph.
@@ -252,9 +252,9 @@ class Galaxy {
      * @brief   Disable a user. A disabled user is not able to login or perform any operation. A
      *          user cannot disable itself.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if user name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if user name is illegal.
      *
      * @param   user    The user to disable.
      *
@@ -265,9 +265,9 @@ class Galaxy {
     /**
      * @brief   Enables the user.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if user name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if user name is illegal.
      *
      * @param   user    The user.
      *
@@ -278,8 +278,8 @@ class Galaxy {
     /**
      * @brief   List all users
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
      *
      * @returns A dictionary of {user_name:user_info}
      */
@@ -288,8 +288,8 @@ class Galaxy {
     /**
      * @brief   Gets user information
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
      *
      * @param   user    The user.
      *
@@ -301,9 +301,9 @@ class Galaxy {
      * @brief   Create a role. A role has different access levels to different graphs. Every user
      *          must be assigned some role to get access to graphs.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name or desc is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name or desc is illegal.
      *
      * @param   role    The role.
      * @param   desc    The description.
@@ -315,9 +315,9 @@ class Galaxy {
     /**
      * @brief   Deletes the role described by role
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name is illegal.
      *
      * @param   role    The role.
      *
@@ -330,9 +330,9 @@ class Galaxy {
      *          i.e., users will not have access rights to graphs that are obtained by having
      *          this role.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name is illegal.
      *
      * @param   role    The role.
      *
@@ -343,9 +343,9 @@ class Galaxy {
     /**
      * @brief   Enables the role.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name is illegal.
      *
      * @param   role    The role.
      *
@@ -356,9 +356,9 @@ class Galaxy {
     /**
      * @brief   Set the description of the specified role
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name or desc is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name or desc is illegal.
      *
      * @param   role    The role.
      * @param   desc    The description.
@@ -371,9 +371,9 @@ class Galaxy {
      * @brief   Set access of the role to graphs. If you need to add or remove access to part of
      *          the graphs, you need to get full graph_access map by using GetRoleInfo first.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name or any of the graph name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name or any of the graph name is illegal.
      *
      * @param   role            The role.
      * @param   graph_access    The graph access.
@@ -389,9 +389,9 @@ class Galaxy {
      *          with graph_access={graph2:READ, graph3:FULL}
      *          will set the access right of this role to {graph1:READ, graph2:READ, graph3:FULL}
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name or any of the graph name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name or any of the graph name is illegal.
      *
      * @param   role            The role.
      * @param   graph_access    The graph access.
@@ -404,9 +404,9 @@ class Galaxy {
     /**
      * @brief   Gets role information
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if role name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if role name is illegal.
      *
      * @param   role    The role.
      *
@@ -417,8 +417,8 @@ class Galaxy {
     /**
      * @brief   List all the roles
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
      *
      * @returns A dictionary of {role_name:RoleInfo}
      */
@@ -427,9 +427,9 @@ class Galaxy {
     /**
      * @brief   Get the access level that the specified user have to the graph
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if user name or graph name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if user name or graph name is illegal.
      *
      * @param   user    The user.
      * @param   graph   The graph.
@@ -441,9 +441,9 @@ class Galaxy {
     /**
      * @brief   Opens a graph.
      *
-     * @exception   InvalidGalaxyError  Thrown if current galaxy is invalid.
-     * @exception   UnauthorizedError   Thrown if user does not have permission.
-     * @exception   InputError          Thrown if graph name is illegal.
+     * @exception   InvalidGalaxy  Thrown if current galaxy is invalid.
+     * @exception   Unauthorized   Thrown if user does not have permission.
+     * @exception   InputError     Thrown if graph name is illegal.
      *
      * @param   graph       The graph.
      * @param   read_only   (Optional) True to open in read-only mode. A read-only GraphDB cannot

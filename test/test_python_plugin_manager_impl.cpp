@@ -211,7 +211,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
         manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 0, true, output);
         UT_LOG() << "output: " << output;
         UT_LOG() << "Calling sleep for 1.5 with timeout 1";
-        UT_EXPECT_THROW(manager.DoCall(nullptr,
+        UT_EXPECT_THROW_CODE(manager.DoCall(nullptr,
                                        user,
                                        &db,
                                        "sleep",
@@ -220,7 +220,7 @@ TEST_F(TestPythonPluginManagerImpl, PythonPluginManagerImpl) {
                                        0.5,
                                        true,
                                        output),
-                        InputError);
+                             Timeout);
         UT_LOG() << "output: " << output;
         manager.DoCall(nullptr, user, &db, "sleep", pinfo, "0.1", 0, true, output);
         UT_LOG() << "Calling sleep for 0.2 with timeout 2";

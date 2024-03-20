@@ -37,7 +37,7 @@ class InEdgeIterator;
  *          according to vertex id in the DB.
  *
  *          A VertexIterator is valid iff it points to a valid vertex. Calling method functions
- *          on an invalid VertexIterator throws an InvalidIteratorError, except for the IsValid()
+ *          on an invalid VertexIterator throws an InvalidIterator, except for the IsValid()
  *          and Goto() functions.
  *
  *          The following operations invalidates a VertexIterator:
@@ -69,8 +69,8 @@ class VertexIterator {
     /**
      * @brief   Move to the next vertex.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns True if it succeeds, otherwise return false (no more vertex)
      *          and invalidate the iterator.
@@ -82,7 +82,7 @@ class VertexIterator {
      *          nearest==true, go to the next vertex with id>=vid, otherwise return false and
      *          invalidate the iterator.
      *
-     * @exception   InvalidTxnError Thrown when called inside an invalid transaction.
+     * @exception   InvalidTxn Thrown when called inside an invalid transaction.
      *
      * @param   vid     Vertex id of the vertex to go.
      * @param   nearest (Optional) True to go to the closest vertex with id>=vid.
@@ -94,8 +94,8 @@ class VertexIterator {
     /**
      * @brief   Gets the vertex id.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns The id.
      */
@@ -104,8 +104,8 @@ class VertexIterator {
     /**
      * @brief   Gets an OutEdgeIterator pointing to the first out-going edge.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns The OutEdgeIterator.
      */
@@ -117,8 +117,8 @@ class VertexIterator {
      *          out-edge does not exist, and nearest==true, get the first out-edge that sorts
      *          after the specified one.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @param   euid    The Edge Unique Id.
      * @param   nearest (Optional) If set to true and the specified edge does not exist, get the
@@ -131,8 +131,8 @@ class VertexIterator {
     /**
      * @brief   Gets an InEdgeIterator pointing to the first in-coming edge.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns The InEdgeIterator.
      */
@@ -143,8 +143,8 @@ class VertexIterator {
      *          such edge and nearest==false, an invalid iterator is returned. If the specified
      *          edge does not exist and nearest==true,
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @param   euid    The Edge Unique Id.
      * @param   nearest (Optional) If set to true and the specified edge does not exist, get the
@@ -164,8 +164,8 @@ class VertexIterator {
     /**
      * @brief   Gets the label of this vertex.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns The label.
      */
@@ -174,8 +174,8 @@ class VertexIterator {
     /**
      * @brief   Gets label id of this vertex.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns The label identifier.
      */
@@ -184,8 +184,8 @@ class VertexIterator {
     /**
      * @brief   Gets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      * @exception   InputError              Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_names List of names of the fields.
@@ -197,8 +197,8 @@ class VertexIterator {
     /**
      * @brief   Gets the field specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_name  Field name.
@@ -210,8 +210,8 @@ class VertexIterator {
     /**
      * @brief   Gets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_ids   List of ids for the fields.
@@ -223,8 +223,8 @@ class VertexIterator {
     /**
      * @brief   Gets the field specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_id    Field ID.
@@ -236,8 +236,8 @@ class VertexIterator {
     /**
      * @brief   Get field identified by field_name
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_name  Filename of the file.
@@ -249,8 +249,8 @@ class VertexIterator {
     /**
      * @brief   Get field identified by field id
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      * @exception	InputError				Thrown on other input errors (field not exist, etc.).
      *
      * @param   fid The field id.
@@ -262,8 +262,8 @@ class VertexIterator {
     /**
      * @brief   Gets all fields of current vertex.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @returns all fields.
      */
@@ -272,10 +272,10 @@ class VertexIterator {
     /**
      * @brief   Sets the specified field.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
-     * @exception   InputError              Thrown on other input errors (field not exist, etc.).
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
+     * @exception   InputError         Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_name  Field name.
      * @param   field_value Field value.
@@ -285,10 +285,10 @@ class VertexIterator {
     /**
      * @brief   Sets the specified field.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
-     * @exception   InputError              Thrown on other input errors (field not exist, etc.).
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
+     * @exception   InputError         Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_id    Field id.
      * @param   field_value Field value.
@@ -298,10 +298,10 @@ class VertexIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
-     * @exception   InputError              Thrown on other input errors (field not exist, etc.).
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
+     * @exception   InputError         Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_names         List of names of the fields.
      * @param   field_value_strings The field value strings.
@@ -312,10 +312,10 @@ class VertexIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
-     * @exception   InputError              Thrown on other input errors (field not exist, etc.).
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
+     * @exception   InputError         Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_names     List of names of the fields.
      * @param   field_values    The field values.
@@ -326,10 +326,10 @@ class VertexIterator {
     /**
      * @brief   Sets the fields specified.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
-     * @exception   InputError              Thrown on other input errors (field not exist, etc.).
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
+     * @exception   InputError         Thrown on other input errors (field not exist, etc.).
      *
      * @param   field_ids       List of identifiers for the fields.
      * @param   field_values    The field values.
@@ -340,8 +340,8 @@ class VertexIterator {
     /**
      * @brief   List source vids. Each source vid is stored only once in the result.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @param       n_limit     (Optional) The limit on number of vids to return.
      * @param [out] more_to_go  (Optional) If non-null, returns whether the limit is exceeded.
@@ -354,8 +354,8 @@ class VertexIterator {
     /**
      * @brief   List destination vids. Each vid is stored only once in the result.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @param       n_limit     (Optional) The limit of number of vids to return.
      * @param [out] more_to_go  (Optional) If non-null, returns whether the limit is exceeded.
@@ -369,8 +369,8 @@ class VertexIterator {
      * @brief   Gets number of incoming edges, stopping on limit. This function can come in handy
      *          if we need to filter on large vertexes.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @param       n_limit     (Optional) The limit on number of in-coming edges to count. When
      *                          the limit is reached, n_limit is returned.
@@ -385,8 +385,8 @@ class VertexIterator {
      * @brief   Gets number of out-going edges, stopping on limit. This function can come in
      *          handy if we need to filter on large vertexes.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
      *
      * @param       n_limit     (Optional) The limit on number of out-going edges to count. When
      *                          the limit is reached, n_limit is returned and limit_exceeded is
@@ -402,9 +402,9 @@ class VertexIterator {
      * @brief   Deletes this vertex, also deletes all incoming and outgoing edges of this vertex.
      *          The iterator will point to the next vertex by vid if there is any.
      *
-     * @exception   InvalidTxnError         Thrown when called inside an invalid transaction.
-     * @exception   InvalidIteratorError    Thrown when current iterator is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called in a read-only transaction.
+     * @exception   InvalidTxn         Thrown when called inside an invalid transaction.
+     * @exception   InvalidIterator    Thrown when current iterator is invalid.
+     * @exception   WriteNotAllowed    Thrown when called in a read-only transaction.
      *
      * @param [out] n_in_edges  (Optional) If non-null, the number of in edges the vertex had.
      * @param [out] n_out_edges (Optional) If non-null, the number of out edges the vertex

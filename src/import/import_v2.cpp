@@ -32,15 +32,11 @@ lgraph::AccessControlledDB lgraph::import_v2::Importer::OpenGraph(Galaxy& galaxy
         config_.user = lgraph::_detail::DEFAULT_ADMIN_NAME;
         config_.password = lgraph::_detail::DEFAULT_ADMIN_PASS;
     }
-    try {
-        if (galaxy.GetUserToken(config_.user, config_.password).empty()) {
-            throw AuthError("Bad user/password.");
-        }
-        if (!galaxy.IsAdmin(config_.user))
-            throw AuthError("Non-admin users are not allowed to perform offline import.");
-    } catch (...) {
-        std::throw_with_nested(AuthError("Error validating user/password"));
-    }
+
+    if (galaxy.GetUserToken(config_.user, config_.password).empty())
+        THROW_CODE(Unauthorized, "Bad user/password.");
+    if (!galaxy.IsAdmin(config_.user))
+        THROW_CODE(Unauthorized, "Non-admin users are not allowed to perform offline import.");
 
     const std::map<std::string, lgraph::DBConfig>& graphs = galaxy.ListGraphs(config_.user);
     if (graphs.find(config_.graph) != graphs.end()) {
@@ -140,35 +136,35 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                         LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
                                              v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
-                        throw InputError(
-                            FMA_FMT("Vertex index [label:{}, field:{}] already exists",
-                                    v.name, spec.name));
+                        THROW_CODE(InputError,
+                            "Vertex index [label:{}, field:{}] already exists",
+                                    v.name, spec.name);
                     }
                 } else if (v.is_vertex && spec.index && !spec.primary &&
                            (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
                             spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
-                    throw InputError(
-                        FMA_FMT("offline import does not support to create a unique "
+                    THROW_CODE(InputError,
+                        "offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
-                                v.name, spec.name));
+                                v.name, spec.name);
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
                     if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                         LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
                                              v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
-                        throw InputError(
-                            FMA_FMT("Edge index [label:{}, field:{}] already exists",
-                                    v.name, spec.name));
+                        THROW_CODE(InputError,
+                            "Edge index [label:{}, field:{}] already exists",
+                                    v.name, spec.name);
                     }
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
-                    throw InputError(
-                        FMA_FMT("offline import does not support to create a unique "
+                    THROW_CODE(InputError,
+                        "offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
-                                v.name, spec.name));
+                                v.name, spec.name);
                 }
                 if (spec.fulltext) {
                     bool ok = db.AddFullTextIndex(v.is_vertex, v.name, spec.name);
@@ -176,9 +172,9 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                         LOG_INFO() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
                                              v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     } else {
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "Fulltext index [{} label:{}, field:{}] already exists",
-                            v.is_vertex ? "vertex" : "edge", v.name, spec.name));
+                            v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     }
                 }
             }
@@ -460,10 +456,7 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                 }
             }
         } catch (const std::exception& e) {
-            std::throw_with_nested(
-                InputError("Failed to parse file [" + desc->path + "]," + e.what()));
-        } catch (...) {
-            std::throw_with_nested(InputError("Failed to parse file [" + desc->path + "]"));
+            THROW_CODE(InputError, "Failed to parse file [" + desc->path + "]," + e.what());
         }
         // wait for finish
         stitch.WaitTillClear();
@@ -702,7 +695,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                 }
             }
         } catch (...) {
-            std::throw_with_nested(InputError("Failed to parse file [" + desc->path + "]"));
+            THROW_CODE(InputError, "Failed to parse file [" + desc->path + "]");
         }
         // wait for finish
         stitch.WaitTillClear();
