@@ -36,18 +36,18 @@ class Graph;
 namespace _detail {
 inline void StorePackedNode(KvIterator& it, VertexId vid, const PackedDataValue& pdv) {
     bool r = it.AddKeyValue(pdv.CreateKey(vid), pdv.GetBuf());
-    FMA_DBG_ASSERT(r);
+    FMA_ASSERT(r);
 }
 
 inline void StoreVertexOnlyNode(KvIterator& it, VertexId vid, const VertexValue& vov) {
     bool r = it.AddKeyValue(KeyPacker::CreateVertexOnlyKey(vid), vov.GetBuf(), false);
-    FMA_DBG_ASSERT(r);
+    FMA_ASSERT(r);
 }
 
 inline void StoreEdgeNode(PackType pt, KvIterator& it, VertexId vid1, const EdgeValue& ev) {
     if (ev.GetEdgeCount() == 0) return;
     bool r = it.AddKeyValue(ev.CreateKey(pt, vid1), ev.GetBuf(), false);
-    FMA_DBG_ASSERT(r);
+    FMA_ASSERT(r);
 }
 }  // namespace _detail
 
@@ -502,8 +502,8 @@ class EdgeIteratorImpl {
                     eid = 0;
                 }
             }
-            if (eid >= ::lgraph::_detail::MAX_EID)
-                throw std::runtime_error("Too many edges from src to dst with the same label");
+            if (eid > ::lgraph::_detail::MAX_EID)
+                THROW_CODE(ReachMaximumEid, "Too many edges from src to dst with the same label");
         }
         int64_t size_diff = ev.InsertAtPos(pos, esid.lid, esid.tid, esid.dst, eid, prop);
         if (pt == PackType::PACKED_DATA) {
