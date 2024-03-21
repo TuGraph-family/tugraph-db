@@ -11,4 +11,3 @@
    4.Python-procedure.rst
    5.Rust-procedure.md
    6.base64_encode.rst
-   7.cpp.md
