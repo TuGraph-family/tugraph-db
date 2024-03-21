@@ -1,59 +1,59 @@
-base64_encode
+# base64_encode
 ===================================
 
 .. doxygenfile:: base64_encode.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph
+# lgraph
 ===================================
 
 .. doxygenfile:: lgraph.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_atomic
+# lgraph_atomic
 ===================================
 
 .. doxygenfile:: lgraph_atomic.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_date_time
+# lgraph_date_time
 ===================================
 
 .. doxygenfile:: lgraph_date_time.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_db
+# lgraph_db
 ===================================
 
 .. doxygenfile:: lgraph_db.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_edge_index_iterator
+# lgraph_edge_index_iterator
 ===================================
 
 .. doxygenfile:: lgraph_edge_index_iterator.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_edge_iterator
+# lgraph_edge_iterator
 ===================================
 
 .. doxygenfile:: lgraph_edge_iterator.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_exceptions
+# lgraph_exceptions
 ===================================
 
 .. doxygenfile:: lgraph_exceptions.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_galaxy
+# lgraph_galaxy
 ===================================
 
 .. doxygenfile:: lgraph_galaxy.h
-   :project: cpp_procedure
+:project: cpp_procedure
 
-lgraph_result
+# lgraph_result
 ===================================
 
 .. doxygenfile:: lgraph_result.h
-   :project: cpp_procedure
+:project: cpp_procedure
