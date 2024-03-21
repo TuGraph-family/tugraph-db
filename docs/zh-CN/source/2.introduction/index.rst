@@ -9,8 +9,9 @@ TuGraph入门
    1.what-is-graph
    2.what-is-gdbms
    3.what-is-tugraph
-   4.characteristics/index.rst
-   5.architecture
-   6.functionality
-   7.scenarios
-   8.glossary
+   4.schema
+   5.characteristics/index.rst
+   6.architecture
+   7.functionality
+   8.scenarios
+   9.glossary
