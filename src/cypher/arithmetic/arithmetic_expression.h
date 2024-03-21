@@ -512,7 +512,8 @@ struct ArithOpNode {
         agg_registered_funcs.emplace("max", [] { return std::make_shared<MaxAggCtx>(); });
         agg_registered_funcs.emplace("min", [] { return std::make_shared<MinAggCtx>(); });
         agg_registered_funcs.emplace("count", [] { return std::make_shared<CountAggCtx>(); });
-        agg_registered_funcs.emplace("count(*)", [] { return std::make_shared<CountStarAggCtx>(); });
+        agg_registered_funcs.emplace("count(*)",
+            [] { return std::make_shared<CountStarAggCtx>(); });
         agg_registered_funcs.emplace("collect", [] { return std::make_shared<CollectAggCtx>(); });
         agg_registered_funcs.emplace("percentilecont",
                                      [] { return std::make_shared<PercentileContAggCtx>(); });
