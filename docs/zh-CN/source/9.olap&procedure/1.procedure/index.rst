@@ -7,7 +7,6 @@
 
    1.procedure.md
    2.traversal.md
-   3.C++-procedure/index.rst
+   3.3.C++-procedure.rst
    4.Python-procedure.rst
    5.Rust-procedure.md
-   6.base64_encode.rst
