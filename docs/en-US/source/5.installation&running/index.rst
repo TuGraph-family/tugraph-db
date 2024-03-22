@@ -1,5 +1,5 @@
-运维与权限管理
-========
+Installation And Running
+================================
 
 .. toctree::
    :maxdepth: 2

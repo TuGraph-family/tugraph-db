@@ -1,5 +1,5 @@
-运维与权限管理
-========
+TuGraph DB Quality
+==============================
 
 .. toctree::
    :maxdepth: 2
