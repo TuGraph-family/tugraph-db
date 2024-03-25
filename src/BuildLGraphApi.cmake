@@ -50,7 +50,7 @@ set(LGRAPH_CORE_SRC
         core/vertex_index.cpp
         core/wal.cpp
         core/lmdb/mdb.c
-        core/lmdb/midl.c)
+        core/lmdb/midl.c core/composite_index.cpp)
 
 set(LGRAPH_DB_SRC
         db/acl.cpp

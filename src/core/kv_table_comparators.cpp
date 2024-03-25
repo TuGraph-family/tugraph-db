@@ -183,6 +183,11 @@ static int LexicalKeyBothVidCompareFunc(const MDB_val* a, const MDB_val* b) {
     return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
 }
 
+static int CompositeKeyCompareFunc(const MDB_val* a, const MDB_val* b) {
+
+    return 0;
+}
+
 }  // namespace _detail
 
 // NOLINT
@@ -242,6 +247,8 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
         }
     case ComparatorDesc::GRAPH_KEY:
         return nullptr;
+    case ComparatorDesc::COMPOSITE_KEY:
+        return _detail::CompositeKeyCompareFunc;
     default:
         THROW_CODE(KvException, "Unrecognized comparator type: {}", desc.comp_type);
     }

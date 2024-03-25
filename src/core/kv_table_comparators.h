@@ -28,19 +28,28 @@ struct ComparatorDesc {
         TYPE_AND_EUID = 3,
         GRAPH_KEY = 4,
         BOTH_SIDE_VID = 5,
+        COMPOSITE_KEY = 6,
         INVALID_TYPE = 255
     };
 
     Type comp_type = Type::BYTE_SEQ;
     FieldType data_type;
+    bool is_composite;
+    std::vector<FieldType> data_types;
 
     static ComparatorDesc SingleDataComp(FieldType ft) {
-        ComparatorDesc desc{Type::SINGLE_TYPE, ft};
+        ComparatorDesc desc{Type::SINGLE_TYPE, ft, false};
+        return desc;
+    }
+
+    static ComparatorDesc CompositeDataComp(std::vector<FieldType> fts) {
+        ComparatorDesc desc{.comp_type = Type::COMPOSITE_KEY, .is_composite = true,
+                            .data_types = std::move(fts)};
         return desc;
     }
 
     static const ComparatorDesc& DefaultComparator() {
-        static ComparatorDesc desc{Type::BYTE_SEQ, FieldType::NUL};
+        static ComparatorDesc desc{Type::BYTE_SEQ, FieldType::NUL, false};
         return desc;
     }
 };

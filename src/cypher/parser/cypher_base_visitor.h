@@ -1411,7 +1411,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             auto list = std::make_shared<Expression::EXPR_TYPE_LIST>();
             Expression function_name;
             function_name.type = Expression::STRING;
-            function_name.data = std::make_shared<std::string>("count");
+            function_name.data = std::make_shared<std::string>("count(*)");
             list->emplace_back(function_name);
             Expression ret;
             ret.type = Expression::FUNCTION;

@@ -30,6 +30,7 @@
 #include "core/schema_common.h"
 #include "core/value.h"
 #include "core/full_text_index.h"
+#include "core/composite_index.h"
 
 namespace lgraph {
 class Schema;
@@ -84,6 +85,7 @@ class Schema {
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
     std::shared_ptr<KvTable> property_table_;
+    std::unordered_map<int16_t, std::shared_ptr<CompositeIndex>> composite_index_map;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
@@ -450,6 +452,12 @@ class Schema {
                                   std::vector<FTIndexEntry>& buffers);
     void AddEdgeToFullTextIndex(EdgeUid euid, const Value& record,
                                 std::vector<FTIndexEntry>& buffers);
+
+    void SetCompositeIndex(int16_t fieldIds, CompositeIndex* index) {
+        composite_index_map.emplace(fieldIds, std::make_shared<CompositeIndex>(*index));
+    }
+
+    CompositeIndex* GetCompositeIndex(int16_t fieldIds) const { return composite_index_map.find(fieldIds)->second.get(); }
 
     //----------------------
     // serialize/deserialize

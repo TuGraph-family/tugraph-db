@@ -225,6 +225,8 @@ class CountAggCtx : public AggCtx {
     }
 };
 
+class CountStarAggCtx : public CountAggCtx {};
+
 class CollectAggCtx : public AggCtx {
     bool distinct = false;
     std::unordered_set<std::string> uset;

@@ -37,6 +37,7 @@ typedef lgraph_api::FieldType FieldType;
 typedef lgraph_api::FieldData FieldData;
 typedef lgraph_api::IndexType IndexType;
 typedef lgraph_api::IndexSpec IndexSpec;
+typedef lgraph_api::CompositeIndexType CompositeIndexType;
 typedef lgraph_api::FieldSpec FieldSpec;
 typedef lgraph_api::EdgeUid EdgeUid;
 typedef lgraph_api::Date Date;
@@ -295,7 +296,7 @@ static const size_t LID_SIZE = sizeof(LabelId);
 static const size_t TID_SIZE = sizeof(TemporalId);
 // maximum label id. -1 is reserved, so maximum is 65534
 static const int64_t MAX_VID = (((int64_t)1) << (VID_SIZE * 8)) - 2;
-static const int64_t MAX_EID = (((int64_t)1) << (EID_SIZE * 8)) - 2;
+static const int64_t MAX_EID = 0xffffff;  // 3 bytes
 static const int64_t MAX_TID = std::numeric_limits<TemporalId>::max() - 2;
 static const LabelId MAX_LID = std::numeric_limits<LabelId>::max() - 2;
 static const size_t NODE_SPLIT_THRESHOLD = 1000;
@@ -377,25 +378,29 @@ inline void SetOffset(char* offset_array, size_t i, size_t off) {
 
 inline void CheckVid(VertexId vid) {
     if (vid < 0 || vid > ::lgraph::_detail::MAX_VID) {
-        THROW_CODE(InputError, "vertex id out of range: must be a number between 0 and 1<<40 - 2");
+        THROW_CODE(InputError, "vertex id out of range: must be a number between 0 and {}",
+                   ::lgraph::_detail::MAX_VID);
     }
 }
 
 inline void CheckEid(EdgeId eid) {
     if (eid < 0 || eid > ::lgraph::_detail::MAX_EID) {
-        THROW_CODE(InputError, "edge id out of range: must be a number between 0 and 1<<32 - 2");
+        THROW_CODE(InputError, "edge id out of range: must be a number between 0 and {}",
+                   ::lgraph::_detail::MAX_EID);
     }
 }
 
 inline void CheckTid(TemporalId tid) {
     if (tid > ::lgraph::_detail::MAX_TID) {
-        THROW_CODE(InputError, "edge id out of range: must be a number between 0 and 1<<32 - 2");
+        THROW_CODE(InputError, "edge id out of range: must be a number between 0 and {}",
+                   ::lgraph::_detail::MAX_TID);
     }
 }
 
 inline void CheckLid(size_t lid) {
     if (lid > ::lgraph::_detail::MAX_LID) {
-        THROW_CODE(InputError, "label id out of range: must be a number between 0 and 65534");
+        THROW_CODE(InputError, "label id out of range: must be a number between 0 and {}",
+                   ::lgraph::_detail::MAX_LID);
     }
 }
 
