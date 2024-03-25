@@ -520,6 +520,7 @@ int test_parameter(cypher::RTContext *ctx) {
 
 int test_var_len_expand(cypher::RTContext *ctx) {
     static const std::vector<std::pair<std::string, int>> script_check = {
+        {"MATCH (n:Person) RETURN COUNT(*)", 1},
         {"MATCH (roy:Person {name:'Roy Redgrave'})-[:HAS_CHILD*..]->(n) RETURN n", 5},
         {"MATCH (roy:Person {name:'Roy Redgrave'})-[:HAS_CHILD*..]->(n)-[:ACTED_IN]->(m) RETURN "
          "n,m",
