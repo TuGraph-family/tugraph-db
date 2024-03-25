@@ -26,8 +26,8 @@ Value CompositeIndexValue::CreateKey(const Value &key) const {
 }
 
 CompositeIndex::CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types,
-    CompositeIndexType type) : table_(std::move(table)), key_types(std::move(key_types)), ready_(false),
-    disabled_(false), type_(type) {}
+    CompositeIndexType type) : table_(std::move(table)), key_types(std::move(key_types)),
+    ready_(false), disabled_(false), type_(type) {}
 
 CompositeIndex::CompositeIndex(const CompositeIndex& rhs)
     : table_(rhs.table_),
@@ -37,7 +37,8 @@ CompositeIndex::CompositeIndex(const CompositeIndex& rhs)
       type_(rhs.type_) {}
 
 std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &store,
-                                                   const std::string &name, const std::vector<FieldType> &dt,
+                                                   const std::string &name,
+                                                   const std::vector<FieldType> &dt,
                                                    CompositeIndexType type) {
     ComparatorDesc desc;
     switch (type) {
@@ -51,7 +52,8 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
     return store.OpenTable(txn, name, true, desc);
 }
 
-void CompositeIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k, const std::vector<VertexId>& vids) {
+void CompositeIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
+                                                      const std::vector<VertexId>& vids) {
     FMA_DBG_ASSERT(type_ == CompositeIndexType::NonUniqueIndex);
     FMA_DBG_ASSERT(!vids.empty());
     const Value& key = k;

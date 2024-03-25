@@ -457,7 +457,9 @@ class Schema {
         composite_index_map.emplace(fieldIds, std::make_shared<CompositeIndex>(*index));
     }
 
-    CompositeIndex* GetCompositeIndex(int16_t fieldIds) const { return composite_index_map.find(fieldIds)->second.get(); }
+    CompositeIndex* GetCompositeIndex(int16_t fieldIds) const {
+        return composite_index_map.find(fieldIds)->second.get();
+    }
 
     //----------------------
     // serialize/deserialize

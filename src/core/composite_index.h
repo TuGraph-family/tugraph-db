@@ -29,7 +29,6 @@
 namespace lgraph {
 
 class CompositeIndexValue {
-
     friend class CompositeIndex;
 
     Value v_;
@@ -77,7 +76,8 @@ class CompositeIndex {
     CompositeIndexType type_;
 
  public:
-    CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types, CompositeIndexType type);
+    CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types,
+                   CompositeIndexType type);
 
     CompositeIndex(const CompositeIndex& rhs);
 
@@ -89,7 +89,8 @@ class CompositeIndex {
 
     static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,
                                               const std::string& name,
-                                              const std::vector<FieldType> &dt, CompositeIndexType type);
+                                              const std::vector<FieldType> &dt,
+                                              CompositeIndexType type);
 
     /**
      * Append an entry to non-unique vertex index.

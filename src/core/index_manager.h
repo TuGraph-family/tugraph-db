@@ -81,7 +81,7 @@ struct CompositeIndexEntry {
         for (auto &f : field_names) {
             res += BinaryWrite(buf, f);
         }
-        for (auto &f: field_types) {
+        for (auto &f : field_types) {
             res += BinaryWrite(buf, f);
         }
         return res + BinaryWrite(buf, table_name) + BinaryWrite(buf, index_type);
@@ -93,7 +93,7 @@ struct CompositeIndexEntry {
         for (auto &f : field_names) {
             res += BinaryRead(buf, f);
         }
-        for (auto &f: field_types) {
+        for (auto &f : field_types) {
             res += BinaryRead(buf, f);
         }
         return res + BinaryRead(buf, table_name) + BinaryRead(buf, index_type);

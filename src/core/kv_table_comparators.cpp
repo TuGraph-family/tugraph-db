@@ -184,7 +184,6 @@ static int LexicalKeyBothVidCompareFunc(const MDB_val* a, const MDB_val* b) {
 }
 
 static int CompositeKeyCompareFunc(const MDB_val* a, const MDB_val* b) {
-
     return 0;
 }
 

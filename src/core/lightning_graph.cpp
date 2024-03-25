@@ -1320,13 +1320,14 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
 }
 
 template <typename T>
-void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
-                              const std::vector<size_t> &field_ids, CompositeIndexType type, VertexId start_vid,
-                              VertexId end_vid, bool is_vertex) {
+void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info,
+                                              LabelId label_id,
+                                              const std::vector<size_t> &field_ids,
+                                              CompositeIndexType type, VertexId start_vid,
+                                              VertexId end_vid, bool is_vertex) {
     if (is_vertex) {
         SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
         auto v_schema = schema_manager->GetSchema(label_id);
-
     }
 }
 

@@ -319,8 +319,8 @@ class LightningGraph {
 
     template <typename T>
     void BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
-                         const std::vector<size_t> &field_ids, CompositeIndexType type, VertexId start_vid,
-                         VertexId end_vid, bool is_vertex = true);
+                         const std::vector<size_t> &field_ids, CompositeIndexType type,
+                         VertexId start_vid, VertexId end_vid, bool is_vertex = true);
 
     void Open();
 };

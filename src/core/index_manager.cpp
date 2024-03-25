@@ -123,8 +123,10 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 }
 
 bool IndexManager::AddVertexCompositeIndex(KvTransaction& txn, const std::string& label,
-                                           const std::vector<std::string>& fields, const std::vector<FieldType>& types,
-                                           CompositeIndexType type, std::unique_ptr<CompositeIndex>& index) {
+                                           const std::vector<std::string>& fields,
+                                           const std::vector<FieldType>& types,
+                                           CompositeIndexType type,
+                                           std::unique_ptr<CompositeIndex>& index) {
     for (auto &dt : types) {
         if (dt == FieldType::BLOB) THROW_CODE(InputError, "BLOB fields cannot be indexed.");
     }
