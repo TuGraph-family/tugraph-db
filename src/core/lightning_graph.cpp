@@ -1319,6 +1319,17 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
     }
 }
 
+template <typename T>
+void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
+                              const std::vector<size_t> &field_ids, CompositeIndexType type, VertexId start_vid,
+                              VertexId end_vid, bool is_vertex) {
+    if (is_vertex) {
+        SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
+        auto v_schema = schema_manager->GetSchema(label_id);
+
+    }
+}
+
 std::vector<std::pair<int64_t, float>> LightningGraph::QueryVertexByFullTextIndex(
     const std::string& label, const std::string& query, int top_n) {
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();

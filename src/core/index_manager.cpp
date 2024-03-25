@@ -122,6 +122,29 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
     return true;
 }
 
+bool IndexManager::AddVertexCompositeIndex(KvTransaction& txn, const std::string& label,
+                                           const std::vector<std::string>& fields, const std::vector<FieldType>& types,
+                                           CompositeIndexType type, std::unique_ptr<CompositeIndex>& index) {
+    for (auto &dt : types) {
+        if (dt == FieldType::BLOB) THROW_CODE(InputError, "BLOB fields cannot be indexed.");
+    }
+    _detail::CompositeIndexEntry cidx;
+    cidx.label = label;
+    cidx.field_names = fields;
+    cidx.field_types = types;
+    cidx.table_name = GetVertexCompositeIndexTableName(label, fields);
+    cidx.index_type = type;
+    auto it = index_list_table_->GetIterator(txn, Value::ConstRef(cidx.table_name));
+    if (it->IsValid()) return false;
+    Value idxv;
+    StoreCompositeIndex(cidx, idxv);
+    it->AddKeyValue(Value::ConstRef(cidx.table_name), idxv);
+
+    auto tbl = CompositeIndex::OpenTable(txn, db_->GetStore(), cidx.table_name, types, type);
+    index = std::make_unique<CompositeIndex>(std::move(tbl), types, type);  // creates index table
+    return true;
+}
+
 bool IndexManager::AddEdgeIndex(KvTransaction& txn, const std::string& label,
                                 const std::string& field, FieldType dt, IndexType type,
                                 std::unique_ptr<EdgeIndex>& index) {
