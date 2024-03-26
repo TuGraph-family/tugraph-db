@@ -779,7 +779,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
                        lgraph::plugin::PLUGIN_VERSION_1, true, ""),
             code));
         // cpp
-        auto plugins = client.GetPlugin(db_name, true);
+        plugins = client.GetPlugin(db_name, true);
         UT_EXPECT_EQ(plugins.size(), 0);
         plugins.clear();
         // py
@@ -794,7 +794,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         plugins.clear();
 
         UT_LOG() << "Testing plugin get detail";
-        plugin = client.GetPluginDetail(db_name, "py_test", false);
+        auto plugin = client.GetPluginDetail(db_name, "py_test", false);
         UT_EXPECT_EQ(plugin.name, "py_test");
         UT_EXPECT_EQ(plugin.desc, "test python plugin ECHO");
         UT_EXPECT_EQ(plugin.read_only, true);
