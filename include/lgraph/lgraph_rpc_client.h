@@ -14,9 +14,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <deque>
-#include "core/defs.h"
 #include "tools/json.hpp"
-#include "protobuf/ha.pb.h"
 
 namespace fma_common {
 class Logger;
@@ -35,6 +33,13 @@ class LGraphResponse;
 class GraphQueryResult;
 class GraphQueryResponse;
 class BackupLogEntry;
+
+enum class GraphQueryType {
+    // Cypher type query
+    CYPHER = 0,
+    // GQL type query
+    GQL = 1
+};
 
 enum ClientType {
     // Connection to HA group using direct network address defined in conf.
@@ -261,7 +266,7 @@ class RpcClient {
      private:
         LGraphResponse HandleRequest(LGraphRequest* req);
 
-        bool HandleGraphQueryRequest(lgraph::ProtoGraphQueryType type,
+        bool HandleGraphQueryRequest(lgraph::GraphQueryType type,
                                      LGraphResponse* res, const std::string& query,
                                      const std::string& graph, bool json_format, double timeout);
 #ifdef BINARY_RESULT_BUG_TO_BE_SOLVE
@@ -576,7 +581,7 @@ class RpcClient {
      * @param [in]  graph               (Optional) the graph to query.
      * @returns True if it succeeds, false if it fails.
      */
-    bool IsReadQuery(lgraph::ProtoGraphQueryType type,
+    bool IsReadQuery(lgraph::GraphQueryType type,
                       const std::string& query, const std::string& graph);
 
     /**
@@ -588,7 +593,7 @@ class RpcClient {
      * @returns Master rpc client if cypher is not read-only, slaver rpc client if cypher is
      * read-only.
      */
-    std::shared_ptr<lgraph::RpcClient::RpcSingleClient> GetClient(lgraph::ProtoGraphQueryType type,
+    std::shared_ptr<lgraph::RpcClient::RpcSingleClient> GetClient(lgraph::GraphQueryType type,
                                                                   const std::string& cypher,
                                                                   const std::string& graph);
 
