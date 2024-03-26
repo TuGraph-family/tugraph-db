@@ -852,14 +852,14 @@ struct FieldData {
 
     inline ::lgraph_api::Spatial<::lgraph_api::Wgs84> AsWgsSpatial()
     const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        if (IsSpatial()) return ::lgraph_api::Spatial
         <::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
     inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial()
     const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        if (IsSpatial()) return ::lgraph_api::Spatial
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
@@ -1140,7 +1140,8 @@ struct FieldData {
     bool IsPolygon() const { return type == FieldType::POLYGON; }
 
     /** @brief   Query if this object is spatial*/
-    bool IsSpatial() const { return type == FieldType::SPATIAL; }
+    bool IsSpatial() const { return type == FieldType::SPATIAL || IsPoint() || IsLineString()
+    || IsPolygon(); }
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */
