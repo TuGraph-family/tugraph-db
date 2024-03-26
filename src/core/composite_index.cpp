@@ -56,7 +56,8 @@ void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value&
     FMA_DBG_ASSERT(type_ == CompositeIndexType::GlobalUniqueIndex);
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
         txn.Abort();
-        THROW_CODE(InternalError, "The key of the composite index is too long and exceeds the limit.");
+        THROW_CODE(InternalError, "The key of the composite index is "
+                   "too long and exceeds the limit.");
     }
     table_->AppendKv(txn, k, Value::ConstRef(vid));
 }
