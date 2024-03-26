@@ -345,6 +345,17 @@ inline void SetNByteIdToBuf(char* p, size_t n_bytes, int64_t id) {
 #endif
 }
 
+template <size_t NBYTE>
+inline int16_t GetNByteOffsetFromBuf(const char* p) {
+    int16_t id = 0;
+#if BYTE_ORDER == LITTLE_ENDIAN
+    memcpy((char*)&id, p, NBYTE);
+#else
+    memcpy(((char*)&id) + sizeof(int16_t) - NBYTE, p, NBYTE);
+#endif
+    return id;
+}
+
 inline VertexId GetVid(const char* p) { return GetNByteIdFromBuf<VID_SIZE>(p); }
 
 inline EdgeId GetEid(const char* p) { return GetNByteIdFromBuf<EID_SIZE>(p); }

@@ -1086,6 +1086,59 @@ struct KeyVid {
     }
 };
 
+struct CompositeKeyVid {
+    std::vector<Value> keys;
+    std::vector<FieldType> types;
+    VertexId vid;
+
+    CompositeKeyVid(const std::vector<Value>& k, const std::vector<FieldType>& t,
+                    VertexId v) : keys(k), types(t), vid(v) {}
+    CompositeKeyVid() : keys(std::vector<Value>()), types(std::vector<FieldType>()), vid(0) {}
+
+    bool operator<(const CompositeKeyVid& rhs) const {
+        int n = keys.size();
+        for (int i = 0; i < n; ++i) {
+            switch (types[i]) {
+            case FieldType::BOOL:
+                if (keys[i].AsType<bool>() == rhs.keys[i].AsType<bool>()) continue;
+                return keys[i].AsType<bool>() < rhs.keys[i].AsType<bool>();
+            case FieldType::INT8:
+                if (keys[i].AsType<int8_t>() == rhs.keys[i].AsType<int8_t>()) continue;
+                return keys[i].AsType<int8_t>() < rhs.keys[i].AsType<int8_t>();
+            case FieldType::INT16:
+                if (keys[i].AsType<int16_t>() == rhs.keys[i].AsType<int16_t>()) continue;
+                return keys[i].AsType<int16_t>() < rhs.keys[i].AsType<int16_t>();
+            case FieldType::INT32:
+                if (keys[i].AsType<int32_t>() == rhs.keys[i].AsType<int32_t>()) continue;
+                return keys[i].AsType<int32_t>() < rhs.keys[i].AsType<int32_t>();
+            case FieldType::DATE:
+                if (keys[i].AsType<int32_t>() == rhs.keys[i].AsType<int32_t>()) continue;
+                return keys[i].AsType<int32_t>() < rhs.keys[i].AsType<int32_t>();
+            case FieldType::INT64:
+                if (keys[i].AsType<int64_t>() == rhs.keys[i].AsType<int64_t>()) continue;
+                return keys[i].AsType<int64_t>() < rhs.keys[i].AsType<int64_t>();
+            case FieldType::DATETIME:
+                if (keys[i].AsType<int64_t>() == rhs.keys[i].AsType<int64_t>()) continue;
+                return keys[i].AsType<int64_t>() < rhs.keys[i].AsType<int64_t>();
+            case FieldType::FLOAT:
+                if (keys[i].AsType<float>() == rhs.keys[i].AsType<float>()) continue;
+                return keys[i].AsType<float>() < rhs.keys[i].AsType<float>();
+            case FieldType::DOUBLE:
+                if (keys[i].AsType<double>() == rhs.keys[i].AsType<double>()) continue;
+                return keys[i].AsType<double>() < rhs.keys[i].AsType<double>();
+            case FieldType::STRING:
+                if (keys[i].AsType<std::string>() == rhs.keys[i].AsType<std::string>()) continue;
+                return keys[i].AsType<std::string>() < rhs.keys[i].AsType<std::string>();
+            case FieldType::BLOB:
+                THROW_CODE(KvException, "Blob fields cannot act as key.");
+            default:
+                THROW_CODE(KvException, "Unknown data type: {}", types[i]);
+            }
+        }
+        return true;
+    }
+};
+
 template <typename T>
 struct KeyEUid {
     T key;
@@ -1319,15 +1372,38 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
     }
 }
 
-template <typename T>
 void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info,
                                               LabelId label_id,
-                                              const std::vector<size_t> &field_ids,
+                                              const std::vector<std::string> &fields,
                                               CompositeIndexType type, VertexId start_vid,
                                               VertexId end_vid, bool is_vertex) {
     if (is_vertex) {
         SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
         auto v_schema = schema_manager->GetSchema(label_id);
+        CompositeIndex* index = v_schema->GetCompositeIndex(fields);
+        FMA_DBG_ASSERT(index);
+        static const size_t max_block_size = 1 << 28;
+        for (VertexId vid = start_vid; vid < end_vid; vid += max_block_size) {
+            std::vector<CompositeKeyVid> key_vids;
+            VertexId curr_end = std::min<VertexId>(end_vid, vid + max_block_size);
+            key_vids.reserve(curr_end - vid);
+            for (auto it = txn.GetVertexIterator(vid, true); it.IsValid() && it.GetId() < curr_end;
+                 it.Next()) {
+                Value prop = it.GetProperty();
+                if (lgraph::SchemaManager::GetRecordLabelId(prop) != label_id) continue;
+                if (v_schema->DetachProperty()) {
+                    prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
+                }
+                std::vector<Value> values;
+                std::vector<FieldType> types;
+                for (auto &field : fields) {
+                    values.emplace_back(v_schema->GetFieldExtractor(field)->GetConstRef(prop));
+                    types.emplace_back(v_schema->GetFieldExtractor(field)->Type());
+                }
+                key_vids.emplace_back(values, types, it.GetId());
+            }
+            LGRAPH_PSORT(key_vids.begin(), key_vids.end());
+        }
     }
 }
 

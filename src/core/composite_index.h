@@ -92,15 +92,7 @@ class CompositeIndex {
                                               const std::vector<FieldType> &dt,
                                               CompositeIndexType type);
 
-    /**
-     * Append an entry to non-unique vertex index.
-     *
-     * \param   txn     The transaction.
-     * \param   k       The key, raw format.
-     * \param   vids    All the vids corresponding to k. The vids must be sorted.
-     */
-    void _AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
-                                          const std::vector<VertexId>& vids);
+    void _AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid);
 
  private:
     void Clear(KvTransaction& txn) { table_->Drop(txn); }

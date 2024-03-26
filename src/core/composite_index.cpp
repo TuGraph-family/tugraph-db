@@ -42,7 +42,7 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
                                                    CompositeIndexType type) {
     ComparatorDesc desc;
     switch (type) {
-    case CompositeIndexType::NonUniqueIndex:
+    case CompositeIndexType::GlobalUniqueIndex:
         {
             desc.comp_type = ComparatorDesc::COMPOSITE_KEY;
             break;
@@ -52,19 +52,13 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
     return store.OpenTable(txn, name, true, desc);
 }
 
-void CompositeIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
-                                                      const std::vector<VertexId>& vids) {
-    FMA_DBG_ASSERT(type_ == CompositeIndexType::NonUniqueIndex);
-    FMA_DBG_ASSERT(!vids.empty());
-    const Value& key = k;
-    size_t vid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::VID_SIZE;
-    for (size_t i = 0; i < vids.size(); i += vid_per_idv) {
-        size_t end = i + vid_per_idv;
-        end = end <= vids.size() ? end : vids.size();
-        CompositeIndexValue idv(vids.begin() + i, vids.begin() + end);
-        Value real_key = idv.CreateKey(key);
-        table_->AppendKv(txn, real_key, idv.GetBuf());
+void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
+    FMA_DBG_ASSERT(type_ == CompositeIndexType::GlobalUniqueIndex);
+    if (k.Size() >= _detail::MAX_KEY_SIZE) {
+        txn.Abort();
+        THROW_CODE(InternalError, "The key of the composite index is too long and exceeds the limit.");
     }
+    table_->AppendKv(txn, k, Value::ConstRef(vid));
 }
 
 }  // namespace lgraph

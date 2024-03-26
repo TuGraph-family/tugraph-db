@@ -1211,7 +1211,7 @@ enum class CompositeIndexType {
     /** @brief this is not unique composite index
      *  Temporarily require all attributes to be non-empty attributes
      * */
-    NonUniqueIndex = 1
+    GlobalUniqueIndex = 1
 };
 
 /** @brief   An index specifier. */
