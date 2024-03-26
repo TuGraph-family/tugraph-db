@@ -723,6 +723,41 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
             "V0KT"
             "oKICAgIHJldHVybiAoVHJ1ZSwgaW5wdXQpCg==");
 
+        auto read_file = [] (std::string path) {
+            auto& fs = fma_common::FileSystem::GetFileSystem(path);
+            std::string res;
+            if (fs.FileExists(path)) {
+                fma_common::InputFmaStream ifs(path, 0);
+                size_t sz = ifs.Size();
+                res.resize(sz);
+            }
+            return res;
+        };
+        std::string multi_core = read_file("../../test/test_procedures/multi_files_core.cpp");
+        std::string multi_procedure = read_file("../../test/test_procedures/multi_files.cpp");
+        std::string multi_header = read_file("../../test/test_procedures/multi_files.h");
+        std::vector<std::string> codes{multi_core, multi_procedure, multi_header};
+        std::vector<std::string> filenames{
+            "multi_files_core.cpp", "multi_files.cpp", "multi_files.h"};
+        UT_EXPECT_EQ(client.LoadPlugin(db_name, lgraph_api::PluginCodeType::CPP,
+                                       PluginDesc("cpp_test", lgraph::plugin::PLUGIN_CODE_TYPE_CPP,
+                                                  "test cpp plugin",
+                                                  lgraph::plugin::PLUGIN_VERSION_1, true, ""),
+                                       codes, filenames),
+                     true);
+
+        auto plugins = client.GetPlugin(db_name, true);
+        UT_EXPECT_EQ(plugins.size(), 1);
+        UT_EXPECT_EQ(plugins[0].name, "cpp_test");
+        UT_EXPECT_EQ(plugins[0].desc, "test cpp plugin");
+        UT_EXPECT_EQ(plugins[0].read_only, true);
+        plugins.clear();
+
+        client.DeletePlugin(db_name, true, "cpp_test");
+        plugins = client.GetPlugin(db_name, true);
+        UT_EXPECT_EQ(plugins.size(), 0);
+        plugins.clear();
+
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
         UT_EXPECT_EQ(client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
                                        PluginDesc("py_test", lgraph::plugin::PLUGIN_CODE_TYPE_PY,
@@ -759,7 +794,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
         plugins.clear();
 
         UT_LOG() << "Testing plugin get detail";
-        auto plugin = client.GetPluginDetail(db_name, "py_test", false);
+        plugin = client.GetPluginDetail(db_name, "py_test", false);
         UT_EXPECT_EQ(plugin.name, "py_test");
         UT_EXPECT_EQ(plugin.desc, "test python plugin ECHO");
         UT_EXPECT_EQ(plugin.read_only, true);

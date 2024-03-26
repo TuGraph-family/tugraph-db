@@ -2000,7 +2000,6 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
         }
-        LOG_WARN() << "code size: " << codes.size() <<  " code: " << codes[0];
         // use v1 by default for compatibility
         if (!ExtractStringField(body, RestStrings::VERSION, version)) {
             version = "v1";
@@ -2011,7 +2010,6 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
             std::vector<unsigned char> decoded = utility::conversions::from_base64(_TU(code));
             req->add_code(std::string(decoded.begin(), decoded.end()));
         }
-        LOG_WARN() << "req codes.size: " << req->code_size();
         ExtractStringField(body, RestStrings::DESC, *req->mutable_desc());
         LoadPluginRequest::CodeType code_type = (type == PluginManager::PluginType::CPP)
                                                     ? LoadPluginRequest::SO

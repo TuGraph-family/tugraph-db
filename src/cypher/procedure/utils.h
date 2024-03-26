@@ -84,7 +84,7 @@ class PluginAdapter {
      public:
         NodeBuffer() { buffer_.reserve(128); }
         ~NodeBuffer() = default;
-        void Reserver(int64_t size) { buffer_.reserve(size); }
+        void Reserve(int64_t size) { buffer_.reserve(size); }
         int64_t Capacity() { return buffer_.capacity(); }
         DISABLE_COPY(NodeBuffer);
         DISABLE_MOVE(NodeBuffer);
@@ -216,7 +216,7 @@ class PluginAdapter {
                     node_num_in_result += api_result.Size();
                 }
             }
-            node_buffer_.Reserver(node_num_in_result);
+            node_buffer_.Reserve(node_num_in_result);
 
             for (int64_t i = 0; i < api_result.Size(); i++) {
                 const auto& rview = api_result.RecordView(i);

@@ -119,7 +119,6 @@ TEST_P(TestRestClient, RestClient) {
             },
             std::exception);
     }
-    auto give_me_a_name = std::vector<std::string> {"aa", "b"};
 
     DefineTest("CreateUser") {
         Setup();

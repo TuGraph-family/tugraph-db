@@ -1341,11 +1341,11 @@ int test_procedure(cypher::RTContext *ctx) {
                     name, encoded, name));
     };
 
-    add_signatured_plugins("custom_shortestpath",
-                           "../../test/test_procedures/custom_shortestpath.cpp");
+    add_signatured_plugins("custom_test_path",
+                           "../../test/test_procedures/custom_test_path.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
-        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "CALL plugin.cpp.custom_test_path(a, b) YIELD length, nodeIds "
         "RETURN length, nodeIds AS path");
 
     add_signatured_plugins("custom_pagerank", "../../test/test_procedures/custom_pagerank.cpp");
@@ -1356,7 +1356,7 @@ int test_procedure(cypher::RTContext *ctx) {
 
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
-        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "CALL plugin.cpp.custom_test_path(a, b) YIELD length, nodeIds "
         "WITH length, nodeIds "
         "UNWIND nodeIds AS id "
         "RETURN id, length");

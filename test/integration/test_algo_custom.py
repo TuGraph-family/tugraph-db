@@ -15,7 +15,7 @@ IMPORTOPT = {"cmd":"./lgraph_import --config_file ./data/algo/fb.conf --dir ./te
              "cleanup_dir":["./testdb", "./.import_tmp"]}
 
 
-class TestAlgoV2:
+class TestAlgoCustom:
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
