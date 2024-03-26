@@ -300,16 +300,15 @@ void VertexIndexIterator::RefreshContentIfKvIteratorModified() {
         switch (type_) {
         case IndexType::GlobalUniqueIndex:
             {
-                it_->GotoClosestKey(curr_key_);
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(curr_key_)) return;
                 if (KeyOutOfRange()) return;
                 LoadContentFromIt();
                 return;
             }
         case IndexType::NonuniqueIndex:
             {
-                it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_));
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_)))
+                    return;
                 if (KeyOutOfRange()) return;
                 // non-unique, need to find correct pos_
                 iv_ = VertexIndexValue(it_->GetValue());
