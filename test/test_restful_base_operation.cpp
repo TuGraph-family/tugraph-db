@@ -730,6 +730,8 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
                 fma_common::InputFmaStream ifs(path, 0);
                 size_t sz = ifs.Size();
                 res.resize(sz);
+                size_t ssz = ifs.Read(&res[0], sz);
+                UT_EXPECT_TRUE(ssz == sz);
             }
             return res;
         };
