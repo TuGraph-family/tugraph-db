@@ -73,7 +73,8 @@ class RpcClient {
          * @brief   Load a user-defined procedure
          *
          * @param [out] result                  The result.
-         * @param [in]  source_file             the source_file contain procedure code.
+         * @param [in]  source_files            the source_file list contain procedure code(only
+         *                                      for code_type cpp)
          * @param [in]  procedure_type          the procedure type, currently supported CPP and PY.
          * @param [in]  procedure_name          procedure name.
          * @param [in]  code_type               code type, currently supported PY, SO, CPP, ZIP.
@@ -84,7 +85,7 @@ class RpcClient {
          *
          * @returns True if it succeeds, false if it fails.
          */
-        bool LoadProcedure(std::string& result, const std::string& source_file,
+        bool LoadProcedure(std::string& result, const std::vector<std::string>& source_files,
                            const std::string& procedure_type, const std::string& procedure_name,
                            const std::string& code_type, const std::string& procedure_description,
                            bool read_only, const std::string& version = "v1",
@@ -436,6 +437,27 @@ class RpcClient {
      * @returns True if it succeeds, false if it fails.
      */
     bool LoadProcedure(std::string& result, const std::string& source_file,
+                       const std::string& procedure_type, const std::string& procedure_name,
+                       const std::string& code_type, const std::string& procedure_description,
+                       bool read_only, const std::string& version = "v1",
+                       const std::string& graph = "default");
+
+    /**
+     * @brief   Load a built-in procedure
+     *
+     * @param [out] result                  The result.
+     * @param [in]  source_files            the source_file list contain procedure code(only
+*                                           for code_type cpp)
+     * @param [in]  procedure_type          the procedure type, currently supported CPP and PY.
+     * @param [in]  procedure_name          procedure name.
+     * @param [in]  code_type               code type, currently supported PY, SO, CPP, ZIP.
+     * @param [in]  procedure_description   procedure description.
+     * @param [in]  read_only               procedure is read only or not.
+     * @param [in]  version                 (Optional) the version of procedure.
+     * @param [in]  graph                   (Optional) the graph to query.
+     * @returns True if it succeeds, false if it fails.
+     */
+    bool LoadProcedure(std::string& result, const std::vector<std::string>& source_files,
                        const std::string& procedure_type, const std::string& procedure_name,
                        const std::string& code_type, const std::string& procedure_description,
                        bool read_only, const std::string& version = "v1",

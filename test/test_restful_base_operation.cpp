@@ -723,6 +723,43 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
             "V0KT"
             "oKICAgIHJldHVybiAoVHJ1ZSwgaW5wdXQpCg==");
 
+        auto read_file = [] (std::string path) {
+            auto& fs = fma_common::FileSystem::GetFileSystem(path);
+            std::string res;
+            if (fs.FileExists(path)) {
+                fma_common::InputFmaStream ifs(path, 0);
+                size_t sz = ifs.Size();
+                res.resize(sz);
+                size_t ssz = ifs.Read(&res[0], sz);
+                UT_EXPECT_TRUE(ssz == sz);
+            }
+            return res;
+        };
+        std::string multi_core = read_file("../../test/test_procedures/multi_files_core.cpp");
+        std::string multi_procedure = read_file("../../test/test_procedures/multi_files.cpp");
+        std::string multi_header = read_file("../../test/test_procedures/multi_files.h");
+        std::vector<std::string> codes{multi_core, multi_procedure, multi_header};
+        std::vector<std::string> filenames{
+            "multi_files_core.cpp", "multi_files.cpp", "multi_files.h"};
+        UT_EXPECT_EQ(client.LoadPlugin(db_name, lgraph_api::PluginCodeType::CPP,
+                                       PluginDesc("cpp_test", lgraph::plugin::PLUGIN_CODE_TYPE_CPP,
+                                                  "test cpp plugin",
+                                                  lgraph::plugin::PLUGIN_VERSION_1, true, ""),
+                                       codes, filenames),
+                     true);
+
+        auto plugins = client.GetPlugin(db_name, true);
+        UT_EXPECT_EQ(plugins.size(), 1);
+        UT_EXPECT_EQ(plugins[0].name, "cpp_test");
+        UT_EXPECT_EQ(plugins[0].desc, "test cpp plugin");
+        UT_EXPECT_EQ(plugins[0].read_only, true);
+        plugins.clear();
+
+        client.DeletePlugin(db_name, true, "cpp_test");
+        plugins = client.GetPlugin(db_name, true);
+        UT_EXPECT_EQ(plugins.size(), 0);
+        plugins.clear();
+
 #if LGRAPH_ENABLE_PYTHON_PLUGIN
         UT_EXPECT_EQ(client.LoadPlugin(db_name, lgraph_api::PluginCodeType::PY,
                                        PluginDesc("py_test", lgraph::plugin::PLUGIN_CODE_TYPE_PY,
@@ -744,7 +781,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
                        lgraph::plugin::PLUGIN_VERSION_1, true, ""),
             code));
         // cpp
-        auto plugins = client.GetPlugin(db_name, true);
+        plugins = client.GetPlugin(db_name, true);
         UT_EXPECT_EQ(plugins.size(), 0);
         plugins.clear();
         // py

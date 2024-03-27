@@ -299,6 +299,19 @@ Record *Result::MutableRecord() {
     return &result[row_count_];
 }
 
+void Result::Reserve(size_t n) {
+    result.reserve(n);
+}
+
+void Result::Resize(size_t n) {
+    result.resize(n, Record(header));
+    row_count_ = (int64_t)(n - 1);
+}
+
+Record* Result::At(size_t n) {
+    return &result.at(n);
+}
+
 void Result::ResetHeader(const std::vector<std::pair<std::string, LGraphType>> &new_header) {
     result.clear();
     header = new_header;

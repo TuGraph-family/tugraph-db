@@ -159,5 +159,11 @@ class CppPluginManagerImpl : public PluginManagerImplBase {
                 AccessControlledDB* db_with_access_control,
                 const std::string name, const PluginInfoBase* pinfo, const std::string& request,
                 double timeout, bool in_process, std::string& output) override;
+
+    void DoCallV2(lgraph_api::Transaction* txn,
+                  const std::string& user,
+                  AccessControlledDB* db_with_access_control,
+                  const std::string name, const PluginInfoBase* pinfo, const std::string& request,
+                  double timeout, bool in_process, Result& output) override;
 };
 }  // namespace lgraph

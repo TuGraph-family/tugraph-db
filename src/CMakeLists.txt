@@ -25,7 +25,7 @@ install(DIRECTORY
         DESTINATION share/lgraph/resource/procedure_demo/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v1_scan_graph.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/custom_pagerank.cpp
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
         DESTINATION share/lgraph/resource/procedure_demo/)
 install(DIRECTORY

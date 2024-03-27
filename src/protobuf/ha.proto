@@ -582,9 +582,10 @@ message LoadPluginRequest {
 
     required string name = 1;
     required bool read_only = 2;
-    required bytes code = 3;
+    repeated bytes code = 3;
     optional string desc = 4;
     optional CodeType code_type = 5;
+    repeated string file_name = 6;
 };
 
 message LoadPluginResponse {};

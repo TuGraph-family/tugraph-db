@@ -259,6 +259,10 @@ class RestClient {
     bool LoadPlugin(const std::string& db, lgraph_api::PluginCodeType type,
                     const PluginDesc& plugin_info, const std::string& code);
 
+    bool LoadPlugin(const std::string& db, lgraph_api::PluginCodeType type,
+                    const PluginDesc& plugin_info, const std::vector<std::string>& codes,
+                    const std::vector<std::string>& filenames);
+
     std::vector<PluginDesc> GetPlugin(const std::string& db, bool is_cpp);
 
     lgraph::PluginCode GetPluginDetail(const std::string& db, const std::string& name, bool is_cpp);

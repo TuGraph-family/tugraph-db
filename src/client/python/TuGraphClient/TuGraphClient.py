@@ -220,11 +220,12 @@ class AsyncTuGraphClient:
             content = f.read()
         data = {}
         data['name'] = name
-        data['code_base64'] = base64.b64encode(content).decode()
+        data['code_base64'] = [base64.b64encode(content).decode()]
         data['description'] = desc
         data['read_only'] = read_only
         data['code_type'] = file_type
         data['version'] = version
+        data['file_name'] = [file_path.split('/')[-1]]
         if file_type == 'cpp' or file_type == 'zip' or file_type == 'so':
             url = 'cpp_plugin'
         elif file_type == 'py':

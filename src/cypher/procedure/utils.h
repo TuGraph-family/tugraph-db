@@ -84,6 +84,8 @@ class PluginAdapter {
      public:
         NodeBuffer() { buffer_.reserve(128); }
         ~NodeBuffer() = default;
+        void Reserve(int64_t size) { buffer_.reserve(size); }
+        int64_t Capacity() { return buffer_.capacity(); }
         DISABLE_COPY(NodeBuffer);
         DISABLE_MOVE(NodeBuffer);
         Node& AllocNode(NodeID id, const std::string& alias) {
@@ -198,13 +200,24 @@ class PluginAdapter {
         }
         request.append("}");
 
-        std::string response;
-        ctx->ac_db_->CallPlugin(ctx->txn_.get(), type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
-                                request, 0, false, response);
+        lgraph_api::Result api_result;
+        bool ret = ctx->ac_db_->CallV2Plugin(ctx->txn_.get(),
+                                             type_, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name_,
+                                             request, 0, false, api_result);
+        if (!ret) {
+            throw lgraph::CypherException("Plugin return false, errMsg: " + api_result.Dump());
+        }
 
         try {
-            lgraph_api::Result api_result;
-            api_result.Load(response);
+            results->reserve(results->size() + api_result.Size());
+            int64_t node_num_in_result = 0;
+            for (const auto& result : sig_spec_->result_list) {
+                if (result.type == lgraph_api::LGraphType::NODE) {
+                    node_num_in_result += api_result.Size();
+                }
+            }
+            node_buffer_.Reserve(node_num_in_result);
+
             for (int64_t i = 0; i < api_result.Size(); i++) {
                 const auto& rview = api_result.RecordView(i);
                 Record r;
@@ -255,7 +268,7 @@ class PluginAdapter {
                 results->emplace_back(std::move(r));
             }
         } catch (std::exception& e) {
-            response = std::string("error parsing json: ") + e.what();
+            LOG_WARN() << "error parsing json: " << e.what();
             return false;
         }
         return true;
