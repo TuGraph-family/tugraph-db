@@ -187,7 +187,7 @@ static int LexicalKeyBothVidCompareFunc(const MDB_val* a, const MDB_val* b) {
 struct CompositeKeyCompare {
     static std::vector<FieldType> data_types;
     static int CompositeKeyCompareFunc(const MDB_val* a, const MDB_val* b) {
-        auto len = data_types.size();
+        int len = data_types.size();
         std::vector<int16_t> offset_a(len + 1), offset_b(len + 1);
         for (int i = 1; i < len; ++i) {
             offset_a[i] = GetNByteOffsetFromBuf<2>((char*)a->mv_data + (i - 1) * 2);
