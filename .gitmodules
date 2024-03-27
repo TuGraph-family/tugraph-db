@@ -7,3 +7,6 @@
 [submodule "deps/tugraph-db-management"]
 	path = deps/tugraph-db-management
 	url = https://github.com/TuGraph-family/tugraph-db-management.git
+[submodule "deps/tugraph-db-browser"]
+	path = deps/tugraph-db-browser
+	url = https://github.com/TuGraph-family/tugraph-db-browser.git
