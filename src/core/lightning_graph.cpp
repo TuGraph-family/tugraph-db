@@ -1137,6 +1137,15 @@ struct CompositeKeyVid {
         }
         return true;
     }
+
+    Value GenerateCompositeIndexKey() {
+        int n = keys.size(), len = (n - 1) * 2;
+        for (int i = 0; i < n; ++i) {
+            len += keys[i].Size();
+        }
+        Value res(len);
+        return res;
+    }
 };
 
 template <typename T>
@@ -1403,6 +1412,39 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                 key_vids.emplace_back(values, types, it.GetId());
             }
             LGRAPH_PSORT(key_vids.begin(), key_vids.end());
+            // now insert into index table
+            if (max_block_size >= (size_t)(end_vid - start_vid)) {
+                // block size large enough, so there is only one pass, use AppendKv
+                switch (type) {
+                case CompositeIndexType::GlobalUniqueIndex:
+                    {
+                        // if there is only one block, we use AppendKv,
+                        // so checking for duplicate is required
+                        // if there are multiple blocks,
+                        // then uniqueness will be checked when we insert the
+                        // keys into index, and this is not required,
+                        // but still good to find duplicates early
+                        for (size_t i = 1; i < key_vids.size(); i++) {
+                            if (key_vids[i].keys == key_vids[i - 1].keys)
+                                THROW_CODE(InputError,
+                                           "Duplicate composite vertex keys [{}] found "
+                                           "for vids {} and {}.",
+                                           key_vids[i].keys[0].AsString(), key_vids[i - 1].vid,
+                                           key_vids[i].vid);
+                        }
+                        for (auto& kv : key_vids)
+                            index->_AppendCompositeIndexEntry(txn.GetTxn(),
+                                                              kv.GenerateCompositeIndexKey(),
+                                                           (VertexId)kv.vid);
+                        break;
+                    }
+                }
+            } else {
+                // multiple blocks, use regular index calls
+                for (auto& kv : key_vids) {
+                    index->Add(txn.GetTxn(), kv.GenerateCompositeIndexKey(), kv.vid);
+                }
+            }
         }
     }
 }

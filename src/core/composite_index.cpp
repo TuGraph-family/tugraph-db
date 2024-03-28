@@ -62,4 +62,19 @@ void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value&
     table_->AppendKv(txn, k, Value::ConstRef(vid));
 }
 
+bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
+    if (k.Size() >= _detail::MAX_KEY_SIZE) {
+        txn.Abort();
+        THROW_CODE(InternalError, "The key of the composite index is "
+                   "too long and exceeds the limit.");
+    }
+    switch (type_) {
+    case CompositeIndexType::GlobalUniqueIndex:
+        {
+            return table_->AddKV(txn, k, Value::ConstRef(vid));
+        }
+    }
+    return false;
+}
+
 }  // namespace lgraph
