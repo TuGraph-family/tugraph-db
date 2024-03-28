@@ -94,7 +94,7 @@ class CompositeIndex {
 
     void _AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid);
 
-    bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid);
+    bool Add(KvTransaction& txn, const Value& k, int64_t vid);
 
  private:
     void Clear(KvTransaction& txn) { table_->Drop(txn); }
