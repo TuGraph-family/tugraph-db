@@ -58,6 +58,48 @@ struct IndexEntry {
                BinaryRead(buf, type);
     }
 };
+
+struct CompositeIndexEntry {
+    CompositeIndexEntry() {}
+    CompositeIndexEntry(CompositeIndexEntry&& rhs)
+        : label(std::move(rhs.label)),
+          field_names(std::move(rhs.field_names)),
+          field_types(std::move(rhs.field_types)),
+          table_name(std::move(rhs.table_name)),
+          index_type(rhs.index_type) {}
+
+    std::string label;
+    int16_t n;
+    std::vector<std::string> field_names;
+    std::vector<FieldType> field_types;
+    std::string table_name;
+    CompositeIndexType index_type;
+
+    template <typename StreamT>
+    size_t Serialize(StreamT& buf) const {
+        size_t res = BinaryWrite(buf, label) + BinaryWrite(buf, n);
+        for (auto &f : field_names) {
+            res += BinaryWrite(buf, f);
+        }
+        for (auto &f : field_types) {
+            res += BinaryWrite(buf, f);
+        }
+        return res + BinaryWrite(buf, table_name) + BinaryWrite(buf, index_type);
+    }
+
+    template <typename StreamT>
+    size_t Deserialize(StreamT& buf) {
+        size_t res = BinaryRead(buf, label) + BinaryRead(buf, n);
+        for (auto &f : field_names) {
+            res += BinaryRead(buf, f);
+        }
+        for (auto &f : field_types) {
+            res += BinaryRead(buf, f);
+        }
+        return res + BinaryRead(buf, table_name) + BinaryRead(buf, index_type);
+    }
+};
+
 }  // namespace _detail
 }  // namespace lgraph
 
@@ -73,6 +115,15 @@ class IndexManager {
     static std::string GetVertexIndexTableName(const std::string& label, const std::string& field) {
         return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
                _detail::VERTEX_INDEX;
+    }
+
+    static std::string GetVertexCompositeIndexTableName(const std::string& label,
+                                                        const std::vector<std::string>& fields) {
+        std::string res = label + _detail::NAME_SEPERATOR;
+        for (auto &s : fields) {
+            res += s + _detail::NAME_SEPERATOR;
+        }
+        return res + _detail::VERTEX_INDEX;
     }
 
     static std::string GetEdgeIndexTableName(const std::string& label, const std::string& field) {
@@ -107,6 +158,12 @@ class IndexManager {
     }
 
     static void StoreIndex(const _detail::IndexEntry& idx, Value& v) {
+        fma_common::BinaryBuffer buf;
+        fma_common::BinaryWrite(buf, idx);
+        v.Copy(Value(buf.GetBuf(), buf.GetSize()));
+    }
+
+    static void StoreCompositeIndex(const _detail::CompositeIndexEntry& idx, Value& v) {
         fma_common::BinaryBuffer buf;
         fma_common::BinaryWrite(buf, idx);
         v.Copy(Value(buf.GetBuf(), buf.GetSize()));
@@ -151,6 +208,12 @@ class IndexManager {
 
     bool AddVertexIndex(KvTransaction& txn, const std::string& label, const std::string& field,
                         FieldType dt, IndexType type, std::unique_ptr<VertexIndex>& index);
+
+    bool AddVertexCompositeIndex(KvTransaction& txn, const std::string& label,
+                                 const std::vector<std::string>& fields,
+                                 const std::vector<FieldType>& types,
+                                 CompositeIndexType type,
+                                 std::unique_ptr<CompositeIndex>& index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
                       FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);
