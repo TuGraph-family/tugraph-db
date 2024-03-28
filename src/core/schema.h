@@ -468,7 +468,9 @@ class Schema {
     }
 
     CompositeIndex* GetCompositeIndex(const std::vector<std::string> &fields) {
-        return composite_index_map.find(GetCompositeIndexMapKey(fields))->second.get();
+        auto it = composite_index_map.find(GetCompositeIndexMapKey(fields));
+        if (it == composite_index_map.end()) return nullptr;
+        return it->second.get();
     }
 
     //----------------------

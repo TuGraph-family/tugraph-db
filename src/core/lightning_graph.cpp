@@ -1144,6 +1144,16 @@ struct CompositeKeyVid {
             len += keys[i].Size();
         }
         Value res(len);
+        int16_t off = 0;
+        for (int i = 0; i < n - 1; ++i) {
+            off += keys[i].Size();
+            memcpy(res.Data() + i * 2, &off, sizeof(int16_t));
+        }
+        off = 0;
+        for (int i = 0; i < n; ++i) {
+            memcpy(res.Data() + (n - 1) * 2 + off, keys[i].Data(), keys[i].Size());
+            off += keys[i].Size();
+        }
         return res;
     }
 };
@@ -1700,6 +1710,118 @@ void LightningGraph::RefreshCount() {
         }
     }
     txn.Commit();
+}
+
+bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
+                                               const std::vector<std::string>& fields,
+                                               CompositeIndexType type, bool is_vertex,
+                                               bool known_vid_range, VertexId start_vid,
+                                               VertexId end_vid) {
+    _HoldWriteLock(meta_lock_);
+    if (fields.size() > _detail::MAX_COMPOSITE_FILED_SIZE)
+        THROW_CODE(InputError, "The number of fields({}) in the combined index "
+                   "exceeds the maximum limit.", fields.size());
+    Transaction txn = CreateWriteTxn(false);
+    std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
+    Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
+                               : new_schema->e_schema_manager.GetSchema(label);
+    if (!schema) {
+        if (is_vertex)
+            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
+        else
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
+    }
+    std::vector<FieldType> field_types;
+    for (const std::string &field : fields) {
+        const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+        if (!extractor) {
+            if (is_vertex)
+                THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
+            else
+                THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
+        }
+        if (extractor->IsOptional() && type == CompositeIndexType::GlobalUniqueIndex) {
+            THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
+                       label, field);
+        }
+        if (extractor->Type() == FieldType::BLOB) {
+            THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
+        }
+        field_types.emplace_back(extractor->Type());
+    }
+    if (schema->GetCompositeIndex(fields) != nullptr)
+        return false;
+    std::string field_names = boost::algorithm::join(fields, ",");
+    if (is_vertex) {
+        std::unique_ptr<CompositeIndex> composite_index;
+        bool success = index_manager_->AddVertexCompositeIndex(txn.GetTxn(), label, fields,
+                                                               field_types, type, composite_index);
+        if (!success)
+            THROW_CODE(InputError, "build index {}-{} failed", label, field_names);
+
+        composite_index->SetReady();
+        schema->SetCompositeIndex(fields, composite_index.release());
+        if (schema->DetachProperty()) {
+            LOG_INFO() <<
+                FMA_FMT("start building vertex index for {}:{} in detached model",
+                        label, field_names);
+
+            CompositeIndex* index = schema->GetCompositeIndex(fields);
+            uint64_t count = 0;
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                auto prop = kv_iter->GetValue();
+                std::vector<Value> values;
+                std::vector<FieldType> types;
+                for (auto &field : fields) {
+                    values.emplace_back(schema->GetFieldExtractor(field)->GetConstRef(prop));
+                    types.emplace_back(schema->GetFieldExtractor(field)->Type());
+                }
+                index->Add(txn.GetTxn(), CompositeKeyVid(values, types, vid)
+                                             .GenerateCompositeIndexKey(), vid);
+                count++;
+                if (count % 100000 == 0) {
+                    LOG_DEBUG() << "index count: " << count;
+                }
+            }
+            kv_iter.reset();
+            LOG_DEBUG() << "index count: " << count;
+            txn.Commit();
+            schema_.Assign(new_schema.release());
+            LOG_INFO() <<
+                FMA_FMT("end building vertex index for {}:{} in "
+                    "detached model", label, field_names);
+            return true;
+        }
+
+        // now build index
+        if (!known_vid_range) {
+            start_vid = 0;
+            end_vid = txn.GetLooseNumVertex();
+            // vid range not known, try getting from index
+            VertexIndex* idx =
+                schema->GetFieldExtractor(schema->GetPrimaryField())->GetVertexIndex();
+            FMA_DBG_ASSERT(idx);
+            VertexId beg = std::numeric_limits<VertexId>::max();
+            VertexId end = 0;
+            for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
+                 it.IsValid(); it.Next()) {
+                VertexId vid = it.GetVid();
+                beg = std::min(beg, vid);
+                end = std::max(end, vid);
+            }
+            if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
+            if (end != 0) end_vid = end + 1;
+        }
+    }
+    LabelId lid = schema->GetLabelId();
+    BatchBuildCompositeIndex(txn, new_schema.get(), lid,
+                             fields, type, start_vid, end_vid, is_vertex);
+    txn.Commit();
+    // install the new index
+    schema_.Assign(new_schema.release());
+    return true;
 }
 
 bool LightningGraph::BlockingAddIndex(const std::string& label, const std::string& field,

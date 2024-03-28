@@ -69,6 +69,8 @@ class CompositeIndexValue {
  * The indices
  */
 class CompositeIndex {
+    friend class LightningGraph;
+
     std::shared_ptr<KvTable> table_;
     std::vector<FieldType> key_types;
     std::atomic<bool> ready_;

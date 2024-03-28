@@ -196,6 +196,12 @@ class LightningGraph {
                           IndexType type, bool is_vertex, bool known_vid_range = false,
                           VertexId start_vid = 0, VertexId end_vid = 0);
 
+    // adds an index, blocks until the index is ready
+    // returns true if success, false if index already exists.
+    bool BlockingAddCompositeIndex(const std::string& label, const std::vector<std::string>& fields,
+                          CompositeIndexType type, bool is_vertex, bool known_vid_range = false,
+                          VertexId start_vid = 0, VertexId end_vid = 0);
+
     bool AddFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);
 
     bool DeleteFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);

@@ -190,8 +190,8 @@ struct CompositeKeyCompare {
         int len = data_types.size();
         std::vector<int16_t> offset_a(len + 1), offset_b(len + 1);
         for (int i = 1; i < len; ++i) {
-            offset_a[i] = GetNByteOffsetFromBuf<2>((char*)a->mv_data + (i - 1) * 2);
-            offset_b[i] = GetNByteOffsetFromBuf<2>((char*)b->mv_data + (i - 1) * 2);
+            memcpy(&offset_a[i], (char*)a->mv_data + (i - 1) * 2, 2);
+            memcpy(&offset_b[i], (char*)b->mv_data + (i - 1) * 2, 2);
         }
         offset_a[len] = a->mv_size - (len - 1) * 2;
         offset_b[len] = b->mv_size - (len - 1) * 2;

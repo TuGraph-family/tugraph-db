@@ -158,6 +158,7 @@ static const size_t MAX_LABEL_NAME_LEN = 256;
 static const size_t MAX_FIELD_NAME_LEN = 256;
 static const size_t MAX_PASSWORD_LEN = 64;
 static const size_t MAX_DESC_LEN = 512;
+static const size_t MAX_COMPOSITE_FILED_SIZE = 16;
 
 static const size_t DEFAULT_MEM_LIMIT = (size_t)2 << 40;
 }  // namespace _detail
