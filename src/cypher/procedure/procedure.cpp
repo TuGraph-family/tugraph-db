@@ -1659,8 +1659,6 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
                      "plugin_type type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
                      "plugin_name type should be string")
-    CYPHER_ARG_CHECK(args[2].type == parser::Expression::STRING,
-                     "plugin_content type should be string")
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::STRING, "code_type type should be string")
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::STRING,
                      "plugin_description type should be string")
@@ -1675,12 +1673,28 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
     auto code_type_it = ValidPluginCodeType.find(args[3].String());
     CYPHER_ARG_CHECK(code_type_it != ValidPluginCodeType.end(),
                      "unknown plugin_type, one of ('PY', 'SO', 'CPP', 'ZIP')");
+    bool success = false;
     fma_common::encrypt::Base64 base64;
-    std::string content = base64.Decode(args[2].String());
-    bool success =
-        db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(),
-                      std::vector<std::string>{content}, std::vector<std::string>{},
-                      code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
+    if (args[2].type == parser::Expression::STRING) {
+        std::string content = base64.Decode(args[2].String());
+        success =
+            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(),
+                          std::vector<std::string>{content}, std::vector<std::string>{},
+                          code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
+    } else if (args[2].type == parser::Expression::MAP) {
+        std::vector<std::string> filenames;
+        std::vector<std::string> codes;
+        for (auto &kv : args[2].Map()) {
+            filenames.push_back(kv.first);
+            codes.push_back(base64.Decode(kv.second.String()));
+        }
+        success =
+            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(),codes, filenames,
+                          code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
+    } else {
+        throw lgraph::ReminderException("plugin_content should be string or map");
+    }
+
     if (!success) {
         throw lgraph::PluginExistException(args[1].String());
     }

@@ -1160,6 +1160,31 @@ int test_procedure(cypher::RTContext *ctx) {
             "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
             "','CPP','" + i.first + "', true, 'v1')");
     }
+    std::vector<std::pair<std::string, std::string>> multi_file_info = {
+        {"multi_files_core.cpp", "../../test/test_procedures/multi_files_core.cpp"},
+        {"multi_files.cpp", "../../test/test_procedures/multi_files.cpp"},
+        {"multi_files.h", "../../test/test_procedures/multi_files.h"}
+    };
+    std::map<std::string, std::string> contents;
+    for (auto &i : multi_file_info) {
+        text.clear();
+        f.open(i.second, std::ios::in);
+        std::string buf;
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        encode = lgraph_api::encode_base64(text);
+        contents[i.first] = encode;
+    }
+    json json_contens(contents);
+    std::string cypher_q = FMA_FMT("CALL db.plugin.loadPlugin('CPP','multi', "
+        "\\{`{}`: \"{}\", `{}`: \"{}\", `{}`: \"{}\"\\}, 'CPP','multi', true, 'v1')",
+        "multi_files_core.cpp", contents["multi_files_core.cpp"],
+        "multi_files.cpp", contents["multi_files.cpp"],
+        "multi_files.h", contents["multi_files.h"]);
+    plugin_scripts.push_back(cypher_q);
     eval_scripts(ctx, plugin_scripts);
 
     static std::vector<std::string> scripts = {
