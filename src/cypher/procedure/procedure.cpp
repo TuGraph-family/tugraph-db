@@ -1689,7 +1689,7 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
             codes.push_back(base64.Decode(kv.second.String()));
         }
         success =
-            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(),codes, filenames,
+            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), codes, filenames,
                           code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
     } else {
         throw lgraph::ReminderException("plugin_content should be string or map");
