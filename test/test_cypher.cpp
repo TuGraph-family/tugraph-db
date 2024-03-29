@@ -477,8 +477,8 @@ int test_function(cypher::RTContext *ctx) {
         {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
         {"RETURN CONCAT('abc', '12', '34')", 1},
         {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1},
-        {"RETURN CONCAT('123456789', 1, 2)", 1},
-        {"RETURN CONCAT('123456789', 2, 3, '?')", 1}
+        {"RETURN MASK('123456789', 1, 2)", 1},
+        {"RETURN MASK('123456789', 2, 3, '?')", 1}
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
