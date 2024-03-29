@@ -22,7 +22,7 @@ install(DIRECTORY
         DESTINATION share/lgraph)
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/../deps/tugraph-db-browser
-        DESTINATION share/tugraph-db-browser)
+        DESTINATION share/lgraph)
 # install procedure demos
 install(DIRECTORY
         DESTINATION share/lgraph/resource/procedure_demo/)
