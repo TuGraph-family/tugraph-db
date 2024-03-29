@@ -76,7 +76,7 @@ else
   cp -r ../../learn/examples/* ./
   cp -r ../../demo/movie .
   if [[ "$WITH_PROCEDURE" == "OFF" ]]; then
-      rm -rf test_algo.py test_sampling.py test_train.py test_algo_custom.py
+      rm -rf test_algo.py test_sampling.py test_train.py test_algo_v2.py
   fi
   pytest ./
   # codecov

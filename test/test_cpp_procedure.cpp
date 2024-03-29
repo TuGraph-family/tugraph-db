@@ -95,8 +95,8 @@ void build_so() {
                  "../../test/test_procedures/bfs.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
-    cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./custom_pagerank.so",
-                 "../../test/test_procedures/custom_pagerank.cpp", LIBLGRAPH);
+    cmd = UT_FMT(cmd_f.c_str(), INCLUDE_DIR, DEPS_INCLUDE_DIR, "./v2_pagerank.so",
+                 "../../test/test_procedures/v2_pagerank.cpp", LIBLGRAPH);
     rt = system(cmd.c_str());
     UT_EXPECT_EQ(rt, 0);
 }
@@ -227,7 +227,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
     std::string code_scan_graph = "";
     std::string code_add_label = "";
     std::string code_bfs = "";
-    std::string code_custom_pagerank = "";
+    std::string code_v2_pagerank = "";
     std::string multi_procedure_name = "multi_files.cpp";
     std::string code_multi_procedure = "";
     std::string multi_core_name = "multi_files_core.cpp";
@@ -251,7 +251,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
         std::string code_scan_graph_path = "./scan_graph.so";
         std::string code_add_label_path = "./add_label.so";
         std::string code_bfs_path = "./bfs.so";
-        std::string code_custom_pagerank_path = "./custom_pagerank.so";
+        std::string code_v2_pagerank_path = "./v2_pagerank.so";
         build_so();
         read_code(code_so_path, code_so);
         read_code(code_cpp_path, code_cpp);
@@ -259,7 +259,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
         read_code(code_scan_graph_path, code_scan_graph);
         read_code(code_add_label_path, code_add_label);
         read_code(code_bfs_path, code_bfs);
-        read_code(code_custom_pagerank_path, code_custom_pagerank);
+        read_code(code_v2_pagerank_path, code_v2_pagerank);
         read_code(multi_procedure_path, code_multi_procedure);
         read_code(multi_core_path, code_multi_core);
         read_code(multi_header_path, code_multi_header);
@@ -268,7 +268,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
         UT_EXPECT_NE(code_zip, "");
         UT_EXPECT_NE(code_scan_graph, "");
         UT_EXPECT_NE(code_bfs_path, "");
-        UT_EXPECT_NE(code_custom_pagerank, "");
+        UT_EXPECT_NE(code_v2_pagerank, "");
         UT_EXPECT_NE(code_multi_procedure, "");
         UT_EXPECT_NE(code_multi_core, "");
         UT_EXPECT_NE(code_multi_header, "");
@@ -417,12 +417,12 @@ TEST_F(TestCppPlugin, CppPlugin) {
                                              std::vector<std::string>{"add_label.so"},
                                              plugin::CodeType::SO, "add label v1",
                                              false, "v1"));
-        UT_LOG() << "Load custom_pagerank plugin";
-        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank",
-                                             std::vector<std::string>{code_custom_pagerank},
-                                             std::vector<std::string>{"custom_pagerank.so"},
+        UT_LOG() << "Load v2_pagerank plugin";
+        UT_EXPECT_TRUE(pm.LoadPluginFromCode(lgraph::_detail::DEFAULT_ADMIN_NAME, "v2_pagerank",
+                                             std::vector<std::string>{code_v2_pagerank},
+                                             std::vector<std::string>{"v2_pagerank.so"},
                                              plugin::CodeType::SO,
-                                             "custom pagerank", true, "v2"));
+                                             "v2 pagerank", true, "v2"));
 
         UT_LOG() << "Test loaded plugins info";
         auto& funcs = pm.procedures_;
@@ -436,9 +436,9 @@ TEST_F(TestCppPlugin, CppPlugin) {
         auto& add_label = funcs["_fma_add_label"];
         UT_EXPECT_EQ(add_label->desc, "add label v1");
         UT_EXPECT_EQ(add_label->read_only, false);
-        auto& custom_pagerank = funcs["_fma_custom_pagerank"];
-        UT_EXPECT_EQ(custom_pagerank->desc, "custom pagerank");
-        UT_EXPECT_EQ(custom_pagerank->read_only, true);
+        auto& v2_pagerank = funcs["_fma_v2_pagerank"];
+        UT_EXPECT_EQ(v2_pagerank->desc, "v2 pagerank");
+        UT_EXPECT_EQ(v2_pagerank->read_only, true);
 
         // test call
         std::string output;
@@ -473,7 +473,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
             lgraph_api::GraphDB gdb(&db, true, false);
             auto txn = gdb.CreateReadTxn();
             UT_EXPECT_TRUE(pm.CallV2(&txn, lgraph::_detail::DEFAULT_ADMIN_NAME,
-                                     nullptr, "custom_pagerank",
+                                     nullptr, "v2_pagerank",
                                      "{\"num_iteration\": 10}",
                                      0, true, output_v2));
             UT_EXPECT_EQ(output_v2.Size(), txn.GetNumVertices());
@@ -515,7 +515,7 @@ TEST_F(TestCppPlugin, CppPlugin) {
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "sortstr_zip"));
                 UT_EXPECT_TRUE(pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "multi_file"));
                 UT_EXPECT_TRUE(
-                    pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "custom_pagerank"));
+                    pm.DelPlugin(lgraph::_detail::DEFAULT_ADMIN_NAME, "v2_pagerank"));
 
                 // pm.UnloadAllPlugins();
                 // pm.DeleteAllPlugins("admin");
