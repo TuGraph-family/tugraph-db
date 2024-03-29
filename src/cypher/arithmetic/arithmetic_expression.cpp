@@ -916,9 +916,8 @@ cypher::FieldData BuiltinFunction::Mask(RTContext *ctx, const Record &record,
                     result.append(origin_strings[i]);
                 for (int i = start; i <= end; i++)
                     result.append(ss);
-                for (int i = end; i < size; ++i) {
+                for (int i = end; i < size; ++i)
                     result.append(origin_strings[i]);
-                }
                 return cypher::FieldData(lgraph::FieldData(result));
             }
             break;
