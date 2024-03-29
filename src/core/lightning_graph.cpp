@@ -1426,7 +1426,7 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
             if (max_block_size >= (size_t)(end_vid - start_vid)) {
                 // block size large enough, so there is only one pass, use AppendKv
                 switch (type) {
-                case CompositeIndexType::GlobalUniqueIndex:
+                case CompositeIndexType::UniqueIndex:
                     {
                         // if there is only one block, we use AppendKv,
                         // so checking for duplicate is required
@@ -1740,7 +1740,7 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
             else
                 THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
         }
-        if (extractor->IsOptional() && type == CompositeIndexType::GlobalUniqueIndex) {
+        if (extractor->IsOptional() && type == CompositeIndexType::UniqueIndex) {
             THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
                        label, field);
         }

@@ -42,7 +42,7 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
                                                    CompositeIndexType type) {
     ComparatorDesc desc;
     switch (type) {
-    case CompositeIndexType::GlobalUniqueIndex:
+    case CompositeIndexType::UniqueIndex:
         {
             desc.comp_type = ComparatorDesc::COMPOSITE_KEY;
             break;
@@ -53,10 +53,10 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
 }
 
 void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
-    FMA_DBG_ASSERT(type_ == CompositeIndexType::GlobalUniqueIndex);
+    FMA_DBG_ASSERT(type_ == CompositeIndexType::UniqueIndex);
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
         txn.Abort();
-        THROW_CODE(InternalError, "The key of the composite index is "
+        THROW_CODE(ReachMaximumCompositeIndexField, "The key of the composite index is "
                    "too long and exceeds the limit.");
     }
     table_->AppendKv(txn, k, Value::ConstRef(vid));
@@ -65,11 +65,11 @@ void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value&
 bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
         txn.Abort();
-        THROW_CODE(InternalError, "The key of the composite index is "
+        THROW_CODE(ReachMaximumCompositeIndexField, "The key of the composite index is "
                    "too long and exceeds the limit.");
     }
     switch (type_) {
-    case CompositeIndexType::GlobalUniqueIndex:
+    case CompositeIndexType::UniqueIndex:
         {
             return table_->AddKV(txn, k, Value::ConstRef(vid));
         }
