@@ -1685,7 +1685,11 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
         std::vector<std::string> filenames;
         std::vector<std::string> codes;
         for (auto &kv : args[2].Map()) {
-            filenames.push_back(kv.first);
+            if (kv.first[0] == '`' && kv.first.back() == '`') {
+                filenames.push_back(kv.first.substr(1, kv.first.size() - 2));
+            } else {
+                filenames.push_back(kv.first);
+            }
             codes.push_back(base64.Decode(kv.second.String()));
         }
         success =

@@ -1178,7 +1178,6 @@ int test_procedure(cypher::RTContext *ctx) {
         encode = lgraph_api::encode_base64(text);
         contents[i.first] = encode;
     }
-    json json_contens(contents);
     std::string cypher_q = FMA_FMT("CALL db.plugin.loadPlugin('CPP','multi', "
         "\\{`{}`: \"{}\", `{}`: \"{}\", `{}`: \"{}\"\\}, 'CPP','multi', true, 'v1')",
         "multi_files_core.cpp", contents["multi_files_core.cpp"],
