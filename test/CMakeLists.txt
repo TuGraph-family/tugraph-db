@@ -31,6 +31,7 @@ add_executable(unit_test
         test_cpp_procedure.cpp
         test_cppresetsdk_json.cpp
         test_cypher.cpp
+        test_cypher_v2.cpp
         test_cypher_plan.cpp
         test_data_type.cpp
         test_db_management_client.cpp

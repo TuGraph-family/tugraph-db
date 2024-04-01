@@ -1,0 +1,24 @@
+MATCH ()-[r]->() RETURN euid(r) /* 28 */;
+[{"euid(r)":"0_2_0_0_0"},{"euid(r)":"0_3_0_0_0"},{"euid(r)":"0_1_1_0_0"},{"euid(r)":"1_2_0_0_0"},{"euid(r)":"1_3_0_0_0"},{"euid(r)":"1_0_1_0_0"},{"euid(r)":"1_16_5_0_0"},{"euid(r)":"2_5_0_0_0"},{"euid(r)":"2_14_2_0_0"},{"euid(r)":"2_20_5_0_0"},{"euid(r)":"3_9_0_0_0"},{"euid(r)":"4_5_1_0_0"},{"euid(r)":"4_17_5_0_0"},{"euid(r)":"5_4_1_0_0"},{"euid(r)":"5_14_2_0_0"},{"euid(r)":"5_19_5_0_0"},{"euid(r)":"6_18_5_0_0"},{"euid(r)":"6_20_5_0_0"},{"euid(r)":"7_15_2_0_0"},{"euid(r)":"7_19_5_0_0"},{"euid(r)":"8_13_2_0_0"},{"euid(r)":"8_19_5_0_0"},{"euid(r)":"10_1_0_0_0"},{"euid(r)":"11_13_2_0_0"},{"euid(r)":"11_16_4_0_0"},{"euid(r)":"11_18_4_0_0"},{"euid(r)":"12_14_2_0_0"},{"euid(r)":"12_17_3_0_0"}]
+MATCH ()-[r]->() RETURN id(r) /* 28 */;
+[{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0},{"id(r)":0}]
+MATCH (n),(m) WHERE id(n)=0 and id(m)=1 CREATE (n)-[r:ACTED_IN {charactername: "testaha"}]->(m) RETURN r;
+[{"r":{"dst":1,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"testaha"},"src":0,"temporal_id":0}}]
+MATCH (n),(m),(k)  WHERE id(n)=0 and id(m)=2 and id(k)=3 CREATE (n)-[r:ACTED_IN {charactername: "testaha"}]->(m),(n)-[q:MARRIED]->(k) RETURN r,q;
+[{"q":{"dst":3,"forward":false,"identity":0,"label":"MARRIED","label_id":1,"src":0,"temporal_id":0},"r":{"dst":2,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"testaha"},"src":0,"temporal_id":0}}]
+MATCH (n)-[e]->() where id(n)=4 return euid(e);
+[{"euid(e)":"4_5_1_0_0"},{"euid(e)":"4_17_5_0_0"}]
+MATCH ()-[e]->(n) where id(n)=4 return euid(e);
+[{"euid(e)":"5_4_1_0_0"}]
+MATCH (n)-[e]-() where id(n)=4 return euid(e);
+[{"euid(e)":"4_5_1_0_0"},{"euid(e)":"4_17_5_0_0"},{"euid(e)":"5_4_1_0_0"}]
+MATCH ()-[e]->() where euid(e)="0_2_0_0_0" return e,labels(e),properties(e);
+[{"e":{"dst":2,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":0,"temporal_id":0},"labels(e)":"[HAS_CHILD]","properties(e)":{"_EID_":"0_2_0_0_0","_LABEL_":"HAS_CHILD"}}]
+MATCH ()-[e]->() where euid(e)="4_17_5_0_0" return properties(e);
+[{"properties(e)":{"_EID_":"4_17_5_0_0","_LABEL_":"ACTED_IN","charactername":"Henri Ducard"}}]
+MATCH ()-[e]->() where euid(e)="4_17_5_0_0" return e.charactername;
+[{"e.charactername":"Henri Ducard"}]
+MATCH ()-[e]->() where euid(e)="8_13_2_0_0" set e.weight=1223 return e,labels(e),properties(e);
+[{"e":{"dst":13,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 14:00:00","weight":1223.0},"src":8,"temporal_id":0},"labels(e)":"[BORN_IN]","properties(e)":"{\"_LABEL_\":\"BORN_IN\",\"_EID_\":\"8_13_2_0_0\",\"reg_time\":2023-05-01 14:00:00,\"weight\":1223.000000}"}]
+MATCH ()-[e]->() where euid(e)="4_17_5_0_0" delete e;
+[{"<SUMMARY>":"deleted 0 vertices, deleted 1 edges."}]

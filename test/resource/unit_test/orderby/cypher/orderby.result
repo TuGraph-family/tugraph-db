@@ -1,0 +1,36 @@
+MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(v2) as cnt;
+[{"cnt":4,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt;
+[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt;
+[{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"},{"cnt":3,"v1.title":"The Parent Trap"}]
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc;
+[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"}]
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc,v1.title;
+[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"}]
+match (v1:Film) return distinct v1.title order by v1.title;
+[{"v1.title":"Batman Begins"},{"v1.title":"Camelot"},{"v1.title":"Goodbye, Mr. Chips"},{"v1.title":"Harry Potter and the Sorcerer's Stone"},{"v1.title":"The Parent Trap"}]
+match (v1:Film) return distinct v1.title order by v1.title limit 3 /* Batman, Camelot, Goodbye */;
+[{"v1.title":"Batman Begins"},{"v1.title":"Camelot"},{"v1.title":"Goodbye, Mr. Chips"}]
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc limit 3 /* NOTE: unstable heap sort */;
+[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":2,"v1.title":"Camelot"},{"cnt":2,"v1.title":"Batman Begins"}]
+match (:Person {name:'Vanessa Redgrave'})<-[:HAS_CHILD]-(p)-[:ACTED_IN*0..]->(m) return p.name,m order by p.name;
+[{"m":{"identity":1},"p.name":"Michael Redgrave"},{"m":{"identity":16},"p.name":"Michael Redgrave"},{"m":{"identity":0},"p.name":"Rachel Kempson"}]
+MATCH (n) RETURN n,n.name AS name ORDER BY name;
+[{"n":{"identity":20},"name":null},{"n":{"identity":19},"name":null},{"n":{"identity":18},"name":null},{"n":{"identity":17},"name":null},{"n":{"identity":16},"name":null},{"n":{"identity":12},"name":"Christopher Nolan"},{"n":{"identity":3},"name":"Corin Redgrave"},{"n":{"identity":7},"name":"Dennis Quaid"},{"n":{"identity":15},"name":"Houston"},{"n":{"identity":9},"name":"Jemma Redgrave"},{"n":{"identity":11},"name":"John Williams"},{"n":{"identity":4},"name":"Liam Neeson"},{"n":{"identity":8},"name":"Lindsay Lohan"},{"n":{"identity":14},"name":"London"},{"n":{"identity":1},"name":"Michael Redgrave"},{"n":{"identity":5},"name":"Natasha Richardson"},{"n":{"identity":13},"name":"New York"},{"n":{"identity":0},"name":"Rachel Kempson"},{"n":{"identity":6},"name":"Richard Harris"},{"n":{"identity":10},"name":"Roy Redgrave"},{"n":{"identity":2},"name":"Vanessa Redgrave"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN m.name;
+[{"m.name":"Liam Neeson"},{"m.name":"Liam Neeson"},{"m.name":"Natasha Richardson"},{"m.name":"Christopher Nolan"},{"m.name":"Richard Harris"},{"m.name":"Corin Redgrave"},{"m.name":"Michael Redgrave"},{"m.name":"Michael Redgrave"},{"m.name":"Corin Redgrave"},{"m.name":"Rachel Kempson"},{"m.name":"Roy Redgrave"},{"m.name":"Rachel Kempson"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name;
+[{"m.name":"Liam Neeson"},{"m.name":"Natasha Richardson"},{"m.name":"Christopher Nolan"},{"m.name":"Richard Harris"},{"m.name":"Corin Redgrave"},{"m.name":"Michael Redgrave"},{"m.name":"Rachel Kempson"},{"m.name":"Roy Redgrave"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name;
+[{"m.name":"Christopher Nolan"},{"m.name":"Corin Redgrave"},{"m.name":"Liam Neeson"},{"m.name":"Michael Redgrave"},{"m.name":"Natasha Richardson"},{"m.name":"Rachel Kempson"},{"m.name":"Richard Harris"},{"m.name":"Roy Redgrave"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name LIMIT 5;
+[{"m.name":"Christopher Nolan"},{"m.name":"Corin Redgrave"},{"m.name":"Liam Neeson"},{"m.name":"Michael Redgrave"},{"m.name":"Natasha Richardson"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name SKIP 2;
+[{"m.name":"Liam Neeson"},{"m.name":"Michael Redgrave"},{"m.name":"Natasha Richardson"},{"m.name":"Rachel Kempson"},{"m.name":"Richard Harris"},{"m.name":"Roy Redgrave"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name SKIP 2 LIMIT 3;
+[{"m.name":"Liam Neeson"},{"m.name":"Michael Redgrave"},{"m.name":"Natasha Richardson"}]
+MATCH (v1:Film)<-[r:ACTED_IN|DIRECTED]-(v2:Person) RETURN v1.title AS title, r ORDER BY title LIMIT 5;
+[{"r":{"dst":17,"forward":false,"identity":0,"label_id":3,"src":12,"temporal_id":0},"title":"Batman Begins"},{"r":{"dst":17,"forward":false,"identity":0,"label_id":5,"src":4,"temporal_id":0},"title":"Batman Begins"},{"r":{"dst":20,"forward":false,"identity":0,"label_id":5,"src":6,"temporal_id":0},"title":"Camelot"},{"r":{"dst":20,"forward":false,"identity":0,"label_id":5,"src":2,"temporal_id":0},"title":"Camelot"},{"r":{"dst":16,"forward":false,"identity":0,"label_id":5,"src":1,"temporal_id":0},"title":"Goodbye, Mr. Chips"}]
