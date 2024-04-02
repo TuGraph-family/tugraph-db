@@ -191,247 +191,269 @@ TEST_F(TestOlapOnDB, OlapOnDB) {
     Galaxy g(db_path);
     g.SetCurrentUser("admin", "73@TuGraph");
     GraphDB db = g.OpenGraph("default");
-    auto txn = db.CreateReadTxn();
 
-    // test ConstructWithVid()
-    OlapOnDB<double> test_db_one(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED,
-                                 nullptr, edge_convert_default<double>);
-    UT_EXPECT_EQ(test_db_one.OutDegree(0), 5);
-    UT_EXPECT_EQ(test_db_one.InDegree(0), 5);
-    UT_EXPECT_EQ(test_db_one.OutDegree(6), 2);
-    UT_EXPECT_EQ(test_db_one.InDegree(6), 2);
-    UT_EXPECT_EQ(test_db_one.OutDegree(17), 4);
-    UT_EXPECT_EQ(test_db_one.InDegree(17), 4);
-    UT_EXPECT_EQ(test_db_one.OutDegree(20), 2);
-    UT_EXPECT_EQ(test_db_one.InDegree(20), 2);
-    auto active = test_db_one.AllocVertexSubset();
-    active.Fill();
-    UT_EXPECT_EQ(active.Size(), 21);
-    auto label = test_db_one.AllocVertexArray<size_t>();
-    UT_EXPECT_EQ(test_db_one.NumVertices(), 21);
-    UT_EXPECT_EQ(test_db_one.NumEdges(), 70);
-    test_db_one.ProcessVertexActive<size_t>(
-        [&](size_t vi) {
-            label[vi] = -1;
-            return 1;
-        },
-        active);
-    UT_EXPECT_EQ(label[0], -1);
-    for (auto& edge : test_db_one.OutEdges(0)) {
-        UT_EXPECT_EQ(edge.edge_data, 1.0);
+    auto test_construct = [](GraphDB* db, lgraph_api::Transaction& txn) {
+        // test ConstructWithVid()
+        OlapOnDB<double> test_db_one(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED, nullptr,
+                                     edge_convert_default<double>);
+        UT_EXPECT_EQ(test_db_one.OutDegree(0), 5);
+        UT_EXPECT_EQ(test_db_one.InDegree(0), 5);
+        UT_EXPECT_EQ(test_db_one.OutDegree(6), 2);
+        UT_EXPECT_EQ(test_db_one.InDegree(6), 2);
+        UT_EXPECT_EQ(test_db_one.OutDegree(17), 4);
+        UT_EXPECT_EQ(test_db_one.InDegree(17), 4);
+        UT_EXPECT_EQ(test_db_one.OutDegree(20), 2);
+        UT_EXPECT_EQ(test_db_one.InDegree(20), 2);
+        auto active = test_db_one.AllocVertexSubset();
+        active.Fill();
+        UT_EXPECT_EQ(active.Size(), 21);
+        auto label = test_db_one.AllocVertexArray<size_t>();
+        UT_EXPECT_EQ(test_db_one.NumVertices(), 21);
+        UT_EXPECT_EQ(test_db_one.NumEdges(), 70);
+        test_db_one.ProcessVertexActive<size_t>(
+            [&](size_t vi) {
+                label[vi] = -1;
+                return 1;
+            },
+            active);
+        UT_EXPECT_EQ(label[0], -1);
+        for (auto& edge : test_db_one.OutEdges(0)) {
+            UT_EXPECT_EQ(edge.edge_data, 1.0);
+        }
+
+        auto vertex_lists = test_db_one.ExtractVertexData(vertex_extract<size_t>);
+        UT_EXPECT_EQ(vertex_lists[0], 2);
+
+        OlapOnDB<Empty> unparallel_one(db, txn, SNAPSHOT_UNDIRECTED);
+        UT_EXPECT_EQ(unparallel_one.OutDegree(0), 5);
+        UT_EXPECT_EQ(unparallel_one.InDegree(0), 5);
+        UT_EXPECT_EQ(unparallel_one.OutDegree(6), 2);
+        UT_EXPECT_EQ(unparallel_one.InDegree(6), 2);
+        UT_EXPECT_EQ(unparallel_one.OutDegree(17), 4);
+        UT_EXPECT_EQ(unparallel_one.InDegree(17), 4);
+        UT_EXPECT_EQ(unparallel_one.OutDegree(20), 2);
+        UT_EXPECT_EQ(unparallel_one.InDegree(20), 2);
+
+        OlapOnDB<double> unparallel_db_two(db, txn, SNAPSHOT_UNDIRECTED, nullptr,
+                                           edge_convert_weight<double>);
+        UT_EXPECT_EQ(unparallel_db_two.OutDegree(0), 5);
+        UT_EXPECT_EQ(unparallel_db_two.InDegree(0), 5);
+        UT_EXPECT_EQ(unparallel_db_two.OutDegree(6), 2);
+        UT_EXPECT_EQ(unparallel_db_two.InDegree(6), 2);
+        UT_EXPECT_EQ(unparallel_db_two.OutDegree(17), 4);
+        UT_EXPECT_EQ(unparallel_db_two.InDegree(17), 4);
+        UT_EXPECT_EQ(unparallel_db_two.OutDegree(20), 2);
+        UT_EXPECT_EQ(unparallel_db_two.InDegree(20), 2);
+
+        for (auto& edge : unparallel_db_two.OutEdges(0)) {
+            UT_EXPECT_EQ(edge.edge_data, edge.neighbour);
+        }
+
+        OlapOnDB<double> parallel_one(db, txn, SNAPSHOT_PARALLEL, nullptr,
+                                      edge_convert_weight<double>);
+        UT_EXPECT_EQ(parallel_one.OutDegree(0), 5);
+        UT_EXPECT_EQ(parallel_one.InDegree(0), 0);
+        UT_EXPECT_EQ(parallel_one.OutDegree(6), 0);
+        UT_EXPECT_EQ(parallel_one.InDegree(6), 2);
+        UT_EXPECT_EQ(parallel_one.OutDegree(17), 1);
+        UT_EXPECT_EQ(parallel_one.InDegree(17), 3);
+        UT_EXPECT_EQ(parallel_one.OutDegree(20), 0);
+        UT_EXPECT_EQ(parallel_one.InDegree(20), 2);
+
+        for (auto& edge : parallel_one.OutEdges(10)) {
+            UT_EXPECT_EQ(edge.edge_data, edge.neighbour);
+        }
+
+        OlapOnDB<double> parallel_two(db, txn, SNAPSHOT_PARALLEL, nullptr,
+                                      edge_convert_default<double>);
+        UT_EXPECT_EQ(parallel_two.OutDegree(0), 5);
+        UT_EXPECT_EQ(parallel_two.InDegree(0), 0);
+        UT_EXPECT_EQ(parallel_two.OutDegree(6), 0);
+        UT_EXPECT_EQ(parallel_two.InDegree(6), 2);
+        UT_EXPECT_EQ(parallel_two.OutDegree(17), 1);
+        UT_EXPECT_EQ(parallel_two.InDegree(17), 3);
+        UT_EXPECT_EQ(parallel_two.OutDegree(20), 0);
+        UT_EXPECT_EQ(parallel_two.InDegree(20), 2);
+
+        for (auto& edge : parallel_two.OutEdges(10)) {
+            UT_EXPECT_EQ(edge.edge_data, 1.0);
+        }
+
+        // test Construct()
+        OlapOnDB<Empty> test_db_two(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING);
+        UT_EXPECT_EQ(test_db_two.OutDegree(0), 5);
+        UT_EXPECT_EQ(test_db_two.InDegree(0), 0);
+        UT_EXPECT_EQ(test_db_two.OutDegree(6), 0);
+        UT_EXPECT_EQ(test_db_two.InDegree(6), 2);
+        UT_EXPECT_EQ(test_db_two.OutDegree(17), 1);
+        UT_EXPECT_EQ(test_db_two.InDegree(17), 3);
+        UT_EXPECT_EQ(test_db_two.OutDegree(20), 0);
+        UT_EXPECT_EQ(test_db_two.InDegree(20), 2);
+        UT_EXPECT_EQ(test_db_two.NumVertices(), 21);
+        UT_EXPECT_EQ(test_db_two.NumEdges(), 35);
+        UT_EXPECT_EQ(test_db_two.MappedVid(0), 0);
+        UT_EXPECT_EQ(test_db_two.OriginalVid(0), 0);
+        UT_EXPECT_EQ(test_db_two.MappedVid(test_db_two.OriginalVid(4)), 4);
+
+        OlapOnDB<double> unparallel_two(db, txn, SNAPSHOT_UNDIRECTED, vertex_filter,
+                                        edge_convert_weight<double>);
+        UT_EXPECT_EQ(unparallel_two.OutDegree(0), 3);
+        UT_EXPECT_EQ(unparallel_two.InDegree(0), 3);
+        UT_EXPECT_EQ(unparallel_two.OutDegree(6), 2);
+        UT_EXPECT_EQ(unparallel_two.InDegree(6), 2);
+        UT_EXPECT_EQ(unparallel_two.OutDegree(13), 2);
+        UT_EXPECT_EQ(unparallel_two.InDegree(13), 2);
+        UT_EXPECT_EQ(unparallel_two.OutDegree(20), 0);
+        UT_EXPECT_EQ(unparallel_two.InDegree(20), 0);
+        UT_EXPECT_EQ(unparallel_two.NumVertices(), 20);
+        UT_EXPECT_EQ(unparallel_two.NumEdges(), 60);
+        UT_EXPECT_EQ(unparallel_two.MappedVid(unparallel_two.OriginalVid(17)), 17);
+
+        // test ConstructWithDegree()
+        OlapOnDB<Empty> test_db_three(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
+        UT_EXPECT_EQ(test_db_three.OutDegree(0), 5);
+        UT_EXPECT_EQ(test_db_three.InDegree(0), 5);
+        UT_EXPECT_EQ(test_db_three.OutDegree(6), 2);
+        UT_EXPECT_EQ(test_db_three.InDegree(6), 2);
+        UT_EXPECT_EQ(test_db_three.OutDegree(13), 5);
+        UT_EXPECT_EQ(test_db_three.InDegree(13), 5);
+        UT_EXPECT_EQ(test_db_three.OutDegree(20), 2);
+        UT_EXPECT_EQ(test_db_three.InDegree(20), 2);
+        UT_EXPECT_EQ(test_db_three.NumVertices(), 21);
+        UT_EXPECT_EQ(test_db_three.NumEdges(), 70);
+        UT_EXPECT_EQ(test_db_two.MappedVid(3), 3);
+        UT_EXPECT_EQ(test_db_two.OriginalVid(7), 7);
+
+        OlapOnDB<Empty> directed_three(db, txn, SNAPSHOT_PARALLEL);
+        UT_EXPECT_EQ(directed_three.OutDegree(0), 5);
+        UT_EXPECT_EQ(directed_three.InDegree(0), 0);
+        UT_EXPECT_EQ(directed_three.OutDegree(6), 0);
+        UT_EXPECT_EQ(directed_three.InDegree(6), 2);
+        UT_EXPECT_EQ(directed_three.OutDegree(13), 2);
+        UT_EXPECT_EQ(directed_three.InDegree(13), 3);
+        UT_EXPECT_EQ(directed_three.OutDegree(20), 0);
+        UT_EXPECT_EQ(directed_three.InDegree(20), 2);
+        UT_EXPECT_EQ(directed_three.NumVertices(), 21);
+        UT_EXPECT_EQ(directed_three.NumEdges(), 35);
+        UT_EXPECT_EQ(directed_three.MappedVid(1), 1);
+        UT_EXPECT_EQ(directed_three.OriginalVid(20), 20);
+    };
+
+    {
+        // test ConstructWithVid, Construct and ConstructWithDegree
+         for (auto p_db : {&db, (lgraph_api::GraphDB *)nullptr}) {
+             auto txn = db.CreateReadTxn();
+             test_construct(p_db, txn);
+             txn.Abort();
+             txn = db.CreateWriteTxn();
+             test_construct(p_db, txn);
+             txn.Abort();
+         }
     }
 
-    auto vertex_lists = test_db_one.ExtractVertexData(vertex_extract<size_t>);
-    UT_EXPECT_EQ(vertex_lists[0], 2);
-
-    OlapOnDB<Empty> unparallel_one(db, txn, SNAPSHOT_UNDIRECTED);
-    UT_EXPECT_EQ(unparallel_one.OutDegree(0), 5);
-    UT_EXPECT_EQ(unparallel_one.InDegree(0), 5);
-    UT_EXPECT_EQ(unparallel_one.OutDegree(6), 2);
-    UT_EXPECT_EQ(unparallel_one.InDegree(6), 2);
-    UT_EXPECT_EQ(unparallel_one.OutDegree(17), 4);
-    UT_EXPECT_EQ(unparallel_one.InDegree(17), 4);
-    UT_EXPECT_EQ(unparallel_one.OutDegree(20), 2);
-    UT_EXPECT_EQ(unparallel_one.InDegree(20), 2);
-
-    OlapOnDB<double> unparallel_db_two(db, txn,
-                     SNAPSHOT_UNDIRECTED, nullptr, edge_convert_weight<double>);
-    UT_EXPECT_EQ(unparallel_db_two.OutDegree(0), 5);
-    UT_EXPECT_EQ(unparallel_db_two.InDegree(0), 5);
-    UT_EXPECT_EQ(unparallel_db_two.OutDegree(6), 2);
-    UT_EXPECT_EQ(unparallel_db_two.InDegree(6), 2);
-    UT_EXPECT_EQ(unparallel_db_two.OutDegree(17), 4);
-    UT_EXPECT_EQ(unparallel_db_two.InDegree(17), 4);
-    UT_EXPECT_EQ(unparallel_db_two.OutDegree(20), 2);
-    UT_EXPECT_EQ(unparallel_db_two.InDegree(20), 2);
-
-    for (auto& edge : unparallel_db_two.OutEdges(0)) {
-        UT_EXPECT_EQ(edge.edge_data, edge.neighbour);
-    }
-
-    OlapOnDB<double> parallel_one(db, txn, SNAPSHOT_PARALLEL, nullptr, edge_convert_weight<double>);
-    UT_EXPECT_EQ(parallel_one.OutDegree(0), 5);
-    UT_EXPECT_EQ(parallel_one.InDegree(0), 0);
-    UT_EXPECT_EQ(parallel_one.OutDegree(6), 0);
-    UT_EXPECT_EQ(parallel_one.InDegree(6), 2);
-    UT_EXPECT_EQ(parallel_one.OutDegree(17), 1);
-    UT_EXPECT_EQ(parallel_one.InDegree(17), 3);
-    UT_EXPECT_EQ(parallel_one.OutDegree(20), 0);
-    UT_EXPECT_EQ(parallel_one.InDegree(20), 2);
-
-    for (auto& edge : parallel_one.OutEdges(10)) {
-        UT_EXPECT_EQ(edge.edge_data, edge.neighbour);
-    }
-
-    OlapOnDB<double> parallel_two(db, txn, SNAPSHOT_PARALLEL,
-                                  nullptr, edge_convert_default<double>);
-    UT_EXPECT_EQ(parallel_two.OutDegree(0), 5);
-    UT_EXPECT_EQ(parallel_two.InDegree(0), 0);
-    UT_EXPECT_EQ(parallel_two.OutDegree(6), 0);
-    UT_EXPECT_EQ(parallel_two.InDegree(6), 2);
-    UT_EXPECT_EQ(parallel_two.OutDegree(17), 1);
-    UT_EXPECT_EQ(parallel_two.InDegree(17), 3);
-    UT_EXPECT_EQ(parallel_two.OutDegree(20), 0);
-    UT_EXPECT_EQ(parallel_two.InDegree(20), 2);
-
-    for (auto& edge : parallel_two.OutEdges(10)) {
-        UT_EXPECT_EQ(edge.edge_data, 1.0);
-    }
-
-    // test Construct()
-    OlapOnDB<Empty> test_db_two(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING);
-    UT_EXPECT_EQ(test_db_two.OutDegree(0), 5);
-    UT_EXPECT_EQ(test_db_two.InDegree(0), 0);
-    UT_EXPECT_EQ(test_db_two.OutDegree(6), 0);
-    UT_EXPECT_EQ(test_db_two.InDegree(6), 2);
-    UT_EXPECT_EQ(test_db_two.OutDegree(17), 1);
-    UT_EXPECT_EQ(test_db_two.InDegree(17), 3);
-    UT_EXPECT_EQ(test_db_two.OutDegree(20), 0);
-    UT_EXPECT_EQ(test_db_two.InDegree(20), 2);
-    UT_EXPECT_EQ(test_db_two.NumVertices(), 21);
-    UT_EXPECT_EQ(test_db_two.NumEdges(), 35);
-    UT_EXPECT_EQ(test_db_two.MappedVid(0), 0);
-    UT_EXPECT_EQ(test_db_two.OriginalVid(0), 0);
-    UT_EXPECT_EQ(test_db_two.MappedVid(test_db_two.OriginalVid(4)), 4);
-
-    OlapOnDB<double> unparallel_two(db, txn, SNAPSHOT_UNDIRECTED,
-                     vertex_filter, edge_convert_weight<double>);
-    UT_EXPECT_EQ(unparallel_two.OutDegree(0), 3);
-    UT_EXPECT_EQ(unparallel_two.InDegree(0), 3);
-    UT_EXPECT_EQ(unparallel_two.OutDegree(6), 2);
-    UT_EXPECT_EQ(unparallel_two.InDegree(6), 2);
-    UT_EXPECT_EQ(unparallel_two.OutDegree(13), 2);
-    UT_EXPECT_EQ(unparallel_two.InDegree(13), 2);
-    UT_EXPECT_EQ(unparallel_two.OutDegree(20), 0);
-    UT_EXPECT_EQ(unparallel_two.InDegree(20), 0);
-    UT_EXPECT_EQ(unparallel_two.NumVertices(), 20);
-    UT_EXPECT_EQ(unparallel_two.NumEdges(), 60);
-    UT_EXPECT_EQ(unparallel_two.MappedVid(unparallel_two.OriginalVid(17)), 17);
-
-    std::string vertex_label = "node";
-    std::string edge_label = "edge";
-    OlapOnDB<Empty> filter_graph(db, txn, SNAPSHOT_PARALLEL,
-                [&vertex_label](VertexIterator& vit) {
-                return vit.GetLabel() == vertex_label;
-            }, [&edge_label](OutEdgeIterator& eit, Empty& edata) {
+    {
+        // test filter subgraphs based on a set of triples of point labels,
+        // edge labels, and point labels
+        auto txn = db.CreateReadTxn();
+        std::string vertex_label = "node";
+        std::string edge_label = "edge";
+        OlapOnDB<Empty> filter_graph(
+            db, txn, SNAPSHOT_PARALLEL,
+            [&vertex_label](VertexIterator& vit) { return vit.GetLabel() == vertex_label; },
+            [&edge_label](OutEdgeIterator& eit, Empty& edata) {
                 return eit.GetLabel() == edge_label;
             });
-    UT_EXPECT_EQ(filter_graph.OutDegree(0), 5);
-    UT_EXPECT_EQ(filter_graph.InDegree(0), 0);
-    UT_EXPECT_EQ(filter_graph.OutDegree(6), 0);
-    UT_EXPECT_EQ(filter_graph.InDegree(6), 2);
-    UT_EXPECT_EQ(filter_graph.OutDegree(13), 2);
-    UT_EXPECT_EQ(filter_graph.InDegree(13), 3);
-    UT_EXPECT_EQ(filter_graph.OutDegree(20), 0);
-    UT_EXPECT_EQ(filter_graph.InDegree(20), 2);
-    UT_EXPECT_EQ(filter_graph.NumVertices(), 21);
-    UT_EXPECT_EQ(filter_graph.NumEdges(), 35);
+        UT_EXPECT_EQ(filter_graph.OutDegree(0), 5);
+        UT_EXPECT_EQ(filter_graph.InDegree(0), 0);
+        UT_EXPECT_EQ(filter_graph.OutDegree(6), 0);
+        UT_EXPECT_EQ(filter_graph.InDegree(6), 2);
+        UT_EXPECT_EQ(filter_graph.OutDegree(13), 2);
+        UT_EXPECT_EQ(filter_graph.InDegree(13), 3);
+        UT_EXPECT_EQ(filter_graph.OutDegree(20), 0);
+        UT_EXPECT_EQ(filter_graph.InDegree(20), 2);
+        UT_EXPECT_EQ(filter_graph.NumVertices(), 21);
+        UT_EXPECT_EQ(filter_graph.NumEdges(), 35);
 
-    std::vector<std::vector<std::string>> label_list = {{"node", "edge", "node"}};
-    OlapOnDB<Empty> filter_graph_two(db, txn,
-                label_list, SNAPSHOT_PARALLEL);
-    UT_EXPECT_EQ(filter_graph_two.OutDegree(0), 5);
-    UT_EXPECT_EQ(filter_graph_two.InDegree(0), 0);
-    UT_EXPECT_EQ(filter_graph_two.OutDegree(6), 0);
-    UT_EXPECT_EQ(filter_graph_two.InDegree(6), 2);
-    UT_EXPECT_EQ(filter_graph_two.OutDegree(13), 2);
-    UT_EXPECT_EQ(filter_graph_two.InDegree(13), 3);
-    UT_EXPECT_EQ(filter_graph_two.OutDegree(20), 0);
-    UT_EXPECT_EQ(filter_graph_two.InDegree(20), 2);
-    UT_EXPECT_EQ(filter_graph_two.NumVertices(), 21);
-    UT_EXPECT_EQ(filter_graph_two.NumEdges(), 35);
+        std::vector<std::vector<std::string>> label_list = {{"node", "edge", "node"}};
+        OlapOnDB<Empty> filter_graph_two(db, txn, label_list, SNAPSHOT_PARALLEL);
+        UT_EXPECT_EQ(filter_graph_two.OutDegree(0), 5);
+        UT_EXPECT_EQ(filter_graph_two.InDegree(0), 0);
+        UT_EXPECT_EQ(filter_graph_two.OutDegree(6), 0);
+        UT_EXPECT_EQ(filter_graph_two.InDegree(6), 2);
+        UT_EXPECT_EQ(filter_graph_two.OutDegree(13), 2);
+        UT_EXPECT_EQ(filter_graph_two.InDegree(13), 3);
+        UT_EXPECT_EQ(filter_graph_two.OutDegree(20), 0);
+        UT_EXPECT_EQ(filter_graph_two.InDegree(20), 2);
+        UT_EXPECT_EQ(filter_graph_two.NumVertices(), 21);
+        UT_EXPECT_EQ(filter_graph_two.NumEdges(), 35);
 
-    txn.Commit();
+        txn.Commit();
 
-    // WriteToGraphDB
-    ParallelVector<size_t> parent = filter_graph.AllocVertexArray<size_t>();
-    for (int i = 0; i < parent.Size(); i++) {
-        parent[i] = i;
+        // WriteToGraphDB
+        ParallelVector<size_t> parent = filter_graph.AllocVertexArray<size_t>();
+        for (int i = 0; i < parent.Size(); i++) {
+            parent[i] = i;
+        }
+        filter_graph.WriteToGraphDB(parent, "value");
+        txn = db.CreateReadTxn();
+        auto vit = txn.GetVertexIterator();
+        vit.Goto(2);
+        UT_EXPECT_EQ(vit.GetField("value").ToString(), "2");
+        vit.Goto(20);
+        UT_EXPECT_EQ(vit.GetField("value").ToString(), "20");
+
+        // WriteToFile
+        std::string file_path = "./test_write_to_db.csv";
+        filter_graph.WriteToFile(parent, file_path);
+
+        vertex_label = "id";
+        edge_label = "";
+        UT_EXPECT_THROW_MSG(OlapOnDB<Empty>(
+                                db, txn, SNAPSHOT_PARALLEL,
+                                [&vertex_label](VertexIterator& vit) {
+                                    if (vertex_label == "") return true;
+                                    return vit.GetLabel() == vertex_label;
+                                },
+                                [&edge_label](OutEdgeIterator& eit, Empty& edata) {
+                                    if (edge_label == "") return true;
+                                    return eit.GetLabel() == edge_label;
+                                }),
+                            "The graph vertex cannot be empty");
+
+        vertex_label = "";
+        edge_label = "id";
+        UT_EXPECT_THROW_MSG(OlapOnDB<Empty>(
+                                db, txn, SNAPSHOT_PARALLEL,
+                                [&vertex_label](VertexIterator& vit) {
+                                    if (vertex_label == "") return true;
+                                    return vit.GetLabel() == vertex_label;
+                                },
+                                [&edge_label](OutEdgeIterator& eit, Empty& edata) {
+                                    if (edge_label == "") return true;
+                                    return eit.GetLabel() == edge_label;
+                                }),
+                            "The graph edge cannot be empty");
     }
-    filter_graph.WriteToGraphDB(parent, "value");
-    txn = db.CreateReadTxn();
-    auto vit = txn.GetVertexIterator();
-    vit.Goto(2);
-    UT_EXPECT_EQ(vit.GetField("value").ToString(), "2");
-    vit.Goto(20);
-    UT_EXPECT_EQ(vit.GetField("value").ToString(), "20");
 
-    // WriteToFile
-    std::string file_path = "./test_write_to_db.csv";
-    filter_graph.WriteToFile(parent, file_path);
-
-    vertex_label = "id";
-    edge_label = "";
-    UT_EXPECT_THROW_MSG(
-    OlapOnDB<Empty>(db, txn, SNAPSHOT_PARALLEL,
-                [&vertex_label](VertexIterator& vit) {
-                if (vertex_label == "") return true;
-                return vit.GetLabel() == vertex_label;
-            }, [&edge_label](OutEdgeIterator& eit, Empty& edata) {
-                if (edge_label == "") return true;
-                return eit.GetLabel() == edge_label;
-            }), "The graph vertex cannot be empty");
-
-    vertex_label = "";
-    edge_label = "id";
-    UT_EXPECT_THROW_MSG(
-    OlapOnDB<Empty>(db, txn, SNAPSHOT_PARALLEL,
-                [&vertex_label](VertexIterator& vit) {
-                if (vertex_label == "") return true;
-                return vit.GetLabel() == vertex_label;
-            }, [&edge_label](OutEdgeIterator& eit, Empty& edata) {
-                if (edge_label == "") return true;
-                return eit.GetLabel() == edge_label;
-            }), "The graph edge cannot be empty");
-
-    // test ConstructWithDegree()
-    OlapOnDB<Empty> test_db_three(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
-    UT_EXPECT_EQ(test_db_three.OutDegree(0), 5);
-    UT_EXPECT_EQ(test_db_three.InDegree(0), 5);
-    UT_EXPECT_EQ(test_db_three.OutDegree(6), 2);
-    UT_EXPECT_EQ(test_db_three.InDegree(6), 2);
-    UT_EXPECT_EQ(test_db_three.OutDegree(13), 5);
-    UT_EXPECT_EQ(test_db_three.InDegree(13), 5);
-    UT_EXPECT_EQ(test_db_three.OutDegree(20), 2);
-    UT_EXPECT_EQ(test_db_three.InDegree(20), 2);
-    UT_EXPECT_EQ(test_db_three.NumVertices(), 21);
-    UT_EXPECT_EQ(test_db_three.NumEdges(), 70);
-    UT_EXPECT_EQ(test_db_two.MappedVid(3), 3);
-    UT_EXPECT_EQ(test_db_two.OriginalVid(7), 7);
-
-    OlapOnDB<Empty> directed_three(db, txn, SNAPSHOT_PARALLEL);
-    UT_EXPECT_EQ(directed_three.OutDegree(0), 5);
-    UT_EXPECT_EQ(directed_three.InDegree(0), 0);
-    UT_EXPECT_EQ(directed_three.OutDegree(6), 0);
-    UT_EXPECT_EQ(directed_three.InDegree(6), 2);
-    UT_EXPECT_EQ(directed_three.OutDegree(13), 2);
-    UT_EXPECT_EQ(directed_three.InDegree(13), 3);
-    UT_EXPECT_EQ(directed_three.OutDegree(20), 0);
-    UT_EXPECT_EQ(directed_three.InDegree(20), 2);
-    UT_EXPECT_EQ(directed_three.NumVertices(), 21);
-    UT_EXPECT_EQ(directed_three.NumEdges(), 35);
-    UT_EXPECT_EQ(directed_three.MappedVid(1), 1);
-    UT_EXPECT_EQ(directed_three.OriginalVid(20), 20);
-    txn.Commit();
-
-    // test ExtractVertexData
-    auto write_txn = db.CreateWriteTxn();
-    {
-        OlapOnDB<Empty> test_db_four(db, write_txn, SNAPSHOT_PARALLEL);
-        UT_EXPECT_EQ(test_db_four.NumEdges(), 35);
-        auto vertex_list = test_db_four.ExtractVertexData(vertex_extract<size_t>);
-        UT_EXPECT_EQ(vertex_list[0], 2);
-        UT_EXPECT_EQ(vertex_list.Size(), 21);
-        UT_EXPECT_EQ(test_db_four.InDegree(0), 0);
+    {  // test ExtractVertexData
+        auto write_txn = db.CreateWriteTxn();
+        {
+            OlapOnDB<Empty> test_db_four(db, write_txn, SNAPSHOT_PARALLEL);
+            UT_EXPECT_EQ(test_db_four.NumEdges(), 35);
+            auto vertex_list = test_db_four.ExtractVertexData(vertex_extract<size_t>);
+            UT_EXPECT_EQ(vertex_list[0], 2);
+            UT_EXPECT_EQ(vertex_list.Size(), 21);
+            UT_EXPECT_EQ(test_db_four.InDegree(0), 0);
+        }
+        {
+            OlapOnDB<Empty> parallel_four(db, write_txn, SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING);
+            auto extract_list = parallel_four.ExtractVertexData(vertex_extract<size_t>);
+            UT_EXPECT_EQ(extract_list[0], 2);
+            UT_EXPECT_EQ(extract_list.Size(), 21);
+        }
+        write_txn.Commit();
     }
-    {
-        OlapOnDB<Empty> parallel_four(db, write_txn, SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING);
-        auto extract_list = parallel_four.ExtractVertexData(vertex_extract<size_t>);
-        UT_EXPECT_EQ(extract_list[0], 2);
-        UT_EXPECT_EQ(extract_list.Size(), 21);
-    }
-    write_txn.Commit();
-    std::vector<std::string> del_filename = {"test_olap_on_db.conf",
-                            "test_vertices.csv", "test_weighted.csv", "test_write_to_db.csv"};
+    std::vector<std::string> del_filename = {"test_olap_on_db.conf", "test_vertices.csv",
+                                             "test_weighted.csv", "test_write_to_db.csv"};
     ClearCsvFiles(del_filename);
 }

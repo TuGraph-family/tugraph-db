@@ -85,9 +85,33 @@ void register_liblgraph_client_python(pybind11::module& m) {
           pybind11::arg("json_format") = true, pybind11::arg("timeout") = 0,
           pybind11::return_value_policy::move);
 
-    c.def("loadProcedure", &LGraphPythonClient::LoadProcedure,
+    c.def("loadProcedure", [] (LGraphPythonClient& self, pybind11::object source_files,
+                            pybind11::object procedure_type,
+                            pybind11::object procedure_name,
+                            pybind11::object code_type,
+                            pybind11::object procedure_description,
+                            pybind11::object read_only, pybind11::object version,
+                            pybind11::object graph) {
+            if (pybind11::isinstance<pybind11::str>(source_files)) {
+                return self.LoadProcedure(
+                    source_files.cast<std::string>(), procedure_type.cast<std::string>(),
+                    procedure_name.cast<std::string>(), code_type.cast<std::string>(),
+                    procedure_description.cast<std::string>(), read_only.cast<bool>(),
+                    version.cast<std::string>(), graph.cast<std::string>());
+            } else if (pybind11::isinstance<pybind11::list>(source_files)) {
+                return self.LoadProcedure(
+                    source_files.cast<std::vector<std::string>>(),
+                    procedure_type.cast<std::string>(),
+                    procedure_name.cast<std::string>(), code_type.cast<std::string>(),
+                    procedure_description.cast<std::string>(), read_only.cast<bool>(),
+                    version.cast<std::string>(), graph.cast<std::string>());
+            } else {
+                throw std::invalid_argument("Invalid argument types for LoadProcedure");
+            }
+        },
           "Load a user-defined procedure\n"
-          "source_file            [in] the source_file contain procedure code\n"
+          "source_files           [in] Source file or source file list containing code (only cpp "
+          "files support uploading multiple files)\n"
           "procedure_type         [in] the procedure type, currently supported CPP and PY\n"
           "procedure_name         [in] procedure name\n"
           "code_type              [in] code type, currently supported PY, SO, CPP, ZIP\n"
@@ -95,7 +119,7 @@ void register_liblgraph_client_python(pybind11::module& m) {
           "read_only              [in] procedure is read only or not\n"
           "version                [in] procedure version, currently v1 or v2"
           "graph                  [in] the graph to query.\n",
-          pybind11::arg("source_file"), pybind11::arg("procedure_type"),
+          pybind11::arg("source_files"), pybind11::arg("procedure_type"),
           pybind11::arg("procedure_name"),
           pybind11::arg("code_type"), pybind11::arg("procedure_description"),
           pybind11::arg("read_only"),
