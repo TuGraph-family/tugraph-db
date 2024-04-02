@@ -25,6 +25,7 @@
 #include "import/file_cutter.h"
 #include "import/parse_delimiter.h"
 #include "fma-common/encrypt.h"
+#include "core/defs.h"
 
 namespace lgraph {
 
@@ -87,7 +88,7 @@ LGraphResponse RpcClient::RpcSingleClient::HandleRequest(LGraphRequest* req) {
     return resp;
 }
 
-bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::ProtoGraphQueryType type,
+bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::GraphQueryType type,
                                                      LGraphResponse* res, const std::string& query,
                                                      const std::string& graph, bool json_format,
                                                      double timeout) {
@@ -98,7 +99,8 @@ bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::ProtoGraphQuery
     req.set_client_version(server_version);
     req.set_token(token);
     lgraph::GraphQueryRequest* cypher_req = req.mutable_graph_query_request();
-    cypher_req->set_type(type);
+    cypher_req->set_type(type == lgraph::GraphQueryType::CYPHER ?
+        lgraph::ProtoGraphQueryType::CYPHER : lgraph::ProtoGraphQueryType::GQL);
     cypher_req->set_graph(graph);
     cypher_req->set_query(query);
     cypher_req->set_timeout(timeout);
@@ -122,7 +124,7 @@ bool RpcClient::RpcSingleClient::CallCypher(std::string& result, const std::stri
                                             const std::string& graph, bool json_format,
                                             double timeout) {
     LGraphResponse res;
-    if (!HandleGraphQueryRequest(lgraph::ProtoGraphQueryType::CYPHER,
+    if (!HandleGraphQueryRequest(lgraph::GraphQueryType::CYPHER,
                                  &res, cypher, graph, json_format, timeout)) {
         result = res.error();
         return false;
@@ -136,7 +138,7 @@ bool RpcClient::RpcSingleClient::CallGql(std::string& result, const std::string&
                                          const std::string& graph, bool json_format,
                                          double timeout) {
     LGraphResponse res;
-    if (!HandleGraphQueryRequest(lgraph::ProtoGraphQueryType::GQL,
+    if (!HandleGraphQueryRequest(lgraph::GraphQueryType::GQL,
                                  &res, gql, graph, json_format, timeout)) {
         result = res.error();
         return false;
@@ -603,7 +605,7 @@ bool RpcClient::CallCypher(std::string &result, const std::string &cypher,
     auto fun = [&]{
         if (!url.empty())
             return GetClientByNode(url)->CallCypher(result, cypher, graph, json_format, timeout);
-        return GetClient(lgraph::ProtoGraphQueryType::CYPHER, cypher, graph)->
+        return GetClient(lgraph::GraphQueryType::CYPHER, cypher, graph)->
             CallCypher(result, cypher, graph, json_format, timeout);
     };
     return DoubleCheckQuery(fun);
@@ -629,7 +631,7 @@ bool RpcClient::CallGql(std::string &result, const std::string &gql,
     auto fun = [&]{
         if (!url.empty())
             return GetClientByNode(url)->CallGql(result, gql, graph, json_format, timeout);
-        return GetClient(lgraph::ProtoGraphQueryType::GQL, gql, graph)->
+        return GetClient(lgraph::GraphQueryType::GQL, gql, graph)->
             CallGql(result, gql, graph, json_format, timeout);
     };
     return DoubleCheckQuery(fun);
@@ -865,7 +867,7 @@ void RpcClient::RefreshClientPool() {
     }
 }
 
-bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
+bool RpcClient::IsReadQuery(lgraph::GraphQueryType type,
                              const std::string &query, const std::string &graph) {
     bool isReadQuery = true;
     if (boost::to_upper_copy(query).find("CALL ") != std::string::npos) {
@@ -886,7 +888,7 @@ bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
     }
     std::string tmp = query;
     std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
-    if (type == lgraph::ProtoGraphQueryType::CYPHER) {
+    if (type == lgraph::GraphQueryType::CYPHER) {
         for (const auto &c : cypher_write_constant) {
             if (tmp.find(c) != std::string::npos) {
                 return false;
@@ -903,7 +905,7 @@ bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
 }
 
 std::shared_ptr<lgraph::RpcClient::RpcSingleClient>
-    RpcClient::GetClient(lgraph::ProtoGraphQueryType type, const std::string &cypher,
+    RpcClient::GetClient(lgraph::GraphQueryType type, const std::string &cypher,
                          const std::string &graph) {
     return GetClient(IsReadQuery(type, cypher, graph));
 }
