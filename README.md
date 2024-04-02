@@ -105,7 +105,7 @@ Slack (For developer quick communication):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 Contact us via dingtalk, wechat, email and telephone:
-![contacts](./docs/images/contact_us.png)
+![contacts](./docs/images/contact-en.png)
 
 
 
