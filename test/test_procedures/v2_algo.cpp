@@ -28,10 +28,9 @@ extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
 
 extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
                               const std::string &request,
-                              std::string &response) {
-    Result result({{"res", LGraphType::STRING}});
-    auto r = result.MutableRecord();
+                              Result &response) {
+    response.ResetHeader({{"res", LGraphType::STRING}});
+    auto r = response.MutableRecord();
     r->Insert("res", FieldData::String("custom algo result"));
-    response = result.Dump();
     return true;
 }

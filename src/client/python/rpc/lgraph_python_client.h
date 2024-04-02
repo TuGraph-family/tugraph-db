@@ -48,6 +48,26 @@ class LGraphPythonClient {
         return {ret, result};
     }
 
+    std::pair<bool, std::string> LoadProcedure(const std::vector<std::string>& source_files,
+                                               const std::string& procedure_type,
+                                               const std::string& procedure_name,
+                                               const std::string& code_type,
+                                               const std::string& procedure_description,
+                                               bool read_only, const std::string& version = "v1",
+                                               const std::string& graph = "default") {
+        std::string result;
+        bool ret;
+        try {
+            ret = client->LoadProcedure(result, source_files, procedure_type,
+                                        procedure_name, code_type,
+                                        procedure_description, read_only, version, graph);
+        } catch (lgraph::RpcException &e) {
+            ret = false;
+            result = e.what();
+        }
+        return {ret, result};
+    }
+
     std::pair<bool, std::string> CallProcedure(const std::string& procedure_type,
                                                const std::string& procedure_name,
                                                const std::string& param,
