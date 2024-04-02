@@ -180,7 +180,7 @@ OpBase::OpResult Aggregate::RealConsume(RTContext *ctx) {
             Group new_group;
             std::string group_key;
             for (auto _ : noneaggregated_expressions_) {
-                new_group.keys.emplace_back(Entry());
+                new_group.keys.emplace_back(Entry(cypher::FieldData()));
             }
             std::cout << "new_group size: " << new_group.keys.size() << std::endl;
             bool ast_expr = aggregated_parser_expressions_.empty();

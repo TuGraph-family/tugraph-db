@@ -88,7 +88,7 @@ class AvgAggCtx : public AggCtx {
         if (count > 0) {
             result = Entry(cypher::FieldData(lgraph::FieldData(total / count)));
         } else {
-            result = Entry();
+            result = Entry(cypher::FieldData());
         }
         return 0;
     }
@@ -117,7 +117,7 @@ class MaxAggCtx : public AggCtx {
         if (count > 0) {
             result = Entry(cypher::FieldData(lgraph::FieldData(max)));
         } else {
-            result = Entry();
+            result = Entry(cypher::FieldData());
         }
         return 0;
     }
@@ -146,7 +146,7 @@ class MinAggCtx : public AggCtx {
         if (count > 0) {
             result = Entry(cypher::FieldData(lgraph::FieldData(min)));
         } else {
-            result = Entry();
+            result = Entry(cypher::FieldData());
         }
         return 0;
     }
