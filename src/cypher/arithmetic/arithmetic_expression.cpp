@@ -925,7 +925,7 @@ cypher::FieldData BuiltinFunction::Mask(RTContext *ctx, const Record &record,
             break;
     }
 
-    throw lgraph::CypherException("Function `SUBSTRING()` is not supported for: "
+    throw lgraph::CypherException("Function `MASK()` is not supported for: "
                                   + arg1.ToString());
 }
 
