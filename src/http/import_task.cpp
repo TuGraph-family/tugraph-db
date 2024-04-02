@@ -36,6 +36,8 @@ ImportTask::ImportTask(HttpService* http_service, ImportManager* import_manager,
       schema_(std::move(schema)) {}
 
 void ImportTask::operator()() {
+    std::vector<std::string> imported_files;
+    size_t imported_line = 0;
     try {
         import_manager_->NewRecord(id_);
         std::vector<import_v2::CsvDesc> data_files =
@@ -57,14 +59,17 @@ void ImportTask::operator()() {
         uint64_t skip_packages =
             skip_packages_ > processed_packages ? skip_packages_ : processed_packages;
         import_manager_->RecordProcessing(id_);
+
         for (import_v2::CsvDesc& fd : data_files) {
             const auto& filename = fd.path;
             std::string desc = fd.Dump();
             bool is_first_package = true;
             char *begin, *end;
+            imported_line = 0;
 
             import_v2::FileCutter cutter(filename);
             for (; cutter.Cut(begin, end); is_first_package = false) {
+                size_t lines = std::count(begin, end, '\n') + (end[-1] == '\n');
                 if (skip_packages > 0) {
                     --skip_packages;
                     continue;
@@ -88,6 +93,7 @@ void ImportTask::operator()() {
                 uint64_t bytes_sent = end - begin;
                 import_manager_->RecordProgress(id_, processed_packages, bytes_sent);
             }
+            imported_files.emplace_back(filename);
         }
         import_manager_->RecordFinish(id_, schema_, true);
     } catch (std::exception& e) {
@@ -113,7 +119,6 @@ std::string ImportTask::SendImportRequest(const std::string& description, const 
             log = std::move(*proto_resp.mutable_import_response()->mutable_error_message());
         if (proto_resp.import_response().has_log())
             log = std::move(*proto_resp.mutable_import_response()->mutable_log());
-        web::json::value response;
     } else {
         log = std::move(*proto_resp.mutable_error());
     }
