@@ -38,6 +38,7 @@ ImportTask::ImportTask(HttpService* http_service, ImportManager* import_manager,
 void ImportTask::operator()() {
     std::vector<std::string> imported_files;
     size_t imported_line = 0;
+    std::string filename;
     try {
         import_manager_->NewRecord(id_);
         std::vector<import_v2::CsvDesc> data_files =
@@ -61,7 +62,7 @@ void ImportTask::operator()() {
         import_manager_->RecordProcessing(id_);
 
         for (import_v2::CsvDesc& fd : data_files) {
-            const auto& filename = fd.path;
+            filename = fd.path;
             std::string desc = fd.Dump();
             bool is_first_package = true;
             char *begin, *end;
@@ -69,16 +70,21 @@ void ImportTask::operator()() {
 
             import_v2::FileCutter cutter(filename);
             for (; cutter.Cut(begin, end); is_first_package = false) {
-                size_t lines = std::count(begin, end, '\n') + (end[-1] == '\n');
+                size_t lines = std::count(begin, end + 1, '\n');
                 if (skip_packages > 0) {
                     --skip_packages;
+                    imported_line += lines;
                     continue;
                 }
                 ++processed_packages;
                 if (is_first_package) {
                     if (fd.n_header_line >
                         static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n')) {
-                        return import_manager_->RecordErrorMsg(id_, schema_, "HEADER too large");
+                        std::string res = boost::algorithm::join(imported_files, ",") +
+                                          " were imported successfully.\n";
+                        res += filename + " was imported " + std::to_string(imported_line) + "s.\n";
+                        return import_manager_->RecordErrorMsg(id_, schema_,
+                                                               "HEADER too large.\n" + res);
                     }
                 } else {
                     fd.n_header_line = 0;
@@ -87,17 +93,25 @@ void ImportTask::operator()() {
                 std::string res = SendImportRequest(desc, std::string(begin, end));
                 if (res.size()) {
                     if (!continue_on_error_) {
+                        res += "\n" + boost::algorithm::join(imported_files, ",") +
+                                          " were imported successfully.\n";
+                        res += filename + " was imported " + std::to_string(imported_line) + "s.\n";
                         return import_manager_->RecordErrorMsg(id_, schema_, res);
                     }
                 }
                 uint64_t bytes_sent = end - begin;
                 import_manager_->RecordProgress(id_, processed_packages, bytes_sent);
+                imported_line += lines;
             }
             imported_files.emplace_back(filename);
         }
         import_manager_->RecordFinish(id_, schema_, true);
     } catch (std::exception& e) {
-        import_manager_->RecordErrorMsg(id_, schema_, e.what());
+        std::string res = boost::algorithm::join(imported_files, ",") +
+                          " were imported successfully.\n";
+        res += filename + " was imported " + std::to_string(imported_line) + "s.\n";
+        import_manager_->RecordErrorMsg(id_, schema_,
+                                               std::string(e.what()) + "\n" + res);
     }
 }
 
