@@ -476,7 +476,10 @@ int test_function(cypher::RTContext *ctx) {
         {"RETURN LENGTH('abc1234')", 1},
         {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
         {"RETURN CONCAT('abc', '12', '34')", 1},
-        {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1}
+        {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1},
+        {"RETURN MASK('123456789', 1, 2)", 1},
+        {"RETURN MASK('张三', 2, 2)", 1},
+        {"RETURN MASK('123456789', 2, 3, '?')", 1}
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -1161,6 +1164,30 @@ int test_procedure(cypher::RTContext *ctx) {
             "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
             "','CPP','" + i.first + "', true, 'v1')");
     }
+    std::vector<std::pair<std::string, std::string>> multi_file_info = {
+        {"multi_files_core.cpp", "../../test/test_procedures/multi_files_core.cpp"},
+        {"multi_files.cpp", "../../test/test_procedures/multi_files.cpp"},
+        {"multi_files.h", "../../test/test_procedures/multi_files.h"}
+    };
+    std::map<std::string, std::string> contents;
+    for (auto &i : multi_file_info) {
+        text.clear();
+        f.open(i.second, std::ios::in);
+        std::string buf;
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        encode = lgraph_api::encode_base64(text);
+        contents[i.first] = encode;
+    }
+    std::string cypher_q = FMA_FMT("CALL db.plugin.loadPlugin('CPP','multi', "
+        "\\{`{}`: \"{}\", `{}`: \"{}\", `{}`: \"{}\"\\}, 'CPP','multi', true, 'v1')",
+        "multi_files_core.cpp", contents["multi_files_core.cpp"],
+        "multi_files.cpp", contents["multi_files.cpp"],
+        "multi_files.h", contents["multi_files.h"]);
+    plugin_scripts.push_back(cypher_q);
     eval_scripts(ctx, plugin_scripts);
 
     static std::vector<std::string> scripts = {
@@ -1342,22 +1369,22 @@ int test_procedure(cypher::RTContext *ctx) {
                     name, encoded, name));
     };
 
-    add_signatured_plugins("custom_shortestpath",
-                           "../../test/test_procedures/custom_shortestpath.cpp");
+    add_signatured_plugins("v2_test_path",
+                           "../../test/test_procedures/v2_test_path.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
-        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "CALL plugin.cpp.v2_test_path(a, b) YIELD length, nodeIds "
         "RETURN length, nodeIds AS path");
 
-    add_signatured_plugins("custom_pagerank", "../../test/test_procedures/custom_pagerank.cpp");
+    add_signatured_plugins("v2_pagerank", "../../test/test_procedures/v2_pagerank.cpp");
     call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_pagerank(10) "
+        "CALL plugin.cpp.v2_pagerank(10) "
         "YIELD node, weight WITH node, weight "
         "MATCH(node)-[r]->(n) RETURN node, r, n, weight");
 
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
-        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "CALL plugin.cpp.v2_test_path(a, b) YIELD length, nodeIds "
         "WITH length, nodeIds "
         "UNWIND nodeIds AS id "
         "RETURN id, length");
@@ -1369,18 +1396,18 @@ int test_procedure(cypher::RTContext *ctx) {
         "YIELD node, salt WITH node, salt "
         "MATCH(node)-[r]->(n) RETURN node, r, n, salt");
 
-    add_signatured_plugins("custom_path_process",
-        "../../test/test_procedures/custom_path_process.cpp");
+    add_signatured_plugins("v2_path_process",
+        "../../test/test_procedures/v2_path_process.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH p = (n {name:\"Rachel Kempson\"})-[*0..3]->() "
-        "CALL plugin.cpp.custom_path_process(nodes(p)) YIELD idSum "
+        "CALL plugin.cpp.v2_path_process(nodes(p)) YIELD idSum "
         "RETURN idSum");
 
-    add_signatured_plugins("custom_algo", "../../test/test_procedures/custom_algo.cpp");
+    add_signatured_plugins("v2_algo", "../../test/test_procedures/v2_algo.cpp");
     call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_algo() YIELD res RETURN res");
+        "CALL plugin.cpp.v2_algo() YIELD res RETURN res");
     call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_algo()");
+        "CALL plugin.cpp.v2_algo()");
     eval_scripts(ctx, call_signatured_plugins_scripts);
     return 0;
 }

@@ -13,10 +13,12 @@
 */
 
 
+#include <iostream>
 #include <cstdlib>
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_types.h"
 #include "lgraph/lgraph_result.h"
+#include "lgraph/lgraph_txn.h"
 
 #include "tools/json.hpp"
 
@@ -26,41 +28,38 @@ using namespace lgraph_api;
 
 extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
     sig_spec.input_list = {
-        {.name = "num_iteration", .index = 0, .type = LGraphType::INTEGER},
+        {.name = "nodeIds", .index = 0, .type = LGraphType::LIST},
     };
     sig_spec.result_list = {
-        {.name = "node", .index = 0, .type = LGraphType::NODE},
-        {.name = "weight", .index = 1, .type = LGraphType::FLOAT}
+        {.name = "idSum", .index = 0, .type = LGraphType::INTEGER},
     };
     return true;
 }
-
 extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
                                    const std::string &request,
-                                   std::string &response) {
-    int64_t num_iteration;
+                                   Result &response) {
+    std::vector<int64_t> nodeIds;
     try {
         json input = json::parse(request);
-        num_iteration = input["num_iteration"].get<int64_t>();
+        nodeIds = input["nodeIds"].get<std::vector<std::int64_t>>();
     } catch (std::exception &e) {
-        response = std::string("error parsing json: ") + e.what();
+        response.ResetHeader({
+            {"errMsg", LGraphType::STRING}
+        });
+        response.MutableRecord()->Insert(
+            "errMsg",
+            FieldData::String(std::string("error parsing json: ") + e.what()));
         return false;
     }
-    // handle the page rank algo in dummy mode
-    // ...
 
-    Result result({{"node", LGraphType::NODE},
-                   {"weight", LGraphType::FLOAT},
-                   });
-
-
-    for (size_t i = 0; i < 2; i++) {
-        auto r = result.MutableRecord();
-        auto vit = txn.GetVertexIterator(i);
-        r->Insert("node", vit);
-        r->Insert("weight", FieldData::Float(float(i) + 0.1*float(i)));
+    int64_t sum = 0;
+    for (auto id : nodeIds) {
+        sum += id;
     }
-    response = result.Dump();
+
+    response.ResetHeader({{"idSum", LGraphType::INTEGER}});
+
+    auto r = response.MutableRecord();
+    r->Insert("idSum", FieldData::Int64(sum));
     return true;
 }
-
