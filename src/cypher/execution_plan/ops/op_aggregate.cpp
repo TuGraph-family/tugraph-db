@@ -182,7 +182,6 @@ OpBase::OpResult Aggregate::RealConsume(RTContext *ctx) {
             for (auto _ : noneaggregated_expressions_) {
                 new_group.keys.emplace_back(Entry(cypher::FieldData()));
             }
-            std::cout << "new_group size: " << new_group.keys.size() << std::endl;
             bool ast_expr = aggregated_parser_expressions_.empty();
             if (ast_expr) {
                 for (auto &ae : aggregated_expressions_) {
