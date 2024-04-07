@@ -785,7 +785,7 @@ TEST_F(TestKvStore, KvStore) {
 
         // test SetFixedSizeValue
         {
-            txn = store->CreateWriteTxn(true);
+            txn = store->CreateWriteTxn();
             {
                 auto tb2 =
                     store->OpenTable(*txn, "setv", true, ComparatorDesc::DefaultComparator());

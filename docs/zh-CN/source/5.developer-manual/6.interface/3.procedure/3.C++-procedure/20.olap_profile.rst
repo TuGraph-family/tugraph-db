@@ -1,5 +1,0 @@
-olap_profile
-===================================
-
-.. doxygenfile:: olap_profile.h
-   :project: cpp_procedure

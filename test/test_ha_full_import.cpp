@@ -210,7 +210,7 @@ TEST_F(TestHAFullImport, FullImportRemote) {
     lgraph::SubProcess online_import_client(import_cmd);
     online_import_client.Wait();
     UT_EXPECT_EQ(online_import_client.GetExitCode(), 0);
-    fma_common::SleepS(20);
+    fma_common::SleepS(40);
     succeed = rpc_client->CallCypherToLeader(res, "match (n) return count(n)", "test");
     UT_EXPECT_TRUE(succeed);
     v = web::json::value::parse(res);
