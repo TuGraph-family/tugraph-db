@@ -1,5 +1,0 @@
-lgraph_exceptions
-===================================
-
-.. doxygenfile:: lgraph_exceptions.h
-   :project: cpp_procedure
