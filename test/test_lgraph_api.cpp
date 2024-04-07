@@ -951,3 +951,64 @@ TEST_F(TestLGraphApi, CURDWithTooLongKey) {
                                         std::string(lgraph::_detail::MAX_KEY_SIZE - 24, 'z'))));
     }
 }
+
+TEST_F(TestLGraphApi, deleteLable) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    lgraph::AutoCleanDir cleaner(path);
+    Galaxy galaxy(path);
+    std::string db_path;
+    namespace fs = std::filesystem;
+    for (const auto& entry : fs::directory_iterator("testdb")) {
+        if (fs::is_directory(entry.status())) {
+            auto name = entry.path().filename().string();
+            if (name == ".meta") {
+                continue;
+            }
+            db_path = FMA_FMT("testdb/{}", name);
+            break;
+        }
+    }
+    auto check_dbs = [&db_path](int num) {
+        std::string cmd = FMA_FMT("./mdb_stat {} | grep Entries", db_path);
+        lgraph::SubProcess mdb_stat(cmd);
+        mdb_stat.Wait();
+        UT_EXPECT_EQ(mdb_stat.Stdout(), FMA_FMT("  Entries: {}\n", num));
+    };
+    check_dbs(6);
+    galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+    GraphDB db = galaxy.OpenGraph("default");
+    UT_EXPECT_TRUE(db.AddVertexLabel("Person",
+                                     std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                             {"name", FieldType::STRING, false},
+                                                             {"tel", FieldType::STRING, true}}),
+                                     VertexOptions("id")));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
+                                   std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                       {"name", FieldType::STRING, false},
+                                                       {"instructions", FieldType::STRING, true}}),
+                                   EdgeOptions()));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Person", "name", IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation", "name", IndexType::NonuniqueIndex));
+    check_dbs(9);
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("Relation"));
+    UT_EXPECT_TRUE(db.DeleteVertexLabel("Person"));
+    check_dbs(6);
+    UT_EXPECT_TRUE(db.AddVertexLabel("Person1",
+                                     std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                             {"name", FieldType::STRING, false},
+                                                             {"tel", FieldType::STRING, true}}),
+                                     VertexOptions("id")));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("Relation1",
+                                   std::vector<FieldSpec>({{"id", FieldType::STRING, false},
+                                                       {"name", FieldType::STRING, false},
+                                                       {"instructions", FieldType::STRING, true}}),
+                                   EdgeOptions()));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Person1", "name", IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation1", "name", IndexType::NonuniqueIndex));
+    check_dbs(9);
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("Relation1"));
+    UT_EXPECT_TRUE(db.DeleteVertexLabel("Person1"));
+    check_dbs(6);
+}

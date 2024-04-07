@@ -144,7 +144,7 @@ bool LMDBKvStore::DeleteTable(KvTransaction& txn, const std::string& table_name)
     std::lock_guard<std::mutex> l(mutex_);
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
     auto tbl = LMDBKvTable(lmdb_txn, table_name, true, ComparatorDesc::DefaultComparator());
-    tbl.Drop(lmdb_txn);
+    tbl.Delete(lmdb_txn);
     return true;
 }
 
