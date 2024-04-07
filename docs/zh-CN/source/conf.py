@@ -7,6 +7,7 @@
 
 import os, subprocess, sys, shlex
 project = 'TuGraph'
+
 copyright = '2023, Ant Group'
 author = 'Ant Group'
 
