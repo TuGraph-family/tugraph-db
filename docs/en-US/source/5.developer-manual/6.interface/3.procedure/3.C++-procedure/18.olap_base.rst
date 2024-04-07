@@ -1,5 +1,0 @@
-olap_base
-===================================
-
-.. doxygenfile:: olap_base.h
-   :project: cpp_procedure
