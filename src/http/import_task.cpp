@@ -82,7 +82,8 @@ void ImportTask::operator()() {
                         static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n')) {
                         std::string res = boost::algorithm::join(imported_files, ",") +
                                           " were imported successfully.\n";
-                        res += filename + " was imported " + std::to_string(imported_line) + "s.\n";
+                        res += filename + " was imported "
+                               + std::to_string(imported_line) + " lines.\n";
                         return import_manager_->RecordErrorMsg(id_, schema_,
                                                                "HEADER too large.\n" + res);
                     }
@@ -95,7 +96,8 @@ void ImportTask::operator()() {
                     if (!continue_on_error_) {
                         res += "\n" + boost::algorithm::join(imported_files, ",") +
                                           " were imported successfully.\n";
-                        res += filename + " was imported " + std::to_string(imported_line) + "s.\n";
+                        res += filename + " was imported " +
+                               std::to_string(imported_line) + " lines.\n";
                         return import_manager_->RecordErrorMsg(id_, schema_, res);
                     }
                 }
@@ -109,7 +111,7 @@ void ImportTask::operator()() {
     } catch (std::exception& e) {
         std::string res = boost::algorithm::join(imported_files, ",") +
                           " were imported successfully.\n";
-        res += filename + " was imported " + std::to_string(imported_line) + "s.\n";
+        res += filename + " was imported " + std::to_string(imported_line) + " lines.\n";
         import_manager_->RecordErrorMsg(id_, schema_,
                                                std::string(e.what()) + "\n" + res);
     }
