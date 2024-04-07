@@ -35,8 +35,13 @@ int main(int argc, char** argv) {
     // get config file path, if specified
     std::string config_file = "/usr/local/etc/lgraph.json";
     std::string cmd = "run";
-    if (!lgraph::GlobalConfig::PrintVersion(config_file, cmd, &argc, &argv)) {
-        return 0;
+    try {
+        if (!lgraph::GlobalConfig::PrintVersion(config_file, cmd, &argc, &argv)) {
+            return 0;
+        }
+    } catch (std::exception& e) {
+        LOG_ERROR() << e.what();
+        return -1;
     }
     // try to read the config file
     std::string json;

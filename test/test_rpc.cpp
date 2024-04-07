@@ -1109,6 +1109,14 @@ void test_label_field(lgraph::RpcClient& client) {
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "run", "name"), false);
     UT_EXPECT_EQ(HasElement(json_val, "jeep", "name"), false);
+    ret = client.CallCypher(str,
+                            "CALL db.alterLabelAddFields('vertex', 'animal', "
+                            "['null_string', string, null, true], "
+                            "['null_int8', int8, null, true])");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'animal', "
+                            "['null_string', 'null_int8'])");
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_procedure(lgraph::RpcClient& client) {
