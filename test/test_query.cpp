@@ -343,6 +343,13 @@ TEST_F(TestQuery, TestGqlSuite) {
     test_files(dir);
 }
 
+TEST_F(TestQuery, TestCypherSuite) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::CYPHER);
+    std::string dir = test_suite_dir_ + "/suite/cypher";
+    test_files(dir);
+}
+
 TEST_F(TestQuery, TestGqlFinbench) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
     set_query_type(lgraph::ut::QUERY_TYPE::GQL);

@@ -85,13 +85,17 @@ class AvgAggCtx : public AggCtx {
     }
 
     int ReduceNext() override {
-        result.type = Entry::CONSTANT;
-        result.constant = lgraph::FieldData(count > 0 ? total / count : 0.0);
+        if (count > 0) {
+            result = Entry(cypher::FieldData(lgraph::FieldData(total / count)));
+        } else {
+            result = Entry(cypher::FieldData());
+        }
         return 0;
     }
 };
 
 class MaxAggCtx : public AggCtx {
+    size_t count = 0;
     double max = std::numeric_limits<double>::lowest();
 
  public:
@@ -104,18 +108,23 @@ class MaxAggCtx : public AggCtx {
                 return 1;
             }
             if (n > max) max = n;
+            count++;
         }
         return 0;
     }
 
     int ReduceNext() override {
-        result.type = Entry::CONSTANT;
-        result.constant = lgraph::FieldData(max);
+        if (count > 0) {
+            result = Entry(cypher::FieldData(lgraph::FieldData(max)));
+        } else {
+            result = Entry(cypher::FieldData());
+        }
         return 0;
     }
 };
 
 class MinAggCtx : public AggCtx {
+    size_t count = 0;
     double min = std::numeric_limits<double>::max();
 
  public:
@@ -128,13 +137,17 @@ class MinAggCtx : public AggCtx {
                 return 1;
             }
             if (n < min) min = n;
+            count++;
         }
         return 0;
     }
 
     int ReduceNext() override {
-        result.type = Entry::CONSTANT;
-        result.constant = lgraph::FieldData(min);
+        if (count > 0) {
+            result = Entry(cypher::FieldData(lgraph::FieldData(min)));
+        } else {
+            result = Entry(cypher::FieldData());
+        }
         return 0;
     }
 };
