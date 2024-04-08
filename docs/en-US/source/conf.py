@@ -35,16 +35,16 @@ if read_the_docs_build:
     subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/liblgraph_python_api.so"))
     subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/liblgraph.so"))
     subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/libjvm.so"))
-    sys.path.insert(0, os.path.abspath('5.developer-manual/6.interface/3.procedure/'))
+    sys.path.insert(0, os.path.abspath('9.olap&procedure/1.procedure/'))
     # doxygen & breathe
     extensions.append("breathe")
-    subprocess.run(shlex.split("doxygen"), cwd="5.developer-manual/6.interface/3.procedure/")
-    breathe_projects = {"cpp_procedure": "5.developer-manual/6.interface/3.procedure/build/xml"}
+    subprocess.run(shlex.split("doxygen"), cwd="9.olap&procedure/1.procedure/")
+    breathe_projects = {"cpp_procedure": "9.olap&procedure/1.procedure/build/xml"}
     breathe_default_project = "cpp_procedure"
 else:
-    if os.path.exists("5.developer-manual/6.interface/3.procedure/3.C++-procedure") and \
-            os.path.exists("5.developer-manual/6.interface/3.procedure/4.Python-procedure.rst") and \
-            os.path.exists("5.developer-manual/6.interface/3.procedure/index.rst") and \
-            os.path.exists("5.developer-manual/6.interface/3.procedure/index.rst.aci"):
-        subprocess.run(shlex.split("rm -rf 3.C++-procedure 4.Python-procedure.rst index.rst"), cwd="5.developer-manual/6.interface/3.procedure/")
-        subprocess.run(shlex.split("mv index.rst.aci index.rst"), cwd="5.developer-manual/6.interface/3.procedure/")
+    if os.path.exists("9.olap&procedure/1.procedure/3.C++-procedure") and \
+            os.path.exists("9.olap&procedure/1.procedure/4.Python-procedure.rst") and \
+            os.path.exists("9.olap&procedure/1.procedure/index.rst") and \
+            os.path.exists("9.olap&procedure/1.procedure/index.rst.aci"):
+        subprocess.run(shlex.split("rm -rf 3.C++-procedure 4.Python-procedure.rst index.rst"), cwd="9.olap&procedure/1.procedure/")
+        subprocess.run(shlex.split("mv index.rst.aci index.rst"), cwd="9.olap&procedure/1.procedure/")

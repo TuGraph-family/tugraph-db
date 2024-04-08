@@ -1109,6 +1109,14 @@ void test_label_field(lgraph::RpcClient& client) {
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "run", "name"), false);
     UT_EXPECT_EQ(HasElement(json_val, "jeep", "name"), false);
+    ret = client.CallCypher(str,
+                            "CALL db.alterLabelAddFields('vertex', 'animal', "
+                            "['null_string', string, null, true], "
+                            "['null_int8', int8, null, true])");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'animal', "
+                            "['null_string', 'null_int8'])");
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_procedure(lgraph::RpcClient& client) {
@@ -1628,6 +1636,16 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     ret = client.LoadProcedure(str, code_cpp_path, "CPP", "test_procedure5", "CPP",
                             "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);
+
+    std::string multi_procedure_path = "../../test/test_procedures/multi_files.cpp";
+    std::string multi_header_path = "../../test/test_procedures/multi_files.h";
+    std::string multi_core_path = "../../test/test_procedures/multi_files_core.cpp";
+    ret = client.LoadProcedure(str, std::vector<std::string>{
+                                        multi_procedure_path, multi_header_path, multi_core_path},
+                               "CPP", "test_procedure6", "CPP",
+                               "this is a test procedure", true, "v1");
+    UT_EXPECT_TRUE(ret);
+
 #ifndef __SANITIZE_ADDRESS__
     ret = client.CallCypher(str, "CALL db.plugin.getPluginInfo('PY','countPersons')");
     UT_EXPECT_FALSE(ret);
@@ -1637,7 +1655,7 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     ret = client.ListProcedures(str, "CPP", "any");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(json_val.as_array().size(), 5);
+    UT_EXPECT_EQ(json_val.as_array().size(), 6);
     UT_EXPECT_EQ(
         CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure1",
                                 "STRING"), true);
@@ -1652,6 +1670,9 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
                                 "STRING"), true);
     UT_EXPECT_EQ(
         CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure5",
+                                "STRING"), true);
+    UT_EXPECT_EQ(
+        CheckObjectElementEqual(json_val, "plugin_description", "name", "test_procedure6",
                                 "STRING"), true);
     ret = client.CallProcedure(str, "CPP", "test_procedure1", "bcefg");
     UT_EXPECT_TRUE(ret);

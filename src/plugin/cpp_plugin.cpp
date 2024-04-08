@@ -89,11 +89,39 @@ void CppPluginManagerImpl::DoCall(lgraph_api::Transaction* txn,
         r = procedure(db, request, output);
     } else if (info.func_txn && txn != nullptr) {
         PluginFuncInTxn * procedure = info.func_txn;
-        r = procedure(*txn, request, output);
+        Result re;
+        r = procedure(*txn, request, re);
+        output = re.Dump();
     }
     CloseDynamicLib(info);
 
     if (!r) THROW_CODE(InputError, "Plugin returned false. Output: {}.", output);
+}
+
+void CppPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn,
+                                    const std::string& user,
+                                    AccessControlledDB* db_with_access_control,
+                                    const std::string name, const PluginInfoBase* pinfo,
+                                    const std::string& request,
+                                    double timeout, bool in_process, Result& output) {
+    if (timeout > 0) {
+        // TODO: schedule a timer event to kill this task // NOLINT
+    }
+
+    // TODO: support in_process // NOLINT
+    bool r = false;
+    DynamicLibinfo info;
+    OpenDynamicLib(pinfo, info);
+    if (info.func) {
+        CloseDynamicLib(info);
+        THROW_CODE(InputError, "Only support the V2 version procedure");
+    } else if (info.func_txn && txn != nullptr) {
+        PluginFuncInTxn * procedure = info.func_txn;
+        r = procedure(*txn, request, output);
+    }
+    CloseDynamicLib(info);
+    if (!r) THROW_CODE(InputError,
+                       FMA_FMT("Plugin returned false. Output: {}.", output.Dump(false)));
 }
 
 void CppPluginManagerImpl::LoadPlugin(const std::string& user, const std::string& name,

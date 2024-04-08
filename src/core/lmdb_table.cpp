@@ -234,6 +234,14 @@ int LMDBKvTable::CompareKey(KvTransaction& txn, const Value& k1, const Value& k2
     return mdb_cmp(lmdb_txn.GetTxn(), dbi_, &a, &b);
 }
 
+void LMDBKvTable::Delete(KvTransaction& txn) {
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    THROW_ON_ERR(mdb_drop(lmdb_txn.GetTxn(), dbi_, 1));
+    // write wal
+    if (lmdb_txn.GetWal())
+        lmdb_txn.GetWal()->WriteTableDrop(dbi_);
+}
+
 void LMDBKvTable::Drop(KvTransaction& txn) {
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
     THROW_ON_ERR(mdb_drop(lmdb_txn.GetTxn(), dbi_, 0));

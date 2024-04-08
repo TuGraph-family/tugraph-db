@@ -74,11 +74,11 @@ $ make package
 
 我们已为在DockerHub中编译准备了环境docker镜像，可以帮助开发人员轻松入门，名称为 `tugraph/tugraph-compile-[os]:[compile version]`, 例如， `tugraph/tugraph-compile-centos7:1.1.0`。
 
-可以访问 [技术规划](./docs/zh-CN/source/6.contributor-manual/5.roadmap.md) 来了解TuGraph进展。
+可以访问 [技术规划](docs/zh-CN/source/12.contributor-manual/5.roadmap.md) 来了解TuGraph进展。
 
-如需贡献，请阅读 [如何贡献](./docs/zh-CN/source/6.contributor-manual/1.contributing.md)。
+如需贡献，请阅读 [如何贡献](docs/zh-CN/source/12.contributor-manual/1.contributing.md)。
 
-注意：如果您想贡献代码，需要签署[个人贡献者许可协议](./docs/zh-CN/source/6.contributor-manual/3.individual-cla.md)或者[公司贡献者许可协议](./docs/zh-CN/source/6.contributor-manual/4.corporate-cla.md)。
+注意：如果您想贡献代码，需要签署[个人贡献者许可协议](docs/zh-CN/source/12.contributor-manual/3.individual-cla.md)或者[公司贡献者许可协议](docs/zh-CN/source/12.contributor-manual/4.corporate-cla.md)。
 
 ## 5. 合作伙伴
 
@@ -103,5 +103,5 @@ Slack (在线开发沟通):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 通过钉钉群、微信群、微信公众号、邮箱和电话联系我们:
-![contacts](./docs/images/contact_us.png)
+![contacts](./docs/images/contact-zh.png)
 

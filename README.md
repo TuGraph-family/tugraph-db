@@ -76,9 +76,9 @@ $ make package
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-compile-[os]:[compile version]`, 
 for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers get started easily.
 
-We have a [roadmap](docs/en-US/source/6.contributor-manual/5.roadmap.md) to help you understand TuGraph.
+We have a [roadmap](docs/en-US/source/12.contributor-manual/5.roadmap.md) to help you understand TuGraph.
 
-To contribute, please read [doc](docs/en-US/source/6.contributor-manual/1.contributing.md).
+To contribute, please read [doc](docs/en-US/source/12.contributor-manual/1.contributing.md).
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
@@ -105,7 +105,7 @@ Slack (For developer quick communication):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 Contact us via dingtalk, wechat, email and telephone:
-![contacts](./docs/images/contact_us.png)
+![contacts](./docs/images/contact-en.png)
 
 
 
