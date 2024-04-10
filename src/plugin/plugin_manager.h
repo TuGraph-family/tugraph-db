@@ -84,7 +84,9 @@ class SingleLanguagePluginManager {
     // return true if success, false if plugin already exists
     // throws on error
     virtual bool LoadPluginFromCode(const std::string& user, const std::string& name,
-                                    const std::string& code, plugin::CodeType code_type,
+                                    const std::vector<std::string>& code,
+                                    const std::vector<std::string>& filename,
+                                    plugin::CodeType code_type,
                                     const std::string& desc, bool read_only,
                                     const std::string& version);
 
@@ -103,6 +105,11 @@ class SingleLanguagePluginManager {
                       AccessControlledDB* db_with_access_control, const std::string& name_,
                       const std::string& request, double timeout, bool in_process,
                       std::string& output);
+
+    virtual bool CallV2(lgraph_api::Transaction* txn, const std::string& user,
+                        AccessControlledDB* db_with_access_control, const std::string& name_,
+                        const std::string& request, double timeout, bool in_process,
+                        Result& output);
 
  protected:
     void LoadAllPlugins(KvTransaction& txn);
@@ -187,6 +194,38 @@ class SingleLanguagePluginManager {
     bool isHashUpTodate(KvTransaction& txn, std::string name);
 
     std::string SignatureToJsonString(const lgraph_api::SigSpec& spec);
+
+    inline std::string MergeCodeFiles(const std::vector<std::string>& code,
+                               const std::vector<std::string>& filename, const std::string& name) {
+        std::string all_codes;
+        if (filename.empty()) {
+            all_codes += FMA_FMT("//{}\n{}{}", name + ".cpp", code[0],
+                                 lgraph::plugin::PLUGIN_CODE_DELIMITER);
+            return all_codes;
+        }
+        for (size_t i = 0; i < code.size(); i++) {
+            all_codes += FMA_FMT("//{}\n{}{}", filename[i], code[i],
+                                 lgraph::plugin::PLUGIN_CODE_DELIMITER);
+        }
+        return all_codes;
+    }
+
+    inline void SplitCode(std::vector<std::string>& code,
+                          std::vector<std::string>& filename, const std::string& all_code) {
+        std::string::size_type startPos = 0;
+        std::string::size_type delimiterPos;
+        std::string::size_type filenamePos;
+        code.clear();
+        filename.clear();
+        while ((delimiterPos = all_code.find(lgraph::plugin::PLUGIN_CODE_DELIMITER, startPos)) !=
+               std::string::npos) {
+            filenamePos = all_code.find('\n', startPos);
+            filename.emplace_back(all_code.substr(startPos + 2, filenamePos - startPos - 2));
+            startPos = filenamePos + 1;
+            code.emplace_back(all_code.substr(startPos, delimiterPos - startPos));
+            startPos = delimiterPos + std::string(lgraph::plugin::PLUGIN_CODE_DELIMITER).size();
+        }
+    }
 };
 
 class PluginManager {
@@ -246,7 +285,8 @@ class PluginManager {
      * @return  true if success, false if plugin already exists
      */
     virtual bool LoadPluginFromCode(PluginType type, const std::string& user,
-                                    const std::string& name, const std::string& code,
+                                    const std::string& name, const std::vector<std::string>& code,
+                                    const std::vector<std::string>& filename,
                                     plugin::CodeType code_type, const std::string& desc,
                                     bool read_only, const std::string& version);
 
@@ -288,21 +328,27 @@ class PluginManager {
               AccessControlledDB* db_with_access_control, const std::string& name_,
               const std::string& request, double timeout, bool in_process, std::string& output);
 
+    bool CallV2(lgraph_api::Transaction* txn, PluginType type, const std::string& user,
+                AccessControlledDB* db_with_access_control, const std::string& name_,
+                const std::string& request, double timeout, bool in_process, Result& output);
+
  protected:
     inline std::unique_ptr<SingleLanguagePluginManager>& SelectManager(PluginType type) {
         return type == PluginType::CPP ? cpp_manager_ : python_manager_;
     }
 };
-
-class InvalidPluginNameException : public InputError {
+using lgraph_api::LgraphException;
+using lgraph_api::ErrorCode;
+class InvalidPluginNameException : public LgraphException {
  public:
     explicit InvalidPluginNameException(const std::string& name)
-        : InputError(FMA_FMT("Invalid plugin name [{}].", name)) {}
+        : LgraphException(ErrorCode::InvalidPluginName, "Invalid plugin name [{}].", name) {}
 };
 
-class InvalidPluginVersionException : public InputError {
+class InvalidPluginVersionException : public LgraphException {
  public:
     explicit InvalidPluginVersionException(const std::string& version)
-        : InputError(FMA_FMT("Invalid plugin version [{}].", version)) {}
+        : LgraphException(ErrorCode::InvalidPluginVersion,
+                          "Invalid plugin version [{}].", version) {}
 };
 }  // namespace lgraph

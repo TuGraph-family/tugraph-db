@@ -335,7 +335,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         } else {
             variable = ctx->oC_Variable()->getText();
             if (!_IsVariableDefined(variable)) {
-                throw lgraph::InputError(FMA_FMT("Variable `{}` not defined", variable));
+                THROW_CODE(InputError, "Variable `{}` not defined", variable);
             }
             for (auto &c : ctx->children) {
                 if (c->getText() == "+=" || c->getText() == "=") {
@@ -360,8 +360,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &ex : ctx->oC_Expression()) {
             expr.emplace_back(std::any_cast<Expression>(visit(ex)));
             if (expr.back().type != Expression::VARIABLE) {
-                throw lgraph::InputError(
-                    FMA_FMT("Type mismatch: expected Node, Path or Relationship"));
+                THROW_CODE(InputError, "Type mismatch: expected Node, Path or Relationship");
             }
             const auto &variable = expr.back().ToString();
             const auto &symbols = _query[_curr_query].parts[_curr_part].symbol_table.symbols;
@@ -373,8 +372,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             if (variable_type != cypher::SymbolNode::NODE &&
                 variable_type != cypher::SymbolNode::RELATIONSHIP &&
                 variable_type != cypher::SymbolNode::NAMED_PATH) {
-                throw lgraph::InputError(
-                    FMA_FMT("Type mismatch: expected Node, Path or Relationship"));
+                THROW_CODE(InputError, "Type mismatch: expected Node, Path or Relationship");
             }
         }
         Clause clause;
@@ -505,9 +503,9 @@ class CypherBaseVisitor : public LcypherVisitor {
             };
             for (auto &yield_item : yield_items) {
                 if (!pp->ContainsYieldItem(yield_item)) {
-                    throw lgraph::InputError(
-                        FMA_FMT("yield item [{}] is not exsit, should be one of {}", yield_item,
-                                concat_str(pp)));
+                    THROW_CODE(InputError,
+                        "yield item [{}] is not exsit, should be one of {}", yield_item,
+                                concat_str(pp));
                 }
                 auto type = lgraph_api::LGraphType::NUL;
                 for (auto &r : pp->signature.result_list) {
@@ -541,15 +539,15 @@ class CypherBaseVisitor : public LcypherVisitor {
                 lgraph_api::SigSpec *sig_spec = nullptr;
                 if (!pm->GetPluginSignature(type, ctx_->user_, names[2], &sig_spec) ||
                     sig_spec == nullptr) {
-                    throw lgraph::InputError(FMA_FMT("cannot find procedure name {}", names[2]));
+                    THROW_CODE(InputError, "cannot find procedure name {}", names[2]);
                 }
                 for (auto &yield_item : yield_items) {
                     const auto iter = std::find_if(
                         sig_spec->result_list.cbegin(), sig_spec->result_list.cend(),
                         [&yield_item](const auto &param) { return yield_item == param.name; });
                     if (iter == sig_spec->result_list.cend()) {
-                        throw lgraph::InputError(
-                            FMA_FMT("yield item [{}] is not exist", yield_item));
+                        THROW_CODE(InputError,
+                            "yield item [{}] is not exist", yield_item);
                     }
                     auto type = lgraph_api::LGraphType::NUL;
                     for (auto &r : sig_spec->result_list) {
@@ -644,8 +642,8 @@ class CypherBaseVisitor : public LcypherVisitor {
                 }
                 // sort_item alias is not in return_item
                 if (!sort_idx_found) {
-                    throw lgraph::InputError(
-                        FMA_FMT("Variable `{}` not defined", sort_item.first.ToString()));
+                    THROW_CODE(InputError,
+                        "Variable `{}` not defined", sort_item.first.ToString());
                 }
             }
             CYPHER_THROW_ASSERT(sort_items_idx.size() == sort_items.size());
@@ -735,7 +733,7 @@ class CypherBaseVisitor : public LcypherVisitor {
     std::any visitOC_Hint(LcypherParser::OC_HintContext *ctx) override {
         const auto &var = ctx->oC_Variable()->getText();
         if (!_IsVariableDefined(var)) {
-            throw lgraph::InputError(FMA_FMT("Variable `{}` not defined", var));
+            THROW_CODE(InputError, "Variable `{}` not defined", var);
         }
 
         if (ctx->JOIN() && ctx->ON()) {
@@ -1390,7 +1388,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             // `_listcompr_placeholder`
             if (!_InClauseORDERBY() && !_IsVariableDefined(var) &&
                 (_listcompr_placeholder.empty() || var != _listcompr_placeholder)) {
-                throw lgraph::InputError(FMA_FMT("Variable `{}` not defined", var));
+                THROW_CODE(InputError, "Variable `{}` not defined", var);
             }
 
             Expression expr;
@@ -1413,7 +1411,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             auto list = std::make_shared<Expression::EXPR_TYPE_LIST>();
             Expression function_name;
             function_name.type = Expression::STRING;
-            function_name.data = std::make_shared<std::string>("count");
+            function_name.data = std::make_shared<std::string>("count(*)");
             list->emplace_back(function_name);
             Expression ret;
             ret.type = Expression::FUNCTION;

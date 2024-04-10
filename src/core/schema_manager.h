@@ -74,7 +74,7 @@ class SchemaManager {
             BinaryBuffer buf(v.Data(), v.Size());
             schemas_[id].SetStoreLabelInRecord(label_in_record_);
             if (!BinaryRead(buf, schemas_[id])) {
-                throw ::lgraph::InternalError("Invalid schema read from DB.");
+                THROW_CODE(InternalError, "Invalid schema read from DB.");
             }
             it->Next();
         }
@@ -200,8 +200,8 @@ class SchemaManager {
             schemas_.emplace_back(label_in_record_);
             ls = &schemas_.back();
             if (schemas_.size() > std::numeric_limits<LabelId>::max()) {
-                throw ::lgraph::InternalError(fma_common::StringFormatter::Format(
-                    "Number of labels exceeds limit: {}.\n", std::numeric_limits<LabelId>::max()));
+                THROW_CODE(InternalError,
+                    "Number of labels exceeds limit: {}.\n", std::numeric_limits<LabelId>::max());
             }
             ls->SetLabelId((LabelId)(schemas_.size() - 1));
         }
@@ -267,8 +267,7 @@ class SchemaManager {
     LabelId AlterLabel(KvTransaction& txn, const std::string& label, const Schema& new_schema) {
         auto it = name_to_idx_.find(label);
         if (it == name_to_idx_.end())
-            throw InputError(
-                fma_common::StringFormatter::Format("Label [{}] does not exist.", label));
+            THROW_CODE(InputError, "Label [{}] does not exist.", label);
         size_t idx = it->second;
         Schema* news = &schemas_[idx];
         *news = new_schema;
@@ -290,8 +289,7 @@ class SchemaManager {
     LabelId GetLabelId(const std::string& label) const {
         auto it = name_to_idx_.find(label);
         if (it == name_to_idx_.end()) {
-            throw InputError(
-                fma_common::StringFormatter::Format("Label \"{}\" does not exist.", label));
+            THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
         }
         return static_cast<LabelId>(it->second);
     }
@@ -401,8 +399,7 @@ class SchemaManager {
     std::vector<IndexSpec> ListIndexByLabel(const T& label) const {
         const Schema* schema = GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Label [{}] does not exist.", label));
+            THROW_CODE(InputError, "Label [{}] does not exist.", label);
         std::vector<IndexSpec> indexes;
         auto fids = schema->GetIndexedFields();
         for (auto& fid : fids) {
@@ -422,8 +419,7 @@ class SchemaManager {
     std::vector<IndexSpec> ListEdgeIndexByLabel(const T& label) const {
         const Schema* schema = GetSchema(label);
         if (!schema)
-            throw InputError(
-                fma_common::StringFormatter::Format("Label [{}] does not exist.", label));
+            THROW_CODE(InputError, "Label [{}] does not exist.", label);
         std::vector<IndexSpec> indexes;
         auto fids = schema->GetIndexedFields();
         for (auto& fid : fids) {

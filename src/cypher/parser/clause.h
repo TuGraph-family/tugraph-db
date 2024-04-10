@@ -442,8 +442,10 @@ static lgraph::FieldData MakeFieldData(const Expression &expr) {
         }
     case Expression::PARAMETER:
         break;
+    case Expression::NULL_:
+        break;
     default:
-        LOG_WARN() << "[Warning] " << __func__ << ": Error Type";
+        LOG_WARN() << "Unhandled expression type " << expr.type;
     }
     return ld;
 }

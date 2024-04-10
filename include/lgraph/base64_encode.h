@@ -151,7 +151,7 @@ inline bool TryDecode(const std::string& str, std::string& out) {
  */
 inline std::string Decode(const char* p, size_t s) {
     std::string ret;
-    if (!TryDecode(p, s, ret)) throw InputError("Failed to decode Base64 string.");
+    if (!TryDecode(p, s, ret)) THROW_CODE(InputError, "Failed to decode Base64 string.");
     return ret;
 }
 

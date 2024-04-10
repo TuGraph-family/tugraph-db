@@ -138,10 +138,10 @@ class ColumnParser : public BlockParser {
 
     void CheckDelimAndResetErrors() {
         if (delimiter_.empty()) {
-            throw lgraph::InputError("Delimiter cannot be empty.");
+            THROW_CODE(InputError, "Delimiter cannot be empty.");
         }
         if (delimiter_.find_first_of("\r\n") != delimiter_.npos) {
-            throw lgraph::InputError("Delimiter cannot contain \\r or \\n.");
+            THROW_CODE(InputError, "Delimiter cannot contain \\r or \\n.");
         }
         errors_ = 0;
     }

@@ -236,6 +236,25 @@ class Result {
     Record *MutableRecord();
 
     /**
+     * @brief   This function attempts to reserve enough memory for the result vector to hold
+     *          the specified number of elements.
+     *
+     */
+    void Reserve(size_t n);
+
+    /**
+     * @brief   This function will resize the vector to the specified number of elements
+     *
+     */
+    void Resize(size_t n);
+
+    /**
+     * @brief   Provides access to the data contained in the vector.
+     *
+     */
+    Record* At(size_t n);
+
+    /**
      * @brief   return header of the table.
      *
      * @returns header.

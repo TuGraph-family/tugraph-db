@@ -74,16 +74,16 @@ TEST_F(TestSchema, ConstructorsAndOperators) {
 
 TEST_F(TestSchema, SetSchema) {
     Schema s;
-    UT_EXPECT_THROW(
+    UT_EXPECT_THROW_CODE(
         s.SetSchema(true,
                     std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true),
                                             FieldSpec("int16", FieldType::INT16, true)}),
                     "int16", "", {}, {}),
-        lgraph::FieldAlreadyExistsException);
-    UT_EXPECT_THROW(
+        FieldAlreadyExists);
+    UT_EXPECT_THROW_CODE(
         s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("int16", FieldType::NUL, true)}),
                     "int16", "", {}, {}),
-        lgraph::FieldCannotBeNullTypeException);
+        FieldCannotBeNullType);
     std::vector<FieldSpec> fs;
     for (size_t i = 0; i < _detail::MAX_NUM_FIELDS + 1; i++)
         fs.emplace_back(UT_FMT("f_{}", i), FieldType::INT16, true);
@@ -108,8 +108,8 @@ TEST_F(TestSchema, GetFieldExtractor) {
     Schema s = ConstructSimpleSchema();
     for (auto& fs : s.GetFieldSpecs()) UT_EXPECT_TRUE(s.GetFieldExtractor(fs.name));
     for (size_t i = 0; i < s.GetNumFields(); i++) UT_EXPECT_TRUE(s.GetFieldExtractor(i));
-    UT_EXPECT_THROW(s.GetFieldExtractor(s.GetNumFields()), lgraph::FieldNotFoundException);
-    UT_EXPECT_THROW(s.GetFieldExtractor("non-existing"), lgraph::FieldNotFoundException);
+    UT_EXPECT_THROW_CODE(s.GetFieldExtractor(s.GetNumFields()), FieldNotFound);
+    UT_EXPECT_THROW_CODE(s.GetFieldExtractor("non-existing"), FieldNotFound);
 }
 
 TEST_F(TestSchema, GetFieldId) {
@@ -150,12 +150,12 @@ TEST_F(TestSchema, DumpRecord) {
     UT_LOG() << "size of schema:" << schema.GetNumFields();
     schema.SetSchema(true, fds, "uid", "", {}, {});
     Value va_tmp = schema.CreateEmptyRecord();
-    UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
-                    lgraph::FieldCannotBeSetNullException);
+    UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
+                    FieldCannotBeSetNull);
     UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "age", FieldData(256)),
                     lgraph::ParseFieldDataException);
-    UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
-                    lgraph::ParseIncompatibleTypeException);
+    UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
+                    ParseIncompatibleType);
     UT_EXPECT_TRUE(schema_1.GetField(va_tmp, (std::string) "does_not_exist",
                                      [](const BlobManager::BlobKey&) { return Value(); }) ==
                    FieldData());
@@ -178,8 +178,8 @@ TEST_F(TestSchema, DumpRecord) {
         std::vector<size_t> fid = schema.GetFieldIds({"name", "uid"});
         std::vector<std::string> value{"marko", "300"};
         // missing weight field
-        UT_EXPECT_THROW(schema.CreateRecord(fid.size(), fid.data(), value.data()),
-                        lgraph::FieldCannotBeSetNullException);
+        UT_EXPECT_THROW_CODE(schema.CreateRecord(fid.size(), fid.data(), value.data()),
+                        FieldCannotBeSetNull);
     }
 
     std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age", "addr"});
@@ -192,8 +192,8 @@ TEST_F(TestSchema, DumpRecord) {
     schema.GetFieldExtractor("weight");
     schema.GetFieldExtractor("age");
     schema.GetFieldExtractor("addr");
-    UT_EXPECT_THROW(schema.GetFieldExtractor("hash"), FieldNotFoundException);
-    UT_EXPECT_THROW(schema.GetFieldExtractor(1024), FieldNotFoundException);
+    UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
+    UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
     const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));
     _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
 }

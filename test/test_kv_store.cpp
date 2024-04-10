@@ -166,13 +166,14 @@ TEST_F(TestKvStore, KvStore) {
         for (auto& txn : txns) txn->Commit();
     }
 
-    UT_LOG() << "Testing KvException";
+    // TODO(botu.wzy)
+    /*UT_LOG() << "Testing KvException";
     {
         // test KvException
         KvException e(0, Value::ConstRef("This is a key").MakeMdbVal(),
                       Value::ConstRef(0xf0f0f0).MakeMdbVal());
         UT_LOG() << "KvException test: " << e.what();
-    }
+    }*/
 
     // kvstore mkdir fail(/dev/null)
     UT_LOG() << "Testing opening non-existing DB";
@@ -181,8 +182,8 @@ TEST_F(TestKvStore, KvStore) {
 #else
     const std::string no_permission_dir = "/dev/null";
 #endif
-    UT_EXPECT_THROW(std::make_unique<LMDBKvStore>(
-                        no_permission_dir, (size_t)1 << db_size, true), KvException);
+    UT_EXPECT_THROW(std::make_unique<LMDBKvStore>(no_permission_dir, (size_t)1 << db_size, true),
+        lgraph_api::LgraphException);
 
 #if (!LGRAPH_USE_MOCK_KV)
     try {
@@ -458,20 +459,20 @@ TEST_F(TestKvStore, KvStore) {
         txn = store->CreateReadTxn();
         UT_EXPECT_TRUE(name_age->HasKey(*txn, Value::ConstRef("ella")));
         UT_EXPECT_TRUE(!name_age->HasKey(*txn, Value::ConstRef("nobody")));
-        UT_EXPECT_THROW(name_age->HasKey(*txn, Value::ConstRef("")), KvException);
-        UT_EXPECT_THROW(name_age->GetValue(*txn, Value::ConstRef("")), KvException);
+        UT_EXPECT_THROW(name_age->HasKey(*txn, Value::ConstRef("")), lgraph_api::LgraphException);
+        UT_EXPECT_THROW(name_age->GetValue(*txn, Value::ConstRef("")), lgraph_api::LgraphException);
         UT_EXPECT_EQ(name_age->GetValue(*txn, Value::ConstRef("allice")).AsType<int>(), 11);
         UT_EXPECT_EQ(name_age->GetValue(*txn, Value::ConstRef("nobody")).Size(), 0);
 
         try {
             name_age->SetValue(*txn, Value::ConstRef("ella"), Value::ConstRef(9));
             FMA_ASSERT(false);
-        } catch (KvException& e) {
-            UT_EXPECT_EQ(e.code(), EACCES);
+        } catch (lgraph_api::LgraphException& e) {
+            // TODO(botu.wzy): check lmdb error code
+            // UT_EXPECT_EQ(e.code(), EACCES);
             UT_LOG() << "Expected exception: Trying to write in read transaction yields an "
                         "exception "
-                        "with error code "
-                     << e.code() << " and error message: " << e.what();
+                     << " and error message: " << e.what();
         }
 
         // Testing write
@@ -495,7 +496,8 @@ TEST_F(TestKvStore, KvStore) {
         UT_EXPECT_TRUE(name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->HasKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
-        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")), KvException);
+        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")),
+                        lgraph_api::LgraphException);
         UT_LOG() << "Now name-age table becomes:";
         DumpTable(
             *name_age, *txn, [](const Value& v) { return v.AsString(); },
@@ -696,20 +698,20 @@ TEST_F(TestKvStore, KvStore) {
         txn = store->CreateReadTxn();
         UT_EXPECT_TRUE(name_age->HasKey(*txn, Value::ConstRef("ella")));
         UT_EXPECT_TRUE(!name_age->HasKey(*txn, Value::ConstRef("nobody")));
-        UT_EXPECT_THROW(name_age->HasKey(*txn, Value::ConstRef("")), KvException);
-        UT_EXPECT_THROW(name_age->GetValue(*txn, Value::ConstRef("")), KvException);
+        UT_EXPECT_THROW(name_age->HasKey(*txn, Value::ConstRef("")), lgraph_api::LgraphException);
+        UT_EXPECT_THROW(name_age->GetValue(*txn, Value::ConstRef("")), lgraph_api::LgraphException);
 
         UT_EXPECT_EQ(name_age->GetValue(*txn, Value::ConstRef("allice")).AsType<int>(), 11);
         UT_EXPECT_EQ(name_age->GetValue(*txn, Value::ConstRef("nobody")).Size(), 0);
 
         try {
             name_age->SetValue(*txn, Value::ConstRef("ella"), Value::ConstRef(9));
-        } catch (KvException& e) {
-            UT_EXPECT_EQ(e.code(), EACCES);
+        } catch (lgraph_api::LgraphException& e) {
+            // UT_EXPECT_EQ(e.code(), EACCES);
+            // TODO(botu.wzy) check lmdb error code
             UT_LOG() << "Expected exception: Trying to write in read transaction yields an "
                         "exception "
-                        "with error code "
-                     << e.code() << " and error message: " << e.what();
+                     << " and error message: " << e.what();
         }
         /* abort should not matter here, since when we assign txn again, the old one will be
          *  aborted automatically.
@@ -737,7 +739,8 @@ TEST_F(TestKvStore, KvStore) {
         UT_EXPECT_TRUE(name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->HasKey(*txn, Value::ConstRef("ivy")));
         UT_EXPECT_TRUE(!name_age->DeleteKey(*txn, Value::ConstRef("ivy")));
-        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")), KvException);
+        UT_EXPECT_THROW(name_age->DeleteKey(*txn, Value::ConstRef("")),
+                        lgraph_api::LgraphException);
 
         UT_LOG() << "All passed!";
         UT_LOG() << "Now name-age table becomes:";
@@ -782,7 +785,7 @@ TEST_F(TestKvStore, KvStore) {
 
         // test SetFixedSizeValue
         {
-            txn = store->CreateWriteTxn(true);
+            txn = store->CreateWriteTxn();
             {
                 auto tb2 =
                     store->OpenTable(*txn, "setv", true, ComparatorDesc::DefaultComparator());

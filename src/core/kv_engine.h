@@ -76,7 +76,10 @@ class KvTable {
     virtual std::unique_ptr<KvIterator>
     GetClosestIterator(KvTransaction& txn, const Value& key) = 0;
     virtual int CompareKey(KvTransaction& txn, const Value& k1, const Value& k2) const = 0;
+    // empty the table
     virtual void Drop(KvTransaction& txn) = 0;
+    // delete the table
+    virtual void Delete(KvTransaction& txn) = 0;
     virtual const std::string& Name() const = 0;
 };
 

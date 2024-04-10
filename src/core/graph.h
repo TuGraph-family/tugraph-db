@@ -375,7 +375,7 @@ class Graph {
         } else {
             VertexId vid = it->GetValue().AsType<VertexId>();
             if (vid == lgraph::_detail::MAX_VID)
-                throw InputError(FMA_FMT("Maximum number of vertex reached: ", vid));
+                THROW_CODE(InputError, "Maximum number of vertex reached: ", vid);
             it->SetValue(Value::ConstRef(vid + 1));
             return vid;
         }

@@ -69,7 +69,7 @@ template<typename T>
 inline T ReadT(std::ifstream &in) {
     T ret{};
     auto &r = in.read((char *)&ret, sizeof(T));
-    if (!r) throw KvException("in.read failed");
+    if (!r) THROW_CODE(KvException, "in.read failed");
     return ret;
 }
 
@@ -79,7 +79,7 @@ inline std::string ReadT<std::string>(std::ifstream& in) {
     std::string ret;
     ret.resize(s);
     auto &r = in.read(&ret[0], s);
-    if (!r) throw KvException("in.read failed");
+    if (!r) THROW_CODE(KvException, "in.read failed");
     return ret;
 }
 
@@ -89,7 +89,7 @@ inline Value ReadT<Value>(std::ifstream &in) {
     Value ret;
     ret.Resize(s);
     auto &r = in.read(ret.Data(), s);
-    if (!r) throw KvException("in.read failed");
+    if (!r) THROW_CODE(KvException, "in.read failed");
     return ret;
 }
 
@@ -326,7 +326,7 @@ inline LogEntry ReadNextLog(std::ifstream &in, bool &success) {
             success = false;
         }
         return ret;
-    } catch (KvException &e) {
+    } catch (lgraph_api::LgraphException& e) {
         LOG_WARN() << "KvException occurred while reading log: " << e.what();
         success = false;
         return {};
@@ -500,17 +500,8 @@ void Wal::ReplayLogs()  {
 #define THROW_ON_ERR(stmt)                            \
     do {                                              \
         int ec = (stmt);                              \
-        if (ec != MDB_SUCCESS) throw KvException(ec); \
+        if (ec != MDB_SUCCESS) THROW_CODE(KvException, mdb_strerror(ec)); \
     } while (0)
-#define BREAK_ON_ERR(stmt) \
-    do {                   \
-        int ec = stmt;     \
-        if (ec) {          \
-            err_msg = mdb_strerror(ec); \
-            fatal_error = true;         \
-        }                  \
-    } while (0);            \
-    if (fatal_error) break;
 
 #define BREAK_WITH_MSG(msg)  \
     err_msg = msg;           \
@@ -600,14 +591,14 @@ void Wal::ReplayLogs()  {
             // commit current txn
             if (to_apply->is_child) {
                 if (!child_txn) {
-                    throw KvException("TXN_COMMIT is_child");
+                    THROW_CODE(KvException, "TXN_COMMIT is_child");
                     BREAK_ON_UNEXPECTED_OP("TXN_COMMIT");
                 }
                 THROW_ON_ERR(mdb_txn_commit(child_txn));
                 child_txn = nullptr;
             } else {
                 if (!root_txn || child_txn) {
-                    throw KvException("TXN_COMMIT !is_child");
+                    THROW_CODE(KvException, "TXN_COMMIT !is_child");
                     BREAK_ON_UNEXPECTED_OP("TXN_COMMIT");
                 }
                 THROW_ON_ERR(mdb_txn_commit(root_txn));
@@ -637,7 +628,7 @@ void Wal::ReplayLogs()  {
             // table open should always happen in root_txn
             if (child_txn) {
                 // BREAK_ON_UNEXPECTED_OP("TXN_OPEN");
-                throw KvException("table open should always happen in root_txn");
+                THROW_CODE(KvException, "table open should always happen in root_txn");
             }
             bool abort_txn = false;
             unsigned int flags = MDB_CREATE;
@@ -710,7 +701,7 @@ void Wal::ReplayLogs()  {
     op_in.close();
     if (fatal_error) {
         // something bad happened, thow an exception and see if we can recover
-        throw KvException(err_msg);
+        THROW_CODE(KvException, err_msg);
     }
     for (auto i : log_file_ids) {
         TryDeleteLog(GetLogFilePathFromId(i));

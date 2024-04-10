@@ -876,7 +876,7 @@ std::map<std::string, lgraph_api::UserInfo> RestClient::ListUsers() {
     if (!JsonToType(response, ret)) {
         std::string err = "Error parsing result:\n" + _TS(response.serialize());
         LOG_ERROR() << err;
-        throw InternalError(err);
+        THROW_CODE(InternalError, err);
     }
     LOG_DEBUG() << "[RestClient] ListUsers succeeded";
     return ret;
@@ -921,7 +921,7 @@ void RestClient::SetUserRoles(const std::string& user, const std::vector<std::st
 lgraph_api::UserInfo RestClient::GetUserInfo(const std::string& user) {
     auto resp = DoGet("/user/" + user, true);
     lgraph_api::UserInfo ret;
-    if (!JsonToType(resp, ret)) throw InternalError("Error parsing result.");
+    if (!JsonToType(resp, ret)) THROW_CODE(InternalError, "Error parsing result.");
     return ret;
 }
 
@@ -1051,8 +1051,43 @@ bool RestClient::LoadPlugin(const std::string& db, lgraph_api::PluginCodeType ty
     body[RestStrings::READONLY] = json::value::boolean(plugin_info.read_only);
     body[RestStrings::DESC] = json::value::string(_TU(plugin_info.desc));
     body[RestStrings::VERSION] = json::value::string(_TU(plugin_info.version));
-    body[RestStrings::CODE] = json::value::string(_TU(lgraph_api::base64::Encode(code)));
+    body[RestStrings::CODE] = json::value::array(
+        std::vector<json::value>{json::value::string(_TU(lgraph_api::base64::Encode(code)))});
     body[RestStrings::CODE_TYPE] = json::value::string(_TU(lgraph_api::PluginCodeTypeStr(type)));
+    if (type == lgraph_api::PluginCodeType::CPP) {
+        body[RestStrings::FILENAMES] = json::value::array(
+            std::vector<json::value>{json::value::string(_TU(plugin_info.name + ".cpp"))});
+    } else {
+        body[RestStrings::FILENAMES] = json::value::array(
+            std::vector<json::value>{json::value::string(_TU(plugin_info.name))});
+    }
+
+    DoGraphPost(db,
+                FMA_FMT("/{}_plugin", type == lgraph_api::PluginCodeType::PY ? "python" : "cpp"),
+                body, false);
+    LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
+    return true;
+}
+
+bool RestClient::LoadPlugin(const std::string& db, lgraph_api::PluginCodeType type,
+                            const PluginDesc& plugin_info, const std::vector<std::string>& codes,
+                            const std::vector<std::string>& filenames) {
+    json::value body;
+    body[RestStrings::NAME] = json::value::string(_TU(plugin_info.name));
+    body[RestStrings::READONLY] = json::value::boolean(plugin_info.read_only);
+    body[RestStrings::DESC] = json::value::string(_TU(plugin_info.desc));
+    body[RestStrings::VERSION] = json::value::string(_TU(plugin_info.version));
+    std::vector<json::value> code_base64;
+    for (auto& code : codes) {
+        code_base64.push_back(json::value::string(_TU(lgraph_api::base64::Encode(code))));
+    }
+    body[RestStrings::CODE] = json::value::array(code_base64);
+    body[RestStrings::CODE_TYPE] = json::value::string(_TU(lgraph_api::PluginCodeTypeStr(type)));
+    std::vector<json::value> names_json;
+    for (auto f : filenames) {
+        names_json.push_back(json::value::string(_TU(f)));
+    }
+    body[RestStrings::FILENAMES] = json::value::array(names_json);
     DoGraphPost(db,
                 FMA_FMT("/{}_plugin", type == lgraph_api::PluginCodeType::PY ? "python" : "cpp"),
                 body, false);
@@ -1069,7 +1104,7 @@ std::vector<PluginDesc> RestClient::GetPlugin(const std::string& db, bool is_cpp
         bool b = JsonToType(r, pd);
         if (!b) {
             LOG_WARN() << "[RestClient] " << __func__ << " failed";
-            throw InternalError("[RestClient] {} parse response failed", __func__);
+            THROW_CODE(InternalError, "[RestClient] {} parse response failed", __func__);
             ret.clear();
             return ret;
         }
@@ -1087,7 +1122,7 @@ PluginCode RestClient::GetPluginDetail(const std::string& db, const std::string&
     bool b = JsonToType(response, pc);
     if (!b) {
         LOG_WARN() << "[RestClient] " << __func__ << " failed";
-        throw InternalError("[RestClient] {} parse response failed", __func__);
+        THROW_CODE(InternalError, "[RestClient] {} parse response failed", __func__);
     }
     LOG_DEBUG() << "[RestClient] " << __func__ << " succeeded";
     return pc;

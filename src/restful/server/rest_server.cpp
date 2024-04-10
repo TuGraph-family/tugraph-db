@@ -432,13 +432,14 @@ void RestServer::Start() {
 #ifndef _WIN32
         // for http over ssl, https
         fma_common::InputFmaStream is(config_.server_key);
-        if (!is.Good()) throw InternalError("Failed to open server key file " + config_.server_key);
+        if (!is.Good()) THROW_CODE(InternalError,
+                                   "Failed to open server key file " + config_.server_key);
         std::string key_buf(is.Size(), 0);
         is.Read(&key_buf[0], key_buf.size());
         is.Close();
         is.Open(config_.server_cert);
         if (!is.Good())
-            throw InternalError("Failed to open server cert file " + config_.server_cert);
+            THROW_CODE(InternalError, "Failed to open server cert file " + config_.server_cert);
         std::string cert_buf(is.Size(), 0);
         is.Read(&cert_buf[0], cert_buf.size());
         is.Close();
@@ -562,11 +563,11 @@ std::string RestServer::GetUser(const web::http::http_request& request,
     auto& headers = request.headers();
     auto it = headers.find(_TU("Authorization"));
     if (it == headers.end()) {
-        throw AuthError("No token given in the request.");
+        THROW_CODE(Unauthorized, "No token given in the request.");
     }
     const std::string& auth_str = _TS(it->second);
     if (!fma_common::StartsWith(auth_str, "Bearer ")) {
-        throw AuthError("Malformed token: " + auth_str);
+        THROW_CODE(Unauthorized, "Malformed token: " + auth_str);
     }
     std::string token = auth_str.substr(7);
     if (token_ret) *token_ret = token;
@@ -588,7 +589,7 @@ static bool GetReaderVersion(const http_request& message, int64_t& ver) {
     const std::string& vstr = _TS(it->second);
     size_t r = fma_common::TextParserUtils::ParseInt64(vstr.data(), vstr.data() + vstr.size(), ver);
     if (r == 0)
-        throw InternalError("Failed to parse " + _TS(RestStrings::SVR_VER) + " from header.");
+        THROW_CODE(InternalError, "Failed to parse " + _TS(RestStrings::SVR_VER) + " from header.");
     return true;
 }
 
@@ -1526,7 +1527,7 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
     _HoldReadLock(galaxy_->GetReloadLock());
     std::string token = galaxy_->GetUserToken(username, password);
     if (!galaxy_->JudgeUserTokenNum(username)) {
-        throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
+        THROW_CODE(BadRequest, "The number of tokens has reached the upper limit");
     }
     web::json::value response;
     response[RestStrings::TOKEN] = web::json::value::string(_TU(token));
@@ -1988,10 +1989,13 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
 
         LoadPluginRequest* req = preq->mutable_load_plugin_request();
         bool read_only = false;
-        std::string code, version;
+        std::string version;
+        ::google::protobuf::RepeatedPtrField<std::string> codes;
         if (!ExtractStringField(body, RestStrings::NAME, *req->mutable_name()) ||
             !ExtractBoolField(body, RestStrings::READONLY, read_only) ||
-            !ExtractStringField(body, RestStrings::CODE, code)) {
+            !ExtractObjectArray(body, RestStrings::CODE, &codes) ||
+            (codes.size() > 1 && !ExtractObjectArray(
+                                     body, RestStrings::FILENAMES, req->mutable_file_name()))) {
             BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::Plugin, true,
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
@@ -2002,9 +2006,9 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
         }
         preq->set_version(version);
         req->set_read_only(read_only);
-        {
+        for (auto &code : codes) {
             std::vector<unsigned char> decoded = utility::conversions::from_base64(_TU(code));
-            req->set_code(std::string(decoded.begin(), decoded.end()));
+            req->add_code(std::string(decoded.begin(), decoded.end()));
         }
         ExtractStringField(body, RestStrings::DESC, *req->mutable_desc());
         LoadPluginRequest::CodeType code_type = (type == PluginManager::PluginType::CPP)
@@ -2935,10 +2939,18 @@ void RestServer::handle_delete(http_request request) {
         default:
             return RespondBadURI(request);
         }
-    } catch (InputError& e) {
-        return RespondBadRequest(request, e.what());
-    } catch (AuthError& e) {
-        return RespondUnauthorized(request, e.what());
+    } catch (lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondUnauthorized(request, e.msg());
+            }
+            case lgraph_api::ErrorCode::InputError: {
+                return RespondBadRequest(request, e.msg());
+            }
+            default: {
+                return RespondInternalException(request, e);
+            }
+        }
     } catch (std::exception& e) {
         return RespondInternalException(request, e);
     }
@@ -3014,10 +3026,18 @@ void RestServer::handle_get(http_request request) {
             return RespondBadURI(request);
         }
         FMA_ASSERT(false);  // we should have treated every case in switch()
-    } catch (InputError& e) {
-        return RespondBadRequest(request, e.what());
-    } catch (AuthError& e) {
-        return RespondUnauthorized(request, e.what());
+    } catch (lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondUnauthorized(request, e.what());
+            }
+            case lgraph_api::ErrorCode::InputError: {
+                return RespondBadRequest(request, e.what());
+            }
+            default: {
+                return RespondInternalException(request, e);
+            }
+        }
     } catch (std::exception& e) {
         return RespondInternalException(request, e);
     }
@@ -3053,7 +3073,7 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
             && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
             if (!galaxy_->JudgeRefreshTime(token)) {
                 LOG_WARN() << "token has already expire";
-                throw AuthError("token has already expire");
+                THROW_CODE(Unauthorized, "token has already expire");
             }
         }
         LOG_DEBUG() << "\n----------------"
@@ -3129,10 +3149,18 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
             return RespondBadURI(request);
         }
         FMA_ASSERT(false);
-    } catch (InputError& e) {
-        return RespondBadRequest(request, e.what());
-    } catch (AuthError& e) {
-        return RespondUnauthorized(request, e.what());
+    } catch (lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondUnauthorized(request, e.what());
+            }
+            case lgraph_api::ErrorCode::InputError: {
+                return RespondBadRequest(request, e.what());
+            }
+            default: {
+                return RespondInternalException(request, e);
+            }
+        }
     } catch (std::exception& e) {
         return RespondInternalException(request, e);
     }
@@ -3196,10 +3224,18 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
         default:
             return RespondBadURI(request);
         }
-    } catch (InputError& e) {
-        return RespondBadRequest(request, e.what());
-    } catch (AuthError& e) {
-        return RespondUnauthorized(request, e.what());
+    } catch (lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondUnauthorized(request, e.what());
+            }
+            case lgraph_api::ErrorCode::InputError: {
+                return RespondBadRequest(request, e.what());
+            }
+            default: {
+                return RespondInternalException(request, e);
+            }
+        }
     } catch (std::exception& e) {
         return RespondInternalException(request, e);
     }

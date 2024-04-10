@@ -102,7 +102,7 @@ class IndexManager {
         fma_common::BinaryBuffer buf(v.Data(), v.Size());
         _detail::IndexEntry idx;
         size_t r = fma_common::BinaryRead(buf, idx);
-        if (r != v.Size()) throw InternalError("Failed to load index meta info from buffer");
+        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load index meta info from buffer");
         return idx;
     }
 

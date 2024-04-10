@@ -469,7 +469,7 @@ void LMDBKvIterator::SetValue(const Value& value) {
         return;
     }
     if (main_status_ != ST_NORMAL && delta_status_ != ST_NORMAL) {
-        THROW_ERR("Failed to set value with an invalid cursor");
+        THROW_CODE(KvException, "Failed to set value with an invalid cursor");
     }
     Value key;
     if (main_status_ == ST_NORMAL && delta_status_ == ST_NORMAL) {
@@ -546,7 +546,7 @@ void LMDBKvIterator::DeleteKey() {
         THROW_ERR(ec);
     }
     if (main_status_ != ST_NORMAL && delta_status_ != ST_NORMAL) {
-        throw KvException("Failed to set value with an invalid cursor.");
+        THROW_CODE(KvException, "Failed to set value with an invalid cursor.");
     }
     Value key;
     if (main_status_ == ST_NORMAL && delta_status_ == ST_NORMAL) {

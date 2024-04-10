@@ -142,4 +142,12 @@ void parse_from_json(std::vector<DataType>& value, const char* key, json& input)
     }
 }
 
+/**
+ * \brief   Parse vid from the node passed in by cypher. For V2 procedure.
+ *
+ * \param[in]   node_string  node
+ * \return      vid
+ */
+size_t GetVidFromNodeString(const std::string& node_string);
+
 }  // namespace lgraph_api

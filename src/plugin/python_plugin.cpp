@@ -104,11 +104,11 @@ void PythonPluginManagerImpl::LoadPlugin(const std::string& user, const std::str
             buffer.DetachBuf(&_buffer, &_size);
         }
     case python_plugin::TaskOutput::ErrorCode::INTERNAL_ERR:
-        throw InternalError("Unexpected error occured when loading plugin: [{}]", output);
+        THROW_CODE(InternalError, "Unexpected error occured when loading plugin: [{}]", output);
     case python_plugin::TaskOutput::ErrorCode::INPUT_ERR:
-        throw InputError(FMA_FMT("Unexpected error occured when loading plugin: [{}]", output));
+        THROW_CODE(InputError, "Unexpected error occured when loading plugin: [{}]", output);
     default:
-        throw InternalError("Unhandled error code [{}].", ec);
+        THROW_CODE(InternalError, "Unhandled error code [{}].", ec);
     }
 }
 
@@ -131,12 +131,20 @@ void PythonPluginManagerImpl::DoCall(lgraph_api::Transaction* txn, const std::st
     case python_plugin::TaskOutput::ErrorCode::SUCCESS:
         break;
     case python_plugin::TaskOutput::ErrorCode::INTERNAL_ERR:
-        throw InputError(FMA_FMT("Plugin failed unexpectly_1. Stderr:\n{}", output));
+        THROW_CODE(InputError, "Plugin failed unexpectly_1. Stderr:\n{}", output);
     case python_plugin::TaskOutput::ErrorCode::INPUT_ERR:
-        throw InputError("Plugin returned false. Look in output for more information.");
+        THROW_CODE(InputError, "Plugin returned false. Look in output for more information.");
     default:
-        throw InternalError("Unhandled error code [{}].", ec);
+        THROW_CODE(InternalError, "Unhandled error code [{}].", ec);
     }
+}
+
+void PythonPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn, const std::string& user,
+                                       AccessControlledDB* db_with_access_control,
+                                       const std::string name, const PluginInfoBase* pinfo,
+                                       const std::string& request, double timeout, bool in_process,
+                                       Result& output) {
+    THROW_CODE(InputError, "Python does not yet support the V2 version procedure");
 }
 
 // Run by the rest handling threads. Pushes the task to Python and wait for its finish.
@@ -188,12 +196,12 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
             proc->Kill();
             std::lock_guard<std::mutex> l(_mtx);
             _marked_processes.insert(std::move(proc));
-            throw lgraph_api::TaskKilledException();
+            THROW_CODE(TaskKilled);
         }
         // if process failed, break
         if (!proc->IsAlive()) {
             output = proc->Stderr();
-            throw InternalError("Plugin failed unexpectly. Stderr:\n{}", output);
+            THROW_CODE(InternalError, "Plugin failed unexpectly. Stderr:\n{}", output);
         }
         bool r = task_output.ReadFromMessageQueue(proc->GetRecvMQ(), 1000);
         if (r) {
@@ -210,7 +218,7 @@ python_plugin::TaskOutput::ErrorCode PythonPluginManagerImpl::CallInternal(
             std::lock_guard<std::mutex> l(_mtx);
             output = proc->Stderr();
             _marked_processes.insert(std::move(proc));
-            throw TimeoutException(timeout);
+            THROW_CODE(Timeout, "Task timed out, timeout = [{}] seconds.", timeout);
         }
     }
     rollback.Cancel();

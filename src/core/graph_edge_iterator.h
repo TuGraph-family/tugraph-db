@@ -36,18 +36,18 @@ class Graph;
 namespace _detail {
 inline void StorePackedNode(KvIterator& it, VertexId vid, const PackedDataValue& pdv) {
     bool r = it.AddKeyValue(pdv.CreateKey(vid), pdv.GetBuf());
-    FMA_DBG_ASSERT(r);
+    FMA_ASSERT(r);
 }
 
 inline void StoreVertexOnlyNode(KvIterator& it, VertexId vid, const VertexValue& vov) {
     bool r = it.AddKeyValue(KeyPacker::CreateVertexOnlyKey(vid), vov.GetBuf(), false);
-    FMA_DBG_ASSERT(r);
+    FMA_ASSERT(r);
 }
 
 inline void StoreEdgeNode(PackType pt, KvIterator& it, VertexId vid1, const EdgeValue& ev) {
     if (ev.GetEdgeCount() == 0) return;
     bool r = it.AddKeyValue(ev.CreateKey(pt, vid1), ev.GetBuf(), false);
-    FMA_DBG_ASSERT(r);
+    FMA_ASSERT(r);
 }
 }  // namespace _detail
 
@@ -75,12 +75,12 @@ inline void ThrowVertexNotExist() {}
 
 template <>
 inline void ThrowVertexNotExist<PackType::IN_EDGE>() {
-    throw InputError("Destination vertex does not exist");
+    THROW_CODE(InputError, "Destination vertex does not exist");
 }
 
 template <>
 inline void ThrowVertexNotExist<PackType::OUT_EDGE>() {
-    throw InputError("Source vertex does not exist");
+    THROW_CODE(InputError, "Source vertex does not exist");
 }
 }  // namespace _detail
 
@@ -95,13 +95,13 @@ struct EdgeConstraintsChecker {
         if (PackType::OUT_EDGE == pt) {
             auto iter = constraints.find(lid);
             if (iter == constraints.end()) {
-                throw InputError("Does not meet the edge constraints");
+                THROW_CODE(InputError, "Does not meet the edge constraints");
             } else {
                 dst_lids = &(iter->second);
             }
         } else if (PackType::IN_EDGE == pt) {
             if (!dst_lids->count(lid)) {
-                throw InputError("Does not meet the edge constraints");
+                THROW_CODE(InputError, "Does not meet the edge constraints");
             }
         }
     }
@@ -109,10 +109,10 @@ struct EdgeConstraintsChecker {
     void Check(LabelId src_lid, LabelId dst_lid) {
         auto iter = constraints.find(src_lid);
         if (iter == constraints.end()) {
-            throw InputError("Does not meet the edge constraints");
+            THROW_CODE(InputError, "Does not meet the edge constraints");
         }
         if (!iter->second.count(dst_lid)) {
-            throw InputError("Does not meet the edge constraints");
+            THROW_CODE(InputError, "Does not meet the edge constraints");
         }
     }
 };
@@ -141,7 +141,7 @@ class EdgeIteratorImpl {
 
     static void CheckPropSize(const Value& prop) {
         if (prop.Size() > ::lgraph::_detail::MAX_PROP_SIZE)
-            throw InputError("Edge property size is too big.");
+            THROW_CODE(InputError, "Edge property size is too big.");
     }
 
     static void UpdatePackedNode(KvIterator* it, EdgeValue& ev) {
@@ -502,8 +502,8 @@ class EdgeIteratorImpl {
                     eid = 0;
                 }
             }
-            if (eid >= ::lgraph::_detail::MAX_EID)
-                throw std::runtime_error("Too many edges from src to dst with the same label");
+            if (eid > ::lgraph::_detail::MAX_EID)
+                THROW_CODE(ReachMaximumEid, "Too many edges from src to dst with the same label");
         }
         int64_t size_diff = ev.InsertAtPos(pos, esid.lid, esid.tid, esid.dst, eid, prop);
         if (pt == PackType::PACKED_DATA) {

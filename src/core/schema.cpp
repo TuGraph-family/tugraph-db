@@ -52,9 +52,9 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            throw InputError(FMA_FMT("Failed to un-index vertex [{}] with field "
+            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record)));
+                                                    vid, fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -68,9 +68,9 @@ void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Va
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            throw InputError(FMA_FMT("Failed to un-index vertex [{}] with field "
+            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record)));
+                                                    vid, fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -121,9 +121,9 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
         FMA_ASSERT(index);
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            throw InputError(FMA_FMT(
+            THROW_CODE(InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
-                vid, fe.Name(), fe.FieldToString(record)));
+                vid, fe.Name(), fe.FieldToString(record));
         }
         created.push_back(idx);
     }
@@ -137,9 +137,9 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Valu
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            throw InputError(FMA_FMT("Failed to un-index edge with field "
+            THROW_CODE(InputError, "Failed to un-index edge with field "
                                                     "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record)));
+                                                    fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -153,9 +153,9 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            throw InputError(FMA_FMT("Failed to un-index edge with field "
+            THROW_CODE(InputError, "Failed to un-index edge with field "
                                                     "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record)));
+                                                    fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -170,9 +170,9 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
         FMA_ASSERT(index);
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), euid)) {
-            throw InputError(FMA_FMT(
+            THROW_CODE(InputError,
                 "Failed to index edge with field value [{}:{}]: index value already exists.",
-                fe.Name(), fe.FieldToString(record)));
+                fe.Name(), fe.FieldToString(record));
         }
         created.push_back(idx);
     }
@@ -218,13 +218,13 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
         switch (srid) {
             case lgraph_api::SRID::NUL:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
                 return FieldData(PointWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(PointCartesian(EWKB));
             default:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
         }
     }
 
@@ -234,13 +234,13 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
         switch (srid) {
             case lgraph_api::SRID::NUL:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
                 return FieldData(LineStringWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(LineStringCartesian(EWKB));
             default:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
         }
     }
 
@@ -250,13 +250,13 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
         switch (srid) {
             case lgraph_api::SRID::NUL:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
                 return FieldData(PolygonWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(PolygonCartesian(EWKB));
             default:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
         }
     }
 
@@ -266,13 +266,13 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
         switch (srid) {
             case lgraph_api::SRID::NUL:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
                 return FieldData(SpatialWgs84(EWKB));
             case lgraph_api::SRID::CARTESIAN:
                 return FieldData(SpatialCartesian(EWKB));
             default:
-                throw InputError("invalid srid!\n");
+                THROW_CODE(InputError, "invalid srid!\n");
         }
     }
     case FieldType::NUL:
@@ -547,8 +547,8 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
         if (f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SKIP) ||
             f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
             f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
-            throw InputError(FMA_FMT(
-                "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"", label_));
+            THROW_CODE(InputError,
+                "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"", label_);
         }
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);
@@ -679,6 +679,6 @@ void Schema::LoadSchema(const Value& data) {
     using namespace fma_common;
     BinaryBuffer buf((char*)data.Data(), data.Size());
     size_t r = BinaryRead(buf, *this);
-    if (r != data.Size()) throw ::lgraph::InternalError("Failed to load schema from DB.");
+    if (r != data.Size()) THROW_CODE(InternalError, "Failed to load schema from DB.");
 }
 }  // namespace lgraph

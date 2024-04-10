@@ -74,7 +74,7 @@ static bool ParseIsVertex(const parser::Expression &arg) {
         if (fma_common::StringEqual(arg.String(), "vertex", false)) return true;
         if (fma_common::StringEqual(arg.String(), "edge", false)) return false;
     }
-    throw lgraph::InputError("Wrong argument given for label type: must be 'vertex' or 'edge'.");
+    THROW_CODE(InputError, "Wrong argument given for label type: must be 'vertex' or 'edge'.");
     return false;
 }
 
@@ -373,7 +373,7 @@ static ::std::vector<::lgraph::FieldSpec> ParseFieldSpecs(const VEC_EXPR &args, 
                          "Each FieldSpec must be a list of (name, type [,optional])")
         lgraph::FieldType ft;
         if (!lgraph::field_data_helper::TryGetFieldType(list[1].String(), ft))
-            throw lgraph::InputError(FMA_FMT("Illegal field type:{}", list[1]));
+            THROW_CODE(InputError, "Illegal field type:{}", list[1]);
         ret.emplace_back(list[0].String(), ft, list[2].Bool());
     }
     return ret;
@@ -387,22 +387,22 @@ static std::vector<std::string> ParseStringList(const parser::Expression &arg,
     } else if (arg.type == parser::Expression::LIST) {
         for (auto &a : arg.List()) {
             if (_F_UNLIKELY(a.type != parser::Expression::STRING))
-                throw lgraph::InputError(FMA_FMT(
+                THROW_CODE(InputError,
                     "Illegal value for parameter [{}]: must be a string or list of strings.",
-                    param_name));
+                    param_name);
             ret.push_back(a.String());
         }
     } else {
-        throw lgraph::InputError(FMA_FMT(
-            "Illegal value for parameter [{}]: must be a string or list of strings.", param_name));
+        THROW_CODE(InputError,
+            "Illegal value for parameter [{}]: must be a string or list of strings.", param_name);
     }
     return ret;
 }
 
 static std::string ParseStringArg(const parser::Expression &arg, const std::string &param_name) {
     if (_F_UNLIKELY(arg.type != parser::Expression::STRING))
-        throw lgraph::InputError(
-            FMA_FMT("Illegal value for parameter [{}]: must be a string.", param_name));
+        THROW_CODE(InputError,
+            "Illegal value for parameter [{}]: must be a string.", param_name);
     return arg.String();
 }
 
@@ -433,7 +433,7 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     if (args.size() < 2)
-        throw lgraph::InputError("Not enough arguments. This function takes 2 or more arguments.");
+        THROW_CODE(InputError, "Not enough arguments. This function takes 2 or more arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
     std::string primary_fd;
@@ -445,10 +445,11 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
         auto ec = nlohmann::json::parse(str);
         for (auto &item : ec) {
             if (item.size() != 2) {
-                lgraph::InputError("The size of each constraint tuple should be 2");
+                THROW_CODE(InputError, "The size of each constraint tuple should be 2");
             }
             if (!item[0].is_string() || !item[1].is_string()) {
-                lgraph::InputError("The element of each constraint tuple should be string type");
+                THROW_CODE(InputError,
+                           "The element of each constraint tuple should be string type");
             }
             edge_constraints.push_back(std::make_pair(item[0], item[1]));
         }
@@ -476,7 +477,7 @@ void BuiltinProcedure::DbGetLabelSchema(RTContext *ctx, const Record *record, co
                                         const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (args.size() != 2)
-        throw lgraph::InputError(
+        THROW_CODE(InputError,
             "Wrong number of arguments. This function takes exactly 2 arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
@@ -544,7 +545,7 @@ void BuiltinProcedure::DbAlterLabelDelFields(RTContext *ctx, const Record *recor
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     if (args.size() != 3)
-        throw lgraph::InputError(
+        THROW_CODE(InputError,
             "Wrong number of arguments. This function takes exactly 3 arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
@@ -570,7 +571,7 @@ void BuiltinProcedure::DbAlterLabelAddFields(RTContext *ctx, const Record *recor
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     if (args.size() < 3)
-        throw lgraph::InputError("Too few arguments. This function takes 3 or more arguments.");
+        THROW_CODE(InputError, "Too few arguments. This function takes 3 or more arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
     // get field_spec_value
@@ -588,7 +589,7 @@ void BuiltinProcedure::DbAlterLabelAddFields(RTContext *ctx, const Record *recor
         const std::string &name = list[0].String();
         lgraph::FieldType ft;
         if (!lgraph::field_data_helper::TryGetFieldType(list[1].String(), ft))
-            throw lgraph::InputError(FMA_FMT("Illegal field type:{}", list[1]));
+            THROW_CODE(InputError, "Illegal field type:{}", list[1]);
         lgraph::FieldData default_value = parser::MakeFieldData(list[2]);
         fields.emplace_back(name, ft, list[3].Bool());
         values.emplace_back(std::move(default_value));
@@ -614,7 +615,7 @@ void BuiltinProcedure::DbAlterLabelModFields(RTContext *ctx, const Record *recor
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     if (args.size() < 3)
-        throw lgraph::InputError(
+        THROW_CODE(InputError,
             "Wrong number of arguments. This function takes 3 or more arguments.");
     bool is_vertex = ParseIsVertex(args[0]);
     std::string label = ParseStringArg(args[1], "label_name");
@@ -694,7 +695,7 @@ void BuiltinProcedure::DbAddEdgeIndex(RTContext *ctx, const Record *record, cons
     auto unique = args[2].Bool();
     auto pair_unique = args[3].Bool();
     if (unique && pair_unique) {
-        throw lgraph::InputError(
+        THROW_CODE(InputError,
             "pair_unique and unique configuration cannot occur simultaneously)");
     }
     lgraph::IndexType type;
@@ -767,14 +768,14 @@ void BuiltinProcedure::DbRebuildFullTextIndex(RTContext *ctx, const Record *reco
     std::set<std::string> v_labels, e_labels;
     auto vs = nlohmann::json::parse(args[0].String());
     if (!vs.is_array()) {
-        throw lgraph::InputError("vertex_labels should be a json array string");
+        THROW_CODE(InputError, "vertex_labels should be a json array string");
     }
     for (auto &item : vs) {
         v_labels.emplace(item);
     }
     auto es = nlohmann::json::parse(args[1].String());
     if (!es.is_array()) {
-        throw lgraph::InputError("edge_labels should be a json array string");
+        THROW_CODE(InputError, "edge_labels should be a json array string");
     }
     for (auto &item : es) {
         e_labels.emplace(item);
@@ -1095,15 +1096,15 @@ void BuiltinProcedure::DbmsGraphModGraph(RTContext *ctx, const cypher::Record *r
         if (kv.first == "max_size_GB") {
             act.mod_size = true;
             if (kv.second.type != parser::Expression::INT)
-                throw lgraph::InputError("Invalid value for max_size_GB: must be integer");
+                THROW_CODE(InputError, "Invalid value for max_size_GB: must be integer");
             act.max_size = kv.second.Int() << 30;
         } else if (kv.first == "description") {
             act.mod_desc = true;
             if (kv.second.type != parser::Expression::STRING)
-                throw lgraph::InputError("Invalid value for description: must be string");
+                THROW_CODE(InputError, "Invalid value for description: must be string");
             act.desc = kv.second.String();
         } else {
-            throw lgraph::InputError("Invalid config key: " + kv.first);
+            THROW_CODE(InputError, "Invalid config key: " + kv.first);
         }
     }
     bool success = ctx->galaxy_->ModGraph(ctx->user_, args[0].String(), act);
@@ -1156,7 +1157,7 @@ void BuiltinProcedure::DbmsGraphListUserGraphs(RTContext *ctx, const cypher::Rec
                                                args.size()))
     std::string user_name = args[0].String();
     if ((ctx->user_ != user_name) && !ctx->galaxy_->IsAdmin(ctx->user_))
-        throw lgraph::AuthError("Admin access right required.");
+        THROW_CODE(Unauthorized, "Admin access right required.");
     const std::map<std::string, lgraph::DBConfig> &graphs = ctx->galaxy_->ListGraphsInternal();
     std::map<std::string, lgraph::DBConfig> userGraphs;
     for (auto graph : graphs) {
@@ -1261,11 +1262,12 @@ void BuiltinProcedure::DbmsListBackupLogFiles(RTContext *ctx, const cypher::Reco
                                               const cypher::VEC_EXPR &args,
                                               const cypher::VEC_STR &yield_items,
                                               std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.listBackupFiles()",
                                            args.size()))
-    if (!ctx->sm_) throw lgraph::InputError("Cannot be called in embedded mode.");
+    if (!ctx->sm_) THROW_CODE(InputError, "Cannot be called in embedded mode.");
     for (auto &f : ctx->sm_->ListBackupLogFiles()) {
         Record r;
         r.AddConstant(lgraph::FieldData(f));
@@ -1277,11 +1279,12 @@ void BuiltinProcedure::DbmsTakeSnapshot(RTContext *ctx, const cypher::Record *re
                                         const cypher::VEC_EXPR &args,
                                         const cypher::VEC_STR &yield_items,
                                         std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.takeSnapshot()",
                                            args.size()))
-    if (!ctx->sm_) throw lgraph::InputError("Cannot be called in embedded mode.");
+    if (!ctx->sm_) THROW_CODE(InputError, "Cannot be called in embedded mode.");
     std::string path = ctx->sm_->TakeSnapshot();
     Record r;
     r.AddConstant(lgraph::FieldData(path));
@@ -1292,7 +1295,8 @@ void BuiltinProcedure::DbmsSecurityListRoles(RTContext *ctx, const cypher::Recor
                                              const cypher::VEC_EXPR &args,
                                              const cypher::VEC_STR &yield_items,
                                              std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.security.listRoles()",
                                            args.size()))
@@ -1317,7 +1321,8 @@ void BuiltinProcedure::DbmsSecurityListRoles(RTContext *ctx, const cypher::Recor
 void BuiltinProcedure::DbmsSecurityCreateRole(RTContext *ctx, const Record *record,
                                               const VEC_EXPR &args, const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.createRole(role, desc)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string");
@@ -1332,7 +1337,8 @@ void BuiltinProcedure::DbmsSecurityCreateRole(RTContext *ctx, const Record *reco
 void BuiltinProcedure::DbmsSecurityDeleteRole(RTContext *ctx, const Record *record,
                                               const VEC_EXPR &args, const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.deleteRole(role)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1345,7 +1351,8 @@ void BuiltinProcedure::DbmsSecurityDeleteRole(RTContext *ctx, const Record *reco
 void BuiltinProcedure::DbmsSecurityGetUserInfo(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getUserInfo(user)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1359,7 +1366,8 @@ void BuiltinProcedure::DbmsSecurityGetUserPermissions(RTContext *ctx, const Reco
                                                       const VEC_EXPR &args,
                                                       const VEC_STR &yield_items,
                                                       std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1,
                      "need one parameters, e.g. dbms.security.getUserPermissions(user_name)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user_name type should be string");
@@ -1374,7 +1382,8 @@ void BuiltinProcedure::DbmsSecurityGetUserMemoryUsage(RTContext *ctx, const Reco
                                                       const VEC_EXPR &args,
                                                       const VEC_STR &yield_items,
                                                       std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getUserInfo(user)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string");
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1387,7 +1396,8 @@ void BuiltinProcedure::DbmsSecurityGetUserMemoryUsage(RTContext *ctx, const Reco
 void BuiltinProcedure::DbmsSecurityGetRoleInfo(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.security.getRoleInfo(role)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string");
     auto rinfo = ctx->galaxy_->GetRoleInfo(ctx->user_, args[0].String());
@@ -1400,7 +1410,8 @@ void BuiltinProcedure::DbmsSecurityGetRoleInfo(RTContext *ctx, const Record *rec
 void BuiltinProcedure::DbmsSecurityDisableRole(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.disableRole(role, disable)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string")
@@ -1415,7 +1426,8 @@ void BuiltinProcedure::DbmsSecurityDisableRole(RTContext *ctx, const Record *rec
 void BuiltinProcedure::DbmsSecurityModRoleDesc(RTContext *ctx, const Record *record,
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.modRoleDesc(role, description)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "role type should be string")
@@ -1432,7 +1444,8 @@ void BuiltinProcedure::DbmsSecurityRebuildRoleAccessLevel(RTContext *ctx, const 
                                                           const VEC_EXPR &args,
                                                           const VEC_STR &yield_items,
                                                           std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(
         args.size() == 2,
         "need two parameters, e.g. dbms.security.modAllRoleAccessLevel(role, access_level)")
@@ -1453,7 +1466,8 @@ void BuiltinProcedure::DbmsSecurityModRoleAccessLevel(RTContext *ctx, const Reco
                                                       const VEC_EXPR &args,
                                                       const VEC_STR &yield_items,
                                                       std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(
         args.size() == 2,
         "need two parameters, e.g. dbms.security.modRoleAccessLevel(role, access_level)")
@@ -1474,7 +1488,8 @@ void BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const
                                                            const VEC_EXPR &args,
                                                            const VEC_STR &yield_items,
                                                            std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 6,
                      "need five parameters, "
                      "e.g. dbms.security.modRoleFieldAccessLevel"
@@ -1539,7 +1554,7 @@ void BuiltinProcedure::DbmsSecuritySetCurrentDesc(RTContext *ctx, const Record *
 
     std::string modified_user = args[0].String();
     if (modified_user != ctx->user_ && !ctx->galaxy_->IsAdmin(ctx->user_))
-        throw lgraph::AuthError("Non-admin user cannot modify other users.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     if (ctx->txn_) ctx->txn_->Abort();
     bool success = ctx->galaxy_->SetUserDescription(ctx->user_, ctx->user_, args[0].String());
     if (!success) {
@@ -1558,7 +1573,7 @@ void BuiltinProcedure::DbmsSecuritySetUserDesc(RTContext *ctx, const Record *rec
 
     std::string modified_user = args[0].String();
     if (modified_user != ctx->user_ && !ctx->galaxy_->IsAdmin(ctx->user_))
-        throw lgraph::AuthError("Non-admin user cannot modify other users.");
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify other users.");
     if (ctx->txn_) ctx->txn_->Abort();
     bool success = ctx->galaxy_->SetUserDescription(ctx->user_, args[0].String(), args[1].String());
     if (!success) {
@@ -1569,7 +1584,8 @@ void BuiltinProcedure::DbmsSecuritySetUserDesc(RTContext *ctx, const Record *rec
 void BuiltinProcedure::DbmsSecurityDeleteUserRoles(RTContext *ctx, const Record *record,
                                                    const VEC_EXPR &args, const VEC_STR &yield_items,
                                                    std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.deleteUserRoles(user, roles)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string")
@@ -1577,7 +1593,7 @@ void BuiltinProcedure::DbmsSecurityDeleteUserRoles(RTContext *ctx, const Record 
     std::vector<std::string> roles;
     for (auto &a : args[1].List()) {
         if (_F_UNLIKELY(a.type != parser::Expression::STRING))
-            throw lgraph::InputError("Illegal value for roles: must be a string list .");
+            THROW_CODE(InputError, "Illegal value for roles: must be a string list .");
         roles.push_back(a.String());
     }
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1591,7 +1607,8 @@ void BuiltinProcedure::DbmsSecurityRebuildUserRoles(RTContext *ctx, const Record
                                                     const VEC_EXPR &args,
                                                     const VEC_STR &yield_items,
                                                     std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.rebuildUserRoles(user, roles)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string")
@@ -1599,7 +1616,7 @@ void BuiltinProcedure::DbmsSecurityRebuildUserRoles(RTContext *ctx, const Record
     std::vector<std::string> roles;
     for (auto &a : args[1].List()) {
         if (_F_UNLIKELY(a.type != parser::Expression::STRING))
-            throw lgraph::InputError("Illegal value for roles: must be a string list .");
+            THROW_CODE(InputError, "Illegal value for roles: must be a string list .");
         roles.push_back(a.String());
     }
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1612,7 +1629,8 @@ void BuiltinProcedure::DbmsSecurityRebuildUserRoles(RTContext *ctx, const Record
 void BuiltinProcedure::DbmsSecurityAddUserRoles(RTContext *ctx, const Record *record,
                                                 const VEC_EXPR &args, const VEC_STR &yield_items,
                                                 std::vector<Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.addUserRoles(user, roles)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "user type should be string")
@@ -1620,7 +1638,7 @@ void BuiltinProcedure::DbmsSecurityAddUserRoles(RTContext *ctx, const Record *re
     std::vector<std::string> roles;
     for (auto &a : args[1].List()) {
         if (_F_UNLIKELY(a.type != parser::Expression::STRING))
-            throw lgraph::InputError("Illegal value for roles: must be a string list .");
+            THROW_CODE(InputError, "Illegal value for roles: must be a string list .");
         roles.push_back(a.String());
     }
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1641,8 +1659,6 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
                      "plugin_type type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
                      "plugin_name type should be string")
-    CYPHER_ARG_CHECK(args[2].type == parser::Expression::STRING,
-                     "plugin_content type should be string")
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::STRING, "code_type type should be string")
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::STRING,
                      "plugin_description type should be string")
@@ -1657,11 +1673,32 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
     auto code_type_it = ValidPluginCodeType.find(args[3].String());
     CYPHER_ARG_CHECK(code_type_it != ValidPluginCodeType.end(),
                      "unknown plugin_type, one of ('PY', 'SO', 'CPP', 'ZIP')");
+    bool success = false;
     fma_common::encrypt::Base64 base64;
-    std::string content = base64.Decode(args[2].String());
-    bool success =
-        db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), content,
-                      code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
+    if (args[2].type == parser::Expression::STRING) {
+        std::string content = base64.Decode(args[2].String());
+        success =
+            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(),
+                          std::vector<std::string>{content}, std::vector<std::string>{},
+                          code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
+    } else if (args[2].type == parser::Expression::MAP) {
+        std::vector<std::string> filenames;
+        std::vector<std::string> codes;
+        for (auto &kv : args[2].Map()) {
+            if (kv.first[0] == '`' && kv.first.back() == '`') {
+                filenames.push_back(kv.first.substr(1, kv.first.size() - 2));
+            } else {
+                filenames.push_back(kv.first);
+            }
+            codes.push_back(base64.Decode(kv.second.String()));
+        }
+        success =
+            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].String(), codes, filenames,
+                          code_type_it->second, args[4].String(), args[5].Bool(), args[6].String());
+    } else {
+        throw lgraph::ReminderException("plugin_content should be string or map");
+    }
+
     if (!success) {
         throw lgraph::PluginExistException(args[1].String());
     }
@@ -1854,7 +1891,7 @@ void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *reco
                      "e.g. db.importor.fullImportor({})")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::MAP, "conf type should be map")
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
-        throw lgraph::AuthError("Admin access right required.");
+        THROW_CODE(Unauthorized, "Admin access right required.");
 
     // parse parameter
     lgraph::import_v3::Importer::Config import_config_v3;
@@ -1869,7 +1906,7 @@ void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *reco
     };
 
     if (!full_import_conf.count("config_file"))
-        throw lgraph::InputError("Option config_file does not exist.");
+        THROW_CODE(InputError, "Option config_file does not exist.");
     if (!check("graph_name", lgraph::FieldType::STRING))
         full_import_conf["graph_name"] = lgraph::FieldData(lgraph::_detail::DEFAULT_GRAPH_DB_NAME);
     if (!check("delete_if_exists", lgraph::FieldType::BOOL))
@@ -1986,7 +2023,7 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
         remote = args[2].Bool();
     }
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
-        throw lgraph::AuthError("Admin access right required.");
+        THROW_CODE(Unauthorized, "Admin access right required.");
     std::string graph_name = args[0].String(), path = args[1].String();
     if (remote) {
         std::string outputFilename = ctx->galaxy_->GetConfig().dir +
@@ -2067,7 +2104,8 @@ void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, c
 void BuiltinProcedure::DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.flushDB()",
                                            args.size()))
@@ -2078,7 +2116,8 @@ void BuiltinProcedure::DbDropDB(RTContext *ctx, const Record *record, const VEC_
                                 const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.dropDB()",
                                            args.size()))
@@ -2105,7 +2144,8 @@ void BuiltinProcedure::DbTaskListTasks(RTContext *ctx, const Record *record, con
 void BuiltinProcedure::DbTaskTerminateTask(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
                                            std::vector<cypher::Record> *records) {
-    if (!ctx->galaxy_->IsAdmin(ctx->user_)) throw lgraph::AuthError("Admin access right required.");
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. dbms.task.terminateTask(task_id)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "task_id type should be string")
     lgraph::TaskTracker::TaskId task_id = lgraph::TaskTracker::TaskId();
@@ -2167,7 +2207,7 @@ void BuiltinProcedure::DbmsHaClusterInfo(RTContext *ctx, const Record *record, c
                                            args.size()))
     if (ctx->txn_) ctx->txn_->Abort();
     if (!ctx->sm_->IsInHaMode())
-        throw lgraph::InputError("The service should be started as a high availability cluster .");
+        THROW_CODE(InputError, "The service should be started as a high availability cluster .");
     auto peers = ctx->sm_->ListPeers();
     Record r;
     r.AddConstant(lgraph::FieldData(lgraph::ValueToJson(peers).serialize()));

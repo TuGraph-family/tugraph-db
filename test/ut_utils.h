@@ -27,6 +27,22 @@ extern bool _ut_run_benchmarks;  // whether to run benchmarks
 
 #define UT_EXPECT_THROW(statement, exception) EXPECT_THROW(statement, exception)
 
+#define UT_EXPECT_THROW_CODE(statement, error_code)                     \
+    {                                                                   \
+        try {                                                           \
+            statement;                                                  \
+            FAIL() << "Expecting exception, but nothing is thrown.";    \
+        } catch (lgraph_api::LgraphException &e) {                      \
+            if (e.code() != lgraph_api::ErrorCode::error_code) {        \
+                FAIL() << "Unexpected exception message: " << e.what(); \
+            } else {                                                    \
+                SUCCEED() << "Expected exception: " << e.what();        \
+            }                                                           \
+        } catch (std::exception &e) {                                   \
+            FAIL() << "Unexpected exception message: " << e.what();     \
+        }                                                               \
+    }
+
 #define UT_EXPECT_THROW_MSG(statement, msg)                         \
     {                                                               \
         try {                                                       \

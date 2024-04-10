@@ -25,6 +25,7 @@
 #include "import/file_cutter.h"
 #include "import/parse_delimiter.h"
 #include "fma-common/encrypt.h"
+#include "core/defs.h"
 
 namespace lgraph {
 
@@ -87,7 +88,7 @@ LGraphResponse RpcClient::RpcSingleClient::HandleRequest(LGraphRequest* req) {
     return resp;
 }
 
-bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::ProtoGraphQueryType type,
+bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::GraphQueryType type,
                                                      LGraphResponse* res, const std::string& query,
                                                      const std::string& graph, bool json_format,
                                                      double timeout) {
@@ -98,7 +99,8 @@ bool RpcClient::RpcSingleClient::HandleGraphQueryRequest(lgraph::ProtoGraphQuery
     req.set_client_version(server_version);
     req.set_token(token);
     lgraph::GraphQueryRequest* cypher_req = req.mutable_graph_query_request();
-    cypher_req->set_type(type);
+    cypher_req->set_type(type == lgraph::GraphQueryType::CYPHER ?
+        lgraph::ProtoGraphQueryType::CYPHER : lgraph::ProtoGraphQueryType::GQL);
     cypher_req->set_graph(graph);
     cypher_req->set_query(query);
     cypher_req->set_timeout(timeout);
@@ -122,7 +124,7 @@ bool RpcClient::RpcSingleClient::CallCypher(std::string& result, const std::stri
                                             const std::string& graph, bool json_format,
                                             double timeout) {
     LGraphResponse res;
-    if (!HandleGraphQueryRequest(lgraph::ProtoGraphQueryType::CYPHER,
+    if (!HandleGraphQueryRequest(lgraph::GraphQueryType::CYPHER,
                                  &res, cypher, graph, json_format, timeout)) {
         result = res.error();
         return false;
@@ -136,7 +138,7 @@ bool RpcClient::RpcSingleClient::CallGql(std::string& result, const std::string&
                                          const std::string& graph, bool json_format,
                                          double timeout) {
     LGraphResponse res;
-    if (!HandleGraphQueryRequest(lgraph::ProtoGraphQueryType::GQL,
+    if (!HandleGraphQueryRequest(lgraph::GraphQueryType::GQL,
                                  &res, gql, graph, json_format, timeout)) {
         result = res.error();
         return false;
@@ -281,18 +283,24 @@ std::string RpcClient::RpcSingleClient::GraphQueryResponseExtractor(const GraphQ
     return "";
 }
 
-bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result, const std::string& source_file,
-                                               const std::string& procedure_type,
-                                               const std::string& procedure_name,
-                                               const std::string& code_type,
-                                               const std::string& procedure_description,
-                                               bool read_only, const std::string& version,
-                                               const std::string& graph) {
+bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result,
+                   const std::vector<std::string>& source_files,
+                   const std::string& procedure_type, const std::string& procedure_name,
+                   const std::string& code_type, const std::string& procedure_description,
+                   bool read_only, const std::string& version, const std::string& graph) {
+    if (source_files.size() > 1 && code_type != "CPP") {
+        result = "Only cpp files support uploading multiple files";
+        return false;
+    }
     try {
-        std::string content;
-        if (!FieldSpecSerializer::FileReader(source_file, content)) {
-            std::swap(content, result);
-            return false;
+        std::vector<std::string> content;
+        content.reserve(source_files.size());
+        for (auto &file_path : source_files) {
+            content.emplace_back("");
+            if (!FieldSpecSerializer::FileReader(file_path, content.back())) {
+                std::swap(content.back(), result);
+                return false;
+            }
         }
         LGraphRequest req;
         req.set_is_write_op(true);
@@ -316,7 +324,12 @@ bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result, const std::s
         loadPluginRequest->set_name(procedure_name);
         loadPluginRequest->set_desc(procedure_description);
         loadPluginRequest->set_read_only(read_only);
-        loadPluginRequest->set_code(content);
+        for (auto& file_name : source_files) {
+            loadPluginRequest->add_file_name(fma_common::Split(file_name, "/").back());
+        }
+        for (auto& code : content) {
+            loadPluginRequest->add_code(code);
+        }
         HandleRequest(&req);
     } catch (std::exception& e) {
         result = e.what();
@@ -592,7 +605,7 @@ bool RpcClient::CallCypher(std::string &result, const std::string &cypher,
     auto fun = [&]{
         if (!url.empty())
             return GetClientByNode(url)->CallCypher(result, cypher, graph, json_format, timeout);
-        return GetClient(lgraph::ProtoGraphQueryType::CYPHER, cypher, graph)->
+        return GetClient(lgraph::GraphQueryType::CYPHER, cypher, graph)->
             CallCypher(result, cypher, graph, json_format, timeout);
     };
     return DoubleCheckQuery(fun);
@@ -618,7 +631,7 @@ bool RpcClient::CallGql(std::string &result, const std::string &gql,
     auto fun = [&]{
         if (!url.empty())
             return GetClientByNode(url)->CallGql(result, gql, graph, json_format, timeout);
-        return GetClient(lgraph::ProtoGraphQueryType::GQL, gql, graph)->
+        return GetClient(lgraph::GraphQueryType::GQL, gql, graph)->
             CallGql(result, gql, graph, json_format, timeout);
     };
     return DoubleCheckQuery(fun);
@@ -683,14 +696,24 @@ bool RpcClient::LoadProcedure(std::string &result, const std::string &source_fil
                               bool read_only,
                               const std::string& version,
                               const std::string &graph) {
+    return RpcClient::LoadProcedure(result, std::vector<std::string>{source_file},
+                                                     procedure_type, procedure_name, code_type,
+                                                     procedure_description, read_only, version,
+                                                     graph);
+}
+
+bool RpcClient::LoadProcedure(std::string& result, const std::vector<std::string>& source_files,
+                   const std::string& procedure_type, const std::string& procedure_name,
+                   const std::string& code_type, const std::string& procedure_description,
+                   bool read_only, const std::string& version, const std::string& graph) {
     if (client_type == SINGLE_CONNECTION) {
-        return base_client->LoadProcedure(result, source_file, procedure_type, procedure_name,
+        return base_client->LoadProcedure(result, source_files, procedure_type, procedure_name,
                                           code_type, procedure_description, read_only,
                                           version, graph);
     }
     auto fun = [&]{
         bool succeed = GetClient(false)->
-                       LoadProcedure(result, source_file, procedure_type, procedure_name,
+                       LoadProcedure(result, source_files, procedure_type, procedure_name,
                                      code_type, procedure_description, read_only, version, graph);
         if (succeed) {
             RefreshUserDefinedProcedure();
@@ -844,7 +867,7 @@ void RpcClient::RefreshClientPool() {
     }
 }
 
-bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
+bool RpcClient::IsReadQuery(lgraph::GraphQueryType type,
                              const std::string &query, const std::string &graph) {
     bool isReadQuery = true;
     if (boost::to_upper_copy(query).find("CALL ") != std::string::npos) {
@@ -865,7 +888,7 @@ bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
     }
     std::string tmp = query;
     std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
-    if (type == lgraph::ProtoGraphQueryType::CYPHER) {
+    if (type == lgraph::GraphQueryType::CYPHER) {
         for (const auto &c : cypher_write_constant) {
             if (tmp.find(c) != std::string::npos) {
                 return false;
@@ -882,7 +905,7 @@ bool RpcClient::IsReadQuery(lgraph::ProtoGraphQueryType type,
 }
 
 std::shared_ptr<lgraph::RpcClient::RpcSingleClient>
-    RpcClient::GetClient(lgraph::ProtoGraphQueryType type, const std::string &cypher,
+    RpcClient::GetClient(lgraph::GraphQueryType type, const std::string &cypher,
                          const std::string &graph) {
     return GetClient(IsReadQuery(type, cypher, graph));
 }

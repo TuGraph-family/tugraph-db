@@ -218,10 +218,10 @@ std::map<std::string, lgraph::DBConfig> lgraph::GraphManager::ListGraphs() const
 
 lgraph::ScopedRef<lgraph::LightningGraph> lgraph::GraphManager::GetGraphRef(
     const std::string& graph) const {
-    if (graph.empty()) throw InputError("Graph name cannot be empty.");
+    if (graph.empty()) THROW_CODE(InputError, "Graph name cannot be empty.");
     auto it = graphs_.find(graph);
     if (it == graphs_.end())
-        throw InputError(fma_common::StringFormatter::Format("No such graph: {}", graph));
+        THROW_CODE(InputError, "No such graph: {}", graph);
     return it->second.GetScopedRef();
 }
 

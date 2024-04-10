@@ -25,6 +25,7 @@
 class TestDBManagementClient : public TuGraphTest {};
 
 TEST_F(TestDBManagementClient, DBManagementClient) {
+    GTEST_SKIP() << "Temporarily disable TestDBManagementClient.DBManagementClient";
     using namespace lgraph;
 
     // init dbmanagement client

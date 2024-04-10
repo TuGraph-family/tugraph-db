@@ -310,7 +310,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
             args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(node->isDistinct()))));
             args.emplace_back(std::any_cast<Entry>(node->expr()->accept(*this)));
             agg_ctxs_[agg_pos_]->Step(args);
-            return Entry();
+            return Entry(cypher::FieldData());
         }
     }
     NOT_SUPPORT_AND_THROW();

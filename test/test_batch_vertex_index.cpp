@@ -102,7 +102,7 @@ TEST_F(TestBatchVertexIndex, BatchVertexIndex) {
     lgraph::Galaxy::Config conf;
     conf.dir = db_path;
     lgraph::Galaxy galaxy(conf, true, nullptr);
-    if (galaxy.GetUserToken(user, password).empty()) throw AuthError("Bad user/password.");
+    if (galaxy.GetUserToken(user, password).empty()) THROW_CODE(Unauthorized, "Bad user/password.");
     lgraph::AccessControlledDB ac_db = galaxy.OpenGraph(user, graph);
     LightningGraph* db = ac_db.GetLightningGraph();
 
