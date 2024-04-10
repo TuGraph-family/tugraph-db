@@ -106,7 +106,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
         vid_map_.reserve(this->num_vertices_);
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
-        if (flags_ & SNAPSHOT_PARALLEL) {
+        if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
             // parallel generation
             worker->Delegate([&]() {
                 int num_threads = 0;
@@ -119,20 +119,16 @@ class OlapOnDB : public OlapBase<EdgeData> {
 
                 std::vector<size_t> partition_offset(num_threads + 1, 0);
                 std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
-                std::vector<VertexIterator> vits;
-                std::vector<OutEdgeIterator> out_eits;
-                for (int i = 0; i < num_threads; i++) {
-                    vits.template emplace_back(txn_.GetVertexIterator());
-                    out_eits.template emplace_back(vits[i].GetOutEdgeIterator());
-                }
 #pragma omp parallel
                 {
                     ParallelVector<size_t> local_original_vids(this->num_vertices_);
                     ParallelVector<size_t> local_out_index(this->num_vertices_ + 1);
                     ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
 
+                    auto txn = db_->ForkTxn(txn_);
                     int thread_id = omp_get_thread_num();
-                    auto &vit = vits[thread_id];
+                    int num_threads = omp_get_num_threads();
+                    auto vit = txn.GetVertexIterator();
                     for (size_t start = 64 * thread_id; start < this->num_vertices_;
                          start += 64 * num_threads) {
                         if (ShouldKillThisTask(task_ctx)) break;
@@ -154,8 +150,8 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
 
                     if (thread_id == 0) {
-                        for (int tid = 0; tid < num_threads; tid++) {
-                            partition_offset[tid + 1] += partition_offset[tid];
+                        for (int thread_id = 0; thread_id < num_threads; thread_id++) {
+                            partition_offset[thread_id + 1] += partition_offset[thread_id];
                         }
                         this->num_vertices_ = partition_offset[num_threads];
                         original_vids_.Resize(this->num_vertices_);
@@ -183,13 +179,11 @@ class OlapOnDB : public OlapBase<EdgeData> {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
                         size_t original_vid = original_vids_[vi];
                         vit.Goto(original_vid);
-                        auto &out_eit = out_eits[thread_id];
-                        out_eit.Goto(EdgeUid{(int64_t)vi, 0, 0, 0, 0}, true);
-                        for ( ; out_eit.IsValid(); out_eit.Next()) {
-                            size_t dst = out_eit.GetDst();
+                        for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+                            size_t dst = eit.GetDst();
                             EdgeData edata;
                             if (vid_map_.contains(dst) &&
-                                (!out_edge_filter_ || out_edge_filter_(out_eit, edata))) {
+                                (!out_edge_filter_ || out_edge_filter_(eit, edata))) {
                                 AdjUnit<EdgeData> out_edge;
                                 out_edge.neighbour = dst;
                                 if (!std::is_same<EdgeData, Empty>::value) {
@@ -208,9 +202,9 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     if (ShouldKillThisTask(task_ctx)) goto SNAPSHOT_PHASE1_ABORT;
 
                     if (thread_id == 0) {
-                        for (int tid = 0; tid < num_threads; tid++) {
-                            out_edges_partition_offset[tid + 1] +=
-                                out_edges_partition_offset[tid];
+                        for (int thread_id = 0; thread_id < num_threads; thread_id++) {
+                            out_edges_partition_offset[thread_id + 1] +=
+                                out_edges_partition_offset[thread_id];
                         }
                         this->num_edges_ = out_edges_partition_offset[num_threads];
                         this->out_edges_.Resize(this->num_edges_);
@@ -483,8 +477,9 @@ class OlapOnDB : public OlapBase<EdgeData> {
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
 
+
         // Read from TuGraph
-        if (flags_ & SNAPSHOT_PARALLEL) {
+        if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
             this->out_index_.Resize(this->num_vertices_ + 1, (size_t)0);
             worker->Delegate([&]() {
                 int num_threads = 0;
@@ -496,19 +491,15 @@ class OlapOnDB : public OlapBase<EdgeData> {
                 };
 
                 std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
-                std::vector<VertexIterator> vits;
-                std::vector<OutEdgeIterator> out_eits;
-                for (int i = 0; i < num_threads; i++) {
-                    vits.template emplace_back(txn_.GetVertexIterator());
-                    out_eits.template emplace_back(vits[i].GetOutEdgeIterator());
-                }
 #pragma omp parallel
                 {
                     ParallelVector<size_t> local_out_index(this->num_vertices_);
                     ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
 
+                    auto txn = db_->ForkTxn(txn_);
                     int thread_id = omp_get_thread_num();
-                    auto &vit = vits[thread_id];
+                    int num_threads = omp_get_num_threads();
+                    auto vit = txn.GetVertexIterator();
 
                     size_t partition_size = this->num_vertices_ / num_threads;
                     size_t partition_begin = partition_size * thread_id;
@@ -521,9 +512,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
                         vit.Goto(vi);
-                        auto &eit = out_eits[thread_id];
-                        eit.Goto(EdgeUid{(int64_t)vi, 0, 0, 0, 0}, true);
-                        for ( ; eit.IsValid(); eit.Next()) {
+                        for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                             size_t dst = eit.GetDst();
                             EdgeData edata;
                             if (!out_edge_filter_ || out_edge_filter_(eit, edata)) {
@@ -808,7 +797,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
             this->in_degree_.Resize(this->num_vertices_, (size_t)0);
         }
 
-        if (flags_ & SNAPSHOT_PARALLEL) {
+        if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
             worker->Delegate([&]() {
                 int num_threads = 0;
 #pragma omp parallel
@@ -820,18 +809,12 @@ class OlapOnDB : public OlapBase<EdgeData> {
 
                 std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
                 std::vector<size_t> in_edges_partition_offset(num_threads + 1, 0);
-                std::vector<VertexIterator> vits;
-                std::vector<OutEdgeIterator> out_eits;
-                std::vector<InEdgeIterator> in_eits;
-                for (int i = 0; i < num_threads; i++) {
-                    vits.template emplace_back(txn_.GetVertexIterator());
-                    out_eits.template emplace_back(vits[i].GetOutEdgeIterator());
-                    in_eits.template emplace_back(vits[i].GetInEdgeIterator());
-                }
 #pragma omp parallel
                 {
+                    auto txn = db_->ForkTxn(txn_);
                     int thread_id = omp_get_thread_num();
-                    auto &vit = vits[thread_id];
+                    int num_threads = omp_get_num_threads();
+                    auto vit = txn.GetVertexIterator();
 
                     size_t partition_size = this->num_vertices_ / num_threads;
                     size_t partition_begin = partition_size * thread_id;
@@ -902,25 +885,21 @@ class OlapOnDB : public OlapBase<EdgeData> {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
                         if (!vit.Goto(vi)) continue;
                         size_t pos = this->out_index_[vi];
-                        auto &out_eit = out_eits[thread_id];
-                        out_eit.Goto(EdgeUid{(int64_t)vi, 0, 0, 0, 0}, true);
-                        for (; out_eit.IsValid(); out_eit.Next()) {
-                            size_t dst = out_eit.GetDst();
+                        for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+                            size_t dst = eit.GetDst();
                             this->out_edges_[pos].neighbour = dst;
                             pos++;
                         }
-                        auto &in_eit = in_eits[thread_id];
-                        in_eit.Goto(EdgeUid{0, (int64_t)vi, 0, 0, 0}, true);
                         if (flags_ & SNAPSHOT_UNDIRECTED) {
-                            for (; in_eit.IsValid(); in_eit.Next()) {
-                                size_t src = in_eit.GetSrc();
+                            for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+                                size_t src = eit.GetSrc();
                                 this->out_edges_[pos].neighbour = src;
                                 pos++;
                             }
                         } else {
                             pos = this->in_index_[vi];
-                            for (; in_eit.IsValid(); in_eit.Next()) {
-                                size_t src = in_eit.GetSrc();
+                            for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+                                size_t src = eit.GetSrc();
                                 this->in_edges_[pos].neighbour = src;
                                 pos++;
                             }
@@ -988,6 +967,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
           flags_(flags),
           vertex_filter_(vertex_filter),
           out_edge_filter_(out_edge_filter) {
+        if (db_ == nullptr && flags_ & SNAPSHOT_PARALLEL) {
+            LOG_WARN() << "SNAPSHOT_PARALLEL needs to pass in the db parameter";
+            flags_ -= SNAPSHOT_PARALLEL;
+        }
         if (txn.GetNumVertices() == 0) {
             throw std::runtime_error("The graph cannot be empty");
         }
