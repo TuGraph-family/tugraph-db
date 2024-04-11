@@ -204,9 +204,6 @@ SRID ExtractSRID(const std::string& ewkb) {
 }
 
 SpatialType ExtractType(const std::string& ewkb) {
-    // if (EWKB.size() < 50)
-    //    throw InputError("wrong EWKB type");
-
     std::string type = ewkb.substr(2, 8);
     // if the input format is EWKB type, we only need the first 2 bytes;
     if (type[4] != '0' || type[6] != '0')
@@ -427,7 +424,7 @@ double Spatial<SRID_Type>::Distance(Spatial<SRID_Type>& other) {
         }
 
         default:
-            throw InputError("unsupported spatial type!");
+            THROW_CODE(InputError, "unsupported spatial type!");
     }
 }
 
@@ -514,7 +511,7 @@ Point<SRID_Type>::Point(double arg1, double arg2, SRID& srid)
     bg::write_wkb(point_, std::back_inserter(wkb_out));
     std::string hex_out;
     if (!bg::wkb2hex(wkb_out.begin(), wkb_out.end(), hex_out))
-        throw InputError("wrong  point data!");
+        THROW_CODE(InputError, "wrong point data!");
     // set extension
     ewkb_ = SetExtension(hex_out, srid);
     transform(ewkb_.begin(), ewkb_.end(), ewkb_.begin(), ::toupper);
@@ -544,21 +541,21 @@ std::string Point<SRID_Type>::ToString() const {
 template<typename SRID_Type>
 double Point<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(point_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Point<SRID_Type>::Distance(LineString<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(point_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Point<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(point_, other.GetSpatialData());
 }
 
@@ -652,21 +649,21 @@ std::string LineString<SRID_Type>::ToString() const {
 template<typename SRID_Type>
 double LineString<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(line_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double LineString<SRID_Type>::Distance(LineString<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(line_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double LineString<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(line_, other.GetSpatialData());
 }
 
@@ -759,21 +756,21 @@ std::string Polygon<SRID_Type>::AsEWKT() const {
 template<typename SRID_Type>
 double Polygon<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(polygon_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Polygon<SRID_Type>::Distance(LineString<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(polygon_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Polygon<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(polygon_, other.GetSpatialData());
 }
 

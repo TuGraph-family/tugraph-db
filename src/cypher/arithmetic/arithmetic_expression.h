@@ -342,10 +342,7 @@ struct BuiltinFunction {
     */
     static cypher::FieldData PolygonWKT(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
-
-    static cypher::FieldData Mask(RTContext *ctx, const Record &record,
-                                    const std::vector<ArithExprNode> &args);
-
+                                  
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);

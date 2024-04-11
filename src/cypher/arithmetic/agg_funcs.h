@@ -186,7 +186,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         case FieldType::LINESTRING: {
@@ -196,7 +196,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         case FieldType::POLYGON: {
@@ -206,7 +206,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         case FieldType::SPATIAL: {
@@ -216,7 +216,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         default:
