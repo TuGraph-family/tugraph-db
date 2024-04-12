@@ -1771,8 +1771,7 @@ void test_float(lgraph::RpcClient& client) {
     ret = client.CallCypher(str,
                             "CREATE (n:float_label{id:1,float:1.2,double:1.2}) RETURN n");
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(str, R"!([{"n":{"identity":6,"label":"float_label",
-"properties":{"double":1.2,"float":1.2,"id":1}}}])!");
+    UT_EXPECT_EQ(str, R"!([{"n":{"identity":6,"label":"float_label","properties":{"double":1.2,"float":1.2,"id":1}}}])!"); // NOLINT
     ret = client.CallCypher(str, "CALL db.deleteLabel('vertex', 'float_label')");
     UT_EXPECT_TRUE(ret);
 }
