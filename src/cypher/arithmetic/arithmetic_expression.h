@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -292,6 +292,9 @@ struct BuiltinFunction {
     static cypher::FieldData Concat(RTContext *ctx, const Record &record,
                                     const std::vector<ArithExprNode> &args);
 
+    static cypher::FieldData Mask(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -486,6 +489,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
         ae_registered_funcs.emplace("substring", BuiltinFunction::SubString);
         ae_registered_funcs.emplace("concat", BuiltinFunction::Concat);
+        ae_registered_funcs.emplace("mask", BuiltinFunction::Mask);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
         /* native API-like functions */

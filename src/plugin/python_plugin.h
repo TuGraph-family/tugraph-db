@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -300,6 +300,16 @@ class PythonPluginManagerImpl : public PluginManagerImplBase {
                 double timeout,
                 bool in_process,
                 std::string& output) override;
+
+    void DoCallV2(lgraph_api::Transaction* txn,
+                  const std::string& user,
+                  AccessControlledDB* db_with_access_control,
+                  const std::string name,
+                  const PluginInfoBase* pinfo,
+                  const std::string& request,
+                  double timeout,
+                  bool in_process,
+                  Result& output) override;
 
  protected:
     python_plugin::TaskOutput::ErrorCode CallInternal(const std::string& user,

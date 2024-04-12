@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,8 +50,9 @@ class AccessControlledDB {
     Transaction ForkTxn(Transaction& txn);
 
     bool LoadPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name,
-                    const std::string& code, plugin::CodeType code_type, const std::string& desc,
-                    bool is_read_only, const std::string& version);
+                    const std::vector<std::string>& code, const std::vector<std::string>& filename,
+                    plugin::CodeType code_type, const std::string& desc, bool is_read_only,
+                    const std::string& version);
 
     bool DelPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name);
 
@@ -59,6 +60,10 @@ class AccessControlledDB {
                     plugin::Type plugin_type, const std::string& token, const std::string& name,
                     const std::string& request, double timeout_seconds, bool in_process,
                     std::string& output);
+
+    bool CallV2Plugin(lgraph_api::Transaction* txn, plugin::Type plugin_type,
+                      const std::string& user, const std::string& name, const std::string& request,
+                      double timeout_seconds, bool in_process, Result& output);
 
     std::vector<PluginDesc> ListPlugins(plugin::Type plugin_type, const std::string& token);
 

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,6 +137,14 @@ void PythonPluginManagerImpl::DoCall(lgraph_api::Transaction* txn, const std::st
     default:
         THROW_CODE(InternalError, "Unhandled error code [{}].", ec);
     }
+}
+
+void PythonPluginManagerImpl::DoCallV2(lgraph_api::Transaction* txn, const std::string& user,
+                                       AccessControlledDB* db_with_access_control,
+                                       const std::string name, const PluginInfoBase* pinfo,
+                                       const std::string& request, double timeout, bool in_process,
+                                       Result& output) {
+    THROW_CODE(InputError, "Python does not yet support the V2 version procedure");
 }
 
 // Run by the rest handling threads. Pushes the task to Python and wait for its finish.

@@ -1,5 +1,0 @@
-lgraph_txn
-===================================
-
-.. doxygenfile:: lgraph_txn.h
-   :project: cpp_procedure

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ static const utility::string_t AUTH_METHOD = _TU("auth_method");
 static const utility::string_t BEGIN_TIME = _TU("begin_time");
 static const utility::string_t BRANCH = _TU("git_branch");
 static const utility::string_t CODE = _TU("code_base64");
+static const utility::string_t FILENAMES = _TU("file_name");
 static const utility::string_t VERSION = _TU("version");
 static const utility::string_t CODE_TYPE = _TU("code_type");
 static const utility::string_t COMMIT = _TU("git_commit");

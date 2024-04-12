@@ -1,0 +1,22 @@
+match (n) return count(n);
+
+match (n) return count(n), 1;
+
+match (n:Person) return avg(n.birthyear) as avg;
+
+match (n:Person) return max(n.birthyear) as max;
+
+match (n:Person) return min(n.birthyear) as min;
+
+# Delete all nodes and relationships
+match (n) delete n;
+
+match (n) return count(n);
+
+match (n) return count(n), 1;
+
+match (n:Person) return avg(n.birthyear) as avg;
+
+match (n:Person) return max(n.birthyear) as max;
+
+match (n:Person) return min(n.birthyear) as min;

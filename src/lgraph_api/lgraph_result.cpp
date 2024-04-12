@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -299,6 +299,19 @@ Record *Result::MutableRecord() {
     result.emplace_back(Record(header));
     row_count_++;
     return &result[row_count_];
+}
+
+void Result::Reserve(size_t n) {
+    result.reserve(n);
+}
+
+void Result::Resize(size_t n) {
+    result.resize(n, Record(header));
+    row_count_ = (int64_t)(n - 1);
+}
+
+Record* Result::At(size_t n) {
+    return &result.at(n);
 }
 
 void Result::ResetHeader(const std::vector<std::pair<std::string, LGraphType>> &new_header) {

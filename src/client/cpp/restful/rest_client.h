@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -258,6 +258,10 @@ class RestClient {
 
     bool LoadPlugin(const std::string& db, lgraph_api::PluginCodeType type,
                     const PluginDesc& plugin_info, const std::string& code);
+
+    bool LoadPlugin(const std::string& db, lgraph_api::PluginCodeType type,
+                    const PluginDesc& plugin_info, const std::vector<std::string>& codes,
+                    const std::vector<std::string>& filenames);
 
     std::vector<PluginDesc> GetPlugin(const std::string& db, bool is_cpp);
 

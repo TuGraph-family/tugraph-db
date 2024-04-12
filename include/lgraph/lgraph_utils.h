@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -141,5 +141,13 @@ void parse_from_json(std::vector<DataType>& value, const char* key, json& input)
         }
     }
 }
+
+/**
+ * \brief   Parse vid from the node passed in by cypher. For V2 procedure.
+ *
+ * \param[in]   node_string  node
+ * \return      vid
+ */
+size_t GetVidFromNodeString(const std::string& node_string);
 
 }  // namespace lgraph_api

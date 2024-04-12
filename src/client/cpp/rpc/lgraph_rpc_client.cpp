@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -283,18 +283,24 @@ std::string RpcClient::RpcSingleClient::GraphQueryResponseExtractor(const GraphQ
     return "";
 }
 
-bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result, const std::string& source_file,
-                                               const std::string& procedure_type,
-                                               const std::string& procedure_name,
-                                               const std::string& code_type,
-                                               const std::string& procedure_description,
-                                               bool read_only, const std::string& version,
-                                               const std::string& graph) {
+bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result,
+                   const std::vector<std::string>& source_files,
+                   const std::string& procedure_type, const std::string& procedure_name,
+                   const std::string& code_type, const std::string& procedure_description,
+                   bool read_only, const std::string& version, const std::string& graph) {
+    if (source_files.size() > 1 && code_type != "CPP") {
+        result = "Only cpp files support uploading multiple files";
+        return false;
+    }
     try {
-        std::string content;
-        if (!FieldSpecSerializer::FileReader(source_file, content)) {
-            std::swap(content, result);
-            return false;
+        std::vector<std::string> content;
+        content.reserve(source_files.size());
+        for (auto &file_path : source_files) {
+            content.emplace_back("");
+            if (!FieldSpecSerializer::FileReader(file_path, content.back())) {
+                std::swap(content.back(), result);
+                return false;
+            }
         }
         LGraphRequest req;
         req.set_is_write_op(true);
@@ -318,7 +324,12 @@ bool RpcClient::RpcSingleClient::LoadProcedure(std::string& result, const std::s
         loadPluginRequest->set_name(procedure_name);
         loadPluginRequest->set_desc(procedure_description);
         loadPluginRequest->set_read_only(read_only);
-        loadPluginRequest->set_code(content);
+        for (auto& file_name : source_files) {
+            loadPluginRequest->add_file_name(fma_common::Split(file_name, "/").back());
+        }
+        for (auto& code : content) {
+            loadPluginRequest->add_code(code);
+        }
         HandleRequest(&req);
     } catch (std::exception& e) {
         result = e.what();
@@ -685,14 +696,24 @@ bool RpcClient::LoadProcedure(std::string &result, const std::string &source_fil
                               bool read_only,
                               const std::string& version,
                               const std::string &graph) {
+    return RpcClient::LoadProcedure(result, std::vector<std::string>{source_file},
+                                                     procedure_type, procedure_name, code_type,
+                                                     procedure_description, read_only, version,
+                                                     graph);
+}
+
+bool RpcClient::LoadProcedure(std::string& result, const std::vector<std::string>& source_files,
+                   const std::string& procedure_type, const std::string& procedure_name,
+                   const std::string& code_type, const std::string& procedure_description,
+                   bool read_only, const std::string& version, const std::string& graph) {
     if (client_type == SINGLE_CONNECTION) {
-        return base_client->LoadProcedure(result, source_file, procedure_type, procedure_name,
+        return base_client->LoadProcedure(result, source_files, procedure_type, procedure_name,
                                           code_type, procedure_description, read_only,
                                           version, graph);
     }
     auto fun = [&]{
         bool succeed = GetClient(false)->
-                       LoadProcedure(result, source_file, procedure_type, procedure_name,
+                       LoadProcedure(result, source_files, procedure_type, procedure_name,
                                      code_type, procedure_description, read_only, version, graph);
         if (succeed) {
             RefreshUserDefinedProcedure();

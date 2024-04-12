@@ -10,8 +10,14 @@ TuGraph DB
    2.introduction/index.rst
    3.quick-start/index.rst
    4.user-guide/index.rst
-   5.developer-manual/index.rst
-   6.contributor-manual/index.rst
-   7.best-practices/index.rst
-   8.faq.md
-   9.contacts.md
+   5.installation&running/index.rst
+   6.utility-tools/index.rst
+   7.client-tools/index.rst
+   8.query/index.rst
+   9.olap&procedure/index.rst
+   10.permission/index.rst
+   11.quality/index.rst
+   12.contributor-manual/index.rst
+   13.best-practices/index.rst
+   14.faq.md
+   15.contacts.md
