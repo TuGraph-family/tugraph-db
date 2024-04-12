@@ -1,5 +1,29 @@
 # Change Log for TuGraph
 
+# 4.2.0 (2024-04-11)
+
+**Breaking Changes:**
+
+1. Update the 2024 RoadMap.
+2. Document refactor: clearer document directory structure.
+3. HA support for the witness role, and the new HA management tool `lgraph_peer`.
+4. Bolt supports streaming returns and parameterized queries.
+
+**Improvements And Bug Fixes:**
+
+1. Error code optimization.
+2. TuGraph-DB-Browser integration package optimization.
+3. Support for fast online full import in HA mode.
+4. Support for multiple cpp file uploads in stored procedures.
+5. Audit log is now in JSON format.
+6. Document error fixes.
+7. Other bug fixes.
+
+**Interfaces Modification:**
+
+1. Bolt supports streaming and parameterized queries.
+2. Support for multiple cpp files when uploading stored procedures.
+
 # 4.1.0 (2023-12-25)
 
 **Breaking Changes:**
