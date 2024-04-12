@@ -15,6 +15,7 @@
 #pragma once
 #include "tools/json.hpp"
 #include "core/data_type.h"
+#include "fma-common/utils.h"
 
 namespace lgraph_rfc {
 
@@ -49,7 +50,9 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         }
     case lgraph_api::FieldType::FLOAT:
         {
-            return json(data.AsFloat());
+            // https://github.com/nlohmann/json/issues/1109
+            double d = fma_common::DoubleDecimalPlaces(data.AsFloat(), 5);
+            return json(d);
         }
     case lgraph_api::FieldType::DOUBLE:
         {
