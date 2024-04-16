@@ -30,7 +30,7 @@
 
 #include "cypher/parser/generated/LcypherLexer.h"
 #include "cypher/parser/generated/LcypherParser.h"
-#include "cypher/parser/cypher_base_visitor.h"
+#include "cypher/parser/cypher_base_visitor_v2.h"
 #include "cypher/parser/cypher_error_listener.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 #include "fma-common/file_system.h"
@@ -175,24 +175,50 @@ class TestCypherV2 : public TuGraphTest {
             antlr4::CommonTokenStream tokens(&lexer);
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
-            parser::CypherBaseVisitor visitor(ctx_.get(), parser.oC_Cypher());
-            cypher::ExecutionPlan execution_plan;
-            LOG_INFO() << "test_cypher_case ctx_ = " << ctx_.get();
-            execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
-            execution_plan.Validate(ctx_.get());
-            execution_plan.DumpGraph();
-            execution_plan.DumpPlan(0, false);
-            execution_plan.Execute(ctx_.get());
-            result = ctx_->result_->Dump(false);
-            UT_LOG() << "-----result-----";
-            result = ctx_->result_->Dump(false);
-            UT_LOG() << result;
-            return true;
+             geax::common::ObjectArenaAllocator objAlloc_;
+            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+            AstNode* node = visitor.result();
+            // rewrite ast
+            cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
+            node->accept(gen_anonymous_alias_rewriter);
+            // dump
+            AstDumper dumper;
+            auto ret = dumper.handle(node);
+            if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+                UT_LOG() << "dumper.handle(node) gql: " << cypher;
+                UT_LOG() << "dumper.handle(node) ret: " << ToString(ret);
+                UT_LOG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+                result = dumper.error_msg();
+                return false;
+            } else {
+                UT_DBG() << "--- dumper.handle(node) dump ---";
+                UT_DBG() << dumper.dump();
+            }
+            LOG_INFO() << "------------------------- " << __FILE__ << " " << __LINE__;
+            cypher::ExecutionPlanV2 execution_plan_v2;
+            ret = execution_plan_v2.Build(node);
+            if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+                UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
+                result = execution_plan_v2.ErrorMsg();
+                return false;
+            } else {
+                try {
+                    execution_plan_v2.Execute(ctx_.get());
+                } catch (std::exception &e) {
+                    UT_LOG() << e.what();
+                    result = e.what();
+                    return false;
+                }
+                UT_LOG() << "-----result-----";
+                result = ctx_->result_->Dump(false);
+                UT_LOG() << result;
+            }
         } catch (std::exception& e) {
             UT_LOG() << e.what();
             result = e.what();
-            return true;
+            return false;
         }
+        return true;
     }
 
     void test_files(const std::string& dir) {

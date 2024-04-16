@@ -57,6 +57,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/graph/relationship.cpp
         cypher/grouping/group.cpp
         cypher/parser/cypher_base_visitor.cpp
+        cypher/parser/cypher_base_visitor_v2.cpp
         cypher/parser/cypher_error_listener.cpp
         cypher/parser/symbol_table.cpp
         cypher/parser/generated/LcypherLexer.cpp
