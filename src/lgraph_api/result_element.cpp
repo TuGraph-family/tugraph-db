@@ -365,7 +365,7 @@ std::any ResultElement::ToBolt() {
         for (auto &l : *v.list) {
             result.push_back(l);
         }
-        return result.dump(); // Convert to string
+        return result.dump();  // Convert to string
         /*std::vector<std::any> ret;
         for (auto &l : *v.list) {
             if (l.is_null()) {
@@ -389,7 +389,7 @@ std::any ResultElement::ToBolt() {
         for (auto &m : *v.map) {
             result[m.first] = m.second;
         }
-        return result.dump(); // Convert to string
+        return result.dump();  // Convert to string
         /*std::unordered_map<std::string, std::any> ret;
         for (auto &pair : *v.map) {
             if (pair.second.is_null()) {
