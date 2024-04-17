@@ -1191,6 +1191,67 @@ void BuiltinProcedure::DbmsGraphGetGraphInfo(RTContext *ctx, const Record *recor
     records->emplace_back(r.Snapshot());
 }
 
+void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record,
+                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             std::vector<cypher::Record> *records) {
+    if (ctx->txn_) ctx->txn_->Abort();
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("This function takes exactly 0 arguments, but {} "
+                                               "given. Usage: dbms.graph.getGraphSchema()",
+                                               args.size()))
+    auto db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    auto txn = db.CreateReadTxn();
+    nlohmann::json graph_schema;
+    graph_schema["schema"] = nlohmann::json::array();
+    for (auto& name : txn.GetAllLabels(true)) {
+        nlohmann::json node;
+        node["label"] = name;
+        node["type"] = "VERTEX";
+        auto s = txn.GetSchema(name, true);
+        node["primary"] = s->GetPrimaryField();
+        node["detach_property"] = s->DetachProperty();
+        for (auto& fd : s->GetFields()) {
+            nlohmann::json property;
+            property["name"] = fd.Name();
+            property["type"] = lgraph_api::to_string(fd.Type());
+            property["optional"] = fd.IsOptional();
+            auto vi = fd.GetVertexIndex();
+            if (vi) {
+                property["index"] = true;
+                property["unique"] = vi->IsUnique();
+            }
+            node["properties"].push_back(property);
+        }
+        graph_schema["schema"].push_back(node);
+    }
+    for (auto& name : txn.GetAllLabels(false)) {
+        nlohmann::json edge;
+        edge["label"] = name;
+        edge["type"] = "EDGE";
+        auto s = txn.GetSchema(name, false);
+        edge["detach_property"] = s->DetachProperty();
+        edge["constraints"] = nlohmann::json::array();
+        for (auto& pairs : s->GetEdgeConstraints()) {
+            edge["constraints"].push_back(std::vector<std::string>{pairs.first, pairs.second});
+        }
+        for (auto& fd : s->GetFields()) {
+            nlohmann::json property;
+            property["name"] = fd.Name();
+            property["type"] = lgraph_api::to_string(fd.Type());
+            property["optional"] = fd.IsOptional();
+            auto vi = fd.GetEdgeIndex();
+            if (vi) {
+                property["index"] = true;
+                property["unique"] = vi->IsUnique();
+            }
+            edge["properties"].push_back(property);
+        }
+        graph_schema["schema"].push_back(edge);
+    }
+    Record r;
+    r.AddConstant(lgraph::FieldData(graph_schema.dump()));
+    records->emplace_back(r.Snapshot());
+}
+
 void BuiltinProcedure::DbmsSystemInfo(RTContext *ctx, const cypher::Record *record,
                                       const cypher::VEC_EXPR &args,
                                       const cypher::VEC_STR &yield_items,
