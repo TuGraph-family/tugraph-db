@@ -13,6 +13,7 @@
 */
 #include "lgraph/lgraph_types.h"
 #include "bolt/temporal.h"
+#include "fma-common/utils.h"
 
 namespace lgraph_api {
 
@@ -31,7 +32,10 @@ std::any FieldData::ToBolt() const {
     case FieldType::INT64:
         return data.int64;
     case FieldType::FLOAT:
-        return data.sp;
+        {
+            // bolt protocol does not have float type
+            return fma_common::DoubleDecimalPlaces(data.sp, 5);
+        }
     case FieldType::DOUBLE:
         return data.dp;
     case FieldType::STRING:
