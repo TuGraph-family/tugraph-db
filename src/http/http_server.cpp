@@ -245,9 +245,9 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
     const std::string token = CheckTokenOrThrowException(cntl);
 
     auto get_parameter = [](const brpc::Controller* cntl, const std::string& key){
-        const std::string* file_name = cntl->http_request().GetHeader(key);
-        if (file_name)
-            return file_name;
+        const std::string* data = cntl->http_request().GetHeader(key);
+        if (data)
+            return data;
         std::string lower_key = key;
         for (char &c : lower_key) {
             c = std::tolower(static_cast<unsigned char>(c));
@@ -257,6 +257,7 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
     const std::string* file_name = get_parameter(cntl, HTTP_HEADER_FILE_NAME);
     const std::string* begin_str = get_parameter(cntl, HTTP_HEADER_BEGIN_POS);
     const std::string* size_str = get_parameter(cntl, HTTP_HEADER_SIZE);
+
     LOG_INFO() << "------" << file_name << begin_str << size_str;
     if (file_name == nullptr || begin_str == nullptr || size_str == nullptr) {
         THROW_CODE(BadRequest,
