@@ -361,6 +361,8 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     // create txn early, to block other write during preparation
     // must be non-optimistic to ensure consistency of prepare and write
     auto txn = db->CreateWriteTxn(false);
+    LOG_INFO() << __FILE__ << __LINE__;
+    LOG_INFO() << data;
 
     // parse input
     std::vector<std::vector<FieldData>> all_data;
@@ -388,7 +390,9 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     std::string errors = fd.is_vertex_file
                              ? ImportVertexes(db, txn, fd, std::move(all_data), config)
                              : ImportEdges(db, txn, fd, std::move(all_data), config);
+    LOG_INFO() << __FILE__ << __LINE__;
     txn.Commit();
+    LOG_INFO() << errors;
     return errors;
 }
 

@@ -241,11 +241,23 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
 
 // /LGraphHttpService/Query/upload_files
 void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res) {
+    LOG_INFO() << __FILE__ << __LINE__;
     const std::string token = CheckTokenOrThrowException(cntl);
 
-    const std::string* file_name = cntl->http_request().GetHeader(HTTP_HEADER_FILE_NAME);
-    const std::string* begin_str = cntl->http_request().GetHeader(HTTP_HEADER_BEGIN_POS);
-    const std::string* size_str = cntl->http_request().GetHeader(HTTP_HEADER_SIZE);
+    auto get_parameter = [](const brpc::Controller* cntl, const std::string& key){
+        const std::string* file_name = cntl->http_request().GetHeader(key);
+        if (file_name)
+            return file_name;
+        std::string lower_key = key;
+        for (char &c : lower_key) {
+            c = std::tolower(static_cast<unsigned char>(c));
+        }
+        return cntl->http_request().GetHeader(lower_key);
+    };
+    const std::string* file_name = get_parameter(cntl, HTTP_HEADER_FILE_NAME);
+    const std::string* begin_str = get_parameter(cntl, HTTP_HEADER_BEGIN_POS);
+    const std::string* size_str = get_parameter(cntl, HTTP_HEADER_SIZE);
+    LOG_INFO() << "------" << file_name << begin_str << size_str;
     if (file_name == nullptr || begin_str == nullptr || size_str == nullptr) {
         THROW_CODE(BadRequest,
             "request header should has a fileName, "
@@ -262,6 +274,7 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
     }
     int fd = OpenUserFile(token, *file_name);
     butil::IOBuf content = cntl->request_attachment();
+    LOG_INFO() << content.to_string();
     ssize_t writed_bytes = 0;
     while (!content.empty()) {
         ssize_t ret = content.pcut_into_file_descriptor(fd, begin, size);
@@ -1146,9 +1159,15 @@ void HttpService::RespondBadRequest(brpc::Controller* cntl, const std::string& r
 
 std::string HttpService::CheckTokenOrThrowException(const brpc::Controller* cntl) const {
     const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) THROW_CODE(Unauthorized);
-    if (!galaxy_->JudgeRefreshTime(*token))
+    LOG_INFO() << *token;
+    if (token == nullptr) {
+        LOG_INFO() << __LINE__;
+        THROW_CODE(Unauthorized);
+    }
+    if (!galaxy_->JudgeRefreshTime(*token)) {
+        LOG_INFO() << *token;
         THROW_CODE(Unauthorized, "token has already expire");
+    }
     return *token;
 }
 

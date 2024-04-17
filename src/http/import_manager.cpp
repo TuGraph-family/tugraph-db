@@ -88,7 +88,7 @@ void ImportManager::RecordFinish(const std::string& id,
         record.state_ = ERROR;
     }
     record.finish_timestamp_ = fma_common::GetTime();
-    DeleteDataFiles(id, schema);
+    // DeleteDataFiles(id, schema);
 }
 
 int ImportManager::GetImportProgress(const std::string& id,
