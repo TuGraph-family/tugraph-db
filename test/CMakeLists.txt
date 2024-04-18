@@ -115,6 +115,7 @@ add_executable(unit_test
         test_vertex_index.cpp
         test_vid_table.cpp
         test_edge_constraint.cpp
+        test_upsert.cpp
         test_olap_vertex_traversal.cpp
         test_lgraph_log.cpp
         test_detach_property.cpp

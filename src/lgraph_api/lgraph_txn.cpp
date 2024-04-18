@@ -181,6 +181,48 @@ int64_t Transaction::AddVertex(size_t label_id, const std::vector<size_t>& field
     RefreshAndReturn(txn_->AddVertex(label_id, field_ids, field_values));
 }
 
+int Transaction::UpsertVertex(size_t label_id,
+                              size_t primary_pos,
+                              const std::vector<size_t>& unique_pos,
+                              const std::vector<size_t>& field_ids,
+                              const std::vector<FieldData>& field_values) {
+    ThrowIfInvalid();
+    if (primary_pos >= field_ids.size()) {
+        THROW_CODE(InputError, "primary_pos is out of the field_ids's range");
+    }
+    for (auto pos : unique_pos) {
+        if (pos >= field_ids.size()) {
+            THROW_CODE(InputError, "unique_pos is out of the field_ids's range");
+        }
+    }
+    auto iiter = txn_->GetVertexIndexIterator(
+        label_id, field_ids[primary_pos], field_values[primary_pos], field_values[primary_pos]);
+    if (iiter.IsValid()) {
+        auto current_vid = iiter.GetVid();
+        iiter.Close();
+        for (auto pos : unique_pos) {
+            auto tmp = txn_->GetVertexIndexIterator(
+                label_id, field_ids[pos], field_values[pos], field_values[pos]);
+            if (tmp.IsValid() && tmp.GetVid() != current_vid) {
+                return 0;
+            }
+        }
+        txn_->SetVertexProperty(current_vid, field_ids, field_values);
+        return 2;
+    } else {
+        iiter.Close();
+        for (auto pos : unique_pos) {
+            auto tmp = txn_->GetVertexIndexIterator(
+                label_id, field_ids[pos], field_values[pos], field_values[pos]);
+            if (tmp.IsValid()) {
+                return 0;
+            }
+        }
+        txn_->AddVertex(label_id, field_ids, field_values);
+        return 1;
+    }
+}
+
 EdgeUid Transaction::AddEdge(int64_t src, int64_t dst, const std::string& label,
                              const std::vector<std::string>& field_names,
                              const std::vector<std::string>& field_value_strings) {
@@ -221,6 +263,40 @@ bool Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
                              const std::vector<FieldData>& field_values) {
     ThrowIfInvalid();
     RefreshAndReturn(txn_->UpsertEdge(src, dst, label_id, field_ids, field_values));
+}
+
+int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
+                            const std::vector<size_t>& unique_pos,
+                            const std::vector<size_t>& field_ids,
+                            const std::vector<FieldData>& field_values) {
+    ThrowIfInvalid();
+    for (auto pos : unique_pos) {
+        if (pos >= field_ids.size()) {
+            THROW_CODE(InputError, "unique_pos is out of the field_ids's range");
+        }
+    }
+    auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), false);
+    if (iter.IsValid()) {
+        for (auto pos : unique_pos) {
+            auto tmp = txn_->GetEdgeIndexIterator(
+                label_id, field_ids[pos], field_values[pos], field_values[pos]);
+            if (tmp.IsValid() && tmp.GetUid() == iter.GetUid()) {
+                return 0;
+            }
+        }
+        txn_->SetEdgeProperty(iter, field_ids, field_values);
+        return 2;
+    } else {
+        for (auto pos : unique_pos) {
+            auto tmp = txn_->GetEdgeIndexIterator(
+                label_id, field_ids[pos], field_values[pos], field_values[pos]);
+            if (tmp.IsValid()) {
+                return 0;
+            }
+        }
+        txn_->AddEdge(src, dst, label_id, field_ids, field_values);
+        return 1;
+    }
 }
 
 std::vector<IndexSpec> Transaction::ListVertexIndexes() {
