@@ -110,6 +110,14 @@ struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
         return lgraph_api::Spatial<lgraph_api::Cartesian>(std::string((char*)p, s));
     }
 };
+
+template <>
+struct TypeCast<std::vector<float>> {
+    static std::vector<float> AsType(void* p, size_t s) {
+        std::vector<float>* floatvectorPtr = reinterpret_cast<std::vector<float>*>((char*) p);  
+        return *floatvectorPtr;
+    }
+};
 }  // namespace _detail
 
 /**
@@ -548,6 +556,15 @@ class Value {
      * \return  A Value.
      */
     static Value ConstRef(char* const& s) { return Value(s, std::strlen(s)); }
+
+        /**
+     * Create a Value that is a const reference to a float vector
+     *
+     * \param   s   The float vector
+     *
+     * \return  A Value.
+     */
+    static Value ConstRef(const std::vector<float> s) { return Value(&s, sizeof(std::vector<float>)); }
 
     /**
      * Create a Value that is a const reference to a string literal

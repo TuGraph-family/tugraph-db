@@ -455,6 +455,14 @@ inline web::json::value ValueToJson(const FieldData& fd) {
                     THROW_CODE(InputError, "unsupportted spatial srid");
             }
         }
+    case FieldType::FLOAT_VECTOR:
+        {
+            std::vector<web::json::value> json_vec;
+            for(float num: *fd.data.vp){
+                json_vec.push_back(web::json::value::number(num));
+            }            
+            return web::json::value::array(json_vec);
+        }
     }
     FMA_DBG_ASSERT(false);  // unhandled FieldData type
     return web::json::value::null();

@@ -42,7 +42,7 @@ void CheckFieldTypeSizeNameIsFixed(::lgraph::FieldType ft, const std::string& na
 
 TEST_F(TestFieldDataHelper, FieldTypeSize) {
     UT_LOG() << "Testing FieldTypeSize, FieldTypeName and IsFixedLengthFieldType";
-    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::SPATIAL; ft++) {
+    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::FLOAT_VECTOR; ft++) {
         FieldType parsed;
         UT_EXPECT_TRUE(TryGetFieldType(FieldTypeName((FieldType)ft), parsed));
         UT_EXPECT_EQ((int)parsed, ft);
@@ -67,6 +67,7 @@ TEST_F(TestFieldDataHelper, FieldTypeSize) {
     CheckFieldTypeSizeNameIsFixed(FieldType::LINESTRING, "LINESTRING", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::POLYGON, "POLYGON", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::SPATIAL, "SPATIAL", 0, false);
+    CheckFieldTypeSizeNameIsFixed(FieldType::FLOAT_VECTOR, "FLOAT_VECTOR", 0, false);
 }
 
 TEST_F(TestFieldDataHelper, FieldTypeStorageType) {
@@ -229,6 +230,12 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
                             "000000000004000000000000000400000000000000840000000000000F03F",
                             "0102000020231C00000300000000000000000000000000000000000000000"
                             "000000000004000000000000000400000000000000840000000000000F03F");
+    // testing float vector data;
+    std::vector<float> vec = {1.111,2.111,3.111,4.111,5.111};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR,
+                            "1.111000,2.111000,3.111000,4.111000,5.111000",
+                            vec);
+
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
@@ -250,6 +257,7 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_FAIL(LINESTRING, "0.23124325");
     _CHECK_PARSE_STRING_FAIL(POLYGON, "asdjasncioo");
     _CHECK_PARSE_STRING_FAIL(SPATIAL, "123@.adsas--=");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "ABCDEFG");
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -312,6 +320,10 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     _TEST_FD_CONVERT(STRING, EWKB, SPATIAL,
                      ::lgraph_api::Spatial<::lgraph_api::Wgs84>(EWKB).AsEWKB(),
                      true);
+
+    // no need to test float vector data
+    // because nothing can be converted to/from float vector
+
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
     _TEST_FD_CONVERT(INT64, 127, STRING, "", false);
@@ -415,6 +427,20 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd2, FieldType::SPATIAL, v2), true);
         UT_EXPECT_EQ(v2.AsType<std::string>(), SpatialCartesian(EWKB2).AsEWKB());
     }
+
+    // testing float vector
+     {
+        std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
+        FieldData fd1 = FieldData(vec1);
+        Value v1;
+        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd1, FieldType::FLOAT_VECTOR, v1), true);
+        std::vector<float> vec2 = {};  
+        for (size_t i = 0; i < v1.AsType<std::vector<float>>().size(); i++)
+        {
+           vec2.push_back(v1.AsType<std::vector<float>>().at(i));
+        }
+        UT_EXPECT_EQ(vec2, vec1);
+    } 
 }
 
 TEST_F(TestFieldDataHelper, FieldDataToValueOfFieldType) {
@@ -475,6 +501,9 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
                            "000000000000000004000000000000000400000000000000840000000000000F03F",
                            "0102000020231C00000300000000000000000000000000000000000000000"
                            "000000000004000000000000000400000000000000840000000000000F03F");
+    //testing float vector data
+    std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
+    _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "1.111000, 2.111000, 3.111000, 4.111000, 5.111000", vec1);
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BOOL, "tr", 1));
@@ -493,6 +522,9 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(LINESTRING, "21qwe234.asd", "342341123asdq"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POLYGON, "213234qweasda", "34.342as341123"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(SPATIAL, "213234qwe#@asda", "34.342as3@#41123"));
+    //testing float vector data
+    std::vector<float> vec3 = {1.111, 2.111, 3.111, 4.111, 5.111};
+    UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "213234qwe#@asda", vec3));
 }
 
 TEST_F(TestFieldDataHelper, ValueCompare) {
@@ -563,4 +595,5 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
         UT_EXPECT_EQ(ValueCompare<FieldType::SPATIAL>
         (va.Data(), va.Size(), vd.Data(), vd.Size()), 0);
     }
+    // no need to test float vector
 }

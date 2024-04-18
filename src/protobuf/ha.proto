@@ -27,6 +27,7 @@ enum ProtoFieldType {
     LINESTRING = 13;
     POLYGON = 14;
     SPATIAL = 15;
+    FLOAT_VECTOR = 16;
 };
 
 enum ProtoAccessLevel {
@@ -36,6 +37,10 @@ enum ProtoAccessLevel {
     READ_WRITE = 2;
     FULL = 3;
 };
+
+message floatvector {
+    repeated float fv = 1;
+}
 
 message ProtoFieldData {
     oneof Data {
@@ -54,6 +59,7 @@ message ProtoFieldData {
         string linestring = 13;
         string polygon = 14;
         string spatial = 15;
+        floatvector fvector = 16;
     }
 };
 

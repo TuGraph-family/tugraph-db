@@ -15,6 +15,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <regex> 
 
 #include "fma-common/string_formatter.h"
 #include "fma-common/string_util.h"
@@ -64,11 +65,12 @@ namespace _detail {
 static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   "INT16",
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
                                                  "DATE",  "DATETIME", "STRING", "BLOB",
-                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL"};
+                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL", 
+                                                 "FLOAT_VECTOR"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
     std::unordered_map<std::string, FieldType> ret;
-    for (int i = 0; i <= (int)FieldType::SPATIAL; i++) {
+    for (int i = 0; i <= (int)FieldType::FLOAT_VECTOR; i++) {
         ret[FieldTypeNames[i]] = FieldType(i);
         ret[fma_common::ToLower(FieldTypeNames[i])] = FieldType(i);
     }
@@ -91,7 +93,8 @@ static constexpr size_t FieldTypeSizes[] = {
     50,  // Point
     0,   // LineString
     0,   // Polygon
-    0    // Spatial
+    0,   // Spatial
+    0    // float vector
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -110,7 +113,8 @@ static constexpr bool IsFixedLengthType[] = {
     true,   // Point
     false,  // LineString
     false,  // Polygon
-    false   // Spatial
+    false,  // Spatial
+    false   // float vector 
 };
 
 template <class T, size_t N>
@@ -141,7 +145,7 @@ inline constexpr bool IsFixedLengthFieldType(FieldType dt) {
 }
 
 inline std::string TryGetFieldTypeName(FieldType ft) {
-    if (ft >= FieldType::NUL && ft <= FieldType::SPATIAL) return FieldTypeName(ft);
+    if (ft >= FieldType::NUL && ft <= FieldType::FLOAT_VECTOR) return FieldTypeName(ft);
     return fma_common::StringFormatter::Format("[Illegal FieldType, value={}]", (int)ft);
 }
 
@@ -216,6 +220,10 @@ struct FieldType2StorageType<FieldType::POLYGON> {
 template <>
 struct FieldType2StorageType<FieldType::SPATIAL> {
     typedef std::string type;
+};
+template <>
+struct FieldType2StorageType<FieldType::FLOAT_VECTOR> {
+    typedef std::vector<float> type;
 };
 
 template <FieldType FT>
@@ -414,6 +422,15 @@ struct FieldDataRangeCheck<FieldType::SPATIAL> {
     }
 };
 
+template <>
+struct FieldDataRangeCheck<FieldType::FLOAT_VECTOR> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(const FromT& src,
+                                    typename FieldType2StorageType<FieldType::FLOAT_VECTOR>::type& dst) {
+        return true;
+    }
+};
+
 template <FieldType DstType>
 inline bool CopyFdIntoDstStorageType(const FieldData& fd,
                                      typename FieldType2StorageType<DstType>::type& dst) {
@@ -468,6 +485,8 @@ inline Value GetConstRefOfFieldDataContent(const FieldData& fd) {
     case FieldType::POLYGON:
     case FieldType::SPATIAL:
         return Value::ConstRef(*fd.data.buf);
+    case FieldType::FLOAT_VECTOR:
+        return Value::ConstRef(*fd.data.vp);
     }
     FMA_ASSERT(false);
     return Value();
@@ -555,6 +574,12 @@ GetStoredValue<FieldType::SPATIAL>(
     const FieldData& fd) {
     return *fd.data.buf;
 }
+template <>
+inline const typename FieldType2StorageType<FieldType::FLOAT_VECTOR>::type&
+GetStoredValue<FieldType::FLOAT_VECTOR>(
+    const FieldData& fd) {
+    return *fd.data.vp;
+}
 
 template <FieldType FT>
 inline typename FieldType2CType<FT>::type GetFieldDataCValue(const FieldData& fd) {
@@ -639,6 +664,10 @@ template <>
 inline bool IsCompatibleType<FieldType::SPATIAL>(FieldType st) {
     return st == FieldType::STRING;
 }
+template <>
+inline bool IsCompatibleType<FieldType::FLOAT_VECTOR>(FieldType st) {
+    return st == FieldType::FLOAT_VECTOR;
+}
 
 template <FieldType DstType>
 inline size_t ParseStringIntoFieldData(const char* beg, const char* end, FieldData& fd) {
@@ -669,6 +698,23 @@ inline size_t ParseStringIntoFieldData<FieldType::BLOB>(const char* beg, const c
                          (cd.size() > 64 ? "..." : ""));
     }
     fd = FieldData::Blob(std::move(decoded));
+    return s;
+}
+template <>
+inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg, const char* end,
+                                                          FieldData& fd) {
+    std::string cd;
+    size_t s = fma_common::TextParserUtils::ParseCsvString(beg, end, cd);
+    if (s == 0) return 0;
+    std::vector<float> vec;
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(cd.begin(), cd.end(), pattern), end_it;
+    while (begin_it != end_it) {  
+        std::smatch match = *begin_it;  
+        vec.push_back(std::stof(match.str()));  
+        ++begin_it; 
+    }    
+    fd = FieldData::FloatVector(vec);
     return s;
 }
 
@@ -740,6 +786,22 @@ inline bool ParseStringIntoStorageType<FieldType::SPATIAL>
     sd.assign(str.begin(), str.end());
     return true;
 }
+template <>
+inline bool ParseStringIntoStorageType<FieldType::FLOAT_VECTOR>
+(const std::string& str, std::vector<float>& sd) {
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+    while (begin_it != end_it) {  
+        std::smatch match = *begin_it;  
+        sd.push_back(std::stof(match.str()));  
+        ++begin_it; 
+    }
+    if (sd.size() <= 1) {
+        return false;
+    } else {   
+    return true;
+    }
+}
 
 // This converts FieldData of different type into DstType
 // It is used only in schema.h, and the case when fd.type==DstType is already
@@ -797,6 +859,9 @@ struct FieldDataTypeConvert {
             break;
         case FieldType::SPATIAL:
             // nothing can be converted from spatial
+            break;
+        case FieldType::FLOAT_VECTOR:
+            // nothing can be converted from float vector
             break;
         }
         return false;
@@ -864,6 +929,8 @@ inline size_t ParseStringIntoFieldData(FieldType ft, const char* b, const char* 
     case FieldType::POLYGON:
     case FieldType::SPATIAL:
         throw std::runtime_error("do not support spatial now!");
+    case FieldType::FLOAT_VECTOR:
+        return ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(b, e, fd);
     }  // switch
     FMA_ASSERT(false);
     return 0;
@@ -966,6 +1033,11 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
             v.Copy(EWKB);
             return true;
         }
+    case FieldType::FLOAT_VECTOR:
+        {
+            throw std::runtime_error("cannot convert any type to float vector");
+            return false;
+        }
     }
 
     FMA_ASSERT(false);
@@ -1063,8 +1135,24 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
             v.Copy(str);
             return v;
         }
+    case FieldType::FLOAT_VECTOR:
+        {
+            std::vector<float> vec;
+            std::regex pattern("-?[0-9]+\\.?[0-9]*");
+            std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+            while (begin_it != end_it) {  
+                std::smatch match = *begin_it;  
+                vec.push_back(std::stof(match.str()));  
+                ++begin_it; 
+            }
+            if (vec.size() <= 1) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
+            Value v;
+            v.Copy(vec);
+            return v;
+        }
     }
-
     FMA_ASSERT(false);
     return Value();
 }
@@ -1150,6 +1238,8 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
                     return FieldData(::lgraph_api::Spatial<::lgraph_api::Cartesian>(ewkb));
             }
         }
+    case FieldType::FLOAT_VECTOR:
+        return FieldData(v.AsType<std::vector<float>>());
     }
     FMA_ASSERT(false);
     return FieldData();
@@ -1202,6 +1292,12 @@ inline int ValueCompare<FieldType::POLYGON>(const void* p1, size_t s1, const voi
 template <>
 inline int ValueCompare<FieldType::SPATIAL>(const void* p1, size_t s1, const void* p2, size_t s2) {
     return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
+}
+
+template <>
+inline int ValueCompare<FieldType::FLOAT_VECTOR>(const void* p1, size_t s1, const void* p2, size_t s2) {
+    std::runtime_error("you cannot compare vectors");
+    abort();
 }
 
 }  // namespace field_data_helper

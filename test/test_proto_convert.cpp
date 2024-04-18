@@ -95,6 +95,22 @@ TEST_F(TestProtoConvert, ProtoConvert) {
             UT_EXPECT_TRUE(fd.AsWgsSpatial() == fd2.AsWgsSpatial());
         }
 
+        // testing float vector data 
+        {
+            std::vector<float> vec1 = {1.111, 2.111 ,3.111, 4.111, 5.111};
+            FieldData fd(vec1);
+            FieldDataConvert::FromLGraphT(fd, &pfd);
+            std::vector<float> vec2;
+                auto size = pfd.fvector().fv_size();
+                for(int i = 0; i < size; i++) {
+                    vec2.push_back(pfd.fvector().fv(i));
+                }
+            UT_EXPECT_TRUE(fd.AsFloatVector() == vec2);
+            UT_EXPECT_TRUE(pfd.has_fvector());
+            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+            UT_EXPECT_TRUE(fd.AsFloatVector() == fd2.AsFloatVector());
+        }
+
         {
             FieldData fd;
             FieldDataConvert::FromLGraphT(fd, &pfd);
@@ -135,6 +151,7 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         fss.emplace_back("int8", FieldType::LINESTRING, false);
         fss.emplace_back("int8", FieldType::POLYGON, false);
         fss.emplace_back("int8", FieldType::SPATIAL, false);
+        fss.emplace_back("int8", FieldType::FLOAT_VECTOR, false);
         ::google::protobuf::RepeatedPtrField<ProtoFieldSpec> pfss, pfss2;
         FieldSpecConvert::FromLGraphT(fss, &pfss);
         UT_EXPECT_EQ(pfss.size(), fss.size());

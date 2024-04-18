@@ -50,6 +50,7 @@ TEST_F(TestTypeConvert, TypeConvert) {
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(blobs), FieldType::STRING).AsString(), blobs);
     std::string s = "to lbr data";
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(s), FieldType::STRING).AsString(), s);
+
     // Testing spatial data;
     std::string point_wgs = "0101000020E6100000000000000000F03F000000000000F03F";
     std::string point_cartesian = "0101000020231C0000000000000000F03F000000000000F03F";
@@ -94,4 +95,10 @@ TEST_F(TestTypeConvert, TypeConvert) {
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(polygon_cartesian),
     FieldType::POLYGON).ToString(),
     polygon_cartesian);
+
+    // Testing float vector data
+    std::vector<float> vec = {1.111, 2.111, 3.111, 4.111};
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(vec), FieldType::FLOAT_VECTOR).AsFloatVector() == vec );
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(vec), FieldType::FLOAT_VECTOR).ToString(), "1.111000,2.111000,3.111000,4.111000");
+
 }

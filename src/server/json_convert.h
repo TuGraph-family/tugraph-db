@@ -125,6 +125,10 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                     THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
+    case lgraph_api::FieldType::FLOAT_VECTOR:
+        {
+            return json(data.AsFloatVector());
+        }
     default:
         THROW_CODE(InputError,
             "FieldDataToJson: unsupported field type: {}", data.type);

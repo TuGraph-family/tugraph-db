@@ -176,23 +176,24 @@ struct VertexOptions : public LabelOptions {
 
 /** @brief   Field and value types. */
 enum FieldType {
-    NUL = 0,          // NULL value, used to represent an empty value, can not be used as field type
-    BOOL = 1,         // Boolean value, TRUE or FALSE
-    INT8 = 2,         // 8-bit signed integer
-    INT16 = 3,        // 16-bit signed integer
-    INT32 = 4,        // 32-bit signed integer
-    INT64 = 5,        // 64-bit signed integer
-    FLOAT = 6,        // 32-bit IEEE 754 floating Point number
-    DOUBLE = 7,       // 64-bit IEEE 754 floating Point number
-    DATE = 8,         // Date ranging from 0/1/1 to 9999/12/31
-    DATETIME = 9,     // DateTime ranging from 0000-01-01 00:00:00.000000 to
-                      // 9999-12-31 23:59:59.999999
-    STRING = 10,      // string type, in unicode encoding
-    BLOB = 11,        // binary byte array
-    POINT = 12,       // Point type of spatial data
-    LINESTRING = 13,  // LineString type of spatial data
-    POLYGON = 14,     // Polygon type of spatial data
-    SPATIAL = 15      // spatial data, it's now unused but may be used in the future.
+    NUL = 0,             // NULL value, used to represent an empty value, can not be used as field type
+    BOOL = 1,            // Boolean value, TRUE or FALSE
+    INT8 = 2,            // 8-bit signed integer
+    INT16 = 3,           // 16-bit signed integer
+    INT32 = 4,           // 32-bit signed integer
+    INT64 = 5,           // 64-bit signed integer
+    FLOAT = 6,           // 32-bit IEEE 754 floating Point number
+    DOUBLE = 7,          // 64-bit IEEE 754 floating Point number
+    DATE = 8,            // Date ranging from 0/1/1 to 9999/12/31
+    DATETIME = 9,        // DateTime ranging from 0000-01-01 00:00:00.000000 to
+                         // 9999-12-31 23:59:59.999999
+    STRING = 10,         // string type, in unicode encoding
+    BLOB = 11,           // binary byte array
+    POINT = 12,          // Point type of spatial data
+    LINESTRING = 13,     // LineString type of spatial data
+    POLYGON = 14,        // Polygon type of spatial data
+    SPATIAL = 15,        // spatial data, it's now unused but may be used in the future.
+    FLOAT_VECTOR = 16    // float vector
 };
 
 /**
@@ -238,6 +239,8 @@ inline const std::string to_string(FieldType v) {
         return "POLYGON";
     case SPATIAL:
         return "SPATIAL";
+    case FLOAT_VECTOR:
+        return "FLOAT_VECTOR";
     default:
         throw std::runtime_error("Unknown Field Type");
     }
@@ -480,6 +483,11 @@ struct FieldData {
         data.buf = new std::string(s.AsEWKB());
     }
 
+    explicit FieldData(const std::vector<float>& fv) {
+        type = FieldType::FLOAT_VECTOR;
+        data.vp = new std::vector<float>(fv);
+    }
+
     ~FieldData() {
         if (IsBufType(type)) delete data.buf;
     }
@@ -612,6 +620,8 @@ struct FieldData {
         }
     }
 
+    static inline FieldData FloatVector(const std::vector<float>& fv) { return FieldData(fv); }
+
     //-------------------------
     // Constructs blobs.
     // A blob is a byte array. It can be used to store binary data such as images, html
@@ -677,6 +687,7 @@ struct FieldData {
         case FieldType::LINESTRING:
         case FieldType::POLYGON:
         case FieldType::SPATIAL:
+        case FieldType::FLOAT_VECTOR:
             throw std::bad_cast();
         }
         return 0;
@@ -710,6 +721,7 @@ struct FieldData {
         case FieldType::LINESTRING:
         case FieldType::POLYGON:
         case FieldType::SPATIAL:
+        case FieldType::FLOAT_VECTOR:
             throw std::bad_cast();
         }
         return 0.;
@@ -864,6 +876,11 @@ struct FieldData {
         throw std::bad_cast();
     }
 
+    inline std::vector<float> AsFloatVector() const {
+        if (type == FieldType::FLOAT_VECTOR) return *data.vp;
+        throw std::bad_cast();
+    }
+
     std::any ToBolt() const;
 
     /** @brief   Get string representation of this FieldData. */
@@ -898,6 +915,16 @@ struct FieldData {
         case FieldType::POLYGON:
         case FieldType::SPATIAL:
             return *data.buf;
+        case FieldType::FLOAT_VECTOR:
+            {
+                std::string vec_str;
+                for(float num: *data.vp) {
+                    vec_str += std::to_string(num);
+                    vec_str += ',';
+                }
+                vec_str.pop_back();
+                return vec_str;
+            }
         }
         throw std::runtime_error("Unhandled data type, probably corrupted data.");
         return "";
@@ -915,6 +942,7 @@ struct FieldData {
     inline bool operator==(const FieldData& rhs) const {
         if (type == FieldType::NUL && rhs.type == FieldType::NUL) return true;
         if (type == FieldType::NUL || rhs.type == FieldType::NUL) return false;
+        if (type == FieldType::FLOAT_VECTOR || rhs.type == FieldType::FLOAT_VECTOR) return false;
         if (type == rhs.type) {
             switch (type) {
             case FieldType::NUL:
@@ -944,6 +972,8 @@ struct FieldData {
             case FieldType::POLYGON:
             case FieldType::SPATIAL:
                 return *data.buf == *rhs.data.buf;
+            case FieldType::FLOAT_VECTOR:
+                throw std::runtime_error("Float vector data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -966,6 +996,7 @@ struct FieldData {
     inline bool operator>(const FieldData& rhs) const {
         if (type == FieldType::NUL) return false;
         if (rhs.type == FieldType::NUL) return true;
+        if (type == FieldType::FLOAT_VECTOR || rhs.type == FieldType::FLOAT_VECTOR) return false;
         if (type == rhs.type) {
             switch (type) {
             case FieldType::NUL:
@@ -996,6 +1027,8 @@ struct FieldData {
             case FieldType::POLYGON:
             case FieldType::SPATIAL:
                 throw std::runtime_error("Spatial data are not comparable now.");
+            case FieldType::FLOAT_VECTOR:
+                throw std::runtime_error("Float vector data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -1016,6 +1049,7 @@ struct FieldData {
     inline bool operator>=(const FieldData& rhs) const {
         if (rhs.type == FieldType::NUL) return true;
         if (type == FieldType::NUL) return false;
+        if (type == FieldType::FLOAT_VECTOR || rhs.type == FieldType::FLOAT_VECTOR) return false;
         if (type == rhs.type) {
             switch (type) {
             case FieldType::NUL:
@@ -1046,6 +1080,8 @@ struct FieldData {
             case FieldType::POLYGON:
             case FieldType::SPATIAL:
                 throw std::runtime_error("Spatial data are not comparable now.");
+            case FieldType::FLOAT_VECTOR:
+                throw std::runtime_error("Float vector data are not comparable now.");            
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -1080,6 +1116,7 @@ struct FieldData {
         float sp;
         double dp;
         std::string* buf;
+        std::vector<float>* vp;
     } data;
 
     inline bool is_null() const { return type == FieldType::NUL; }
@@ -1141,6 +1178,9 @@ struct FieldData {
 
     /** @brief   Query if this object is spatial*/
     bool IsSpatial() const { return type == FieldType::SPATIAL; }
+
+    /** @brief   Query if this object is float vector*/
+    bool IsFloatVector() const { return type == FieldType::FLOAT_VECTOR; }
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */

@@ -89,6 +89,22 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
         throw ParseStringException(Name(), data, FieldType::SPATIAL);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
+
+template <>
+void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
+                                                          const std::string& data) const {
+    std::vector<float> vec;
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(data.begin(), data.end(), pattern), end_it;
+    while (begin_it != end_it) {  
+        std::smatch match = *begin_it;  
+        vec.push_back(std::stof(match.str()));  
+        ++begin_it; 
+    }
+    if (vec.size() <= 0)
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);                                                        
+    return _SetVariableLengthValue(record, Value::ConstRef(vec));
+}
 /**
  * Parse the string data and set the field
  *
@@ -104,7 +120,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
 void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type)
         || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON
-        || def_.type == FieldType::SPATIAL)) {
+        || def_.type == FieldType::SPATIAL || def_.type == FieldType::FLOAT_VECTOR)) {
         SetIsNull(record, true);
         return;
     }
@@ -143,6 +159,8 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
         return _ParseStringAndSet<FieldType::POLYGON>(record, data);
     case FieldType::SPATIAL:
         return _ParseStringAndSet<FieldType::SPATIAL>(record, data);
+    case FieldType::FLOAT_VECTOR:
+        return _ParseStringAndSet<FieldType::FLOAT_VECTOR>(record, data);
     case FieldType::NUL:
         LOG_ERROR() << "NUL FieldType";
     }
@@ -251,7 +269,13 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
 
         return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
+    case FieldType::FLOAT_VECTOR:
+        {
+        if (data.type != FieldType::FLOAT_VECTOR)
+            throw ParseFieldDataException(Name(), data, Type());   
 
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp));
+        }
     default:
         LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type)
                     << " not handled";
@@ -327,6 +351,18 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
             std::string ret(GetDataSize(record), 0);
             GetCopyRaw(record, &ret[0], ret.size());
             return ret;
+        }
+    case FieldType::FLOAT_VECTOR:
+        {
+            std::string vec_str;   
+            for (size_t i = 0; i < record.AsType<std::vector<float>>().size(); i++)
+            {
+                vec_str += std::to_string(record.AsType<std::vector<float>>().at(i)) + ",";
+            }
+            if(!vec_str.empty()) {
+                vec_str.pop_back();
+            }
+            return vec_str; 
         }
     case lgraph_api::NUL:
         break;

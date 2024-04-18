@@ -77,6 +77,19 @@ inline lgraph::SpatialCartesian ParseStringToT<lgraph::SpatialCartesian>
 (const std::string &str) {
     return lgraph::SpatialCartesian(str);
 }
+template<>
+inline std::vector<float> ParseStringToT<std::vector<float>>
+(const std::string &str) {
+    std::vector<float> vec;
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+    while (begin_it != end_it) {  
+        std::smatch match = *begin_it;  
+        vec.push_back(std::stof(match.str()));  
+        ++begin_it; 
+    }    
+    return vec;
+}
 
 
 template <typename T, typename T2 = int64_t>
@@ -101,7 +114,12 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
     // check GetConstRef
     UT_EXPECT_TRUE(fe.GetConstRef(v).AsType<T>() == parsed);
     // check FieldToString
-    UT_EXPECT_EQ(UT_FMT("{}", parsed), fe.FieldToString(v));
+    if(ft != FLOAT_VECTOR) {
+        UT_EXPECT_EQ(UT_FMT("{}", parsed), fe.FieldToString(v));
+    } else {
+        UT_EXPECT_EQ(str_ok, fe.FieldToString(v));
+    }
+    
 
     // check CopyDataRaw
     _detail::FieldExtractor fe2(fe);
@@ -111,7 +129,11 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
 
     // check parse from FieldData
     fe.ParseAndSet(v, fd_ok);
-    UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()) == fd_ok);
+    if(ft != FLOAT_VECTOR) {
+        UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()) == fd_ok);
+    } else {
+        UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()).AsFloatVector() == fd_ok.AsFloatVector());
+    }
 
     // check parse errors
     UT_EXPECT_THROW(fe.ParseAndSet(v, str_fail), lgraph::ParseStringException);
@@ -260,6 +282,12 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
                            "0000000000000000000000000000000000000000400000000"
                            "0000000400000000000000840000000000000F03F"),
                            "aasd332423d", FieldData(3215), false);
+        // testing float vector
+        std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
+        CheckParseDataType<std::vector<float>>(FieldType::FLOAT_VECTOR, value_tmp,
+                            "1.111000,2.111000,3.111000,4.111000,5.111000", FieldData::FloatVector(vec1),
+                            "abcdefg", FieldData("sad"), false);
+
         CheckParseStringAndBlob(FieldType::STRING, value_tmp, "this is a string",
                                 FieldData("another string"),
                                 std::string(_detail::MAX_STRING_SIZE + 1, 'a'),
