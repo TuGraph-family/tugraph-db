@@ -1802,6 +1802,8 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(json_val.size() == 0, true);
     ret = client.ImportSchemaFromFile(str, conf_file);
     UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.graph.getGraphSchema()");
+    UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
