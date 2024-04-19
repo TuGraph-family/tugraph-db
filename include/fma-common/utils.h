@@ -252,6 +252,12 @@ inline int ExecCmdThroughPopen(const std::string& cmd, std::ostream& os) {
 #endif
 }
 
+inline double DoubleDecimalPlaces(double d, int num) {
+    auto pow = std::pow(10, num);
+    auto i = std::round(d * pow);
+    return (i / pow);
+}
+
 namespace _detail {
 inline FILE* OpenPipe(const std::string& cmd, const char* mode, bool redirect_stderr = false) {
     std::string c = cmd;

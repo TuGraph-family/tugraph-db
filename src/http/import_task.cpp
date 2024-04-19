@@ -81,7 +81,7 @@ void ImportTask::operator()() {
                     if (fd.n_header_line >
                         static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n')) {
                         std::string res = boost::algorithm::join(imported_files, ",") +
-                                          " were imported successfully.\n";
+                                          " were not imported successfully.\n";
                         res += filename + " was imported "
                                + std::to_string(imported_line) + " lines.\n";
                         return import_manager_->RecordErrorMsg(id_, schema_,
@@ -95,7 +95,7 @@ void ImportTask::operator()() {
                 if (res.size()) {
                     if (!continue_on_error_) {
                         res += "\n" + boost::algorithm::join(imported_files, ",") +
-                                          " were imported successfully.\n";
+                                          " were not imported successfully.\n";
                         res += filename + " was imported " +
                                std::to_string(imported_line) + " lines.\n";
                         return import_manager_->RecordErrorMsg(id_, schema_, res);
@@ -110,7 +110,7 @@ void ImportTask::operator()() {
         import_manager_->RecordFinish(id_, schema_, true);
     } catch (std::exception& e) {
         std::string res = boost::algorithm::join(imported_files, ",") +
-                          " were imported successfully.\n";
+                          " were not imported successfully.\n";
         res += filename + " was imported " + std::to_string(imported_line) + " lines.\n";
         import_manager_->RecordErrorMsg(id_, schema_,
                                                std::string(e.what()) + "\n" + res);
