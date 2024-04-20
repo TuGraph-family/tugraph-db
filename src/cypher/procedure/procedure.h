@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -214,6 +214,9 @@ class BuiltinProcedure {
 
     static void DbmsGraphGetGraphInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                        const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsSystemInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
@@ -717,6 +720,11 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"graph_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"configuration", {1, lgraph_api::LGraphType::MAP}}},
+              true, true),
+
+    Procedure("dbms.graph.getGraphSchema", BuiltinProcedure::DbmsGraphGetGraphSchema,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"schema", {0, lgraph_api::LGraphType::STRING}}},
               true, true),
 
     Procedure("dbms.system.info", BuiltinProcedure::DbmsSystemInfo, Procedure::SIG_SPEC{},

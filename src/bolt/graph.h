@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]

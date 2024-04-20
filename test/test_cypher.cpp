@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1494,6 +1494,7 @@ CREATE (a)-[:KNOWS {weight:10}]->(b),
         "MATCH (n:Person {name:'E'}) SET n.name='X'",
         "MATCH (n:Person {name:'A'}), (m:Person {name:'B'}) SET n.age=50 SET m.age=51",
         "MATCH (n:Person {name:'A'})-[e:KNOWS]->(m:Person) SET n.age=50 SET e.weight=50",
+        "MATCH (n:Person {name:'A'})-[e:KNOWS]->(m:Person) SET n.age=50, e.weight=50",
         "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = 34",
         "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = id(n)",
         "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m = {age: 33}",
