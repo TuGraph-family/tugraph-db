@@ -176,7 +176,7 @@ class TestHttpServer:
         res = self.file_exists("./testdb/upload_files/admin/http_server_test_incorrect_data_import.csvv")
         assert (res == False)
         res = rest_client.delete_specified_files("./http_server_test_data_import.csv")
-        assert (res == "BadRequest ./http_server_test_data_import.csv not exists")
+        assert (res == "./http_server_test_data_import.csv not exists")
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("rest_client", [CLIENTOPT], indirect=True)

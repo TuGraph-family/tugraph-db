@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,8 +111,8 @@ void Importer::DoImportOffline() {
                                                   v.is_vertex ? "vertex" : "edge", v.name);
             }
         } else {
-            throw InputError(
-                FMA_FMT("{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name));
+            THROW_CODE(InputError,
+                "{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name);
         }
         auto lid = db_->CreateReadTxn().GetLabelId(v.is_vertex, v.name);
         if (v.is_vertex) {
@@ -156,18 +156,18 @@ void Importer::DoImportOffline() {
                         }
 
                     } else {
-                        throw InputError(
-                            FMA_FMT("Vertex index [label:{}, field:{}] already exists",
-                                    v.name, spec.name));
+                        THROW_CODE(InputError,
+                            "Vertex index [label:{}, field:{}] already exists",
+                                    v.name, spec.name);
                     }
                 } else if (v.is_vertex && spec.index && !spec.primary &&
                            (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
                             spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
-                    throw InputError(
-                        FMA_FMT("offline import does not support to create a unique "
+                    THROW_CODE(InputError,
+                        "offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
-                                v.name, spec.name));
+                                v.name, spec.name);
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
@@ -179,17 +179,17 @@ void Importer::DoImportOffline() {
                                 " type:{}]\n", v.name, spec.name, static_cast<int>(spec.idxType));
                         }
                     } else {
-                        throw InputError(
-                            FMA_FMT("Edge index [label:{}, field:{}] already exists",
-                                    v.name, spec.name));
+                        THROW_CODE(InputError,
+                            "Edge index [label:{}, field:{}] already exists",
+                                    v.name, spec.name);
                     }
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
-                    throw InputError(
-                        FMA_FMT("offline import does not support to create a unique "
+                    THROW_CODE(InputError,
+                        "offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
-                                v.name, spec.name));
+                                v.name, spec.name);
                 }
                 if (spec.fulltext) {
                     bool ok = db_->AddFullTextIndex(v.is_vertex, v.name, spec.name);
@@ -202,9 +202,9 @@ void Importer::DoImportOffline() {
                                 "field:{}]\n", v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                         }
                     } else {
-                        throw InputError(FMA_FMT(
+                        THROW_CODE(InputError,
                             "Fulltext index [{} label:{}, field:{}] already exists",
-                            v.is_vertex ? "vertex" : "edge", v.name, spec.name));
+                            v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     }
                 }
             }
@@ -1434,15 +1434,11 @@ AccessControlledDB Importer::OpenGraph(Galaxy& galaxy, bool empty_db) {
         config_.user = lgraph::_detail::DEFAULT_ADMIN_NAME;
         config_.password = lgraph::_detail::DEFAULT_ADMIN_PASS;
     }
-    try {
-        if (galaxy.GetUserToken(config_.user, config_.password).empty()) {
-            throw AuthError("Bad user/password.");
-        }
-        if (!galaxy.IsAdmin(config_.user))
-            throw AuthError("Non-admin users are not allowed to perform offline import.");
-    } catch (...) {
-        std::throw_with_nested(AuthError("Error validating user/password"));
-    }
+
+    if (galaxy.GetUserToken(config_.user, config_.password).empty())
+        THROW_CODE(Unauthorized, "Bad user/password.");
+    if (!galaxy.IsAdmin(config_.user))
+        THROW_CODE(Unauthorized, "Non-admin users are not allowed to perform offline import.");
 
     const std::map<std::string, lgraph::DBConfig>& graphs = galaxy.ListGraphs(config_.user);
     if (graphs.find(config_.graph) != graphs.end()) {

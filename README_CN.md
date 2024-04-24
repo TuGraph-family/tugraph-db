@@ -1,8 +1,7 @@
 # TuGraph
 
 [![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
-[![Unit Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
-[![Integration Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
+[![UT&&IT](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 [![Commit](https://badgen.net/github/last-commit/tugraph-family/tugraph-db/master?icon=git&label=Commit)](https://github.com/TuGraph-family/tugraph-db/commits/master)
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
@@ -14,7 +13,7 @@
 [![License](https://shields.io/github/license/tugraph-family/tugraph-db?logo=apache&label=License&color=blue)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 [![EN](https://shields.io/badge/Docs-English-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
-[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
+[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/zh-cn/latest)
 
 [[English Version]](README.md)
 
@@ -54,7 +53,7 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 
 以下是编译TuGraph的步骤：
 
-1. 如果需要web接口运行`deps/build_deps.sh`，不需要web接口则运行`SKIP_WEB=1 deps/build_deps.sh`
+1. 如果需要web接口运行`deps/build_deps.sh`，不需要web接口则跳过此步骤
 2. 根据容器系统信息执行`cmake .. -DOURSYSTEM=centos`或者`cmake .. -DOURSYSTEM=ubuntu`，如果需要shell运行lgraph_cypher，加上`-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 3. `make`
 4. `make package` 或者 `cpack --config CPackConfig.cmake`
@@ -75,11 +74,11 @@ $ make package
 
 我们已为在DockerHub中编译准备了环境docker镜像，可以帮助开发人员轻松入门，名称为 `tugraph/tugraph-compile-[os]:[compile version]`, 例如， `tugraph/tugraph-compile-centos7:1.1.0`。
 
-可以访问 [技术规划](./docs/zh-CN/source/6.contributor-manual/5.roadmap.md) 来了解TuGraph进展。
+可以访问 [技术规划](docs/zh-CN/source/12.contributor-manual/5.roadmap.md) 来了解TuGraph进展。
 
-如需贡献，请阅读 [如何贡献](./docs/zh-CN/source/6.contributor-manual/1.contributing.md)。
+如需贡献，请阅读 [如何贡献](docs/zh-CN/source/12.contributor-manual/1.contributing.md)。
 
-注意：如果您想贡献代码，需要签署[个人贡献者许可协议](./docs/zh-CN/source/6.contributor-manual/3.individual-cla.md)或者[公司贡献者许可协议](./docs/zh-CN/source/6.contributor-manual/4.corporate-cla.md)。
+注意：如果您想贡献代码，需要签署[个人贡献者许可协议](docs/zh-CN/source/12.contributor-manual/3.individual-cla.md)或者[公司贡献者许可协议](docs/zh-CN/source/12.contributor-manual/4.corporate-cla.md)。
 
 ## 5. 合作伙伴
 
@@ -104,5 +103,5 @@ Slack (在线开发沟通):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 通过钉钉群、微信群、微信公众号、邮箱和电话联系我们:
-![contacts](./docs/images/contact_us.png)
+![contacts](./docs/images/contact-zh.png)
 

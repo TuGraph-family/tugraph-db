@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,13 +85,17 @@ class AvgAggCtx : public AggCtx {
     }
 
     int ReduceNext() override {
-        result.type = Entry::CONSTANT;
-        result.constant = lgraph::FieldData(count > 0 ? total / count : 0.0);
+        if (count > 0) {
+            result = Entry(cypher::FieldData(lgraph::FieldData(total / count)));
+        } else {
+            result = Entry(cypher::FieldData());
+        }
         return 0;
     }
 };
 
 class MaxAggCtx : public AggCtx {
+    size_t count = 0;
     double max = std::numeric_limits<double>::lowest();
 
  public:
@@ -104,18 +108,23 @@ class MaxAggCtx : public AggCtx {
                 return 1;
             }
             if (n > max) max = n;
+            count++;
         }
         return 0;
     }
 
     int ReduceNext() override {
-        result.type = Entry::CONSTANT;
-        result.constant = lgraph::FieldData(max);
+        if (count > 0) {
+            result = Entry(cypher::FieldData(lgraph::FieldData(max)));
+        } else {
+            result = Entry(cypher::FieldData());
+        }
         return 0;
     }
 };
 
 class MinAggCtx : public AggCtx {
+    size_t count = 0;
     double min = std::numeric_limits<double>::max();
 
  public:
@@ -128,13 +137,17 @@ class MinAggCtx : public AggCtx {
                 return 1;
             }
             if (n < min) min = n;
+            count++;
         }
         return 0;
     }
 
     int ReduceNext() override {
-        result.type = Entry::CONSTANT;
-        result.constant = lgraph::FieldData(min);
+        if (count > 0) {
+            result = Entry(cypher::FieldData(lgraph::FieldData(min)));
+        } else {
+            result = Entry(cypher::FieldData());
+        }
         return 0;
     }
 };
@@ -173,7 +186,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         case FieldType::LINESTRING: {
@@ -183,7 +196,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         case FieldType::POLYGON: {
@@ -193,7 +206,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         case FieldType::SPATIAL: {
@@ -203,7 +216,7 @@ struct FieldDataHash {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
         default:
@@ -264,6 +277,8 @@ class CountAggCtx : public AggCtx {
         return 0;
     }
 };
+
+class CountStarAggCtx : public CountAggCtx {};
 
 class CollectAggCtx : public AggCtx {
     bool distinct = false;

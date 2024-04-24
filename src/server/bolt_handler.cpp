@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "server/bolt_server.h"
 #include "server/bolt_session.h"
 #include "db/galaxy.h"
+using namespace lgraph_api;
 namespace bolt {
 extern boost::asio::io_service workers;
 std::unordered_map<std::string, cypher::FieldData> ConvertParameters(
@@ -41,8 +42,8 @@ std::unordered_map<std::string, cypher::FieldData> ConvertParameters(
         } else if (pair.second.type() == typeid(void)) {
             ret.emplace("$" + pair.first, lgraph_api::FieldData());
         } else {
-            throw lgraph_api::InputError(FMA_FMT(
-                "Unexpected cypher parameter type, parameter: {}", pair.first));
+            THROW_CODE(InputError,
+                "Unexpected cypher parameter type, parameter: {}", pair.first);
         }
     }
     return ret;
@@ -53,6 +54,14 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
     auto conn_id = conn->conn_id();
     LOG_DEBUG() << FMA_FMT("bolt fsm thread[conn_id:{}] start.", conn_id);
     auto session = (BoltSession*)conn->GetContext();
+    auto RespondFailure = [&conn, &session](ErrorCode code, const std::string& msg){
+        bolt::PackStream ps;
+        ps.AppendFailure(
+            {{"code", ErrorCodeToString(code)},
+             {"message", msg}});
+        conn->PostResponse(std::move(ps.MutableBuffer()));
+        session->state = SessionState::FAILED;
+    };
     while (!conn->has_closed()) {
         auto msg = session->msgs.Pop(std::chrono::milliseconds(100));
         if (!msg) {  // msgs pop timeout
@@ -122,15 +131,15 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
             } else if (type == bolt::BoltMsg::Run) {
                 try {
                     if (fields.size() < 3) {
-                        throw lgraph_api::InputError(FMA_FMT(
-                            "Run msg fields size error, size: {}", fields.size()));
+                        THROW_CODE(InputError,
+                            "Run msg fields size error, size: {}", fields.size());
                     }
                     auto& cypher = std::any_cast<const std::string&>(fields[0]);
                     auto& extra = std::any_cast<
                         const std::unordered_map<std::string, std::any>&>(fields[2]);
                     auto db_iter = extra.find("db");
                     if (db_iter == extra.end()) {
-                        throw lgraph_api::InputError(
+                        THROW_CODE(InputError,
                             "Missing 'db' item in the 'extra' info of 'Run' msg");
                     }
                     auto& graph = std::any_cast<const std::string&>(db_iter->second);
@@ -147,13 +156,12 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                    cypher, elapsed);
                     LOG_DEBUG() << "Cypher execution completed";
+                } catch (const lgraph_api::LgraphException& e) {
+                    LOG_ERROR() << e.what();
+                    RespondFailure(e.code(), e.msg());
                 } catch (std::exception& e) {
                     LOG_ERROR() << e.what();
-                    bolt::PackStream ps;
-                    ps.AppendFailure({{"code", "error"},
-                                      {"message", e.what()}});
-                    conn->PostResponse(std::move(ps.MutableBuffer()));
-                    session->state = SessionState::FAILED;
+                    RespondFailure(ErrorCode::UnknownError, e.what());
                 }
             }
         }

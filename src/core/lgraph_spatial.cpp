@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ namespace lgraph_api {
 
 bool Endian(const std::string& ewkb) {
     if (ewkb.size() < 42)
-        throw InputError("wrong wkb/ewkb format");
+        THROW_CODE(InputError, "wrong wkb/ewkb format");
 
     std::string endian = ewkb.substr(0, 2);
     if (endian == "01") {
@@ -32,7 +32,7 @@ bool Endian(const std::string& ewkb) {
 void EndianTransfer(std::string& input) {
     size_t size = input.size();
     if (size % 2 || size <= 2)
-        throw InputError("invalid endian transfer data!");
+        THROW_CODE(InputError, "invalid endian transfer data!");
     int i = size - 2;
     std::string output;
     while (i >= 0) {
@@ -44,7 +44,7 @@ void EndianTransfer(std::string& input) {
 
 std::string Srid2Hex(SRID srid_type, size_t width) {
     if (width < 4)
-        throw InputError("invalid width in Srid2Hex!");
+        THROW_CODE(InputError, "invalid width in Srid2Hex!");
     int srid = static_cast<int>(srid_type);
     std::stringstream ioss;
     std::string s_hex;
@@ -64,7 +64,7 @@ std::string Srid2Hex(SRID srid_type, size_t width) {
 // there's some problem in big2little transform
 void WkbEndianTransfer(std::string& wkb) {
     if (wkb.size() < 42)
-        throw InputError("wrong wkb type!");
+        THROW_CODE(InputError, "wrong wkb type!");
     // transfer the first byte which represents the big/little endian;
     std::string output;
     std::string en = wkb.substr(0, 2);
@@ -108,7 +108,7 @@ void WkbEndianTransfer(std::string& wkb) {
 
 std::string EwkbEndianTransfer(const std::string& ewkb) {
     if (ewkb.size() < 50)
-        throw InputError("wrong wkb type!");
+        THROW_CODE(InputError, "wrong wkb type!");
     std::string output;
     std::string tmp = ewkb.substr(0, 2);  // transfer the first byte which represents the type;
     if (tmp == "01") tmp = "00";
@@ -180,7 +180,7 @@ std::string SetExtension(const std::string& wkb, SRID srid_type) {
 SRID ExtractSRID(const std::string& ewkb) {
     // only ewkb format have srid information;
     if (ewkb.size() < 50)
-        throw InputError("wrong EWKB type");
+        THROW_CODE(InputError, "wrong EWKB type");
 
     std::string srid = ewkb.substr(10, 8);
     // transfer the little endian data into big endian for convenient;
@@ -199,14 +199,11 @@ SRID ExtractSRID(const std::string& ewkb) {
         case 7203:
             return SRID::CARTESIAN;
         default:
-            throw InputError("Unsupported SRID!");
+            THROW_CODE(InputError, "Unsupported SRID!");
     }
 }
 
 SpatialType ExtractType(const std::string& ewkb) {
-    // if (EWKB.size() < 50)
-    //    throw InputError("wrong EWKB type");
-
     std::string type = ewkb.substr(2, 8);
     // if the input format is EWKB type, we only need the first 2 bytes;
     if (type[4] != '0' || type[6] != '0')
@@ -230,7 +227,7 @@ SpatialType ExtractType(const std::string& ewkb) {
         case 3:
             return SpatialType::POLYGON;
         default:
-            throw InputError("Unkown Spatial Type!");
+            THROW_CODE(InputError, "Unkown Spatial Type!");
     }
 }
 
@@ -313,7 +310,7 @@ Spatial<SRID_Type>::Spatial(SRID srid, SpatialType type, int construct_type, std
     type_ = type;
     switch (type) {
         case SpatialType::NUL:
-            throw InputError("Unknown Spatial Type");
+            THROW_CODE(InputError, "Unknown Spatial Type");
         case SpatialType::POINT:
             point_.reset(new Point<SRID_Type>(srid, type, construct_type, content));
             break;
@@ -332,7 +329,7 @@ Spatial<SRID_Type>::Spatial(const std::string& ewkb) {
 
     switch (type_) {
         case SpatialType::NUL:
-            throw InputError("Unknown Spatial Type");
+            THROW_CODE(InputError, "Unknown Spatial Type");
         case SpatialType::POINT:
             point_.reset(new Point<SRID_Type>(ewkb));
             break;
@@ -427,7 +424,7 @@ double Spatial<SRID_Type>::Distance(Spatial<SRID_Type>& other) {
         }
 
         default:
-            throw InputError("unsupported spatial type!");
+            THROW_CODE(InputError, "unsupported spatial type!");
     }
 }
 
@@ -441,7 +438,7 @@ Point<SRID_Type>::Point(SRID srid, SpatialType type, int construct_type, std::st
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
-        throw InputError("template srid dismatch with input srid");
+        THROW_CODE(InputError, "template srid dismatch with input srid");
     }
 
     if (construct_type == 0) {
@@ -452,7 +449,7 @@ Point<SRID_Type>::Point(SRID srid, SpatialType type, int construct_type, std::st
 
         if (!bg::hex2wkb(content, std::back_inserter(wkb_)) ||
         !bg::read_wkb(wkb_.begin(), wkb_.end(), point_)) {
-            throw InputError("wrong wkb format: " + content);
+            THROW_CODE(InputError, "wrong wkb format: " + content);
         }
         // extend wkb format to ewkb format
         ewkb_ = SetExtension(content, GetSrid());
@@ -465,11 +462,11 @@ Point<SRID_Type>::Point(SRID srid, SpatialType type, int construct_type, std::st
         try {
             bg::read_wkt(content, point_);
         } catch (const std::exception &ex) {
-            throw InputError("wrong wkt format:" + std::string(ex.what()));
+            THROW_CODE(InputError, "wrong wkt format:" + std::string(ex.what()));
         }
 
         if (!bg::write_wkb(point_, std::back_inserter(wkb_out))) {
-            throw InputError("wrong wkt format: " + content);
+            THROW_CODE(InputError, "wrong wkt format: " + content);
         }
 
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), ewkb_);
@@ -486,7 +483,7 @@ Point<SRID_Type>::Point(const std::string& ewkb)
     SRID srid = ExtractSRID(ewkb);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
-        throw InputError("template srid dismatch with input srid");
+        THROW_CODE(InputError, "template srid dismatch with input srid");
     }
     if (!Endian(ewkb))
         ewkb_ = EwkbEndianTransfer(ewkb);
@@ -498,7 +495,7 @@ Point<SRID_Type>::Point(const std::string& ewkb)
 
     if (!bg::hex2wkb(wkb, std::back_inserter(wkb_)) ||
     !bg::read_wkb(wkb_.begin(), wkb_.end(), point_)) {
-        throw InputError("wrong wkb format: " + wkb);
+        THROW_CODE(InputError, "wrong wkb format: " + wkb);
     }
 
     transform(ewkb_.begin(), ewkb_.end(), ewkb_.begin(), ::toupper);
@@ -514,7 +511,7 @@ Point<SRID_Type>::Point(double arg1, double arg2, SRID& srid)
     bg::write_wkb(point_, std::back_inserter(wkb_out));
     std::string hex_out;
     if (!bg::wkb2hex(wkb_out.begin(), wkb_out.end(), hex_out))
-        throw InputError("wrong  point data!");
+        THROW_CODE(InputError, "wrong point data!");
     // set extension
     ewkb_ = SetExtension(hex_out, srid);
     transform(ewkb_.begin(), ewkb_.end(), ewkb_.begin(), ::toupper);
@@ -544,21 +541,21 @@ std::string Point<SRID_Type>::ToString() const {
 template<typename SRID_Type>
 double Point<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(point_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Point<SRID_Type>::Distance(LineString<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(point_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Point<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(point_, other.GetSpatialData());
 }
 
@@ -573,7 +570,7 @@ int construct_type, std::string& content)
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
-        throw InputError("template srid dismatch with input srid");
+        THROW_CODE(InputError, "template srid dismatch with input srid");
     }
 
     if (construct_type == 0) {
@@ -582,7 +579,7 @@ int construct_type, std::string& content)
         ByteVector wkb_;
         if (!bg::hex2wkb(content, std::back_inserter(wkb_)) ||
         !bg::read_wkb(wkb_.begin(), wkb_.end(), line_)) {
-            throw InputError("wrong wkb format: " + content);
+            THROW_CODE(InputError, "wrong wkb format: " + content);
         }
         ewkb_ = SetExtension(content, GetSrid());
     }
@@ -592,11 +589,11 @@ int construct_type, std::string& content)
         try {
             bg::read_wkt(content, line_);
         } catch(const std::exception &ex) {
-            throw InputError("wrong wkt format" + std::string(ex.what()));
+            THROW_CODE(InputError, "wrong wkt format" + std::string(ex.what()));
         }
 
         if (!bg::write_wkb(line_, std::back_inserter(wkb_out))) {
-            throw InputError("wrong wkt format: " + content);
+            THROW_CODE(InputError, "wrong wkt format: " + content);
         }
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), ewkb_);
         ewkb_ = SetExtension(ewkb_, GetSrid());
@@ -610,7 +607,7 @@ LineString<SRID_Type>::LineString(const std::string& ewkb)
     SRID srid = ExtractSRID(ewkb);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
-        throw InputError("template srid dismatch with input srid");
+        THROW_CODE(InputError, "template srid dismatch with input srid");
     }
 
     if (!Endian(ewkb))
@@ -623,7 +620,7 @@ LineString<SRID_Type>::LineString(const std::string& ewkb)
 
     if (!bg::hex2wkb(wkb, std::back_inserter(wkb_)) ||
     !bg::read_wkb(wkb_.begin(), wkb_.end(), line_)) {
-        throw InputError("wrong wkb format: " + wkb);
+        THROW_CODE(InputError, "wrong wkb format: " + wkb);
     }
 }
 
@@ -652,21 +649,21 @@ std::string LineString<SRID_Type>::ToString() const {
 template<typename SRID_Type>
 double LineString<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(line_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double LineString<SRID_Type>::Distance(LineString<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(line_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double LineString<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(line_, other.GetSpatialData());
 }
 
@@ -680,7 +677,7 @@ Polygon<SRID_Type>::Polygon(SRID srid, SpatialType type, int construct_type, std
 : SpatialBase(srid, type) {
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
-        throw InputError("template srid dismatch with input srid");
+        THROW_CODE(InputError, "template srid dismatch with input srid");
     }
 
     if (construct_type == 0) {
@@ -690,7 +687,7 @@ Polygon<SRID_Type>::Polygon(SRID srid, SpatialType type, int construct_type, std
         bg::hex2wkb(content, std::back_inserter(wkb_));
         if (!bg::hex2wkb(content, std::back_inserter(wkb_)) ||
         !bg::read_wkb(wkb_.begin(), wkb_.end(), polygon_)) {
-            throw InputError("wrong wkb format: " + content);
+            THROW_CODE(InputError, "wrong wkb format: " + content);
         }
 
         ewkb_ = SetExtension(content, GetSrid());
@@ -702,11 +699,11 @@ Polygon<SRID_Type>::Polygon(SRID srid, SpatialType type, int construct_type, std
         try {
             bg::read_wkt(content, polygon_);
         } catch (const std::exception &ex) {
-            throw InputError("wrong wkt format" + std::string(ex.what()));
+            THROW_CODE(InputError, "wrong wkt format" + std::string(ex.what()));
         }
 
         if (!bg::write_wkb(polygon_, std::back_inserter(wkb_out))) {
-            throw InputError("wrong wkt format: " + content);
+            THROW_CODE(InputError, "wrong wkt format: " + content);
         }
 
         bg::wkb2hex(wkb_out.begin(), wkb_out.end(), ewkb_);
@@ -721,7 +718,7 @@ Polygon<SRID_Type>::Polygon(const std::string& ewkb)
     SRID srid = ExtractSRID(ewkb);
     if ((std::is_same<SRID_Type, Cartesian>::value && srid != SRID::CARTESIAN)
     || (std::is_same<SRID_Type, Wgs84>::value && srid != SRID::WGS84)) {
-        throw InputError("template srid dismatch with input srid");
+        THROW_CODE(InputError, "template srid dismatch with input srid");
     }
 
     if (!Endian(ewkb))
@@ -735,7 +732,7 @@ Polygon<SRID_Type>::Polygon(const std::string& ewkb)
 
     if (!bg::hex2wkb(wkb, std::back_inserter(wkb_)) ||
     !bg::read_wkb(wkb_.begin(), wkb_.end(), polygon_)) {
-        throw InputError("wrong wkb format: " + wkb);
+        THROW_CODE(InputError, "wrong wkb format: " + wkb);
     }
 }
 
@@ -759,21 +756,21 @@ std::string Polygon<SRID_Type>::AsEWKT() const {
 template<typename SRID_Type>
 double Polygon<SRID_Type>::Distance(Point<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(polygon_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Polygon<SRID_Type>::Distance(LineString<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(polygon_, other.GetSpatialData());
 }
 
 template<typename SRID_Type>
 double Polygon<SRID_Type>::Distance(Polygon<SRID_Type>& other) {
     if (other.GetSrid() != GetSrid())
-        throw InputError("distance srid missmatch!");
+        THROW_CODE(InputError, "distance srid missmatch!");
     return bg::distance(polygon_, other.GetSpatialData());
 }
 

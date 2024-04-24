@@ -8,11 +8,12 @@ WITH_PROCEDURE=${3:-"OFF"}
 cd $WORKSPACE
 
 # cpplint check
+bash ./cpplint/doc_gen.sh
 bash ./cpplint/check_all.sh
 
 # build deps
 cd deps
-SKIP_WEB=1 bash ./build_deps.sh -j2
+bash ./build_deps.sh -j2
 
 # build tugraph
 cd $WORKSPACE
@@ -76,7 +77,7 @@ else
   cp -r ../../learn/examples/* ./
   cp -r ../../demo/movie .
   if [[ "$WITH_PROCEDURE" == "OFF" ]]; then
-      rm -rf test_algo.py test_sampling.py test_train.py
+      rm -rf test_algo.py test_sampling.py test_train.py test_algo_v2.py
   fi
   pytest ./
   # codecov

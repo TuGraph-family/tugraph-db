@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -171,7 +171,7 @@ TEST_F(TestBatchEdgeIndex, BatchEdgeIndex) {
     lgraph::Galaxy::Config conf;
     conf.dir = db_path;
     lgraph::Galaxy galaxy(conf, true, nullptr);
-    if (galaxy.GetUserToken(user, password).empty()) throw AuthError("Bad user/password.");
+    if (galaxy.GetUserToken(user, password).empty()) THROW_CODE(Unauthorized, "Bad user/password.");
     lgraph::AccessControlledDB ac_db = galaxy.OpenGraph(user, graph);
     LightningGraph* db = ac_db.GetLightningGraph();
 

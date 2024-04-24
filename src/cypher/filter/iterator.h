@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class LabelVertexIterator {
     bool IsValid() const { return _valid; }
 
     lgraph::VertexId GetId() const {
-        if (!IsValid()) throw lgraph::InternalError("get id of invalid LabelVertexIterator");
+        if (!IsValid()) THROW_CODE(InternalError, "get id of invalid LabelVertexIterator");
         return _it->GetId();
     }
 
@@ -596,27 +596,27 @@ class TypeEdgeIterator {
     bool IsValid() const { return _valid; }
 
     lgraph::EdgeUid GetUid() const {
-        if (!IsValid()) throw lgraph::InternalError("get uid of invalid EIter");
+        if (!IsValid()) THROW_CODE(InternalError, "get uid of invalid EIter");
         return _eit->GetUid();
     }
 
     lgraph::VertexId GetSrc() const {
-        if (!IsValid()) throw lgraph::InternalError("get src of invalid EIter");
+        if (!IsValid()) THROW_CODE(InternalError, "get src of invalid EIter");
         return _eit->GetSrc();
     }
 
     lgraph::VertexId GetDst() const {
-        if (!IsValid()) throw lgraph::InternalError("get dst of invalid EIter");
+        if (!IsValid()) THROW_CODE(InternalError, "get dst of invalid EIter");
         return _eit->GetDst();
     }
 
     lgraph::LabelId GetLabel() const {
-        if (!IsValid()) throw lgraph::InternalError("get label of invalid EIter");
+        if (!IsValid()) THROW_CODE(InternalError, "get label of invalid EIter");
         return _eit->GetLabelId();
     }
 
     lgraph::EdgeId GetEdgeId() const {
-        if (!IsValid()) throw lgraph::InternalError("get eid of invalid EIter");
+        if (!IsValid()) THROW_CODE(InternalError, "get eid of invalid EIter");
         return _eit->GetEdgeId();
     }
 };

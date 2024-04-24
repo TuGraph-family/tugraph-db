@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ int TestEdgeIndexImpl();
 int TestEdgeIndexValue();
 int TestEdgeIndexCRUD();
 int CURDEdgeWithTooLongKey();
+int TestERefreshContentIfKvIteratorModified();
 
 namespace lgraph {
 class Transaction;
@@ -314,6 +315,7 @@ class EdgeIndex {
     friend int ::TestEdgeIndexImpl();
     friend int ::TestEdgeIndexCRUD();
     friend int ::CURDEdgeWithTooLongKey();
+    friend int ::TestERefreshContentIfKvIteratorModified();
 
     std::shared_ptr<KvTable> table_;
     FieldType key_type_;

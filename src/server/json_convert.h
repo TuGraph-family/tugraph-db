@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #pragma once
 #include "tools/json.hpp"
 #include "core/data_type.h"
+#include "fma-common/utils.h"
 
 namespace lgraph_rfc {
 
@@ -49,7 +50,9 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         }
     case lgraph_api::FieldType::FLOAT:
         {
-            return json(data.AsFloat());
+            // https://github.com/nlohmann/json/issues/1109
+            double d = fma_common::DoubleDecimalPlaces(data.AsFloat(), 5);
+            return json(d);
         }
     case lgraph_api::FieldType::DOUBLE:
         {
@@ -86,7 +89,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianPoint().ToString());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
     case lgraph_api::FieldType::LINESTRING:
@@ -98,7 +101,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianLineString().ToString());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
     case lgraph_api::FieldType::POLYGON:
@@ -110,7 +113,7 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianPolygon().ToString());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
     case lgraph_api::FieldType::SPATIAL:
@@ -122,12 +125,12 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
                 case ::lgraph_api::SRID::CARTESIAN:
                     return json(data.AsCartesianSpatial().ToString());
                 default:
-                    throw lgraph::InputError("unsupported spatial srid");
+                    THROW_CODE(InputError, "unsupported spatial srid");
             }
         }
     default:
-        throw lgraph::InputError(fma_common::StringFormatter::Format(
-            "FieldDataToJson: unsupported field type: {}", data.type));
+        THROW_CODE(InputError,
+            "FieldDataToJson: unsupported field type: {}", data.type);
     }
 }
 
@@ -146,7 +149,7 @@ static lgraph_api::FieldData JsonToFieldData(const json& j_object) {
     } else if (!j_object.is_discarded()) {
         return lgraph_api::FieldData(j_object.dump());
     } else {
-        throw lgraph::InputError("JsonToFieldData: unsupported json");
+        THROW_CODE(InputError, "JsonToFieldData: unsupported json");
     }
 }
 }  // namespace lgraph_rfc

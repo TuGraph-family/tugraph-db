@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,12 +58,14 @@ lgraph::Transaction lgraph::AccessControlledDB::ForkTxn(Transaction& txn) {
 }
 
 bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std::string& user,
-                                            const std::string& name, const std::string& code,
+                                            const std::string& name,
+                                            const std::vector<std::string>& code,
+                                            const std::vector<std::string>& filename,
                                             plugin::CodeType code_type, const std::string& desc,
                                             bool is_read_only, const std::string& version) {
     CheckAdmin();
-    return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, code_type,
-                                                          desc, is_read_only, version);
+    return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, filename,
+                                                          code_type, desc, is_read_only, version);
 }
 
 bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& user,
@@ -80,7 +82,7 @@ bool lgraph::AccessControlledDB::CallPlugin(lgraph_api::Transaction* txn,
     auto pm = graph_->GetPluginManager();
     bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
     if (access_level_ < AccessLevel::WRITE && !is_readonly)
-        throw AuthError("Write permission needed to call this plugin.");
+        THROW_CODE(Unauthorized, "Write permission needed to call this plugin.");
     return pm->Call(txn,
                     plugin_type,
                     user,
@@ -90,6 +92,26 @@ bool lgraph::AccessControlledDB::CallPlugin(lgraph_api::Transaction* txn,
                     timeout_seconds,
                     in_process,
                     output);
+}
+
+bool lgraph::AccessControlledDB::CallV2Plugin(lgraph_api::Transaction* txn,
+                                              plugin::Type plugin_type, const std::string& user,
+                                              const std::string& name, const std::string& request,
+                                              double timeout_seconds, bool in_process,
+                                              Result& output) {
+    auto pm = graph_->GetPluginManager();
+    bool is_readonly = pm->IsReadOnlyPlugin(plugin_type, user, name);
+    if (access_level_ < AccessLevel::WRITE && !is_readonly)
+        THROW_CODE(Unauthorized, "Write permission needed to call this plugin.");
+    return pm->CallV2(txn,
+                      plugin_type,
+                      user,
+                      this,
+                      name,
+                      request,
+                      timeout_seconds,
+                      in_process,
+                      output);
 }
 
 std::vector<lgraph::PluginDesc> lgraph::AccessControlledDB::ListPlugins(plugin::Type plugin_type,

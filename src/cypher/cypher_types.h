@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -216,7 +216,7 @@ static ::lgraph::EdgeUid ExtractEdgeUid(const std::string& s) {
     // WARNING: Five tuple is temporary solution.
     //          You should rewrite the line or func when the finally plan have be proposed.
     // TODO(heng)
-    if (ns.size() != 5) throw lgraph::InputError("Failed extract EdgeUid from string.");
+    if (ns.size() != 5) THROW_CODE(InputError, "Failed extract EdgeUid from string.");
     return {ns[0], ns[1], static_cast<::lgraph::LabelId>(ns[2]), ns[3], ns[4]};
 }
 

@@ -1,7 +1,8 @@
-from lgraph_db_python import *
 import sys
 import importlib
 sys.path.append("./algo/")
+sys.path.append("./")
+from lgraph_db_python import *
 
 def python_embed_main(algo):
     galaxy = PyGalaxy(sys.argv[2])

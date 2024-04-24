@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -411,9 +411,9 @@ TEST_P(TestSpatial, Spatial_Schema) {
         auto old_fields = fields;
         for (auto& f : mod) old_fields[f.name] = f;
         UT_EXPECT_TRUE(fmap == old_fields);
-        UT_EXPECT_THROW(s2.ModFields(std::vector<FieldSpec>(
+        UT_EXPECT_THROW_CODE(s2.ModFields(std::vector<FieldSpec>(
                             {FieldSpec("no_such_field", FieldType::BLOB, true)})),
-                        FieldNotFoundException);
+                        FieldNotFound);
     }
 
     // Del fields;

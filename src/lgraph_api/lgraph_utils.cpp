@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -183,4 +183,11 @@ void dealloc_buffer(void* buffer, size_t bytes) {
     }
 #endif
 }
+
+size_t GetVidFromNodeString(const std::string& node_string) {
+    // node_string format: V[{id}]
+    auto id_begin = node_string.find('[');
+    return strtoll(node_string.c_str() + id_begin + 1, NULL, 10);
+}
+
 }  // namespace lgraph_api

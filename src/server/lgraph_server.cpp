@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ int LGraphServer::Start() {
                << "\n"
                << "*                                                                    *"
                << "\n"
-               << "*    Copyright(C) 2018-2024 Ant Group. All rights reserved.          *"
+               << "*    Copyright(C) 2018-2023 Ant Group. All rights reserved.          *"
                << "\n"
                << "*                                                                    *"
                << "\n"
@@ -240,6 +240,7 @@ int LGraphServer::Start() {
             brpc::ServerOptions brpc_options;
             brpc_options.has_builtin_services = false;
             if (config_->thread_limit != 0) brpc_options.max_concurrency = config_->thread_limit;
+            // brpc_options.num_threads = brpc_options.max_concurrency = 1;
             if (config_->enable_ssl) {
                 brpc_options.mutable_ssl_options()->default_cert.certificate =
                     config_->server_cert_file;

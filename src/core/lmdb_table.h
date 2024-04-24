@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,11 +158,18 @@ class LMDBKvTable final : public KvTable {
     int CompareKey(KvTransaction& txn, const Value& k1, const Value& k2) const override;
 
     /**
-     * Drops this table. Please make sure no other thread will access this table after this call.
+     * Empty this table.
      *
-     * \param [in,out]  txn             The transaction.
+     * \param [in,out]  txn    The transaction.
      */
     void Drop(KvTransaction& txn) override;
+
+    /**
+     * Delete this table.
+     *
+     * \param [in,out]  txn    The transaction.
+     */
+    void Delete(KvTransaction& txn) override;
 
     /**
      * Gets the name of the table.

@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -31,7 +31,7 @@ namespace lgraph_api {
 // running if they are.
 //
 // The lgraph_api calls always check for the kill flag when they are called and
-// throw an TaskKilledException if the flag is set, so the plugin can exit if the
+// throw an TaskKilled if the flag is set, so the plugin can exit if the
 // exception is not caught. However, if the plugin is running a busy loop, the
 // plugin writer is responsible for checking the kill flag and exiting if it is set.
 
@@ -83,11 +83,11 @@ class Transaction;
 /**
  * @brief GraphDB represents a graph instance. In TuGraph, each graph instance has its own schema
  *        and access control settings. Accessing a GraphDB without appropriate access rights
- *        yields WriteNotAllowedError.
+ *        yields WriteNotAllowed.
  *
  *        A GraphDB becomes invalid if Close() is called, in which case all transactions and
  *        iterators associated with that GraphDB become invalid. Further operation on that
- *        GraphDB yields InvalidGraphDBError.
+ *        GraphDB yields InvalidGraphDB.
  */
 class GraphDB {
     lgraph::AccessControlledDB *db_;
@@ -116,7 +116,7 @@ class GraphDB {
     /**
      * @brief   Creates a read transaction.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      *
      * @returns The new read transaction.
      */
@@ -127,10 +127,10 @@ class GraphDB {
      *          transactions, otherwise exceptions will be thrown. A write transaction can be
      *          optimistic. Optimistic transactions can run in parallel and any conflict
      *          will be detected during commit. If a transaction conflicts with an ealier one, a
-     *          TxnConflictError will be thrown during commit.
+     *          TxnConflict will be thrown during commit.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      *
      * @param   optimistic  (Optional) True to create an optimistic transaction.
@@ -144,10 +144,10 @@ class GraphDB {
      *          as the forked one, meaning that when reads are performed on the same vertex/edge,
      *          the results will always be identical, whether they are performed in the original
      *          transaction or the forked one. Only read transactions can be forked. Calling
-     *          ForkTxn() on a write txn causes an InvalidForkError to be thrown.
+     *          ForkTxn() on a write txn causes an InvalidFork to be thrown.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
-     * @exception   InvalidForkError    Thrown when txn is a write transaction.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
+     * @exception   InvalidFork    Thrown when txn is a write transaction.
      *
      * @param [in]  txn The read transaction to be forked.
      *
@@ -161,15 +161,15 @@ class GraphDB {
      *          Calling Flush() will persist the data and prevent data loss in case of system
      *          crash.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      */
     void Flush();
 
     /**
      * @brief   Drop all the data in the graph, including labels, indexes and vertexes/edges..
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      */
     void DropAllData();
@@ -177,8 +177,8 @@ class GraphDB {
     /**
      * @brief   Drop all vertex and edges but keep the labels and indexes.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      */
     void DropAllVertex();
@@ -189,7 +189,7 @@ class GraphDB {
      *          you have deleted a lot of vertices, the result can be quite different from actual
      *          number of vertices.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      *
      * @returns Estimated number of vertices.
      */
@@ -202,8 +202,8 @@ class GraphDB {
     /**
      * @brief   Adds a vertex label.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if the schema is illegal.
      *
@@ -219,8 +219,8 @@ class GraphDB {
     /**
      * @brief   Deletes a vertex label and all the vertices with this label.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      *
      * @param       label       The label name.
@@ -234,8 +234,8 @@ class GraphDB {
      * @brief   Deletes fields in a vertex label. This function also updates the vertex data and
      *          indices accordingly to make sure the database remains in consistent state.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if field not found, or some fields cannot be
      *                                      deleted.
@@ -254,8 +254,8 @@ class GraphDB {
      * @brief   Add fields to a vertex label. The new fields in existing vertices will be filled
      *          with default values.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if field already exists.
      *
@@ -275,8 +275,8 @@ class GraphDB {
     /**
      * @brief   Modify fields in a vertex label, either chage the data type or optional, or both.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if field not found, or is of incompatible data
      *                                      type.
@@ -298,8 +298,8 @@ class GraphDB {
      *          vertices. By default, the constain is empty, meaning that the edge is not
      *          restricted.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              if invalid schema (invalid specification, re-
      *                                      definition of the same field, etc.).
@@ -319,8 +319,8 @@ class GraphDB {
     /**
      * @brief   Deletes an edge label and all the edges of this type.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      *
      * @param       label       The label.
@@ -334,8 +334,8 @@ class GraphDB {
      * @brief   Modify edge constraint. Existing edges that violate the new constrain will be
      *          removed.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if any vertex label does not exist.
      *
@@ -351,8 +351,8 @@ class GraphDB {
     /**
      * @brief   Deletes fields in an edge label.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if any field does not exist, or cannot be
      *                                      deleted.
@@ -371,8 +371,8 @@ class GraphDB {
      * @brief   Add fields to an edge label. The new fields in existing edges will be set to
      *          default values.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if any field already exists, or the default
      *                                      value is of incompatible type.
@@ -392,8 +392,8 @@ class GraphDB {
     /**
      * @brief   Modify fields in an edge label. Data type and OPTIONAL can be modified.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if any field does not exist, or is of
      *                                      incompatible data type.
@@ -415,8 +415,8 @@ class GraphDB {
      * @brief   Adds an index to 'label:field'. This function blocks until the index is fully
      *          created.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if label:field does not exist, or not
      *                                      indexable.
@@ -433,8 +433,8 @@ class GraphDB {
      * @brief   Adds an index to 'label:field'. This function blocks until the index is fully
      *          created.
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
      *                                      level.
      * @exception   InputError              Thrown if label:field does not exist, or not
      *                                      indexable.
@@ -450,7 +450,7 @@ class GraphDB {
     /**
      * @brief   Check if this vertex_label:field is indexed.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      * @exception   InputError          Thrown if label:field does not exist.
      *
      * @param   label   The label.
@@ -463,7 +463,7 @@ class GraphDB {
     /**
      * @brief   Check if this edge_label:field is indexed.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      * @exception   InputError          Thrown if label:field does not exist.
      *
      * @param   label   The label.
@@ -476,10 +476,10 @@ class GraphDB {
     /**
      * @brief   Deletes the index to 'vertex_label:field'
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
-     * @exception   InputError              Thrown if label or field does not exist.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
+     * @exception   InputError         Thrown if label or field does not exist.
      *
      * @param   label   The label.
      * @param   field   The field.
@@ -491,10 +491,10 @@ class GraphDB {
     /**
      * @brief   Deletes the index to 'edge_label:field'
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
-     * @exception   InputError              Thrown if label or field does not exist.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
+     * @exception   InputError         Thrown if label or field does not exist.
      *
      * @param   label   The label.
      * @param   field   The field.
@@ -506,7 +506,7 @@ class GraphDB {
     /**
      * @brief   Get graph description
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      *
      * @returns The description.
      */
@@ -515,7 +515,7 @@ class GraphDB {
     /**
      * @brief   Get maximum graph size
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      *
      * @returns The maximum size.
      */
@@ -524,10 +524,10 @@ class GraphDB {
     /**
      * @brief   Add fulltext index to 'vertex_label:field'
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
-     * @exception   InputError              Thrown if vertex label or field does not exist.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
+     * @exception   InputError         Thrown if vertex label or field does not exist.
      *
      * @param   vertex_label    The vertex label.
      * @param   field           The field.
@@ -540,10 +540,10 @@ class GraphDB {
     /**
      * @brief   Add fulltext index to 'edge_label:field'
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
-     * @exception   InputError              Thrown if edge label or field does not exist.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
+     * @exception   InputError         Thrown if edge label or field does not exist.
      *
      * @param   edge_label  The edge label.
      * @param   field       The field.
@@ -555,10 +555,10 @@ class GraphDB {
     /**
      * @brief   Delete the fulltext index of 'vertex_label:field'
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
-     * @exception   InputError              Thrown if vertex label or field does not exist.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
+     * @exception   InputError         Thrown if vertex label or field does not exist.
      *
      * @param   vertex_label    The vertex label.
      * @param   field           The field.
@@ -570,10 +570,10 @@ class GraphDB {
     /**
      * @brief   Delete the fulltext index of 'edge_label:field'
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
-     * @exception   InputError              Thrown if edge label or field does not exist.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
+     * @exception   InputError         Thrown if edge label or field does not exist.
      *
      * @param   edge_label  The edge label.
      * @param   field       The field.
@@ -594,9 +594,9 @@ class GraphDB {
     /**
      * @brief   List fulltext indexes of vertex and edge
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
      *
      * @returns Format of returned data : (is_vertex, label_name, property_name)
      */
@@ -605,7 +605,7 @@ class GraphDB {
     /**
      * @brief   Query vertex by fulltext index.
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      * @exception   InputError          Thrown if label does not exist.
      *
      * @param   label   The vertex label.
@@ -621,7 +621,7 @@ class GraphDB {
     /**
      * @brief   Query edge by fulltext index
      *
-     * @exception   InvalidGraphDBError Thrown when currently GraphDB is invalid.
+     * @exception   InvalidGraphDB Thrown when currently GraphDB is invalid.
      * @exception   InputError          Thrown if label does not exist.
      *
      * @param   label   The edge label.
@@ -637,9 +637,9 @@ class GraphDB {
     /**
      * @brief   Recount the total number of vertex and edge, stop writing during the count
      *
-     * @exception   InvalidGraphDBError     Thrown when currently GraphDB is invalid.
-     * @exception   WriteNotAllowedError    Thrown when called on a GraphDB with read-only access
-     *                                      level.
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                 level.
      */
     void RefreshCount();
 };

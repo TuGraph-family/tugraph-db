@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ class IndexManager {
         fma_common::BinaryBuffer buf(v.Data(), v.Size());
         _detail::IndexEntry idx;
         size_t r = fma_common::BinaryRead(buf, idx);
-        if (r != v.Size()) throw InternalError("Failed to load index meta info from buffer");
+        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load index meta info from buffer");
         return idx;
     }
 

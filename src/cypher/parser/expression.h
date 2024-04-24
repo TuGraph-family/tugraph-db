@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -271,17 +271,20 @@ struct Expression {
                 /* function_name(DISTINCT_OR_NOT args) */
                 auto& list = List();
                 if (list.empty()) return str;
-                str.append(list[0].String()).append("(");
-                for (int i = 1; i < (int)list.size(); i++) {
-                    if (i == 1) {
-                        CYPHER_THROW_ASSERT(list[1].type == BOOL);
-                        if (list[1].Bool()) str.append("DISTINCT ");
-                        continue;
+                str.append(list[0].String());
+                if ((list[0].String() != "count(*)")) {
+                    str.append("(");
+                    for (int i = 1; i < (int)list.size(); i++) {
+                        if (i == 1) {
+                            CYPHER_THROW_ASSERT(list[1].type == BOOL);
+                            if (list[1].Bool()) str.append("DISTINCT ");
+                            continue;
+                        }
+                        if (i > 2) str.append(",");
+                        str.append(list[i].ToString(pretty));
                     }
-                    if (i > 2) str.append(",");
-                    str.append(list[i].ToString(pretty));
+                    str.append(")");
                 }
-                str.append(")");
                 return str;
             }
         case MATH:

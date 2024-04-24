@@ -1,8 +1,7 @@
 # TuGraph
 
 [![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
-[![Unit Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_ut.yml)
-[![Integration Test](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci_it.yml)
+[![UT&&IT](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/tugraph-db/badge/?version=latest)](https://tugraph-db.readthedocs.io/en/latest/?badge=latest)
 [![Commit](https://badgen.net/github/last-commit/tugraph-family/tugraph-db/master?icon=git&label=Commit)](https://github.com/TuGraph-family/tugraph-db/commits/master)
 [![codecov](https://codecov.io/gh/TuGraph-family/tugraph-db/branch/master/graph/badge.svg?token=JH78ARWZAQ)](https://codecov.io/gh/TuGraph-family/tugraph-db)
@@ -14,7 +13,7 @@
 [![License](https://shields.io/github/license/tugraph-family/tugraph-db?logo=apache&label=License&color=blue)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 [![EN](https://shields.io/badge/Docs-English-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
-[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/en/latest)
+[![CN](https://shields.io/badge/Docs-中文-blue?logo=readme)](https://tugraph-db.readthedocs.io/zh-cn/latest)
 
 [[中文版]](README_CN.md)
 
@@ -53,7 +52,7 @@ For more details, please refer to [quick start doc](docs/en-US/source/3.quick-st
 It's recommended to build TuGraph in linux system, and docker environment is a good choice. If you want to setup a new environment, please refer to [Dockerfile](ci/images).
 
 Here are steps to compile TuGraph:
-1. `deps/build_deps.sh` or to skip building web interface `SKIP_WEB=1 deps/build_deps.sh` 
+1. run `deps/build_deps.sh` to build tugraph-web if you need. Skip this step otherwise.
 2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
 3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
 4. `make`
@@ -77,9 +76,9 @@ $ make package
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-compile-[os]:[compile version]`, 
 for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers get started easily.
 
-We have a [roadmap](docs/en-US/source/6.contributor-manual/5.roadmap.md) to help you understand TuGraph.
+We have a [roadmap](docs/en-US/source/12.contributor-manual/5.roadmap.md) to help you understand TuGraph.
 
-To contribute, please read [doc](docs/en-US/source/6.contributor-manual/1.contributing.md).
+To contribute, please read [doc](docs/en-US/source/12.contributor-manual/1.contributing.md).
 
 NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-assistant.io/TuGraph-db/tugraph-db).
 
@@ -106,7 +105,7 @@ Slack (For developer quick communication):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 Contact us via dingtalk, wechat, email and telephone:
-![contacts](./docs/images/contact_us.png)
+![contacts](./docs/images/contact-en.png)
 
 
 

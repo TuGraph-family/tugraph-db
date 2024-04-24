@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -199,7 +199,7 @@ class InMemoryGraph {
     EdgeUid AddEdge(VertexId src, VertexId dst, const std::string& label, const Properties& props) {
         auto vgit = vgraph_.find(src);
         if (vgit == vgraph_.end() || vgraph_.find(dst) == vgraph_.end())
-            throw lgraph::InputError("no such source");
+            THROW_CODE(InputError, "no such source");
         auto lid = eschema_.GetLabelId(label);
         auto& out_edges = vgit->second.outs;
         EdgeId eid;

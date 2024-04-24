@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -665,7 +665,7 @@ inline size_t ParseStringIntoFieldData<FieldType::BLOB>(const char* beg, const c
     if (s == 0) return 0;
     std::string decoded;
     if (!::lgraph_api::base64::TryDecode(cd, decoded)) {
-        throw InputError("Value is not a valid BASE64 string: " + cd.substr(0, 64) +
+        THROW_CODE(InputError, "Value is not a valid BASE64 string: " + cd.substr(0, 64) +
                          (cd.size() > 64 ? "..." : ""));
     }
     fd = FieldData::Blob(std::move(decoded));
@@ -804,13 +804,13 @@ struct FieldDataTypeConvert {
 };  // namespace field_data_helper
 
 inline void ThrowParseError(const FieldData& fd, FieldType ft) {
-    throw ::lgraph::InputError(fma_common::StringFormatter::Format(
-        "Failed to convert field data [{}] into type {}", fd.ToString(), FieldTypeName(ft)));
+    THROW_CODE(InputError,
+        "Failed to convert field data [{}] into type {}", fd.ToString(), FieldTypeName(ft));
 }
 
 inline void ThrowParseError(const std::string& str, FieldType ft) {
-    throw ::lgraph::InputError(fma_common::StringFormatter::Format(
-        "Failed to convert string [{}] into type {}", str, FieldTypeName(ft)));
+    THROW_CODE(InputError,
+        "Failed to convert string [{}] into type {}", str, FieldTypeName(ft));
 }
 
 template <typename ParseStringFuncT>

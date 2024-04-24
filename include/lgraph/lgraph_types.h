@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -553,13 +553,13 @@ struct FieldData {
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(::lgraph_api::Point<Cartesian>(str));
             case ::lgraph_api::SRID::WGS84:
                 return FieldData(::lgraph_api::Point<Wgs84>(str));
             default:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -570,13 +570,13 @@ struct FieldData {
     static inline FieldData LineString(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(::lgraph_api::LineString<Cartesian>(str));
             case ::lgraph_api::SRID::WGS84:
                 return FieldData(::lgraph_api::LineString<Wgs84>(str));
             default:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -586,13 +586,13 @@ struct FieldData {
     static inline FieldData Polygon(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(::lgraph_api::Polygon<Cartesian>(str));
             case ::lgraph_api::SRID::WGS84:
                 return FieldData(::lgraph_api::Polygon<Wgs84>(str));
             default:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -602,13 +602,13 @@ struct FieldData {
     static inline FieldData Spatial(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
             case ::lgraph_api::SRID::NUL:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
             case ::lgraph_api::SRID::CARTESIAN:
                 return FieldData(::lgraph_api::Spatial<Cartesian>(str));
             case ::lgraph_api::SRID::WGS84:
                 return FieldData(::lgraph_api::Spatial<Wgs84>(str));
             default:
-                throw InputError("Unsupported SRID!");
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 

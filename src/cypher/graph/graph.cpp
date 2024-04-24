@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,7 +176,7 @@ static void ExtractNodePattern(const parser::TUP_NODE_PATTERN &node_pattern, std
                 prop.type = Property::VALUE;
                 prop.value = MakeFieldData(m.second);
                 if (prop.value.is_null()) {
-                    throw lgraph::InputError("Invalid expression: " + m.second.ToString());
+                    THROW_CODE(InputError, "Invalid expression: " + m.second.ToString());
                 }
             }
         }

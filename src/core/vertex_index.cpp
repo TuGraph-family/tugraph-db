@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -244,7 +244,7 @@ void VertexIndexIterator::LoadContentFromIt() {
         }
     case IndexType::PairUniqueIndex:
         {
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
     }
 }
@@ -286,7 +286,7 @@ Value VertexIndexIterator::GetKey() const {
         }
     case IndexType::PairUniqueIndex:
         {
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
     }
     return Value();
@@ -300,16 +300,15 @@ void VertexIndexIterator::RefreshContentIfKvIteratorModified() {
         switch (type_) {
         case IndexType::GlobalUniqueIndex:
             {
-                it_->GotoClosestKey(curr_key_);
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(curr_key_)) return;
                 if (KeyOutOfRange()) return;
                 LoadContentFromIt();
                 return;
             }
         case IndexType::NonuniqueIndex:
             {
-                it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_));
-                FMA_DBG_ASSERT(it_->IsValid());
+                if (!it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_)))
+                    return;
                 if (KeyOutOfRange()) return;
                 // non-unique, need to find correct pos_
                 iv_ = VertexIndexValue(it_->GetValue());
@@ -321,7 +320,7 @@ void VertexIndexIterator::RefreshContentIfKvIteratorModified() {
                 return;
             }
         case IndexType::PairUniqueIndex:
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
         // now it_ points to a valid position, but not necessary the right one
     }
@@ -356,7 +355,7 @@ std::unique_ptr<KvTable> VertexIndex::OpenTable(KvTransaction& txn, KvStore& sto
         }
     case IndexType::PairUniqueIndex:
         {
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
     }
     desc.data_type = dt;
@@ -408,7 +407,7 @@ void VertexIndex::Dump(KvTransaction& txn,
             }
         case IndexType::PairUniqueIndex:
             {
-                throw InputError("vertex index do not support pair-unique attributes");
+                THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
             }
         }
         LOG_INFO() << line;
@@ -449,7 +448,7 @@ bool VertexIndex::Delete(KvTransaction& txn, const Value& k, int64_t vid) {
         }
     case IndexType::PairUniqueIndex:
         {
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
     }
     return false;
@@ -515,7 +514,7 @@ bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
         }
     case IndexType::PairUniqueIndex:
         {
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
     }
     return false;
@@ -536,7 +535,7 @@ size_t VertexIndex::GetMaxEdgeIndexKeySize() {
         }
     case IndexType::PairUniqueIndex:
         {
-            throw InputError("vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
         }
     }
     return key_size;

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,11 +46,11 @@ void LMDBKvStore::Open(bool create_if_not_exist) {
     if (create_if_not_exist) {
         std::error_code ec;
         if (!IsDir(path_) && !MkDir(path_)) {
-            throw KvException(std::string("Failed to create data directory ") + path_);
+            THROW_CODE(KvException, std::string("Failed to create data directory ") + path_);
         }
     } else {
         if (!IsDir(path_) || !FileExists(path_ + "/" + DATA_FILE_NAME)) {
-            throw KvException("Data directory " + path_ + " does not contain valid data.");
+            THROW_CODE(KvException, "Data directory " + path_ + " does not contain valid data.");
         }
     }
     THROW_ON_ERR(mdb_env_create(&env_));
@@ -86,7 +86,7 @@ void LMDBKvStore::ReopenFromSnapshot(const std::string& snapshot_path) {
     RemoveDir(dst);
     std::error_code ec;
     if (!std::filesystem::copy_file(src, dst, ec)) {
-        throw KvException("Failed to copy snapshot file from " + src + " to " + dst);
+        THROW_CODE(KvException, "Failed to copy snapshot file from " + src + " to " + dst);
     }
     Open(false);
 }
@@ -144,7 +144,7 @@ bool LMDBKvStore::DeleteTable(KvTransaction& txn, const std::string& table_name)
     std::lock_guard<std::mutex> l(mutex_);
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
     auto tbl = LMDBKvTable(lmdb_txn, table_name, true, ComparatorDesc::DefaultComparator());
-    tbl.Drop(lmdb_txn);
+    tbl.Delete(lmdb_txn);
     return true;
 }
 
