@@ -69,6 +69,21 @@ void checkedAnyCast(const std::any& s, Dst& d) {
     }
 }
 
+const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> CypherBaseVisitorV2::S_AGG_LIST = {
+    {"sum", geax::frontend::GeneralSetFunction::kSum},
+    {"avg", geax::frontend::GeneralSetFunction::kAvg},
+    {"max", geax::frontend::GeneralSetFunction::kMax},
+    {"min", geax::frontend::GeneralSetFunction::kMin},
+    {"count", geax::frontend::GeneralSetFunction::kCount},
+    {"collect", geax::frontend::GeneralSetFunction::kCollect}
+//    "percentilecont",
+//    "percentiledisc",
+//    "stdev",
+//    "stdevp",
+//    "variance",
+//    "variancep",
+};
+
 std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext* ruleCtx) const {
     if (ruleCtx->children.size() == 0) {
         return "";
@@ -280,23 +295,15 @@ std::any CypherBaseVisitorV2::visitOC_Return(LcypherParser::OC_ReturnContext *ct
 }
 
 std::any CypherBaseVisitorV2::visitOC_ReturnBody(LcypherParser::OC_ReturnBodyContext *ctx) {
-    geax::frontend::AstNode * prev = node_;
     visit(ctx->oC_ReturnItems());
-    node_ = prev;
     if (ctx->oC_Order()) {
-        geax::frontend::AstNode * p = node_;
         visit(ctx->oC_Order());
-        node_ = p;
     }
     if (ctx->oC_Limit()) {
-        geax::frontend::AstNode * p = node_;
         visit(ctx->oC_Limit());
-        node_ = p;
     }
     if (ctx->oC_Skip()) {
-        geax::frontend::AstNode * p = node_;
         visit(ctx->oC_Skip());
-        node_ = p;
     }
     return 0;
 }
@@ -394,6 +401,12 @@ std::any CypherBaseVisitorV2::visitOC_Pattern(LcypherParser::OC_PatternContext *
 std::any CypherBaseVisitorV2::visitOC_PatternPart(LcypherParser::OC_PatternPartContext *ctx) {
     geax::frontend::PathPattern* node = nullptr;
     checkedCast(node_, node);
+    if (ctx->oC_Variable() != nullptr) {
+        // named path
+        std::string variable;
+        checkedAnyCast(visit(ctx->oC_Variable()), variable);
+        node->setAlias(std::move(variable));
+    }
     auto pc = ALLOC_GEAOBJECT(geax::frontend::PathChain);
     node->appendChain(pc);
     SWITCH_CONTEXT_VISIT(ctx->oC_AnonymousPatternPart(), pc);
@@ -479,12 +492,13 @@ std::any CypherBaseVisitorV2::visitOC_PatternElementChain(
     LcypherParser::OC_PatternElementChainContext *ctx) {
     geax::frontend::PathChain* pathChain = nullptr;
     checkedCast(node_, pathChain);
-    auto edge = ALLOC_GEAOBJECT(geax::frontend::Edge);
-    SWITCH_CONTEXT_VISIT(ctx->oC_RelationshipPattern(), edge);
-
-    auto node = ALLOC_GEAOBJECT(geax::frontend::Node);
-    SWITCH_CONTEXT_VISIT(ctx->oC_NodePattern(), node);
-    pathChain->appendTail(edge, node);
+    if (ctx->oC_RelationshipPattern() && ctx->oC_NodePattern()) {
+        auto edge = ALLOC_GEAOBJECT(geax::frontend::Edge);
+        SWITCH_CONTEXT_VISIT(ctx->oC_RelationshipPattern(), edge);
+        auto node = ALLOC_GEAOBJECT(geax::frontend::Node);
+        SWITCH_CONTEXT_VISIT(ctx->oC_NodePattern(), node);
+        pathChain->appendTail(edge, node);
+    }
     return 0;
 }
 
@@ -505,6 +519,12 @@ std::any CypherBaseVisitorV2::visitOC_RelationshipPattern(
         geax::frontend::AstNode *prev = node_;
         visit(ctx->oC_RelationshipDetail());
         node_ = prev;
+    } else {
+        auto filler = ALLOC_GEAOBJECT(geax::frontend::ElementFiller);
+        edge->setFiller(filler);
+        std::string variable = GenAnonymousAlias(false);
+        filler->setV(std::move(variable));
+        edge->setHopRange(-1, -1);
     }
     return 0;
 }
@@ -828,17 +848,55 @@ std::any CypherBaseVisitorV2::visitOC_PropertyOrLabelsExpression(
 
     if (!ctx->oC_PropertyLookup().empty()) {
         if (ctx->oC_PropertyLookup().size() > 1)  NOT_SUPPORT_AND_THROW();
-        auto gf = ALLOC_GEAOBJECT(geax::frontend::GetField);
+        auto field = ALLOC_GEAOBJECT(geax::frontend::GetField);
         std::string field_name;
         checkedAnyCast(visit(ctx->oC_PropertyLookup(0)), field_name);
-        gf->setFieldName(std::move(field_name));
+        field->setFieldName(std::move(field_name));
         geax::frontend::Expr* expr = nullptr;
         checkedAnyCast(visit(ctx->oC_Atom()), expr);
-        gf->setExpr(expr);
-        return (geax::frontend::Expr*)gf;
+        field->setExpr(expr);
+        return (geax::frontend::Expr*)field;
     }
     if (ctx->oC_NodeLabels()) {
-        NOT_SUPPORT_AND_THROW();
+        std::vector<std::string> labels;
+        checkedAnyCast(visit(ctx->oC_NodeLabels()), labels);
+        auto is_labeled = ALLOC_GEAOBJECT(geax::frontend::IsLabeled);
+        geax::frontend::Expr* expr = nullptr;
+        checkedAnyCast(visit(ctx->oC_Atom()), expr);
+        is_labeled->setExpr(expr);
+        if (labels.size() == 1) {
+            auto l = ALLOC_GEAOBJECT(geax::frontend::SingleLabel);
+            l->setLabel(std::move(labels[0]));
+            is_labeled->setLabelTree(l);
+        } else if (labels.size() == 2) {
+            auto root = ALLOC_GEAOBJECT(geax::frontend::LabelOr);
+            auto l = ALLOC_GEAOBJECT(geax::frontend::SingleLabel);
+            auto r = ALLOC_GEAOBJECT(geax::frontend::SingleLabel);
+            l->setLabel(std::move(labels[0]));
+            r->setLabel(std::move(labels[1]));
+            root->setLeft(l);
+            root->setRight(r);
+            is_labeled->setLabelTree(root);
+        } else {
+            auto root = ALLOC_GEAOBJECT(geax::frontend::LabelOr);
+            auto label = root;
+            for (size_t idx = 0; idx < labels.size() - 2; ++idx) {
+                auto o = ALLOC_GEAOBJECT(geax::frontend::LabelOr);
+                auto l = ALLOC_GEAOBJECT(geax::frontend::SingleLabel);
+                l->setLabel(std::move(labels[idx]));
+                label->setLeft(l);
+                label->setRight(o);
+                label = o;
+            }
+            auto l = ALLOC_GEAOBJECT(geax::frontend::SingleLabel);
+            auto r = ALLOC_GEAOBJECT(geax::frontend::SingleLabel);
+            l->setLabel(std::move(labels[labels.size() - 2]));
+            r->setLabel(std::move(labels[labels.size() - 1]));
+            label->setLeft(l);
+            label->setRight(r);
+            is_labeled->setLabelTree(root);
+        }
+        return (geax::frontend::Expr*)is_labeled;
     }
     return 0;
 }
@@ -935,14 +993,38 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
     LcypherParser::OC_FunctionInvocationContext *ctx) {
     std::string name;
     checkedAnyCast(visit(ctx->oC_FunctionName()), name);
-    auto func = ALLOC_GEAOBJECT(geax::frontend::Function);
-    func->setName(std::move(name));
-    for (size_t idx = 0; idx < ctx->oC_Expression().size(); ++idx) {
-        geax::frontend::Expr* expr = nullptr;
-        checkedAnyCast(visit(ctx->oC_Expression(idx)), expr);
-        func->appendArg(expr);
+    geax::frontend::Expr* res = nullptr;
+    auto it = S_AGG_LIST.find(name);
+    if (it != S_AGG_LIST.end()) {
+        auto func = ALLOC_GEAOBJECT(geax::frontend::AggFunc);
+        func->setFuncName(it->second);
+        if (ctx->DISTINCT()) {
+            func->setDistinct(true);
+        } else {
+            func->setDistinct(false);
+        }
+
+        for (size_t idx = 0; idx < ctx->oC_Expression().size(); ++idx) {
+            geax::frontend::Expr* expr = nullptr;
+            checkedAnyCast(visit(ctx->oC_Expression(idx)), expr);
+            if (idx == 0) {
+                func->setExpr(expr);
+            } else {
+                func->appendDistinctBy(expr);
+            }
+        }
+        res = func;
+    } else {
+        auto func = ALLOC_GEAOBJECT(geax::frontend::Function);
+        func->setName(std::move(name));
+        for (size_t idx = 0; idx < ctx->oC_Expression().size(); ++idx) {
+            geax::frontend::Expr* expr = nullptr;
+            checkedAnyCast(visit(ctx->oC_Expression(idx)), expr);
+            func->appendArg(expr);
+        }
+        res = func;
     }
-    return (geax::frontend::Expr*)func;
+    return res;
 }
 
 std::any CypherBaseVisitorV2::visitOC_FunctionName(LcypherParser::OC_FunctionNameContext *ctx) {

@@ -42,6 +42,7 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     geax::common::ObjectArenaAllocator& objAlloc_;
     geax::frontend::AstNode * node_;
     size_t anonymous_idx_;
+    static const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> S_AGG_LIST;
 
  public:
     CypherBaseVisitorV2() = delete;

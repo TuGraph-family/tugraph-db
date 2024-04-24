@@ -249,9 +249,6 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
 
 std::any ExecutionPlanMaker::visit(geax::frontend::GraphPattern* node) {
     auto& path_patterns = node->pathPatterns();
-    if (path_patterns.size() > 1) {
-        NOT_SUPPORT();
-    }
     for (auto path_pattern : path_patterns) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_pattern);
     }
@@ -349,7 +346,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Edge* node) {
     ClauseGuard cg(node->type(), cur_types_);
     relp_t_ = std::make_shared<Relationship>();
     auto filler = node->filler();
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(filler);
+    if (filler) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(filler);
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -402,11 +401,19 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SingleLabel* node) {
     } else if ((ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_))) {
         relp_t_->AddType(node->label());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
+    } else if ((ClauseGuard::InClause(geax::frontend::AstNodeType::kIsLabeled, cur_types_))) {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+     }
     NOT_SUPPORT();
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::LabelOr* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::LabelOr* node) {
+    if (node->left())
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    if (node->right())
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::LabelAnd* node) { NOT_SUPPORT(); }
 
@@ -600,7 +607,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::IsSourceOf* node) { NOT_SUPPO
 
 std::any ExecutionPlanMaker::visit(geax::frontend::IsDestinationOf* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::IsLabeled* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::IsLabeled* node) {
+    ClauseGuard cg(node->type(), cur_types_);
+    if (node->expr())
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    if (node->labelTree())
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->labelTree());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); }
 

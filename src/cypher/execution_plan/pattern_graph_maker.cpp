@@ -232,7 +232,13 @@ std::any PatternGraphMaker::visit(geax::frontend::SingleLabel* node) {
     NOT_SUPPORT();
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::LabelOr* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::LabelOr* node) {
+    if (node->left())
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    if (node->right())
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::LabelAnd* node) { NOT_SUPPORT(); }
 

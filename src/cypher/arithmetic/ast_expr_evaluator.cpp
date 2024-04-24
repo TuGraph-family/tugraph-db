@@ -400,6 +400,51 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) { NOT_SUPPORT_AND_THROW(); }
 
+std::any cypher::AstExprEvaluator::visit(geax::frontend::SingleLabel* node) {
+    std::unordered_set<std::string> set;
+    set.insert(std::move(node->label()));
+    return set;
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::LabelOr* node) {
+    std::unordered_set<std::string> left;
+    checkedAnyCast(node->left()->accept(*this), left);
+    std::unordered_set<std::string> right;
+    checkedAnyCast(node->left()->accept(*this), right);
+    std::unordered_set<std::string> res;
+    for (auto & label : left) {
+        res.insert(std::move(label));
+    }
+    for (auto & label : right) {
+        res.insert(std::move(label));
+    }
+    return res;
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::IsLabeled* node) {
+    Entry e;
+    checkedAnyCast(node->expr()->accept(*this), e);
+    CYPHER_THROW_ASSERT(e.IsNode() || e.IsRelationship());
+    auto alias = e.constant.scalar.AsString();
+    std::unordered_set<std::string> labels;
+    checkedAnyCast(node->labelTree()->accept(*this), labels);
+    if (e.IsNode()) {
+        auto n = e.node;
+        CYPHER_THROW_ASSERT(n);
+        CYPHER_THROW_ASSERT(n->IsValidAfterMaterialize(ctx_));
+        auto l = n->ItRef()->GetLabel();
+        bool exist = labels.count(l);
+        return Entry(cypher::FieldData(lgraph::FieldData(exist)));
+    } else if (e.IsRelationship()) {
+        auto rel = e.relationship;
+        CYPHER_THROW_ASSERT(rel && rel->ItRef());
+        auto l = rel->ItRef()->GetLabel();
+        bool exist = labels.count(l);
+        return Entry(cypher::FieldData(lgraph::FieldData(exist)));
+    }
+    return 0;
+}
+
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
 
 }  // namespace cypher
