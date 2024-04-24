@@ -25,6 +25,7 @@
 #include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
 #include "cypher/execution_plan/optimization/parallel_traversal.h"
 #include "cypher/execution_plan/optimization/opt_rewrite_with_schema_inference.h"
+#include "cypher/execution_plan/optimization/edge_filter_pushdown_varlenexpand.h"
 
 namespace cypher {
 
@@ -42,6 +43,7 @@ class PassManager {
         all_passes_.emplace_back(new LocateNodeByVid());
         all_passes_.emplace_back(new LocateNodeByIndexedProp());
         all_passes_.emplace_back(new ParallelTraversal());
+        all_passes_.emplace_back(new EdgeFilterPushdownVarLenExpand());
     }
 
     ~PassManager() {
