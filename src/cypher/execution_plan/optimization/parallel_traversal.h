@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,6 +134,7 @@ class ParallelTraversal : public OptPass {
         ArithExprNode noneagg_expr;
         if (aggregate->GetNoneAggregatedExpressions().size() == 1) {  // has key
             agg_expr = aggregate->GetAggregatedExpressions()[0];
+            if (agg_expr.op.children.empty()) return false;
             noneagg_expr = aggregate->GetNoneAggregatedExpressions()[0];
             if (noneagg_expr.operand.variadic.alias != end_alias ||
                 agg_expr.op.func_name != "count" ||
@@ -143,6 +144,7 @@ class ParallelTraversal : public OptPass {
             }
         } else {  // has no key
             agg_expr = aggregate->GetAggregatedExpressions()[0];
+            if (agg_expr.op.children.empty()) return false;
             if (agg_expr.op.func_name != "count" ||
                 agg_expr.op.children[1].operand.variadic.alias != start_alias) {
                 return false;

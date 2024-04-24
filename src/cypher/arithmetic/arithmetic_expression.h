@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -292,6 +292,9 @@ struct BuiltinFunction {
     static cypher::FieldData Concat(RTContext *ctx, const Record &record,
                                     const std::vector<ArithExprNode> &args);
 
+    static cypher::FieldData Mask(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -404,7 +407,7 @@ struct ArithOperandNode {
             }
             return record.values[variadic.alias_idx];
         } else {
-            throw ::lgraph::InternalError("Invalid type.");
+            THROW_CODE(InternalError, "Invalid type.");
         }
         CYPHER_THROW_ASSERT(false);
         return Entry();
@@ -486,6 +489,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("datetimecomponent", BuiltinFunction::DateTimeComponent);
         ae_registered_funcs.emplace("substring", BuiltinFunction::SubString);
         ae_registered_funcs.emplace("concat", BuiltinFunction::Concat);
+        ae_registered_funcs.emplace("mask", BuiltinFunction::Mask);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
         /* native API-like functions */
@@ -512,6 +516,8 @@ struct ArithOpNode {
         agg_registered_funcs.emplace("max", [] { return std::make_shared<MaxAggCtx>(); });
         agg_registered_funcs.emplace("min", [] { return std::make_shared<MinAggCtx>(); });
         agg_registered_funcs.emplace("count", [] { return std::make_shared<CountAggCtx>(); });
+        agg_registered_funcs.emplace("count(*)",
+            [] { return std::make_shared<CountStarAggCtx>(); });
         agg_registered_funcs.emplace("collect", [] { return std::make_shared<CollectAggCtx>(); });
         agg_registered_funcs.emplace("percentilecont",
                                      [] { return std::make_shared<PercentileContAggCtx>(); });
@@ -650,7 +656,7 @@ struct ArithExprNode {
                 // Trying to understand: clang's side-effect warnings for typeid on a polymorphic
                 // object
                 auto &agg_ctx = *op.agg_func;
-                if (typeid(agg_ctx) == typeid(CountAggCtx) && args.empty()) {
+                if (typeid(agg_ctx) == typeid(CountStarAggCtx) && args.empty()) {
                     /* count(*), only count in when record is not null */
                     Entry count_in = record.Null()
                                          ? Entry(cypher::FieldData())

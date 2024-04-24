@@ -1,5 +1,5 @@
 set(LGRAPH_VERSION_MAJOR 4)
-set(LGRAPH_VERSION_MINOR 1)
+set(LGRAPH_VERSION_MINOR 2)
 set(LGRAPH_VERSION_PATCH 0)
 
 # options
@@ -10,14 +10,6 @@ if (ENABLE_WALL)
 else (ENABLE_WALL)
     message("Wall is disabled.")
 endif (ENABLE_WALL)
-
-option(ENABLE_BOOST_STACKTRACE "Enable boost stacktrace." OFF)
-if (ENABLE_BOOST_STACKTRACE)
-    message("Boost stacktrace is enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLGRAPH_ENABLE_BOOST_STACKTRACE=1")
-else (ENABLE_BOOST_STACKTRACE)
-    message("Boost stacktrace is disabled.")
-endif (ENABLE_BOOST_STACKTRACE)
 
 option(USE_MOCK_KV "Use mock kv-store." OFF)
 if (USE_MOCK_KV)

@@ -1,5 +1,5 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
+* Copyright 2022 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -35,25 +35,29 @@ extern "C" LGAPI bool GetSignature(SigSpec &sig_spec) {
 
 extern "C" LGAPI bool ProcessInTxn(Transaction &txn,
                                    const std::string &request,
-                                   std::string &response) {
+                                   Result &response) {
     int64_t limit;
     try {
         json input = json::parse(request);
         limit = input["limit"].get<int64_t>();
     } catch (std::exception &e) {
-        response = std::string("error parsing json: ") + e.what();
+        response.ResetHeader({
+            {"errMsg", LGraphType::STRING}
+        });
+        response.MutableRecord()->Insert(
+            "errMsg",
+            FieldData::String(std::string("error parsing json: ") + e.what()));
         return false;
     }
 
-    Result result({{"node", LGraphType::NODE},
+    response.ResetHeader({{"node", LGraphType::NODE},
                    {"salt", LGraphType::FLOAT},
                    });
     for (size_t i = 0; i < limit; i++) {
-        auto r = result.MutableRecord();
+        auto r = response.MutableRecord();
         auto vit = txn.GetVertexIterator(i);
         r->Insert("node", vit);
         r->Insert("salt", FieldData::Float(20.23*float(i)));
     }
-    response = result.Dump();
     return true;
 }

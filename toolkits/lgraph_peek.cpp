@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     try {
         lgraph::Galaxy galaxy(db_dir);
         if (galaxy.GetUserToken(user, password).empty())
-            throw lgraph::AuthError("Bad user/password.");
+            THROW_CODE(Unauthorized, "Bad user/password.");
         lgraph::AccessControlledDB db = galaxy.OpenGraph(user, graph);
         PeekGraph(db, begin, end);
     } catch (std::exception& e) {

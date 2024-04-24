@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
         }
         // check validity of options
         // input files
-        if (files.empty()) throw lgraph::InputError("Input file list cannot be empty.");
+        if (files.empty()) THROW_CODE(InputError, "Input file list cannot be empty.");
         std::vector<std::string> input_paths = fma_common::Split(files, ",");
         if (input_paths.size() == 1) {
             // could be dir/*
@@ -129,12 +129,12 @@ int main(int argc, char** argv) {
         }
         std::vector<std::string> input_files = lgraph::BackupLog::SortLogFiles(input_paths);
         if (input_files.size() != input_paths.size()) {
-            throw lgraph::InputError("Failed to sort input files. Did you renamed the files?");
+            THROW_CODE(InputError, "Failed to sort input files. Did you renamed the files?");
         }
         // check that all files exist
         for (auto& f : input_paths) {
             if (!fma_common::file_system::FileExists(f))
-                throw lgraph::InputError("File " + f + " does not exist.");
+                THROW_CODE(InputError, "File " + f + " does not exist.");
         }
         // check beg and end time
         int64_t min_time = std::numeric_limits<int64_t>::min();
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
             for (auto& s : strs) {
                 int64_t id = -1;
                 if (fma_common::TextParserUtils::ParseT(s, id) != s.size())
-                    throw lgraph::InputError("Failed to parse skip id: " + std::to_string(id));
+                    THROW_CODE(InputError, "Failed to parse skip id: " + std::to_string(id));
                 skip_ids.insert(id);
             }
         }
@@ -157,13 +157,13 @@ int main(int argc, char** argv) {
         // take actions
         if (action == "restore") {
             if (host.empty() && dir.empty())
-                throw lgraph::InputError(
+                THROW_CODE(InputError,
                     "Remote address and local directory cannot be empty at the same time.");
             if (!host.empty() && !dir.empty())
-                throw lgraph::InputError(
+                THROW_CODE(InputError,
                     "Remote address and local directory cannot be specified at the same time.");
             if (user.empty() || password.empty())
-                throw lgraph::InputError("User and password cannot be empty.");
+                THROW_CODE(InputError, "User and password cannot be empty.");
             if (!host.empty()) {
                 // writing to remote server
                 lgraph::RpcClient client(host + ":" + std::to_string(port), user, password);

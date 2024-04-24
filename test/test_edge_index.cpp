@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1584,8 +1584,36 @@ int CURDEdgeWithTooLongKey() {
     return 0;
 }
 
+int TestERefreshContentIfKvIteratorModified() {
+    // test EdgeIndex
+    auto store = std::make_unique<LMDBKvStore>("./testdb", (size_t)1 << 30, true);
+    // Start test, see if we already has a db
+    auto txn = store->CreateWriteTxn();
+    store->DropAll(*txn);
+    txn->Commit();
+    // NonuniqueIndex vertex index
+    {
+        txn = store->CreateWriteTxn();
+        auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "refresh",
+                                              FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+        EdgeIndex idx(std::move(idx_tab), FieldType::INT32, lgraph::IndexType::NonuniqueIndex);
+        EdgeUid edgeUid(1, 1, 1, 1, 1);
+        UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(10), edgeUid));
+        txn->Commit();
+
+
+        txn = store->CreateWriteTxn();
+        EdgeIndexIterator it = idx.GetUnmanagedIterator(*txn,
+                                       Value::ConstRef(10), Value::ConstRef(10));
+        UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(10), Value::ConstRef(1), edgeUid));
+        it.RefreshContentIfKvIteratorModified();
+    }
+    return 0;
+}
+
 TEST_F(TestEdgeIndex, TestEdgeIndexCRUD) {
     TestEdgeIndexValue();
     TestEdgeIndexCRUD();
     CURDEdgeWithTooLongKey();
+    TestERefreshContentIfKvIteratorModified();
 }

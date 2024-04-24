@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -62,7 +62,7 @@ class Transaction {
 
     /**
      * @brief   Commits this transaction. Note that optimistic write transactions may fail to
-     *          commit (an TxnConflictError would be thrown).
+     *          commit (an TxnConflict would be thrown).
      */
     void Commit();
 

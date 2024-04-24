@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
             root_label = "node";
             root_field = "id";
         } else {
-            throw InputError("root_label or root_field is empty");
+            THROW_CODE(InputError, "root_label or root_field is empty");
         }
     }
 

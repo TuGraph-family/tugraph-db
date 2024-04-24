@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -733,7 +733,7 @@ cypher::FieldData BuiltinFunction::DateComponent(RTContext *ctx, const Record &r
     auto YMD = d.GetYearMonthDay();
     auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
     if (it == COMPONENT_MAP.end())
-        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+        THROW_CODE(InputError, "Invalid input: " + component.constant.scalar.AsString());
     switch (it->second) {
     case 0:
         return cypher::FieldData(::lgraph::FieldData(YMD.year));
@@ -742,7 +742,7 @@ cypher::FieldData BuiltinFunction::DateComponent(RTContext *ctx, const Record &r
     case 2:
         return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(YMD.day)));
     default:
-        throw ::lgraph::InternalError("");
+        THROW_CODE(InternalError);
     }
 }
 
@@ -788,7 +788,7 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     auto ymdhmsf = dt.GetYMDHMSF();
     auto it = COMPONENT_MAP.find(component.constant.scalar.AsString());
     if (it == COMPONENT_MAP.end())
-        throw ::lgraph::InputError("Invalid input: " + component.constant.scalar.AsString());
+        THROW_CODE(InputError, "Invalid input: " + component.constant.scalar.AsString());
     switch (it->second) {
     case 0:
         return cypher::FieldData(::lgraph::FieldData(ymdhmsf.year));
@@ -805,7 +805,7 @@ cypher::FieldData BuiltinFunction::DateTimeComponent(RTContext *ctx, const Recor
     case 6:
         return cypher::FieldData(::lgraph::FieldData(static_cast<int64_t>(ymdhmsf.fraction)));
     default:
-        throw ::lgraph::InternalError("");
+        THROW_CODE(InternalError);
     }
 }
 
@@ -853,6 +853,82 @@ cypher::FieldData BuiltinFunction::SubString(RTContext *ctx, const Record &recor
                                   + arg1.ToString());
 }
 
+cypher::FieldData BuiltinFunction::Mask(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    /* Arguments:
+     * start    An expression that returns an integer value.
+     * end   An expression that returns an integer value.
+     * mask_char An expression that returns a char value.
+     */
+    if (args.size() != 4 && args.size() != 5) CYPHER_ARGUMENT_ERROR();
+    auto extractChineseCharacters = [](const std::string& text) {
+        auto isUtf8StartByte = [](unsigned char c) {
+            return (c & 0xC0) != 0x80;
+        };
+        std::vector<std::string> characters;
+        std::string currentChar;
+        for (unsigned char c : text) {
+            if (isUtf8StartByte(c)) {
+                if (!currentChar.empty()) {
+                    characters.push_back(currentChar);
+                    currentChar.clear();
+                }
+            }
+            currentChar += c;
+        }
+        if (!currentChar.empty()) {
+            characters.push_back(currentChar);
+        }
+        return characters;
+    };
+    auto arg1 = args[1].Evaluate(ctx, record);
+    switch (arg1.type) {
+        case Entry::CONSTANT:
+            if (arg1.constant.IsString()) {
+                auto arg2 = args[2].Evaluate(ctx, record);
+                auto arg3 = args[3].Evaluate(ctx, record);
+                if (!arg2.IsInteger())
+                    throw lgraph::CypherException("Argument 2 of `MASK()` expects int type: "
+                                                  + arg2.ToString());
+                if (!arg3.IsInteger())
+                    throw lgraph::CypherException("Argument 3 of `MASK()` expects int type: "
+                                                  + arg3.ToString());
+
+                std::string ss = "*";
+                if (args.size() == 5) {
+                    auto arg4 = args[4].Evaluate(ctx, record);
+                    ss = arg4.constant.ToString("");
+                }
+                auto origin = arg1.constant.ToString("");
+                auto origin_strings = extractChineseCharacters(origin);
+                auto size = static_cast<int64_t>(origin_strings.size());
+                auto start = arg2.constant.scalar.integer();
+                auto end = arg3.constant.scalar.integer();
+                if (start < 1 || start > size)
+                    throw lgraph::CypherException("Invalid argument 2 of `MASK()`: "
+                                                  + arg2.ToString());
+                if (end < start || end > size)
+                    throw lgraph::CypherException("Invalid argument 3 of `MASK()`: "
+                                                  + arg3.ToString());
+
+                std::string result;
+                for (int i = 0; i < start - 1; ++i)
+                    result.append(origin_strings[i]);
+                for (int i = start; i <= end; i++)
+                    result.append(ss);
+                for (int i = end; i < size; ++i)
+                    result.append(origin_strings[i]);
+                return cypher::FieldData(lgraph::FieldData(result));
+            }
+            break;
+    default:
+            break;
+    }
+
+    throw lgraph::CypherException("Function `MASK()` is not supported for: "
+                                  + arg1.ToString());
+}
+
 cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
                                              const std::vector<ArithExprNode> &args) {
     /* Arguments:
@@ -870,7 +946,7 @@ cypher::FieldData BuiltinFunction::Concat(RTContext *ctx, const Record &record,
                     auto arg = args[i].Evaluate(ctx, record);
                     if (!arg.IsString())
                         throw lgraph::CypherException("Argument " + std::to_string(i)
-                                                      + " of `SUBSTRING()` expects string type: "
+                                                      + " of `CONCAT()` expects string type: "
                                                       + arg.ToString());
 
                     result.append(arg.constant.ToString(""));
@@ -1284,7 +1360,7 @@ Entry ArithOpNode::Evaluate(RTContext *ctx, const Record &record) const {
                 ac_db.CallPlugin(ctx->txn_.get(), lgraph::plugin::Type::CPP,
                                  "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name, input, 0, false, output);
             if (!exists) {
-                throw lgraph::InputError(FMA_FMT("Plugin [{}] does not exist.", name));
+                THROW_CODE(InputError, "Plugin [{}] does not exist.", name);
             }
             return Entry(cypher::FieldData(lgraph::FieldData(output)));
         }

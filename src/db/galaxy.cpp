@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,15 +54,15 @@ lgraph::Galaxy::Galaxy(const lgraph::Galaxy::Config& config, bool create_if_not_
     auto& fs = fma_common::FileSystem::GetFileSystem(config.dir);
     if (!fs.IsDir(config.dir)) {
         if (!create_if_not_exist) {
-            throw lgraph_api::DBNotExistError("Database directory " + config.dir +
+            THROW_CODE(DBNotExist, "Database directory " + config.dir +
                                               " does not exist!");
         } else if (!fs.Mkdir(config.dir)) {
-            throw lgraph_api::IOError("Failed to create data directory " + config.dir);
+            THROW_CODE(IOError, "Failed to create data directory " + config.dir);
         }
     }
     std::string meta_dir = GetMetaStoreDir(config.dir);
     if (!create_if_not_exist && !fs.IsDir(meta_dir)) {
-        throw InputError("Directory " + config.dir + " is not a valid DB.");
+        THROW_CODE(InputError, "Directory " + config.dir + " is not a valid DB.");
     }
     // now load dbs
     ReloadFromDisk(create_if_not_exist);
@@ -94,9 +94,9 @@ std::string lgraph::Galaxy::GetUserToken(const std::string& user, const std::str
             if (++failed_times >= MAX_LOGIN_FAILED_TIMES) {
                 retry_login_time = fma_common::GetTime();
             }
-            throw lgraph_api::BadRequestException("Bad user/password.");
+            THROW_CODE(BadRequest, "Bad user/password.");
         } else {
-            throw lgraph_api::BadRequestException(
+            THROW_CODE(BadRequest,
                 "Too many login failures, please try again in a minute");
         }
         return "";
@@ -123,7 +123,7 @@ bool lgraph::Galaxy::JudgeUserTokenNum(const std::string& user) {
 std::string lgraph::Galaxy::ParseAndValidateToken(const std::string& token) const {
     std::string user, password;
     _HoldReadLock(acl_lock_);
-    if (!acl_->DecipherToken(token, user, password)) throw AuthError();
+    if (!acl_->DecipherToken(token, user, password)) THROW_CODE(Unauthorized);
     return user;
 }
 
@@ -135,7 +135,7 @@ std::string lgraph::Galaxy::RefreshUserToken(const std::string& token,
         acl_->BindTokenUser(token, new_token, user);
     } else {
         acl_->UnBindTokenUser(token);
-        throw InputError("token has timeout.");
+        THROW_CODE(InputError, "token has timeout.");
     }
     return new_token;
 }
@@ -176,7 +176,7 @@ std::string lgraph::Galaxy::ParseTokenAndCheckIfIsAdmin(const std::string& token
                                                         bool* is_admin) const {
     std::string user, password;
     _HoldReadLock(acl_lock_);
-    if (!acl_->DecipherToken(token, user, password)) throw AuthError("Invalid token.");
+    if (!acl_->DecipherToken(token, user, password)) THROW_CODE(Unauthorized, "Invalid token.");
     if (is_admin) *is_admin = acl_->IsAdmin(user);
     return user;
 }
@@ -186,7 +186,7 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
                                  const std::string& data_file_path) {
     CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin cannot create graphs.");
     AutoWriteLock l1(acl_lock_, GetMyThreadId());  // upgrade to write lock
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     std::unique_ptr<AclManager> acl_new(new AclManager(*acl_));
@@ -210,7 +210,7 @@ bool lgraph::Galaxy::CreateGraph(const std::string& curr_user, const std::string
 bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string& graph) {
     lgraph::CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin cannot create graphs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin cannot create graphs.");
     AutoWriteLock l1(acl_lock_, GetMyThreadId());
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
     // remove graph from list and then wait till no ref so we can destroy the db
@@ -240,7 +240,8 @@ bool lgraph::Galaxy::DeleteGraph(const std::string& curr_user, const std::string
 bool lgraph::Galaxy::ModGraph(const std::string& curr_user, const std::string& graph_name,
                               const GraphManager::ModGraphActions& actions) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot modify graph configs.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot modify graph configs.");
     auto wt = store_->CreateWriteTxn(false);
     auto& txn = *wt;
     AutoWriteLock l2(graphs_lock_, GetMyThreadId());
@@ -255,7 +256,7 @@ bool lgraph::Galaxy::ModGraph(const std::string& curr_user, const std::string& g
 std::map<std::string, lgraph::DBConfig> lgraph::Galaxy::ListGraphs(
     const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot list graphs.");
+    if (!acl_->IsAdmin(curr_user)) THROW_CODE(Unauthorized, "Non-admin user cannot list graphs.");
     return ListGraphsInternal();
 }
 
@@ -353,7 +354,7 @@ bool lgraph::Galaxy::ModRole(const std::string& curr_user, const ModRoleRequest&
         for (auto& kv : *graph_access) {
             const std::string& graph = kv.first;
             if (!this->graphs_->GraphExists(graph))
-                throw InputError(FMA_FMT("Graph {} does not exist.", graph));
+                THROW_CODE(InputError, "Graph {} does not exist.", graph);
         }
     }
 
@@ -381,7 +382,7 @@ lgraph::AccessControlledDB lgraph::Galaxy::OpenGraph(const std::string& user,
     _HoldReadLock(acl_lock_);
     AccessLevel ar = acl_->GetAccessRight(user, user, graph);
     if (ar == AccessLevel::NONE)
-        throw AuthError("User does not have access to the graph specified.");
+        THROW_CODE(Unauthorized, "User does not have access to the graph specified.");
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
     return AccessControlledDB(graphs_->GetGraphRef(graph), ar, user);
 }
@@ -406,13 +407,14 @@ lgraph::AccessLevel lgraph::Galaxy::GetAcl(const std::string& curr_user, const s
     lgraph::CheckValidGraphName(graph);
     _HoldReadLock(acl_lock_);
     AutoReadLock l2(graphs_lock_, GetMyThreadId());
-    if (!graphs_->GraphExists(graph)) throw InputError("Graph does not exist.");
+    if (!graphs_->GraphExists(graph)) THROW_CODE(InputError, "Graph does not exist.");
     return acl_->GetAccessRight(curr_user, user, graph);
 }
 
 std::unordered_set<std::string> lgraph::Galaxy::GetIpWhiteList(const std::string& curr_user) const {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoReadLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     return ip_whitelist_;
 }
@@ -426,13 +428,14 @@ bool lgraph::Galaxy::IsIpInWhitelist(const std::string& ip) const {
 size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
                                          const std::vector<std::string>& ips) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoWriteLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     std::unordered_set<std::string> new_ips;
     auto txn = store_->CreateWriteTxn();
     for (auto& ip : ips) {
         if (ip.size() >= _detail::MAX_HOST_ADDR_LEN)
-            throw InputError("Host address length limit exceeded.");
+            THROW_CODE(InputError, "Host address length limit exceeded.");
         if (ip_whitelist_.find(ip) != ip_whitelist_.end() || new_ips.find(ip) != new_ips.end())
             continue;
         new_ips.insert(ip);
@@ -448,7 +451,8 @@ size_t lgraph::Galaxy::AddIpsToWhitelist(const std::string& curr_user,
 size_t lgraph::Galaxy::RemoveIpsFromWhitelist(const std::string& curr_user,
                                               const std::vector<std::string>& ips) {
     _HoldReadLock(acl_lock_);
-    if (!acl_->IsAdmin(curr_user)) throw AuthError("Non-admin user cannot access IP whitelist.");
+    if (!acl_->IsAdmin(curr_user))
+        THROW_CODE(Unauthorized, "Non-admin user cannot access IP whitelist.");
     AutoWriteLock l2(ip_whitelist_rw_lock_, GetMyThreadId());
     std::unordered_set<std::string> to_remove;
     auto txn = store_->CreateWriteTxn();
@@ -623,21 +627,21 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
     {
         _HoldReadLock(acl_lock_);
         if (!acl_->IsAdmin(user))
-            throw AuthError("Non-admin user is not allowed to update configs.");
+            THROW_CODE(Unauthorized, "Non-admin user is not allowed to update configs.");
     }
     bool need_reload_galaxy = false;
     auto txn = store_->CreateWriteTxn();
     for (auto& kv : updates) {
         auto it = _detail::config_name_to_enums.find(kv.first);
         if (it == _detail::config_name_to_enums.end()) {
-            throw InputError("Option " + kv.first + " does not exist.");
+            THROW_CODE(InputError, "Option " + kv.first + " does not exist.");
         }
         std::string key = _detail::OptionNameToKey(it->first);
         switch (it->second) {
         case _detail::OPT_ENUMS::ENABLE_AUDIT_LOG:
             {
                 if (!kv.second.IsBool())
-                    throw InputError("Option " + kv.first + " must be BOOL type.");
+                    THROW_CODE(InputError, "Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->enable_audit_log) {
                     db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
@@ -648,7 +652,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
         case _detail::OPT_ENUMS::DURABLE:
             {
                 if (!kv.second.IsBool())
-                    throw InputError("Option " + kv.first + " must be BOOL type.");
+                    THROW_CODE(InputError, "Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->durable) {
                     db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
@@ -659,7 +663,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
         case _detail::OPT_ENUMS::OPTIMISTIC:
             {
                 if (!kv.second.IsBool())
-                    throw InputError("Option " + kv.first + " must be BOOL type.");
+                    THROW_CODE(InputError, "Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->txn_optimistic) {
                     db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
@@ -670,7 +674,7 @@ bool lgraph::Galaxy::UpdateConfig(const std::string& user,
         case _detail::OPT_ENUMS::ENABLE_IP_CHECK:
             {
                 if (!kv.second.IsBool())
-                    throw InputError("Option " + kv.first + " must be BOOL type.");
+                    THROW_CODE(InputError, "Option " + kv.first + " must be BOOL type.");
                 bool b = kv.second.AsBool();
                 if (b != global_config_->enable_ip_check) {
                     db_info_table_->SetValue(*txn, Value::ConstRef(key), Value::ConstRef(b));
@@ -807,7 +811,7 @@ bool lgraph::Galaxy::ModAllRoleAccessLevel(
     const std::string& role, const std::unordered_map<std::string, AccessLevel>& acs) {
     for (auto& kv : acs) {
         if (!this->graphs_->GraphExists(kv.first))
-            throw InputError(FMA_FMT("Graph {} does not exist.", kv.first));
+            THROW_CODE(InputError, "Graph {} does not exist.", kv.first);
     }
 
     _HoldWriteLock(reload_lock_);
@@ -819,7 +823,7 @@ bool lgraph::Galaxy::ModAllRoleAccessLevel(
 bool lgraph::Galaxy::ModRoleAccessLevel(const std::string& role, const AclManager::AclTable& acs) {
     for (auto& kv : acs) {
         if (!this->graphs_->GraphExists(kv.first))
-            throw InputError(FMA_FMT("Graph {} does not exist.", kv.first));
+            THROW_CODE(InputError, "Graph {} does not exist.", kv.first);
     }
     _HoldWriteLock(reload_lock_);
     return ModifyACL([&](AclManager* new_acl, KvTransaction& txn) {
@@ -831,7 +835,7 @@ bool lgraph::Galaxy::ModRoleFieldAccessLevel(const std::string& role,
                                              const AclManager::FieldAccessTable& acs) {
     for (auto& kv : acs) {
         if (!this->graphs_->GraphExists(kv.first))
-            throw InputError(FMA_FMT("Graph {} does not exist.", kv.first));
+            THROW_CODE(InputError, "Graph {} does not exist.", kv.first);
     }
     _HoldWriteLock(reload_lock_);
     return ModifyACL([&](AclManager* new_acl, KvTransaction& txn) {

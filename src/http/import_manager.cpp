@@ -44,7 +44,7 @@ void ImportManager::NewRecord(const std::string& id) {
 
 uint64_t ImportManager::GetProcessedPackages(const std::string& id) {
     auto it = task_record_.find(id);
-    if (it == task_record_.end()) throw lgraph_api::BadRequestException("Not a valid task id");
+    if (it == task_record_.end()) THROW_CODE(BadRequest, "Not a valid task id");
     return it->second.processed_packages_;
 }
 
@@ -95,7 +95,7 @@ int ImportManager::GetImportProgress(const std::string& id,
                                      std::string& progress,
                                      std::string& reason) {
     auto it = task_record_.find(id);
-    if (it == task_record_.end()) throw lgraph_api::BadRequestException("Not a valid task id");
+    if (it == task_record_.end()) THROW_CODE(BadRequest, "Not a valid task id");
 
     switch (it->second.state_) {
     case PROCESSING: {
@@ -104,7 +104,7 @@ int ImportManager::GetImportProgress(const std::string& id,
             try {
                 progress = boost::lexical_cast<std::string>(p);
             } catch (boost::bad_lexical_cast& e) {
-                throw lgraph_api::InternalErrorException("current progress cannot be obtained");
+                THROW_CODE(InternalError, "current progress cannot be obtained");
             }
             return PROCESSING;
         }

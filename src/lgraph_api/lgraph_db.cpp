@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +31,11 @@ bool ShouldKillThisTask(ThreadContextPtr ctx) {
 
 #define THROW_IF_RO()                                        \
     if (read_only_)                                          \
-        throw WriteNotAllowedError(                          \
+        THROW_CODE(WriteNotAllowed,                          \
             "Write transaction is not allowed in read-only " \
             "DB.");
 #define THROW_IF_INVALID() \
-    if (!db_) throw InvalidGraphDBError();
+    if (!db_) THROW_CODE(InvalidGraphDB);
 
 GraphDB::GraphDB(lgraph::AccessControlledDB* db_with_access_control, bool read_only, bool owns_db)
     : db_(db_with_access_control), should_delete_db_(owns_db), read_only_(read_only) {}

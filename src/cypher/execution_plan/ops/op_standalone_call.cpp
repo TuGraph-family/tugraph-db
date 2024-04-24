@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
             // TODO(anyone): return records other than just strings
             auto &header = ctx->result_->Header();
             if (header.size() > 1)
-                throw lgraph::InputError(FMA_FMT("Plugin [{}] header is excaption.", names[2]));
+                THROW_CODE(InputError, "Plugin [{}] header is excaption.", names[2]);
             auto title = header[0].first;
             for (auto &p : plugins) {
                 std::string s;
@@ -55,7 +55,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         } else {
             if (ctx->txn_) ctx->txn_->Abort();
             bool exists = Utils::CallPlugin(*ctx, type, names[2], parameters, output);
-            if (!exists) throw lgraph::InputError("Plugin [{}] does not exist.", names[2]);
+            if (!exists) THROW_CODE(InputError, "Plugin [{}] does not exist.", names[2]);
             ctx->result_->Load(output);
 #if 0
             /* TODO(anyone): redundant parse */
@@ -93,6 +93,34 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
         std::vector<std::string> _yield_items;
         std::transform(yield_items.cbegin(), yield_items.cend(), std::back_inserter(_yield_items),
                        [](const auto &item) { return item.first; });
+        for (auto& p : parameters) {
+            if (p.type == parser::Expression::DataType::PARAMETER) {
+                auto it = ctx->param_tab_.find(p.String());
+                if (it == ctx->param_tab_.end())
+                    throw lgraph::CypherException("invalid parameter: " + p.String());
+                if (it->second.type != cypher::FieldData::SCALAR) {
+                    throw lgraph::CypherException("parameter with wrong type: " + p.String());
+                }
+                if (it->second.scalar.IsInt64()) {
+                    p.type = parser::Expression::DataType::INT;
+                    p.data = it->second.scalar.AsInt64();
+                } else if (it->second.scalar.IsString()) {
+                    p.type = parser::Expression::DataType::STRING;
+                    p.data = std::make_shared<std::string>(it->second.scalar.AsString());
+                } else if (it->second.scalar.IsBool()) {
+                    p.type = parser::Expression::DataType::BOOL;
+                    p.data = it->second.scalar.AsBool();
+                } else if (it->second.scalar.IsDouble()) {
+                    p.type = parser::Expression::DataType::DOUBLE;
+                    p.data = it->second.scalar.AsDouble();
+                } else {
+                    THROW_CODE(
+                        CypherParameterTypeError,
+                        "Call procedure, unexpected parameter type, parameter: {}, type: {}",
+                        it->first, it->second.scalar.GetType());
+                }
+            }
+        }
         procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,10 +28,10 @@
 
 int TestVertexIndexImpl();
 int CURDVertexWithTooLongKey();
+int TestVRefreshContentIfKvIteratorModified();
 
 namespace lgraph {
 class Transaction;
-
 class VertexIndex;
 class VertexIndexIterator;
 
@@ -255,6 +255,7 @@ class VertexIndex {
     friend class Transaction;
     friend int ::TestVertexIndexImpl();
     friend int ::CURDVertexWithTooLongKey();
+    friend int ::TestVRefreshContentIfKvIteratorModified();
 
     std::shared_ptr<KvTable> table_;
     FieldType key_type_;

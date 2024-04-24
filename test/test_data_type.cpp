@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -296,7 +296,6 @@ TEST_F(TestDataType, DataType) {
 
     // exception with stacktrace
     {
-        UT_EXPECT_THROW(throw InternalError(""), InternalError);
         std::runtime_error e("my exception");
         std::string ret = PrintNestedException(e, 1);
         UT_EXPECT_EQ(ret, "  my exception");

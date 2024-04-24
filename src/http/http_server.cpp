@@ -38,7 +38,7 @@ namespace http {
         else if (procedureType == plugin::PLUGIN_LANG_TYPE_ANY)          \
             _type = PluginManager::PluginType::ANY;                      \
         else                                                             \
-            throw lgraph_api::BadRequestException(                       \
+            THROW_CODE(BadRequest,                          \
                 FMA_FMT("Invalid procedure type [{}].", procedureType)); \
     } while (0)
 
@@ -52,7 +52,7 @@ namespace http {
         else if (procedureType == plugin::PLUGIN_LANG_TYPE_ANY)          \
             _type = PluginRequest::ANY;                                  \
         else                                                             \
-            throw lgraph_api::BadRequestException(                       \
+            THROW_CODE(BadRequest,                          \
                 FMA_FMT("Invalid procedure type [{}].", procedureType)); \
     } while (0)
 
@@ -67,24 +67,24 @@ namespace http {
         else if (codeType == plugin::PLUGIN_CODE_TYPE_CPP)                                       \
             _type = LoadPluginRequest::CPP;                                                      \
         else                                                                                     \
-            throw lgraph_api::BadRequestException(FMA_FMT("Invalid code_type [{}].", codeType)); \
+            THROW_CODE(BadRequest, "Invalid code_type [{}].", codeType); \
     } while (0)
 
 #define _HANDLE_LGRAPH_RESPONSE_ERROR(lgraph_resp)                         \
     do {                                                                   \
         switch (lgraph_resp.error_code()) {                                \
         case LGraphResponse::AUTH_ERROR:                                   \
-            throw lgraph_api::UnauthorizedError(lgraph_resp.error());      \
+            THROW_CODE(Unauthorized, lgraph_resp.error());      \
         case LGraphResponse::BAD_REQUEST:                                  \
-            throw lgraph_api::BadRequestException(lgraph_resp.error());    \
+            THROW_CODE(BadRequest, lgraph_resp.error());    \
         case LGraphResponse::REDIRECT:                                     \
             return;                                                        \
         case LGraphResponse::EXCEPTION:                                    \
-            throw lgraph_api::InternalErrorException(lgraph_resp.error()); \
+            THROW_CODE(InternalError, lgraph_resp.error()); \
         case LGraphResponse::KILLED:                                       \
-            throw lgraph_api::BadRequestException("Task killed.");         \
+            THROW_CODE(BadRequest, "Task killed.");         \
         default:                                                           \
-            throw lgraph_api::InternalErrorException(lgraph_resp.error()); \
+            THROW_CODE(InternalError, lgraph_resp.error()); \
         }                                                                  \
     } while (0)
 
@@ -216,14 +216,23 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
     std::string res;
     try {
         auto it = functions_map_.find(method);
-        if (it == functions_map_.end()) throw lgraph_api::BadRequestException("Unsupported method");
+        if (it == functions_map_.end()) THROW_CODE(BadRequest, "Unsupported method");
         it->second(cntl, res);
-    } catch (const lgraph_api::UnauthorizedError& e) {
-        return RespondUnauthorized(cntl, e.what());
-    } catch (const lgraph_api::BadRequestException& e) {
-        return RespondBadRequest(cntl, e.what());
-    } catch (const lgraph_api::InternalErrorException& e) {
-        return RespondInternalError(cntl, e.what());
+    } catch (const lgraph_api::LgraphException& e) {
+        switch (e.code()) {
+            case lgraph_api::ErrorCode::Unauthorized: {
+                return RespondUnauthorized(cntl, e.msg());
+            }
+            case lgraph_api::ErrorCode::BadRequest: {
+                return RespondBadRequest(cntl, e.msg());
+            }
+            case lgraph_api::ErrorCode::InternalError: {
+                return RespondInternalError(cntl, e.msg());
+            }
+            default: {
+                return RespondBadRequest(cntl, e.msg());
+            }
+        }
     } catch (const std::exception& e) {
         return RespondBadRequest(cntl, e.what());
     }
@@ -234,11 +243,22 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
 void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
 
-    const std::string* file_name = cntl->http_request().GetHeader(HTTP_HEADER_FILE_NAME);
-    const std::string* begin_str = cntl->http_request().GetHeader(HTTP_HEADER_BEGIN_POS);
-    const std::string* size_str = cntl->http_request().GetHeader(HTTP_HEADER_SIZE);
+    auto get_parameter = [](const brpc::Controller* cntl, const std::string& key){
+        const std::string* data = cntl->http_request().GetHeader(key);
+        if (data)
+            return data;
+        std::string lower_key = key;
+        for (char &c : lower_key) {
+            c = std::tolower(static_cast<unsigned char>(c));
+        }
+        return cntl->http_request().GetHeader(lower_key);
+    };
+    const std::string* file_name = get_parameter(cntl, HTTP_HEADER_FILE_NAME);
+    const std::string* begin_str = get_parameter(cntl, HTTP_HEADER_BEGIN_POS);
+    const std::string* size_str = get_parameter(cntl, HTTP_HEADER_SIZE);
+
     if (file_name == nullptr || begin_str == nullptr || size_str == nullptr) {
-        throw lgraph_api::BadRequestException(
+        THROW_CODE(BadRequest,
             "request header should has a fileName, "
             "a beginPos and a size parameter");
     }
@@ -248,7 +268,7 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
         begin = boost::lexical_cast<off_t>(*begin_str);
         size = boost::lexical_cast<ssize_t>(*size_str);
     } catch (boost::bad_lexical_cast& e) {
-        throw lgraph_api::BadRequestException(
+        THROW_CODE(BadRequest,
             "beginPos and Size should be an integer of the string type");
     }
     int fd = OpenUserFile(token, *file_name);
@@ -257,13 +277,13 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
     while (!content.empty()) {
         ssize_t ret = content.pcut_into_file_descriptor(fd, begin, size);
         if (ret < 0) {
-            throw lgraph_api::InternalErrorException(FMA_FMT("{} write failed", *file_name));
+            THROW_CODE(InternalError, FMA_FMT("{} write failed", *file_name));
         }
         begin += ret;
         writed_bytes += ret;
     }
     if (writed_bytes != size) {
-        throw lgraph_api::InputError("Size and content are not equal ");
+        THROW_CODE(InputError, "Size and content are not equal ");
     }
 }
 
@@ -278,10 +298,10 @@ void HttpService::DoClearCache(const brpc::Controller* cntl, std::string& res) {
     try {
         flag = boost::lexical_cast<int16_t>(flag_str);
     } catch (boost::bad_lexical_cast& e) {
-        throw lgraph_api::BadRequestException("`flag` should be an integer of the string type");
+        THROW_CODE(BadRequest, "`flag` should be an integer of the string type");
     }
     if (flag < 0)
-        throw lgraph_api::BadRequestException("`flag` should be greater than or equal to 0");
+        THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
     switch (flag) {
     case HTTP_SPECIFIED_FILE:
         {
@@ -313,10 +333,10 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
     try {
         flag = boost::lexical_cast<int16_t>(flag_str);
     } catch (boost::bad_lexical_cast& e) {
-        throw lgraph_api::BadRequestException("`flag` should be an integer of the string type");
+        THROW_CODE(BadRequest, "`flag` should be an integer of the string type");
     }
     if (flag < 0)
-        throw lgraph_api::BadRequestException("`flag` should be greater than or equal to 0");
+        THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
 
     std::string file_name;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_FILE_NAME, file_name);
@@ -339,7 +359,7 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
             try {
                 file_size = boost::lexical_cast<off_t>(size_str);
             } catch (boost::bad_lexical_cast& e) {
-                throw lgraph_api::BadRequestException(
+                THROW_CODE(BadRequest,
                     "`file_size` should be an integer of the string type");
             }
             if (file_size != GetFileSize(absolute_file_name)) {
@@ -377,7 +397,7 @@ void HttpService::DoImportFile(const brpc::Controller* cntl, std::string& res) {
         try {
             skip_packages = boost::lexical_cast<uint64_t>(skip_str);
         } catch (boost::bad_lexical_cast& e) {
-            throw lgraph_api::BadRequestException(
+            THROW_CODE(BadRequest,
                 "skipPackages should be an integer of the string type");
         }
     }
@@ -473,7 +493,7 @@ void HttpService::DoLoginRequest(const brpc::Controller* cntl, std::string& res)
     }
     std::string token = galaxy_->GetUserToken(username, password);
     if (!galaxy_->JudgeUserTokenNum(username)) {
-        throw lgraph_api::BadRequestException("The number of tokens has reached the upper limit");
+        THROW_CODE(BadRequest, "The number of tokens has reached the upper limit");
     }
     nlohmann::json js;
     js[HTTP_AUTHORIZATION] = token;
@@ -486,7 +506,7 @@ void HttpService::DoLogoutRequest(const brpc::Controller* cntl, std::string& res
     const std::string token = CheckTokenOrThrowException(cntl);
     _HoldReadLock(galaxy_->GetReloadLock());
     if (!galaxy_->UnBindTokenUser(token)) {
-        throw lgraph_api::UnauthorizedError();
+        THROW_CODE(Unauthorized);
     }
 }
 
@@ -590,7 +610,7 @@ void HttpService::ProcessSchemaRequest(const std::string& graph, const std::stri
         _HANDLE_LGRAPH_RESPONSE_ERROR(res);
     } else {
         if (res.schema_response().has_error_message()) {
-            throw lgraph_api::BadRequestException(res.schema_response().error_message());
+            THROW_CODE(BadRequest, res.schema_response().error_message());
         }
     }
 }
@@ -598,7 +618,7 @@ void HttpService::ProcessSchemaRequest(const std::string& graph, const std::stri
 int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     const std::string& user = galaxy_->ParseAndValidateToken(token);
     if (file_name.empty() || file_name[0] == '/')
-        throw lgraph_api::BadRequestException("File-Name is not a relative path");
+        THROW_CODE(BadRequest, "File-Name is not a relative path");
     boost::algorithm::trim(file_name);
     if (file_name.size() > 2 && file_name[0] == '.' && file_name[1] == '/') {
         file_name = file_name.substr(2, file_name.size() - 2);
@@ -607,7 +627,7 @@ int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     fields.reserve(10);
     boost::split(fields, file_name, boost::is_any_of("/"));
     if (user == fields[0])
-        throw lgraph_api::BadRequestException(FMA_FMT("invalid fileName : {}", file_name));
+        THROW_CODE(BadRequest, "invalid fileName : {}", file_name);
     fma_common::LocalFileSystem fs;
     std::string user_directory = import_manager_.GetUserPath(user);
     for (size_t idx = 0; idx < fields.size() - 1; ++idx) {
@@ -616,8 +636,8 @@ int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     }
     if (fs.FileExists(user_directory)) {
         if (!fs.IsDir(user_directory)) {
-            throw lgraph_api::InternalErrorException(
-                FMA_FMT("{} already exists and it is not a directory", user_directory));
+            THROW_CODE(InternalError,
+                "{} already exists and it is not a directory", user_directory);
         }
     } else {
         fs.Mkdir(user_directory);
@@ -625,8 +645,8 @@ int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     const std::string absolute_file_name = user_directory + "/" + fields[fields.size() - 1];
     int fd = open(absolute_file_name.data(), O_CREAT | O_WRONLY, 0666);
     if (fd < 0) {
-        throw lgraph_api::InternalErrorException(
-            FMA_FMT("{} file open failed", absolute_file_name));
+        THROW_CODE(InternalError,
+            "{} file open failed", absolute_file_name);
     }
     return fd;
 }
@@ -638,7 +658,7 @@ void HttpService::AdjustFilePath(const std::string& req, const std::string& user
     for (size_t idx = 0; idx < files.size(); ++idx) {
         nlohmann::json& item = files[idx];
         if (!item.contains(HTTP_PATH))
-            throw InputError(FMA_FMT(R"(Missing "path" in json {})", schema.dump()));
+            THROW_CODE(InputError, R"(Missing "path" in json {})", schema.dump());
         std::string path = item[HTTP_PATH].get<std::string>();
         std::string absolute_file_name = import_manager_.GetUserPath(user) + "/" + path;
         item[HTTP_PATH] = absolute_file_name;
@@ -652,35 +672,35 @@ void HttpService::DeleteSpecifiedFile(const std::string& token, const std::strin
 
     fma_common::LocalFileSystem fs;
     if (!fs.FileExists(absolute_file_name)) {
-        throw lgraph_api::BadRequestException(FMA_FMT("{} not exists", file_name));
+        THROW_CODE(BadRequest, "{} not exists", file_name);
     }
     if (fs.IsDir(absolute_file_name)) {
-        throw lgraph_api::BadRequestException(FMA_FMT("{} is a directory", file_name));
+        THROW_CODE(BadRequest, "{} is a directory", file_name);
     }
     if (!fs.Remove(absolute_file_name)) {
-        throw lgraph_api::InternalErrorException(FMA_FMT("{} file remove failed", file_name));
+        THROW_CODE(InternalError, "{} file remove failed", file_name);
     }
 }
 
 void HttpService::DeleteSpecifiedUserFiles(const std::string& token, const std::string& user_name) {
     const std::string user = galaxy_->ParseAndValidateToken(token);
     if (user != user_name || !galaxy_->IsAdmin(user)) {
-        throw lgraph_api::BadRequestException(FMA_FMT(
-            "{} is not admin user, can't remove other people's file directories", user_name));
+        THROW_CODE(BadRequest,
+            "{} is not admin user, can't remove other people's file directories", user_name);
     }
     const std::string user_directory = import_manager_.GetUserPath(user);
 
     fma_common::LocalFileSystem fs;
     if (!fs.FileExists(user_directory)) {
-        throw lgraph_api::BadRequestException(FMA_FMT("{} not exists", user_name));
+        THROW_CODE(BadRequest, "{} not exists", user_name);
     }
 
     if (!fs.IsDir(user_directory)) {
-        throw lgraph_api::BadRequestException(FMA_FMT("{} is not a directory", user_name));
+        THROW_CODE(BadRequest, "{} is not a directory", user_name);
     }
 
     if (!fs.RemoveDir(user_directory)) {
-        throw lgraph_api::InternalErrorException(FMA_FMT("{} directory remove failed", user_name));
+        THROW_CODE(InternalError, "{} directory remove failed", user_name);
     }
 }
 
@@ -689,30 +709,28 @@ void HttpService::DeleteAllUserFiles(const std::string& token) {
     std::string user_name;
     user_name = galaxy_->ParseTokenAndCheckIfIsAdmin(token, &is_admin);
     if (!is_admin) {
-        throw lgraph_api::BadRequestException(
-            FMA_FMT("{} is not admin user, can't remove all directories", user_name));
+        THROW_CODE(BadRequest,
+            "{} is not admin user, can't remove all directories", user_name);
     }
     const std::string all_directory = import_manager_.GetRootPath();
 
     fma_common::LocalFileSystem fs;
     if (!fs.FileExists(all_directory)) {
-        throw lgraph_api::BadRequestException(FMA_FMT("{} not exists", HTTP_FILE_DIRECTORY));
+        THROW_CODE(BadRequest, "{} not exists", HTTP_FILE_DIRECTORY);
     }
 
     if (!fs.IsDir(all_directory)) {
-        throw lgraph_api::BadRequestException(
-            FMA_FMT("{} is not a directory", HTTP_FILE_DIRECTORY));
+        THROW_CODE(BadRequest, "{} is not a directory", HTTP_FILE_DIRECTORY);
     }
     if (!fs.RemoveDir(all_directory)) {
-        throw lgraph_api::InternalErrorException(
-            FMA_FMT("{} directory remove failed", HTTP_FILE_DIRECTORY));
+        THROW_CODE(InternalError, "{} directory remove failed", HTTP_FILE_DIRECTORY);
     }
 }
 
 off_t HttpService::GetFileSize(const std::string& file_name) {
     struct stat st;
     if (stat(file_name.data(), &st) < 0) {
-        throw lgraph_api::BadRequestException(strerror(errno));
+        THROW_CODE(BadRequest, strerror(errno));
     }
     return st.st_size;
 }
@@ -730,8 +748,8 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "procedureType", procedureType);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
     if (version != plugin::PLUGIN_VERSION_1 && version != plugin::PLUGIN_VERSION_2) {
-        throw lgraph_api::BadRequestException(FMA_FMT(
-            "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1, plugin::PLUGIN_VERSION_2));
+        THROW_CODE(BadRequest,
+            "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1, plugin::PLUGIN_VERSION_2);
     }
     PluginRequest* preq = lgraph_req.mutable_plugin_request();
     preq->set_graph(graphName);
@@ -739,24 +757,30 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     lgraph::PluginRequest::PluginType type;
     _GET_PLUGIN_REQUEST_TYPE(procedureType, type);
     if (type == PluginRequest::ANY) {
-        throw lgraph_api::BadRequestException(
-            FMA_FMT("Uploaded procedure can not be of type [{}]", type));
+        THROW_CODE(BadRequest, "Uploaded procedure can not be of type [{}]", type);
     }
     preq->set_type(type);
 
-    std::string procedureName, content, description, codeType;
+    std::string procedureName, description, codeType;
+    std::vector<std::string> content, filenames;
     bool readonly;
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "procedureName", procedureName);
-    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "content", content);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "description", description);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "codeType", codeType);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, bool, "readonly", readonly);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::vector<std::string>, "content", content);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::vector<std::string>, "file_name", filenames);
 
     LoadPluginRequest* req = preq->mutable_load_plugin_request();
     req->set_name(procedureName);
     req->set_read_only(readonly);
-    std::vector<unsigned char> decoded = utility::conversions::from_base64(content);
-    req->set_code(std::string(decoded.begin(), decoded.end()));
+    for (auto &code : content) {
+        std::vector<unsigned char> decoded = utility::conversions::from_base64(code);
+        req->add_code(std::string(decoded.begin(), decoded.end()));
+    }
+    for (const auto& filename : filenames) {
+        req->add_file_name(filename);
+    }
     req->set_desc(description);
     lgraph::LoadPluginRequest::CodeType _codeType;
     _GET_PLUGIN_REQUEST_CODE_TYPE(codeType, _codeType);
@@ -779,9 +803,9 @@ void HttpService::DoListProcedures(const brpc::Controller* cntl, std::string& re
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
     if (version != plugin::PLUGIN_VERSION_1 && version != plugin::PLUGIN_VERSION_2 &&
         version != plugin::PLUGIN_VERSION_ANY) {
-        throw lgraph_api::BadRequestException(
-            FMA_FMT("Version must be [{}] or [{}] or [{}]", plugin::PLUGIN_VERSION_1,
-                    plugin::PLUGIN_VERSION_2, plugin::PLUGIN_VERSION_ANY));
+        THROW_CODE(BadRequest, "Version must be [{}] or [{}] or [{}]",
+                   plugin::PLUGIN_VERSION_1,
+                    plugin::PLUGIN_VERSION_2, plugin::PLUGIN_VERSION_ANY);
     }
 
     LGraphRequest lgraph_req;
@@ -820,7 +844,7 @@ void HttpService::DoGetProcedure(const brpc::Controller* cntl, std::string& res)
     PluginCode co;
     bool exists = db.GetPluginCode(type, token, procedureName, co);
     if (!exists) {
-        throw lgraph_api::BadRequestException("Plugin does not exist.");
+        THROW_CODE(BadRequest, "Plugin does not exist.");
     }
     std::string encoded = lgraph_api::base64::Encode(co.code);
 
@@ -852,12 +876,12 @@ void HttpService::DoGetProcedureDemo(const brpc::Controller* cntl, std::string& 
         filename = HTTP_PROCEDURE_DEMO_PATH_PYTHON;
         demo_path += HTTP_PROCEDURE_DEMO_PATH_PYTHON;
     } else {
-        throw lgraph_api::BadRequestException(FMA_FMT("No such demo type [{}]", type));
+        THROW_CODE(BadRequest, "No such demo type [{}]", type);
     }
 
     std::ifstream ifs(demo_path);
     if (!ifs.is_open()) {
-        throw lgraph_api::BadRequestException("Demo does not exist.");
+        THROW_CODE(BadRequest, "Demo does not exist.");
     }
     std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
     std::string encoded = lgraph_api::base64::Encode(content);
@@ -968,8 +992,9 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
         ApplyToStateMachine(lgraph_req, lgraph_res);
         BuildJsonGraphQueryResponse(lgraph_res, res);
     } else {
-        throw lgraph_api::BadRequestException(FMA_FMT(
-            "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1, plugin::PLUGIN_VERSION_2));
+        THROW_CODE(BadRequest,
+            "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1,
+                   plugin::PLUGIN_VERSION_2);
     }
 }
 
@@ -988,14 +1013,14 @@ void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoName", algoName);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoType", algoType);
     if (algoType != plugin::PLUGIN_LANG_TYPE_PYTHON && algoType != plugin::PLUGIN_LANG_TYPE_CPP) {
-        throw lgraph_api::BadRequestException(FMA_FMT("AlgoType must be [{}] or [{}]",
+        THROW_CODE(BadRequest, "AlgoType must be [{}] or [{}]",
                                                       plugin::PLUGIN_LANG_TYPE_PYTHON,
-                                                      plugin::PLUGIN_LANG_TYPE_CPP));
+                                                      plugin::PLUGIN_LANG_TYPE_CPP);
     }
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
     if (version != plugin::PLUGIN_VERSION_1) {
-        throw lgraph_api::BadRequestException(
-            FMA_FMT("Version must be [{}] for long algo job", plugin::PLUGIN_VERSION_1));
+        THROW_CODE(BadRequest,
+            "Version must be [{}] for long algo job", plugin::PLUGIN_VERSION_1);
     }
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "jobParam", jobParam);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "nodeType", nodeType);
@@ -1003,9 +1028,9 @@ void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "outputType", outputType);
     if (outputType != HTTP_PROCEDURE_OUTPUT_TYPE_FILE &&
         outputType != HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH) {
-        throw lgraph_api::BadRequestException(FMA_FMT("OutputType must be [{}] or [{}]",
+        THROW_CODE(BadRequest, "OutputType must be [{}] or [{}]",
                                                       HTTP_PROCEDURE_OUTPUT_TYPE_FILE,
-                                                      HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH));
+                                                      HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH);
     }
     GET_FIELD_OR_THROW_BAD_REQUEST(params, double, "timeout", timeout);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, bool, "inProcess", inProcess);
@@ -1020,7 +1045,7 @@ void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string
         js[HTTP_TASK_ID] = taskId;
         res = js.dump();
     } catch (const std::runtime_error& e) {
-        throw lgraph_api::BadRequestException(e.what());
+        THROW_CODE(BadRequest, e.what());
     }
 }
 
@@ -1052,7 +1077,7 @@ void HttpService::DoListProcedureJobs(const brpc::Controller* cntl, std::string&
         result["total"] = json_jobs.size();
         res = result.dump();
     } catch (const std::runtime_error& e) {
-        throw lgraph_api::BadRequestException(e.what());
+        THROW_CODE(BadRequest, e.what());
     }
 }
 
@@ -1071,7 +1096,7 @@ void HttpService::DoGetProcedureJobResult(const brpc::Controller* cntl, std::str
         js["result"] = result.result();
         res = js.dump();
     } catch (const std::runtime_error& e) {
-        throw lgraph_api::BadRequestException(e.what());
+        THROW_CODE(BadRequest, e.what());
     }
 }
 
@@ -1132,9 +1157,12 @@ void HttpService::RespondBadRequest(brpc::Controller* cntl, const std::string& r
 
 std::string HttpService::CheckTokenOrThrowException(const brpc::Controller* cntl) const {
     const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) throw lgraph_api::UnauthorizedError();
-    if (!galaxy_->JudgeRefreshTime(*token))
-        throw lgraph_api::UnauthorizedError("token has already expire");
+    if (token == nullptr) {
+        THROW_CODE(Unauthorized);
+    }
+    if (!galaxy_->JudgeRefreshTime(*token)) {
+        THROW_CODE(Unauthorized, "token has already expire");
+    }
     return *token;
 }
 

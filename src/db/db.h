@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,8 +50,9 @@ class AccessControlledDB {
     Transaction ForkTxn(Transaction& txn);
 
     bool LoadPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name,
-                    const std::string& code, plugin::CodeType code_type, const std::string& desc,
-                    bool is_read_only, const std::string& version);
+                    const std::vector<std::string>& code, const std::vector<std::string>& filename,
+                    plugin::CodeType code_type, const std::string& desc, bool is_read_only,
+                    const std::string& version);
 
     bool DelPlugin(plugin::Type plugin_type, const std::string& token, const std::string& name);
 
@@ -59,6 +60,10 @@ class AccessControlledDB {
                     plugin::Type plugin_type, const std::string& token, const std::string& name,
                     const std::string& request, double timeout_seconds, bool in_process,
                     std::string& output);
+
+    bool CallV2Plugin(lgraph_api::Transaction* txn, plugin::Type plugin_type,
+                      const std::string& user, const std::string& name, const std::string& request,
+                      double timeout_seconds, bool in_process, Result& output);
 
     std::vector<PluginDesc> ListPlugins(plugin::Type plugin_type, const std::string& token);
 
@@ -135,19 +140,19 @@ class AccessControlledDB {
 
  private:
     inline void CheckReadAccess() const {
-        if (access_level_ < AccessLevel::READ) throw AuthError("No read permission.");
+        if (access_level_ < AccessLevel::READ) THROW_CODE(Unauthorized, "No read permission.");
     }
 
     inline void CheckWriteAccess() const {
-        if (access_level_ < AccessLevel::WRITE) throw AuthError("No write permission.");
+        if (access_level_ < AccessLevel::WRITE) THROW_CODE(Unauthorized, "No write permission.");
     }
 
     inline void CheckFullAccess() const {
-        if (access_level_ < AccessLevel::FULL) throw AuthError("No full permission.");
+        if (access_level_ < AccessLevel::FULL) THROW_CODE(Unauthorized, "No full permission.");
     }
 
     inline void CheckAdmin() const {
-        if (user_ != _detail::DEFAULT_ADMIN_NAME) throw AuthError("Not the admin user.");
+        if (user_ != _detail::DEFAULT_ADMIN_NAME) THROW_CODE(Unauthorized, "Not the admin user.");
     }
 };
 }  // namespace lgraph

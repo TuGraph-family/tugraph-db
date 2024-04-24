@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -234,6 +234,25 @@ class Result {
      * @returns The reference of record.
      */
     Record *MutableRecord();
+
+    /**
+     * @brief   This function attempts to reserve enough memory for the result vector to hold
+     *          the specified number of elements.
+     *
+     */
+    void Reserve(size_t n);
+
+    /**
+     * @brief   This function will resize the vector to the specified number of elements
+     *
+     */
+    void Resize(size_t n);
+
+    /**
+     * @brief   Provides access to the data contained in the vector.
+     *
+     */
+    Record* At(size_t n);
 
     /**
      * @brief   return header of the table.

@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -151,7 +151,7 @@ inline bool TryDecode(const std::string& str, std::string& out) {
  */
 inline std::string Decode(const char* p, size_t s) {
     std::string ret;
-    if (!TryDecode(p, s, ret)) throw InputError("Failed to decode Base64 string.");
+    if (!TryDecode(p, s, ret)) THROW_CODE(InputError, "Failed to decode Base64 string.");
     return ret;
 }
 
