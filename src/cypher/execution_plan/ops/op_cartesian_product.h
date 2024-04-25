@@ -35,7 +35,10 @@ class CartesianProduct : public OpBase {
         for (int i = 1; i < (int)children.size(); i++) {
             auto child = children[i];
             if (child->Consume(ctx) == OP_OK) {
+                LOG_INFO() << record->ToString();
+                LOG_INFO() << child->record->ToString();
                 record->Merge(*child->record);
+                LOG_INFO() << record->ToString();
                 /* Managed to get new data.
                  * Reset streams [0-i] */
                 for (int ii = 0; ii < i; ii++) ResetStream(children[ii]);
@@ -43,7 +46,10 @@ class CartesianProduct : public OpBase {
                 for (int j = 0; j < i; j++) {
                     auto c = children[j];
                     if (c->Consume(ctx) == OP_OK) {
+                        LOG_INFO() << record->ToString();
+                        LOG_INFO() << child->record->ToString();
                         record->Merge(*c->record);
+                        LOG_INFO() << record->ToString();
                     } else {
                         return OP_ERR;
                     }
@@ -78,24 +84,36 @@ class CartesianProduct : public OpBase {
     }
 
     OpResult RealConsume(RTContext *ctx) override {
+        for (auto child : children) {
+            LOG_INFO() << child->name;
+        }
         if (init) {
             init = false;
             for (auto child : children) {
                 auto res = child->Consume(ctx);
                 if (res != OP_OK) return res;
+                LOG_INFO() << record->ToString();
+                LOG_INFO() << child->record->ToString();
                 record->Merge(*child->record);
+                LOG_INFO() << record->ToString();
             }
             return OP_OK;
         }
+        LOG_INFO() << record->ToString();
         // Pull from first stream.
         auto child = children[0];
         if (child->Consume(ctx) == OP_OK) {
             // Managed to get data from first stream.
+            LOG_INFO() << child->record->ToString();
             record->Merge(*child->record);
+            LOG_INFO() << record->ToString();
         } else {
             // Failed to get data from first stream,
             // try pulling other streams for data.
+            LOG_INFO() << record->ToString();
+            LOG_INFO() << child->record->ToString();
             auto res = PullFromStreams(ctx);
+            LOG_INFO() << record->ToString();
             if (res != OP_OK) return res;
         }
         return OP_OK;

@@ -167,16 +167,22 @@ class TestQuery : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             parser::CypherBaseVisitor visitor(ctx_.get(), parser.oC_Cypher());
+            UT_LOG() << "-----CLAUSE TO STRING-----";
+            UT_LOG() << visitor.GetQuery().size();
+            for (const auto &sql_query : visitor.GetQuery()) {
+                UT_LOG() << sql_query.ToString();
+            }
             cypher::ExecutionPlan execution_plan;
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
             execution_plan.Validate(ctx_.get());
-            execution_plan.DumpGraph();
-            execution_plan.DumpPlan(0, false);
+            UT_LOG() << execution_plan.DumpGraph();
+            UT_LOG() << execution_plan.DumpPlan(0, false);
             execution_plan.Execute(ctx_.get());
             result = ctx_->result_->Dump(false);
             UT_LOG() << "-----result-----";
             result = ctx_->result_->Dump(false);
             UT_LOG() << result;
+            UT_LOG() << nlohmann::json::parse(result).size();
             return true;
         } catch (std::exception& e) {
             UT_LOG() << e.what();
