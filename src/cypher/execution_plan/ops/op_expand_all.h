@@ -52,7 +52,7 @@ class ExpandAll : public OpBase {
 
     bool _CheckToSkipEdge(RTContext *ctx) const {
         return eit_->IsValid() &&
-               (pattern_graph_->VisitedEdges().Contains(*eit_) || _CheckToSkipEdgeFilter(ctx) ||
+               (_CheckToSkipEdgeFilter(ctx) ||
                 (expand_into_ && eit_->GetNbr(expand_direction_) != neighbor_->PullVid()));
     }
 
@@ -77,7 +77,6 @@ class ExpandAll : public OpBase {
     }
 
     OpResult Next(RTContext *ctx) {
-        LOG_INFO() << eit_->GetSrc() << " " << eit_->GetDst();
         // Reset iterators
         if (state_ == ExpandAllResetted) {
             /* Start node iterator may be invalid, such as when the start is an argument
@@ -182,8 +181,6 @@ class ExpandAll : public OpBase {
         auto child = children[0];
         while (state_ == ExpandAllUninitialized || Next(ctx) == OP_REFRESH) {
             auto res = child->Consume(ctx);
-            LOG_INFO() << child->record->ToString();
-            LOG_INFO() << record->ToString();
             state_ = ExpandAllResetted;
             if (res != OP_OK) {
                 /* When consume after the stream is DEPLETED, make sure
@@ -191,8 +188,6 @@ class ExpandAll : public OpBase {
                 state_ = ExpandAllUninitialized;
                 return res;
             }
-            LOG_INFO() << child->record->ToString();
-            LOG_INFO() << record->ToString();
             /* Most of the time, the start_it is definitely valid after child's Consume
              * returns OK, except when the child is an OPTIONAL operation.  */
         }
