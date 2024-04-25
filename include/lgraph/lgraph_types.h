@@ -1243,6 +1243,10 @@ struct EdgeUid {
                tid == rhs.tid;
     }
 
+    inline bool operator!=(const EdgeUid& rhs) const {
+        return !this->operator==(rhs);
+    }
+
     inline bool operator<(const EdgeUid& rhs) const {
         return src < rhs.src || (src == rhs.src && dst < rhs.dst) ||
                (src == rhs.src && dst == rhs.dst && lid < rhs.lid) ||

@@ -37,18 +37,18 @@ TEST_F(TestUpsert, upsert) {
     bool ret = client.CallCypher(str, "CALL db.createVertexLabel('node1', 'id' , "
                             "'id' ,INT32, false, "
                             "'name' ,STRING, false, "
-                            "'num', INT32, false)");
+                            "'num', INT32, false, 'desc', STRING, true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.createVertexLabel('node2', 'id' , "
                             "'id' ,INT32, false, "
                             "'name' ,STRING, false, "
-                            "'num', INT32, false)");
+                            "'num', INT32, false, 'desc', STRING, true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             R"(CALL db.createEdgeLabel('edge1','[["node1","node2"]]',
                 'id' ,INT32, false,
                 'name' ,STRING, false,
-                'num', INT32, false))");
+                'num', INT32, false, 'desc', STRING, true))");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.addIndex('node1', 'name', false)");
@@ -91,7 +91,7 @@ TEST_F(TestUpsert, upsert) {
     std::string cypher = FMA_FMT("CALL db.upsertVertexByJson('node1', '{}')", array.dump());
     ret = client.CallCypher(str, cypher);
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(str, R"([{"index_conflict":2,"insert":8,"json_error":0,"json_total":20,"update":10}])");
+    UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":2,"insert":8,"total":20,"update":10}])");
 
     // node2
     {
@@ -101,14 +101,47 @@ TEST_F(TestUpsert, upsert) {
             prop["id"] = i;
             prop["name"] = "name" + std::to_string(i);
             prop["num"] = i;
+            prop["desc"] = "desc " + std::to_string(i);
             array.push_back(prop);
         }
         cypher = FMA_FMT("CALL db.upsertVertexByJson('node2', '{}')", array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
-        UT_EXPECT_EQ(str, R"([{"index_conflict":0,"insert":20,"json_error":0,"json_total":20,"update":0}])");
+        UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":0,"insert":20,"total":20,"update":0}])");
+    }
 
-        // edge1
+    {
+        array.clear();
+        for (int i = 1; i <= 20; i++) {
+            nlohmann::json prop;
+            prop["id"] = i;
+            prop["name"] = "name" + std::to_string(i);
+            prop["num"] = i;
+            prop["desc"] = nullptr;
+            array.push_back(prop);
+        }
+        cypher = FMA_FMT("CALL db.upsertVertexByJson('node2', '{}')", array.dump());
+        ret = client.CallCypher(str, cypher);
+        UT_EXPECT_TRUE(ret);
+        UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":0,"insert":0,"total":20,"update":20}])");
+    }
+    {
+        array.clear();
+        for (int i = 1; i <= 20; i++) {
+            nlohmann::json prop;
+            prop["id"] = i;
+            prop["name"] = "name" + std::to_string(i);
+            prop["num"] = nullptr;
+            array.push_back(prop);
+        }
+        cypher = FMA_FMT("CALL db.upsertVertexByJson('node2', '{}')", array.dump());
+        ret = client.CallCypher(str, cypher);
+        UT_EXPECT_TRUE(ret);
+        UT_EXPECT_EQ(str, R"([{"data_error":20,"index_conflict":0,"insert":0,"total":20,"update":0}])");
+    }
+
+    // edge1
+    {
         array.clear();
         for (int i = 1; i <= 20; i++) {
             nlohmann::json prop;
@@ -118,6 +151,7 @@ TEST_F(TestUpsert, upsert) {
             prop["id"] = i;
             prop["name"] = "name" + std::to_string(i);
             prop["num"] = i;
+            prop["desc"] = "desc " + std::to_string(i);
             array.push_back(prop);
         }
         nlohmann::json start;
@@ -130,7 +164,7 @@ TEST_F(TestUpsert, upsert) {
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
-        UT_EXPECT_EQ(str, R"([{"index_conflict":0,"insert":18,"json_error":2,"json_total":20,"update":0}])");
+        UT_EXPECT_EQ(str, R"([{"data_error":2,"index_conflict":0,"insert":18,"total":20,"update":0}])");
     }
 
     {
@@ -143,6 +177,7 @@ TEST_F(TestUpsert, upsert) {
             prop["id"] = i;
             prop["name"] = "name" + std::to_string(i);
             prop["num"] = i;
+            prop["desc"] = nullptr;
             array.push_back(prop);
         }
         nlohmann::json start;
@@ -155,7 +190,7 @@ TEST_F(TestUpsert, upsert) {
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
-        UT_EXPECT_EQ(str, R"([{"index_conflict":18,"insert":0,"json_error":2,"json_total":20,"update":0}])");
+        UT_EXPECT_EQ(str, R"([{"data_error":2,"index_conflict":0,"insert":0,"total":20,"update":18}])");
     }
 
     {
@@ -179,7 +214,7 @@ TEST_F(TestUpsert, upsert) {
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
-        UT_EXPECT_EQ(str, R"([{"index_conflict":0,"insert":0,"json_error":2,"json_total":20,"update":18}])");
+        UT_EXPECT_EQ(str, R"([{"data_error":2,"index_conflict":0,"insert":0,"total":20,"update":18}])");
     }
     cypher = "match(n:node1) return count(n)";
     ret = client.CallCypher(str, cypher);

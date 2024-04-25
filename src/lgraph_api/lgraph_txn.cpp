@@ -280,7 +280,7 @@ int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
         for (auto pos : unique_pos) {
             auto tmp = txn_->GetEdgeIndexIterator(
                 label_id, field_ids[pos], field_values[pos], field_values[pos]);
-            if (tmp.IsValid() && tmp.GetUid() == iter.GetUid()) {
+            if (tmp.IsValid() && (tmp.GetUid() != iter.GetUid())) {
                 return 0;
             }
         }

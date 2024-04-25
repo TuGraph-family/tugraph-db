@@ -406,9 +406,17 @@ static std::string ParseStringArg(const parser::Expression &arg, const std::stri
     return arg.String();
 }
 
-lgraph_api::FieldData JsonToFieldData(const nlohmann::json& j_object, lgraph_api::FieldType type) {
+std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_object,
+                                                     const lgraph_api::FieldSpec& fs) {
+    if (j_object.is_null()) {
+        if (fs.optional) {
+            return lgraph_api::FieldData();
+        } else {
+            return {};
+        }
+    }
     try {
-        switch (type) {
+        switch (fs.type) {
         case lgraph_api::FieldType::BOOL:
             return lgraph_api::FieldData(j_object.get<bool>());
         case lgraph_api::FieldType::INT8:
@@ -453,9 +461,9 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     auto txn = db.CreateReadTxn();
     auto label_id = txn.GetVertexLabelId(args[0].String());
     auto vertex_fields = txn.GetVertexSchema(args[0].String());
-    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldType>> fd_type;
+    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
     for (const auto& fd : vertex_fields) {
-        fd_type[fd.name] = std::make_pair(txn.GetVertexFieldId(label_id, fd.name), fd.type);
+        fd_type[fd.name] = std::make_pair(txn.GetVertexFieldId(label_id, fd.name), fd);
     }
     std::string pf = txn.GetVertexPrimaryField(args[0].String());
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].String());
@@ -487,11 +495,11 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
             auto iter = fd_type.find(item.key());
             if (iter != fd_type.end()) {
                 auto fd = JsonToFieldData(item.value(), iter->second.second);
-                if (fd.IsNull()) {
+                if (!fd) {
                     success = false;
                     break;
                 }
-                fds.emplace_back(std::move(fd));
+                fds.emplace_back(std::move(fd.value()));
                 field_ids.push_back(iter->second.first);
                 if (unique_indexs.count(iter->second.first)) {
                     unique_pos.push_back(field_ids.size() - 1);
@@ -560,11 +568,11 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
     auto start_label_id = txn.GetVertexLabelId(start_type);
     auto start_pf = txn.GetVertexPrimaryField(start_type);
     auto start_pf_id = txn.GetVertexFieldId(start_label_id, start_pf);
-    lgraph_api::FieldType start_pf_type = lgraph_api::FieldType::NUL;
+    lgraph_api::FieldSpec start_pf_fs;
     auto vertex_fields = txn.GetVertexSchema(start_type);
     for (auto& item : vertex_fields) {
         if (item.name == start_pf) {
-            start_pf_type = item.type;
+            start_pf_fs = item;
             break;
         }
     }
@@ -572,19 +580,19 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
     auto end_label_id = txn.GetVertexLabelId(end_type);
     auto end_pf = txn.GetVertexPrimaryField(end_type);
     auto end_pf_id = txn.GetVertexFieldId(end_label_id, end_pf);
-    lgraph_api::FieldType end_pf_type = lgraph_api::FieldType::NUL;
+    lgraph_api::FieldSpec end_pf_fs;
     vertex_fields = txn.GetVertexSchema(end_type);
     for (auto& item : vertex_fields) {
         if (item.name == end_pf) {
-            end_pf_type = item.type;
+            end_pf_fs = item;
             break;
         }
     }
 
     auto edge_fields = txn.GetEdgeSchema(args[0].String());
-    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldType>> fd_type;
+    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
     for (const auto& fd : edge_fields) {
-        fd_type[fd.name] = std::make_pair(txn.GetEdgeFieldId(label_id, fd.name), fd.type);
+        fd_type[fd.name] = std::make_pair(txn.GetEdgeFieldId(label_id, fd.name), fd);
     }
 
     auto index_fds = txn.GetTxn()->ListEdgeIndexByLabel(args[0].String());
@@ -611,12 +619,13 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
         bool success = true;
         for (auto& item : line.items()) {
             if (item.key() == start_json_key) {
-                auto fd = JsonToFieldData(item.value(), start_pf_type);
-                if (fd.IsNull()) {
+                auto fd = JsonToFieldData(item.value(), start_pf_fs);
+                if (!fd) {
                     success = false;
                     break;
                 }
-                auto iiter = txn.GetVertexIndexIterator(start_label_id, start_pf_id, fd, fd);
+                auto iiter = txn.GetVertexIndexIterator(
+                    start_label_id, start_pf_id, fd.value(), fd.value());
                 if (!iiter.IsValid()) {
                     success = false;
                     break;
@@ -624,12 +633,13 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                 start_vid = iiter.GetVid();
                 continue;
             } else if (item.key() == end_json_key) {
-                auto fd = JsonToFieldData(item.value(), end_pf_type);
-                if (fd.IsNull()) {
+                auto fd = JsonToFieldData(item.value(), end_pf_fs);
+                if (!fd) {
                     success = false;
                     break;
                 }
-                auto iiter = txn.GetVertexIndexIterator(end_label_id, end_pf_id, fd, fd);
+                auto iiter = txn.GetVertexIndexIterator(
+                    end_label_id, end_pf_id, fd.value(), fd.value());
                 if (!iiter.IsValid()) {
                     success = false;
                     break;
@@ -640,11 +650,11 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                 auto iter = fd_type.find(item.key());
                 if (iter != fd_type.end()) {
                     auto fd = JsonToFieldData(item.value(), iter->second.second);
-                    if (fd.IsNull()) {
+                    if (!fd) {
                         success = false;
                         break;
                     }
-                    fds.emplace_back(std::move(fd));
+                    fds.emplace_back(std::move(fd.value()));
                     field_ids.push_back(iter->second.first);
                     if (unique_indexs.count(iter->second.first)) {
                         unique_pos.push_back(field_ids.size() - 1);

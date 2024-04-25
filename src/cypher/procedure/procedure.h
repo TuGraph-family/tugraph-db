@@ -567,8 +567,8 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"json_data", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
-                  {"json_total", {0, lgraph_api::LGraphType::INTEGER}},
-                  {"json_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
                   {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
                   {"insert", {3, lgraph_api::LGraphType::INTEGER}},
                   {"update", {4, lgraph_api::LGraphType::INTEGER}},
@@ -581,8 +581,8 @@ static std::vector<Procedure> global_procedures = {
                                   {"end_spec", {2, lgraph_api::LGraphType::STRING}},
                                   {"json_data", {3, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
-                  {"json_total", {0, lgraph_api::LGraphType::INTEGER}},
-                  {"json_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
                   {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
                   {"insert", {3, lgraph_api::LGraphType::INTEGER}},
                   {"update", {4, lgraph_api::LGraphType::INTEGER}},
