@@ -100,6 +100,12 @@ class BuiltinProcedure {
     static void DbWarmUp(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbUpsertVertexByJson(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertEdgeByJson(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbCreateVertexLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                     const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -554,6 +560,32 @@ static std::vector<Procedure> global_procedures = {
               },
               Procedure::SIG_SPEC{
                   {"record_affected", {0, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    Procedure("db.upsertVertexByJson", BuiltinProcedure::DbUpsertVertexByJson,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"json_data", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    Procedure("db.upsertEdgeByJson", BuiltinProcedure::DbUpsertEdgeByJson,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"start_spec", {1, lgraph_api::LGraphType::STRING}},
+                                  {"end_spec", {2, lgraph_api::LGraphType::STRING}},
+                                  {"json_data", {3, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
               },
               false, true),
 
