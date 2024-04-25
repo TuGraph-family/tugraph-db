@@ -32,6 +32,7 @@ inline std::unique_ptr<SubProcess> StartLGraphServer(const GlobalConfig& conf,
         " --host {}"
         " --port {}"
         " --enable_rpc {}"
+        " --use_pthread {}"
         " --rpc_port {}"
         " --enable_backup_log {}"
         " --enable_ip_check {}"
@@ -42,7 +43,7 @@ inline std::unique_ptr<SubProcess> StartLGraphServer(const GlobalConfig& conf,
         " --server_key {}"
         " --use_pthread {}"
         " --bolt_port {}",
-        conf.bind_host, conf.http_port, conf.enable_rpc, conf.rpc_port,
+        conf.bind_host, conf.http_port, conf.enable_rpc, conf.use_pthread, conf.rpc_port,
         conf.enable_backup_log, conf.enable_ip_check,
         conf.verbose, conf.db_dir, conf.enable_ssl, conf.server_cert_file, conf.server_key_file,
         conf.use_pthread, conf.bolt_port);

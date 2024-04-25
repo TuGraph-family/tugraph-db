@@ -25,6 +25,7 @@ TEST_F(TestUpsert, upsert) {
     conf.db_dir = "./testdb";
     conf.http_port = 7774;
     conf.enable_rpc = true;
+    conf.use_pthread = true;
     conf.rpc_port = 19999;
     conf.bind_host = "127.0.0.1";
     lgraph::AutoCleanDir cleaner(conf.db_dir);
