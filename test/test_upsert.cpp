@@ -156,10 +156,10 @@ TEST_F(TestUpsert, upsert) {
         }
         nlohmann::json start;
         start["type"] = "node1";
-        start["json_key"] = "node1_id";
+        start["key"] = "node1_id";
         nlohmann::json end;
         end["type"] = "node2";
-        end["json_key"] = "node2_id";
+        end["key"] = "node2_id";
         cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
@@ -182,10 +182,10 @@ TEST_F(TestUpsert, upsert) {
         }
         nlohmann::json start;
         start["type"] = "node1";
-        start["json_key"] = "node1_id";
+        start["key"] = "node1_id";
         nlohmann::json end;
         end["type"] = "node2";
-        end["json_key"] = "node2_id";
+        end["key"] = "node2_id";
         cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
@@ -206,10 +206,10 @@ TEST_F(TestUpsert, upsert) {
         }
         nlohmann::json start;
         start["type"] = "node1";
-        start["json_key"] = "node1_id";
+        start["key"] = "node1_id";
         nlohmann::json end;
         end["type"] = "node2";
-        end["json_key"] = "node2_id";
+        end["key"] = "node2_id";
         cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
