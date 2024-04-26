@@ -30,6 +30,7 @@
 #include "core/schema_common.h"
 #include "core/value.h"
 #include "core/full_text_index.h"
+#include "core/composite_index.h"
 
 namespace lgraph {
 class Schema;
@@ -84,6 +85,7 @@ class Schema {
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
     std::shared_ptr<KvTable> property_table_;
+    std::unordered_map<std::string, std::shared_ptr<CompositeIndex>> composite_index_map;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
@@ -96,6 +98,15 @@ class Schema {
     void SetDeleted(bool deleted) { deleted_ = deleted; }
 
     bool GetDeleted() const { return deleted_; }
+
+    std::string GetCompositeIndexMapKey(const std::vector<std::string> &fields) {
+        std::string res = std::to_string(name_to_idx_[fields[0]]);
+        int n = fields.size();
+        for (int i = 1; i < n; ++i) {
+            res += _detail::NAME_SEPERATOR + std::to_string(name_to_idx_[fields[i]]);
+        }
+        return res;
+    }
 
  public:
     typedef BlobManager::BlobKey BlobKey;
@@ -450,6 +461,17 @@ class Schema {
                                   std::vector<FTIndexEntry>& buffers);
     void AddEdgeToFullTextIndex(EdgeUid euid, const Value& record,
                                 std::vector<FTIndexEntry>& buffers);
+
+    void SetCompositeIndex(const std::vector<std::string> &fields, CompositeIndex* index) {
+        composite_index_map.emplace(GetCompositeIndexMapKey(fields),
+                                    std::make_shared<CompositeIndex>(*index));
+    }
+
+    CompositeIndex* GetCompositeIndex(const std::vector<std::string> &fields) {
+        auto it = composite_index_map.find(GetCompositeIndexMapKey(fields));
+        if (it == composite_index_map.end()) return nullptr;
+        return it->second.get();
+    }
 
     //----------------------
     // serialize/deserialize

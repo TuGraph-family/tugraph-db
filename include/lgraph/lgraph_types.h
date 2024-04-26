@@ -1208,6 +1208,13 @@ enum class IndexType {
     PairUniqueIndex = 2
 };
 
+enum class CompositeIndexType {
+    /** @brief this is not unique composite index
+     *  Temporarily require all attributes to be non-empty attributes
+     * */
+    UniqueIndex = 1
+};
+
 /** @brief   An index specifier. */
 struct IndexSpec {
     /** @brief   label name */
