@@ -43,12 +43,12 @@ parser::Expression ConvertParameters(std::any data) {
         ret.type = parser::Expression::NULL_;
     } else if (data.type() == typeid(std::unordered_map<std::string, std::any>)) {
         ret.type = parser::Expression::MAP;
-        std::unordered_map<std::string, parser::Expression> map_exp;
+        std::map<std::string, parser::Expression> map_exp;
         auto& map =  std::any_cast<std::unordered_map<std::string, std::any>&>(data);
         for (auto& pair : map) {
             map_exp.emplace(pair.first, ConvertParameters(std::move(pair.second)));
         }
-        ret.data = std::make_shared<std::unordered_map<
+        ret.data = std::make_shared<std::map<
             std::string, parser::Expression>>(std::move(map_exp));
     } else if (data.type() == typeid(std::vector<std::any>)) {
         ret.type = parser::Expression::LIST;
