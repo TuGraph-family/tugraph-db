@@ -1968,6 +1968,12 @@ void test_import_content(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["schema"]["properties"].size(), 3);
+    for (auto item : json_val[0]["schema"]["properties"].as_array()) {
+        if (item["name"].as_string() == "phone") {
+            UT_EXPECT_EQ(item["index"].as_bool(), true);
+            UT_EXPECT_EQ(item["unique"].as_bool(), true);
+        }
+    }
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "label", "Person", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "primary", "name", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "type", "VERTEX", "STRING"), true);

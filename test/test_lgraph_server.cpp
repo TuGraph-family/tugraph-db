@@ -54,6 +54,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
     lgraph::GlobalConfig conf;
     conf.db_dir = "./testdb";
     conf.http_port = 7774;
+    conf.enable_rpc = true;
     conf.rpc_port = 9394;
     conf.bind_host = "127.0.0.1";
 #ifdef __SANITIZE_ADDRESS__

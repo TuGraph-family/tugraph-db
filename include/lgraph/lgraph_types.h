@@ -1208,6 +1208,13 @@ enum class IndexType {
     PairUniqueIndex = 2
 };
 
+enum class CompositeIndexType {
+    /** @brief this is not unique composite index
+     *  Temporarily require all attributes to be non-empty attributes
+     * */
+    UniqueIndex = 1
+};
+
 /** @brief   An index specifier. */
 struct IndexSpec {
     /** @brief   label name */
@@ -1241,6 +1248,10 @@ struct EdgeUid {
     inline bool operator==(const EdgeUid& rhs) const {
         return src == rhs.src && dst == rhs.dst && lid == rhs.lid && eid == rhs.eid &&
                tid == rhs.tid;
+    }
+
+    inline bool operator!=(const EdgeUid& rhs) const {
+        return !this->operator==(rhs);
     }
 
     inline bool operator<(const EdgeUid& rhs) const {
