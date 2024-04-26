@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -476,7 +476,10 @@ int test_function(cypher::RTContext *ctx) {
         {"RETURN LENGTH('abc1234')", 1},
         {"RETURN SUBSTRING('abc1234', 4, 4)", 1},
         {"RETURN CONCAT('abc', '12', '34')", 1},
-        {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1}
+        {"RETURN CONCAT('abc', '12', '34', '56', '78')", 1},
+        {"RETURN MASK('123456789', 1, 2)", 1},
+        {"RETURN MASK('张三', 2, 2)", 1},
+        {"RETURN MASK('123456789', 2, 3, '?')", 1}
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -836,6 +839,29 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
          "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
+        {"RETURN point('0101000020E6100000000000000000F03F0000000000000040') as p3", 1},
+        {"RETURN linestring('0102000020231C000003000000000000000000000000000000000000000"
+                            "00000000000004000000000000000400000000000000840000000000000F03F')", 1},
+        {"RETURN polygon('0103000020E6100000010000000500000000000000000000000000000000"
+                         "00000000000000000000000000000000001C400000000000001040000000000000"
+                         "00400000000000000040000000000000000000000000000000000000000000000000')"
+                         , 1},
+        {"RETURN point(1.0, 2.0, 4326)", 1},   // (p1, p2), srid
+        {"RETURN point(3.0, 1.0, 7203)", 1},
+        {"RETURN point(2.32, 4.96)", 1},
+        {"WITH point(1, 1, 4326) AS p1, point(1, 1, 4326) AS p2 RETURN p1 = p2", 1},
+        {"RETURN pointwkb('0101000000000000000000F03F0000000000000040'), 4326", 1},
+        {"RETURN pointwkt('POINT(1.0 1.0)'), 7203", 1},
+        {"RETURN pointwkb('0101000000000000000000F03F0000000000000040')", 1},
+        {"RETURN pointwkt('POINT(1.0 1.0)')", 1},
+        {"RETURN linestringwkb('01020000000300000000000000000000000000000000"
+        "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203)",
+        1},
+        {"RETURN linestringwkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
+        {"RETURN polygonwkb('0103000000010000000500000000000000000000000000000000000000000"
+        "00000000000000000000000001C4000000000000010400000000000000040"
+        "0000000000000040000000000000000000000000000000000000000000000000', 4326)", 1},
+        {"RETURN polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -1161,6 +1187,30 @@ int test_procedure(cypher::RTContext *ctx) {
             "CALL db.plugin.loadPlugin('CPP','" + i.first + "','" + encode + \
             "','CPP','" + i.first + "', true, 'v1')");
     }
+    std::vector<std::pair<std::string, std::string>> multi_file_info = {
+        {"multi_files_core.cpp", "../../test/test_procedures/multi_files_core.cpp"},
+        {"multi_files.cpp", "../../test/test_procedures/multi_files.cpp"},
+        {"multi_files.h", "../../test/test_procedures/multi_files.h"}
+    };
+    std::map<std::string, std::string> contents;
+    for (auto &i : multi_file_info) {
+        text.clear();
+        f.open(i.second, std::ios::in);
+        std::string buf;
+        while (getline(f, buf)) {
+            text += buf;
+            text += "\n";
+        }
+        f.close();
+        encode = lgraph_api::encode_base64(text);
+        contents[i.first] = encode;
+    }
+    std::string cypher_q = FMA_FMT("CALL db.plugin.loadPlugin('CPP','multi', "
+        "\\{`{}`: \"{}\", `{}`: \"{}\", `{}`: \"{}\"\\}, 'CPP','multi', true, 'v1')",
+        "multi_files_core.cpp", contents["multi_files_core.cpp"],
+        "multi_files.cpp", contents["multi_files.cpp"],
+        "multi_files.h", contents["multi_files.h"]);
+    plugin_scripts.push_back(cypher_q);
     eval_scripts(ctx, plugin_scripts);
 
     static std::vector<std::string> scripts = {
@@ -1342,22 +1392,22 @@ int test_procedure(cypher::RTContext *ctx) {
                     name, encoded, name));
     };
 
-    add_signatured_plugins("custom_shortestpath",
-                           "../../test/test_procedures/custom_shortestpath.cpp");
+    add_signatured_plugins("v2_test_path",
+                           "../../test/test_procedures/v2_test_path.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
-        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "CALL plugin.cpp.v2_test_path(a, b) YIELD length, nodeIds "
         "RETURN length, nodeIds AS path");
 
-    add_signatured_plugins("custom_pagerank", "../../test/test_procedures/custom_pagerank.cpp");
+    add_signatured_plugins("v2_pagerank", "../../test/test_procedures/v2_pagerank.cpp");
     call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_pagerank(10) "
+        "CALL plugin.cpp.v2_pagerank(10) "
         "YIELD node, weight WITH node, weight "
         "MATCH(node)-[r]->(n) RETURN node, r, n, weight");
 
     call_signatured_plugins_scripts.emplace_back(
         "MATCH (a:Person {name: \"Christopher Nolan\"}), (b:Person {name: \"Corin Redgrave\"}) "
-        "CALL plugin.cpp.custom_shortestpath(a, b) YIELD length, nodeIds "
+        "CALL plugin.cpp.v2_test_path(a, b) YIELD length, nodeIds "
         "WITH length, nodeIds "
         "UNWIND nodeIds AS id "
         "RETURN id, length");
@@ -1369,18 +1419,18 @@ int test_procedure(cypher::RTContext *ctx) {
         "YIELD node, salt WITH node, salt "
         "MATCH(node)-[r]->(n) RETURN node, r, n, salt");
 
-    add_signatured_plugins("custom_path_process",
-        "../../test/test_procedures/custom_path_process.cpp");
+    add_signatured_plugins("v2_path_process",
+        "../../test/test_procedures/v2_path_process.cpp");
     call_signatured_plugins_scripts.emplace_back(
         "MATCH p = (n {name:\"Rachel Kempson\"})-[*0..3]->() "
-        "CALL plugin.cpp.custom_path_process(nodes(p)) YIELD idSum "
+        "CALL plugin.cpp.v2_path_process(nodes(p)) YIELD idSum "
         "RETURN idSum");
 
-    add_signatured_plugins("custom_algo", "../../test/test_procedures/custom_algo.cpp");
+    add_signatured_plugins("v2_algo", "../../test/test_procedures/v2_algo.cpp");
     call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_algo() YIELD res RETURN res");
+        "CALL plugin.cpp.v2_algo() YIELD res RETURN res");
     call_signatured_plugins_scripts.emplace_back(
-        "CALL plugin.cpp.custom_algo()");
+        "CALL plugin.cpp.v2_algo()");
     eval_scripts(ctx, call_signatured_plugins_scripts);
     return 0;
 }
@@ -1444,6 +1494,7 @@ CREATE (a)-[:KNOWS {weight:10}]->(b),
         "MATCH (n:Person {name:'E'}) SET n.name='X'",
         "MATCH (n:Person {name:'A'}), (m:Person {name:'B'}) SET n.age=50 SET m.age=51",
         "MATCH (n:Person {name:'A'})-[e:KNOWS]->(m:Person) SET n.age=50 SET e.weight=50",
+        "MATCH (n:Person {name:'A'})-[e:KNOWS]->(m:Person) SET n.age=50, e.weight=50",
         "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = 34",
         "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = id(n)",
         "MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m = {age: 33}",
@@ -2356,6 +2407,50 @@ void debug_stack_chaos(cypher::RTContext *ctx) {
     txn.Abort();
 }
 
+int test_spatial_procedure(cypher::RTContext *ctx) {
+    static const std::vector<std::string> scripts_ = {
+    "CALL db.createVertexLabel('Location', 'name', 'name', STRING, false, 'geo', POINT, false)",
+    "CREATE (a_:Location {name:'A_', geo: POINT(1.0, 2.0)})",
+    "CREATE (b_:Location {name:'B_', geo: POINT(1.0, 2.0)})",
+    "CALL db.createVertexLabel"
+    "('Location_', 'name', 'name', STRING, false, 'geo1', LINESTRING, false,"
+    "'geo2', POLYGON, false)",
+    "CREATE (c_:Location_ "
+    "{name:'C_', geo1: LINESTRING('0102000020E6100000030000000000000000000000000"
+    "0000000000000000000000000004000000000000000400000000000000840000000000000F03F'), "
+    "geo2: polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))')})"
+    };
+    eval_scripts(ctx, scripts_);
+
+    static const std::vector<std::pair<std::string, int>> script_check = {
+    {"with point(2.0, 2.0, 7203) as p1, point(2.0, 1.0, 7203) as p2\n"
+     "CALL spatial.distance(p1, p2) YIELD distance RETURN distance = 1", 1},
+    {"with LineStringWKB('01020000000300000000000000000000000000000000"
+     "000000000000000000004000000000000000400000000000000840000000000000F03F') "
+     "as linestring, "
+     "PolygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 4326) as polygon\n"
+     "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance = 0", 1},
+    {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'}) with\n"
+     "l1.geo as g1, l2.geo as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance = 0", 1},
+    {"MATCH (l2:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
+     "l2.geo as g2, l3.geo2 as g3\n"
+     "CALL spatial.distance(g2, g3) YIELD distance RETURN distance = 0", 1},
+    {"MATCH (l1:Location_ {name:'C_'}) with\n"
+     "l1.geo1 as g1, l1.geo2 as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance = 0", 1},
+    };
+    std::vector<std::string> scripts;
+    std::vector<int> check;
+    for (auto &s : script_check) {
+        scripts.emplace_back(s.first);
+        check.emplace_back(s.second);
+    }
+    eval_scripts_check(ctx, scripts, check);
+
+    return 0;
+}
+
 enum TestCase {
     TC_FILE_SCRIPT = 1,
     TC_INTERACTIVE = 2,
@@ -2389,6 +2484,7 @@ enum TestCase {
     TC_AGGREGATE,
     TC_ALGO,
     TC_TOPN,
+    TC_SPATIAL_PROCEDURE,
     TC_ERROR_REPORT = 201,
     TC_DEBUG_STACK_CHAOS,
     TC_LDBC_SNB = 301,
@@ -2423,16 +2519,17 @@ TEST_P(TestCypher, Cypher) {
         "{}-list-comprehension"
         " {}-profile; {}-unwind; {}-procedure; {}-add; {}-set; {}-del; {}-remove; {}-order by; "
         "{}-merge;"
-        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
-        "{}-optimization; {}-fix_crash_issues;"
+        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-spatial_procedure; "
+        "{}-error report; {}-snb; {}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
         " {}-empty_graph;",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
-        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
-        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH);
+        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_SPATIAL_PROCEDURE, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
+        TC_FIX_CRASH_ISSUES, TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID,
+        TC_EMPTY_GRAPH);
     test_case = GetParam().tc;
     database = GetParam().d;
     int argc = _ut_argc;
@@ -2549,6 +2646,9 @@ TEST_P(TestCypher, Cypher) {
             case TC_TOPN:
                 test_topn(&db);
                 break;
+            case TC_SPATIAL_PROCEDURE:
+                test_spatial_procedure(&db);
+                break;
             case TC_MERGE:
                 test_merge(&db);
                 break;
@@ -2600,6 +2700,6 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
            ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
-           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
-           ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},
-           ParamCypher{500, 0}, ParamCypher{501, 1}));
+           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{113, 1},
+           ParamCypher{301, 2}, ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1},
+           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}));

@@ -243,9 +243,20 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
 void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
 
-    const std::string* file_name = cntl->http_request().GetHeader(HTTP_HEADER_FILE_NAME);
-    const std::string* begin_str = cntl->http_request().GetHeader(HTTP_HEADER_BEGIN_POS);
-    const std::string* size_str = cntl->http_request().GetHeader(HTTP_HEADER_SIZE);
+    auto get_parameter = [](const brpc::Controller* cntl, const std::string& key){
+        const std::string* data = cntl->http_request().GetHeader(key);
+        if (data)
+            return data;
+        std::string lower_key = key;
+        for (char &c : lower_key) {
+            c = std::tolower(static_cast<unsigned char>(c));
+        }
+        return cntl->http_request().GetHeader(lower_key);
+    };
+    const std::string* file_name = get_parameter(cntl, HTTP_HEADER_FILE_NAME);
+    const std::string* begin_str = get_parameter(cntl, HTTP_HEADER_BEGIN_POS);
+    const std::string* size_str = get_parameter(cntl, HTTP_HEADER_SIZE);
+
     if (file_name == nullptr || begin_str == nullptr || size_str == nullptr) {
         THROW_CODE(BadRequest,
             "request header should has a fileName, "
@@ -750,19 +761,26 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     }
     preq->set_type(type);
 
-    std::string procedureName, content, description, codeType;
+    std::string procedureName, description, codeType;
+    std::vector<std::string> content, filenames;
     bool readonly;
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "procedureName", procedureName);
-    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "content", content);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "description", description);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "codeType", codeType);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, bool, "readonly", readonly);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::vector<std::string>, "content", content);
+    GET_FIELD_OR_THROW_BAD_REQUEST(params, std::vector<std::string>, "file_name", filenames);
 
     LoadPluginRequest* req = preq->mutable_load_plugin_request();
     req->set_name(procedureName);
     req->set_read_only(readonly);
-    std::vector<unsigned char> decoded = utility::conversions::from_base64(content);
-    req->set_code(std::string(decoded.begin(), decoded.end()));
+    for (auto &code : content) {
+        std::vector<unsigned char> decoded = utility::conversions::from_base64(code);
+        req->add_code(std::string(decoded.begin(), decoded.end()));
+    }
+    for (const auto& filename : filenames) {
+        req->add_file_name(filename);
+    }
     req->set_desc(description);
     lgraph::LoadPluginRequest::CodeType _codeType;
     _GET_PLUGIN_REQUEST_CODE_TYPE(codeType, _codeType);
@@ -1139,9 +1157,12 @@ void HttpService::RespondBadRequest(brpc::Controller* cntl, const std::string& r
 
 std::string HttpService::CheckTokenOrThrowException(const brpc::Controller* cntl) const {
     const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) THROW_CODE(Unauthorized);
-    if (!galaxy_->JudgeRefreshTime(*token))
+    if (token == nullptr) {
+        THROW_CODE(Unauthorized);
+    }
+    if (!galaxy_->JudgeRefreshTime(*token)) {
         THROW_CODE(Unauthorized, "token has already expire");
+    }
     return *token;
 }
 

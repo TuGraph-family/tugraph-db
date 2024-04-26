@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ bool LMDBKvStore::DeleteTable(KvTransaction& txn, const std::string& table_name)
     std::lock_guard<std::mutex> l(mutex_);
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
     auto tbl = LMDBKvTable(lmdb_txn, table_name, true, ComparatorDesc::DefaultComparator());
-    tbl.Drop(lmdb_txn);
+    tbl.Delete(lmdb_txn);
     return true;
 }
 

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -236,7 +236,6 @@ class Transaction {
     const Schema* GetSchema(const std::string& label, bool is_vertex) const {
         const Schema* schema = is_vertex ? curr_schema_->v_schema_manager.GetSchema(label)
                                          : curr_schema_->e_schema_manager.GetSchema(label);
-        FMA_DBG_ASSERT(schema);
         return schema;
     }
 
@@ -251,7 +250,6 @@ class Transaction {
     const Schema* GetSchema(const LabelId& lid, bool is_vertex) const {
         const Schema* schema = is_vertex ? curr_schema_->v_schema_manager.GetSchema(lid)
                                          : curr_schema_->e_schema_manager.GetSchema(lid);
-        FMA_DBG_ASSERT(schema);
         return schema;
     }
 

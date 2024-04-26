@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,6 +176,7 @@ static const char* const PLUGIN_CODE_TYPE_CPP = "cpp";
 static const char* const PLUGIN_CODE_TYPE_SO = "so";
 static const char* const PLUGIN_CODE_TYPE_ZIP = "zip";
 static const char* const PLUGIN_CODE_TYPE_PY = "py";
+static const char* const PLUGIN_CODE_DELIMITER = "\n---PLUGIN---FILE---BOUNDARY---\n";
 
 typedef ::lgraph_api::PluginCodeType CodeType;
 }  // namespace plugin

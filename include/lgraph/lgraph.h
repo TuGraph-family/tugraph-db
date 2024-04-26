@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -34,11 +34,15 @@
 #endif
 
 namespace lgraph_api {
+class Result;
+}
+
+namespace lgraph_api {
 typedef bool GetSignature(SigSpec &sig_spec);
 typedef bool Process(lgraph_api::GraphDB &db, const std::string &input, std::string &output);
 typedef bool ProcessInTxn(lgraph_api::Transaction& txn,
                           const std::string &input,
-                          std::string &output);
+                          lgraph_api::Result &output);
 }
 
 /*
