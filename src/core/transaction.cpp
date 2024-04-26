@@ -832,6 +832,9 @@ template <typename FieldT, typename DataT>
 typename std::enable_if<IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT), void>::type
 Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT* fields,
                                const DataT* values) {
+    if (n_fields == 0) {
+        return;
+    }
     ThrowIfReadOnlyTxn();
     Value old_prop = it.GetProperty();
     FMA_DBG_ASSERT(old_prop.IsSlice());
@@ -858,8 +861,13 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                 bool newnull = fe->GetIsNull(new_prop);
                 if (!oldnull && !newnull) {
                     // update
-                    bool r = index->Update(*txn_, fe->GetConstRef(old_prop),
-                                           fe->GetConstRef(new_prop), vid);
+                    const auto& old_v = fe->GetConstRef(old_prop);
+                    const auto& new_v = fe->GetConstRef(new_prop);
+                    if (old_v == new_v) {
+                        // If the values are equal, there is no need to update the index.
+                        continue;
+                    }
+                    bool r = index->Update(*txn_, old_v, new_v, vid);
                     if (!r)
                         THROW_CODE(InputError,
                             "failed to update vertex index, {}:[{}] already exists", fe->Name(),
@@ -1012,6 +1020,9 @@ template <typename EIT, typename FieldT, typename DataT>
 typename std::enable_if<IS_EIT_TYPE(EIT) && IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT),
                         void>::type
 Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, const DataT* values) {
+    if (n_fields == 0) {
+        return;
+    }
     ThrowIfReadOnlyTxn();
     auto euid = it.GetUid();
     Value old_prop = it.GetProperty();
@@ -1035,9 +1046,14 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                 bool oldnull = fe->GetIsNull(old_prop);
                 bool newnull = fe->GetIsNull(new_prop);
                 if (!oldnull && !newnull) {
+                    const auto& old_v = fe->GetConstRef(old_prop);
+                    const auto& new_v = fe->GetConstRef(new_prop);
+                    if (old_v == new_v) {
+                        // If the values are equal, there is no need to update the index.
+                        continue;
+                    }
                     // update
-                    bool r = index->Update(*txn_, fe->GetConstRef(old_prop),
-                                           fe->GetConstRef(new_prop), euid);
+                    bool r = index->Update(*txn_, old_v, new_v, euid);
                     if (!r)
                         THROW_CODE(InputError,
                             "failed to update edge index, {}:[{}] already exists", fe->Name(),

@@ -361,7 +361,12 @@ std::any ResultElement::ToBolt() {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
-        std::vector<std::any> ret;
+        json result;
+        for (auto &l : *v.list) {
+            result.push_back(l);
+        }
+        return result.dump();  // Convert to string
+        /*std::vector<std::any> ret;
         for (auto &l : *v.list) {
             if (l.is_null()) {
                 ret.emplace_back();
@@ -378,9 +383,14 @@ std::any ResultElement::ToBolt() {
                     "ToBolt: unsupported item in list: {}", l.dump());
             }
         }
-        return ret;
+        return ret;*/
     } else if (type_ == LGraphType::MAP) {
-        std::unordered_map<std::string, std::any> ret;
+        json result;
+        for (auto &m : *v.map) {
+            result[m.first] = m.second;
+        }
+        return result.dump();  // Convert to string
+        /*std::unordered_map<std::string, std::any> ret;
         for (auto &pair : *v.map) {
             if (pair.second.is_null()) {
                 ret.emplace(pair.first, std::any{});
@@ -397,7 +407,7 @@ std::any ResultElement::ToBolt() {
                     "ToBolt: unsupported value in map: {}", pair.second.dump());
             }
         }
-        return ret;
+        return ret;*/
     } else if (type_ == LGraphType::NODE) {
         return v.node->ToBolt();
     } else if (type_ == LGraphType::RELATIONSHIP) {

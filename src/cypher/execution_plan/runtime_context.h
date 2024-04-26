@@ -31,6 +31,7 @@ class SubmitQueryContext {
     lgraph::Galaxy *galaxy_ = nullptr;
     std::string user_;
     std::string graph_;
+    std::shared_ptr<std::unordered_map<std::string, parser::Expression>> bolt_parameters_;
     PARAM_TAB param_tab_;
     bool optimistic_ = false;
     bool path_unique_ = true;

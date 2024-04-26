@@ -618,10 +618,7 @@ inline web::json::value ValueToJson(const std::vector<lgraph::_detail::FieldExtr
                 js[_TU("unique")] = ValueToJson(false);
                 break;
             }
-        } else {
-            js[_TU("index")] = ValueToJson(false);
-        }
-        if (fields[idx].GetEdgeIndex()) {\
+        } else if (fields[idx].GetEdgeIndex()) {
             js[_TU("index")] = ValueToJson(true);
             switch (fields[idx].GetEdgeIndex()->GetType()) {
             case IndexType::NonuniqueIndex:
