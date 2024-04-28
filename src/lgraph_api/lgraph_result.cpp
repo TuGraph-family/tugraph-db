@@ -406,7 +406,6 @@ std::vector<std::vector<std::any>> Result::BoltRecords() {
     return ret;
 }
 
-
 void Result::Load(const std::string &output) {
     try {
         auto j = json::parse(output);
@@ -437,7 +436,7 @@ void Result::Load(const std::string &output) {
                     break;
                 case LGraphType::DOUBLE:
                     record->Insert(title,
-                                  FieldData(std::forward<double>(col.value().get<double>())));
+                                   FieldData(std::forward<double>(col.value().get<double>())));
                     break;
                 case LGraphType::BOOLEAN:
                     record->Insert(title, FieldData(std::forward<bool>(col.value().get<bool>())));

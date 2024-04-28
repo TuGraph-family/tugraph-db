@@ -138,7 +138,7 @@ struct EdgeOptions : LabelOptions {
         std::string constraints;
         for (size_t i = 0; i < edge_constraints.size(); i++) {
             constraints += edge_constraints[i].first + " -> " + edge_constraints[i].second;
-            if (i != edge_constraints.size()-1) {
+            if (i != edge_constraints.size() - 1) {
                 constraints += ", ";
             }
         }
@@ -176,24 +176,24 @@ struct VertexOptions : public LabelOptions {
 
 /** @brief   Field and value types. */
 enum FieldType {
-    NUL = 0,             // NULL value, used to represent an empty value, can not be used as field type
-    BOOL = 1,            // Boolean value, TRUE or FALSE
-    INT8 = 2,            // 8-bit signed integer
-    INT16 = 3,           // 16-bit signed integer
-    INT32 = 4,           // 32-bit signed integer
-    INT64 = 5,           // 64-bit signed integer
-    FLOAT = 6,           // 32-bit IEEE 754 floating Point number
-    DOUBLE = 7,          // 64-bit IEEE 754 floating Point number
-    DATE = 8,            // Date ranging from 0/1/1 to 9999/12/31
-    DATETIME = 9,        // DateTime ranging from 0000-01-01 00:00:00.000000 to
-                         // 9999-12-31 23:59:59.999999
-    STRING = 10,         // string type, in unicode encoding
-    BLOB = 11,           // binary byte array
-    POINT = 12,          // Point type of spatial data
-    LINESTRING = 13,     // LineString type of spatial data
-    POLYGON = 14,        // Polygon type of spatial data
-    SPATIAL = 15,        // spatial data, it's now unused but may be used in the future.
-    FLOAT_VECTOR = 16    // float vector
+    NUL = 0,          // NULL value, used to represent an empty value, can not be used as field type
+    BOOL = 1,         // Boolean value, TRUE or FALSE
+    INT8 = 2,         // 8-bit signed integer
+    INT16 = 3,        // 16-bit signed integer
+    INT32 = 4,        // 32-bit signed integer
+    INT64 = 5,        // 64-bit signed integer
+    FLOAT = 6,        // 32-bit IEEE 754 floating Point number
+    DOUBLE = 7,       // 64-bit IEEE 754 floating Point number
+    DATE = 8,         // Date ranging from 0/1/1 to 9999/12/31
+    DATETIME = 9,     // DateTime ranging from 0000-01-01 00:00:00.000000 to
+                      // 9999-12-31 23:59:59.999999
+    STRING = 10,      // string type, in unicode encoding
+    BLOB = 11,        // binary byte array
+    POINT = 12,       // Point type of spatial data
+    LINESTRING = 13,  // LineString type of spatial data
+    POLYGON = 14,     // Polygon type of spatial data
+    SPATIAL = 15,     // spatial data, it's now unused but may be used in the future.
+    FLOAT_VECTOR = 16  // float vector
 };
 
 /**
@@ -247,20 +247,20 @@ inline const std::string to_string(FieldType v) {
 }
 
 /**
-   * @brief a type of value used in result entry and parameter in procedure or plugin signature
-   * @param INTEGER
-   * @param FLOAT
-   * @param DOUBLE
-   * @param BOOLEAN
-   * @param STRING
-   * @param MAP <string, FieldData>
-   * @param NODE VertexIterator, VertexId
-   * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
-   * @param PATH lgraph_api::Path
-   * @param LIST <string, FieldData>
-   * @param ANY like Object in Java,
-   * its procedure author's responsibility to check the underlying concrete type
-   * whether valid in runtime.
+ * @brief a type of value used in result entry and parameter in procedure or plugin signature
+ * @param INTEGER
+ * @param FLOAT
+ * @param DOUBLE
+ * @param BOOLEAN
+ * @param STRING
+ * @param MAP <string, FieldData>
+ * @param NODE VertexIterator, VertexId
+ * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
+ * @param PATH lgraph_api::Path
+ * @param LIST <string, FieldData>
+ * @param ANY like Object in Java,
+ * its procedure author's responsibility to check the underlying concrete type
+ * whether valid in runtime.
  */
 enum class LGraphType : uint16_t {
     NUL = 0x0,
@@ -324,14 +324,13 @@ inline const std::string to_string(LGraphType type) {
     }
 }
 
-
 /**
  * @brief The parameter of procedure/plugin
  */
 struct Parameter {
     std::string name;  ///> name of the parameter
-    int index;  ///> index of the parameter list in which the parameter stay
-    LGraphType type;  ///> type of the parameter
+    int index;         ///> index of the parameter list in which the parameter stay
+    LGraphType type;   ///> type of the parameter
 };
 
 /**
@@ -343,7 +342,7 @@ struct Parameter {
  *  results: length, nodeIds
  */
 struct SigSpec {
-    std::vector<Parameter> input_list;  ///> input parameter list
+    std::vector<Parameter> input_list;   ///> input parameter list
     std::vector<Parameter> result_list;  ///> return parameter list
 };
 
@@ -496,9 +495,11 @@ struct FieldData {
         type = rhs.type;
         if (IsBufType(rhs.type)) {
             data.buf = new std::string(*rhs.data.buf);
-        } else {
+        } else if (rhs.type != FieldType::FLOAT_VECTOR) {
             // the integer type must have the biggest size, see static_assertion below
             data.int64 = rhs.data.int64;
+        } else {
+            data.vp = rhs.data.vp;
         }
     }
 
@@ -560,14 +561,14 @@ struct FieldData {
     static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) {return FieldData(p); }
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-            case ::lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "Unsupported SRID!");
-            case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(::lgraph_api::Point<Cartesian>(str));
-            case ::lgraph_api::SRID::WGS84:
-                return FieldData(::lgraph_api::Point<Wgs84>(str));
-            default:
-                THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::NUL:
+            THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::CARTESIAN:
+            return FieldData(::lgraph_api::Point<Cartesian>(str));
+        case ::lgraph_api::SRID::WGS84:
+            return FieldData(::lgraph_api::Point<Wgs84>(str));
+        default:
+            THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -577,14 +578,14 @@ struct FieldData {
         return FieldData(l); }
     static inline FieldData LineString(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-            case ::lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "Unsupported SRID!");
-            case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(::lgraph_api::LineString<Cartesian>(str));
-            case ::lgraph_api::SRID::WGS84:
-                return FieldData(::lgraph_api::LineString<Wgs84>(str));
-            default:
-                THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::NUL:
+            THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::CARTESIAN:
+            return FieldData(::lgraph_api::LineString<Cartesian>(str));
+        case ::lgraph_api::SRID::WGS84:
+            return FieldData(::lgraph_api::LineString<Wgs84>(str));
+        default:
+            THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -593,14 +594,14 @@ struct FieldData {
     static inline FieldData Polygon(const ::lgraph_api::Polygon<Wgs84>& p) {return FieldData(p); }
     static inline FieldData Polygon(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-            case ::lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "Unsupported SRID!");
-            case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(::lgraph_api::Polygon<Cartesian>(str));
-            case ::lgraph_api::SRID::WGS84:
-                return FieldData(::lgraph_api::Polygon<Wgs84>(str));
-            default:
-                THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::NUL:
+            THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::CARTESIAN:
+            return FieldData(::lgraph_api::Polygon<Cartesian>(str));
+        case ::lgraph_api::SRID::WGS84:
+            return FieldData(::lgraph_api::Polygon<Wgs84>(str));
+        default:
+            THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -609,14 +610,14 @@ struct FieldData {
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Wgs84>& s) {return FieldData(s); }
     static inline FieldData Spatial(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-            case ::lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "Unsupported SRID!");
-            case ::lgraph_api::SRID::CARTESIAN:
-                return FieldData(::lgraph_api::Spatial<Cartesian>(str));
-            case ::lgraph_api::SRID::WGS84:
-                return FieldData(::lgraph_api::Spatial<Wgs84>(str));
-            default:
-                THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::NUL:
+            THROW_CODE(InputError, "Unsupported SRID!");
+        case ::lgraph_api::SRID::CARTESIAN:
+            return FieldData(::lgraph_api::Spatial<Cartesian>(str));
+        case ::lgraph_api::SRID::WGS84:
+            return FieldData(::lgraph_api::Spatial<Wgs84>(str));
+        default:
+            THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -876,7 +877,8 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    inline std::vector<float> AsFloatVector() const {
+    inline std::vector<float> AsFloatVector() 
+    const {
         if (type == FieldType::FLOAT_VECTOR) return *data.vp;
         throw std::bad_cast();
     }
@@ -918,7 +920,7 @@ struct FieldData {
         case FieldType::FLOAT_VECTOR:
             {
                 std::string vec_str;
-                for(float num: *data.vp) {
+                for (float num : *data.vp) {
                     vec_str += std::to_string(num);
                     vec_str += ',';
                 }
@@ -1081,7 +1083,7 @@ struct FieldData {
             case FieldType::SPATIAL:
                 throw std::runtime_error("Spatial data are not comparable now.");
             case FieldType::FLOAT_VECTOR:
-                throw std::runtime_error("Float vector data are not comparable now.");            
+                throw std::runtime_error("Float vector data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -1184,7 +1186,9 @@ struct FieldData {
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */
-    static inline bool IsBufType(FieldType t) { return t >= FieldType::STRING; }
+    static inline bool IsBufType(FieldType t) {
+        return t >= FieldType::STRING && t < FieldType::FLOAT_VECTOR;
+    }
 
     /** @brief   Query if 't' is INT8, 16, 32, or 64 */
     static inline bool IsInteger(FieldType t) {
@@ -1210,7 +1214,7 @@ struct FieldSpec {
     /** @brief   is this field optional? */
     bool optional;
 
-    FieldSpec(): name(), type(FieldType::NUL), optional(false) {}
+    FieldSpec() : name(), type(FieldType::NUL), optional(false) {}
 
     /**
      * @brief   Constructor

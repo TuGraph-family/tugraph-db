@@ -97,9 +97,9 @@ bool Transaction::IsIndexed(const std::string& label, const std::string& field) 
 void Transaction::EnterTxn() {
     if (LightningGraph::InTransaction()) {
         THROW_CODE(InternalError,
-            "Nested transaction is forbidden. "
-            "Note that db.AddLabel/AddVertexIndex should NOT be used inside a "
-            "transaction.");
+                   "Nested transaction is forbidden. "
+                   "Note that db.AddLabel/AddVertexIndex should NOT be used inside a "
+                   "transaction.");
     }
     LightningGraph::InTransaction() = true;
 }
@@ -403,7 +403,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     }
     if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, *txn_);
     schema->DeleteVertexIndex(*txn_, vid, prop);
-    auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
+    auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value) {
         if (is_out_edge) {
             if (n_out) {
                 *n_out += edge_value.GetEdgeCount();
@@ -671,7 +671,7 @@ std::string Transaction::VertexToString(const VertexIterator& vit) {
     std::string line;
     fma_common::StringFormatter::Append(
         line, "V[{}]:{} {}\n", vit.GetId(), schema->GetLabel(),
-        curr_schema_->v_schema_manager.DumpRecord(prop));
+                                        curr_schema_->v_schema_manager.DumpRecord(prop));
     for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
         auto s = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
         FMA_DBG_ASSERT(s);
@@ -862,15 +862,14 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                                            fe->GetConstRef(new_prop), vid);
                     if (!r)
                         THROW_CODE(InputError,
-                            "failed to update vertex index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                                   "failed to update vertex index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), vid);
                     if (!r)
-                        THROW_CODE(InputError,
-                            "failed to add vertex index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                        THROW_CODE(InputError, "failed to add vertex index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
                     bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), vid);
@@ -1040,15 +1039,14 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                                            fe->GetConstRef(new_prop), euid);
                     if (!r)
                         THROW_CODE(InputError,
-                            "failed to update edge index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                                   "failed to update edge index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), euid);
                     if (!r)
-                        THROW_CODE(InputError,
-                            "failed to add edge index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                        THROW_CODE(InputError, "failed to add edge index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
                     bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), euid);
@@ -1263,7 +1261,7 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
     const auto& constraints = schema->GetEdgeConstraintsLids();
     EdgeUid euid = graph_->AddEdge(
         *txn_, EdgeSid(src, dst, schema->GetLabelId(), tid),
-        schema->DetachProperty() ? Value() : prop, constraints);
+                                   schema->DetachProperty() ? Value() : prop, constraints);
     if (schema->DetachProperty()) {
         schema->AddDetachedEdgeProperty(*txn_, euid, prop);
     }
