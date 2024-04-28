@@ -72,6 +72,18 @@ nlohmann::json Relationship::ToJson() {
     return result;
 }
 
+// fix neo4j python driver
+bolt::RelNode Relationship::ToBoltUnbound(int64_t virtual_edge_id) {
+    bolt::RelNode rel;
+    // rel.id = id;
+    rel.id = virtual_edge_id;
+    rel.name = label;
+    for (auto &pair : properties) {
+        rel.props.emplace(pair.first, pair.second.ToBolt());
+    }
+    return rel;
+}
+
 bolt::RelNode Relationship::ToBoltUnbound() {
     bolt::RelNode rel;
     rel.id = id;
@@ -357,7 +369,7 @@ json ResultElement::ToJson() {
     return result;
 }
 
-std::any ResultElement::ToBolt() {
+std::any ResultElement::ToBolt(bool python_driver) {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
@@ -419,7 +431,12 @@ std::any ResultElement::ToBolt() {
             if (p.type_ == LGraphType::NODE) {
                 path.nodes.push_back(p.v.node->ToBolt());
             } else {
-                path.rels.push_back(p.v.repl->ToBoltUnbound());
+                if (!python_driver) {
+                    path.rels.push_back(p.v.repl->ToBoltUnbound());
+                } else {
+                    // The neo4j python client checks the uniqueness of the edge id.
+                    path.rels.push_back(p.v.repl->ToBoltUnbound(i));
+                }
             }
             if (i >= 1) {
                 if (i%2 == 1) {
