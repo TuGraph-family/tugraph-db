@@ -1000,7 +1000,7 @@ void BuiltinProcedure::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *rec
                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
                                                  std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
-                     "e.g. db.DbCreateEdgeLabelByJson(json_data)");
+                     "e.g. db.createEdgeLabelByJson(json_data)");
     CYPHER_ARG_CHECK(args[0].type ==
                          parser::Expression::STRING, "json_data type should be json string")
     nlohmann::json schema;
@@ -1048,7 +1048,7 @@ void BuiltinProcedure::DbCreateVertexLabelByJson(RTContext *ctx, const Record *r
                                                const VEC_EXPR &args, const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
-                     "e.g. db.DbCreateVertexLabelByJson(json_data)");
+                     "e.g. db.createVertexLabelByJson(json_data)");
     CYPHER_ARG_CHECK(args[0].type ==
                          parser::Expression::STRING, "json_data type should be json string")
     nlohmann::json schema;
