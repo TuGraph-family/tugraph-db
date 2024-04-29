@@ -115,6 +115,13 @@ class BuiltinProcedure {
     static void DbCreateVertexLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                     const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR &args, const VEC_STR &yield_items,
+                                          std::vector<Record> *records);
+
+    static void DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                          const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbGetLabelSchema(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -512,6 +519,14 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.warmup", BuiltinProcedure::DbWarmUp, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"time_used", {0, lgraph_api::LGraphType::STRING}}}, true, true),
+
+    Procedure("db.createVertexLabelByJson", BuiltinProcedure::DbCreateVertexLabelByJson,
+              Procedure::SIG_SPEC{{"json_data", {0, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.createEdgeLabelByJson", BuiltinProcedure::DbCreateEdgeLabelByJson,
+              Procedure::SIG_SPEC{{"json_data", {0, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.createVertexLabel", BuiltinProcedure::DbCreateVertexLabel,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},

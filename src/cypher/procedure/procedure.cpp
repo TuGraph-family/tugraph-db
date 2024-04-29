@@ -996,6 +996,97 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
     }
 }
 
+void BuiltinProcedure::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record,
+                                                 const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
+                     "e.g. db.createEdgeLabelByJson(json_data)");
+    CYPHER_ARG_CHECK(args[0].type ==
+                         parser::Expression::STRING, "json_data type should be json string")
+    nlohmann::json schema;
+    schema["schema"] = nlohmann::json::array();
+    auto ec = nlohmann::json::parse(args[0].String());
+    schema["schema"].push_back(ec);
+    auto schema_desc = lgraph::import_v2::ImportConfParser::ParseSchema(schema);
+    if (schema_desc.label_desc.size() != 1) {
+        THROW_CODE(InputError, "json schema size error, size:{}", schema_desc.label_desc.size());
+    }
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<lgraph_api::FieldSpec> fds;
+    const auto& ld = schema_desc.label_desc[0];
+    if (ld.is_vertex) {
+        THROW_CODE(InputError, "is not edge json schema");
+    }
+    for (auto& p : ld.GetSchemaDef())
+        fds.emplace_back(p.second);
+    lgraph_api::EdgeOptions eo;
+    if (ld.HasTemporalField()) {
+        auto tf = ld.GetTemporalField();
+        eo.temporal_field = tf.name;
+        eo.temporal_field_order = tf.temporal_order;
+    }
+    eo.edge_constraints = ld.edge_constraints;
+    eo.detach_property = ld.detach_property;
+    bool ok = ctx->ac_db_->AddLabel(ld.is_vertex, ld.name, fds, eo);
+    if (ok) {
+        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge",
+                              ld.name);
+    } else {
+        throw lgraph::LabelExistException(ld.name, false);
+    }
+    for (auto& spec : ld.columns) {
+        if (spec.index) {
+            ctx->ac_db_->AddEdgeIndex(ld.name, spec.name, spec.idxType);
+            LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                  ld.name, spec.name, static_cast<int>(spec.idxType));
+        }
+    }
+}
+
+void BuiltinProcedure::DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
+                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
+                     "e.g. db.createVertexLabelByJson(json_data)");
+    CYPHER_ARG_CHECK(args[0].type ==
+                         parser::Expression::STRING, "json_data type should be json string")
+    nlohmann::json schema;
+    schema["schema"] = nlohmann::json::array();
+    auto ec = nlohmann::json::parse(args[0].String());
+    schema["schema"].push_back(ec);
+    auto schema_desc = lgraph::import_v2::ImportConfParser::ParseSchema(schema);
+    if (schema_desc.label_desc.size() != 1) {
+        THROW_CODE(InputError, "json schema size error, size:{}", schema_desc.label_desc.size());
+    }
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<lgraph_api::FieldSpec> fds;
+    const auto& ld = schema_desc.label_desc[0];
+    if (!ld.is_vertex) {
+        THROW_CODE(InputError, "is not vertex json schema");
+    }
+    for (auto& p : ld.GetSchemaDef())
+        fds.emplace_back(p.second);
+    lgraph_api::VertexOptions vo;
+    vo.primary_field = ld.GetPrimaryField().name;
+    vo.detach_property = ld.detach_property;
+    bool ok = ctx->ac_db_->AddLabel(ld.is_vertex, ld.name, fds, vo);
+    if (ok) {
+        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge",
+                              ld.name);
+    } else {
+        throw lgraph::LabelExistException(ld.name, true);
+    }
+    for (auto& spec : ld.columns) {
+        if (spec.index && !spec.primary) {
+            ctx->ac_db_->AddVertexIndex(ld.name, spec.name, spec.idxType);
+            LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                  ld.name, spec.name, static_cast<int>(spec.idxType));
+        }
+    }
+}
+
 // params: vertex, label, primary_field,  [fieldspec1], [fieldspec2]...
 // params: edge, label, edge_constraints, [fieldspec1], [fieldspec2]...
 void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
