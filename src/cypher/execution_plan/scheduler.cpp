@@ -110,7 +110,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
                 bolt::PackStream ps;
                 ps.AppendSuccess(meta);
                 if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
-                    ps.AppendRecords(ctx->result_->BoltRecords());
+                    ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
                 } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
                     // ...
                 }

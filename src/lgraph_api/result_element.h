@@ -45,6 +45,7 @@ struct Relationship {
     nlohmann::json ToJson();
     bolt::Relationship ToBolt();
     bolt::RelNode ToBoltUnbound();
+    bolt::RelNode ToBoltUnbound(int64_t virtual_edge_id);
 };
 
 // WARNING: [PathElement] just include node and relationship
@@ -131,7 +132,7 @@ struct ResultElement {
 
     nlohmann::json ToJson();
     std::string ToString();
-    std::any ToBolt();
+    std::any ToBolt(bool python_driver);
 };
 
 }  // namespace lgraph_api
