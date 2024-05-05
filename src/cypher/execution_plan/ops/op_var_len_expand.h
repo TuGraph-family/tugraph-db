@@ -48,6 +48,7 @@ struct DfsState {
 class Predicate {
  public:
     virtual bool eval(std::vector<DfsState> &stack) = 0;
+    virtual ~Predicate() = default;
 };
 
 class ValidPredicate : public Predicate {
