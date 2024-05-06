@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #pragma once
 #include "tools/json.hpp"
 #include "core/data_type.h"
+#include "fma-common/utils.h"
 
 namespace lgraph_rfc {
 
@@ -49,7 +50,9 @@ static json FieldDataToJson(const lgraph_api::FieldData& data) {
         }
     case lgraph_api::FieldType::FLOAT:
         {
-            return json(data.AsFloat());
+            // https://github.com/nlohmann/json/issues/1109
+            double d = fma_common::DoubleDecimalPlaces(data.AsFloat(), 5);
+            return json(d);
         }
     case lgraph_api::FieldType::DOUBLE:
         {

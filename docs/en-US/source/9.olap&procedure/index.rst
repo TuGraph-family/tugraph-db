@@ -1,5 +1,5 @@
 Stored Procedures And OLAP
-========
+========================================
 
 .. toctree::
    :maxdepth: 2

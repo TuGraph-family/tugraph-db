@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1397,6 +1397,13 @@ class CypherBaseVisitor : public LcypherVisitor {
             return expr;
         } else if (ctx->oC_Parameter()) {
             std::string parameter = ctx->oC_Parameter()->getText();
+            if (ctx_->bolt_parameters_) {
+                auto iter = ctx_->bolt_parameters_->find(parameter);
+                if (iter == ctx_->bolt_parameters_->end()) {
+                    throw lgraph::CypherException(FMA_FMT("Parameter {} missing value", parameter));
+                }
+                return iter->second;
+            }
             AddSymbol(parameter, cypher::SymbolNode::PARAMETER, cypher::SymbolNode::LOCAL);
             Expression expr;
             expr.type = Expression::PARAMETER;
@@ -1823,7 +1830,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         // VARIABLE IT SHOULD BE PARSED AS KEYWORD. THIS IS A WORKAROUND WAY. SEE ISSUE: #164
         static const std::vector<std::string> excluded_set = {
             "INT8",   "INT16", "INT32",    "INT64", "FLOAT", "DOUBLE",
-            "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",  "FLOAT_VECTOR",
+            "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",  
+            "POINT", "LINESTRING", "POLYGON", "SPATIAL",
+            "FLOAT_VECTOR",
         };
         if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
                 std::string upper_var(var.size(), ' ');

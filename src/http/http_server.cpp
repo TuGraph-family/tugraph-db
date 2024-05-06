@@ -252,9 +252,20 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
 void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
 
-    const std::string* file_name = cntl->http_request().GetHeader(HTTP_HEADER_FILE_NAME);
-    const std::string* begin_str = cntl->http_request().GetHeader(HTTP_HEADER_BEGIN_POS);
-    const std::string* size_str = cntl->http_request().GetHeader(HTTP_HEADER_SIZE);
+    auto get_parameter = [](const brpc::Controller* cntl, const std::string& key){
+        const std::string* data = cntl->http_request().GetHeader(key);
+        if (data)
+            return data;
+        std::string lower_key = key;
+        for (char &c : lower_key) {
+            c = std::tolower(static_cast<unsigned char>(c));
+        }
+        return cntl->http_request().GetHeader(lower_key);
+    };
+    const std::string* file_name = get_parameter(cntl, HTTP_HEADER_FILE_NAME);
+    const std::string* begin_str = get_parameter(cntl, HTTP_HEADER_BEGIN_POS);
+    const std::string* size_str = get_parameter(cntl, HTTP_HEADER_SIZE);
+
     if (file_name == nullptr || begin_str == nullptr || size_str == nullptr) {
         THROW_CODE(BadRequest,
             "request header should has a fileName, "
@@ -1155,9 +1166,12 @@ void HttpService::RespondBadRequest(brpc::Controller* cntl, const std::string& r
 
 std::string HttpService::CheckTokenOrThrowException(const brpc::Controller* cntl) const {
     const std::string* token = cntl->http_request().GetHeader(HTTP_AUTHORIZATION);
-    if (token == nullptr) THROW_CODE(Unauthorized);
-    if (!galaxy_->JudgeRefreshTime(*token))
+    if (token == nullptr) {
+        THROW_CODE(Unauthorized);
+    }
+    if (!galaxy_->JudgeRefreshTime(*token)) {
         THROW_CODE(Unauthorized, "token has already expire");
+    }
     return *token;
 }
 

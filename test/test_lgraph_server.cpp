@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ TEST_F(TestLGraphServer, LGraphServer) {
     lgraph::GlobalConfig conf;
     conf.db_dir = "./testdb";
     conf.http_port = 7774;
+    conf.enable_rpc = true;
     conf.rpc_port = 9394;
     conf.bind_host = "127.0.0.1";
 #ifdef __SANITIZE_ADDRESS__

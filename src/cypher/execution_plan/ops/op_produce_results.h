@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -276,7 +276,7 @@ class ProduceResults : public OpBase {
             if (res != OP_OK) {
                 if (ctx->result_->Size() > 0 &&
                     session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
-                    session->ps.AppendRecords(ctx->result_->BoltRecords());
+                    session->ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
                 }
                 session->ps.AppendSuccess();
                 session->state = bolt::SessionState::READY;
@@ -287,7 +287,7 @@ class ProduceResults : public OpBase {
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
                 RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
-                session->ps.AppendRecords(ctx->result_->BoltRecords());
+                session->ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
                 ctx->result_->ClearRecords();
                 bool sync = false;
                 if (--session->streaming_msg.value().n == 0) {

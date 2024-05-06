@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -415,7 +415,7 @@ struct LabelDesc {
         return x == y;
     }
 
-    std::map<std::string, lgraph::FieldSpec> GetSchemaDef() {
+    std::map<std::string, lgraph::FieldSpec> GetSchemaDef() const {
         std::map<std::string, FieldSpec> ret;
         for (size_t i = 0; i < columns.size(); i++) {
             auto& c = columns[i];
@@ -635,7 +635,8 @@ struct CsvDesc {
     }
 
  private:
-    FieldSpec GetFieldSpec(std::vector<FieldSpec> field_specs, std::string name) const {
+    FieldSpec GetFieldSpec(const std::vector<FieldSpec>& field_specs,
+                           const std::string& name) const {
         for (const auto& fs : field_specs) {
             if (fs.name == name) {
                 return fs;
@@ -652,7 +653,7 @@ struct SchemaDesc {
 
     size_t Size() const { return label_desc.size(); }
 
-    LabelDesc FindVertexLabel(std::string label) const {
+    LabelDesc FindVertexLabel(const std::string& label) const {
         for (const auto& it : label_desc)
             if (it.is_vertex && it.name == label) {
                 return it;
@@ -660,7 +661,7 @@ struct SchemaDesc {
         throw std::runtime_error(FMA_FMT("vertex label [{}] not found in schema", label));
     }
 
-    LabelDesc FindEdgeLabel(std::string label) const {
+    LabelDesc FindEdgeLabel(const std::string& label) const {
         for (const auto& it : label_desc)
             if (!it.is_vertex && it.name == label) {
                 return it;
@@ -684,7 +685,7 @@ struct SchemaDesc {
     }
 
     bool CheckValid() {
-        std::set<std::string> set_vertex, set_edge;
+        std::unordered_set<std::string> set_vertex, set_edge;
         for (const auto& ld : label_desc) {
             ld.CheckValid();
             if (ld.IsVertex()) {
@@ -702,7 +703,7 @@ struct SchemaDesc {
 
     void Clear() { label_desc.clear(); }
 
-    SchemaDesc DifferenceSet(SchemaDesc rhs) {
+    SchemaDesc DifferenceSet(const SchemaDesc& rhs) {
         SchemaDesc schema;
         for (auto& ld : this->label_desc) {
             LabelDesc x;
@@ -817,7 +818,7 @@ class ImportConfParser {
                         if (!p.is_array() || p.size() != 2)
                             THROW_CODE(InputError,
                                 R"(Label[{}]: "constraints" element size should be 2)", ld.name);
-                        ld.edge_constraints.push_back(std::make_pair(p[0], p[1]));
+                        ld.edge_constraints.emplace_back(p[0], p[1]);
                     }
                 }
                 if (s.contains("properties")) {

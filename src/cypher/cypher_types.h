@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -159,6 +159,17 @@ struct FieldData {
     }
 
     bool IsString() const { return type == SCALAR && scalar.type == lgraph::FieldType::STRING; }
+
+    bool IsPoint() const { return type == SCALAR && scalar.type == lgraph::FieldType::POINT; }
+
+    bool IsLineString() const {
+        return type == SCALAR && scalar.type == lgraph::FieldType::LINESTRING;
+    }
+
+    bool IsPolygon() const { return type == SCALAR && scalar.type == lgraph::FieldType::POLYGON; }
+
+    bool IsSpatial() const { return (IsPoint() || IsLineString() || IsPolygon()) ||
+    (type == SCALAR && scalar.type == lgraph::FieldType::SPATIAL); }
 
     bool IsArray() const { return type == ARRAY; }
 

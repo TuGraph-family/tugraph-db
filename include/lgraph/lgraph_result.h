@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -293,7 +293,7 @@ class Result {
     void ClearRecords();
 
     std::vector<std::string> BoltHeader();
-    std::vector<std::vector<std::any>> BoltRecords();
+    std::vector<std::vector<std::any>> BoltRecords(bool python_driver);
 
  private:
     /**

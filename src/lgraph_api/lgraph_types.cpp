@@ -1,5 +1,5 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
+* Copyright 2022 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 */
 #include "lgraph/lgraph_types.h"
 #include "bolt/temporal.h"
+#include "fma-common/utils.h"
 
 namespace lgraph_api {
 
@@ -31,7 +32,10 @@ std::any FieldData::ToBolt() const {
     case FieldType::INT64:
         return data.int64;
     case FieldType::FLOAT:
-        return data.sp;
+        {
+            // bolt protocol does not have float type
+            return fma_common::DoubleDecimalPlaces(data.sp, 5);
+        }
     case FieldType::DOUBLE:
         return data.dp;
     case FieldType::STRING:
