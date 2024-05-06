@@ -1222,6 +1222,9 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
+                if (field_extractor->GetIsNull(prop)) {
+                    continue;
+                }
                 const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
                 key_vids.emplace_back(key, it.GetId());
             }
@@ -1309,8 +1312,10 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                     if (e_schema->DetachProperty()) {
                         prop = e_schema->GetDetachedEdgeProperty(txn.GetTxn(), et.GetUid());
                     }
-                    const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
-                    key_euids.emplace_back(key, et.GetUid());
+                    if (!field_extractor->GetIsNull(prop)) {
+                        const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
+                        key_euids.emplace_back(key, et.GetUid());
+                    }
                     et.Next();
                 }
             }
@@ -1848,11 +1853,12 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
 
-    if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
+    /*if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
                                     type == IndexType::PairUniqueIndex)) {
         THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
                    label, field);
-    }
+    }*/
+
     if (extractor->Type() == FieldType::BLOB) {
         THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
     }
@@ -1874,6 +1880,9 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
+                }
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
                     THROW_CODE(InternalError,
                         "Failed to index vertex [{}] with field value [{}:{}]",
@@ -1931,6 +1940,9 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
                 euid.lid = schema->GetLabelId();
                 auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
+                }
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop),
                                 {euid.src, euid.dst, euid.lid, euid.tid, euid.eid})) {
                     THROW_CODE(InternalError,
