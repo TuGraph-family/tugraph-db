@@ -70,6 +70,18 @@ int main(int argc, char** argv) {
         LOG_ERROR() << e.what();
         return -1;
     }
+    if (config->ha_first_snapshot_start_time != "") {
+        std::tm tm = {};
+        std::istringstream ss(config->ha_first_snapshot_start_time);
+        ss >> std::get_time(&tm, "%H:%M:%S");
+        if (ss.fail() || !ss.eof() || tm.tm_hour < 0 || tm.tm_hour > 23 ||
+            tm.tm_min < 0 || tm.tm_min > 59 || tm.tm_sec < 0 || tm.tm_sec > 59) {
+            LOG_ERROR() << "ha_first_snapshot_start_time must be a regular time between "
+                           "00:00:00-23:59:59, however it is "
+                        << config->ha_first_snapshot_start_time;
+            return -1;
+        }
+    }
     // now run the service
     lgraph::LGraphDaemon daemon(config);
     if (cmd == "run") {
