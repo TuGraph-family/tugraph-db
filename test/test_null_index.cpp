@@ -36,13 +36,13 @@ TEST_F(TestNullIndex, deta) {
                                      VertexOptions("id")));
     std::vector<std::string> vp({"id", "null_index", "null_unique"});
     auto txn = db.CreateWriteTxn();
-    auto vid1 = txn.AddVertex(std::string("Person"), vp,
+    txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)1), FieldData(), FieldData()});
-    auto vid2 = txn.AddVertex(std::string("Person"), vp,
+    txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)2), FieldData("val2"), FieldData("val2")});
-    auto vid3 = txn.AddVertex(std::string("Person"), vp,
+    txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)3), FieldData(), FieldData()});
-    auto vid4 = txn.AddVertex(std::string("Person"), vp,
+    txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)4), FieldData("val4"), FieldData("val4")});
     txn.Commit();
     UT_EXPECT_TRUE(db.AddVertexIndex("Person", "null_index", lgraph::IndexType::NonuniqueIndex));
@@ -55,7 +55,8 @@ TEST_F(TestNullIndex, deta) {
              iter.IsValid(); iter.Next()) {
             fds.push_back(iter.GetIndexValue());
         }
-        UT_EXPECT_EQ(fds, std::vector<FieldData>{FieldData("val2"), FieldData("val4")});
+	std::vector<FieldData> expected {FieldData("val2"),FieldData("val4")};
+        UT_EXPECT_EQ(fds, expected);
     }
     {
         std::vector<FieldData> fds;
@@ -64,7 +65,8 @@ TEST_F(TestNullIndex, deta) {
              iter.IsValid(); iter.Next()) {
             fds.push_back(iter.GetIndexValue());
         }
-        UT_EXPECT_EQ(fds, std::vector<FieldData>{FieldData("val2"), FieldData("val4")});
+        std::vector<FieldData> expected {FieldData("val2"),FieldData("val4")};
+        UT_EXPECT_EQ(fds, expected);
     }
 
     UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
