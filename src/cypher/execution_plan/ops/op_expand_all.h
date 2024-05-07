@@ -52,7 +52,7 @@ class ExpandAll : public OpBase {
 
     bool _CheckToSkipEdge(RTContext *ctx) const {
         return eit_->IsValid() &&
-               (pattern_graph_->VisitedEdges().Contains(*eit_) || _CheckToSkipEdgeFilter(ctx) ||
+               (_CheckToSkipEdgeFilter(ctx) ||
                 (expand_into_ && eit_->GetNbr(expand_direction_) != neighbor_->PullVid()));
     }
 
