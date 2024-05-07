@@ -19,9 +19,10 @@
 #include "core/data_type.h"
 using namespace lgraph_api;
 
-class TestNullIndex : public TuGraphTest {};
+class TestNullIndex : public TuGraphTestWithParam<bool> {};
 
-TEST_F(TestNullIndex, deta) {
+TEST_P(TestNullIndex, index) {
+    bool detached = GetParam();
     std::string path = "./testdb";
     auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
     auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
@@ -29,24 +30,27 @@ TEST_F(TestNullIndex, deta) {
     Galaxy galaxy(path);
     galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
     GraphDB db = galaxy.OpenGraph("default");
+    VertexOptions vo("id");
+    vo.detach_property = detached;
     UT_EXPECT_TRUE(db.AddVertexLabel("Person",
-                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false},
-                                                             {"null_index", FieldType::STRING, true},
-                                                             {"null_unique", FieldType::STRING, true}}),
-                                     VertexOptions("id")));
+                                     std::vector<FieldSpec>({
+                                         {"id", FieldType::INT32, false},
+                                         {"null_index", FieldType::STRING, true},
+                                         {"null_unique", FieldType::STRING, true}}), vo));
     std::vector<std::string> vp({"id", "null_index", "null_unique"});
     auto txn = db.CreateWriteTxn();
-    txn.AddVertex(std::string("Person"), vp,
+    auto vid1 = txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)1), FieldData(), FieldData()});
-    txn.AddVertex(std::string("Person"), vp,
+    auto vid2 = txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)2), FieldData("val2"), FieldData("val2")});
-    txn.AddVertex(std::string("Person"), vp,
+    auto vid3 = txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)3), FieldData(), FieldData()});
-    txn.AddVertex(std::string("Person"), vp,
+    auto vid4 = txn.AddVertex(std::string("Person"), vp,
                               {FieldData((int32_t)4), FieldData("val4"), FieldData("val4")});
     txn.Commit();
     UT_EXPECT_TRUE(db.AddVertexIndex("Person", "null_index", lgraph::IndexType::NonuniqueIndex));
-    UT_EXPECT_TRUE(db.AddVertexIndex("Person", "null_unique", lgraph::IndexType::GlobalUniqueIndex));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Person", "null_unique",
+                                     lgraph::IndexType::GlobalUniqueIndex));
     txn = db.CreateReadTxn();
     {
         std::vector<FieldData> fds;
@@ -55,7 +59,7 @@ TEST_F(TestNullIndex, deta) {
              iter.IsValid(); iter.Next()) {
             fds.push_back(iter.GetIndexValue());
         }
-	std::vector<FieldData> expected {FieldData("val2"),FieldData("val4")};
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4")};
         UT_EXPECT_EQ(fds, expected);
     }
     {
@@ -65,14 +69,54 @@ TEST_F(TestNullIndex, deta) {
              iter.IsValid(); iter.Next()) {
             fds.push_back(iter.GetIndexValue());
         }
-        std::vector<FieldData> expected {FieldData("val2"),FieldData("val4")};
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4")};
         UT_EXPECT_EQ(fds, expected);
     }
+    txn.Abort();
 
+    EdgeOptions eo;
+    eo.detach_property = detached;
     UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
-                                   std::vector<FieldSpec>({{"id", FieldType::STRING, false},
-                                                           {"null_index", FieldType::STRING, true},
-                                                           {"null_unique", FieldType::STRING, true}}),
-                                   EdgeOptions()));
-    
+                                   std::vector<FieldSpec>({
+                                       {"id", FieldType::INT32, false},
+                                       {"null_index", FieldType::STRING, true},
+                                       {"null_unique", FieldType::STRING, true}}), eo));
+    txn = db.CreateWriteTxn();
+    std::vector<std::string> ep({"id", "null_index", "null_unique"});
+    txn.AddEdge(vid1, vid2, std::string("Relation"), ep,
+                {FieldData((int32_t)1), FieldData(), FieldData()});
+    txn.AddEdge(vid2, vid3, std::string("Relation"), ep,
+                {FieldData((int32_t)2), FieldData("val2"), FieldData("val2")});
+    txn.AddEdge(vid3, vid4, std::string("Relation"), ep,
+                {FieldData((int32_t)3), FieldData(), FieldData()});
+    txn.AddEdge(vid4, vid1, std::string("Relation"), ep,
+                {FieldData((int32_t)4), FieldData("val4"), FieldData("val4")});
+    txn.Commit();
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation", "null_index", lgraph::IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation", "null_unique",
+                                   lgraph::IndexType::GlobalUniqueIndex));
+    txn = db.CreateReadTxn();
+    {
+        std::vector<FieldData> fds;
+        for (auto iter =
+                 txn.GetEdgeIndexIterator("Relation", "null_index", FieldData(), FieldData("z"));
+             iter.IsValid(); iter.Next()) {
+            fds.push_back(iter.GetIndexValue());
+        }
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4")};
+        UT_EXPECT_EQ(fds, expected);
+    }
+    {
+        std::vector<FieldData> fds;
+        for (auto iter =
+                 txn.GetEdgeIndexIterator("Relation", "null_unique", FieldData(), FieldData("z"));
+             iter.IsValid(); iter.Next()) {
+            fds.push_back(iter.GetIndexValue());
+        }
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4")};
+        UT_EXPECT_EQ(fds, expected);
+    }
+    txn.Abort();
 }
+
+INSTANTIATE_TEST_SUITE_P(TestNullIndexInstantiation, TestNullIndex, testing::Values(true, false));
