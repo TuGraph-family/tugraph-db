@@ -482,15 +482,17 @@ bool LightningGraph::_AlterLabel(
         } else {
             // scan and modify the vertexes
             std::unique_ptr<lgraph::graph::VertexIterator> vit(
-                new lgraph::graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
+                new graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
             while (vit->IsValid()) {
                 Value prop = vit->GetProperty();
                 if (curr_sm->GetRecordLabelId(prop) == curr_lid) {
                     modified++;
-                    Value new_prop = make_new_prop_and_destroy_old(prop, curr_schema, new_schema, txn);
+                    Value new_prop = make_new_prop_and_destroy_old(
+                        prop, curr_schema, new_schema, txn);
                     vit->RefreshContentIfKvIteratorModified();
                     if (curr_schema->DetachProperty()) {
-                        curr_schema->SetDetachedVertexProperty(txn.GetTxn(), vit->GetId(), new_prop);
+                        curr_schema->SetDetachedVertexProperty(
+                            txn.GetTxn(), vit->GetId(), new_prop);
                     } else {
                         vit->SetProperty(new_prop);
                     }
