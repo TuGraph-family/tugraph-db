@@ -463,40 +463,57 @@ bool LightningGraph::_AlterLabel(
     size_t n_committed = 0;
     LabelId curr_lid = curr_schema->GetLabelId();
     if (is_vertex) {
-        // scan and modify the vertexes
-        std::unique_ptr<lgraph::graph::VertexIterator> vit(
-            new lgraph::graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
-        while (vit->IsValid()) {
-            Value prop = vit->GetProperty();
-            if (curr_sm->GetRecordLabelId(prop) == curr_lid) {
-                modified++;
-                if (curr_schema->DetachProperty()) {
-                    prop = curr_schema->GetDetachedVertexProperty(txn.GetTxn(), vit->GetId());
-                }
+        if (curr_schema->DetachProperty()) {
+            auto table_name = curr_schema->GetPropertyTable().Name();
+            LOG_INFO() << FMA_FMT("begin to scan detached table: {}", table_name);
+            auto kv_iter = curr_schema->GetPropertyTable().GetIterator(txn.GetTxn());
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto prop = kv_iter->GetValue();
                 Value new_prop = make_new_prop_and_destroy_old(prop, curr_schema, new_schema, txn);
-                vit->RefreshContentIfKvIteratorModified();
-                if (curr_schema->DetachProperty()) {
-                    curr_schema->SetDetachedVertexProperty(txn.GetTxn(), vit->GetId(), new_prop);
-                } else {
-                    vit->SetProperty(new_prop);
-                }
-                if (modified - n_committed >= commit_size) {
-#if PERIODIC_COMMIT
-                    VertexId vid = vit->GetId();
-                    vit.reset();
-                    txn.Commit();
-                    n_committed = modified;
-                    FMA_LOG() << "Committed " << n_committed << " changes.";
-                    txn = CreateWriteTxn(false, false, false);
-                    vit.reset(new lgraph::graph::VertexIterator(
-                        graph_->GetUnmanagedVertexIterator(&txn.GetTxn(), vid, true)));
-#else
-                    n_committed = modified;
-                    LOG_INFO() << "Made " << n_committed << " changes.";
-#endif
+                kv_iter->SetValue(new_prop);
+                modified++;
+                if (modified % 1000000 == 0) {
+                    LOG_INFO() << "modified: " << modified;
                 }
             }
-            vit->Next();
+            LOG_INFO() << "modified: " << modified;
+            kv_iter.reset();
+            LOG_INFO() << FMA_FMT("end to scan detached table: {}", table_name);
+        } else {
+            // scan and modify the vertexes
+            std::unique_ptr<lgraph::graph::VertexIterator> vit(
+                new graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
+            while (vit->IsValid()) {
+                Value prop = vit->GetProperty();
+                if (curr_sm->GetRecordLabelId(prop) == curr_lid) {
+                    modified++;
+                    Value new_prop = make_new_prop_and_destroy_old(
+                        prop, curr_schema, new_schema, txn);
+                    vit->RefreshContentIfKvIteratorModified();
+                    if (curr_schema->DetachProperty()) {
+                        curr_schema->SetDetachedVertexProperty(
+                            txn.GetTxn(), vit->GetId(), new_prop);
+                    } else {
+                        vit->SetProperty(new_prop);
+                    }
+                    if (modified - n_committed >= commit_size) {
+    #if PERIODIC_COMMIT
+                        VertexId vid = vit->GetId();
+                        vit.reset();
+                        txn.Commit();
+                        n_committed = modified;
+                        FMA_LOG() << "Committed " << n_committed << " changes.";
+                        txn = CreateWriteTxn(false, false, false);
+                        vit.reset(new lgraph::graph::VertexIterator(
+                            graph_->GetUnmanagedVertexIterator(&txn.GetTxn(), vid, true)));
+    #else
+                        n_committed = modified;
+                        LOG_INFO() << "Made " << n_committed << " changes.";
+    #endif
+                    }
+                }
+                vit->Next();
+            }
         }
         modify_index(curr_schema, new_schema, rollback_actions, txn);
     } else {
@@ -1222,6 +1239,9 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
+                if (field_extractor->GetIsNull(prop)) {
+                    continue;
+                }
                 const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
                 key_vids.emplace_back(key, it.GetId());
             }
@@ -1309,8 +1329,10 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
                     if (e_schema->DetachProperty()) {
                         prop = e_schema->GetDetachedEdgeProperty(txn.GetTxn(), et.GetUid());
                     }
-                    const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
-                    key_euids.emplace_back(key, et.GetUid());
+                    if (!field_extractor->GetIsNull(prop)) {
+                        const T& key = GetIndexKeyFromValue<T>(field_extractor->GetConstRef(prop));
+                        key_euids.emplace_back(key, et.GetUid());
+                    }
                     et.Next();
                 }
             }
@@ -1848,11 +1870,12 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
 
-    if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
+    /*if (extractor->IsOptional() && (type == IndexType::GlobalUniqueIndex ||
                                     type == IndexType::PairUniqueIndex)) {
         THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
                    label, field);
-    }
+    }*/
+
     if (extractor->Type() == FieldType::BLOB) {
         THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
     }
@@ -1874,6 +1897,9 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
+                }
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
                     THROW_CODE(InternalError,
                         "Failed to index vertex [{}] with field value [{}:{}]",
@@ -1931,6 +1957,9 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
                 euid.lid = schema->GetLabelId();
                 auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
+                }
                 if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop),
                                 {euid.src, euid.dst, euid.lid, euid.tid, euid.eid})) {
                     THROW_CODE(InternalError,

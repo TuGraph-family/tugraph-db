@@ -413,7 +413,7 @@ struct LabelDesc {
         return x == y;
     }
 
-    std::map<std::string, lgraph::FieldSpec> GetSchemaDef() {
+    std::map<std::string, lgraph::FieldSpec> GetSchemaDef() const {
         std::map<std::string, FieldSpec> ret;
         for (size_t i = 0; i < columns.size(); i++) {
             auto& c = columns[i];

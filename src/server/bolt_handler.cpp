@@ -220,6 +220,12 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         // Neo4j python client check that the returned server info must start with 'Neo4j/'
         meta["server"] = "Neo4j/tugraph-db";
         auto session = std::make_shared<BoltSession>();
+        if (val.count("user_agent")) {
+            auto& user_agent = std::any_cast<const std::string&>(val.at("user_agent"));
+            if (fma_common::StartsWith(user_agent, "neo4j-python", false)) {
+                session->python_driver = true;
+            }
+        }
         session->state = SessionState::READY;
         session->user = principal;
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());

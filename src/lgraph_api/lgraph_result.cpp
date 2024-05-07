@@ -396,12 +396,12 @@ std::vector<std::string> Result::BoltHeader() {
     return ret;
 }
 
-std::vector<std::vector<std::any>> Result::BoltRecords() {
+std::vector<std::vector<std::any>> Result::BoltRecords(bool python_driver) {
     std::vector<std::vector<std::any>> ret;
     for (auto& record : result) {
         std::vector<std::any> line;
         for (auto& h : header) {
-            line.push_back(record.record.at(h.first)->ToBolt());
+            line.push_back(record.record.at(h.first)->ToBolt(python_driver));
         }
         ret.emplace_back(std::move(line));
     }
