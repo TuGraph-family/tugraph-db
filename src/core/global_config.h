@@ -107,6 +107,10 @@ struct BasicConfigs {
     int ha_bootstrap_role = 0;
     bool ha_is_witness = false;    // node is witness or not
     bool ha_enable_witness_to_leader = false;  // enable witness to leader or not
+    std::string ha_first_snapshot_start_time = "";  // first snapshot start time
+                                                    // whose format is "HH:MM:SS",
+                                                    // and the default value is ""
+                                                    // indicating a random time.
 
     // log
     int verbose;
