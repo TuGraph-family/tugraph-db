@@ -73,6 +73,34 @@ TEST_P(TestNullIndex, index) {
         UT_EXPECT_EQ(fds, expected);
     }
     txn.Abort();
+    txn = db.CreateWriteTxn();
+    auto vid5 = txn.AddVertex(std::string("Person"), vp,
+                              {FieldData((int32_t)5), FieldData(), FieldData()});
+    auto vid6 = txn.AddVertex(std::string("Person"), vp,
+                              {FieldData((int32_t)6), FieldData("val6"), FieldData("val6")});
+    txn.Commit();
+    txn = db.CreateReadTxn();
+    {
+        std::vector<FieldData> fds;
+        for (auto iter =
+                 txn.GetVertexIndexIterator("Person", "null_index", FieldData(), FieldData("z"));
+             iter.IsValid(); iter.Next()) {
+            fds.push_back(iter.GetIndexValue());
+        }
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4"), FieldData("val6")};
+        UT_EXPECT_EQ(fds, expected);
+    }
+    {
+        std::vector<FieldData> fds;
+        for (auto iter =
+                 txn.GetVertexIndexIterator("Person", "null_unique", FieldData(), FieldData("z"));
+             iter.IsValid(); iter.Next()) {
+            fds.push_back(iter.GetIndexValue());
+        }
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4"), FieldData("val6")};
+        UT_EXPECT_EQ(fds, expected);
+    }
+    txn.Abort();
 
     EdgeOptions eo;
     eo.detach_property = detached;
@@ -114,6 +142,34 @@ TEST_P(TestNullIndex, index) {
             fds.push_back(iter.GetIndexValue());
         }
         std::vector<FieldData> expected {FieldData("val2"), FieldData("val4")};
+        UT_EXPECT_EQ(fds, expected);
+    }
+    txn.Abort();
+    txn = db.CreateWriteTxn();
+    txn.AddEdge(vid5, vid6, std::string("Relation"), ep,
+                {FieldData((int32_t)5), FieldData(), FieldData()});
+    txn.AddEdge(vid6, vid5, std::string("Relation"), ep,
+                {FieldData((int32_t)6), FieldData("val6"), FieldData("val6")});
+    txn.Commit();
+    txn = db.CreateReadTxn();
+    {
+        std::vector<FieldData> fds;
+        for (auto iter =
+                 txn.GetEdgeIndexIterator("Relation", "null_index", FieldData(), FieldData("z"));
+             iter.IsValid(); iter.Next()) {
+            fds.push_back(iter.GetIndexValue());
+        }
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4"), FieldData("val6")};
+        UT_EXPECT_EQ(fds, expected);
+    }
+    {
+        std::vector<FieldData> fds;
+        for (auto iter =
+                 txn.GetEdgeIndexIterator("Relation", "null_unique", FieldData(), FieldData("z"));
+             iter.IsValid(); iter.Next()) {
+            fds.push_back(iter.GetIndexValue());
+        }
+        std::vector<FieldData> expected {FieldData("val2"), FieldData("val4"), FieldData("val6")};
         UT_EXPECT_EQ(fds, expected);
     }
     txn.Abort();
