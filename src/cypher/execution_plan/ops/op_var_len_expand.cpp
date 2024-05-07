@@ -47,7 +47,7 @@ DfsState::DfsState(RTContext *ctx, lgraph::VertexId id, int level, cypher::Relat
 }
 
 void DfsState::getTime() {
-    if (!currentEit->IsValid()) {
+    if (!currentEit || !currentEit->IsValid()) {
         return;
     }
     timestamp = lgraph::FieldData(currentEit->GetField("timestamp"));
