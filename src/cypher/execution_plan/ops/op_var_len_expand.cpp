@@ -221,10 +221,6 @@ bool MinInListPredicate::eval(std::vector<lgraph::EIter> &eits) {
 }
 
 // VarLenExpand Class
-bool VarLenExpand::PerNodeLimit(RTContext *ctx, size_t count) {
-    return !ctx->per_node_limit_.has_value() || count <= ctx->per_node_limit_.value();
-}
-
 bool VarLenExpand::NextWithFilter(RTContext *ctx) {
     while (!stack.empty()) {
         if (needPop) {
@@ -237,15 +233,8 @@ bool VarLenExpand::NextWithFilter(RTContext *ctx) {
         auto &currentEit = currentState.currentEit;
         auto currentLevel = currentState.level;
 
-        // the part of count, needs check
+        // the number of neighbor
         auto &currentCount = currentState.count;
-        if (!PerNodeLimit(ctx, currentCount)) {
-            stack.pop_back();
-            if (relp_->path_.Length() != 0) {
-                needPop = true;
-            }
-            continue;
-        }
 
         // if currentNodeId's needNext is true, currentEit.next(), then set needNext to false
         auto &needNext = currentState.needNext;
@@ -457,11 +446,6 @@ OpBase::OpResult VarLenExpand::RealConsume(RTContext *ctx) {
         CYPHER_THROW_ASSERT(stack.empty());
         // push the first node and the related eiter into the stack
         stack.emplace_back(ctx, startVid, 0, relp_, expand_direction_, false, !max_hop_);
-
-        if (!PerNodeLimit(ctx, stack.front().count)) {
-            stack.pop_back();
-            continue;
-        }
 
         relp_->path_.SetStart(startVid);
     }

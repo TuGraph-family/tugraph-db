@@ -103,8 +103,6 @@ class MinInListPredicate : public Predicate {
 
 /* Variable Length Expand */
 class VarLenExpand : public OpBase {
-    bool PerNodeLimit(RTContext *ctx, size_t count);
-
     bool NextWithFilter(RTContext *ctx);
 
     void PushFilter(std::shared_ptr<lgraph::Filter> filter);
