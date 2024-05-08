@@ -35,25 +35,14 @@ struct DfsState {
     // whether the eiter need Next()
     bool needNext;
 
-    FieldData timestamp;
-    FieldData maxTimestamp;
-    FieldData minTimestamp;
-
     DfsState(RTContext *ctx, lgraph::VertexId id, int level, cypher::Relationship *relp,
              ExpandTowards expand_direction, bool needNext, bool isMaxHop);
-
-    void getTime();
 };
 
 class Predicate {
  public:
-    virtual bool eval(std::vector<DfsState> &stack) = 0;
+    virtual bool eval(std::vector<lgraph::EIter> &eits) = 0;
     virtual ~Predicate() = default;
-};
-
-class ValidPredicate : public Predicate {
- public:
-    bool eval(std::vector<DfsState> &stack) override;
 };
 
 class HeadPredicate : public Predicate {
@@ -65,7 +54,7 @@ class HeadPredicate : public Predicate {
 
  public:
     HeadPredicate(lgraph::CompareOp op, FieldData operand) : op(op), operand(operand) {}
-    bool eval(std::vector<DfsState> &stack) override;
+    bool eval(std::vector<lgraph::EIter> &eits) override;
 };
 
 class LastPredicate : public Predicate {
@@ -77,19 +66,19 @@ class LastPredicate : public Predicate {
 
  public:
     LastPredicate(lgraph::CompareOp op, FieldData operand) : op(op), operand(operand) {}
-    bool eval(std::vector<DfsState> &stack) override;
+    bool eval(std::vector<lgraph::EIter> &eits) override;
 };
 
 class IsAscPredicate : public Predicate {
  public:
     IsAscPredicate() {}
-    bool eval(std::vector<DfsState> &stack) override;
+    bool eval(std::vector<lgraph::EIter> &eits) override;
 };
 
 class IsDescPredicate : public Predicate {
  public:
     IsDescPredicate() {}
-    bool eval(std::vector<DfsState> &stack) override;
+    bool eval(std::vector<lgraph::EIter> &eits) override;
 };
 
 class MaxInListPredicate : public Predicate {
@@ -99,7 +88,7 @@ class MaxInListPredicate : public Predicate {
 
  public:
     MaxInListPredicate(lgraph::CompareOp op, FieldData operand) : op(op), operand(operand) {}
-    bool eval(std::vector<DfsState> &stack) override;
+    bool eval(std::vector<lgraph::EIter> &eits) override;
 };
 
 class MinInListPredicate : public Predicate {
@@ -109,7 +98,7 @@ class MinInListPredicate : public Predicate {
 
  public:
     MinInListPredicate(lgraph::CompareOp op, FieldData operand) : op(op), operand(operand) {}
-    bool eval(std::vector<DfsState> &stack) override;
+    bool eval(std::vector<lgraph::EIter> &eits) override;
 };
 
 /* Variable Length Expand */
@@ -127,6 +116,9 @@ class VarLenExpand : public OpBase {
 
     // stack for DFS
     std::vector<DfsState> stack;
+
+    // this flag decides whether need to pop relp_->Path
+    bool needPop;
 
  public:
     cypher::PatternGraph *pattern_graph_ = nullptr;
