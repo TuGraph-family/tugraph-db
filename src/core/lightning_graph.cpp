@@ -273,8 +273,43 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema_info.Get()));
     LabelId lid = schema->GetLabelId();
     size_t modified = 0;
-    // now delete every node/edge that has this label
-    if (is_vertex) {
+    if (schema->DetachProperty()) {
+        auto table_name = schema->GetPropertyTable().Name();
+        LOG_INFO() << FMA_FMT("begin to scan detached table: {}", table_name);
+        auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+        for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+            if (is_vertex) {
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                bool r = graph_->DeleteVertex(txn.GetTxn(), vid);
+                FMA_DBG_ASSERT(r);
+            } else {
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
+                bool r = graph_->DeleteEdge(txn.GetTxn(), euid);
+                FMA_DBG_ASSERT(r);
+            }
+            modified++;
+            if (modified % 1000000 == 0) {
+                LOG_INFO() << "modified: " << modified;
+            }
+        }
+        LOG_INFO() << "modified: " << modified;
+        kv_iter.reset();
+        LOG_INFO() << FMA_FMT("end to scan detached table: {}", table_name);
+
+        // delete index table
+        auto indexed_fids = schema->GetIndexedFields();
+        for (auto& fid : indexed_fids) {
+            if (is_vertex) {
+                index_manager_->DeleteVertexIndex(txn.GetTxn(), label,
+                                                  schema->GetFieldExtractor(fid)->Name());
+            } else {
+                index_manager_->DeleteEdgeIndex(txn.GetTxn(), label,
+                                                schema->GetFieldExtractor(fid)->Name());
+            }
+        }
+        // delete detached property table
+        schema->GetPropertyTable().Delete(txn.GetTxn());
+    } else if (is_vertex) {  // now delete every node/edge that has this label
         std::vector<VertexIndex*> indexes;
         auto indexed_fids = schema->GetIndexedFields();
         for (auto fid : indexed_fids) {
