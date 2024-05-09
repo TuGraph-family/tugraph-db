@@ -1939,7 +1939,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             txn.Commit();
             schema_.Assign(new_schema.release());
             LOG_INFO() <<
-                FMA_FMT("start building edge index for {}:{} in detached model", label, field);
+                FMA_FMT("end building edge index for {}:{} in detached model", label, field);
             return true;
         }
         // now build index
