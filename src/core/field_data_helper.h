@@ -66,7 +66,7 @@ static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
                                                  "DATE",  "DATETIME", "STRING", "BLOB",
                                                  "POINT", "LINESTRING", "POLYGON", "SPATIAL", 
-                                                 "FLOAT_VECTOR"};
+                                                 "FLOAT_VECTOR", "DOUBLE_VECTOR", "BIN_VECTOR"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
     std::unordered_map<std::string, FieldType> ret;
@@ -94,7 +94,9 @@ static constexpr size_t FieldTypeSizes[] = {
     0,   // LineString
     0,   // Polygon
     0,   // Spatial
-    0    // float vector
+    0,   // float vector
+    0,   // double vector
+    0    // binary vector
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -114,7 +116,9 @@ static constexpr bool IsFixedLengthType[] = {
     false,  // LineString
     false,  // Polygon
     false,  // Spatial
-    false   // float vector 
+    false,  // float vector 
+    false,  // double vector 
+    false   // binary vector 
 };
 
 template <class T, size_t N>

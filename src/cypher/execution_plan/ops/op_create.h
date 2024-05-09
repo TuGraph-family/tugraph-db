@@ -51,6 +51,9 @@ class OpCreate : public OpBase {
             if (value.IsArray()) {
                 std::vector<float> vec;
                 int dim = value.constant.array->size();
+                if (dim >= 32768) {
+                    throw lgraph::ReminderException("The dimensions of a vector cannot exceed 32768.");
+                }
                 for (int i = 0; i < dim; ++i) {
                     lgraph::FieldData FD = value.constant.array->at(i);
                     float num;
