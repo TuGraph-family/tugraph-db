@@ -76,9 +76,9 @@ TEST_F(TestDelDetachedLabel, vertex) {
         txn.AddEdge(node1_vids[i], node2_vids[i], std::string("edge1"),
                     ep, {FieldData::Int32(i)});
         txn.AddEdge(node1_vids[i], node2_vids[i], std::string("edge2"),
-                    ep, std::vector<FieldData>{});
+                    std::vector<std::string>{}, std::vector<FieldData>{});
         txn.AddEdge(node2_vids[i], node3_vids[i], std::string("edge1"),
-                    ep, std::vector<FieldData>{});
+                    ep, {FieldData::Int32(i)});
     }
     txn.Commit();
     auto count_num = [&db]() {
@@ -91,7 +91,7 @@ TEST_F(TestDelDetachedLabel, vertex) {
         for (auto viter = txn.GetVertexIterator(); viter.IsValid(); viter.Next()) {
             if (viter.GetLabel() == "node1") {
                 node1_count++;
-            } else if (viter.GetLabel() == "node1") {
+            } else if (viter.GetLabel() == "node2") {
                 node2_count++;
             } else if (viter.GetLabel() == "node3") {
                 node3_count++;
