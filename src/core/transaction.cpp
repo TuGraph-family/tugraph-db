@@ -424,8 +424,11 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                     property = edge_schema->GetDetachedEdgeProperty(
                         *txn_, {vid, data.vid, data.lid, data.tid, data.eid});
                 }
-                edge_schema->DeleteEdgeIndex(*txn_, {vid, data.vid, data.lid, data.tid, data.eid},
-                                             property);
+                EdgeUid euid{vid, data.vid, data.lid, data.tid, data.eid};
+                edge_schema->DeleteEdgeIndex(*txn_, euid, property);
+                if (edge_schema->DetachProperty()) {
+                    edge_schema->DeleteDetachedEdgeProperty(*txn_, euid);
+                }
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
@@ -442,8 +445,11 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                     property = edge_schema->GetDetachedEdgeProperty(
                         *txn_, {data.vid, vid, data.lid, data.tid, data.eid});
                 }
-                edge_schema->DeleteEdgeIndex(*txn_, {data.vid, vid, data.lid, data.tid, data.eid},
-                                             property);
+                EdgeUid euid{data.vid, vid, data.lid, data.tid, data.eid};
+                edge_schema->DeleteEdgeIndex(*txn_, euid, property);
+                if (edge_schema->DetachProperty()) {
+                    edge_schema->DeleteDetachedEdgeProperty(*txn_, euid);
+                }
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
