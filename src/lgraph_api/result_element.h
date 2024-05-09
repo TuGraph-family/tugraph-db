@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ struct Relationship {
     nlohmann::json ToJson();
     bolt::Relationship ToBolt();
     bolt::RelNode ToBoltUnbound();
+    bolt::RelNode ToBoltUnbound(int64_t virtual_edge_id);
 };
 
 // WARNING: [PathElement] just include node and relationship
@@ -131,7 +132,7 @@ struct ResultElement {
 
     nlohmann::json ToJson();
     std::string ToString();
-    std::any ToBolt();
+    std::any ToBolt(bool python_driver);
 };
 
 }  // namespace lgraph_api

@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -290,6 +290,24 @@ class Transaction {
                       const std::vector<FieldData>& field_values);
 
     /**
+     * @brief   Upsert a vertex.
+     *
+     * @param   label_id        Label id.
+     * @param   primary_pos     The location of the primary field in field_ids.
+     * @param   unique_pos      The locations of the unique index field in field_ids, can be empty.
+     * @param   field_ids       List of field ids.
+     * @param   field_values    The field values.
+     *
+     * @returns  0: nothing happened because of index conflict
+     *           1: the vertex is inserted
+     *           2: the vertex is updated
+     */
+    int UpsertVertex(size_t label_id, size_t primary_pos,
+                      const std::vector<size_t>& unique_pos,
+                      const std::vector<size_t>& field_ids,
+                      const std::vector<FieldData>& field_values);
+
+    /**
      * @brief   Adds an edge. All non-nullable fields must be specified. An exception is thrown
      *          if src or dst does not exist.
      *
@@ -385,6 +403,26 @@ class Transaction {
      */
     bool UpsertEdge(int64_t src, int64_t dst, size_t label_id, const std::vector<size_t>& field_ids,
                     const std::vector<FieldData>& field_values);
+
+    /**
+     * @brief   Upsert edge. If there is no src->dst edge, insert it. Otherwise, try to update
+     *          the edge's property.
+     *
+     * @param   src             Source vertex id.
+     * @param   dst             Destination vertex id.
+     * @param   label_id        The label id.
+     * @param   unique_pos      The locations of the unique index field in field_ids, can be empty.
+     * @param   field_ids       List of field ids.
+     * @param   field_values    List of field values.
+     *
+     * @returns  0: nothing happened because of index conflict
+     *           1: the vertex is inserted
+     *           2: the vertex is updated
+     */
+    int UpsertEdge(int64_t src, int64_t dst, size_t label_id,
+                   const std::vector<size_t>& unique_pos,
+                   const std::vector<size_t>& field_ids,
+                   const std::vector<FieldData>& field_values);
 
     /**
      * @brief   List indexes

@@ -1,5 +1,5 @@
 
-// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.12.0
+// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.13.0
 
 #pragma once
 
@@ -455,7 +455,8 @@ public:
     antlr4::tree::TerminalNode *SET();
     std::vector<OC_SetItemContext *> oC_SetItem();
     OC_SetItemContext* oC_SetItem(size_t i);
-    antlr4::tree::TerminalNode *SP();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

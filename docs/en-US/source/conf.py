@@ -42,9 +42,9 @@ if read_the_docs_build:
     breathe_projects = {"cpp_procedure": "9.olap&procedure/1.procedure/build/xml"}
     breathe_default_project = "cpp_procedure"
 else:
-    if os.path.exists("9.olap&procedure/1.procedure/3.C++-procedure") and \
+    if os.path.exists("9.olap&procedure/1.procedure/3.C++-procedure.rst") and \
             os.path.exists("9.olap&procedure/1.procedure/4.Python-procedure.rst") and \
             os.path.exists("9.olap&procedure/1.procedure/index.rst") and \
             os.path.exists("9.olap&procedure/1.procedure/index.rst.aci"):
-        subprocess.run(shlex.split("rm -rf 3.C++-procedure 4.Python-procedure.rst index.rst"), cwd="9.olap&procedure/1.procedure/")
+        subprocess.run(shlex.split("rm -rf 3.C++-procedure.rst 4.Python-procedure.rst index.rst"), cwd="9.olap&procedure/1.procedure/")
         subprocess.run(shlex.split("mv index.rst.aci index.rst"), cwd="9.olap&procedure/1.procedure/")

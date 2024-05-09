@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,6 +70,18 @@ nlohmann::json Relationship::ToJson() {
         result["properties"] = j_properties;
     }
     return result;
+}
+
+// fix neo4j python driver
+bolt::RelNode Relationship::ToBoltUnbound(int64_t virtual_edge_id) {
+    bolt::RelNode rel;
+    // rel.id = id;
+    rel.id = virtual_edge_id;
+    rel.name = label;
+    for (auto &pair : properties) {
+        rel.props.emplace(pair.first, pair.second.ToBolt());
+    }
+    return rel;
 }
 
 bolt::RelNode Relationship::ToBoltUnbound() {
@@ -357,11 +369,16 @@ json ResultElement::ToJson() {
     return result;
 }
 
-std::any ResultElement::ToBolt() {
+std::any ResultElement::ToBolt(bool python_driver) {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
-        std::vector<std::any> ret;
+        json result;
+        for (auto &l : *v.list) {
+            result.push_back(l);
+        }
+        return result.dump();  // Convert to string
+        /*std::vector<std::any> ret;
         for (auto &l : *v.list) {
             if (l.is_null()) {
                 ret.emplace_back();
@@ -378,9 +395,14 @@ std::any ResultElement::ToBolt() {
                     "ToBolt: unsupported item in list: {}", l.dump());
             }
         }
-        return ret;
+        return ret;*/
     } else if (type_ == LGraphType::MAP) {
-        std::unordered_map<std::string, std::any> ret;
+        json result;
+        for (auto &m : *v.map) {
+            result[m.first] = m.second;
+        }
+        return result.dump();  // Convert to string
+        /*std::unordered_map<std::string, std::any> ret;
         for (auto &pair : *v.map) {
             if (pair.second.is_null()) {
                 ret.emplace(pair.first, std::any{});
@@ -397,7 +419,7 @@ std::any ResultElement::ToBolt() {
                     "ToBolt: unsupported value in map: {}", pair.second.dump());
             }
         }
-        return ret;
+        return ret;*/
     } else if (type_ == LGraphType::NODE) {
         return v.node->ToBolt();
     } else if (type_ == LGraphType::RELATIONSHIP) {
@@ -409,7 +431,12 @@ std::any ResultElement::ToBolt() {
             if (p.type_ == LGraphType::NODE) {
                 path.nodes.push_back(p.v.node->ToBolt());
             } else {
-                path.rels.push_back(p.v.repl->ToBoltUnbound());
+                if (!python_driver) {
+                    path.rels.push_back(p.v.repl->ToBoltUnbound());
+                } else {
+                    // The neo4j python client checks the uniqueness of the edge id.
+                    path.rels.push_back(p.v.repl->ToBoltUnbound(i));
+                }
             }
             if (i >= 1) {
                 if (i%2 == 1) {

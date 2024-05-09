@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,9 +72,9 @@ enum PackType {
  */
 class KeyPacker {
     static const size_t FID_OFF = 0;                                      // first vid
-    static const size_t PT_OFF = FID_OFF + ::lgraph::_detail::VID_SIZE;   // pair type
+    static const size_t PT_OFF = FID_OFF + ::lgraph::_detail::VID_SIZE;   // pack type
     static const size_t LID_OFF = PT_OFF + 1;                             // label
-    static const size_t TID_OFF = LID_OFF + ::lgraph::_detail::LID_SIZE;  // primary id
+    static const size_t TID_OFF = LID_OFF + ::lgraph::_detail::LID_SIZE;  // temporal id
     static const size_t SID_OFF = TID_OFF + ::lgraph::_detail::TID_SIZE;  // second vid
     static const size_t EID_OFF = SID_OFF + ::lgraph::_detail::VID_SIZE;  // edge id
     static const size_t EDGE_KEY_SIZE = EID_OFF + ::lgraph::_detail::EID_SIZE;

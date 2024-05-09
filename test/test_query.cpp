@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -340,6 +340,13 @@ TEST_F(TestQuery, TestGqlSuite) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
     set_query_type(lgraph::ut::QUERY_TYPE::GQL);
     std::string dir = test_suite_dir_ + "/suite/gql";
+    test_files(dir);
+}
+
+TEST_F(TestQuery, TestCypherSuite) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::CYPHER);
+    std::string dir = test_suite_dir_ + "/suite/cypher";
     test_files(dir);
 }
 

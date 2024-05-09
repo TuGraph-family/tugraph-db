@@ -28,7 +28,9 @@ class TestHAPythonClient:
     @pytest.mark.run(order=1)
     def test_cypher_before_import(self):
         res = json.loads(self.client.callCypher("MATCH (n) RETURN count(n)", "default", timeout=10)[1])
-        assert len(res) == 0
+        assert len(res) == 1
+        assert "count(n)" in res[0].keys()
+        assert res[0]["count(n)"] == 0
 
     @pytest.mark.run(order=2)
     def test_import_schema_from_content(self):

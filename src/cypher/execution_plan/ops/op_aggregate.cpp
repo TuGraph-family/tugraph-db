@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -174,6 +174,28 @@ OpBase::OpResult Aggregate::RealConsume(RTContext *ctx) {
         auto child = children[0];
         while (child->Consume(ctx) == OP_OK) {
             _AggregateRecord(ctx, *child->record);
+        }
+        // If there is no input record, build a group with an empty key
+        if (group_cache_.empty() && noneaggregated_expressions_.empty()) {
+            Group new_group;
+            std::string group_key;
+            for (auto _ : noneaggregated_expressions_) {
+                new_group.keys.emplace_back(Entry(cypher::FieldData()));
+            }
+            bool ast_expr = aggregated_parser_expressions_.empty();
+            if (ast_expr) {
+                for (auto &ae : aggregated_expressions_) {
+                    ArithExprNode new_ae(ae.expr_, sym_tab_);
+                    new_group.aggregation_functions.emplace_back(new_ae);
+                }
+            } else {
+                for (auto &ae : aggregated_parser_expressions_) {
+                    ArithExprNode new_ae(ae, sym_tab_);
+                    new_group.aggregation_functions.emplace_back(new_ae);
+                }
+            }
+            auto ret = group_cache_.emplace(group_key, new_group);
+            CYPHER_THROW_ASSERT(ret.second);
         }
         group_iter_ = group_cache_.begin();
         state_ = Consuming;
