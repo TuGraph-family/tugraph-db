@@ -214,6 +214,13 @@ bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const 
     return graph_->BlockingAddIndex(label, field, type, true);
 }
 
+bool lgraph::AccessControlledDB::AddVertexCompositeIndex(const std::string& label,
+                                                         const std::vector<std::string>& fields,
+                                                         CompositeIndexType type) {
+    CheckFullAccess();
+    return graph_->BlockingAddCompositeIndex(label, fields, type, true);
+}
+
 bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const std::string& field,
                                           IndexType type) {
     CheckFullAccess();

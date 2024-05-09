@@ -105,6 +105,9 @@ class AccessControlledDB {
 
     bool AddVertexIndex(const std::string& label, const std::string& field, IndexType type);
 
+    bool AddVertexCompositeIndex(const std::string& label,
+                                 const std::vector<std::string>& fields, CompositeIndexType type);
+
     bool AddEdgeIndex(const std::string& label, const std::string& field, IndexType type);
 
     bool DeleteVertexIndex(const std::string& label, const std::string& field);

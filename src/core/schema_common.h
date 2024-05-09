@@ -188,6 +188,15 @@ class IndexExistException : public LgraphException {
                           "VertexIndex [{}:{}] already exist.", label, field) {}
 };
 
+class CompositeIndexExistException : public LgraphException {
+ public:
+    CompositeIndexExistException(const std::string& label,
+                                 const std::string &fields)
+        : LgraphException(ErrorCode::CompositeIndexExist,
+                          "VertexCompositeIndex [{}:{}] already exist.",
+                          label, fields) {}
+};
+
 class FullTextIndexNotExistException : public LgraphException {
  public:
     FullTextIndexNotExistException(const std::string& label, const std::string& field)

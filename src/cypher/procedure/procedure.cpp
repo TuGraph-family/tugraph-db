@@ -1340,6 +1340,37 @@ void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, co
     }
 }
 
+void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
+                                                 const cypher::Record *record,
+                                                 const cypher::VEC_EXPR &args,
+                                                 const cypher::VEC_STR &yield_items,
+                                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 3,
+                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, unique)")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST, "field_names type should be list")
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "unique type should be boolean")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    /* close the previous txn first, in case of nested transaction */
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto fields_args = args[1].List();
+    std::vector<std::string> fields;
+    for (auto &arg : fields_args) {
+        fields.push_back(arg.String());
+    }
+    auto unique = args[2].Bool();
+    lgraph::CompositeIndexType type = lgraph::CompositeIndexType::UniqueIndex;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
+    if (!success) {
+        std::string field_strings;
+        for (auto &item : fields)
+            field_strings += item;
+        throw lgraph::CompositeIndexExistException(label, field_strings);
+    }
+}
+
 void BuiltinProcedure::DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                       const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 4,

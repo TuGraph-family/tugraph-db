@@ -52,6 +52,7 @@ X(LabelExist, "Label exist.") \
 X(PrimaryIndexCannotBeDeleted, "Primary index cannot be deleted.") \
 X(IndexNotExist, "Index not exist.") \
 X(IndexExist, "Index exist.") \
+X(CompositeIndexExist, "Composite Index exist.") \
 X(FullTextIndexNotExist, "FullText index not exist.") \
 X(FullTextIndexExist, "FullText index exist.") \
 X(UserNotExist, "User not exist.") \
