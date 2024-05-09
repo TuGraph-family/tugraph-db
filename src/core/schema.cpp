@@ -428,7 +428,8 @@ void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
     auto ret = property_table_->DeleteKey(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
     if (!ret) {
-        THROW_CODE(InternalError, "Delete: vid {} is not found in the detached property table.", vid);
+        THROW_CODE(InternalError, "Delete: vid {} is not found in the detached property table.",
+                   vid);
     }
 }
 

@@ -675,7 +675,6 @@ class Transaction {
      *          second is label name, third is number.
      */
     std::vector<std::tuple<bool, std::string, int64_t>> CountDetail();
-
 };
 
 }  // namespace lgraph_api

@@ -1032,7 +1032,7 @@ TEST_F(TestLGraphApi, deleteVertex) {
     UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
                                    std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
                                    eo));
-    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation","id", lgraph_api::IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation", "id", lgraph_api::IndexType::NonuniqueIndex));
     std::vector<std::string> vp{"id"};
     std::vector<std::string> ep{"id"};
     auto txn = db.CreateWriteTxn();
