@@ -426,16 +426,15 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
 
 #define PERIODIC_COMMIT 0
 
-template <typename GenNewSchema, typename MakeNewProp, typename ModifyIndex,
-          typename ModifyEdgeIndex>
+template <typename GenNewSchema, typename MakeNewProp, typename ModifyIndex>
 bool LightningGraph::_AlterLabel(
     bool is_vertex, const std::string& label,
     const GenNewSchema& gen_new_schema,                // std::function<Schema(Schema*)>
     const MakeNewProp& make_new_prop_and_destroy_old,  // std::function<Value(const Value&, Schema*,
                                                        // Schema*, Transaction&)>
-    const ModifyIndex&
-        modify_index,  // std::function<void(Schema*, Schema*, CleanupActions&, Transaction&)>
-    const ModifyEdgeIndex& modify_edge_index, size_t* n_modified, size_t commit_size) {
+    // std::function<void(Schema*, Schema*, CleanupActions&, Transaction&)>
+    const ModifyIndex& modify_index,
+    size_t* n_modified, size_t commit_size) {
     LOG_DEBUG() << "_AlterLabel(batch_size=" << commit_size << ")";
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
@@ -462,7 +461,6 @@ bool LightningGraph::_AlterLabel(
     size_t modified = 0;
     size_t n_committed = 0;
     LabelId curr_lid = curr_schema->GetLabelId();
-
     if (curr_schema->DetachProperty()) {
         auto table_name = curr_schema->GetPropertyTable().Name();
         LOG_INFO() << FMA_FMT("begin to scan detached table: {}", table_name);
@@ -739,28 +737,21 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
         for (auto& f : fids) {
             auto* extractor = curr_schema->GetFieldExtractor(f);
             if (extractor->GetVertexIndex()) {
+                // delete vertex index
                 index_manager_->DeleteVertexIndex(txn.GetTxn(), label, extractor->Name());
+            } else if (extractor->GetEdgeIndex()) {
+                // delete edge index
+                index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, extractor->Name());
             } else if (extractor->FullTextIndexed()) {
+                // delete fulltext index
                 index_manager_->DeleteFullTextIndex(txn.GetTxn(), is_vertex, label,
                                                     extractor->Name());
             }
         }
     };
 
-    auto delete_edge_indexes = [&](Schema* curr_schema, Schema* new_schema,
-                                   CleanupActions& rollback_actions, Transaction& txn) {
-        // delete the indexes
-        auto fids = curr_schema->GetFieldIds(del_fields);
-        // delete indexes if necessary
-        for (auto& f : fids) {
-            auto* extractor = curr_schema->GetFieldExtractor(f);
-            if (extractor->GetEdgeIndex()) {
-                index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, extractor->Name());
-            }
-        }
-    };
     return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, make_new_prop_and_destroy_old,
-                       delete_indexes, delete_edge_indexes, n_modified, 100000);
+                       delete_indexes, n_modified, 100000);
 }
 
 bool LightningGraph::AlterLabelAddFields(const std::string& label,
@@ -843,11 +834,8 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
     auto delete_indexes = [](Schema* curr_schema, Schema* new_schema,
                              CleanupActions& rollback_actions, Transaction& txn) {};
 
-    auto delete_edge_indexes = [](Schema* curr_schema, Schema* new_schema,
-                                  CleanupActions& rollback_actions, Transaction& txn) {};
-
     return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, make_new_prop_and_destroy_old,
-                       delete_indexes, delete_edge_indexes, n_modified, 100000);
+                       delete_indexes, n_modified, 100000);
 }
 
 bool LightningGraph::AlterLabelModFields(const std::string& label,
@@ -944,26 +932,16 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
             if (extractor->GetVertexIndex()) {
                 new_schema->UnVertexIndex(f);
                 index_manager_->DeleteVertexIndex(txn.GetTxn(), label, extractor->Name());
-            }
-        }
-    };
-
-    auto delete_edge_indexes = [&](Schema* curr_schema, Schema* new_schema,
-                                   CleanupActions& rollback_actions, Transaction& txn) {
-        std::vector<size_t> mod_fids;
-        for (auto& f : to_mod) mod_fids.push_back(curr_schema->GetFieldId(f.name));
-        // delete indexes if necessary
-        for (auto& f : mod_fids) {
-            auto* extractor = curr_schema->GetFieldExtractor(f);
-            if (extractor->GetEdgeIndex()) {
+            } else if (extractor->GetEdgeIndex()) {
                 new_schema->UnEdgeIndex(f);
                 index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, extractor->Name());
             }
         }
     };
+
     return _AlterLabel(
         is_vertex, label, setup_and_gen_new_schema, make_new_prop_and_destroy_old, delete_indexes,
-        delete_edge_indexes, n_modified,
+        n_modified,
 #if PERIODIC_COMMIT
         std::numeric_limits<size_t>::max());  // there could be data conversion error during
                                               // convert, so we cannot do periodic commit
