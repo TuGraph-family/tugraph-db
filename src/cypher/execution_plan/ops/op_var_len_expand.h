@@ -103,6 +103,7 @@ class MinInListPredicate : public Predicate {
 
 /* Variable Length Expand */
 class VarLenExpand : public OpBase {
+    bool Next(RTContext *ctx);
     bool NextWithFilter(RTContext *ctx);
 
     void PushFilter(std::shared_ptr<lgraph::Filter> filter);

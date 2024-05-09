@@ -224,7 +224,8 @@ bool MinInListPredicate::eval(std::vector<lgraph::EIter> &eits) {
 bool VarLenExpand::NextWithFilter(RTContext *ctx) {
     while (!stack.empty()) {
         if (needPop) {
-            // it means that, in the last hoop, the path needs pop
+            // reach here means, in the previous loop, the path returns,
+            // so the relp_->path needs pop
             relp_->path_.PopBack();
             needPop = false;
         }
@@ -233,7 +234,7 @@ bool VarLenExpand::NextWithFilter(RTContext *ctx) {
         auto &currentEit = currentState.currentEit;
         auto currentLevel = currentState.level;
 
-        // the number of neighbor
+        // the number of the neighbor
         auto &currentCount = currentState.count;
 
         // if currentNodeId's needNext is true, currentEit.next(), then set needNext to false
@@ -254,15 +255,6 @@ bool VarLenExpand::NextWithFilter(RTContext *ctx) {
             stack.pop_back();
 
             neighbor_->PushVid(currentNodeId);
-
-            // check label
-            if (!neighbor_->Label().empty() && neighbor_->IsValidAfterMaterialize(ctx) &&
-                neighbor_->ItRef()->GetLabel() != neighbor_->Label()) {
-                if (relp_->path_.Length() != 0) {
-                    relp_->path_.PopBack();
-                }
-                continue;
-            }
 
             if (relp_->path_.Length() != 0) {
                 needPop = true;
@@ -309,15 +301,6 @@ bool VarLenExpand::NextWithFilter(RTContext *ctx) {
             if (currentLevel >= min_hop_) {
                 neighbor_->PushVid(currentNodeId);
 
-                // check label
-                if (!neighbor_->Label().empty() && neighbor_->IsValidAfterMaterialize(ctx) &&
-                    neighbor_->ItRef()->GetLabel() != neighbor_->Label()) {
-                    if (relp_->path_.Length() != 0) {
-                        relp_->path_.PopBack();
-                    }
-                    continue;
-                }
-
                 if (relp_->path_.Length() != 0) {
                     needPop = true;
                 }
@@ -330,6 +313,15 @@ bool VarLenExpand::NextWithFilter(RTContext *ctx) {
         }
     }
     return false;
+}
+
+bool VarLenExpand::Next(RTContext *ctx) {
+    // check label filter
+    do {
+        if (!NextWithFilter(ctx)) return false;
+    } while (!neighbor_->Label().empty() && neighbor_->IsValidAfterMaterialize(ctx) &&
+             neighbor_->ItRef()->GetLabel() != neighbor_->Label());
+    return true;
 }
 
 VarLenExpand::VarLenExpand(PatternGraph *pattern_graph, Node *start, Node *neighbor,
@@ -432,7 +424,7 @@ OpBase::OpResult VarLenExpand::Initialize(RTContext *ctx) {
 OpBase::OpResult VarLenExpand::RealConsume(RTContext *ctx) {
     CYPHER_THROW_ASSERT(!children.empty());
     auto child = children[0];
-    while (!NextWithFilter(ctx)) {
+    while (!Next(ctx)) {
         auto res = child->Consume(ctx);
         relp_->path_.Clear();
         if (res != OP_OK) {
