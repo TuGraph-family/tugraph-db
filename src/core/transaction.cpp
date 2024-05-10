@@ -568,6 +568,13 @@ EdgeIndex* Transaction::GetEdgeIndex(size_t label, size_t field) {
     return fe->GetEdgeIndex();
 }
 
+CompositeIndex* Transaction::GetVertexCompositeIndex(const std::string& label,
+                                                     const std::vector<std::string>& fields) {
+    Schema* s = curr_schema_->e_schema_manager.GetSchema(label);
+    if (!s) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
+    return s->GetCompositeIndex(fields);
+}
+
 VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label,
                                                         const std::string& field,
                                                         const FieldData& key_start,
@@ -672,6 +679,17 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
         ke = field_data_helper::ParseStringToValueOfFieldType(key_end, index->KeyType());
     }
     return index->GetIterator(this, std::move(ks), std::move(ke), 0);
+}
+
+CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const std::string& label,
+                                                                 const std::vector<std::string>& fields,
+                                                                 const std::vector<std::string>& key_start,
+                                                                 const std::vector<std::string>& key_end) {
+    CompositeIndex* index = GetVertexCompositeIndex(label, fields);
+    if (!index || !index->IsReady()) {
+        THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label, fields);
+    }
+
 }
 
 std::string Transaction::VertexToString(const VertexIterator& vit) {

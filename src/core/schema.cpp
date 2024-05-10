@@ -379,7 +379,7 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
     // first data is the LabelId
     if (label_in_record_) {
         ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
-        // nullbable bits
+        // nullable bits
         memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
     } else {
         // nullbable bits

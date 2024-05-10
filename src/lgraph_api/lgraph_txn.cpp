@@ -383,6 +383,16 @@ VertexIterator Transaction::GetVertexByUniqueIndex(const std::string& label_name
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
+VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& label_name,
+                                                            const std::vector<std::string>& field_name,
+                                                            const std::vector<std::string>& field_value_string) {
+    ThrowIfInvalid();
+    lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
+        label_name, field_name, field_value_string, field_value_string);
+    if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
+    return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
+}
+
 OutEdgeIterator Transaction::GetEdgeByUniqueIndex(const std::string& label_name,
                                                   const std::string& field_name,
                                                   const std::string& field_value_string) {

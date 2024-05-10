@@ -583,6 +583,10 @@ class Transaction {
                                           const std::string& field_name,
                                           const std::string& field_value_string);
 
+    VertexIterator GetVertexByUniqueCompositeIndex(const std::string& label_name,
+                                          const std::vector<std::string>& field_name,
+                                          const std::vector<std::string>& field_value_string);
+
     /**
      * @brief   Gets edge by unique index. Throws exception if there is no such vertex.
      *

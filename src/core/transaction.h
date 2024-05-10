@@ -934,6 +934,11 @@ class Transaction {
     EdgeIndexIterator GetEdgeIndexIterator(const std::string& label, const std::string& field,
                                    const std::string& key_start, const std::string& key_end);
 
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                                        const std::vector<std::string>& fields,
+                                                        const std::vector<std::string>& key_start,
+                                                        const std::vector<std::string>& key_end);
+
 
     /**
      * Gets the string representation of the vertex.
@@ -1089,6 +1094,9 @@ class Transaction {
     VertexIndex* GetVertexIndex(size_t label, size_t field);
     EdgeIndex* GetEdgeIndex(const std::string& label, const std::string& field);
     EdgeIndex* GetEdgeIndex(size_t label, size_t field);
+
+    CompositeIndex* GetVertexCompositeIndex(const std::string& label,
+                                            const std::vector<std::string>& field);
 
     void EnterTxn();
     void LeaveTxn();
