@@ -280,6 +280,7 @@ bool VarLenExpand::NextWithFilter(RTContext *ctx) {
                 if (ctx->path_unique_ && pattern_graph_->VisitedEdges().Contains(*currentEit)) {
                     currentEit->Next();
                     currentCount++;
+                    needNext = false;
                     continue;
                 } else if (ctx->path_unique_) {
                     pattern_graph_->VisitedEdges().Add(*currentEit);
