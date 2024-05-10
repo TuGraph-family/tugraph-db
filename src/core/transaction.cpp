@@ -358,13 +358,21 @@ void Transaction::Commit() {
     CloseAllIterators();
     if (db_->GetConfig().enable_realtime_count && !txn_->IsOptimistic()) {
         for (const auto& pair : vertex_delta_count_) {
-            IncreaseCount(true, pair.first, pair.second);
+            graph_->IncreaseCount(*txn_, true, pair.first, pair.second);
         }
         for (const auto& pair : edge_delta_count_) {
-            IncreaseCount(false, pair.first, pair.second);
+            graph_->IncreaseCount(*txn_, false, pair.first, pair.second);
+        }
+        for (LabelId id : vertex_label_delete_) {
+            graph_->DeleteCount(*txn_, true, id);
+        }
+        for (LabelId id : edge_label_delete_) {
+            graph_->DeleteCount(*txn_, false, id);
         }
         vertex_delta_count_.clear();
         edge_delta_count_.clear();
+        vertex_label_delete_.clear();
+        edge_label_delete_.clear();
     }
     txn_->Commit();
     txn_.reset();
@@ -424,8 +432,11 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                     property = edge_schema->GetDetachedEdgeProperty(
                         *txn_, {vid, data.vid, data.lid, data.tid, data.eid});
                 }
-                edge_schema->DeleteEdgeIndex(*txn_, {vid, data.vid, data.lid, data.tid, data.eid},
-                                             property);
+                EdgeUid euid{vid, data.vid, data.lid, data.tid, data.eid};
+                edge_schema->DeleteEdgeIndex(*txn_, euid, property);
+                if (edge_schema->DetachProperty()) {
+                    edge_schema->DeleteDetachedEdgeProperty(*txn_, euid);
+                }
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(
@@ -442,8 +453,11 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
                     property = edge_schema->GetDetachedEdgeProperty(
                         *txn_, {data.vid, vid, data.lid, data.tid, data.eid});
                 }
-                edge_schema->DeleteEdgeIndex(*txn_, {data.vid, vid, data.lid, data.tid, data.eid},
-                                             property);
+                EdgeUid euid{data.vid, vid, data.lid, data.tid, data.eid};
+                edge_schema->DeleteEdgeIndex(*txn_, euid, property);
+                if (edge_schema->DetachProperty()) {
+                    edge_schema->DeleteDetachedEdgeProperty(*txn_, euid);
+                }
                 edge_delta_count_[data.lid]--;
                 if (fulltext_index_) {
                     edge_schema->DeleteEdgeFullTextIndex(

@@ -273,8 +273,81 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema_info.Get()));
     LabelId lid = schema->GetLabelId();
     size_t modified = 0;
-    // now delete every node/edge that has this label
-    if (is_vertex) {
+    if (schema->DetachProperty()) {
+        auto table_name = schema->GetPropertyTable().Name();
+        LOG_INFO() << FMA_FMT("begin to scan detached table: {}", table_name);
+        auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+        for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+            if (is_vertex) {
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                auto on_edge_deleted = [&curr_schema_info, &txn, vid]
+                    (bool is_out_edge, const graph::EdgeValue& edge_value){
+                    for (size_t i = 0; i < edge_value.GetEdgeCount(); i++) {
+                        const auto& data = edge_value.GetNthEdgeData(i);
+                        auto edge_schema = curr_schema_info->e_schema_manager.GetSchema(data.lid);
+                        FMA_ASSERT(edge_schema);
+                        if (is_out_edge) {
+                            Value property(data.prop, data.psize);
+                            if (edge_schema->DetachProperty()) {
+                                property = edge_schema->GetDetachedEdgeProperty(
+                                    txn.GetTxn(), {vid, data.vid, data.lid, data.tid, data.eid});
+                            }
+                            EdgeUid euid{vid, data.vid, data.lid, data.tid, data.eid};
+                            edge_schema->DeleteEdgeIndex(txn.GetTxn(), euid, property);
+                            if (edge_schema->DetachProperty()) {
+                                edge_schema->DeleteDetachedEdgeProperty(txn.GetTxn(), euid);
+                            }
+                            txn.GetEdgeDeltaCount()[data.lid]--;
+                        } else {
+                            if (vid == data.vid) {
+                                // The in edge directing to self is already included
+                                // in the out edges skip to avoid double deleting
+                                continue;
+                            }
+                            Value property(data.prop, data.psize);
+                            if (edge_schema->DetachProperty()) {
+                                property = edge_schema->GetDetachedEdgeProperty(
+                                    txn.GetTxn(), {data.vid, vid, data.lid, data.tid, data.eid});
+                            }
+                            EdgeUid euid{data.vid, vid, data.lid, data.tid, data.eid};
+                            edge_schema->DeleteEdgeIndex(txn.GetTxn(), euid, property);
+                            if (edge_schema->DetachProperty()) {
+                                edge_schema->DeleteDetachedEdgeProperty(txn.GetTxn(), euid);
+                            }
+                            txn.GetEdgeDeltaCount()[data.lid]--;
+                        }
+                    }
+                };
+                bool r = graph_->DeleteVertex(txn.GetTxn(), vid, on_edge_deleted);
+                FMA_DBG_ASSERT(r);
+            } else {
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
+                bool r = graph_->DeleteEdge(txn.GetTxn(), euid);
+                FMA_DBG_ASSERT(r);
+            }
+            modified++;
+            if (modified % 1000000 == 0) {
+                LOG_INFO() << "modified: " << modified;
+            }
+        }
+        LOG_INFO() << "modified: " << modified;
+        kv_iter.reset();
+        LOG_INFO() << FMA_FMT("end to scan detached table: {}", table_name);
+
+        // delete index table
+        auto indexed_fids = schema->GetIndexedFields();
+        for (auto& fid : indexed_fids) {
+            if (is_vertex) {
+                index_manager_->DeleteVertexIndex(txn.GetTxn(), label,
+                                                  schema->GetFieldExtractor(fid)->Name());
+            } else {
+                index_manager_->DeleteEdgeIndex(txn.GetTxn(), label,
+                                                schema->GetFieldExtractor(fid)->Name());
+            }
+        }
+        // delete detached property table
+        schema->GetPropertyTable().Delete(txn.GetTxn());
+    } else if (is_vertex) {  // now delete every node/edge that has this label
         std::vector<VertexIndex*> indexes;
         auto indexed_fids = schema->GetIndexedFields();
         for (auto fid : indexed_fids) {
@@ -410,7 +483,11 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         new_schema->e_schema_manager.RefreshEdgeConstraintsLids(
             new_schema->v_schema_manager);
     }
-    graph_->DeleteCount(txn.GetTxn(), is_vertex, lid);
+    if (is_vertex) {
+        txn.GetVertexLabelDelete().emplace(lid);
+    } else {
+        txn.GetEdgeLabelDelete().emplace(lid);
+    }
     txn.Commit();
     // delete fulltext index if has any
     if (fulltext_index_) {
@@ -1939,7 +2016,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             txn.Commit();
             schema_.Assign(new_schema.release());
             LOG_INFO() <<
-                FMA_FMT("start building edge index for {}:{} in detached model", label, field);
+                FMA_FMT("end building edge index for {}:{} in detached model", label, field);
             return true;
         }
         // now build index
