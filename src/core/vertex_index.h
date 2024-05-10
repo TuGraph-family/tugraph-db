@@ -473,7 +473,7 @@ class VertexIndex {
     bool Add(KvTransaction& txn, const Value& k, int64_t vid);
 
 
-    size_t GetMaxEdgeIndexKeySize();
+    size_t GetMaxVertexIndexKeySize();
 
     Value CutKeyIfLong(const Value& k);
 };

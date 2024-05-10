@@ -364,8 +364,9 @@ std::unique_ptr<KvTable> VertexIndex::OpenTable(KvTransaction& txn, KvStore& sto
 
 void VertexIndex::_AppendVertexIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
     FMA_DBG_ASSERT(type_ == IndexType::GlobalUniqueIndex);
-    Value key = CutKeyIfLong(k);
-    table_->AppendKv(txn, key, Value::ConstRef(vid));
+    if (k.Size() > GetMaxVertexIndexKeySize())
+        THROW_CODE(InputError, "Vertex unique index value [{}] is too long.", k.AsString());
+    table_->AppendKv(txn, Value::ConstRef(k), Value::ConstRef(vid));
 }
 
 void VertexIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
@@ -463,14 +464,16 @@ bool VertexIndex::Update(KvTransaction& txn, const Value& old_key,
 }
 
 bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
-    Value key = CutKeyIfLong(k);
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
         {
-            return table_->AddKV(txn, key, Value::ConstRef(vid));
+            if (k.Size() > GetMaxVertexIndexKeySize())
+                THROW_CODE(InputError, "Vertex unique index value [{}] is too long.", k.AsString());
+            return table_->AddKV(txn, Value::ConstRef(k), Value::ConstRef(vid));
         }
     case IndexType::NonuniqueIndex:
         {
+            Value key = CutKeyIfLong(k);
             VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
             if (!it.IsValid() || it.KeyOutOfRange()) {
                 if (!it.PrevKV() || !it.KeyEquals(key)) {
@@ -520,7 +523,7 @@ bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     return false;
 }
 
-size_t VertexIndex::GetMaxEdgeIndexKeySize() {
+size_t VertexIndex::GetMaxVertexIndexKeySize() {
     size_t key_size = 0;
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
@@ -542,7 +545,7 @@ size_t VertexIndex::GetMaxEdgeIndexKeySize() {
 }
 
 Value VertexIndex::CutKeyIfLong(const Value& k) {
-    size_t key_size = GetMaxEdgeIndexKeySize();
+    size_t key_size = GetMaxVertexIndexKeySize();
     if (k.Size() < key_size) return Value::ConstRef(k);
     return Value(k.Data(), key_size);
 }
