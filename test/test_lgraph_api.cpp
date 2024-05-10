@@ -1012,3 +1012,45 @@ TEST_F(TestLGraphApi, deleteLable) {
     UT_EXPECT_TRUE(db.DeleteVertexLabel("Person1"));
     check_dbs(6);
 }
+
+TEST_F(TestLGraphApi, deleteVertex) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    lgraph::AutoCleanDir cleaner(path);
+    Galaxy galaxy(path);
+    std::string db_path;
+    galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+    GraphDB db = galaxy.OpenGraph("default");
+    VertexOptions vo("id");
+    vo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddVertexLabel("Person",
+                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                     vo));
+    EdgeOptions eo;
+    eo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation", "id", lgraph_api::IndexType::NonuniqueIndex));
+    std::vector<std::string> vp{"id"};
+    std::vector<std::string> ep{"id"};
+    auto txn = db.CreateWriteTxn();
+    auto vid1 = txn.AddVertex(std::string("Person"), vp, {FieldData::Int32(1)});
+    auto vid2 = txn.AddVertex(std::string("Person"), vp, {FieldData::Int32(2)});
+    auto euid = txn.AddEdge(vid1, vid2, std::string("Relation"), ep, {FieldData::Int32(1)});
+    auto iter1 = txn.GetVertexIterator(vid1);
+    iter1.Delete();
+    auto v_schema = (lgraph::Schema*)txn.GetTxn()->GetSchema("Person", true);
+    UT_EXPECT_THROW_CODE(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid1),
+                         InternalError);
+    UT_EXPECT_NO_THROW(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2));
+    auto e_schema = (lgraph::Schema*)txn.GetTxn()->GetSchema("Relation", false);
+    UT_EXPECT_THROW_CODE(e_schema->GetDetachedEdgeProperty(txn.GetTxn()->GetTxn(), euid),
+                         InternalError);
+    auto iter2 = txn.GetVertexIterator(vid2);
+    iter2.Delete();
+    UT_EXPECT_THROW_CODE(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2),
+                         InternalError);
+    txn.Commit();
+}

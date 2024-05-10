@@ -30,6 +30,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
         int ha_node_join_group_s;
         bool ha_is_witness;
         bool ha_enable_witness_to_leader;
+        std::string ha_first_snapshot_start_time = "";
 
         Config() {}
         explicit Config(const GlobalConfig& c) : ::lgraph::StateMachine::Config(c) {
@@ -44,6 +45,7 @@ class HaStateMachine : public StateMachine, public braft::StateMachine {
             ha_node_join_group_s = c.ha_node_join_group_s;
             ha_is_witness = c.ha_is_witness;
             ha_enable_witness_to_leader = c.ha_enable_witness_to_leader;
+            ha_first_snapshot_start_time = c.ha_first_snapshot_start_time;
         }
     };
 

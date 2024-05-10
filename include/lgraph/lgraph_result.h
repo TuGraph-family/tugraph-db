@@ -293,7 +293,7 @@ class Result {
     void ClearRecords();
 
     std::vector<std::string> BoltHeader();
-    std::vector<std::vector<std::any>> BoltRecords();
+    std::vector<std::vector<std::any>> BoltRecords(bool python_driver);
 
  private:
     /**
