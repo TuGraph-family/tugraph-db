@@ -1365,9 +1365,13 @@ void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
     bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
     if (!success) {
         std::string field_strings;
-        for (auto &item : fields)
-            field_strings += item;
-        throw lgraph::CompositeIndexExistException(label, field_strings);
+        int n = fields.size();
+        for (int i = 0; i < n; ++i) {
+            if (i != 0)
+                field_strings += "@";
+            field_strings += fields[i];
+        }
+        THROW_CODE(IndexExist, "VertexCompositeIndex [{}:{}] already exist.", label, field_strings);
     }
 }
 
