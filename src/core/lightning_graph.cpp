@@ -280,7 +280,45 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
             if (is_vertex) {
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
-                bool r = graph_->DeleteVertex(txn.GetTxn(), vid);
+                auto on_edge_deleted = [&curr_schema_info, &txn, vid]
+                    (bool is_out_edge, const graph::EdgeValue& edge_value){
+                    for (size_t i = 0; i < edge_value.GetEdgeCount(); i++) {
+                        const auto& data = edge_value.GetNthEdgeData(i);
+                        auto edge_schema = curr_schema_info->e_schema_manager.GetSchema(data.lid);
+                        FMA_ASSERT(edge_schema);
+                        if (is_out_edge) {
+                            Value property(data.prop, data.psize);
+                            if (edge_schema->DetachProperty()) {
+                                property = edge_schema->GetDetachedEdgeProperty(
+                                    txn.GetTxn(), {vid, data.vid, data.lid, data.tid, data.eid});
+                            }
+                            EdgeUid euid{vid, data.vid, data.lid, data.tid, data.eid};
+                            edge_schema->DeleteEdgeIndex(txn.GetTxn(), euid, property);
+                            if (edge_schema->DetachProperty()) {
+                                edge_schema->DeleteDetachedEdgeProperty(txn.GetTxn(), euid);
+                            }
+                            txn.GetEdgeDeltaCount()[data.lid]--;
+                        } else {
+                            if (vid == data.vid) {
+                                // The in edge directing to self is already included in the out edges
+                                // skip to avoid double deleting
+                                continue;
+                            }
+                            Value property(data.prop, data.psize);
+                            if (edge_schema->DetachProperty()) {
+                                property = edge_schema->GetDetachedEdgeProperty(
+                                    txn.GetTxn(), {data.vid, vid, data.lid, data.tid, data.eid});
+                            }
+                            EdgeUid euid{data.vid, vid, data.lid, data.tid, data.eid};
+                            edge_schema->DeleteEdgeIndex(txn.GetTxn(), euid, property);
+                            if (edge_schema->DetachProperty()) {
+                                edge_schema->DeleteDetachedEdgeProperty(txn.GetTxn(), euid);
+                            }
+                            txn.GetEdgeDeltaCount()[data.lid]--;
+                        }
+                    }
+                };
+                bool r = graph_->DeleteVertex(txn.GetTxn(), vid, on_edge_deleted);
                 FMA_DBG_ASSERT(r);
             } else {
                 auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
@@ -445,7 +483,11 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         new_schema->e_schema_manager.RefreshEdgeConstraintsLids(
             new_schema->v_schema_manager);
     }
-    graph_->DeleteCount(txn.GetTxn(), is_vertex, lid);
+    if (is_vertex) {
+        txn.GetVertexLabelDelete().emplace(lid);
+    } else {
+        txn.GetEdgeLabelDelete().emplace(lid);
+    }
     txn.Commit();
     // delete fulltext index if has any
     if (fulltext_index_) {

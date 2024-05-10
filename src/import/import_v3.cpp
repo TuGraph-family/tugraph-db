@@ -1421,10 +1421,10 @@ void Importer::WriteCount() {
     }
     Transaction txn = db_->CreateWriteTxn();
     for (auto& pair : vertex_count_) {
-        txn.IncreaseCount(true, pair.first, pair.second);
+        txn.GetVertexDeltaCount()[pair.first] = pair.second;
     }
     for (auto& pair : edge_count_) {
-        txn.IncreaseCount(false, pair.first, pair.second);
+        txn.GetEdgeDeltaCount()[pair.first] = pair.second;
     }
     txn.Commit();
 }

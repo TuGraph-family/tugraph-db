@@ -358,13 +358,21 @@ void Transaction::Commit() {
     CloseAllIterators();
     if (db_->GetConfig().enable_realtime_count && !txn_->IsOptimistic()) {
         for (const auto& pair : vertex_delta_count_) {
-            IncreaseCount(true, pair.first, pair.second);
+            graph_->IncreaseCount(*txn_, true, pair.first, pair.second);
         }
         for (const auto& pair : edge_delta_count_) {
-            IncreaseCount(false, pair.first, pair.second);
+            graph_->IncreaseCount(*txn_, false, pair.first, pair.second);
+        }
+        for (LabelId id : vertex_label_delete_) {
+            graph_->DeleteCount(*txn_, true, id);
+        }
+        for (LabelId id : edge_label_delete_) {
+            graph_->DeleteCount(*txn_, false, id);
         }
         vertex_delta_count_.clear();
         edge_delta_count_.clear();
+        vertex_label_delete_.clear();
+        edge_label_delete_.clear();
     }
     txn_->Commit();
     txn_.reset();

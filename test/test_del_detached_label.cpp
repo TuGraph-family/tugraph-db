@@ -21,7 +21,7 @@ using namespace lgraph_api;
 
 class TestDelDetachedLabel : public TuGraphTest{};
 
-TEST_F(TestDelDetachedLabel, vertex) {
+TEST_F(TestDelDetachedLabel, common) {
     std::string path = "./testdb";
     auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
     auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
@@ -80,6 +80,11 @@ TEST_F(TestDelDetachedLabel, vertex) {
         txn.AddEdge(node2_vids[i], node3_vids[i], std::string("edge1"),
                     ep, {FieldData::Int32(i)});
     }
+    int big_vertex = 10000;
+    for (int i = 0; i < big_vertex; i++) {
+        txn.AddEdge(node1_vids[0], node2_vids[0], std::string("edge1"),
+                    ep, {FieldData::Int32(i)});
+    }
     txn.Commit();
     auto count_num = [&db]() {
         auto txn = db.CreateReadTxn();
@@ -115,8 +120,18 @@ TEST_F(TestDelDetachedLabel, vertex) {
     UT_EXPECT_EQ(node1_count, count);
     UT_EXPECT_EQ(node2_count, count);
     UT_EXPECT_EQ(node3_count, count);
-    UT_EXPECT_EQ(edge1_count, 2*count);
+    UT_EXPECT_EQ(edge1_count, 2*count + big_vertex);
     UT_EXPECT_EQ(edge2_count, count);
+    txn = db.CreateReadTxn();
+    std::vector<std::tuple<bool, std::string, int64_t>> expect{
+        {true, "node1", count},
+        {true, "node2", count},
+        {true, "node3", count},
+        {false, "edge1", 2*count + big_vertex},
+        {false, "edge2", count}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
     size_t modified = 0;
     UT_EXPECT_TRUE(db.DeleteVertexLabel("node1", &modified));
     UT_EXPECT_EQ(modified, count);
@@ -126,6 +141,15 @@ TEST_F(TestDelDetachedLabel, vertex) {
     UT_EXPECT_EQ(node3_count, count);
     UT_EXPECT_EQ(edge1_count, count);
     UT_EXPECT_EQ(edge2_count, 0);
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "node2", count},
+        {true, "node3", count},
+        {false, "edge1", count},
+        {false, "edge2", 0}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
     UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge1", &modified));
     UT_EXPECT_EQ(modified, count);
     std::tie(node1_count, node2_count, node3_count, edge1_count, edge2_count) = count_num();
@@ -134,4 +158,108 @@ TEST_F(TestDelDetachedLabel, vertex) {
     UT_EXPECT_EQ(node3_count, count);
     UT_EXPECT_EQ(edge1_count, 0);
     UT_EXPECT_EQ(edge2_count, 0);
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "node2", count},
+        {true, "node3", count},
+        {false, "edge2", 0}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
+
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge2", &modified));
+    UT_EXPECT_EQ(modified, 0);
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "node2", count},
+        {true, "node3", count}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
+
+    UT_EXPECT_TRUE(db.AddEdgeLabel("edge1",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("edge2",
+                                   std::vector<FieldSpec>({}),
+                                   eo));
+    txn = db.CreateWriteTxn();
+    for (int32_t i = 0; i < count; i++) {
+        txn.AddEdge(node2_vids[i], node3_vids[i], std::string("edge1"),
+                    ep, {FieldData::Int32(i)});
+        txn.AddEdge(node3_vids[i], node2_vids[i], std::string("edge1"),
+                    ep, {FieldData::Int32(i)});
+        txn.AddEdge(node2_vids[i], node3_vids[i], std::string("edge2"),
+                    std::vector<std::string>{}, std::vector<FieldData>{});
+        txn.AddEdge(node3_vids[i], node2_vids[i], std::string("edge2"),
+                    std::vector<std::string>{}, std::vector<FieldData>{});
+    }
+    int point_self = 100;
+    for (int i = 0; i < point_self; i++) {
+        txn.AddEdge(node2_vids[0], node2_vids[0], std::string("edge1"),
+                    ep, {FieldData::Int32(i)});
+    }
+    txn.Commit();
+    std::tie(node1_count, node2_count, node3_count, edge1_count, edge2_count) = count_num();
+    UT_EXPECT_EQ(node1_count, 0);
+    UT_EXPECT_EQ(node2_count, count);
+    UT_EXPECT_EQ(node3_count, count);
+    UT_EXPECT_EQ(edge1_count, 2*count + point_self);
+    UT_EXPECT_EQ(edge2_count, 2*count);
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "node2", count},
+        {true, "node3", count},
+        {false, "edge1", 2*count + point_self},
+        {false, "edge2", 2*count}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
+
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge1", &modified));
+    UT_EXPECT_EQ(modified, 2*count + point_self);
+    std::tie(node1_count, node2_count, node3_count, edge1_count, edge2_count) = count_num();
+    UT_EXPECT_EQ(node1_count, 0);
+    UT_EXPECT_EQ(node2_count, count);
+    UT_EXPECT_EQ(node3_count, count);
+    UT_EXPECT_EQ(edge1_count, 0);
+    UT_EXPECT_EQ(edge2_count, 2*count);
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "node2", count},
+        {true, "node3", count},
+        {false, "edge2", 2*count}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
+
+    UT_EXPECT_TRUE(db.DeleteVertexLabel("node2", &modified));
+    UT_EXPECT_EQ(modified, count);
+    std::tie(node1_count, node2_count, node3_count, edge1_count, edge2_count) = count_num();
+    UT_EXPECT_EQ(node1_count, 0);
+    UT_EXPECT_EQ(node2_count, 0);
+    UT_EXPECT_EQ(node3_count, count);
+    UT_EXPECT_EQ(edge1_count, 0);
+    UT_EXPECT_EQ(edge2_count, 0);
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "node3", count},
+        {false, "edge2", 0}
+    };
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
+    UT_EXPECT_TRUE(db.DeleteVertexLabel("node3", &modified));
+    UT_EXPECT_EQ(modified, count);
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge2", &modified));
+    UT_EXPECT_EQ(modified, 0);
+    std::tie(node1_count, node2_count, node3_count, edge1_count, edge2_count) = count_num();
+    UT_EXPECT_EQ(node1_count, 0);
+    UT_EXPECT_EQ(node2_count, 0);
+    UT_EXPECT_EQ(node3_count, 0);
+    UT_EXPECT_EQ(edge1_count, 0);
+    UT_EXPECT_EQ(edge2_count, 0);
+    txn = db.CreateReadTxn();
+    expect = {};
+    UT_EXPECT_EQ(expect, txn.CountDetail());
+    txn.Abort();
 }
