@@ -300,8 +300,8 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
                             txn.GetEdgeDeltaCount()[data.lid]--;
                         } else {
                             if (vid == data.vid) {
-                                // The in edge directing to self is already included in the out edges
-                                // skip to avoid double deleting
+                                // The in edge directing to self is already included
+                                // in the out edges skip to avoid double deleting
                                 continue;
                             }
                             Value property(data.prop, data.psize);
