@@ -128,6 +128,7 @@ add_executable(unit_test
         test_lgraph_cli.cpp
         test_ha_witness.cpp
         test_ha_full_import.cpp
+        test_del_detached_label.cpp
         test_null_index.cpp
         test_alter_detached_label.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
