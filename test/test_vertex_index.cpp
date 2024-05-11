@@ -332,7 +332,7 @@ int CURDVertexWithTooLongKey() {
             std::string key = std::to_string(i).append(str);
             Value cut_key = Value(Value::ConstRef(key).Data(),
                                     lgraph::_detail::MAX_KEY_SIZE);
-            UT_EXPECT_FALSE(idx.Add(*txn, Value::ConstRef(key), i));
+            UT_EXPECT_ANY_THROW(idx.Add(*txn, Value::ConstRef(key), i));
             idx.Add(*txn, cut_key, i);
 
             VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn, cut_key,
@@ -359,7 +359,7 @@ int CURDVertexWithTooLongKey() {
                                  lgraph::_detail::MAX_KEY_SIZE);
             UT_EXPECT_TRUE(idx.Update(*txn, cut_ok, cut_nk, i));
             VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
-                                             cut_ok, cut_ok);
+                                             cut_nk, cut_nk);
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                                   std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'b'));
