@@ -67,6 +67,7 @@ int test_file_script(const std::string &file, cypher::RTContext *ctx) {
         for (auto &p : s.parts) p.symbol_table.DumpTable();
     }
     cypher::ExecutionPlan execution_plan;
+    execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
     execution_plan.Build(stmt, visitor.CommandType(), ctx);
     execution_plan.Validate(ctx);
     execution_plan.DumpGraph();
@@ -92,6 +93,7 @@ int test_interactive(cypher::RTContext *ctx) {
             parser.addErrorListener(&CypherErrorListener::INSTANCE);
             visitor.visit(parser.oC_Cypher());
             cypher::ExecutionPlan execution_plan;
+            execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
             execution_plan.Validate(ctx);
             execution_plan.Execute(ctx);
@@ -116,6 +118,7 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
+        execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         execution_plan.Validate(ctx);
         execution_plan.DumpGraph();
@@ -179,6 +182,27 @@ int test_find(cypher::RTContext *ctx) {
     }
     eval_scripts_check(ctx, scripts, check);
     return 0;
+}
+
+void test_invalid_schema(cypher::RTContext *ctx) {
+    std::string cypher;
+    cypher = "MATCH (n:Person_x {name:'Vanessa Redgrave'})-[:ACTED_IN]->(m) RETURN n,m.title";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n:Person {name_x:'Vanessa Redgrave'})-[:ACTED_IN]->(m) RETURN n,m.title";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n:Person {name:'Vanessa Redgrave'})-[:ACTED_IN_x]->(m) RETURN n,m.title";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n)<-[relatedTo]-(vanessa:Person_x {name:'Vanessa'}) RETURN n,relatedTo";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n)<-[relatedTo]-(vanessa:Person {name_x:'Vanessa'}) RETURN n,relatedTo";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "CREATE (:City {name:'Shanghai'}), (:City_x {name:'Zhongshan'})";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "CREATE (:City {name_x:'Shanghai'}), (:City {name:'Zhongshan'})";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (c {name:'Houston'}) WITH c "
+        "MATCH (p:Person {name:'Liam Neeson'}) CREATE (c)-[:HAS_CHILD_x]->(p)";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
 }
 
 int test_query(cypher::RTContext *ctx) {
@@ -2494,6 +2518,7 @@ enum TestCase {
     TC_CREATE_LABEL = 404,
     TC_READONLY = 500,
     TC_EDGE_ID = 501,
+    TC_INVALID_SCHEMA = 502,
     TC_EMPTY_GRAPH = 700,
 };
 
@@ -2682,6 +2707,9 @@ TEST_P(TestCypher, Cypher) {
             case TC_EMPTY_GRAPH:
                 TestCypherEmptyGraph(&db);
                 break;
+            case TC_INVALID_SCHEMA:
+                test_invalid_schema(&db);
+                break;
             default:
                 break;
         }
@@ -2702,4 +2730,4 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
            ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{113, 1},
            ParamCypher{301, 2}, ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1},
-           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}));
+           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}, ParamCypher{502, 1}));

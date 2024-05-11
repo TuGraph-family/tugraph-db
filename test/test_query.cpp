@@ -173,6 +173,8 @@ class TestQuery : public TuGraphTest {
                 LOG_INFO() << sql_query.ToString();
             }
             cypher::ExecutionPlan execution_plan;
+            execution_plan.PreValidate(ctx_.get(), visitor.GetNodeProperty(),
+                                       visitor.GetRelProperty());
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
             execution_plan.Validate(ctx_.get());
             LOG_INFO() << execution_plan.DumpGraph();
