@@ -330,9 +330,13 @@ int CURDVertexWithTooLongKey() {
         std::string tmp(lgraph::_detail::MAX_KEY_SIZE + 100, 'b');
         for (int32_t i = 0; i < 100; ++i) {
             std::string key = std::to_string(i).append(str);
-            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), i));
-            VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(key),
-                                                                Value::ConstRef(key));
+            Value cut_key = Value(Value::ConstRef(key).Data(),
+                                    lgraph::_detail::MAX_KEY_SIZE);
+            UT_EXPECT_FALSE(idx.Add(*txn, Value::ConstRef(key), i));
+            idx.Add(*txn, cut_key, i);
+
+            VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn, cut_key,
+                                                                  cut_key);
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                          std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'a'));
@@ -348,10 +352,14 @@ int CURDVertexWithTooLongKey() {
 
         for (int32_t i = 0; i < 100; ++i) {
             std::string ok = std::to_string(i).append(str);
+            Value cut_ok = Value(Value::ConstRef(ok).Data(),
+                                  lgraph::_detail::MAX_KEY_SIZE);
             std::string nk = std::to_string(i).append(tmp);
-            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), i));
+            Value cut_nk = Value(Value::ConstRef(nk).Data(),
+                                 lgraph::_detail::MAX_KEY_SIZE);
+            UT_EXPECT_TRUE(idx.Update(*txn, cut_ok, cut_nk, i));
             VertexIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
-                                             Value::ConstRef(nk), Value::ConstRef(nk));
+                                             cut_ok, cut_ok);
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                                   std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'b'));
@@ -359,9 +367,11 @@ int CURDVertexWithTooLongKey() {
         }
         for (int32_t i = 0; i < 100; ++i) {
             std::string key = std::to_string(i).append(tmp);
-            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), i));
+            Value cut_key = Value(Value::ConstRef(key).Data(),
+                                 lgraph::_detail::MAX_KEY_SIZE);
+            UT_EXPECT_TRUE(idx.Delete(*txn, cut_key, i));
             VertexIndexIterator it_del = idx.GetUnmanagedIterator(*txn,
-                                                   Value::ConstRef(key), Value::ConstRef(key));
+                                                   cut_key, cut_key);
             UT_EXPECT_FALSE(it_del.IsValid());
         }
 
