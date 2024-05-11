@@ -1,0 +1,4 @@
+MATCH (s)<-[r:BORN_IN]-(d)
+RETURN s,r,r.weight,d
+ORDER BY r.weight
+LIMIT 2;
