@@ -419,13 +419,18 @@ Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
     auto ret = property_table_->SetValue(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
-    FMA_ASSERT(ret);
+    if (!ret) {
+        THROW_CODE(InternalError, "Set: vid {} is not found in the detached property table.", vid);
+    }
 }
 
 void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
     auto ret = property_table_->DeleteKey(
         txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
-    FMA_ASSERT(ret);
+    if (!ret) {
+        THROW_CODE(InternalError, "Delete: vid {} is not found in the detached property table.",
+                   vid);
+    }
 }
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
@@ -437,20 +442,29 @@ void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
     auto ret = property_table_->SetValue(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
-    FMA_ASSERT(ret);
+    if (!ret) {
+        THROW_CODE(InternalError, "Set: euid {} is not found in the detached property table.",
+                   eid.ToString());
+    }
 }
 
 void Schema::AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
     auto ret = property_table_->AddKV(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
-    FMA_ASSERT(ret);
+    if (!ret) {
+        THROW_CODE(InternalError, "Add: euid {} is found in the detached property table.",
+                   eid.ToString());
+    }
 }
 
 void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
     auto ret = property_table_->DeleteKey(
         txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
-    FMA_ASSERT(ret);
+    if (!ret) {
+        THROW_CODE(InternalError, "Delete: euid {} is not found in the detached property table.",
+                   eid.ToString());
+    }
 }
 
 // clear fields, other contents are kept untouched

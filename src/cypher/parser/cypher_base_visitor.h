@@ -888,13 +888,26 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     std::any visitOC_Properties(LcypherParser::OC_PropertiesContext *ctx) override {
-        if (ctx->oC_MapLiteral() == nullptr) {
-            CYPHER_TODO();
-            return visitChildren(ctx);
-        }
-        Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
         std::string parameter;
-        return std::make_tuple(map_literal, parameter);
+        if (ctx->oC_MapLiteral()) {
+            Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
+            return std::make_tuple(map_literal, parameter);
+        } else if (ctx->oC_Parameter()) {
+            std::string parameter_val = ctx->oC_Parameter()->getText();
+            if (ctx_->bolt_parameters_) {
+                auto iter = ctx_->bolt_parameters_->find(parameter_val);
+                if (iter == ctx_->bolt_parameters_->end()) {
+                    throw lgraph::CypherException(
+                        FMA_FMT("Parameter {} missing value", parameter_val));
+                }
+                if (iter->second.type != Expression::DataType::MAP) {
+                    throw lgraph::CypherException(
+                        FMA_FMT("Parameter {} should be MAP type", parameter_val));
+                }
+                return std::make_tuple(iter->second, parameter);
+            }
+        }
+        CYPHER_TODO();
     }
 
     std::any visitOC_RelationshipTypes(

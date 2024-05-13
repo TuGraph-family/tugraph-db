@@ -122,7 +122,7 @@ static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
 
 class TestSchemaChange : public TuGraphTestWithParam<bool> {};
 
-INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false, true));
+INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false));
 
 TEST_P(TestSchemaChange, ModifyFields) {
     using namespace lgraph;

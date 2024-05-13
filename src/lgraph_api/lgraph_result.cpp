@@ -213,6 +213,7 @@ void Record::Insert(const std::string &key, EdgeUid &uid, lgraph_api::Transactio
     repl.label_id = uid.lid;
     repl.label = core_txn->GetEdgeLabel(eit);
     repl.tid = uid.tid;
+    repl.forward = false;
     // repl.forward is unknown
     auto rel_fields = core_txn->GetEdgeFields(eit);
     for (auto &property : rel_fields) {
@@ -229,6 +230,7 @@ void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.tid = uid.tid;
+    repl.forward = false;
     // repl.label is unknown
     // repl.forward is unknown
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
