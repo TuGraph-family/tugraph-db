@@ -130,7 +130,7 @@ TEST_F(TestLGraphExport, LGraphExport) {
             "label" : "BORN_IN",
             "type" : "EDGE",
             "properties" : [
-                {"name" : "weight", "type":"FLOAT", "index":true, "pair_unique":true}
+                {"name" : "weight", "type":"FLOAT"}
             ]
         },
         {"constraints":[["Person","Person"],["Person","City"]], "label" : "KNOWS", "type" : "EDGE"}

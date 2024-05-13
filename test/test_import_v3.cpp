@@ -2855,15 +2855,11 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
                 },
                 {
                     "name": "phone",
-                    "type": "STRING",
-                    "index": true,
-                    "pair_unique": true
+                    "type": "STRING"
                 },
                 {
                     "name": "id",
-                    "type": "STRING",
-                    "index": true,
-                    "pair_unique": true
+                    "type": "STRING"
                 }
 			]
 		}
@@ -2938,6 +2934,8 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
 
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
+        UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "phone", lgraph::IndexType::PairUniqueIndex));
+        UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "id", lgraph::IndexType::PairUniqueIndex));
         UT_EXPECT_EQ(GetVertexNum(db), 20);
         UT_EXPECT_EQ(GetEdgeNum(db), 10);
         UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", lgraph::IndexType::GlobalUniqueIndex));
