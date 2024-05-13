@@ -336,7 +336,7 @@ class VertexIndex {
             case FieldType::STRING:
                 {
                     return VertexIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
-                        GenerateKeyCutOnlyNonUnique(std::forward<V2>(key_end)), vid, type_);
+                        CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)), vid, type_);
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
@@ -347,9 +347,9 @@ class VertexIndex {
             }
         } else {
             return VertexIndexIterator(this, &txn, *table_,
-                                       GenerateKeyCutOnlyNonUnique(std::forward<V1>(key_start)),
-                                       GenerateKeyCutOnlyNonUnique(std::forward<V2>(key_end)),
-                                       vid, type_);
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V1>(key_start)),
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                   vid, type_);
         }
     }
 
@@ -387,7 +387,8 @@ class VertexIndex {
             case FieldType::STRING:
                 {
                     return VertexIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
-                           GenerateKeyCutOnlyNonUnique(std::forward<V2>(key_end)), vid, type_);
+                           CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                                               vid, type_);
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
@@ -398,9 +399,9 @@ class VertexIndex {
             }
         } else {
             return VertexIndexIterator(this, txn, *table_,
-                                       GenerateKeyCutOnlyNonUnique(std::forward<V1>(key_start)),
-                                       GenerateKeyCutOnlyNonUnique(std::forward<V2>(key_end)),
-                                       vid, type_);
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V1>(key_start)),
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                   vid, type_);
         }
     }
 
@@ -468,6 +469,8 @@ class VertexIndex {
      */
     bool Add(KvTransaction& txn, const Value& k, int64_t vid);
 
-    Value GenerateKeyCutOnlyNonUnique(const Value& k);
+    size_t GetMaxVertexIndexKeySize();
+
+    Value CutKeyIfLongOnlyForNonUniqueIndex(const Value& k);
 };
 }  // namespace lgraph
