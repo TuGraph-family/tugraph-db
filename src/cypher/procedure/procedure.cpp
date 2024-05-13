@@ -3700,4 +3700,76 @@ void SpatialFunc::Distance(RTContext *ctx, const cypher::Record *record,
     records->emplace_back(r.Snapshot());
 }
 
+void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK((args.size() >= 6 && args.size() <= 8), 
+                     "e.g. vector.addVectorIndex(label_name, field_name, index_type, vec_dimension, distance_type, index_spec);");
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
+    CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT"), 
+                      "Index type should be one of them : IVF_FLAT");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
+    CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"), 
+                      "Distance type should be one of them : L2, IP");
+    switch(args.size()) {
+        case 6:
+            CYPHER_ARG_CHECK((args[5].type == parser::Expression::INT && args[5].Int() <= 65536 && args[5].Int() >= 1), 
+                      "Please check the parameter, nlist should be an integer in the range [1,65536]");
+            break;
+        default:
+            throw lgraph::ReminderException("Please check the number of parameter!");
+    }
+
+    
+
+}
+
+void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 5, 
+                     "e.g. vector.addVectorIndex(label_name, field_name, index_type, vec_dimension, distance_type);");
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
+    CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT"), 
+                      "Index type should be one of them : IVF_FLAT");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
+    CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"), 
+                      "Distance type should be one of them : L2, IP");
+   
+}
+
+void VectorFunc::ShowVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 0, 
+                     "e.g. vector.showVectorIndex();");
+    
+}
+
+void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() >= 5, 
+                     "e.g. vector.VectorIndexQuery(label_name, field_name, vec, num_of_return, query_spec);");
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::LIST,  "Please check the vector you entered, e.g. [1, 2, 3]");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
+    CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT, "query_spec should be integer");
+    switch(args.size()) {
+        case 5:
+            CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
+                      "Please check the parameter, nprobe should be an integer in the range [1,65536]");
+            break;
+        default:
+            throw lgraph::ReminderException("Please check the number of parameter!");
+    }
+
+}
 }  // namespace cypher

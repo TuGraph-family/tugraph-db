@@ -398,6 +398,21 @@ class SpatialFunc {
                           const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
+class VectorFunc {
+ public:
+    static void AddVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DeleteVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void ShowVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void VectorIndexQuery(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+};
+
 struct Procedure {
     /* <name, <index, type>> */
     typedef std::vector<std::pair<std::string, std::pair<int, lgraph_api::LGraphType>>> SIG_SPEC;
@@ -881,6 +896,52 @@ static std::vector<Procedure> global_procedures = {
                  {"Spatial1", {0, lgraph_api::LGraphType::STRING}},
                  {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
+
+    Procedure("vector.AddVectorIndex", VectorFunc::AddVectorIndex,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"vec_dimension", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
+                  {"index_spec", {5, lgraph_api::LGraphType::LIST}},
+              },
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("vector.DeleteVectorIndex", VectorFunc::DeleteVectorIndex,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"vec_dimension", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
+              },
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("vector.ShowVectorIndex", VectorFunc::ShowVectorIndex, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"vec_dimension", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
+                  {"index_spec", {5, lgraph_api::LGraphType::LIST}},
+              }),
+    
+    Procedure("vector.VectorIndexQuery", VectorFunc::VectorIndexQuery,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"num_of_return", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"query_spec", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"score", {3, lgraph_api::LGraphType::FLOAT}},
+              }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},
