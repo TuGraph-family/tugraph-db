@@ -1063,3 +1063,56 @@ TEST_F(TestLGraphApi, deleteVertex) {
     UT_EXPECT_TRUE(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2).Empty());
     txn.Commit();
 }
+
+TEST_F(TestLGraphApi, deleteAllVertex) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    lgraph::AutoCleanDir cleaner(path);
+    Galaxy galaxy(path);
+    std::string db_path;
+    galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+    GraphDB db = galaxy.OpenGraph("default");
+    VertexOptions vo("id");
+    vo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddVertexLabel("Person",
+                                     std::vector<FieldSpec>({
+                                         {"id", FieldType::INT32, false},
+                                         {"index", FieldType::INT32, false},
+                                         {"unique_index", FieldType::INT32, false}}),
+                                     vo));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Person", "index", lgraph_api::IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Person", "unique_index", lgraph_api::IndexType::GlobalUniqueIndex));
+    EdgeOptions eo;
+    eo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
+                                   std::vector<FieldSpec>({
+                                       {"id", FieldType::INT32, false},
+                                       {"index", FieldType::INT32, false},
+                                       {"unique_index", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Relation", "index", lgraph_api::IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddVertexIndex("Relation", "unique_index", lgraph_api::IndexType::GlobalUniqueIndex));
+    std::vector<std::string> vp{"id","index","unique_index"};
+    std::vector<std::string> ep{"id","index","unique_index"};
+    auto txn = db.CreateWriteTxn();
+    std::vector<int64_t> vids;
+    for (int i = 0; i < 100; i++) {
+        auto vid = txn.AddVertex(
+            std::string("Person"), vp,
+            {FieldData::Int32(1), FieldData::Int32(1), FieldData::Int32(1)});
+        vids.push_back(vid);
+    }
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn.AddEdge(vids[i], vids[i+1],
+            std::string("Relation"), vp,
+            {FieldData::Int32(1), FieldData::Int32(1), FieldData::Int32(1)});
+    }
+    txn.Commit();
+    txn = db.CreateReadTxn();
+    auto detail = txn.CountDetail();
+    for (auto& item : detail) {
+        std::cout << FMA_FMT("{}", item) << std::endl;
+    }
+    txn.Abort();
+}
