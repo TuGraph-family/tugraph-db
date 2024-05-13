@@ -183,9 +183,9 @@ void Importer::DoImportOffline() {
                                     v.name, spec.name);
                     }
                 } else if (!v.is_vertex && spec.index &&
-                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                           spec.idxType != lgraph::IndexType::NonuniqueIndex) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
+                        "offline import does not support to create a (pair) unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name);
