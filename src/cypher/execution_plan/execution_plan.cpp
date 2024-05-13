@@ -1295,6 +1295,12 @@ void ExecutionPlan::PreValidate(
     cypher::RTContext *ctx,
     const std::unordered_map<std::string, std::set<std::string>>& node,
     const std::unordered_map<std::string, std::set<std::string>>& edge) {
+    if (node.empty() && edge.empty()) {
+        return;
+    }
+    if (ctx->graph_.empty()) {
+        return;
+    }
     auto graph = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     auto txn = graph.CreateReadTxn();
     const auto& si = txn.GetSchemaInfo();
