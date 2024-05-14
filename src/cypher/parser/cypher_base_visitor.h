@@ -1462,10 +1462,16 @@ class CypherBaseVisitor : public LcypherVisitor {
             return visitChildren(ctx);
         } else if (ctx->StringLiteral() != nullptr) {
             auto str = ctx->StringLiteral()->getText();
-            CYPHER_THROW_ASSERT(!str.empty() && (str[0] == '\'' || str[0] == '\"') &&
-                                (str[str.size() - 1] == '\'' || str[str.size() - 1] == '\"'));
+            std::string res;
+            // remove escape character
+            for (size_t i = 1; i < str.length() - 1; i++) {
+                if (str[i] == '\\') {
+                    i++;
+                }
+                res.push_back(str[i]);
+            }
             expr.type = Expression::STRING;
-            expr.data = std::make_shared<std::string>(str.substr(1, str.size() - 2));
+            expr.data = std::make_shared<std::string>(std::move(res));
             return expr;
         } else if (ctx->oC_BooleanLiteral() != nullptr) {
             return visitChildren(ctx);

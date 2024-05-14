@@ -2,3 +2,5 @@ MATCH (s)<-[r:BORN_IN]-(d)
 RETURN s,r,r.weight,d
 ORDER BY r.weight
 LIMIT 2;
+with '123dfd\\fd45a\'bcd' as a return a;
+with "123dfd\\fd\"45a'bcd" as a return a;
