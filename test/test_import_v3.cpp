@@ -2855,11 +2855,15 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
                 },
                 {
                     "name": "phone",
-                    "type": "STRING"
+                    "type": "STRING",
+                    "index": true,
+                    "pair_unique": true
                 },
                 {
                     "name": "id",
-                    "type": "STRING"
+                    "type": "STRING",
+                    "index": true,
+                    "pair_unique": true
                 }
 			]
 		}
@@ -2919,13 +2923,21 @@ TEST_F(TestImportV3Consistent, DataConsistent) {
                     node0013,node0014,7,06,00,06,00,06,00,06,06
                     node0015,node0016,8,07,01,07,01,07,01,07,07
                     node0017,node0018,9,08,02,08,02,08,02,08,08
-                    node0019,node0020,10,09,00,09,00,09,00,09,09)"},
+                    node0019,node0020,10,09,00,09,00,09,00,09,09
+                    node0001,node0002,11,00,01,00,01,10,01,09,00
+                    node0003,node0004,12,01,02,01,02,11,02,08,01
+                    node0005,node0006,13,02,00,02,00,12,00,07,02
+                    node0007,node0008,14,03,01,03,01,13,01,06,03
+                    node0009,node0010,15,04,02,04,02,14,02,05,04
+                    node0011,node0012,16,05,00,05,00,15,00,04,05
+                    node0013,node0014,17,06,01,06,01,16,01,03,06
+                    node0015,node0016,18,07,02,07,02,17,02,02,07
+                    node0017,node0018,19,08,00,08,00,18,00,01,08
+                    node0019,node0020,20,09,01,09,01,19,01,00,09)"},
         };
 
         auto galaxy = GetImportDb(data_files, config);
         lgraph_api::GraphDB db = galaxy->OpenGraph("default");
-        UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "phone", lgraph::IndexType::PairUniqueIndex));
-        UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "id", lgraph::IndexType::PairUniqueIndex));
         UT_EXPECT_EQ(GetVertexNum(db), 20);
         UT_EXPECT_EQ(GetEdgeNum(db), 10);
         UT_EXPECT_TRUE(HasVertexIndex(db, "node1", "uid", lgraph::IndexType::GlobalUniqueIndex));
