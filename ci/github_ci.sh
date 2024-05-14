@@ -13,7 +13,7 @@ bash ./cpplint/check_all.sh
 
 # build deps
 cd deps
-bash ./build_deps.sh -j2
+bash ./build_deps.sh -j10
 
 # build tugraph
 cd $WORKSPACE
@@ -24,7 +24,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_PROCEDURE=$WITH_PROCE
 else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
-make -j2
+make -j10
 
 if [[ "$TEST" == "ut" ]]; then
   # build tugraph db management
