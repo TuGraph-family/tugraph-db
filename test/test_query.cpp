@@ -167,10 +167,15 @@ class TestQuery : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             parser::CypherBaseVisitor visitor(ctx_.get(), parser.oC_Cypher());
+            LOG_INFO() << "-----CLAUSE TO STRING-----";
+            LOG_INFO() << visitor.GetQuery().size();
+            for (const auto &sql_query : visitor.GetQuery()) {
+                LOG_INFO() << sql_query.ToString();
+            }
             cypher::ExecutionPlan execution_plan;
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
             execution_plan.Validate(ctx_.get());
-            execution_plan.DumpGraph();
+            LOG_INFO() << execution_plan.DumpGraph();
             execution_plan.DumpPlan(0, false);
             execution_plan.Execute(ctx_.get());
             result = ctx_->result_->Dump(false);
