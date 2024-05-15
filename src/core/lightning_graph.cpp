@@ -321,7 +321,8 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
                 bool r = graph_->DeleteVertex(txn.GetTxn(), vid, on_edge_deleted);
                 FMA_DBG_ASSERT(r);
             } else {
-                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(
+                    kv_iter->GetKey(), schema->GetLabelId());
                 bool r = graph_->DeleteEdge(txn.GetTxn(), euid);
                 FMA_DBG_ASSERT(r);
             }
@@ -1994,8 +1995,8 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             EdgeIndex* index = extractor->GetEdgeIndex();
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
-                euid.lid = schema->GetLabelId();
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(
+                    kv_iter->GetKey(), schema->GetLabelId());
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
