@@ -65,22 +65,6 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
 
     bool KeyOutOfRange();
 
-    /**
-     * Traverse to the previous key/value pair. Used when an inserted vid is
-     * greater than all existing vids. Should be used together with KeyEquals.
-     *
-     * \return  True if it succeeds, false if it fails.
-     */
-    bool PrevKV();
-
-    /**
-     * Check whether the iterator's current key starts with key.
-     *
-     * \param        key       The key.
-     * \return  Whether the iterator's current key starts with key.
-     */
-    bool KeyEquals(const Value& key);
-
     /** Loads content from iterator, assuming iterator is already at the right
      * position. */
     void LoadContentFromIt();

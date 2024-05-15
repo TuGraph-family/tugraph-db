@@ -148,6 +148,11 @@ void CompositeIndexIterator::LoadContentFromIt() {
     }
 }
 
+bool CompositeIndexIterator::KeyOutOfRange() {
+    if (key_end_.Empty()) return false;
+    return it_->GetTable().CompareKey(it_->GetTxn(), it_->GetKey(), key_end_) > 0;
+}
+
 void CompositeIndexIterator::RefreshContentIfKvIteratorModified() {
     if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
         valid_ = false;
