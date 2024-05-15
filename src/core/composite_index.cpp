@@ -125,6 +125,11 @@ CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndexIterator &&
     rhs.valid_ = false;
 }
 
+void CompositeIndexIterator::CloseImpl() {
+    it_->Close();
+    valid_ = false;
+}
+
 Value CompositeIndexIterator::GetKey() const {
     switch (type_) {
     case CompositeIndexType::UniqueIndex:
