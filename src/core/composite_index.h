@@ -197,7 +197,7 @@ class CompositeIndex {
 };
 
 namespace composite_index_helper {
-Value GenerateCompositeIndexKey(std::vector<Value> keys) {
+static inline Value GenerateCompositeIndexKey(std::vector<Value> keys) {
     int n = keys.size(), len = (n - 1) * 2;
     for (int i = 0; i < n; ++i) {
         len += keys[i].Size();
