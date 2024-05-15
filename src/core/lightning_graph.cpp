@@ -1194,25 +1194,6 @@ struct CompositeKeyVid {
         }
         return true;
     }
-
-    Value GenerateCompositeIndexKey() {
-        int n = keys.size(), len = (n - 1) * 2;
-        for (int i = 0; i < n; ++i) {
-            len += keys[i].Size();
-        }
-        Value res(len);
-        int16_t off = 0;
-        for (int i = 0; i < n - 1; ++i) {
-            off += keys[i].Size();
-            memcpy(res.Data() + i * 2, &off, sizeof(int16_t));
-        }
-        off = 0;
-        for (int i = 0; i < n; ++i) {
-            memcpy(res.Data() + (n - 1) * 2 + off, keys[i].Data(), keys[i].Size());
-            off += keys[i].Size();
-        }
-        return res;
-    }
 };
 
 template <typename T>
@@ -1275,7 +1256,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
             for (auto it = txn.GetVertexIterator(vid, true); it.IsValid() && it.GetId() < curr_end;
                  it.Next()) {
                 Value prop = it.GetProperty();
-                if (schema_manager->GetRecordLabelId(prop) != label_id) continue;
+                if (lgraph::SchemaManager::GetRecordLabelId(prop) != label_id) continue;
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
@@ -1506,15 +1487,16 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                         }
                         for (auto& kv : key_vids)
                             index->_AppendCompositeIndexEntry(txn.GetTxn(),
-                                                              kv.GenerateCompositeIndexKey(),
-                                                           (VertexId)kv.vid);
+                                   composite_index_helper::GenerateCompositeIndexKey(kv.keys),
+                                   (VertexId)kv.vid);
                         break;
                     }
                 }
             } else {
                 // multiple blocks, use regular index calls
                 for (auto& kv : key_vids) {
-                    index->Add(txn.GetTxn(), kv.GenerateCompositeIndexKey(), kv.vid);
+                    index->Add(txn.GetTxn(),
+                               composite_index_helper::GenerateCompositeIndexKey(kv.keys), kv.vid);
                 }
             }
         }
@@ -1840,8 +1822,8 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
                     values.emplace_back(schema->GetFieldExtractor(field)->GetConstRef(prop));
                     types.emplace_back(schema->GetFieldExtractor(field)->Type());
                 }
-                index->Add(txn.GetTxn(), CompositeKeyVid(values, types, vid)
-                                             .GenerateCompositeIndexKey(), vid);
+                index->Add(txn.GetTxn(),
+                           composite_index_helper::GenerateCompositeIndexKey(values), vid);
                 count++;
                 if (count % 100000 == 0) {
                     LOG_DEBUG() << "index count: " << count;

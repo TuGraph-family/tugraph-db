@@ -27,93 +27,8 @@
 #include "core/value.h"
 
 namespace lgraph {
-
-class CompositeIndexValue {
-    friend class CompositeIndex;
-
-    Value v_;
-
-    CompositeIndexValue(): v_(1) { *(uint8_t*)v_.Data() = 0; }
-
-    explicit CompositeIndexValue(const Value& v): v_(v) {}
-
-    explicit CompositeIndexValue(Value&& v): v_(std::move(v)) {}
-
-    int GetVidCount() const { return static_cast<int>(*(uint8_t*)v_.Data()); }
-
-    template <typename IT>
-    CompositeIndexValue(const IT& beg, const IT& end) {
-        size_t n = end - beg;
-        FMA_DBG_ASSERT(n < std::numeric_limits<uint8_t>::max());
-        v_.Resize(1 + _detail::VID_SIZE * n);
-        char* p = v_.Data();
-        *(uint8_t*)p = (uint8_t)n;
-        p++;
-        for (auto it = beg; it < end; it++) {
-            _detail::WriteVid(p, *it);
-            p += _detail::VID_SIZE;
-        }
-    }
-
-    /**
-     * Patch the key with the last vid in this VertexCompositeIndexValue.
-     */
-    Value CreateKey(const Value& key) const;
-
-    const Value& GetBuf() const { return v_; }
-
-    Value& GetBuf() { return v_; }
-};
-
-/**
- * The indices
- */
-class CompositeIndex {
-    friend class LightningGraph;
-    friend class Transaction;
-
-    std::shared_ptr<KvTable> table_;
-    std::vector<FieldType> key_types;
-    std::atomic<bool> ready_;
-    std::atomic<bool> disabled_;
-    CompositeIndexType type_;
-
- public:
-    CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types,
-                   CompositeIndexType type);
-
-    CompositeIndex(const CompositeIndex& rhs);
-
-    CompositeIndex(CompositeIndex&& rhs) = delete;
-
-    CompositeIndex& operator=(const CompositeIndex& rhs) = delete;
-
-    CompositeIndex& operator=(CompositeIndex&& rhs) = delete;
-
-    static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,
-                                              const std::string& name,
-                                              const std::vector<FieldType> &dt,
-                                              CompositeIndexType type);
-
-    void _AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid);
-
-    bool Add(KvTransaction& txn, const Value& k, int64_t vid);
-
-    bool IsReady() const {
-        return ready_.load(std::memory_order_acquire) && !disabled_.load(std::memory_order_acquire);
-    }
-
- private:
-    void Clear(KvTransaction& txn) { table_->Drop(txn); }
-
-    void SetReady() { ready_.store(true, std::memory_order_release); }
-
-    void Disable() { disabled_.store(true, std::memory_order_release); }
-
-    void Enable() { disabled_.store(false, std::memory_order_release); }
-
-    [[nodiscard]] bool IsDisabled() const { return disabled_.load(std::memory_order_acquire); }
-};
+class CompositeIndex;
+class CompositeIndexIterator;
 
 class CompositeIndexIterator : public ::lgraph::IteratorBase {
     friend class CompositeIndex;
@@ -216,4 +131,89 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
      */
     void RefreshContentIfKvIteratorModified() override;
 };
+
+/**
+ * The indices
+ */
+class CompositeIndex {
+    friend class LightningGraph;
+    friend class Transaction;
+    friend class CompositeIndexIterator;
+
+    std::shared_ptr<KvTable> table_;
+    std::vector<FieldType> key_types;
+    std::atomic<bool> ready_;
+    std::atomic<bool> disabled_;
+    CompositeIndexType type_;
+
+ public:
+    CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types,
+                   CompositeIndexType type);
+
+    CompositeIndex(const CompositeIndex& rhs);
+
+    CompositeIndex(CompositeIndex&& rhs) = delete;
+
+    CompositeIndex& operator=(const CompositeIndex& rhs) = delete;
+
+    CompositeIndex& operator=(CompositeIndex&& rhs) = delete;
+
+    static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,
+                                              const std::string& name,
+                                              const std::vector<FieldType> &dt,
+                                              CompositeIndexType type);
+
+    void _AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid);
+
+    bool Add(KvTransaction& txn, const Value& k, int64_t vid);
+
+    bool IsReady() const {
+        return ready_.load(std::memory_order_acquire) && !disabled_.load(std::memory_order_acquire);
+    }
+
+    CompositeIndexIterator GetUnmanagedIterator(KvTransaction& txn,
+                                                Value&& key_start, Value&& key_end,
+                                                VertexId vid = 0) {
+        return CompositeIndexIterator(this, &txn, *table_, std::forward<Value>(key_start),
+            std::forward<Value>(key_end), vid, type_);
+    }
+
+    CompositeIndexIterator GetIterator(Transaction* txn, Value&& key_start, Value&& key_end,
+                                                VertexId vid = 0) {
+        return CompositeIndexIterator(this, txn, *table_, std::forward<Value>(key_start),
+                                      std::forward<Value>(key_end), vid, type_);
+    }
+
+ private:
+    void Clear(KvTransaction& txn) { table_->Drop(txn); }
+
+    void SetReady() { ready_.store(true, std::memory_order_release); }
+
+    void Disable() { disabled_.store(true, std::memory_order_release); }
+
+    void Enable() { disabled_.store(false, std::memory_order_release); }
+
+    [[nodiscard]] bool IsDisabled() const { return disabled_.load(std::memory_order_acquire); }
+};
+
+namespace composite_index_helper {
+Value GenerateCompositeIndexKey(std::vector<Value> keys) {
+    int n = keys.size(), len = (n - 1) * 2;
+    for (int i = 0; i < n; ++i) {
+        len += keys[i].Size();
+    }
+    Value res(len);
+    int16_t off = 0;
+    for (int i = 0; i < n - 1; ++i) {
+        off += keys[i].Size();
+        memcpy(res.Data() + i * 2, &off, sizeof(int16_t));
+    }
+    off = 0;
+    for (int i = 0; i < n; ++i) {
+        memcpy(res.Data() + (n - 1) * 2 + off, keys[i].Data(), keys[i].Size());
+        off += keys[i].Size();
+    }
+    return res;
+}
+}  // namespace composite_index_helper
 }  // namespace lgraph

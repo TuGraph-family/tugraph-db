@@ -384,8 +384,8 @@ VertexIterator Transaction::GetVertexByUniqueIndex(const std::string& label_name
 }
 
 VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& label_name,
-                                                            const std::vector<std::string>& field_name,
-                                                            const std::vector<std::string>& field_value_string) {
+                            const std::vector<std::string>& field_name,
+                            const std::vector<std::string>& field_value_string) {
     ThrowIfInvalid();
     lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
         label_name, field_name, field_value_string, field_value_string);

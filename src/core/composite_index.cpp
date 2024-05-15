@@ -17,14 +17,6 @@
 
 namespace lgraph {
 
-Value CompositeIndexValue::CreateKey(const Value &key) const {
-    int pos = GetVidCount() - 1;
-    Value v(key.Size() + _detail::VID_SIZE);
-    memcpy(v.Data(), key.Data(), key.Size());
-    memcpy(v.Data() + key.Size(), v_.Data() + 1 + pos * _detail::VID_SIZE, _detail::VID_SIZE);
-    return v;
-}
-
 CompositeIndex::CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types,
     CompositeIndexType type) : table_(std::move(table)), key_types(std::move(key_types)),
     ready_(false), disabled_(false), type_(type) {}
@@ -55,7 +47,6 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
 void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
     FMA_DBG_ASSERT(type_ == CompositeIndexType::UniqueIndex);
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
-        txn.Abort();
         THROW_CODE(ReachMaximumCompositeIndexField, "The key of the composite index is "
                    "too long and exceeds the limit.");
     }
@@ -64,7 +55,6 @@ void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value&
 
 bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
-        txn.Abort();
         THROW_CODE(ReachMaximumCompositeIndexField, "The key of the composite index is "
                    "too long and exceeds the limit.");
     }
@@ -120,6 +110,19 @@ CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
         return;
     }
     LoadContentFromIt();
+}
+
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndexIterator &&rhs)
+    : IteratorBase(std::move(rhs)),
+    index_(rhs.index_),
+    it_(std::move(rhs.it_)),
+    key_end_(std::move(rhs.key_end_)),
+    curr_key_(std::move(rhs.curr_key_)),
+    valid_(rhs.valid_),
+    pos_(rhs.pos_),
+    vid_(rhs.vid_),
+    type_(rhs.type_) {
+    rhs.valid_ = false;
 }
 
 Value CompositeIndexIterator::GetKey() const {

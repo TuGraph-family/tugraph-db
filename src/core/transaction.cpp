@@ -682,14 +682,30 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
 }
 
 CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const std::string& label,
-                                                                 const std::vector<std::string>& fields,
-                                                                 const std::vector<std::string>& key_start,
-                                                                 const std::vector<std::string>& key_end) {
+                                    const std::vector<std::string>& fields,
+                                    const std::vector<std::string>& key_start,
+                                    const std::vector<std::string>& key_end) {
     CompositeIndex* index = GetVertexCompositeIndex(label, fields);
     if (!index || !index->IsReady()) {
         THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label, fields);
     }
-
+    std::vector<Value> key_start_values, key_end_values;
+    int num = fields.size();
+    if (!key_start.empty()) {
+        for (int i = 0; i < num; ++i) {
+            key_start_values.push_back(field_data_helper::ParseStringToValueOfFieldType(
+                key_start[i], index->key_types[i]));
+        }
+    }
+    if (!key_end.empty()) {
+        for (int i = 0; i < num; ++i) {
+            key_end_values.push_back(field_data_helper::ParseStringToValueOfFieldType(
+                key_end[i], index->key_types[i]));
+        }
+    }
+    return index->GetIterator(this,
+                  composite_index_helper::GenerateCompositeIndexKey(key_start_values),
+                  composite_index_helper::GenerateCompositeIndexKey(key_end_values));
 }
 
 std::string Transaction::VertexToString(const VertexIterator& vit) {
