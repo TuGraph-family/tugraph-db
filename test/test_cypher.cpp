@@ -770,7 +770,7 @@ int test_expression(cypher::RTContext *ctx) {
         {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[]->(:City)) /*false*/", 1},
         {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:MARRIED]->()) /*true*/", 1},
         // TODO(botu.wzy)
-        //{"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:NO_TYPE]->()) /*false*/", 1},
+        // {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:NO_TYPE]->()) /*false*/", 1},
         {"MATCH (n {name:'Rachel Kempson'}),(m {name:'Liam Neeson'}) RETURN exists((n)-[]->(m)) "
          "/*false*/",
          1},
@@ -2163,13 +2163,13 @@ int test_opt(cypher::RTContext *ctx) {
         {"MATCH ()-[r]->(:Film) RETURN count(r) /* 11 */", 1},
         {"MATCH (:Person)-[r]->(:Film) RETURN count(r) /* 11 */", 1},
         // TODO(botu.wzy)
-        //{"MATCH (:Person)-[r]->(:NO_LABEL) RETURN count(r) /* 0 */", 1},
+        // {"MATCH (:Person)-[r]->(:NO_LABEL) RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED]->() RETURN count(r) /* 4 */", 1},
         // TODO(botu.wzy)
-        //{"MATCH ()-[r:NO_LABEL]->() RETURN count(r) /* 0 */", 1},
+        // {"MATCH ()-[r:NO_LABEL]->() RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]->() RETURN count(r) /* 10 */", 1},
         // TODO(botu.wzy)
-        //{"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]->() RETURN count(r) /* 10 */", 1},
+        // {"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]->() RETURN count(r) /* 10 */", 1},
         {"MATCH (:Person)-[r:MARRIED|BORN_IN]->() RETURN count(r) /* 10 */", 1},
         {"MATCH (:City)-[r:MARRIED|BORN_IN]->() RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]->(:Person) RETURN count(r) /* 4 */", 1},
@@ -2185,13 +2185,13 @@ int test_opt(cypher::RTContext *ctx) {
         {"MATCH ()-[r]-(:Film) RETURN count(r) /* 11 */", 1},
         {"MATCH (:Person)-[r]-(:Film) RETURN count(r) /* 11 */", 1},
         // TODO(botu.wzy)
-        //{"MATCH (:Person)-[r]-(:NO_LABEL) RETURN count(r) /* 0 */", 1},
+        // {"MATCH (:Person)-[r]-(:NO_LABEL) RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED]-() RETURN count(r) /* 8 */", 1},
         // TODO(botu.wzy)
-        //{"MATCH ()-[r:NO_LABEL]-() RETURN count(r) /* 0 */", 1},
+        // {"MATCH ()-[r:NO_LABEL]-() RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]-() RETURN count(r) /* 20 */", 1},
         // TODO(botu.wzy)
-        //{"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]-() RETURN count(r) /* 20 */", 1},
+        // {"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]-() RETURN count(r) /* 20 */", 1},
         {"MATCH (:Person)-[r:MARRIED|BORN_IN]-() RETURN count(r) /* 14 */", 1},
         {"MATCH (:City)-[r:MARRIED|BORN_IN]-() RETURN count(r) /* 6 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]-(:Person) RETURN count(r) /* 14 */", 1},
