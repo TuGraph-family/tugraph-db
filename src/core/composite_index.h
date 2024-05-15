@@ -115,14 +115,13 @@ class CompositeIndex {
     [[nodiscard]] bool IsDisabled() const { return disabled_.load(std::memory_order_acquire); }
 };
 
-class CompositeIndexIterator : public ::lgraph::IteratorBase{
+class CompositeIndexIterator : public ::lgraph::IteratorBase {
     friend class CompositeIndex;
 
     CompositeIndex* index_;
     std::unique_ptr<KvIterator> it_;
     Value key_end_;
     Value curr_key_;  // current indexed key, excluding vid
-    CompositeIndexValue iv_;   // CompositeIndexValue, if this is non-unique index
     bool valid_;
     int pos_;
     VertexId vid_;  // current vid
@@ -139,15 +138,15 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase{
      * \param           vid         The vid from which to start searching.
      * \param           unique      Whether the index is a unique index.
      */
-    CompositeIndexIterator(CompositeIndexIterator* idx, Transaction* txn, KvTable& table,
+    CompositeIndexIterator(CompositeIndex* idx, Transaction* txn, KvTable& table,
                         const Value& key_start,
                         const Value& key_end,
-                        VertexId vid, IndexType type);
+                        VertexId vid, CompositeIndexType type);
 
-    VertexIndexIterator(VertexIndex* idx, KvTransaction* txn, KvTable& table,
+    CompositeIndexIterator(CompositeIndex* idx, KvTransaction* txn, KvTable& table,
                         const Value& key_start,
                         const Value& key_end,
-                        VertexId vid, IndexType type);
+                        VertexId vid, CompositeIndexType type);
 
     bool KeyOutOfRange();
 
@@ -171,14 +170,14 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase{
      * position. */
     void LoadContentFromIt();
 
-    DISABLE_COPY(VertexIndexIterator);
-    VertexIndexIterator& operator=(VertexIndexIterator&&) = delete;
+    DISABLE_COPY(CompositeIndexIterator);
+    CompositeIndexIterator& operator=(CompositeIndexIterator&&) = delete;
 
  protected:
     void CloseImpl() override;
 
  public:
-    VertexIndexIterator(VertexIndexIterator&& rhs);
+    CompositeIndexIterator(CompositeIndexIterator&& rhs);
 
     /**
      * Query if this iterator is valid, i.e. the Key and Vid can be queried.
@@ -195,18 +194,12 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase{
      */
     bool Next();
 
-
     /**
      * Gets the current key.
      *
      * \return  The current key.
      */
     Value GetKey() const;
-
-
-    FieldData GetKeyData() const {
-        return field_data_helper::ValueToFieldData(GetKey(), KeyType());
-    }
 
     /**
      * Gets the current vertex id.
@@ -215,7 +208,6 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase{
      */
     int64_t GetVid() const { return vid_; }
 
-    FieldType KeyType() const;
 
     /**
      * Determines if we can refresh content if kv iterator modified
@@ -224,8 +216,4 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase{
      */
     void RefreshContentIfKvIteratorModified() override;
 };
-
-namespace composite_index_data_helper {
-
-}
 }  // namespace lgraph

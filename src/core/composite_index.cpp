@@ -77,4 +77,97 @@ bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     return false;
 }
 
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
+                                               lgraph::Transaction *txn,
+                                               lgraph::KvTable &table,
+                                               const lgraph::Value &key_start,
+                                               const lgraph::Value &key_end,
+                                               lgraph::VertexId vid, CompositeIndexType type)
+    : IteratorBase(txn),
+      index_(idx),
+      it_(table.GetClosestIterator(txn->GetTxn(),
+                                   type == CompositeIndexType::UniqueIndex ? key_start
+                                       : Value())),
+      key_end_(type == CompositeIndexType::UniqueIndex ? Value::MakeCopy(key_end)
+                                                    : Value()),
+      valid_(false),
+      pos_(0),
+      type_(type) {
+    if (!it_->IsValid() || KeyOutOfRange()) {
+        return;
+    }
+    LoadContentFromIt();
+}
+
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
+                                               lgraph::KvTransaction *txn,
+                                               lgraph::KvTable &table,
+                                               const lgraph::Value &key_start,
+                                               const lgraph::Value &key_end,
+                                               lgraph::VertexId vid,
+                                               lgraph::CompositeIndexType type)
+    : IteratorBase(nullptr),
+      index_(idx),
+      it_(table.GetClosestIterator(*txn,
+                                   type == CompositeIndexType::UniqueIndex ? key_start
+                                                                           : Value())),
+      key_end_(type == CompositeIndexType::UniqueIndex ? Value::MakeCopy(key_end)
+                                                       : Value()),
+      valid_(false),
+      pos_(0),
+      type_(type) {
+    if (!it_->IsValid() || KeyOutOfRange()) {
+        return;
+    }
+    LoadContentFromIt();
+}
+
+Value CompositeIndexIterator::GetKey() const {
+    switch (type_) {
+    case CompositeIndexType::UniqueIndex:
+        {
+            return it_->GetKey();
+        }
+    }
+    return {};
+}
+
+void CompositeIndexIterator::LoadContentFromIt() {
+    valid_ = true;
+    pos_ = 0;
+    curr_key_.Copy(GetKey());
+    switch (type_) {
+    case CompositeIndexType::UniqueIndex:
+        {
+            vid_ = _detail::GetVid(it_->GetValue().Data());
+            break;
+        }
+    }
+}
+
+void CompositeIndexIterator::RefreshContentIfKvIteratorModified() {
+    if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
+        valid_ = false;
+        switch (type_) {
+        case CompositeIndexType::UniqueIndex:
+            {
+                if (!it_->GotoClosestKey(curr_key_)) return;
+                if (KeyOutOfRange()) return;
+                LoadContentFromIt();
+                return;
+            }
+        }
+        // now it_ points to a valid position, but not necessary the right one
+    }
+}
+
+bool CompositeIndexIterator::Next() {
+    valid_ = false;
+    if (!it_->Next() || KeyOutOfRange()) {
+        return false;
+    }
+    LoadContentFromIt();
+    return true;
+}
+
 }  // namespace lgraph
