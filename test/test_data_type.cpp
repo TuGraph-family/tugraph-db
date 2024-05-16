@@ -76,7 +76,7 @@ TEST_F(TestDataType, DataType) {
             FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 0, WKB_Polygon))
                 .is_buf());
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon)).is_buf());
-        UT_EXPECT_TRUE(FieldData::FloatVector(vec).is_buf());
+        UT_EXPECT_TRUE(!FieldData::FloatVector(vec).is_buf());
 
         // Constructor and AsXXX()
         UT_EXPECT_EQ(FieldData(true).AsBool(), true);
