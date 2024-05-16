@@ -21,6 +21,73 @@ using namespace lgraph_api;
 
 class TestDelDetachedLabel : public TuGraphTest{};
 
+TEST_F(TestDelDetachedLabel, delete_edge) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    lgraph::AutoCleanDir cleaner(path);
+    Galaxy galaxy(path);
+    galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+    GraphDB db = galaxy.OpenGraph("default");
+    VertexOptions vo;
+    vo.primary_field = "id";
+    vo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddVertexLabel("node1",
+                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false},
+                                                             {"int64", FieldType::INT64, true}}),
+                                     vo));
+    UT_EXPECT_TRUE(db.AddVertexLabel("node2",
+                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false},
+                                                             {"int64", FieldType::INT64, true}}),
+                                     vo));
+    EdgeOptions eo;
+    eo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddEdgeLabel("edge1",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("edge2",
+                                   std::vector<FieldSpec>({}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("edge3",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    std::vector<std::string> vp({"id", "int64"});
+    std::vector<std::string> ep({"id"});
+
+    int count = 100;
+    std::vector<int64_t> node1_vids, node2_vids;
+    auto txn = db.CreateWriteTxn();
+    UT_EXPECT_EQ(txn.GetEdgeLabelId("edge1"), 0);
+    UT_EXPECT_EQ(txn.GetEdgeLabelId("edge2"), 1);
+    UT_EXPECT_EQ(txn.GetEdgeLabelId("edge3"), 2);
+    for (int32_t i = 0; i < count; i++) {
+        auto vid1 = txn.AddVertex(
+            std::string("node1"), vp,
+            {FieldData::Int32(i), FieldData::Int64(i)});
+        node1_vids.push_back(vid1);
+        auto vid2 = txn.AddVertex(
+            std::string("node2"), vp,
+            {FieldData::Int32(i), FieldData::Int64(i)});
+        node2_vids.push_back(vid2);
+    }
+    for (int32_t i = 0; i < count; i++) {
+        txn.AddEdge(node1_vids[i], node2_vids[i], std::string("edge1"),
+                    ep, {FieldData::Int32(i)});
+        txn.AddEdge(node1_vids[i], node2_vids[i], std::string("edge2"),
+                    std::vector<std::string>{}, std::vector<FieldData>{});
+        txn.AddEdge(node1_vids[i], node2_vids[i], std::string("edge3"),
+                    ep, {FieldData::Int32(i)});
+    }
+    txn.Commit();
+    size_t modified = 0;
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge1", &modified));
+    UT_EXPECT_EQ(modified, count);
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge2", &modified));
+    UT_EXPECT_EQ(modified, count);
+    UT_EXPECT_TRUE(db.DeleteEdgeLabel("edge3", &modified));
+    UT_EXPECT_EQ(modified, count);
+}
+
 TEST_F(TestDelDetachedLabel, common) {
     std::string path = "./testdb";
     auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
