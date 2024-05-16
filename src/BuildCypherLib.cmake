@@ -23,6 +23,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_argument.cpp
         cypher/execution_plan/ops/op_cartesian_product.cpp
         cypher/execution_plan/ops/op_create.cpp
+        cypher/execution_plan/ops/op_gql_create.cpp
         cypher/execution_plan/ops/op_delete.cpp
         cypher/execution_plan/ops/op_distinct.cpp
         cypher/execution_plan/ops/op_expand_all.cpp
@@ -42,6 +43,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_skip.cpp
         cypher/execution_plan/ops/op_sort.cpp
         cypher/execution_plan/ops/op_standalone_call.cpp
+        cypher/execution_plan/ops/op_gql_standalone_call.cpp
         cypher/execution_plan/ops/op_union.cpp
         cypher/execution_plan/ops/op_unwind.cpp
         cypher/execution_plan/ops/op_var_len_expand.cpp
@@ -64,6 +66,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/parser/generated/LcypherParser.cpp
         cypher/parser/generated/LcypherVisitor.cpp
         cypher/procedure/procedure.cpp
+        cypher/procedure/procedure_v2.cpp
         cypher/resultset/record.cpp
         cypher/monitor/monitor_manager.cpp
         cypher/execution_plan/optimization/rewrite/schema_rewrite.cpp

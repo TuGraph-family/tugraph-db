@@ -16,6 +16,7 @@
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
 #include "cypher/execution_plan/execution_plan_maker.h"
+#include "execution_plan/ops/op_gql_standalone_call.h"
 
 namespace cypher {
 
@@ -695,7 +696,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::QueryStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::StandaloneCallStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::StandaloneCallStatement* node) { 
+    auto stmt = node->procedureStatement();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(stmt);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::JoinQueryExpression* node) {
     auto head = node->head();
@@ -752,11 +757,52 @@ std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) {
 
 std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::CallProcedureStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::CallProcedureStatement* node) {
+    auto procedure = node->procedureCall();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(procedure);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+ }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::InlineProcedureCall* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
+    std::string name = std::get<std::string>(node->name());
+    std::vector<OpBase*> expand_ops;
+    auto op = new GqlStandaloneCall(name, node->args(), node->yield(),
+       pattern_graphs_[cur_pattern_graph_].symbol_table);
+    expand_ops.emplace_back(op);
+    auto produce = new ProduceResults();
+    expand_ops.emplace_back(produce);
+    std::reverse(expand_ops.begin(), expand_ops.end());
+    if (auto op = _SingleBranchConnect(expand_ops)) {
+        _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    }
+
+    auto p = global_ptable_v2.GetProcedureV2(name);
+    if (p == nullptr) {
+        result_info_.header.colums.emplace_back(name);
+    } else {
+        auto &yield = node->yield();
+        auto &result = p->signature.result_list;
+        if (!yield.has_value()) {
+            for (auto &r : result) {
+                result_info_.header.colums.emplace_back(r.name, r.name, false, r.type);
+            }
+        } else {
+            auto& items = yield.value()->items();
+            for (auto &item : items) {
+                for (auto &r : result) {
+                    if (std::get<0>(item) == r.name) {
+                        result_info_.header.colums.emplace_back(r.name,
+                                                               r.name, false, r.type);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ForStatement* node) { NOT_SUPPORT(); }
 
@@ -885,10 +931,31 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
 std::any ExecutionPlanMaker::visit(geax::frontend::CatalogModifyStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement* node) {
-    NOT_SUPPORT();
+    auto& queryStatements = node->queryStatements();
+    for (auto queryStatement : queryStatements) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(queryStatement);
+    }
+    auto& modifyStatements_ = node->modifyStatements();
+    for (auto modifyStatement : modifyStatements_) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(modifyStatement);
+    }
+    if (node->resultStatement().has_value()) {
+        auto resultStatement = node->resultStatement().value();
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(resultStatement);
+    } else {
+        auto result = new ProduceResults();
+        _UpdateStreamRoot(result, pattern_graph_root_[cur_pattern_graph_]);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto op = new OpGqlCreate(node->paths(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 

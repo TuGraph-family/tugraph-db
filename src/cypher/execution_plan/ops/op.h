@@ -67,6 +67,7 @@ enum OpType {
     TOPN,
     UNION,
     NODE_BY_ID_SEEK,
+    GQL_CREATE,
 };
 
 struct OpStats {

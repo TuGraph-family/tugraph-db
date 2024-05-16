@@ -28,6 +28,7 @@ class ExecutionPlanV2 {
     std::string DumpGraph() const;
     std::string ErrorMsg();
     OpBase* Root();
+    void SetReadOnly(bool read_only) { read_only_ = read_only; }
 
  private:
     bool read_only_ = true;

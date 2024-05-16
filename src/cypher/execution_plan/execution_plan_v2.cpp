@@ -25,7 +25,7 @@ ExecutionPlanV2::~ExecutionPlanV2() { OpBase::FreeStream(root_); }
 geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* astNode) {
     geax::frontend::GEAXErrorCode ret = geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     // build pattern graph
-    PatternGraphMaker pattern_graph_maker(pattern_graphs_);
+    PatternGraphMaker pattern_graph_maker(this, pattern_graphs_);
     ret = pattern_graph_maker.Build(astNode);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = pattern_graph_maker.ErrorMsg();

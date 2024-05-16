@@ -33,6 +33,34 @@
 
 namespace parser {
 
+enum class VisitType {
+    kReadingClause,
+    kUpdatingClause,
+    kReadingPattern,
+    kUpdatingPattern,
+    kMatchPattern,
+    kSetVariable,
+    kSetNull,
+    kDeleteVariable
+};
+
+class VisitGuard {
+    VisitType type_;
+    std::unordered_set<VisitType>& cur_types_;
+ public:
+    VisitGuard(VisitType type, std::unordered_set<VisitType>& cur_types)
+        : type_(type), cur_types_(cur_types) {
+        cur_types.emplace(type_);
+    }
+
+    ~VisitGuard() { cur_types_.erase(type_); }
+
+    static bool InClause(VisitType type, const std::unordered_set<VisitType>& cur_types) {
+        return cur_types.find(type) != cur_types.end();
+    }
+
+};
+
 /**
  * This class provides an empty implementation of LcypherVisitor, which can be
  * extended to create a visitor which only needs to handle a subset of the available methods.
@@ -42,6 +70,7 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     geax::common::ObjectArenaAllocator& objAlloc_;
     geax::frontend::AstNode * node_;
     size_t anonymous_idx_;
+    std::unordered_set<VisitType> visit_types_;
     static const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> S_AGG_LIST;
 
  public:

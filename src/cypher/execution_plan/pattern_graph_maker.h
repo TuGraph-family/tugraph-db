@@ -17,12 +17,16 @@
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
 #include "cypher/graph/graph.h"
+#include "cypher/execution_plan/execution_plan_v2.h"
 
 namespace cypher {
 class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
  public:
-    explicit PatternGraphMaker(std::vector<PatternGraph>& pattern_graphs)
-        : pattern_graphs_(pattern_graphs) {}
+    PatternGraphMaker(ExecutionPlanV2* execution_plan,
+                     std::vector<PatternGraph>& pattern_graphs)
+        : execution_plan_(execution_plan)
+        , pattern_graphs_(pattern_graphs) {}
+
     geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);
     std::string ErrorMsg() { return error_msg_; }
 
@@ -196,6 +200,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any reportError() override;
 
  private:
+    ExecutionPlanV2* execution_plan_;
     std::vector<PatternGraph>& pattern_graphs_;
     std::vector<size_t> symbols_idx_;
     size_t cur_pattern_graph_;
