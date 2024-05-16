@@ -77,13 +77,9 @@ class TestCypherV2 : public TuGraphTest {
  protected:
     std::string test_suite_dir_ = lgraph::ut::TEST_RESOURCE_DIRECTORY + "/unit_test";
 
-    void set_graph_type(GraphFactory::GRAPH_DATASET_TYPE graph_type) {
-        graph_type_ = graph_type;
-    }
+    void set_graph_type(GraphFactory::GRAPH_DATASET_TYPE graph_type) { graph_type_ = graph_type; }
 
-    void set_query_type(lgraph::ut::QUERY_TYPE query_type) {
-        query_type_ = query_type;
-    }
+    void set_query_type(lgraph::ut::QUERY_TYPE query_type) { query_type_ = query_type; }
 
     bool diff_file(const std::string& lef, const std::string& rig) {
         std::string cmd = fma_common::StringFormatter::Format("diff {} {}", lef, rig);
@@ -103,8 +99,7 @@ class TestCypherV2 : public TuGraphTest {
         gconf_.dir = db_dir_;
         galaxy_ = std::make_shared<lgraph::Galaxy>(gconf_, true, nullptr);
         ctx_ = std::make_shared<cypher::RTContext>(
-            nullptr, galaxy_.get(),
-            lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_);
+            nullptr, galaxy_.get(), lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_);
         ctx_->param_tab_ = g_param_tab;
     }
 
@@ -156,7 +151,7 @@ class TestCypherV2 : public TuGraphTest {
         } else {
             try {
                 execution_plan_v2.Execute(ctx_.get());
-            } catch (std::exception &e) {
+            } catch (std::exception& e) {
                 UT_LOG() << e.what();
                 result = e.what();
                 return false;
@@ -175,7 +170,7 @@ class TestCypherV2 : public TuGraphTest {
             antlr4::CommonTokenStream tokens(&lexer);
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
-             geax::common::ObjectArenaAllocator objAlloc_;
+            geax::common::ObjectArenaAllocator objAlloc_;
             parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
             AstNode* node = visitor.result();
             // rewrite ast
@@ -204,7 +199,7 @@ class TestCypherV2 : public TuGraphTest {
             } else {
                 try {
                     execution_plan_v2.Execute(ctx_.get());
-                } catch (std::exception &e) {
+                } catch (std::exception& e) {
                     UT_LOG() << e.what();
                     result = e.what();
                     return false;
@@ -309,7 +304,7 @@ class TestCypherV2 : public TuGraphTest {
         }
         if (diff_file(real_file, result_file)) {
             fma_common::LocalFileSystem fs;
-            //fs.Remove(real_file);
+            // fs.Remove(real_file);
             fs.Remove(db_dir_);
         } else {
             UT_EXPECT_TRUE(false);
@@ -339,7 +334,6 @@ class TestCypherV2 : public TuGraphTest {
         return;
     }
 };
-
 
 TEST_F(TestCypherV2, TestFind) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
