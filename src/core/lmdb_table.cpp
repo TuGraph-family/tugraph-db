@@ -89,6 +89,9 @@ bool LMDBKvTable::HasKey(KvTransaction& txn, const Value& key) {
 bool LMDBKvTable::GetValue(KvTransaction& txn, const Value& key, Value& value) {
     ThrowIfTaskKilled();
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    if (lmdb_txn.optimistic_) {
+        THROW_CODE(KvException, "GetValue does not support optimistic txn");
+    }
     MDB_val val;
     MDB_val k = key.MakeMdbVal();
     int ec = mdb_get(lmdb_txn.GetTxn(), dbi_, &k, &val);
