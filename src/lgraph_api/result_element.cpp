@@ -72,9 +72,13 @@ nlohmann::json Relationship::ToJson() {
     return result;
 }
 
-bolt::RelNode Relationship::ToBoltUnbound() {
+bolt::RelNode Relationship::ToBoltUnbound(int64_t* v_eid) {
     bolt::RelNode rel;
-    rel.id = id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.name = label;
     for (auto &pair : properties) {
         rel.props.emplace(pair.first, pair.second.ToBolt());
@@ -82,9 +86,13 @@ bolt::RelNode Relationship::ToBoltUnbound() {
     return rel;
 }
 
-bolt::Relationship Relationship::ToBolt() {
+bolt::Relationship Relationship::ToBolt(int64_t* v_eid) {
     bolt::Relationship rel;
-    rel.id = id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.startId = src;
     rel.endId = dst;
     rel.type = label;
@@ -357,11 +365,16 @@ json ResultElement::ToJson() {
     return result;
 }
 
-std::any ResultElement::ToBolt() {
+std::any ResultElement::ToBolt(int64_t* v_eid) {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
-        std::vector<std::any> ret;
+        json result;
+        for (auto &l : *v.list) {
+            result.push_back(l);
+        }
+        return result.dump();  // Convert to string
+        /*std::vector<std::any> ret;
         for (auto &l : *v.list) {
             if (l.is_null()) {
                 ret.emplace_back();
@@ -378,9 +391,14 @@ std::any ResultElement::ToBolt() {
                     "ToBolt: unsupported item in list: {}", l.dump());
             }
         }
-        return ret;
+        return ret;*/
     } else if (type_ == LGraphType::MAP) {
-        std::unordered_map<std::string, std::any> ret;
+        json result;
+        for (auto &m : *v.map) {
+            result[m.first] = m.second;
+        }
+        return result.dump();  // Convert to string
+        /*std::unordered_map<std::string, std::any> ret;
         for (auto &pair : *v.map) {
             if (pair.second.is_null()) {
                 ret.emplace(pair.first, std::any{});
@@ -397,11 +415,11 @@ std::any ResultElement::ToBolt() {
                     "ToBolt: unsupported value in map: {}", pair.second.dump());
             }
         }
-        return ret;
+        return ret;*/
     } else if (type_ == LGraphType::NODE) {
         return v.node->ToBolt();
     } else if (type_ == LGraphType::RELATIONSHIP) {
-        return v.repl->ToBolt();
+        return v.repl->ToBolt(v_eid);
     } else if (type_ == LGraphType::PATH) {
         bolt::InternalPath path;
         for (size_t i = 0; i < v.path->size(); i++) {
@@ -409,7 +427,8 @@ std::any ResultElement::ToBolt() {
             if (p.type_ == LGraphType::NODE) {
                 path.nodes.push_back(p.v.node->ToBolt());
             } else {
-                path.rels.push_back(p.v.repl->ToBoltUnbound());
+                // The neo4j python client checks the uniqueness of the edge id.
+                path.rels.push_back(p.v.repl->ToBoltUnbound(v_eid));
             }
             if (i >= 1) {
                 if (i%2 == 1) {

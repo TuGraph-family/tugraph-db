@@ -1461,9 +1461,12 @@ int CURDEdgeWithTooLongKey() {
         for (int32_t i = 0; i < 100; ++i) {
             EdgeUid edgeUid(i, i + 1, 1, i, i);
             std::string key = std::to_string(i).append(str);
-            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), edgeUid));
-            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(key),
-                                                                Value::ConstRef(key));
+            Value cut_key = Value(Value::ConstRef(key).Data(),
+                                  lgraph::_detail::MAX_KEY_SIZE);
+            UT_EXPECT_ANY_THROW(idx.Add(*txn, Value::ConstRef(key), edgeUid));
+            idx.Add(*txn, Value::ConstRef(cut_key), edgeUid);
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn, cut_key,
+                                                                cut_key);
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                          std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'a'));
@@ -1484,10 +1487,14 @@ int CURDEdgeWithTooLongKey() {
         for (int32_t i = 0; i < 100; ++i) {
             EdgeUid edgeUid(i, i + 1, 1, i, i);
             std::string ok = std::to_string(i).append(str);
+            Value cut_ok = Value(Value::ConstRef(ok).Data(),
+                                 lgraph::_detail::MAX_KEY_SIZE);
             std::string nk = std::to_string(i).append(tmp);
-            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), edgeUid));
+            Value cut_nk = Value(Value::ConstRef(nk).Data(),
+                                 lgraph::_detail::MAX_KEY_SIZE);
+            UT_EXPECT_TRUE(idx.Update(*txn, cut_ok, cut_nk, edgeUid));
             EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
-                                            Value::ConstRef(nk), Value::ConstRef(nk));
+                                            cut_nk, cut_nk);
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                       std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i), 'b'));
@@ -1501,9 +1508,11 @@ int CURDEdgeWithTooLongKey() {
         for (int32_t i = 0; i < 100; ++i) {
             EdgeUid edgeUid(i, i + 1, 1, i, i);
             std::string key = std::to_string(i).append(tmp);
-            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), edgeUid));
+            Value cut_key = Value(Value::ConstRef(key).Data(),
+                                  lgraph::_detail::MAX_KEY_SIZE);
+            UT_EXPECT_TRUE(idx.Delete(*txn, cut_key, edgeUid));
             EdgeIndexIterator it_del = idx.GetUnmanagedIterator(*txn,
-                                        Value::ConstRef(key), Value::ConstRef(key));
+                                                                cut_key, cut_key);
             UT_EXPECT_FALSE(it_del.IsValid());
         }
 
@@ -1516,7 +1525,7 @@ int CURDEdgeWithTooLongKey() {
         UT_EXPECT_EQ(all_keys, 0);
     }
 
-    // GlobalUniqueIndex edge index
+    // PairUniqueIndex edge index
     {
         auto idx_tab = EdgeIndex::OpenTable(*txn, *store, "LongKeyWithPair",
                                             FieldType::STRING, lgraph::IndexType::PairUniqueIndex);
@@ -1527,9 +1536,12 @@ int CURDEdgeWithTooLongKey() {
         for (int32_t i = 0; i < 100; ++i) {
             EdgeUid edgeUid(i, i + 1, 1, i, i);
             std::string key = std::to_string(i).append(str);
-            UT_EXPECT_TRUE(idx.Add(*txn, Value::ConstRef(key), edgeUid));
-            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(key),
-                                                                Value::ConstRef(key));
+            Value cut_key = Value(Value::ConstRef(key).Data(),
+                                  lgraph::_detail::MAX_KEY_SIZE - 10);
+            UT_EXPECT_ANY_THROW(idx.Add(*txn, Value::ConstRef(key), edgeUid));
+            idx.Add(*txn, Value::ConstRef(cut_key), edgeUid);
+            EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn, Value::ConstRef(cut_key),
+                                                                Value::ConstRef(cut_key));
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                         std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i) - 10, 'a'));
@@ -1550,10 +1562,14 @@ int CURDEdgeWithTooLongKey() {
         for (int32_t i = 0; i < 100; ++i) {
             EdgeUid edgeUid(i, i + 1, 1, i, i);
             std::string ok = std::to_string(i).append(str);
+            Value cut_ok = Value(Value::ConstRef(ok).Data(),
+                                 lgraph::_detail::MAX_KEY_SIZE - 10);
             std::string nk = std::to_string(i).append(tmp);
-            UT_EXPECT_TRUE(idx.Update(*txn, Value::ConstRef(ok), Value::ConstRef(nk), edgeUid));
+            Value cut_nk = Value(Value::ConstRef(nk).Data(),
+                                 lgraph::_detail::MAX_KEY_SIZE - 10);
+            UT_EXPECT_TRUE(idx.Update(*txn, cut_ok, cut_nk, edgeUid));
             EdgeIndexIterator it_add = idx.GetUnmanagedIterator(*txn,
-                                            Value::ConstRef(nk), Value::ConstRef(nk));
+                                            cut_nk, cut_nk);
             UT_EXPECT_TRUE(it_add.IsValid());
             UT_EXPECT_EQ(it_add.GetKey().AsString(), std::to_string(i) +
                          std::string(lgraph::_detail::MAX_KEY_SIZE - bytes_count(i) - 10, 'b'));
@@ -1567,9 +1583,11 @@ int CURDEdgeWithTooLongKey() {
         for (int32_t i = 0; i < 100; ++i) {
             EdgeUid edgeUid(i, i + 1, 1, i, i);
             std::string key = std::to_string(i).append(tmp);
-            UT_EXPECT_TRUE(idx.Delete(*txn, Value::ConstRef(key), edgeUid));
+            Value cut_key = Value(Value::ConstRef(key).Data(),
+                                  lgraph::_detail::MAX_KEY_SIZE - 10);
+            UT_EXPECT_TRUE(idx.Delete(*txn, cut_key, edgeUid));
             EdgeIndexIterator it_del = idx.GetUnmanagedIterator(*txn,
-                                       Value::ConstRef(key), Value::ConstRef(key));
+                                       cut_key, cut_key);
             UT_EXPECT_FALSE(it_del.IsValid());
         }
 

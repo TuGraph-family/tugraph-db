@@ -98,6 +98,14 @@ struct Entry {
 
     bool IsNode() const { return type == NODE && node; }
 
+    bool IsPoint() const { return type == CONSTANT && constant.IsPoint(); }
+
+    bool IsLineString() const { return type == CONSTANT && constant.IsLineString(); }
+
+    bool IsPolygon() const { return type == CONSTANT && constant.IsPolygon(); }
+
+    bool IsSpatial() const { return type == CONSTANT && constant.IsSpatial(); }
+
     bool IsRelationship() const { return type == RELATIONSHIP && relationship; }
 
     bool operator==(const Entry &rhs) const {

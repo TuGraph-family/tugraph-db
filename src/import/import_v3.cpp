@@ -161,15 +161,15 @@ void Importer::DoImportOffline() {
                                     v.name, spec.name);
                     }
                 } else if (v.is_vertex && spec.index && !spec.primary &&
-                           (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
-                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
+                           spec.idxType != lgraph::IndexType::NonuniqueIndex) {
                     THROW_CODE(InputError,
                         "offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name);
                 } else if (!v.is_vertex && spec.index &&
-                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                           (spec.idxType == lgraph::IndexType::NonuniqueIndex ||
+                           spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                         if (!config_.import_online) {
                             LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
@@ -186,7 +186,7 @@ void Importer::DoImportOffline() {
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
+                        "offline import does not support to create an unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name);
@@ -1421,10 +1421,10 @@ void Importer::WriteCount() {
     }
     Transaction txn = db_->CreateWriteTxn();
     for (auto& pair : vertex_count_) {
-        txn.IncreaseCount(true, pair.first, pair.second);
+        txn.GetVertexDeltaCount()[pair.first] = pair.second;
     }
     for (auto& pair : edge_count_) {
-        txn.IncreaseCount(false, pair.first, pair.second);
+        txn.GetEdgeDeltaCount()[pair.first] = pair.second;
     }
     txn.Commit();
 }

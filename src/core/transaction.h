@@ -83,6 +83,8 @@ class Transaction {
     std::vector<FTIndexEntry> fulltext_buffers_;
     std::unordered_map<LabelId, int64_t> vertex_delta_count_;
     std::unordered_map<LabelId, int64_t> edge_delta_count_;
+    std::set<LabelId> vertex_label_delete_;
+    std::set<LabelId> edge_label_delete_;
     void ThrowIfReadOnlyTxn() const {
         if (read_only_)
             THROW_CODE(WriteNotAllowed,
@@ -236,7 +238,6 @@ class Transaction {
     const Schema* GetSchema(const std::string& label, bool is_vertex) const {
         const Schema* schema = is_vertex ? curr_schema_->v_schema_manager.GetSchema(label)
                                          : curr_schema_->e_schema_manager.GetSchema(label);
-        FMA_DBG_ASSERT(schema);
         return schema;
     }
 
@@ -251,7 +252,6 @@ class Transaction {
     const Schema* GetSchema(const LabelId& lid, bool is_vertex) const {
         const Schema* schema = is_vertex ? curr_schema_->v_schema_manager.GetSchema(lid)
                                          : curr_schema_->e_schema_manager.GetSchema(lid);
-        FMA_DBG_ASSERT(schema);
         return schema;
     }
 
@@ -1048,8 +1048,20 @@ class Transaction {
         }
     }
 
-    void IncreaseCount(bool is_vertex, LabelId lid, int64_t delta) {
-        graph_->IncreaseCount(*txn_, is_vertex, lid, delta);
+    std::unordered_map<LabelId, int64_t>& GetVertexDeltaCount() {
+        return vertex_delta_count_;
+    }
+
+    std::unordered_map<LabelId, int64_t>& GetEdgeDeltaCount() {
+        return edge_delta_count_;
+    }
+
+    std::set<LabelId>& GetVertexLabelDelete() {
+        return vertex_label_delete_;
+    }
+
+    std::set<LabelId>& GetEdgeLabelDelete() {
+        return edge_label_delete_;
     }
 
     size_t GetLooseNumVertex() { return graph_->GetLooseNumVertex(*txn_); }

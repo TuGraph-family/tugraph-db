@@ -13,6 +13,8 @@
 
 namespace braft {
     DECLARE_bool(raft_enable_witness_to_leader);
+    DECLARE_bool(enable_first_snapshot_config);
+    DECLARE_string(first_snapshot_start_time);
 }
 
 void lgraph::HaStateMachine::Start() {
@@ -69,7 +71,11 @@ void lgraph::HaStateMachine::Start() {
         LOG_DEBUG() << "Bootstrap succeed. Log index set to " << galaxy_->GetRaftLogIndex();
 #endif
     }
-
+    if (config_.ha_first_snapshot_start_time != "") {
+        braft::FLAGS_enable_first_snapshot_config = true;
+        braft::FLAGS_first_snapshot_start_time =
+            config_.ha_first_snapshot_start_time;
+    }
     // start braft::Node
     braft::Node* node = new braft::Node("lgraph", braft::PeerId(addr, 0,
                                                                 config_.ha_is_witness));

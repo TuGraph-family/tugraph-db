@@ -98,6 +98,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
             r->Insert(header, lgraph::FieldData(data));
             if (ctx->bolt_conn_) {
                 auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
+                ctx->result_->MarkPythonDriver(session->python_driver);
                 while (!session->streaming_msg) {
                     session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
                     if (ctx->bolt_conn_->has_closed()) {
