@@ -52,7 +52,8 @@ class OpCreate : public OpBase {
                 std::vector<float> vec;
                 int dim = value.constant.array->size();
                 if (dim >= 32768) {
-                    throw lgraph::ReminderException("The dimensions of a vector cannot exceed 32768.");
+                    throw lgraph::ReminderException(
+                        "The dimensions of a vector cannot exceed 32768.");
                 }
                 for (int i = 0; i < dim; ++i) {
                     lgraph::FieldData FD = value.constant.array->at(i);
@@ -254,8 +255,8 @@ class OpCreate : public OpBase {
         for (auto child : children) {
             child->Initialize(ctx);
         }
-        record = children.empty() ?
-            std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_, ctx->param_tab_)
+        record = children.empty()
+                     ? std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_, ctx->param_tab_)
                      : children[0]->record;
         return OP_OK;
     }
@@ -300,9 +301,9 @@ class OpCreate : public OpBase {
         return str;
     }
 
-    const SymbolTable& SymTab() const { return sym_tab_; }
+    const SymbolTable &SymTab() const { return sym_tab_; }
 
-    PatternGraph* GetPatternGraph() const { return pattern_graph_; }
+    PatternGraph *GetPatternGraph() const { return pattern_graph_; }
 
     CYPHER_DEFINE_VISITABLE()
 

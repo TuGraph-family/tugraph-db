@@ -54,8 +54,9 @@ TEST_F(TestProtoConvert, ProtoConvert) {
 
         // testing spatial data;
         {
-            FieldData fd(PointWgs84(std::string("0101000020E6100000000000000000"
-                                                "F03F0000000000000040")));
+            FieldData fd(
+                PointWgs84(std::string("0101000020E6100000000000000000"
+                                       "F03F0000000000000040")));
             FieldDataConvert::FromLGraphT(fd, &pfd);
             UT_EXPECT_TRUE(fd.AsWgsPoint() == PointWgs84(pfd.point()));
             UT_EXPECT_TRUE(pfd.has_point());
@@ -64,8 +65,10 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         }
 
         {
-            FieldData fd(LineStringWgs84(std::string("0102000020E610000003000000000000000000000"
-            "00000000000000000000000000000004000000000000000400000000000000840000000000000F03F")));
+            FieldData fd(
+                LineStringWgs84(std::string("0102000020E610000003000000000000000000000"
+                                            "000000000000000000000000000000040000000000000004000000"
+                                            "00000000840000000000000F03F")));
             FieldDataConvert::FromLGraphT(fd, &pfd);
             UT_EXPECT_TRUE(fd.AsWgsLineString() == LineStringWgs84(pfd.linestring()));
             UT_EXPECT_TRUE(pfd.has_linestring());
@@ -74,9 +77,10 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         }
 
         {
-            FieldData fd(PolygonWgs84(std::string("0103000020E610000001000000050000000000000000"
-            "000000000000000000000000000000000000000000000000001C400000000000001040000000000000"
-            "00400000000000000040000000000000000000000000000000000000000000000000")));
+            FieldData fd(PolygonWgs84(std::string(
+                "0103000020E610000001000000050000000000000000"
+                "000000000000000000000000000000000000000000000000001C400000000000001040000000000000"
+                "00400000000000000040000000000000000000000000000000000000000000000000")));
             FieldDataConvert::FromLGraphT(fd, &pfd);
             UT_EXPECT_TRUE(fd.AsWgsPolygon() == PolygonWgs84(pfd.polygon()));
             UT_EXPECT_TRUE(pfd.has_polygon());
@@ -85,9 +89,10 @@ TEST_F(TestProtoConvert, ProtoConvert) {
         }
 
         {
-            FieldData fd(SpatialWgs84(std::string("0103000020E610000001000000050000000000000000"
-            "000000000000000000000000000000000000000000000000001C400000000000001040000000000000"
-            "00400000000000000040000000000000000000000000000000000000000000000000")));
+            FieldData fd(SpatialWgs84(std::string(
+                "0103000020E610000001000000050000000000000000"
+                "000000000000000000000000000000000000000000000000001C400000000000001040000000000000"
+                "00400000000000000040000000000000000000000000000000000000000000000000")));
             FieldDataConvert::FromLGraphT(fd, &pfd);
             UT_EXPECT_TRUE(fd.AsWgsSpatial() == SpatialWgs84(pfd.spatial()));
             UT_EXPECT_TRUE(pfd.has_spatial());
@@ -95,16 +100,16 @@ TEST_F(TestProtoConvert, ProtoConvert) {
             UT_EXPECT_TRUE(fd.AsWgsSpatial() == fd2.AsWgsSpatial());
         }
 
-        // testing float vector data 
+        // testing float vector data
         {
-            std::vector<float> vec1 = {1.111, 2.111 ,3.111, 4.111, 5.111};
+            std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
             FieldData fd(vec1);
             FieldDataConvert::FromLGraphT(fd, &pfd);
             std::vector<float> vec2;
-                auto size = pfd.fvector().fv_size();
-                for(int i = 0; i < size; i++) {
-                    vec2.push_back(pfd.fvector().fv(i));
-                }
+            auto size = pfd.fvector().fv_size();
+            for (int i = 0; i < size; i++) {
+                vec2.push_back(pfd.fvector().fv(i));
+            }
             UT_EXPECT_TRUE(fd.AsFloatVector() == vec2);
             UT_EXPECT_TRUE(pfd.has_fvector());
             auto fd2 = FieldDataConvert::ToLGraphT(pfd);

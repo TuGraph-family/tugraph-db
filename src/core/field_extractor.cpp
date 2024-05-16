@@ -101,8 +101,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
         vec.push_back(std::stof(match.str()));
         ++begin_it;
     }
-    if (vec.size() <= 0)
-        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);                                                        
+    if (vec.size() <= 0) throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
     return _SetVariableLengthValue(record, Value::ConstRef(vec));
 }
 /**
@@ -118,9 +117,9 @@ void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
  *          FIELD_PARSE_FAILED.
  */
 void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
-    if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type)
-        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON
-        || def_.type == FieldType::SPATIAL || def_.type == FieldType::FLOAT_VECTOR)) {
+    if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type) ||
+                         def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON ||
+                         def_.type == FieldType::SPATIAL || def_.type == FieldType::FLOAT_VECTOR)) {
         SetIsNull(record, true);
         return;
     }

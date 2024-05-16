@@ -45,41 +45,37 @@ template <>
 inline lgraph::PointWgs84 ParseStringToT<lgraph::PointWgs84>(const std::string& str) {
     return lgraph::PointWgs84(str);
 }
-template<>
-inline lgraph::PointCartesian ParseStringToT<lgraph::PointCartesian>
-(const std::string &str) {
+template <>
+inline lgraph::PointCartesian ParseStringToT<lgraph::PointCartesian>(const std::string& str) {
     return lgraph::PointCartesian(str);
 }
 template <>
 inline lgraph::LineStringWgs84 ParseStringToT<lgraph::LineStringWgs84>(const std::string& str) {
     return lgraph::LineStringWgs84(str);
 }
-template<>
-inline lgraph::LineStringCartesian ParseStringToT<lgraph::LineStringCartesian>
-(const std::string &str) {
+template <>
+inline lgraph::LineStringCartesian ParseStringToT<lgraph::LineStringCartesian>(
+    const std::string& str) {
     return lgraph::LineStringCartesian(str);
 }
 template <>
 inline lgraph::PolygonWgs84 ParseStringToT<lgraph::PolygonWgs84>(const std::string& str) {
     return lgraph::PolygonWgs84(str);
 }
-template<>
-inline lgraph::PolygonCartesian ParseStringToT<lgraph::PolygonCartesian>
-(const std::string &str) {
+template <>
+inline lgraph::PolygonCartesian ParseStringToT<lgraph::PolygonCartesian>(const std::string& str) {
     return lgraph::PolygonCartesian(str);
 }
 template <>
 inline lgraph::SpatialWgs84 ParseStringToT<lgraph::SpatialWgs84>(const std::string& str) {
     return lgraph::SpatialWgs84(str);
 }
-template<>
-inline lgraph::SpatialCartesian ParseStringToT<lgraph::SpatialCartesian>
-(const std::string &str) {
+template <>
+inline lgraph::SpatialCartesian ParseStringToT<lgraph::SpatialCartesian>(const std::string& str) {
     return lgraph::SpatialCartesian(str);
 }
-template<>
-inline std::vector<float> ParseStringToT<std::vector<float>>
-(const std::string &str) {
+template <>
+inline std::vector<float> ParseStringToT<std::vector<float>>(const std::string& str) {
     std::vector<float> vec;
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
@@ -123,10 +119,11 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
 
     // check parse from FieldData
     fe.ParseAndSet(v, fd_ok);
-    if(ft != FLOAT_VECTOR) {
+    if (ft != FLOAT_VECTOR) {
         UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()) == fd_ok);
     } else {
-        UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()).AsFloatVector() == fd_ok.AsFloatVector());
+        UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()).AsFloatVector() ==
+                       fd_ok.AsFloatVector());
     }
 
     // check parse errors
@@ -175,8 +172,7 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         UT_EXPECT_TRUE(fe_nul.GetConstRef(v).Empty());
         FieldSpec fs("fs", ft, false);
         _detail::FieldExtractor fe(fs);
-        UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, FieldData(), blob_add),
-                        FieldCannotBeSetNull);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, FieldData(), blob_add), FieldCannotBeSetNull);
         fe.ParseAndSetBlob(v, str_ok, blob_add);
         std::string read_str = fe.GetBlobConstRef(v, blob_get).AsType<std::string>();
         std::string decoded = lgraph_api::base64::Decode(str_ok);
@@ -184,8 +180,7 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         fe.ParseAndSetBlob(v, fd_ok, blob_add);
         UT_EXPECT_TRUE(fe.GetBlobConstRef(v, blob_get).AsType<std::string>() == fd_ok.AsBlob());
         UT_EXPECT_THROW(fe.ParseAndSetBlob(v, str_fail, blob_add), lgraph::ParseStringException);
-        UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, fd_fail, blob_add),
-                        ParseIncompatibleType);
+        UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, fd_fail, blob_add), ParseIncompatibleType);
     }
 }
 
@@ -220,56 +215,64 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
                                              FieldData::DateTime("2020-05-04 20:24:34"),
                                              "not valid date", FieldData(123), true, "10240-09-01");
         // testing spatial data;
-        CheckParseDataType<lgraph::PointWgs84>(FieldType::POINT, value_tmp,
-                           "0101000020E6100000000000000000F03F0000000000000040",
-                           FieldData::Point("0101000020E6100000000000000000F03F0000000000000040"),
-                           "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::PointCartesian>(FieldType::POINT, value_tmp,
-                           "0101000020231C0000000000000000F03F0000000000000040",
-                           FieldData::Point("0101000020231C0000000000000000F03F0000000000000040"),
-                           "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::LineStringCartesian>(FieldType::LINESTRING, value_tmp,
+        CheckParseDataType<lgraph::PointWgs84>(
+            FieldType::POINT, value_tmp, "0101000020E6100000000000000000F03F0000000000000040",
+            FieldData::Point("0101000020E6100000000000000000F03F0000000000000040"), "aasd332423d",
+            FieldData(3215), false);
+        CheckParseDataType<lgraph::PointCartesian>(
+            FieldType::POINT, value_tmp, "0101000020231C0000000000000000F03F0000000000000040",
+            FieldData::Point("0101000020231C0000000000000000F03F0000000000000040"), "aasd332423d",
+            FieldData(3215), false);
+        CheckParseDataType<lgraph::LineStringCartesian>(
+            FieldType::LINESTRING, value_tmp,
             "0102000020231C00000300000000000000000000000000000000000000000"
             "000000000004000000000000000400000000000000840000000000000F03F",
             FieldData::LineString("0102000020231C000003000000000000"
                                   "0000000000000000000000000000000000000000400000000"
                                   "0000000400000000000000840000000000000F03F"),
             "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::LineStringWgs84>(FieldType::LINESTRING, value_tmp,
+        CheckParseDataType<lgraph::LineStringWgs84>(
+            FieldType::LINESTRING, value_tmp,
             "0102000020E61000000300000000000000000000000000000000000000000"
             "000000000004000000000000000400000000000000840000000000000F03F",
             FieldData::LineString("0102000020E610000003000000000000"
                                   "0000000000000000000000000000000000000000400000000"
                                   "0000000400000000000000840000000000000F03F"),
             "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::PolygonWgs84>(FieldType::POLYGON, value_tmp,
+        CheckParseDataType<lgraph::PolygonWgs84>(
+            FieldType::POLYGON, value_tmp,
             "0103000020E6100000010000000500000000000000000000000000000000"
             "00000000000000000000000000000000001C400000000000001040000000000000"
             "00400000000000000040000000000000000000000000000000000000000000000000",
-                           FieldData::Polygon("0103000020E61000000100000005000000"
+            FieldData::Polygon(
+                "0103000020E61000000100000005000000"
                 "000000000000000000000000000000000000000"
                 "0000000000000000000001C400000000000001040000000000000"
                 "00400000000000000040000000000000000000000000000000000000000000000000"),
             "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::PolygonCartesian>(FieldType::POLYGON, value_tmp,
+        CheckParseDataType<lgraph::PolygonCartesian>(
+            FieldType::POLYGON, value_tmp,
             "0103000020231C0000010000000500000000000000000000000000000000"
             "00000000000000000000000000000000001C400000000000001040000000000000"
             "00400000000000000040000000000000000000000000000000000000000000000000",
-                           FieldData::Polygon("0103000020231C00000100000005000000"
+            FieldData::Polygon(
+                "0103000020231C00000100000005000000"
                 "000000000000000000000000000000000000000"
                 "0000000000000000000001C400000000000001040000000000000"
                 "00400000000000000040000000000000000000000000000000000000000000000000"),
             "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::SpatialWgs84>(FieldType::SPATIAL, value_tmp,
+        CheckParseDataType<lgraph::SpatialWgs84>(
+            FieldType::SPATIAL, value_tmp,
             "0103000020E6100000010000000500000000000000000000000000000000"
             "00000000000000000000000000000000001C400000000000001040000000000000"
             "00400000000000000040000000000000000000000000000000000000000000000000",
-                           FieldData::Spatial
-                           ("0103000020E6100000010000000500000000000000000000000000000000"
+            FieldData::Spatial(
+                "0103000020E6100000010000000500000000000000000000000000000000"
                 "00000000000000000000000000000000001C400000000000001040000000000000"
                 "00400000000000000040000000000000000000000000000000000000000000000000"),
             "aasd332423d", FieldData(3215), false);
-        CheckParseDataType<lgraph::SpatialCartesian>(FieldType::SPATIAL, value_tmp,
+        CheckParseDataType<lgraph::SpatialCartesian>(
+            FieldType::SPATIAL, value_tmp,
             "0102000020231C00000300000000000000000000000000000000000000000"
             "000000000004000000000000000400000000000000840000000000000F03F",
             FieldData::Spatial("0102000020231C000003000000000000"
@@ -278,14 +281,13 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
             "aasd332423d", FieldData(3215), false);
         // testing float vector
         std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
-        CheckParseDataType<std::vector<float>>(FieldType::FLOAT_VECTOR, value_tmp,
-                            "1.111000,2.111000,3.111000,4.111000,5.111000", FieldData::FloatVector(vec1),
-                            "abcdefg", FieldData("sad"), false);
+        CheckParseDataType<std::vector<float>>(
+            FieldType::FLOAT_VECTOR, value_tmp, "1.111000,2.111000,3.111000,4.111000,5.111000",
+            FieldData::FloatVector(vec1), "abcdefg", FieldData("sad"), false);
 
         CheckParseStringAndBlob(FieldType::STRING, value_tmp, "this is a string",
                                 FieldData("another string"),
-                                std::string(_detail::MAX_STRING_SIZE + 1, 'a'),
-                                FieldData(12));
+                                std::string(_detail::MAX_STRING_SIZE + 1, 'a'), FieldData(12));
         CheckParseStringAndBlob(FieldType::BLOB, value_tmp,
                                 lgraph_api::base64::Encode(std::string(1024, 'a')),
                                 FieldData::Blob(std::string(_detail::MAX_STRING_SIZE + 1, 'b')),
