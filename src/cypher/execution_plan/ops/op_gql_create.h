@@ -10,14 +10,13 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- */
- 
+ */ 
 #pragma once
 
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic//arithmetic_expression.h"
-#include "cypher_exception.h"
+#include "cypher/cypher_exception.h"
 #include "geax-front-end/ast/clause/ClauseNodeFwd.h"
 #include "geax-front-end/ast/clause/LabelOr.h"
 #include "geax-front-end/ast/clause/LabelTree.h"
@@ -196,7 +195,6 @@ class OpGqlCreate : public OpBase {
         : OpBase(OpType::GQL_CREATE, "Gql Create")
         , paths_(paths)
         , pattern_graph_(pattern_graph) {
-
         for (auto &node : pattern_graph_->GetNodes()) {
             if (node.derivation_ == Node::CREATED) modifies.emplace_back(node.Alias());
             for (auto rr : node.RhsRelps()) {
@@ -205,7 +203,7 @@ class OpGqlCreate : public OpBase {
             }
         }
     }
- 
+
     OpResult Initialize(RTContext *ctx) override {
         CYPHER_THROW_ASSERT(parent && children.size() < 2);
         summary_ = !parent->parent;
@@ -214,7 +212,8 @@ class OpGqlCreate : public OpBase {
             child->Initialize(ctx);
         }
         auto sym_tab = pattern_graph_->symbol_table;
-        record = children.empty() ? std::make_shared<Record>(sym_tab.symbols.size(), &sym_tab, ctx->param_tab_)
+        record = children.empty() ? std::make_shared<Record>(sym_tab.symbols.size(),
+                                     &sym_tab, ctx->param_tab_)
                                   : children[0]->record;
         return OP_OK;
     }
@@ -264,4 +263,4 @@ class OpGqlCreate : public OpBase {
     CYPHER_DEFINE_CONST_VISITABLE()
 };
 
-} // namespace cypher
+}  // namespace cypher

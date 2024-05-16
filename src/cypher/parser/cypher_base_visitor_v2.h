@@ -58,7 +58,6 @@ class VisitGuard {
     static bool InClause(VisitType type, const std::unordered_set<VisitType>& cur_types) {
         return cur_types.find(type) != cur_types.end();
     }
-
 };
 
 /**
@@ -77,7 +76,8 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     CypherBaseVisitorV2() = delete;
 
 
-    CypherBaseVisitorV2(geax::common::ObjectArenaAllocator& objAlloc, antlr4::tree::ParseTree *tree);
+    CypherBaseVisitorV2(geax::common::ObjectArenaAllocator& objAlloc,
+            antlr4::tree::ParseTree *tree);
 
     std::string GenAnonymousAlias(bool is_node);
 

@@ -22,7 +22,6 @@
 
 cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) {
     auto names = fma_common::Split(func_name_, ".");
-    //TODO jzj
     if (names.size() > 2 && names[0] == "plugin") {
         CYPHER_TODO();
     } else {
@@ -32,7 +31,7 @@ cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) 
         parameters.reserve(args_.size());
         for (auto expr : args_) {
             ArithExprNode node(expr, symbol_table_);
-            // TODO dummy Record
+            // TODO(lingsu): dummy record
             parameters.emplace_back(node.Evaluate(ctx, Record(1)));
         }
         procedure_->function(ctx, nullptr, parameters, _yield_items, &records);

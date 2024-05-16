@@ -696,7 +696,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::QueryStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::StandaloneCallStatement* node) { 
+std::any ExecutionPlanMaker::visit(geax::frontend::StandaloneCallStatement* node) {
     auto stmt = node->procedureStatement();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(stmt);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -761,7 +761,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CallProcedureStatement* node)
     auto procedure = node->procedureCall();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(procedure);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
- }
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::InlineProcedureCall* node) { NOT_SUPPORT(); }
 

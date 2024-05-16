@@ -132,7 +132,6 @@ std::any PatternGraphMaker::visit(geax::frontend::Edge* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_)) {
         relp_t_->derivation_ = Relationship::Derivation::MATCHED;
-        
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement, cur_types_)) {
         relp_t_->derivation_ = Relationship::Derivation::CREATED;
     } else {
@@ -753,7 +752,7 @@ std::any PatternGraphMaker::visit(geax::frontend::QueryStatement* node) {
 
 std::any PatternGraphMaker::visit(geax::frontend::StandaloneCallStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
- }
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::JoinQueryExpression* node) {
     auto head = node->head();
