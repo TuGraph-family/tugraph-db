@@ -90,7 +90,7 @@ class OpCreate : public OpBase {
                     case lgraph::FieldType::SPATIAL:
                     case lgraph::FieldType::FLOAT_VECTOR:
                         throw std::bad_cast();
-                    };
+                    }
                     vec.emplace_back(num);
                 }
                 values.emplace_back(lgraph::FieldData(vec));
