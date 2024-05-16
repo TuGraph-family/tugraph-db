@@ -570,7 +570,7 @@ EdgeIndex* Transaction::GetEdgeIndex(size_t label, size_t field) {
 
 CompositeIndex* Transaction::GetVertexCompositeIndex(const std::string& label,
                                                      const std::vector<std::string>& fields) {
-    Schema* s = curr_schema_->e_schema_manager.GetSchema(label);
+    Schema* s = curr_schema_->v_schema_manager.GetSchema(label);
     if (!s) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
     return s->GetCompositeIndex(fields);
 }
