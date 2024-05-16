@@ -100,5 +100,4 @@ TEST_F(TestTypeConvert, TypeConvert) {
     std::vector<float> vec = {1.111, 2.111, 3.111, 4.111};
     UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(vec), FieldType::FLOAT_VECTOR).AsFloatVector() == vec );
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(vec), FieldType::FLOAT_VECTOR).ToString(), "1.111000,2.111000,3.111000,4.111000");
-
 }
