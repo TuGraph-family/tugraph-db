@@ -408,8 +408,13 @@ void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const V
 }
 
 Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    Value ret;
+    bool found = property_table_->GetValue(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), ret);
+    if (!found) {
+        THROW_CODE(InternalError, "Get: vid {} is not found in the detached property table.", vid);
+    }
+    return ret;
 }
 
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
@@ -430,8 +435,13 @@ void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
 }
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    Value ret;
+    bool found = property_table_->GetValue(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), ret);
+    if (!found) {
+        THROW_CODE(InternalError, "Get: euid {} is not found in the detached property table.", eid);
+    }
+    return ret;
 }
 
 void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,

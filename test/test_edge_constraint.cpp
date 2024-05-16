@@ -60,17 +60,36 @@ TEST_F(TestEdgeConstraint, lgraph_api) {
     auto v2 = txn.AddVertex("v2", {"id"}, {"2"});
     auto v3 = txn.AddVertex("v3", {"id"}, {"3"});
     txn.AddEdge(v1, v2, "v1_v2", {"weight"}, {"1"});
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v1, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
     txn.Commit();
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v1, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v3, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v2, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
     UT_EXPECT_TRUE(db.DeleteVertexLabel("v1"));
-    txn = db.CreateWriteTxn();
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
-    txn.Abort();
+    {
+        auto tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        auto tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
     UT_EXPECT_TRUE(db.AddVertexLabel("v1",
                                      {{"id", FieldType::STRING, false}},
                                      lgraph::VertexOptions("id")));
