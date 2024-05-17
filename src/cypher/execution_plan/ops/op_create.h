@@ -48,6 +48,7 @@ class OpCreate : public OpBase {
             }
             ArithExprNode ae(p, *record->symbol_table);
             auto value = ae.Evaluate(ctx, *record);
+            CYPHER_THROW_ASSERT(value.IsNull());
             if (value.IsArray()) {
                 std::vector<float> vec;
                 int dim = value.constant.array->size();
