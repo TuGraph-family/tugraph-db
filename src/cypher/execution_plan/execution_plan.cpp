@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1368,6 +1368,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
         auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
         session->state = bolt::SessionState::STREAMING;
+        ctx->result_->MarkPythonDriver(session->python_driver);
     }
 
     try {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -183,6 +183,86 @@ static int LexicalKeyBothVidCompareFunc(const MDB_val* a, const MDB_val* b) {
     return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
 }
 
+
+struct CompositeKeyCompare {
+    inline static std::vector<FieldType> data_types = {};
+    static int CompositeKeyCompareFunc(const MDB_val* a, const MDB_val* b) {
+        int len = data_types.size();
+        std::vector<int16_t> offset_a(len + 1), offset_b(len + 1);
+        for (int i = 1; i < len; ++i) {
+            memcpy(&offset_a[i], (char*)a->mv_data + (i - 1) * 2, 2);
+            memcpy(&offset_b[i], (char*)b->mv_data + (i - 1) * 2, 2);
+        }
+        offset_a[len] = a->mv_size - (len - 1) * 2;
+        offset_b[len] = b->mv_size - (len - 1) * 2;
+        for (int i = 0; i < len; ++i) {
+            MDB_val pa, pb;
+            int res;
+            switch (data_types[i]) {
+            case FieldType::BOOL:
+                pa = {sizeof(bool), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(bool), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::BOOL>::func(&pa, &pb);
+                break;
+            case FieldType::INT8:
+                pa = {sizeof(int8_t), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(int8_t), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::INT8>::func(&pa, &pb);
+                break;
+            case FieldType::INT16:
+                pa = {sizeof(int16_t), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(int16_t), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::INT16>::func(&pa, &pb);
+                break;
+            case FieldType::INT32:
+                pa = {sizeof(int32_t), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(int32_t), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::INT32>::func(&pa, &pb);
+                break;
+            case FieldType::DATE:
+                pa = {sizeof(int32_t), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(int32_t), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::DATE>::func(&pa, &pb);
+                break;
+            case FieldType::INT64:
+                pa = {sizeof(int64_t), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(int64_t), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::INT64>::func(&pa, &pb);
+                break;
+            case FieldType::DATETIME:
+                pa = {sizeof(int64_t), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(int64_t), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::DATETIME>::func(&pa, &pb);
+                break;
+            case FieldType::FLOAT:
+                pa = {sizeof(float), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(float), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::FLOAT>::func(&pa, &pb);
+                break;
+            case FieldType::DOUBLE:
+                pa = {sizeof(double), (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {sizeof(double), (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::DOUBLE>::func(&pa, &pb);
+                break;
+            case FieldType::STRING:
+                pa = {static_cast<size_t>(offset_a[i + 1] - offset_a[i]),
+                      (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
+                pb = {static_cast<size_t>(offset_b[i + 1] - offset_b[i]),
+                      (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
+                res = _detail::KeyCompareFunc<FieldType::DOUBLE>::func(&pa, &pb);
+                break;
+            case FieldType::BLOB:
+                THROW_CODE(KvException, "Blob fields cannot act as key.");
+            default:
+                THROW_CODE(KvException, "Unknown data type: {}", data_types[i]);
+            }
+            if (res != 0)
+                return res;
+        }
+        return 0;
+    }
+};
+
 }  // namespace _detail
 
 // NOLINT
@@ -244,6 +324,11 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
         }
     case ComparatorDesc::GRAPH_KEY:
         return nullptr;
+    case ComparatorDesc::COMPOSITE_KEY:
+        {
+            _detail::CompositeKeyCompare::data_types = desc.data_types;
+            return _detail::CompositeKeyCompare::CompositeKeyCompareFunc;
+        }
     default:
         THROW_CODE(KvException, "Unrecognized comparator type: {}", desc.comp_type);
     }

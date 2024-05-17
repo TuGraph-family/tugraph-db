@@ -1,5 +1,5 @@
-﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,9 +52,10 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index vertex [{}] with field "
+                       "value [{}:{}]: index value does not exist.",
+                       vid, fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -68,9 +69,10 @@ void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Va
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index vertex [{}] with field "
+                       "value [{}:{}]: index value does not exist.",
+                       vid, fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -121,7 +123,8 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
         FMA_ASSERT(index);
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError,
+            THROW_CODE(
+                InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
         }
@@ -137,9 +140,10 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Valu
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index edge with field "
+                       "value [{}:{}]: index value does not exist.",
+                       fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -153,9 +157,10 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index edge with field "
+                       "value [{}:{}]: index value does not exist.",
+                       fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -171,8 +176,8 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), euid)) {
             THROW_CODE(InputError,
-                "Failed to index edge with field value [{}:{}]: index value already exists.",
-                fe.Name(), fe.FieldToString(record));
+                       "Failed to index edge with field value [{}:{}]: index value already exists.",
+                       fe.Name(), fe.FieldToString(record));
         }
         created.push_back(idx);
     }
@@ -211,12 +216,12 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         return FieldData(extractor->GetConstRef(record).AsString());
     case FieldType::BLOB:
         LOG_ERROR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
-                     "Extractor, GetBlobKeyFunc)";
+                       "Extractor, GetBlobKeyFunc)";
     case FieldType::POINT:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -225,14 +230,14 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(PointCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
 
     case FieldType::LINESTRING:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -241,14 +246,14 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(LineStringCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
 
     case FieldType::POLYGON:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -257,14 +262,14 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(PolygonCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
 
     case FieldType::SPATIAL:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -273,12 +278,12 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(SpatialCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
     case FieldType::FLOAT_VECTOR:
-    {
-        return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
-    }
+        {
+            return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
+        }
     case FieldType::NUL:
         LOG_ERROR() << "FieldType NUL";
     }
@@ -407,50 +412,59 @@ Value Schema::CreateRecordWithLabelId() const {
 }
 
 void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
-    property_table_->AppendKv(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
+    property_table_->AppendKv(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
 }
 
 Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    return property_table_->GetValue(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
 }
 
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
-    auto ret = property_table_->SetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
-    FMA_ASSERT(ret);
+    auto ret = property_table_->SetValue(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid),
+                                         property);
+    if (!ret) {
+        THROW_CODE(InternalError, "Set: vid {} is not found in the detached property table.", vid);
+    }
 }
 
 void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    auto ret = property_table_->DeleteKey(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
-    FMA_ASSERT(ret);
+    auto ret = property_table_->DeleteKey(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    if (!ret) {
+        THROW_CODE(InternalError, "Delete: vid {} is not found in the detached property table.",
+                   vid);
+    }
 }
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    return property_table_->GetValue(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
 }
 
 void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
-    auto ret = property_table_->SetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
-    FMA_ASSERT(ret);
+    auto ret =
+        property_table_->SetValue(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
+    if (!ret) {
+        THROW_CODE(InternalError, "Set: euid {} is not found in the detached property table.",
+                   eid.ToString());
+    }
 }
 
 void Schema::AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
-    auto ret = property_table_->AddKV(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
-    FMA_ASSERT(ret);
+    auto ret =
+        property_table_->AddKV(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
+    if (!ret) {
+        THROW_CODE(InternalError, "Add: euid {} is found in the detached property table.",
+                   eid.ToString());
+    }
 }
 
 void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    auto ret = property_table_->DeleteKey(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
-    FMA_ASSERT(ret);
+    auto ret = property_table_->DeleteKey(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    if (!ret) {
+        THROW_CODE(InternalError, "Delete: euid {} is not found in the detached property table.",
+                   eid.ToString());
+    }
 }
 
 // clear fields, other contents are kept untouched
@@ -552,7 +566,8 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
             f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
             THROW_CODE(InputError,
-                "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"", label_);
+                       "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"",
+                       label_);
         }
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);

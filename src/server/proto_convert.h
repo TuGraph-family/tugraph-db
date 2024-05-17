@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,9 +71,9 @@ struct FieldDataConvert {
             {
                 std::vector<float> vec;
                 auto size = fd.fvector().fv_size();
-                for(int i = 0; i < size; i++) {
+                for (int i = 0; i < size; i++) {
                     vec.push_back(fd.release_fvector()->fv(i));
-                }            
+                }
                 return FieldData::FloatVector(vec);
             }
         }
@@ -119,9 +119,9 @@ struct FieldDataConvert {
             {
                 std::vector<float> vec;
                 auto size = fd.fvector().fv_size();
-                for(int i = 0; i < size; i++) {
+                for (int i = 0; i < size; i++) {
                     vec.push_back(fd.fvector().fv(i));
-                }            
+                }
                 return FieldData::FloatVector(vec);
             }
         }
@@ -165,10 +165,10 @@ struct FieldDataConvert {
             return ret->set_spatial(std::move(*fd.data.buf));
         case FieldType::FLOAT_VECTOR:
             {
-                lgraph::floatvector *point = new lgraph::floatvector;
-                for(float num: *fd.data.vp){
+                lgraph::floatvector* point = new lgraph::floatvector;
+                for (float num : *fd.data.vp) {
                     point->add_fv(num);
-                }     
+                }
                 return ret->set_allocated_fvector(point);
             }
         }
@@ -211,10 +211,10 @@ struct FieldDataConvert {
             return ret->set_spatial(*fd.data.buf);
         case FieldType::FLOAT_VECTOR:
             {
-                lgraph::floatvector *point = new lgraph::floatvector;
-                for(float num: *fd.data.vp){
+                lgraph::floatvector* point = new lgraph::floatvector;
+                for (float num : *fd.data.vp) {
                     point->add_fv(num);
-                }     
+                }
                 return ret->set_allocated_fvector(point);
             }
         }

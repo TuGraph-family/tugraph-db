@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ class SubmitQueryContext {
     lgraph::Galaxy *galaxy_ = nullptr;
     std::string user_;
     std::string graph_;
+    std::shared_ptr<std::unordered_map<std::string, parser::Expression>> bolt_parameters_;
     PARAM_TAB param_tab_;
     bool optimistic_ = false;
     bool path_unique_ = true;

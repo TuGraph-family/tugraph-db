@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -155,15 +155,13 @@ class LightningGraph {
     bool DelLabel(const std::string& label, bool is_vertex, size_t* n_modified);
 
     // alter label
-    template <typename GenNewSchema, typename MakeNewProp, typename ModifyIndex,
-              typename ModifyEdgeIndex>
+    template <typename GenNewSchema, typename MakeNewProp, typename ModifyIndex>
     bool _AlterLabel(
         bool is_vertex, const std::string& label,
         const GenNewSchema& gen_new_schema,                // std::function<Schema(Schema*)>
         const MakeNewProp& make_new_prop_and_destroy_old,  // std::function<Value(const Value&,
                                                            // Schema*, Schema*, Transaction&)>
         const ModifyIndex& modify_index,
-        const ModifyEdgeIndex & modify_edge_index,
         size_t* n_modified, size_t commit_size);
 
     bool AlterLabelModEdgeConstraints(const std::string& label,
@@ -194,6 +192,12 @@ class LightningGraph {
     // returns true if success, false if index already exists.
     bool BlockingAddIndex(const std::string& label, const std::string& field,
                           IndexType type, bool is_vertex, bool known_vid_range = false,
+                          VertexId start_vid = 0, VertexId end_vid = 0);
+
+    // adds an index, blocks until the index is ready
+    // returns true if success, false if index already exists.
+    bool BlockingAddCompositeIndex(const std::string& label, const std::vector<std::string>& fields,
+                          CompositeIndexType type, bool is_vertex, bool known_vid_range = false,
                           VertexId start_vid = 0, VertexId end_vid = 0);
 
     bool AddFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);
@@ -316,6 +320,10 @@ class LightningGraph {
     void BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
                          size_t field_id, IndexType type, VertexId start_vid, VertexId end_vid,
                          bool is_vertex = true);
+
+    void BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
+                         const std::vector<std::string> &fields, CompositeIndexType type,
+                         VertexId start_vid, VertexId end_vid, bool is_vertex = true);
 
     void Open();
 };

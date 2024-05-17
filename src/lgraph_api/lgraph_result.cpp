@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -213,6 +213,7 @@ void Record::Insert(const std::string &key, EdgeUid &uid, lgraph_api::Transactio
     repl.label_id = uid.lid;
     repl.label = core_txn->GetEdgeLabel(eit);
     repl.tid = uid.tid;
+    repl.forward = false;
     // repl.forward is unknown
     auto rel_fields = core_txn->GetEdgeFields(eit);
     for (auto &property : rel_fields) {
@@ -229,6 +230,7 @@ void Record::InsertEdgeByID(const std::string &key, const EdgeUid &uid) {
     repl.dst = uid.dst;
     repl.label_id = uid.lid;
     repl.tid = uid.tid;
+    repl.forward = false;
     // repl.label is unknown
     // repl.forward is unknown
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(repl));
@@ -396,10 +398,14 @@ std::vector<std::string> Result::BoltHeader() {
 
 std::vector<std::vector<std::any>> Result::BoltRecords() {
     std::vector<std::vector<std::any>> ret;
+    int64_t* v_eid = nullptr;
+    if (is_python_driver_) {
+        v_eid = &v_eid_;
+    }
     for (auto& record : result) {
         std::vector<std::any> line;
         for (auto& h : header) {
-            line.push_back(record.record.at(h.first)->ToBolt());
+            line.push_back(record.record.at(h.first)->ToBolt(v_eid));
         }
         ret.emplace_back(std::move(line));
     }

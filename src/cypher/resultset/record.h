@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,6 +97,14 @@ struct Entry {
     bool IsString() const { return type == CONSTANT && constant.IsString(); }
 
     bool IsNode() const { return type == NODE && node; }
+
+    bool IsPoint() const { return type == CONSTANT && constant.IsPoint(); }
+
+    bool IsLineString() const { return type == CONSTANT && constant.IsLineString(); }
+
+    bool IsPolygon() const { return type == CONSTANT && constant.IsPolygon(); }
+
+    bool IsSpatial() const { return type == CONSTANT && constant.IsSpatial(); }
 
     bool IsRelationship() const { return type == RELATIONSHIP && relationship; }
 

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,6 +107,10 @@ struct BasicConfigs {
     int ha_bootstrap_role = 0;
     bool ha_is_witness = false;    // node is witness or not
     bool ha_enable_witness_to_leader = false;  // enable witness to leader or not
+    std::string ha_first_snapshot_start_time = "";  // first snapshot start time
+                                                    // whose format is "HH:MM:SS",
+                                                    // and the default value is ""
+                                                    // indicating a random time.
 
     // log
     int verbose;

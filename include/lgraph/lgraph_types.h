@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -44,11 +44,16 @@ enum class AccessLevel {
 [[maybe_unused]]
 inline static std::string to_string(const AccessLevel& v) {
     switch (v) {
-        case AccessLevel::NONE:    return "NONE";
-        case AccessLevel::READ:    return "READ";
-        case AccessLevel::WRITE:   return "WRITE";
-        case AccessLevel::FULL:    return "FULL";
-        default:   throw std::runtime_error("Unknown AccessLevel");
+    case AccessLevel::NONE:
+        return "NONE";
+    case AccessLevel::READ:
+        return "READ";
+    case AccessLevel::WRITE:
+        return "WRITE";
+    case AccessLevel::FULL:
+        return "FULL";
+    default:
+        throw std::runtime_error("Unknown AccessLevel");
     }
 }
 
@@ -63,24 +68,28 @@ enum class FieldAccessLevel {
 [[maybe_unused]]
 inline static std::string to_string(const FieldAccessLevel& v) {
     switch (v) {
-        case FieldAccessLevel::NONE:    return "NONE";
-        case FieldAccessLevel::READ:    return "READ";
-        case FieldAccessLevel::WRITE:   return "WRITE";
-        default:   throw std::runtime_error("Unknown AccessLevel");
+    case FieldAccessLevel::NONE:
+        return "NONE";
+    case FieldAccessLevel::READ:
+        return "READ";
+    case FieldAccessLevel::WRITE:
+        return "WRITE";
+    default:
+        throw std::runtime_error("Unknown AccessLevel");
     }
 }
 
-enum class GraphQueryType {
-    CYPHER = 0,
-    GQL = 1
-};
+enum class GraphQueryType { CYPHER = 0, GQL = 1 };
 
 [[maybe_unused]]
 inline static std::string to_string(const GraphQueryType& v) {
     switch (v) {
-        case GraphQueryType::CYPHER:    return "CYPHER";
-        case GraphQueryType::GQL:       return "GQL";
-        default:   throw std::runtime_error("Unknown GraphQueryType");
+    case GraphQueryType::CYPHER:
+        return "CYPHER";
+    case GraphQueryType::GQL:
+        return "GQL";
+    default:
+        throw std::runtime_error("Unknown GraphQueryType");
     }
 }
 
@@ -277,21 +286,15 @@ enum class LGraphType : uint16_t {
     ANY = 0x80
 };
 
-inline auto LGraphTypeIsField(LGraphType type) -> bool {
-    return (uint16_t(type) & 0x10) != 0;
-}
+inline auto LGraphTypeIsField(LGraphType type) -> bool { return (uint16_t(type) & 0x10) != 0; }
 
 inline auto LGraphTypeIsGraphElement(LGraphType type) -> bool {
     return (uint16_t(type) & 0x20) != 0;
 }
 
-inline auto LGraphTypeIsCollection(LGraphType type) -> bool {
-    return (uint16_t(type) & 0x40) != 0;
-}
+inline auto LGraphTypeIsCollection(LGraphType type) -> bool { return (uint16_t(type) & 0x40) != 0; }
 
-inline auto LGraphTypeIsAny(LGraphType type) -> bool {
-    return type == LGraphType::ANY;
-}
+inline auto LGraphTypeIsAny(LGraphType type) -> bool { return type == LGraphType::ANY; }
 
 inline const std::string to_string(LGraphType type) {
     switch (type) {
@@ -556,9 +559,8 @@ struct FieldData {
     static inline FieldData String(const char* str) { return FieldData(str); }
     static inline FieldData String(const char* p, size_t s) { return FieldData(p, s); }
 
-    static inline FieldData Point(const ::lgraph_api::Point<Cartesian>& p) {
-    return FieldData(p); }
-    static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) {return FieldData(p); }
+    static inline FieldData Point(const ::lgraph_api::Point<Cartesian>& p) { return FieldData(p); }
+    static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) { return FieldData(p); }
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
         case ::lgraph_api::SRID::NUL:
@@ -573,9 +575,11 @@ struct FieldData {
     }
 
     static inline FieldData LineString(const ::lgraph_api::LineString<Cartesian>& l) {
-        return FieldData(l); }
+        return FieldData(l);
+    }
     static inline FieldData LineString(const ::lgraph_api::LineString<Wgs84>& l) {
-        return FieldData(l); }
+        return FieldData(l);
+    }
     static inline FieldData LineString(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
         case ::lgraph_api::SRID::NUL:
@@ -590,8 +594,9 @@ struct FieldData {
     }
 
     static inline FieldData Polygon(const ::lgraph_api::Polygon<Cartesian>& p) {
-    return FieldData(p); }
-    static inline FieldData Polygon(const ::lgraph_api::Polygon<Wgs84>& p) {return FieldData(p); }
+        return FieldData(p);
+    }
+    static inline FieldData Polygon(const ::lgraph_api::Polygon<Wgs84>& p) { return FieldData(p); }
     static inline FieldData Polygon(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
         case ::lgraph_api::SRID::NUL:
@@ -606,8 +611,9 @@ struct FieldData {
     }
 
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Cartesian>& s) {
-    return FieldData(s); }
-    static inline FieldData Spatial(const ::lgraph_api::Spatial<Wgs84>& s) {return FieldData(s); }
+        return FieldData(s);
+    }
+    static inline FieldData Spatial(const ::lgraph_api::Spatial<Wgs84>& s) { return FieldData(s); }
     static inline FieldData Spatial(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
         case ::lgraph_api::SRID::NUL:
@@ -729,8 +735,8 @@ struct FieldData {
     }
 
     /**
-     * @brief   Access the FieldData as std::string. Valid only for STRING, BLOB and SPATIAL. BLOB data is
-     *          returned as-is, since std::string can also hold byte array.
+     * @brief   Access the FieldData as std::string. Valid only for STRING, BLOB and SPATIAL. BLOB
+     * data is returned as-is, since std::string can also hold byte array.
      *
      * @exception   std::bad_cast   Thrown when a bad cast error condition occurs.
      *
@@ -826,59 +832,51 @@ struct FieldData {
     }
 
     inline ::lgraph_api::Point<::lgraph_api::Wgs84> AsWgsPoint() const {
-        if (type == FieldType::POINT) return ::lgraph_api::Point
-        <::lgraph_api::Wgs84>(*data.buf);
+        if (type == FieldType::POINT) return ::lgraph_api::Point<::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
     inline ::lgraph_api::Point<::lgraph_api::Cartesian> AsCartesianPoint() const {
-        if (type == FieldType::POINT) return ::lgraph_api::Point
-        <::lgraph_api::Cartesian>(*data.buf);
+        if (type == FieldType::POINT)
+            return ::lgraph_api::Point<::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::LineString<::lgraph_api::Wgs84> AsWgsLineString()
-    const {
-        if (type == FieldType::LINESTRING) return ::lgraph_api::LineString
-        <::lgraph_api::Wgs84>(*data.buf);
+    inline ::lgraph_api::LineString<::lgraph_api::Wgs84> AsWgsLineString() const {
+        if (type == FieldType::LINESTRING)
+            return ::lgraph_api::LineString<::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::LineString<::lgraph_api::Cartesian> AsCartesianLineString()
-    const {
-        if (type == FieldType::LINESTRING) return ::lgraph_api::LineString
-        <::lgraph_api::Cartesian>(*data.buf);
+    inline ::lgraph_api::LineString<::lgraph_api::Cartesian> AsCartesianLineString() const {
+        if (type == FieldType::LINESTRING)
+            return ::lgraph_api::LineString<::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
     inline ::lgraph_api::Polygon<::lgraph_api::Wgs84> AsWgsPolygon() const {
-        if (type == FieldType::POLYGON) return ::lgraph_api::Polygon
-        <::lgraph_api::Wgs84>(*data.buf);
+        if (type == FieldType::POLYGON)
+            return ::lgraph_api::Polygon<::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
     inline ::lgraph_api::Polygon<::lgraph_api::Cartesian> AsCartesianPolygon() const {
-        if (type == FieldType::POLYGON) return ::lgraph_api::Polygon
-        <::lgraph_api::Cartesian>(*data.buf);
+        if (type == FieldType::POLYGON)
+            return ::lgraph_api::Polygon<::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::Spatial<::lgraph_api::Wgs84> AsWgsSpatial()
-    const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
-        <::lgraph_api::Wgs84>(*data.buf);
+    inline ::lgraph_api::Spatial<::lgraph_api::Wgs84> AsWgsSpatial() const {
+        if (IsSpatial()) return ::lgraph_api::Spatial<::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial()
-    const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
-        <::lgraph_api::Cartesian>(*data.buf);
+    inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial() const {
+        if (IsSpatial()) return ::lgraph_api::Spatial<::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
 
-    inline std::vector<float> AsFloatVector() 
-    const {
+    inline std::vector<float> AsFloatVector() const {
         if (type == FieldType::FLOAT_VECTOR) return *data.vp;
         throw std::bad_cast();
     }
@@ -1179,7 +1177,9 @@ struct FieldData {
     bool IsPolygon() const { return type == FieldType::POLYGON; }
 
     /** @brief   Query if this object is spatial*/
-    bool IsSpatial() const { return type == FieldType::SPATIAL; }
+    bool IsSpatial() const {
+        return type == FieldType::SPATIAL || IsPoint() || IsLineString() || IsPolygon();
+    }
 
     /** @brief   Query if this object is float vector*/
     bool IsFloatVector() const { return type == FieldType::FLOAT_VECTOR; }
@@ -1251,6 +1251,13 @@ enum class IndexType {
     PairUniqueIndex = 2
 };
 
+enum class CompositeIndexType {
+    /** @brief this is not unique composite index
+     *  Temporarily require all attributes to be non-empty attributes
+     * */
+    UniqueIndex = 1
+};
+
 /** @brief   An index specifier. */
 struct IndexSpec {
     /** @brief   label name */
@@ -1286,20 +1293,22 @@ struct EdgeUid {
                tid == rhs.tid;
     }
 
+    inline bool operator!=(const EdgeUid& rhs) const { return !this->operator==(rhs); }
+
     inline bool operator<(const EdgeUid& rhs) const {
         return src < rhs.src || (src == rhs.src && dst < rhs.dst) ||
                (src == rhs.src && dst == rhs.dst && lid < rhs.lid) ||
                (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid < rhs.tid) ||
-               (src == rhs.src && dst == rhs.dst && lid == rhs.lid &&
-                tid == rhs.tid && eid < rhs.eid);
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid == rhs.tid &&
+                eid < rhs.eid);
     }
 
     inline bool operator>(const EdgeUid& rhs) const {
         return src > rhs.src || (src == rhs.src && dst > rhs.dst) ||
                (src == rhs.src && dst == rhs.dst && lid > rhs.lid) ||
                (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid > rhs.tid) ||
-               (src == rhs.src && dst == rhs.dst && lid == rhs.lid &&
-                tid == rhs.tid && eid > rhs.eid);
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid == rhs.tid &&
+                eid > rhs.eid);
     }
 
     /** @brief  Get string representation of this object */

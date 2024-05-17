@@ -115,6 +115,7 @@ add_executable(unit_test
         test_vertex_index.cpp
         test_vid_table.cpp
         test_edge_constraint.cpp
+        test_upsert.cpp
         test_olap_vertex_traversal.cpp
         test_lgraph_log.cpp
         test_detach_property.cpp
@@ -127,6 +128,9 @@ add_executable(unit_test
         test_lgraph_cli.cpp
         test_ha_witness.cpp
         test_ha_full_import.cpp
+        test_del_detached_label.cpp
+        test_null_index.cpp
+        test_alter_detached_label.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
         ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp

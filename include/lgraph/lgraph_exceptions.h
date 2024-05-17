@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -75,7 +75,8 @@ X(TxnCommitException, "Txn commit exception.") \
 X(ReminderException, "Reminder exception.") \
 X(GraphCreateException, "Graph create exception.") \
 X(CypherParameterTypeError, "Cypher parameter type error.") \
-X(ReachMaximumEid, "Edge eid exceeds the limit.")
+X(ReachMaximumEid, "Edge eid exceeds the limit.")      \
+X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds the limit.")
 
 enum class ErrorCode {
 #define X(code, msg) code,

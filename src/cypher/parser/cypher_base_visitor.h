@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,8 +197,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    std::any visitOC_SinglePartQuery(
-        LcypherParser::OC_SinglePartQueryContext *ctx) override {
+    std::any visitOC_SinglePartQuery(LcypherParser::OC_SinglePartQueryContext *ctx) override {
         if (ctx->oC_ReadingClause().size() > 2) CYPHER_TODO();
         return visitChildren(ctx);
     }
@@ -503,9 +502,8 @@ class CypherBaseVisitor : public LcypherVisitor {
             };
             for (auto &yield_item : yield_items) {
                 if (!pp->ContainsYieldItem(yield_item)) {
-                    THROW_CODE(InputError,
-                        "yield item [{}] is not exsit, should be one of {}", yield_item,
-                                concat_str(pp));
+                    THROW_CODE(InputError, "yield item [{}] is not exsit, should be one of {}",
+                               yield_item, concat_str(pp));
                 }
                 auto type = lgraph_api::LGraphType::NUL;
                 for (auto &r : pp->signature.result_list) {
@@ -546,8 +544,7 @@ class CypherBaseVisitor : public LcypherVisitor {
                         sig_spec->result_list.cbegin(), sig_spec->result_list.cend(),
                         [&yield_item](const auto &param) { return yield_item == param.name; });
                     if (iter == sig_spec->result_list.cend()) {
-                        THROW_CODE(InputError,
-                            "yield item [{}] is not exist", yield_item);
+                        THROW_CODE(InputError, "yield item [{}] is not exist", yield_item);
                     }
                     auto type = lgraph_api::LGraphType::NUL;
                     for (auto &r : sig_spec->result_list) {
@@ -642,8 +639,7 @@ class CypherBaseVisitor : public LcypherVisitor {
                 }
                 // sort_item alias is not in return_item
                 if (!sort_idx_found) {
-                    THROW_CODE(InputError,
-                        "Variable `{}` not defined", sort_item.first.ToString());
+                    THROW_CODE(InputError, "Variable `{}` not defined", sort_item.first.ToString());
                 }
             }
             CYPHER_THROW_ASSERT(sort_items_idx.size() == sort_items.size());
@@ -857,8 +853,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return std::make_tuple(direction, relationship_detail);
     }
 
-    std::any visitOC_RelationshipDetail(
-        LcypherParser::OC_RelationshipDetailContext *ctx) override {
+    std::any visitOC_RelationshipDetail(LcypherParser::OC_RelationshipDetailContext *ctx) override {
         std::string variable;
         VEC_STR relationship_types;
         std::array<int, 2> range_literal{-1, -1};
@@ -888,17 +883,29 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     std::any visitOC_Properties(LcypherParser::OC_PropertiesContext *ctx) override {
-        if (ctx->oC_MapLiteral() == nullptr) {
-            CYPHER_TODO();
-            return visitChildren(ctx);
-        }
-        Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
         std::string parameter;
-        return std::make_tuple(map_literal, parameter);
+        if (ctx->oC_MapLiteral()) {
+            Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
+            return std::make_tuple(map_literal, parameter);
+        } else if (ctx->oC_Parameter()) {
+            std::string parameter_val = ctx->oC_Parameter()->getText();
+            if (ctx_->bolt_parameters_) {
+                auto iter = ctx_->bolt_parameters_->find(parameter_val);
+                if (iter == ctx_->bolt_parameters_->end()) {
+                    throw lgraph::CypherException(
+                        FMA_FMT("Parameter {} missing value", parameter_val));
+                }
+                if (iter->second.type != Expression::DataType::MAP) {
+                    throw lgraph::CypherException(
+                        FMA_FMT("Parameter {} should be MAP type", parameter_val));
+                }
+                return std::make_tuple(iter->second, parameter);
+            }
+        }
+        CYPHER_TODO();
     }
 
-    std::any visitOC_RelationshipTypes(
-        LcypherParser::OC_RelationshipTypesContext *ctx) override {
+    std::any visitOC_RelationshipTypes(LcypherParser::OC_RelationshipTypesContext *ctx) override {
         VEC_STR relationship_types;
         for (auto &ctx_name : ctx->oC_RelTypeName()) {
             std::string name = std::any_cast<std::string>(visit(ctx_name));
@@ -909,9 +916,8 @@ class CypherBaseVisitor : public LcypherVisitor {
 
     std::any visitOC_NodeLabels(LcypherParser::OC_NodeLabelsContext *ctx) override {
         if (ctx->oC_NodeLabel().size() > 1) {
-            LOG_WARN()
-                << "More than one labels are provided, the first is picked [" << ctx->getText()
-                << "]";
+            LOG_WARN() << "More than one labels are provided, the first is picked ["
+                       << ctx->getText() << "]";
         }
         VEC_STR labels;
         for (auto &ctx_label : ctx->oC_NodeLabel()) {
@@ -1169,8 +1175,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    std::any visitOC_PowerOfExpression(
-        LcypherParser::OC_PowerOfExpressionContext *ctx) override {
+    std::any visitOC_PowerOfExpression(LcypherParser::OC_PowerOfExpressionContext *ctx) override {
         if (ctx->oC_UnaryAddOrSubtractExpression().size() == 1) {
             return visit(ctx->oC_UnaryAddOrSubtractExpression(0));
         }
@@ -1397,6 +1402,13 @@ class CypherBaseVisitor : public LcypherVisitor {
             return expr;
         } else if (ctx->oC_Parameter()) {
             std::string parameter = ctx->oC_Parameter()->getText();
+            if (ctx_->bolt_parameters_) {
+                auto iter = ctx_->bolt_parameters_->find(parameter);
+                if (iter == ctx_->bolt_parameters_->end()) {
+                    throw lgraph::CypherException(FMA_FMT("Parameter {} missing value", parameter));
+                }
+                return iter->second;
+            }
             AddSymbol(parameter, cypher::SymbolNode::PARAMETER, cypher::SymbolNode::LOCAL);
             Expression expr;
             expr.type = Expression::PARAMETER;
@@ -1442,10 +1454,16 @@ class CypherBaseVisitor : public LcypherVisitor {
             return visitChildren(ctx);
         } else if (ctx->StringLiteral() != nullptr) {
             auto str = ctx->StringLiteral()->getText();
-            CYPHER_THROW_ASSERT(!str.empty() && (str[0] == '\'' || str[0] == '\"') &&
-                                (str[str.size() - 1] == '\'' || str[str.size() - 1] == '\"'));
+            std::string res;
+            // remove escape character
+            for (size_t i = 1; i < str.length() - 1; i++) {
+                if (str[i] == '\\') {
+                    i++;
+                }
+                res.push_back(str[i]);
+            }
             expr.type = Expression::STRING;
-            expr.data = std::make_shared<std::string>(str.substr(1, str.size() - 2));
+            expr.data = std::make_shared<std::string>(std::move(res));
             return expr;
         } else if (ctx->oC_BooleanLiteral() != nullptr) {
             return visitChildren(ctx);
@@ -1524,8 +1542,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return std::make_tuple(node_pattern, pattern_element_chains);
     }
 
-    std::any visitOC_FilterExpression(
-        LcypherParser::OC_FilterExpressionContext *ctx) override {
+    std::any visitOC_FilterExpression(LcypherParser::OC_FilterExpressionContext *ctx) override {
         return visitChildren(ctx);
     }
 
@@ -1533,8 +1550,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    std::any visitOC_FunctionInvocation(
-        LcypherParser::OC_FunctionInvocationContext *ctx) override {
+    std::any visitOC_FunctionInvocation(LcypherParser::OC_FunctionInvocationContext *ctx) override {
         Expression ret;
         std::string name = std::any_cast<std::string>(visit(ctx->oC_FunctionName()));
         if (name == "EXISTS") {
@@ -1648,8 +1664,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return name_space;
     }
 
-    std::any visitOC_ListComprehension(
-        LcypherParser::OC_ListComprehensionContext *ctx) override {
+    std::any visitOC_ListComprehension(LcypherParser::OC_ListComprehensionContext *ctx) override {
         auto var = ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()->getText();
         Expression var_expr;
         var_expr.type = Expression::VARIABLE;
@@ -1712,8 +1727,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return ret;
     }
 
-    std::any visitOC_CaseAlternatives(
-        LcypherParser::OC_CaseAlternativesContext *ctx) override {
+    std::any visitOC_CaseAlternatives(LcypherParser::OC_CaseAlternativesContext *ctx) override {
         Expression e0 = std::any_cast<Expression>(visit(ctx->oC_Expression(0)));
         Expression e1 = std::any_cast<Expression>(visit(ctx->oC_Expression(1)));
         return std::make_pair(e0, e1);
@@ -1748,8 +1762,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return visitChildren(ctx);
     }
 
-    std::any visitOC_PropertyExpression(
-        LcypherParser::OC_PropertyExpressionContext *ctx) override {
+    std::any visitOC_PropertyExpression(LcypherParser::OC_PropertyExpressionContext *ctx) override {
         Expression expr;
         Expression atom = std::any_cast<Expression>(visit(ctx->oC_Atom()));
         std::string key_name = std::any_cast<std::string>(visit(ctx->oC_PropertyLookup(0)));
@@ -1760,8 +1773,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return expr;
     }
 
-    std::any visitOC_PropertyKeyName(
-        LcypherParser::OC_PropertyKeyNameContext *ctx) override {
+    std::any visitOC_PropertyKeyName(LcypherParser::OC_PropertyKeyNameContext *ctx) override {
         return visitChildren(ctx);
     }
 
@@ -1822,9 +1834,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         // TODO(anyone) The Lcypher parser parse the following `WORD` in StandaloneCall parameter as
         // VARIABLE IT SHOULD BE PARSED AS KEYWORD. THIS IS A WORKAROUND WAY. SEE ISSUE: #164
         static const std::vector<std::string> excluded_set = {
-            "INT8",   "INT16", "INT32",    "INT64", "FLOAT", "DOUBLE",
-            "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",  
-            "FLOAT_VECTOR", "DOUBLE_VECTOR", "BIN_VECTOR",
+            "INT8",       "INT16",   "INT32",    "INT64",        "FLOAT", "DOUBLE",
+            "STRING",     "DATE",    "DATETIME", "BLOB",         "BOOL",  "POINT",
+            "LINESTRING", "POLYGON", "SPATIAL",  "FLOAT_VECTOR",
         };
         if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
                 std::string upper_var(var.size(), ' ');

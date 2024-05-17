@@ -100,7 +100,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.2
 
 # install tugraph-db-browser dependencies
 RUN cd /usr/local/share/lgraph/tugraph-db-browser \
-    && pnpm run boostrap \
+    && pnpm run bootstrap \
     && pnpm run build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
