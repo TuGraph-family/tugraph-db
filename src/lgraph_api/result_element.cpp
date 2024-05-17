@@ -52,6 +52,9 @@ bolt::Node Node::ToBolt() {
 }
 
 nlohmann::json Relationship::ToJson() {
+    if (id == -1) {
+        return json("__null__");;
+    }
     json result;
     std::map<std::string, json> j_properties;
     result["identity"] = id;
@@ -417,9 +420,17 @@ std::any ResultElement::ToBolt(int64_t* v_eid) {
         }
         return ret;*/
     } else if (type_ == LGraphType::NODE) {
-        return v.node->ToBolt();
+        if (v.node->id == -1) {
+            return {};
+        } else {
+            return v.node->ToBolt();
+        }
     } else if (type_ == LGraphType::RELATIONSHIP) {
-        return v.repl->ToBolt(v_eid);
+        if (v.repl->id == -1) {
+            return {};
+        } else {
+            return v.repl->ToBolt(v_eid);
+        }
     } else if (type_ == LGraphType::PATH) {
         bolt::InternalPath path;
         for (size_t i = 0; i < v.path->size(); i++) {
