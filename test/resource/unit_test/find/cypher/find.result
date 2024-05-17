@@ -18,4 +18,4 @@ MATCH (a:Person) WHERE a.birthyear >= 1960 XOR id(a) > 10 RETURN a,a.birthyear;
 MATCH (n {name:'Vanessa Redgrave'}) RETURN n;
 [{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
 MATCH (n:Person)-[r:BORN_IN]->() WHERE abs(r.weight-20.21)<0.00001 RETURN n,r,r.weight;
-[{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 10:00:00","weight":20.209999084472656},"src":2,"temporal_id":0},"r.weight":20.209999084472656}]
+[{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 10:00:00","weight":20.21},"src":2,"temporal_id":0},"r.weight":20.21}]
