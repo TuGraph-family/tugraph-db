@@ -1082,7 +1082,8 @@ TEST_F(TestLGraphApi, deleteAllVertex) {
                                          {"unique_index", FieldType::INT32, false}}),
                                      vo));
     UT_EXPECT_TRUE(db.AddVertexIndex("Person", "index", lgraph_api::IndexType::NonuniqueIndex));
-    UT_EXPECT_TRUE(db.AddVertexIndex("Person", "unique_index", lgraph_api::IndexType::GlobalUniqueIndex));
+    UT_EXPECT_TRUE(db.AddVertexIndex(
+        "Person", "unique_index", lgraph_api::IndexType::GlobalUniqueIndex));
     EdgeOptions eo;
     eo.detach_property = true;
     UT_EXPECT_TRUE(db.AddEdgeLabel("Relation",
@@ -1091,28 +1092,95 @@ TEST_F(TestLGraphApi, deleteAllVertex) {
                                        {"index", FieldType::INT32, false},
                                        {"unique_index", FieldType::INT32, false}}),
                                    eo));
-    UT_EXPECT_TRUE(db.AddVertexIndex("Relation", "index", lgraph_api::IndexType::NonuniqueIndex));
-    UT_EXPECT_TRUE(db.AddVertexIndex("Relation", "unique_index", lgraph_api::IndexType::GlobalUniqueIndex));
-    std::vector<std::string> vp{"id","index","unique_index"};
-    std::vector<std::string> ep{"id","index","unique_index"};
+    UT_EXPECT_TRUE(db.AddEdgeIndex("Relation", "index", lgraph_api::IndexType::NonuniqueIndex));
+    UT_EXPECT_TRUE(db.AddEdgeIndex(
+        "Relation", "unique_index", lgraph_api::IndexType::GlobalUniqueIndex));
+    std::vector<std::string> vp{"id", "index", "unique_index"};
+    std::vector<std::string> ep{"id", "index", "unique_index"};
     auto txn = db.CreateWriteTxn();
     std::vector<int64_t> vids;
     for (int i = 0; i < 100; i++) {
         auto vid = txn.AddVertex(
             std::string("Person"), vp,
-            {FieldData::Int32(1), FieldData::Int32(1), FieldData::Int32(1)});
+            {FieldData::Int32(i), FieldData::Int32(i), FieldData::Int32(i)});
         vids.push_back(vid);
     }
     for (int i = 0; i < vids.size()-1; i++) {
         txn.AddEdge(vids[i], vids[i+1],
             std::string("Relation"), vp,
-            {FieldData::Int32(1), FieldData::Int32(1), FieldData::Int32(1)});
+            {FieldData::Int32(i), FieldData::Int32(i), FieldData::Int32(i)});
     }
     txn.Commit();
     txn = db.CreateReadTxn();
+    std::vector<std::tuple<bool, std::string, int64_t>> expect{
+        {true, "Person", 100},
+        {false, "Relation", 99}
+    };
     auto detail = txn.CountDetail();
-    for (auto& item : detail) {
-        std::cout << FMA_FMT("{}", item) << std::endl;
+    UT_EXPECT_EQ(expect, detail);
+    txn.Abort();
+    db.DropAllVertex();
+    txn = db.CreateReadTxn();
+    int count = 0;
+    for (auto iter = txn.GetVertexIterator(); iter.IsValid(); iter.Next()) {
+        count++;
     }
+    UT_EXPECT_EQ(count, 0);
+    txn.Abort();
+    auto check_index = [&db](bool is_vertex, const std::string& label, const std::string& field){
+        auto txn = db.CreateReadTxn();
+        int count = 0;
+        if (is_vertex) {
+            for (auto iter = txn.GetVertexIndexIterator(
+                     label, field,
+                     FieldData::Int32(0), FieldData::Int32(1000000));
+                 iter.IsValid(); iter.Next()) {
+                count++;
+            }
+        } else {
+            for (auto iter = txn.GetEdgeIndexIterator(
+                     label, field,
+                     FieldData::Int32(0), FieldData::Int32(1000000));
+                 iter.IsValid(); iter.Next()) {
+                count++;
+            }
+        }
+        UT_EXPECT_EQ(count, 0);
+    };
+    check_index(true, "Person", "id");
+    check_index(true, "Person", "index");
+    check_index(true, "Person", "unique_index");
+    check_index(false, "Relation", "index");
+    check_index(false, "Relation", "unique_index");
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "Person", 0},
+        {false, "Relation", 0}
+    };
+    detail = txn.CountDetail();
+    UT_EXPECT_EQ(expect, detail);
+    txn.Abort();
+
+    vids.clear();
+    txn = db.CreateWriteTxn();
+    for (int i = 0; i < 100; i++) {
+        auto vid = txn.AddVertex(
+            std::string("Person"), vp,
+            {FieldData::Int32(i), FieldData::Int32(i), FieldData::Int32(i)});
+        vids.push_back(vid);
+    }
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn.AddEdge(vids[i], vids[i+1],
+                    std::string("Relation"), vp,
+                    {FieldData::Int32(i), FieldData::Int32(i), FieldData::Int32(i)});
+    }
+    txn.Commit();
+    txn = db.CreateReadTxn();
+    expect = {
+        {true, "Person", 100},
+        {false, "Relation", 99}
+    };
+    detail = txn.CountDetail();
+    UT_EXPECT_EQ(expect, detail);
     txn.Abort();
 }
