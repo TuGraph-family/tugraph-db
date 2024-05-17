@@ -8,12 +8,11 @@ WITH_PROCEDURE=${3:-"OFF"}
 cd $WORKSPACE
 
 # cpplint check
-#bash ./cpplint/doc_gen.sh
+bash ./cpplint/doc_gen.sh
 bash ./cpplint/check_all.sh
 
 # build deps
 cd deps
-
 bash ./build_deps.sh -j2
 
 # build tugraph
