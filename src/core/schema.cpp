@@ -640,7 +640,7 @@ const std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
         std::vector<std::string> ids;
         boost::split(ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
         std::vector<std::string> fields;
-        for (int i = 0; i < ids.size(); i++) {
+        for (int i = 0; i < (int)ids.size(); i++) {
             fields.emplace_back(this->fields_[std::stoi(ids[i])].Name());
         }
         compositeIndexSpecList.push_back({label_, fields, kv.second->type_});
