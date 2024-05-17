@@ -254,6 +254,9 @@ class LightningGraph {
     bool IsIndexed(const std::string& label, const std::string& field, bool is_vertex);
     bool DeleteIndex(const std::string& label, const std::string& field, bool is_vertex);
 
+    bool DeleteCompositeIndex(const std::string& label,
+                              const std::vector<std::string>& fields, bool is_vertex);
+
     /** Drop all index */
     void DropAllIndex();
 

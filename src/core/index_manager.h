@@ -225,6 +225,9 @@ class IndexManager {
 
     bool DeleteEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field);
 
+    bool DeleteVertexCompositeIndex(KvTransaction& txn, const std::string& label,
+                                    const std::vector<std::string>& fields);
+
     bool DeleteFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                              const std::string& field);
 

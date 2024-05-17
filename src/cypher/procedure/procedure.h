@@ -354,6 +354,9 @@ class BuiltinProcedure {
     static void DbDeleteEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                              const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -1056,6 +1059,11 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.deleteEdgeIndex", BuiltinProcedure::DbDeleteEdgeIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.deleteCompositeIndex", BuiltinProcedure::DbDeleteCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_name", {1, lgraph_api::LGraphType::LIST}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.flushDB", BuiltinProcedure::DbFlushDB, Procedure::SIG_SPEC{},

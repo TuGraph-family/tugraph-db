@@ -200,4 +200,17 @@ bool IndexManager::DeleteEdgeIndex(KvTransaction& txn, const std::string& label,
     return true;
 }
 
+bool IndexManager::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
+                                              const std::string& label,
+                                              const std::vector<std::string>& fields) {
+    std::string table_name = GetVertexCompositeIndexTableName(label, fields);
+    // delete the entry from index list table
+    if (!index_list_table_->DeleteKey(txn, Value::ConstRef(table_name)))
+        return false;  // does not exist
+                       // now delete the index table
+    bool r = db_->GetStore().DeleteTable(txn, table_name);
+    FMA_DBG_ASSERT(r);
+    return true;
+}
+
 }  // namespace lgraph

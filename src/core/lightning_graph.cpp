@@ -1763,9 +1763,10 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
                                                bool known_vid_range, VertexId start_vid,
                                                VertexId end_vid) {
     _HoldWriteLock(meta_lock_);
-    if (fields.size() > _detail::MAX_COMPOSITE_FILED_SIZE)
+    std::string field_names = "[" + boost::algorithm::join(fields, ",") + "]";
+    if (fields.size() > _detail::MAX_COMPOSITE_FILED_SIZE || fields.size() < 2)
         THROW_CODE(InputError, "The number of fields({}) in the combined index "
-                   "exceeds the maximum limit.", fields.size());
+                   "exceeds the maximum limit.", field_names);
     Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
@@ -1796,7 +1797,6 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
     }
     if (schema->GetCompositeIndex(fields) != nullptr)
         return false;
-    std::string field_names = "[" + boost::algorithm::join(fields, ",") + "]";
     if (is_vertex) {
         std::unique_ptr<CompositeIndex> composite_index;
         bool success = index_manager_->AddVertexCompositeIndex(txn.GetTxn(), label, fields,
@@ -2556,6 +2556,37 @@ bool LightningGraph::DeleteIndex(const std::string& label, const std::string& fi
         // if success, cancel revert
         revert_assign_new_schema.Cancel();
         return true;
+    }
+    return false;
+}
+
+bool LightningGraph::DeleteCompositeIndex(const std::string& label,
+                                          const std::vector<std::string>& fields,
+                                          bool is_vertex) {
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
+    ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
+    Schema* schema = is_vertex ? curr_schema->v_schema_manager.GetSchema(label)
+                               : curr_schema->e_schema_manager.GetSchema(label);
+    std::unique_ptr<SchemaInfo> old_schema_backup(new SchemaInfo(*curr_schema.Get()));
+    if (!schema) throw LabelNotExistException(label);
+    if (is_vertex) {
+        if (!schema->GetCompositeIndex(fields)) return false;
+        std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
+        schema = new_schema->v_schema_manager.GetSchema(label);
+        bool deleted = true;
+        schema->UnVertexCompositeIndex(fields);
+        deleted = index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), label, fields);
+        if (deleted) {
+            // install the new schema
+            schema_.Assign(new_schema.release());
+            AutoCleanupAction revert_assign_new_schema(
+                [&]() { schema_.Assign(old_schema_backup.release()); });
+            txn.Commit();
+            // if success, cancel revert
+            revert_assign_new_schema.Cancel();
+            return true;
+        }
     }
     return false;
 }
