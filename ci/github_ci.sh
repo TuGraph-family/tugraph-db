@@ -8,7 +8,7 @@ WITH_PROCEDURE=${3:-"OFF"}
 cd $WORKSPACE
 
 # cpplint check
-bash ./cpplint/doc_gen.sh
+#bash ./cpplint/doc_gen.sh
 bash ./cpplint/check_all.sh
 
 # build deps

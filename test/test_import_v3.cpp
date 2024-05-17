@@ -3024,7 +3024,7 @@ TEST_F(TestImportV3, ImportV3Multi) {
     }
 }
 
-/*TEST_F(TestImportV3, TestEdgeIndexCreate) {
+TEST_F(TestImportV3, TestEdgeIndexCreate) {
     GraphFactory::create_graph(GraphFactory::GRAPH_DATASET_TYPE::FB, "./testdb");
     std::shared_ptr<lgraph_api::Galaxy> galaxy = std::make_shared<lgraph_api::Galaxy>(
         "./testdb", lgraph::_detail::DEFAULT_ADMIN_NAME,
@@ -3036,4 +3036,4 @@ TEST_F(TestImportV3, ImportV3Multi) {
                                {FieldData(""), FieldData("")});
     UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "id", IndexType::PairUniqueIndex));
     UT_EXPECT_TRUE(db.AddEdgeIndex("edge", "name", IndexType::NonuniqueIndex));
-}*/
+}
