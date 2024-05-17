@@ -12,6 +12,7 @@ bash ./cpplint/check_all.sh
 
 # build deps
 cd deps
+
 bash ./build_deps.sh -j2
 
 # build tugraph
