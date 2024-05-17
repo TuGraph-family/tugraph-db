@@ -1368,6 +1368,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
         auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
         session->state = bolt::SessionState::STREAMING;
+        ctx->result_->MarkPythonDriver(session->python_driver);
     }
 
     try {

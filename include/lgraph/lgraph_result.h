@@ -194,6 +194,8 @@ class Result {
     std::vector<Record> result;
     std::vector<std::pair<std::string, LGraphType>> header;
     int64_t row_count_;
+    bool is_python_driver_ = false;
+    int64_t v_eid_ = 0;  // virtual edge id
 
  public:
     Result();
@@ -293,7 +295,14 @@ class Result {
     void ClearRecords();
 
     std::vector<std::string> BoltHeader();
-    std::vector<std::vector<std::any>> BoltRecords(bool python_driver);
+    std::vector<std::vector<std::any>> BoltRecords();
+    /**
+     * @brief Mark that the result is returned to python driver.
+     *  Python driver is special, use the virtual edge id instead of the real edge id
+     */
+    void MarkPythonDriver(bool is_python_driver) {
+        is_python_driver_ = is_python_driver;
+    }
 
  private:
     /**

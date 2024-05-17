@@ -72,11 +72,13 @@ nlohmann::json Relationship::ToJson() {
     return result;
 }
 
-// fix neo4j python driver
-bolt::RelNode Relationship::ToBoltUnbound(int64_t virtual_edge_id) {
+bolt::RelNode Relationship::ToBoltUnbound(int64_t* v_eid) {
     bolt::RelNode rel;
-    // rel.id = id;
-    rel.id = virtual_edge_id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.name = label;
     for (auto &pair : properties) {
         rel.props.emplace(pair.first, pair.second.ToBolt());
@@ -84,19 +86,13 @@ bolt::RelNode Relationship::ToBoltUnbound(int64_t virtual_edge_id) {
     return rel;
 }
 
-bolt::RelNode Relationship::ToBoltUnbound() {
-    bolt::RelNode rel;
-    rel.id = id;
-    rel.name = label;
-    for (auto &pair : properties) {
-        rel.props.emplace(pair.first, pair.second.ToBolt());
-    }
-    return rel;
-}
-
-bolt::Relationship Relationship::ToBolt() {
+bolt::Relationship Relationship::ToBolt(int64_t* v_eid) {
     bolt::Relationship rel;
-    rel.id = id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.startId = src;
     rel.endId = dst;
     rel.type = label;
@@ -369,7 +365,7 @@ json ResultElement::ToJson() {
     return result;
 }
 
-std::any ResultElement::ToBolt(bool python_driver) {
+std::any ResultElement::ToBolt(int64_t* v_eid) {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
@@ -423,7 +419,7 @@ std::any ResultElement::ToBolt(bool python_driver) {
     } else if (type_ == LGraphType::NODE) {
         return v.node->ToBolt();
     } else if (type_ == LGraphType::RELATIONSHIP) {
-        return v.repl->ToBolt();
+        return v.repl->ToBolt(v_eid);
     } else if (type_ == LGraphType::PATH) {
         bolt::InternalPath path;
         for (size_t i = 0; i < v.path->size(); i++) {
@@ -431,12 +427,8 @@ std::any ResultElement::ToBolt(bool python_driver) {
             if (p.type_ == LGraphType::NODE) {
                 path.nodes.push_back(p.v.node->ToBolt());
             } else {
-                if (!python_driver) {
-                    path.rels.push_back(p.v.repl->ToBoltUnbound());
-                } else {
-                    // The neo4j python client checks the uniqueness of the edge id.
-                    path.rels.push_back(p.v.repl->ToBoltUnbound(i));
-                }
+                // The neo4j python client checks the uniqueness of the edge id.
+                path.rels.push_back(p.v.repl->ToBoltUnbound(v_eid));
             }
             if (i >= 1) {
                 if (i%2 == 1) {

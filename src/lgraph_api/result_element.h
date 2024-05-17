@@ -43,9 +43,8 @@ struct Relationship {
     bool forward;
     std::map<std::string, lgraph_api::FieldData> properties;
     nlohmann::json ToJson();
-    bolt::Relationship ToBolt();
-    bolt::RelNode ToBoltUnbound();
-    bolt::RelNode ToBoltUnbound(int64_t virtual_edge_id);
+    bolt::Relationship ToBolt(int64_t* v_eid);
+    bolt::RelNode ToBoltUnbound(int64_t* v_eid);
 };
 
 // WARNING: [PathElement] just include node and relationship
@@ -132,7 +131,7 @@ struct ResultElement {
 
     nlohmann::json ToJson();
     std::string ToString();
-    std::any ToBolt(bool python_driver);
+    std::any ToBolt(int64_t* v_eid);
 };
 
 }  // namespace lgraph_api
