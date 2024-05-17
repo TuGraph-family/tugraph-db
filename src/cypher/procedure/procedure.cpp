@@ -2888,12 +2888,14 @@ void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, c
     }
 }
 
-void BuiltinProcedure::DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                         const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
+                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
-    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST, "field_names type should be list<string>")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST,
+                     "field_names type should be list<string>")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     std::vector<std::string> fields;
