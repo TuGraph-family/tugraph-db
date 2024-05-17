@@ -30,12 +30,21 @@ std::vector<IndexSpec> Transaction::ListEdgeIndexes() {
     return curr_schema_->e_schema_manager.ListEdgeIndexes();
 }
 
+std::vector<CompositeIndexSpec> Transaction::ListVertexCompositeIndexes() {
+    return curr_schema_->v_schema_manager.ListVertexCompositeIndexes();
+}
+
 std::vector<IndexSpec> Transaction::ListVertexIndexByLabel(const std::string& label) {
     return curr_schema_->v_schema_manager.ListIndexByLabel(label);
 }
 
 std::vector<IndexSpec> Transaction::ListEdgeIndexByLabel(const std::string& label) {
     return curr_schema_->e_schema_manager.ListEdgeIndexByLabel(label);
+}
+
+std::vector<CompositeIndexSpec> Transaction::ListVertexCompositeIndexByLabel(
+                                const std::string& label) {
+    return curr_schema_->v_schema_manager.ListVertexCompositeIndexByLabel(label);
 }
 
 std::vector<std::tuple<bool, std::string, std::string>> Transaction::ListFullTextIndexes() {

@@ -432,6 +432,9 @@ class Schema {
 
     const std::unordered_set<size_t>& GetIndexedFields() const { return indexed_fields_; }
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
+
+    const std::vector<CompositeIndexSpec> GetCompositeIndexSpec() const;
+
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);

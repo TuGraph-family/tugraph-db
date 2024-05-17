@@ -869,10 +869,16 @@ class Transaction {
     std::vector<IndexSpec> ListVertexIndexes();
 
     std::vector<IndexSpec> ListEdgeIndexes();
+
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexes();
+
     // list index by label
     std::vector<IndexSpec> ListVertexIndexByLabel(const std::string& label);
 
     std::vector<IndexSpec> ListEdgeIndexByLabel(const std::string& label);
+
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexByLabel(const std::string& label);
+
     std::vector<std::tuple<bool, std::string, std::string>> ListFullTextIndexes();
 
     std::vector<std::tuple<bool, std::string, int64_t>> countDetail();

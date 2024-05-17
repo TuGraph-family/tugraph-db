@@ -76,7 +76,7 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
     void CloseImpl() override;
 
  public:
-    CompositeIndexIterator(CompositeIndexIterator&& rhs);
+    CompositeIndexIterator(CompositeIndexIterator&& rhs) noexcept;
 
     /**
      * Query if this iterator is valid, i.e. the Key and Vid can be queried.
@@ -120,6 +120,7 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
  * The indices
  */
 class CompositeIndex {
+    friend class Schema;
     friend class LightningGraph;
     friend class Transaction;
     friend class CompositeIndexIterator;

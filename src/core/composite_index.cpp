@@ -112,7 +112,7 @@ CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
     LoadContentFromIt();
 }
 
-CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndexIterator &&rhs)
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndexIterator &&rhs) noexcept
     : IteratorBase(std::move(rhs)),
     index_(rhs.index_),
     it_(std::move(rhs.it_)),

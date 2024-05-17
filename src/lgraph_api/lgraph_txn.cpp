@@ -304,6 +304,11 @@ std::vector<IndexSpec> Transaction::ListVertexIndexes() {
     return txn_->ListVertexIndexes();
 }
 
+std::vector<CompositeIndexSpec> Transaction::ListVertexCompositeIndexes() {
+    ThrowIfInvalid();
+    return txn_->ListVertexCompositeIndexes();
+}
+
 std::vector<IndexSpec> Transaction::ListEdgeIndexes() {
     ThrowIfInvalid();
     return txn_->ListEdgeIndexes();

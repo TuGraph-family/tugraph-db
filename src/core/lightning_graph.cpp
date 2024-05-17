@@ -1796,7 +1796,7 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
     }
     if (schema->GetCompositeIndex(fields) != nullptr)
         return false;
-    std::string field_names = boost::algorithm::join(fields, ",");
+    std::string field_names = "[" + boost::algorithm::join(fields, ",") + "]";
     if (is_vertex) {
         std::unique_ptr<CompositeIndex> composite_index;
         bool success = index_manager_->AddVertexCompositeIndex(txn.GetTxn(), label, fields,

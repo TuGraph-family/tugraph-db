@@ -434,6 +434,13 @@ class Transaction {
     /**
      * @brief   List indexes
      *
+     * @returns A vector of vertex composite index specs.
+     */
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexes();
+
+    /**
+     * @brief   List indexes
+     *
      * @returns A vector of edge index specs.
      */
     std::vector<IndexSpec> ListEdgeIndexes();
