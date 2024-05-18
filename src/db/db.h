@@ -114,6 +114,9 @@ class AccessControlledDB {
 
     bool DeleteEdgeIndex(const std::string& label, const std::string& field);
 
+    bool DeleteVertexCompositeIndex(const std::string& label,
+                                    const std::vector<std::string>& fields);
+
     bool IsVertexIndexed(const std::string& label, const std::string& field);
 
     bool IsEdgeIndexed(const std::string& label, const std::string& field);

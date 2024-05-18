@@ -2902,7 +2902,7 @@ void BuiltinProcedure::DbDeleteCompositeIndex(RTContext *ctx, const Record *reco
     for (const auto &v : args[1].List()) {
         fields.push_back(v.String());
     }
-    bool success = ctx->ac_db_->DeleteEdgeIndex(args[0].String(), fields);
+    bool success = ctx->ac_db_->DeleteVertexCompositeIndex(args[0].String(), fields);
     if (!success) {
         throw lgraph::IndexNotExistException(args[0].String(), args[1].String());
     }

@@ -276,6 +276,12 @@ bool lgraph::AccessControlledDB::DeleteEdgeIndex(const std::string& label,
     return graph_->DeleteIndex(label, field, false);
 }
 
+bool lgraph::AccessControlledDB::DeleteVertexCompositeIndex(const std::string& label,
+                                 const std::vector<std::string>& fields) {
+    CheckFullAccess();
+    return graph_->DeleteCompositeIndex(label, fields, true);
+}
+
 bool lgraph::AccessControlledDB::IsVertexIndexed(const std::string& label,
                                                  const std::string& field) {
     CheckReadAccess();
