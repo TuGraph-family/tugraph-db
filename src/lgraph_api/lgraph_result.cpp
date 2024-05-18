@@ -186,6 +186,9 @@ void Record::Insert(const std::string &key, const lgraph_api::OutEdgeIterator &o
 void Record::Insert(const std::string &key, const int64_t vid, lgraph_api::Transaction *txn) {
     auto core_txn = txn->GetTxn().get();
     auto vit = core_txn->GetVertexIterator(vid);
+    if (!vit.IsValid()) {
+        THROW_CODE(InternalError, "invalid vid {} for creating record", vid);
+    }
     lgraph_result::Node node;
     node.id = vid;
     node.label = core_txn->GetVertexLabel(vit);
@@ -206,6 +209,9 @@ void Record::InsertVertexByID(const std::string &key, int64_t node_id) {
 void Record::Insert(const std::string &key, EdgeUid &uid, lgraph_api::Transaction *txn) {
     auto core_txn = txn->GetTxn().get();
     auto eit = core_txn->GetOutEdgeIterator(uid, false);
+    if (!eit.IsValid()) {
+        THROW_CODE(InternalError, "invalid euid {} for creating record", uid.ToString());
+    }
     lgraph_result::Relationship repl;
     repl.id = uid.eid;
     repl.src = uid.src;
