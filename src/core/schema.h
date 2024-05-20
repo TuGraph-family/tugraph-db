@@ -461,6 +461,9 @@ class Schema {
     void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record,
                           std::vector<size_t>& created);
 
+    void AddVertexToCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                          std::vector<std::string >& created);
+
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                         std::vector<size_t>& created);
 

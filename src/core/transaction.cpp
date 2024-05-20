@@ -1264,7 +1264,9 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     VertexId newvid = graph_->AddVertex(
         *txn_, schema->DetachProperty() ? schema->CreateRecordWithLabelId() : prop);
     std::vector<size_t> created_index;
+    std::vector<std::string> created_composite_index;
     schema->AddVertexToIndex(*txn_, newvid, prop, created_index);
+    schema->AddVertexToCompositeIndex(*txn_, newvid, prop, created_composite_index);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(*txn_, newvid, prop);
     }

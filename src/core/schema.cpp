@@ -129,6 +129,43 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     }
 }
 
+void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::VertexId vid,
+                                       const lgraph::Value& record,
+                                       std::vector<std::string>& created) {
+    created.reserve(composite_index_map.size());
+    for (auto &kv : composite_index_map) {
+        std::vector<std::string> ids;
+        boost::split(ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+        std::vector<std::string> fields;
+        bool is_add_index = true;
+        std::vector<Value> keys;
+        for (int i = 0; i < (int)ids.size(); i++) {
+            if (fields_[std::stoi(ids[i])].GetIsNull(record)) {
+                is_add_index = false;
+                break;
+            }
+            keys.emplace_back(fields_[std::stoi(ids[i])].GetConstRef(record));
+        }
+        if (!is_add_index) continue;
+        auto composite_index = kv.second;
+        if (!composite_index->Add(txn,
+             composite_index_helper::GenerateCompositeIndexKey(keys), vid)) {
+            std::vector<std::string> field_names;
+            std::vector<std::string> field_values;
+            for (int i = 0; i < (int)ids.size(); i++) {
+                field_names.push_back(fields_[std::stoi(ids[i])].Name());
+                field_values.push_back(fields_[std::stoi(ids[i])].FieldToString(record));
+            }
+            THROW_CODE(InputError,
+                       "Failed to index vertex [{}] with field value {}:{}: "
+                       "index value already exists.",
+                       vid, "[" + boost::join(field_names, ",") + "]",
+                       "[" + boost::join(field_values, ",") + "]");
+        }
+        created.push_back(kv.first);
+    }
+}
+
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
