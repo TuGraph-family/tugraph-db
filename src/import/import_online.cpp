@@ -124,6 +124,7 @@ std::string lgraph::import_v2::ImportOnline::ImportVertexes(
     Schema* schema = txn.curr_schema_->v_schema_manager.GetSchema(label_id);
     BlobBuffer blob_buffer(txn);
     auto create_record_in_range = [&](size_t beg, size_t end) {
+        auto read_txn = db->CreateReadTxn();
         for (size_t i = beg; i < end; i++) {
             try {
                 if (schema->HasBlob())
@@ -137,8 +138,17 @@ std::string lgraph::import_v2::ImportOnline::ImportVertexes(
                 std::string msg = FMA_FMT("When importing vertex label [{}]:\n{}\n", label,
                                           PrintNestedException(e, 1));
                 if (!config.continue_on_error) THROW_CODE(InputError, msg);
+                values[i].Clear();
                 std::lock_guard<std::mutex> lg(err_mtx);
                 error.append(msg);
+                continue;
+            }
+            if (schema->VertexUniqueIndexConflict(read_txn.GetTxn(), values[i])) {
+                if (config.continue_on_error) {
+                    values[i].Clear();
+                } else {
+                    THROW_CODE(InputError, "vertex unique index conflict");
+                }
             }
         }
     };
@@ -270,6 +280,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
     std::mutex edges_mtx;
     Schema* schema = txn.curr_schema_->e_schema_manager.GetSchema(label_id);
     auto prepare_records = [&](size_t beg, size_t end) {
+        auto read_txn = db->CreateReadTxn();
         for (size_t i = beg; i < end; i++) {
             auto& field_values = data[i];
             int64_t src_vid = src_vids[i];
@@ -299,6 +310,14 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
                 if (!config.continue_on_error) THROW_CODE(InputError, msg);
                 std::lock_guard<std::mutex> l(err_mtx);
                 error.append(msg);
+                continue;
+            }
+            if (schema->EdgeUniqueIndexConflict(read_txn.GetTxn(), prop)) {
+                if (config.continue_on_error) {
+                    continue;
+                } else {
+                    THROW_CODE(InputError, "edge unique index conflict");
+                }
             }
             std::lock_guard<std::mutex> l(edges_mtx);
             edges.emplace_back(src_vid, static_cast<LabelId>(label_id), dst_vid,

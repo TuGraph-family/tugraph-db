@@ -721,51 +721,20 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
     const std::string& label = schema->GetLabel();
     int64_t count = 0;
     for (auto& v : vprops) {
+        if (v.Empty()) {
+            continue;
+        }
         // add the new vertex without index
         VertexId newvid;
-        try {
-            if (schema->DetachProperty()) {
-                newvid = graph_->AddVertex(*txn_, schema->CreateEmptyRecord());
-                schema->AddDetachedVertexProperty(*txn_, newvid, v);
-            } else {
-                newvid = graph_->AddVertex(*txn_, v);
-            }
-        } catch (std::exception& e) {
-            std::string msg =
-                FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
-            if (!continue_on_error) {
-                THROW_CODE(InputError, msg);
-            }
-            error.append(msg);
-            continue;
+        if (schema->DetachProperty()) {
+            newvid = graph_->AddVertex(*txn_, schema->CreateEmptyRecord());
+            schema->AddDetachedVertexProperty(*txn_, newvid, v);
+        } else {
+            newvid = graph_->AddVertex(*txn_, v);
         }
         // do index
         std::vector<size_t> created_index;
-        try {
-            schema->AddVertexToIndex(*txn_, newvid, v, created_index);
-        } catch (std::exception& e) {
-            // if index fails, delete the vertex & the incomplete index
-            bool success = graph_->DeleteVertex(*txn_, newvid);
-            if (!success) throw std::runtime_error("failed to undo AddVertex");
-            if (schema->DetachProperty()) {
-                schema->DeleteDetachedVertexProperty(*txn_, newvid);
-            }
-            /* must delete the incomplete index, otherwise error occurs (issue #187):
-             * trigger:
-             * (1) label `person` with import config: name:ID,age:INDEX
-             * (2) online import 2 vertex with duplicated name(ID), failed correctly
-             * (3) online import vertex with duplicated age(NON-UNIQUE INDEX),
-             *     failed incorrectly.
-             **/
-            schema->DeleteCreatedVertexIndex(*txn_, newvid, v, created_index);
-            std::string msg =
-                FMA_FMT("When importing vertex label {}:\n{}\n", label, PrintNestedException(e, 1));
-            if (!continue_on_error) {
-                THROW_CODE(InputError, msg);
-            }
-            error.append(msg);
-            continue;
-        }
+        schema->AddVertexToIndex(*txn_, newvid, v, created_index);
         count++;
         // add fulltext index
         if (fulltext_index_) {
@@ -789,24 +758,7 @@ std::string Transaction::_OnlineImportBatchAddEdges(
     int64_t count = 0;
     auto extra_work = [&](const EdgeUid& euid, const Value& record) {
         std::vector<size_t> created_index;
-        try {
-            schema->AddEdgeToIndex(*txn_, euid, record, created_index);
-        } catch (std::exception& e) {
-            bool success = graph_->DeleteEdge(*txn_, euid);
-            if (!success) throw std::runtime_error("failed to undo AddEdge");
-            if (schema->DetachProperty()) {
-                schema->GetDetachedEdgeProperty(*txn_, euid);
-            }
-            schema->DeleteCreatedEdgeIndex(*txn_, euid, record, created_index);
-            std::string msg =
-                FMA_FMT("When importing edge label {}:\n{}\n",
-                        schema->GetLabel(), PrintNestedException(e, 1));
-            if (!continue_on_error) {
-                THROW_CODE(InputError, msg);
-            }
-            error.append(msg);
-            return;
-        }
+        schema->AddEdgeToIndex(*txn_, euid, record, created_index);
         if (fulltext_index_) {
             schema->AddEdgeToFullTextIndex(euid, record, fulltext_buffers_);
         }
