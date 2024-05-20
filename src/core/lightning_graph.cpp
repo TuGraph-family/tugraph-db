@@ -826,6 +826,10 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
                                                     extractor->Name());
             }
         }
+        auto composite_index_key = curr_schema->GetRelationalCompositeIndexKey(fids);
+        for (const auto &cidx : composite_index_key) {
+            index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), label, cidx);
+        }
     };
 
     return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, make_new_prop_and_destroy_old,

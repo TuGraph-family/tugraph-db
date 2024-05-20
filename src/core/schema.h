@@ -437,11 +437,13 @@ class Schema {
     const std::unordered_set<size_t>& GetIndexedFields() const { return indexed_fields_; }
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
 
-    const std::vector<CompositeIndexSpec> GetCompositeIndexSpec() const;
+    std::vector<CompositeIndexSpec> GetCompositeIndexSpec() const;
 
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
+
+    void DeleteVertexCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                                 const std::vector<size_t>& created);
@@ -482,6 +484,9 @@ class Schema {
         if (it == composite_index_map.end()) return nullptr;
         return it->second.get();
     }
+
+    std::vector<std::vector<std::string>> GetRelationalCompositeIndexKey(
+        const std::vector<size_t> &fields);
 
     //----------------------
     // serialize/deserialize

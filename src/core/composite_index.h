@@ -157,16 +157,16 @@ class CompositeIndex {
     }
 
     CompositeIndexIterator GetUnmanagedIterator(KvTransaction& txn,
-                                                Value&& key_start, Value&& key_end,
+                                                const Value& key_start, const Value& key_end,
                                                 VertexId vid = 0) {
-        return CompositeIndexIterator(this, &txn, *table_, std::forward<Value>(key_start),
-            std::forward<Value>(key_end), vid, type_);
+        return CompositeIndexIterator(this, &txn, *table_, key_start,
+            key_end, vid, type_);
     }
 
-    CompositeIndexIterator GetIterator(Transaction* txn, Value&& key_start, Value&& key_end,
-                                                VertexId vid = 0) {
-        return CompositeIndexIterator(this, txn, *table_, std::forward<Value>(key_start),
-                                      std::forward<Value>(key_end), vid, type_);
+    CompositeIndexIterator GetIterator(Transaction* txn, const Value& key_start,
+                                       const Value& key_end, VertexId vid = 0) {
+        return CompositeIndexIterator(this, txn, *table_, key_start,
+                                      key_end, vid, type_);
     }
 
  private:
@@ -179,6 +179,17 @@ class CompositeIndex {
     void Enable() { disabled_.store(false, std::memory_order_release); }
 
     [[nodiscard]] bool IsDisabled() const { return disabled_.load(std::memory_order_acquire); }
+
+    /**
+     * Delete a specified composite vertex under a specified key.
+     *
+     * \param [in,out]  txn The transaction.
+     * \param           key The key.
+     * \param           vid The vid.
+     *
+     * \return  Whether the operation succeeds or not.
+     */
+    bool Delete(KvTransaction& txn, const Value& k, int64_t vid);
 };
 
 namespace composite_index_helper {

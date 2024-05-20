@@ -59,6 +59,41 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
     }
 }
 
+void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
+                                        lgraph::VertexId vid,
+                                        const lgraph::Value& record) {
+    for (auto &kv : composite_index_map) {
+        std::vector<std::string> ids;
+        boost::split(ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+        std::vector<std::string> fields;
+        bool is_add_index = true;
+        std::vector<Value> keys;
+        for (int i = 0; i < (int)ids.size(); i++) {
+            if (fields_[std::stoi(ids[i])].GetIsNull(record)) {
+                is_add_index = false;
+                break;
+            }
+            keys.emplace_back(fields_[std::stoi(ids[i])].GetConstRef(record));
+        }
+        if (!is_add_index) continue;
+        auto composite_index = kv.second;
+        if (!composite_index->Delete(txn,
+                                  composite_index_helper::GenerateCompositeIndexKey(keys), vid)) {
+            std::vector<std::string> field_names;
+            std::vector<std::string> field_values;
+            for (int i = 0; i < (int)ids.size(); i++) {
+                field_names.push_back(fields_[std::stoi(ids[i])].Name());
+                field_values.push_back(fields_[std::stoi(ids[i])].FieldToString(record));
+            }
+            THROW_CODE(InputError,
+                       "Failed to index vertex [{}] with field value {}:{}: "
+                       "index value already exists.",
+                       vid, "[" + boost::join(field_names, ",") + "]",
+                       "[" + boost::join(field_values, ",") + "]");
+        }
+    }
+}
+
 void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Value& record,
                                       const std::vector<size_t>& created) {
     for (auto& idx : created) {
@@ -164,6 +199,34 @@ void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::Verte
         }
         created.push_back(kv.first);
     }
+}
+
+std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
+    const std::vector<size_t>& fields) {
+    std::vector<std::vector<std::string>> result;
+    std::unordered_set<std::string> visited;
+    for (const auto &expected_id : fields) {
+        for (const auto &kv : composite_index_map) {
+            std::vector<std::string> field_ids;
+            boost::split(field_ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+            bool flag = false;
+            for (const auto &id : field_ids) {
+                if (expected_id == std::stoi(id)) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag && !visited.count(kv.first)) {
+                std::vector<std::string> field_names;
+                for (const auto &id : field_ids) {
+                    field_names.push_back(fields_[std::stoi(id)].Name());
+                }
+                result.push_back(field_names);
+                visited.insert(kv.first);
+            }
+        }
+    }
+    return result;
 }
 
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
@@ -580,6 +643,10 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         UnVertexIndex(id);
         UnEdgeIndex(id);
     }
+    auto composite_index_key = GetRelationalCompositeIndexKey(del_ids);
+    for (const auto &k : composite_index_key) {
+        UnVertexCompositeIndex(k);
+    }
     del_ids.push_back(fields_.size());
     size_t put_pos = del_ids.front();
     for (size_t i = 0; i < del_ids.size() - 1; i++) {
@@ -671,7 +738,7 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(const std::string& f
     return &fields_[it->second];
 }
 
-const std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
+std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
     for (auto kv : composite_index_map) {
         std::vector<std::string> ids;

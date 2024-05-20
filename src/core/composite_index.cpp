@@ -67,6 +67,23 @@ bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     return false;
 }
 
+bool CompositeIndex::Delete(lgraph::KvTransaction &txn, const lgraph::Value &k, int64_t vid) {
+    CompositeIndexIterator it = GetUnmanagedIterator(txn, Value::ConstRef(k),
+                                                     Value::ConstRef(k), vid);
+    if (!it.IsValid() || it.KeyOutOfRange()) {
+        // no such key_vid
+        return false;
+    }
+    switch (type_) {
+    case CompositeIndexType::UniqueIndex:
+        {
+            it.it_->DeleteKey();
+            return true;
+        }
+    }
+    return false;
+}
+
 CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
                                                lgraph::Transaction *txn,
                                                lgraph::KvTable &table,

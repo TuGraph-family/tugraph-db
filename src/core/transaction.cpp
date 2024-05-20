@@ -420,6 +420,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     }
     if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, *txn_);
     schema->DeleteVertexIndex(*txn_, vid, prop);
+    schema->DeleteVertexCompositeIndex(*txn_, vid, prop);
     auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
         if (is_out_edge) {
             if (n_out) {
