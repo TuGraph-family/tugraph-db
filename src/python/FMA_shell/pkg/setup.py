@@ -7,7 +7,7 @@ setup(
         'click==7.0',
         'prompt_toolkit==2.0.9',
         'prettytable==0.7.2',
-        'requests==2.22.0',
+        'requests==2.32.0',
     ],
     packages=['lgraph_shell'],
     entry_points={
