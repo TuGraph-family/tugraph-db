@@ -718,7 +718,6 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
     Schema* schema, const std::vector<Value>& vprops,
     const std::vector<std::pair<BlobManager::BlobKey, Value>>& blobs, bool continue_on_error) {
     std::string error;
-    const std::string& label = schema->GetLabel();
     int64_t count = 0;
     for (auto& v : vprops) {
         if (v.Empty()) {
