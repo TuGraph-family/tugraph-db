@@ -1864,6 +1864,12 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 8);
+
+    ret = client.CallCypher(str, "CALL db.dropAllVertex()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "match (n) return count(n)");
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 0);
 }
 
 void test_import_content(lgraph::RpcClient& client) {

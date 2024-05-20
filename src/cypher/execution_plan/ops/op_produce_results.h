@@ -106,8 +106,14 @@ static void RRecordToURecord(
             if (header_type == lgraph_api::LGraphType::RELATIONSHIP ||
                 header_type == lgraph_api::LGraphType::ANY) {
                 auto uit = v.relationship->ItRef();
-                auto uid = uit->GetUid();
-                record.Insert(header[index].first, uid, txn);
+                if (uit->IsValid()) {
+                    auto uid = uit->GetUid();
+                    record.Insert(header[index].first, uid, txn);
+                } else {
+                    lgraph::EdgeUid euid;
+                    euid.eid = -1;
+                    record.InsertEdgeByID(header[index].first, euid);
+                }
                 continue;
             } else {
                 throw lgraph::CypherException(
