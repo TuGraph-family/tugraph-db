@@ -1054,13 +1054,13 @@ TEST_F(TestLGraphApi, deleteVertex) {
     auto iter1 = txn.GetVertexIterator(vid1);
     iter1.Delete();
     auto v_schema = (lgraph::Schema*)txn.GetTxn()->GetSchema("Person", true);
-    UT_EXPECT_TRUE(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid1).Empty());
-    UT_EXPECT_FALSE(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2).Empty());
+    UT_EXPECT_ANY_THROW(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid1));
+    UT_EXPECT_NO_THROW(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2));
     auto e_schema = (lgraph::Schema*)txn.GetTxn()->GetSchema("Relation", false);
-    UT_EXPECT_TRUE(e_schema->GetDetachedEdgeProperty(txn.GetTxn()->GetTxn(), euid).Empty());
+    UT_EXPECT_ANY_THROW(e_schema->GetDetachedEdgeProperty(txn.GetTxn()->GetTxn(), euid));
     auto iter2 = txn.GetVertexIterator(vid2);
     iter2.Delete();
-    UT_EXPECT_TRUE(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2).Empty());
+    UT_EXPECT_ANY_THROW(v_schema->GetDetachedVertexProperty(txn.GetTxn()->GetTxn(), vid2));
     txn.Commit();
 }
 

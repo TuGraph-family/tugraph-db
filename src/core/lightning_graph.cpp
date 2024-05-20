@@ -2239,8 +2239,12 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 for (; eit.IsValid(); eit.Next()) {
                     if (eit.GetLabelId() == lid) {
                         EdgeUid euid = eit.GetUid();
+                        Value e_property = eit.GetProperty();
+                        if (schema->DetachProperty()) {
+                            e_property = schema->GetDetachedEdgeProperty(txn.GetTxn(), euid);
+                        }
                         key_euids.emplace_back(GetIndexKeyFromValue<T>(
-                                        extractor->GetConstRef(eit.GetProperty())), euid);
+                                        extractor->GetConstRef(e_property)), euid);
                     }
                 }
                 if (v_lid != start_lid) {
