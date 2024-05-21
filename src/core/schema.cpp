@@ -678,6 +678,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
 
 // mod fields, assuming fields are already de-duplicated
 void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
+    std::vector<size_t> mod_ids;
     for (auto& f : mod_fields) {
         auto it = name_to_idx_.find(f.name);
         if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(f.name);
@@ -686,6 +687,11 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         UnEdgeIndex(fid);
         auto& extractor = fields_[fid];
         extractor = _detail::FieldExtractor(f);
+        mod_ids.push_back(fid);
+    }
+    auto composite_index_key = GetRelationalCompositeIndexKey(mod_ids);
+    for (const auto &k : composite_index_key) {
+        UnVertexCompositeIndex(k);
     }
     RefreshLayout();
 }

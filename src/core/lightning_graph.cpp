@@ -1019,6 +1019,10 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
                 index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, extractor->Name());
             }
         }
+        auto composite_index_key = curr_schema->GetRelationalCompositeIndexKey(mod_fids);
+        for (const auto &cidx : composite_index_key) {
+            index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), label, cidx);
+        }
     };
 
     return _AlterLabel(
