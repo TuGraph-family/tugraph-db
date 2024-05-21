@@ -7,6 +7,7 @@ TuGraph高性能图数据库
    :glob:
 
    1.guide.md
+   development_guide.md
    2.introduction/index.rst
    3.quick-start/index.rst
    4.user-guide/index.rst
