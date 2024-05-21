@@ -723,6 +723,13 @@ std::string Transaction::_OnlineImportBatchAddVertexes(
         if (v.Empty()) {
             continue;
         }
+        if (schema->VertexUniqueIndexConflict(*txn_, v)) {
+            if (continue_on_error) {
+                continue;
+            } else {
+                THROW_CODE(InputError, "vertex unique index conflict");
+            }
+        }
         // add the new vertex without index
         VertexId newvid;
         if (schema->DetachProperty()) {
