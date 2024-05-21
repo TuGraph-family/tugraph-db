@@ -211,7 +211,7 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
             boost::split(field_ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
             bool flag = false;
             for (const auto &id : field_ids) {
-                if (expected_id == std::stoi(id)) {
+                if ((int)expected_id == std::stoi(id)) {
                     flag = true;
                     break;
                 }
