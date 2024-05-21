@@ -129,6 +129,20 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     }
 }
 
+bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) {
+    for (auto& idx : indexed_fields_) {
+        auto& fe = fields_[idx];
+        VertexIndex* index = fe.GetVertexIndex();
+        FMA_ASSERT(index);
+        if (!index->IsUnique()) continue;
+        if (fe.GetIsNull(record)) continue;
+        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
@@ -158,6 +172,20 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
                                                     fe.Name(), fe.FieldToString(record));
         }
     }
+}
+
+bool Schema::EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record) {
+    for (auto& idx : indexed_fields_) {
+        auto& fe = fields_[idx];
+        EdgeIndex* index = fe.GetEdgeIndex();
+        FMA_ASSERT(index);
+        if (!index->IsUnique()) continue;
+        if (fe.GetIsNull(record)) continue;
+        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,

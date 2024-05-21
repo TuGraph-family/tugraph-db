@@ -469,6 +469,8 @@ class VertexIndex {
      */
     bool Add(KvTransaction& txn, const Value& k, int64_t vid);
 
+    bool UniqueIndexConflict(KvTransaction& txn, const Value& k);
+
     size_t GetMaxVertexIndexKeySize();
 
     Value CutKeyIfLongOnlyForNonUniqueIndex(const Value& k);

@@ -601,6 +601,17 @@ bool EdgeIndex::Update(KvTransaction& txn, const Value& old_key, const Value& ne
     return Add(txn, new_key, euid);
 }
 
+bool EdgeIndex::UniqueIndexConflict(KvTransaction& txn, const Value& k) {
+    if (type_ != IndexType::GlobalUniqueIndex) {
+        THROW_CODE(InputError, "edge UniqueIndexConflict only can be used in unique index.");
+    }
+    if (k.Size() > GetMaxEdgeIndexKeySize()) {
+        return true;
+    }
+    Value v;
+    return table_->GetValue(txn, k, v);
+}
+
 bool EdgeIndex::Add(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
