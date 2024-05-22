@@ -941,9 +941,19 @@ class Transaction {
                                    const std::string& key_start, const std::string& key_end);
 
     CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
-                                                        const std::vector<std::string>& fields,
-                                                        const std::vector<std::string>& key_start,
-                                                        const std::vector<std::string>& key_end);
+                                   const std::vector<std::string>& fields,
+                                   const std::vector<FieldData>& key_start,
+                                   const std::vector<FieldData>& key_end);
+
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const size_t& label,
+                                   const std::vector<size_t>& field_ids,
+                                   const std::vector<FieldData>& key_start,
+                                   const std::vector<FieldData>& key_end);
+
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                   const std::vector<std::string>& fields,
+                                   const std::vector<std::string>& key_start,
+                                   const std::vector<std::string>& key_end);
 
 
     /**
@@ -1102,7 +1112,10 @@ class Transaction {
     EdgeIndex* GetEdgeIndex(size_t label, size_t field);
 
     CompositeIndex* GetVertexCompositeIndex(const std::string& label,
-                                            const std::vector<std::string>& field);
+                                            const std::vector<std::string>& fields);
+
+    CompositeIndex* GetVertexCompositeIndex(const size_t& label,
+                                            const std::vector<size_t>& field_ids);
 
     void EnterTxn();
     void LeaveTxn();

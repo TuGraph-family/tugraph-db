@@ -1771,7 +1771,7 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
                                                bool known_vid_range, VertexId start_vid,
                                                VertexId end_vid) {
     _HoldWriteLock(meta_lock_);
-    std::string field_names = "[" + boost::algorithm::join(fields, ",") + "]";
+    std::string field_names = boost::algorithm::join(fields, ",");
     if (fields.size() > _detail::MAX_COMPOSITE_FILED_SIZE || fields.size() < 2)
         THROW_CODE(InputError, "The number of fields({}) in the combined index "
                    "exceeds the maximum limit.", field_names);

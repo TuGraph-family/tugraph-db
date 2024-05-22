@@ -189,7 +189,7 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
     for (auto &i : vertex_composite_indexes) {
         Record r;
         r.AddConstant(lgraph::FieldData(i.label));
-        r.AddConstant(lgraph::FieldData("[" + boost::join(i.fields, ",") + "]"));
+        r.AddConstant(lgraph::FieldData(boost::join(i.fields, ",")));
         r.AddConstant(lgraph::FieldData("vertex"));
         bool unique = false, pair_unique = false;
         switch (i.type) {
@@ -273,7 +273,7 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
         if (i.label != label) continue;
         Record r;
         r.AddConstant(lgraph::FieldData(i.label));
-        r.AddConstant(lgraph::FieldData("[" + boost::join(i.fields, ",") + "]"));
+        r.AddConstant(lgraph::FieldData(boost::join(i.fields, ",")));
         bool unique = false, pair_unique = false;
         switch (i.type) {
         case lgraph::CompositeIndexType::UniqueIndex:
@@ -1399,7 +1399,7 @@ void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
     if (!success) {
-        std::string field_strings = "[" + boost::algorithm::join(fields, ",") + "]";
+        std::string field_strings = boost::algorithm::join(fields, ",");
         THROW_CODE(IndexExist, "VertexCompositeIndex [{}:{}] already exist.", label, field_strings);
     }
 }

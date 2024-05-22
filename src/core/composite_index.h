@@ -107,6 +107,10 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
      */
     int64_t GetVid() const { return vid_; }
 
+    std::vector<FieldData> GetKeyData() const;
+
+    std::vector<FieldType> KeyType() const;
+
 
     /**
      * Determines if we can refresh content if kv iterator modified
@@ -211,5 +215,22 @@ static inline Value GenerateCompositeIndexKey(std::vector<Value> keys) {
     }
     return res;
 }
+
+static inline std::vector<FieldData> CompositeIndexKeyToFieldData(const Value& key,
+                                     std::vector<FieldType> types) {
+    std::vector<FieldData> res;
+    int len = types.size();
+    std::vector<int16_t> offset(len + 1);
+    for (int i = 1; i < len; ++i) {
+        memcpy(&offset[i], (char*)key.Data() + (i - 1) * 2, 2);
+    }
+    offset[len] = key.Size() - (len - 1) * 2;
+    for (int i = 0; i < len; ++i) {
+        res.push_back(field_data_helper::ValueToFieldData(Value((char*)key.Data() +
+                      (len - 1) * 2 + offset[i], offset[i + 1]-offset[i]), types[i]));
+    }
+    return res;
+}
+
 }  // namespace composite_index_helper
 }  // namespace lgraph

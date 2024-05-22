@@ -60,6 +60,7 @@ class SchemaManager;
 */
 class Schema {
     friend class SchemaManager;
+    friend class Transaction;
     std::string label_;
     LabelId label_id_ = 0;
     bool label_in_record_ = true;  // whether to store label id in record
@@ -103,7 +104,18 @@ class Schema {
         std::string res = std::to_string(name_to_idx_[fields[0]]);
         int n = fields.size();
         for (int i = 1; i < n; ++i) {
-            res += _detail::NAME_SEPERATOR + std::to_string(name_to_idx_[fields[i]]);
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
+                   std::to_string(name_to_idx_[fields[i]]);
+        }
+        return res;
+    }
+
+    std::string GetCompositeIndexMapKey(const std::vector<size_t> &field_ids) {
+        std::string res = std::to_string(field_ids[0]);
+        int n = field_ids.size();
+        for (int i = 1; i < n; ++i) {
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
+                   std::to_string(field_ids[i]);
         }
         return res;
     }
@@ -481,6 +493,12 @@ class Schema {
 
     CompositeIndex* GetCompositeIndex(const std::vector<std::string> &fields) {
         auto it = composite_index_map.find(GetCompositeIndexMapKey(fields));
+        if (it == composite_index_map.end()) return nullptr;
+        return it->second.get();
+    }
+
+    CompositeIndex* GetCompositeIndex(const std::vector<size_t> &field_ids) {
+        auto it = composite_index_map.find(GetCompositeIndexMapKey(field_ids));
         if (it == composite_index_map.end()) return nullptr;
         return it->second.get();
     }

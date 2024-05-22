@@ -28,6 +28,7 @@ class OutEdgeIterator;
 class InEdgeIterator;
 class VertexIndexIterator;
 class EdgeIndexIterator;
+class VertexCompositeIndexIterator;
 
 /**
  * @brief   TuGraph operations happen in transactions. A transaction is sequence of operations
@@ -461,6 +462,11 @@ class Transaction {
                                                const FieldData& key_start,
                                                const FieldData& key_end);
 
+    VertexCompositeIndexIterator GetVertexCompositeIndexIterator(size_t label_id,
+                                               const std::vector<size_t>& field_id,
+                                               const std::vector<FieldData>& key_start,
+                                               const std::vector<FieldData>& key_end);
+
     /**
      * @brief   Gets edge index iterator. The iterator has field value [key_start, key_end]. So
      *          key_start=key_end=v returns an iterator pointing to all edges that has field
@@ -492,6 +498,11 @@ class Transaction {
                                                const FieldData& key_start,
                                                const FieldData& key_end);
 
+    VertexCompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                               const std::vector<std::string>& field,
+                                               const std::vector<FieldData>& key_start,
+                                               const std::vector<FieldData>& key_end);
+
     /**
      * @brief   Gets index iterator. The iterator has field value [key_start, key_end]. So
      *          key_start=key_end=v returns an iterator pointing to all edges that has field
@@ -522,6 +533,11 @@ class Transaction {
     VertexIndexIterator GetVertexIndexIterator(const std::string& label, const std::string& field,
                                                const std::string& key_start,
                                                const std::string& key_end);
+
+    VertexCompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                               const std::vector<std::string>& field,
+                                               const std::vector<std::string>& key_start,
+                                               const std::vector<std::string>& key_end);
 
     /**
      * @brief   Gets index iterator. The iterator has field value [key_start, key_end]. So
@@ -620,6 +636,10 @@ class Transaction {
                                           const std::string& field_name,
                                           const FieldData& field_value);
 
+    VertexIterator GetVertexByUniqueCompositeIndex(const std::string& label_name,
+                                          const std::vector<std::string>& field_name,
+                                          const std::vector<FieldData>& field_value);
+
     /**
      * @brief   Gets edge by unique index. Throws exception if there is no such vertex.
      *
@@ -644,6 +664,10 @@ class Transaction {
      */
     VertexIterator GetVertexByUniqueIndex(size_t label_id, size_t field_id,
                                           const FieldData& field_value);
+
+    VertexIterator GetVertexByUniqueCompositeIndex(size_t label_id,
+                                          const std::vector<size_t>& field_id,
+                                          const std::vector<FieldData>& field_value);
 
     /**
      * @brief   Gets edge by unique index. Throws exception if there is no such vertex.

@@ -64,7 +64,8 @@ void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
                                         const lgraph::Value& record) {
     for (auto &kv : composite_index_map) {
         std::vector<std::string> ids;
-        boost::split(ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+        boost::split(ids, kv.first,
+                     boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
         bool is_add_index = true;
         std::vector<Value> keys;
@@ -170,7 +171,7 @@ void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::Verte
     created.reserve(composite_index_map.size());
     for (auto &kv : composite_index_map) {
         std::vector<std::string> ids;
-        boost::split(ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+        boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
         bool is_add_index = true;
         std::vector<Value> keys;
@@ -208,7 +209,8 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
     for (const auto &expected_id : fields) {
         for (const auto &kv : composite_index_map) {
             std::vector<std::string> field_ids;
-            boost::split(field_ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+            boost::split(field_ids, kv.first,
+                         boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
             bool flag = false;
             for (const auto &id : field_ids) {
                 if ((int)expected_id == std::stoi(id)) {
@@ -748,7 +750,7 @@ std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
     for (auto kv : composite_index_map) {
         std::vector<std::string> ids;
-        boost::split(ids, kv.first, boost::is_any_of(_detail::NAME_SEPERATOR));
+        boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
         for (int i = 0; i < (int)ids.size(); i++) {
             fields.emplace_back(this->fields_[std::stoi(ids[i])].Name());

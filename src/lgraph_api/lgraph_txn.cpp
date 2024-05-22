@@ -20,6 +20,7 @@
 #include "lgraph/lgraph_vertex_index_iterator.h"
 #include "lgraph/lgraph_edge_index_iterator.h"
 #include "lgraph/lgraph_vertex_iterator.h"
+#include "lgraph/lgraph_vertex_composite_index_iterator.h"
 
 namespace lgraph_api {
 #define ThrowIfInvalid()                                                        \
@@ -322,6 +323,14 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(size_t label_id, size_t 
                                txn_);
 }
 
+VertexCompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
+    size_t label_id, const std::vector<size_t>& field_id,
+    const std::vector<FieldData>& key_start, const std::vector<FieldData>& key_end) {
+    ThrowIfInvalid();
+    return VertexCompositeIndexIterator(txn_->GetVertexCompositeIndexIterator(
+                                            label_id, field_id, key_start, key_end), txn_);
+}
+
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t field_id,
                                                     const FieldData& key_start,
                                                     const FieldData& key_end) {
@@ -339,6 +348,14 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
                                txn_);
 }
 
+VertexCompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
+    const std::string& label, const std::vector<std::string>& field,
+    const std::vector<FieldData>& key_start, const std::vector<FieldData>& key_end) {
+    ThrowIfInvalid();
+    return VertexCompositeIndexIterator(txn_->GetVertexCompositeIndexIterator(
+                                            label, field, key_start, key_end), txn_);
+}
+
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const std::string& field,
                                                     const FieldData& key_start,
@@ -354,6 +371,14 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label
     ThrowIfInvalid();
     return VertexIndexIterator(txn_->GetVertexIndexIterator(label, field, key_start, key_end),
                                txn_);
+}
+
+VertexCompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
+    const std::string& label, const std::vector<std::string>& field,
+    const std::vector<std::string>& key_start, const std::vector<std::string>& key_end) {
+    ThrowIfInvalid();
+    return VertexCompositeIndexIterator(txn_->GetVertexCompositeIndexIterator(
+                                            label, field, key_start, key_end), txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
@@ -394,6 +419,16 @@ VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& l
     ThrowIfInvalid();
     lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
         label_name, field_name, field_value_string, field_value_string);
+    if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
+    return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
+}
+
+VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& label_name,
+                            const std::vector<std::string>& field_name,
+                            const std::vector<FieldData>& field_value) {
+    ThrowIfInvalid();
+    lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
+        label_name, field_name, field_value, field_value);
     if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
@@ -439,6 +474,16 @@ VertexIterator Transaction::GetVertexByUniqueIndex(size_t label_id, size_t field
         txn_->GetVertexIndexIterator(label_id, field_id, field_value, field_value);
     if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
 
+    return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
+}
+
+VertexIterator Transaction::GetVertexByUniqueCompositeIndex(size_t label_id,
+                                                  const std::vector<size_t>& field_id,
+                                                  const std::vector<FieldData>& field_value) {
+    ThrowIfInvalid();
+    lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
+        label_id, field_id, field_value, field_value);
+    if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 

@@ -113,38 +113,38 @@ manager to get the information on data fields.
 class IndexManager {
  private:
     static std::string GetVertexIndexTableName(const std::string& label, const std::string& field) {
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                _detail::VERTEX_INDEX;
     }
 
     static std::string GetVertexCompositeIndexTableName(const std::string& label,
                                                         const std::vector<std::string>& fields) {
-        std::string res = label + _detail::NAME_SEPERATOR;
+        std::string res = label + _detail::NAME_SEPARATOR;
         for (auto &s : fields) {
-            res += s + _detail::NAME_SEPERATOR;
+            res += s + _detail::NAME_SEPARATOR;
         }
         return res + _detail::VERTEX_INDEX;
     }
 
     static std::string GetEdgeIndexTableName(const std::string& label, const std::string& field) {
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                _detail::EDGE_INDEX;
     }
 
     static std::string GetFullTextIndexTableName(bool is_vertex, const std::string& label,
                                                  const std::string& field) {
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                (is_vertex ? _detail::VERTEX_FULLTEXT_INDEX : _detail::EDGE_FULLTEXT_INDEX);
     }
 
     static void GetLabelAndFieldFromTableName(const std::string& table_name, std::string& label,
                                               std::string& field) {
-        size_t sep_len = strlen(_detail::NAME_SEPERATOR);
-        size_t pos = table_name.find(_detail::NAME_SEPERATOR);
+        size_t sep_len = strlen(_detail::NAME_SEPARATOR);
+        size_t pos = table_name.find(_detail::NAME_SEPARATOR);
         FMA_ASSERT(pos != table_name.npos);
         label = table_name.substr(0, pos);
         pos += sep_len;
-        size_t next_pos = table_name.find(_detail::NAME_SEPERATOR, pos);
+        size_t next_pos = table_name.find(_detail::NAME_SEPARATOR, pos);
         FMA_ASSERT(next_pos != table_name.npos);
         field = table_name.substr(pos, next_pos - pos);
     }

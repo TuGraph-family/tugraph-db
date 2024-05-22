@@ -157,6 +157,14 @@ Value CompositeIndexIterator::GetKey() const {
     return {};
 }
 
+std::vector<FieldType> CompositeIndexIterator::KeyType() const {
+    return index_->key_types;
+}
+
+std::vector<FieldData> CompositeIndexIterator::GetKeyData() const {
+    return composite_index_helper::CompositeIndexKeyToFieldData(GetKey(), KeyType());
+}
+
 void CompositeIndexIterator::LoadContentFromIt() {
     valid_ = true;
     pos_ = 0;
