@@ -231,6 +231,20 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
     return result;
 }
 
+bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) {
+    for (auto& idx : indexed_fields_) {
+        auto& fe = fields_[idx];
+        VertexIndex* index = fe.GetVertexIndex();
+        FMA_ASSERT(index);
+        if (!index->IsUnique()) continue;
+        if (fe.GetIsNull(record)) continue;
+        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
@@ -260,6 +274,20 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
                                                     fe.Name(), fe.FieldToString(record));
         }
     }
+}
+
+bool Schema::EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record) {
+    for (auto& idx : indexed_fields_) {
+        auto& fe = fields_[idx];
+        EdgeIndex* index = fe.GetEdgeIndex();
+        FMA_ASSERT(index);
+        if (!index->IsUnique()) continue;
+        if (fe.GetIsNull(record)) continue;
+        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
@@ -510,8 +538,13 @@ void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const V
 }
 
 Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    Value ret;
+    bool found = property_table_->GetValue(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), ret);
+    if (!found) {
+        THROW_CODE(InternalError, "Get: vid {} is not found in the detached property table.", vid);
+    }
+    return ret;
 }
 
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
@@ -532,8 +565,13 @@ void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
 }
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    Value ret;
+    bool found = property_table_->GetValue(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), ret);
+    if (!found) {
+        THROW_CODE(InternalError, "Get: euid {} is not found in the detached property table.", eid);
+    }
+    return ret;
 }
 
 void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,

@@ -1025,7 +1025,9 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     _ExtractFds(args, label, primary_fd, fds);
-    auto ret = ctx->ac_db_->AddLabel(true, label, fds, lgraph::VertexOptions(primary_fd));
+    lgraph::VertexOptions vo(primary_fd);
+    vo.detach_property = true;
+    auto ret = ctx->ac_db_->AddLabel(true, label, fds, vo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -1157,10 +1159,12 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
     if (is_vertex) {
         auto vo = std::make_unique<lgraph::VertexOptions>();
         vo->primary_field = primary_fd;
+        vo->detach_property = true;
         options = std::move(vo);
     } else {
         auto eo = std::make_unique<lgraph::EdgeOptions>();
         eo->edge_constraints = edge_constraints;
+        eo->detach_property = true;
         options = std::move(eo);
     }
     auto ret = ac_db.AddLabel(is_vertex, label, field_specs, *options);
@@ -1344,10 +1348,12 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
     _ExtractFds(args, label, extra, fds);
     auto ec = nlohmann::json::parse(extra);
     for (auto &item : ec) {
-        edge_constraints.push_back(std::make_pair(item[0], item[1]));
+        edge_constraints.emplace_back(item[0], item[1]);
     }
+    lgraph::EdgeOptions eo(edge_constraints);
+    eo.detach_property = true;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    auto ret = ac_db.AddLabel(false, label, fds, lgraph::EdgeOptions(edge_constraints));
+    auto ret = ac_db.AddLabel(false, label, fds, eo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
