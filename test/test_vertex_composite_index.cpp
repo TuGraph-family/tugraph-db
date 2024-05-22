@@ -66,6 +66,19 @@ int TestUniqueVertexCompositeIndexImpl() {
         count++;
     }
     UT_EXPECT_TRUE(count == 10);
+    txn.Abort();
+    UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.DeleteVertexCompositeIndex("person", {"score", "name"});
+    UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AddVertexCompositeIndex("person", {"score", "name"}, CompositeIndexType::UniqueIndex);
+    UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AlterVertexLabelDelFields("person", {"score"});
+    UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AddVertexCompositeIndex("person", {"score", "name"}, CompositeIndexType::UniqueIndex);
+    UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AlterVertexLabelModFields("person", {FieldSpec("score", FieldType::INT64, false)});
+    UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    fma_common::file_system::RemoveDir("./testdb");
     return 0;
 }
 
