@@ -252,6 +252,9 @@ class LightningGraph {
      * \return  True if it succeeds, false if the index does not exist. Throws exception on error.
      */
     bool IsIndexed(const std::string& label, const std::string& field, bool is_vertex);
+
+    bool IsCompositeIndexed(const std::string& label, const std::vector<std::string>& fields);
+
     bool DeleteIndex(const std::string& label, const std::string& field, bool is_vertex);
 
     bool DeleteCompositeIndex(const std::string& label,

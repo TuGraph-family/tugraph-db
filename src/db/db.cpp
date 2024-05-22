@@ -294,6 +294,12 @@ bool lgraph::AccessControlledDB::IsEdgeIndexed(const std::string& label,
     return graph_->IsIndexed(label, field, false);
 }
 
+bool lgraph::AccessControlledDB::IsVertexCompositeIndexed(const std::string& label,
+                                 const std::vector<std::string>& fields) {
+    CheckReadAccess();
+    return graph_->IsCompositeIndexed(label, fields);
+}
+
 void lgraph::AccessControlledDB::WarmUp() const { graph_->WarmUp(); }
 
 size_t lgraph::AccessControlledDB::Backup(const std::string& path, bool compact) const {

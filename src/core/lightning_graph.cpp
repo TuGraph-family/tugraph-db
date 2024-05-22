@@ -2503,6 +2503,16 @@ bool LightningGraph::IsIndexed(const std::string& label, const std::string& fiel
     }
 }
 
+bool LightningGraph::IsCompositeIndexed(const std::string& label,
+                                        const std::vector<std::string>& fields) {
+    Transaction txn = CreateReadTxn();
+    auto curr_schema = schema_.GetScopedRef();
+    Schema* s = curr_schema->v_schema_manager.GetSchema(label);
+    auto index = s->GetCompositeIndex(fields);
+    return index && index->IsReady();
+}
+
+
 bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& label,
                                          const std::string& field) {
     _HoldWriteLock(meta_lock_);

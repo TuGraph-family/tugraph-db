@@ -121,6 +121,9 @@ class AccessControlledDB {
 
     bool IsEdgeIndexed(const std::string& label, const std::string& field);
 
+    bool IsVertexCompositeIndexed(const std::string& label,
+                                  const std::vector<std::string>& fields);
+
     bool AddFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);
 
     bool DeleteFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);
