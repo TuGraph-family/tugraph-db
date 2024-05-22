@@ -477,7 +477,6 @@ class Schema {
 
     void AddVertexToCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record,
                           std::vector<std::string >& created);
-    
     bool VertexUniqueIndexConflict(KvTransaction& txn, const Value& record);
 
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
