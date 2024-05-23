@@ -1,0 +1,9 @@
+# Docker hub Image
+FROM tugraph/tugraph-compile-centos8:1.3.1
+
+RUN yum install -y openssh-server
+
+RUN ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N "" && \
+    ssh-keygen -t ecdsa -b 256 -f /etc/ssh/ssh_host_ecdsa_key -N "" && \
+    ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N "" && \
+    rm /run/nologin && rm /usr/sbin/nologin
