@@ -47,6 +47,7 @@
 #include "geax-front-end/ast/expr/BSmallerThan.h"
 #include "geax-front-end/ast/expr/BSub.h"
 #include "geax-front-end/ast/expr/BXor.h"
+#include "geax-front-end/ast/expr/BSquare.h"
 #include "geax-front-end/ast/expr/Case.h"
 #include "geax-front-end/ast/expr/Cast.h"
 #include "geax-front-end/ast/expr/Exists.h"

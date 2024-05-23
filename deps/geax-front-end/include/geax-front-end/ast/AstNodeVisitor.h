@@ -74,6 +74,7 @@ class BNotSmallerThan;
 class BSmallerThan;
 class BNotGreaterThan;
 class BSafeEqual;
+class BSquare;
 class BAdd;
 class BSub;
 class BMod;
@@ -255,6 +256,7 @@ class AstNodeVisitor {
     virtual std::any visit(BAnd* node) = 0;
     virtual std::any visit(BOr* node) = 0;
     virtual std::any visit(BXor* node) = 0;
+    virtual std::any visit(BSquare* node) = 0;
     virtual std::any visit(BBitAnd* node) = 0;
     virtual std::any visit(BBitOr* node) = 0;
     virtual std::any visit(BBitXor* node) = 0;
@@ -499,6 +501,7 @@ class AstExprNodeVisitorImpl : public AstNodeVisitor {
     virtual std::any visit(BMul* node) override = 0;
     virtual std::any visit(BMod* node) override = 0;
     virtual std::any visit(BAnd* node) override = 0;
+    virtual std::any visit(BSquare* node) override = 0;
     virtual std::any visit(BOr* node) override = 0;
     virtual std::any visit(BXor* node) override = 0;
     virtual std::any visit(BBitAnd* node) override = 0;
@@ -878,6 +881,9 @@ class AstLabelTreeNodeVisitorImpl : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(BAdd*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(BSquare*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(BSub*) override {

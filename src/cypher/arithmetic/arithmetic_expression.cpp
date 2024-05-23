@@ -1252,7 +1252,7 @@ cypher::FieldData BuiltinFunction::EndsWith(RTContext *ctx, const Record &record
     auto dst = args[1].Evaluate(ctx, record);
     std::string dst_str =dst.constant.scalar.AsString();
     auto src = args[2].Evaluate(ctx, record);
-    std::string src_str =src.constant.scalar.AsString()
+    std::string src_str =src.constant.scalar.AsString();
     bool ret = src_str.size() >= dst_str.size() &&
                src_str.compare(src_str.size() - dst_str.size(), dst_str.size(), dst_str) == 0;
     return cypher::FieldData(lgraph_api::FieldData(ret));
