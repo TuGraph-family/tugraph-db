@@ -17,7 +17,7 @@ MERGE (z3:Person {name:'zhang3'}) ON CREATE SET z3.birthyear=2021 ON MATCH SET z
 MATCH (z3:Person {name:'zhang3'})-[r]->(z4:Person {name:'zhang4'}) RETURN r;
 [{"r":{"dst":22,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":21,"temporal_id":0}},{"r":{"dst":22,"forward":false,"identity":1,"label":"HAS_CHILD","label_id":0,"src":21,"temporal_id":0}}]
 MATCH (m:City) RETURN collect(m.name) + [1,2];
-[{"collect(expr::prop = {m.name}),expr::list = {1,2},\"+\"":"[Houston,London,New York,1,2]"}]
+[{"collect(m.name) + [1,2]":"[Houston,London,New York,1,2]"}]
 WITH [1,2] AS nn MATCH (m:City) RETURN collect(m.name) + nn;
 [{"collect(expr::prop = {m.name}),nn,\"+\"":"[New York,London,Houston,1,2]"}]
 MATCH (n:City) WITH collect(n.name) AS nn MATCH (m:City) RETURN collect(m.name) + nn;

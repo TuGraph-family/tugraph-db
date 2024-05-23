@@ -19,7 +19,7 @@ match (n {name:'Liam Neeson'}) with n match (n) return n.name;
 match (a {name:'Liam Neeson'}), (b {name:'London'}) with a, b match (a), (b) return a.name, b.name;
 [{"a.name":"Liam Neeson","b.name":"London"}]
 MATCH (a {name:'Liam Neeson'})-[r]->(b) RETURN a,count(b) AS out_num;
-[{"a":{"identity":4},"out_num":2}]
+[{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"out_num":2}]
 MATCH (a {name:'Liam Neeson'})-[r]->(b) WITH a,count(b) AS out_num MATCH (a)<-[]-(c) RETURN count(c) AS in_num,out_num;
 [{"in_num":1,"out_num":2}]
 match (a {name:'Liam Neeson'})-[r]->(b) with a,b match (b)-[]->(c) return a,b,c;

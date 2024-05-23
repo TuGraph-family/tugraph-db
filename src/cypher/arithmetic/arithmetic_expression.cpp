@@ -21,6 +21,7 @@
 #include <stack>
 #include <string>
 #include <vector>
+#include <regex>
 #include "cypher/cypher_exception.h"
 #include "cypher/cypher_types.h"
 #include "cypher/parser/expression.h"
@@ -28,6 +29,7 @@
 #include "cypher/parser/symbol_table.h"
 #include "cypher/procedure/utils.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
+#include "lgraph/lgraph_types.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
@@ -1231,6 +1233,51 @@ cypher::FieldData BuiltinFunction::PolygonWKT(RTContext *ctx, const Record &reco
         default:
             CYPHER_ARGUMENT_ERROR();
     }
+}
+
+cypher::FieldData BuiltinFunction::StartsWith(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto dst = args[1].Evaluate(ctx, record);
+    std::string dst_str =dst.constant.scalar.AsString();
+    auto src = args[2].Evaluate(ctx, record);
+    std::string src_str =src.constant.scalar.AsString();
+    bool ret = src_str.compare(0, dst_str.size(), dst_str) == 0;
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::EndsWith(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto dst = args[1].Evaluate(ctx, record);
+    std::string dst_str =dst.constant.scalar.AsString();
+    auto src = args[2].Evaluate(ctx, record);
+    std::string src_str =src.constant.scalar.AsString()
+    bool ret = src_str.size() >= dst_str.size() &&
+               src_str.compare(src_str.size() - dst_str.size(), dst_str.size(), dst_str) == 0;
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::Contains(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto dst = args[1].Evaluate(ctx, record);
+    std::string dst_str =dst.constant.scalar.AsString();
+    auto src = args[2].Evaluate(ctx, record);
+    std::string src_str =src.constant.scalar.AsString();
+    bool ret = src_str.find(dst_str) != std::string::npos;
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto dst = args[1].Evaluate(ctx, record);
+    std::string dst_str =dst.constant.scalar.AsString();
+    auto src = args[2].Evaluate(ctx, record);
+    std::string src_str =src.constant.scalar.AsString();
+    bool ret = std::regex_match(src_str, std::regex(dst_str));
+    return cypher::FieldData(lgraph_api::FieldData(ret));
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,

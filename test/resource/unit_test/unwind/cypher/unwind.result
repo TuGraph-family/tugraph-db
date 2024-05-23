@@ -24,16 +24,16 @@ MATCH (a {name:'Liam Neeson'}) WITH a,'London' AS cid MATCH (c {name:cid}) RETUR
 [{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"c":{"identity":14,"label":"City","properties":{"name":"London"}}}]
 MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids
 UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,count(c);
-[{"a":{"identity":4},"count(c)":2}]
+[{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"count(c)":2}]
 MATCH (a {name:'Liam Neeson'}),(b {name:'Dennis Quaid'}) WITH a,b,['London','Houston'] AS cids
 UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,b,count(c);
-[{"a":{"identity":4},"b":{"identity":7},"count(c)":2}]
+[{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"b":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"count(c)":2}]
 MATCH (a {name:'Dennis Quaid'}) WITH a,['London','Houston'] AS cids
 UNWIND cids AS cid MATCH (c {name:cid})<-[]-(a) RETURN a,count(c);
-[{"a":{"identity":7},"count(c)":1}]
+[{"a":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"count(c)":1}]
 MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids
 UNWIND cids AS cid MATCH (c {name:cid})<-[]-()-[:MARRIED]->(a) RETURN a,count(c);
-[{"a":{"identity":4},"count(c)":1}]
+[{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"count(c)":1}]
 MATCH (c {name:'Houston'}) WITH c MATCH (p:Person {name:'Liam Neeson'}) CREATE (c)-[:HAS_CHILD]->(p);
 [{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
 MATCH (c {name:'Houston'}) WITH c UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (c)-[:HAS_CHILD]->(q);

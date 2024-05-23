@@ -1,7 +1,7 @@
 MATCH (n:Person) RETURN q;
-[InputError] Variable `q` not defined
+[CypherException] CypherException: Unknown variable: q
 MATCH (n:Person) RETURN n.name + q.name;
-[InputError] Variable `q` not defined
+[CypherException] CypherException: Unknown variable: q
 MATCH (n:Person) WITH q as m RETURN m;
 [InputError] Variable `q` not defined
 MATCH (n:Person) WITH k RETURN n;
@@ -9,7 +9,7 @@ MATCH (n:Person) WITH k RETURN n;
 UNWIND k as n RETURN n;
 [InputError] Variable `k` not defined
 MATCH (n:Person) WHERE n.name = k RETURN n;
-[InputError] Variable `k` not defined
+[CypherException] CypherException: Unknown variable: k
 MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by number;
 [InputError] Variable `number` not defined
 WITH [1,2,3] AS k RETURN [x in k | x + y] AS result;

@@ -36,6 +36,7 @@
 #include "cypher/execution_plan/ops/op_cartesian_product.h"
 #include "cypher/execution_plan/ops/op_set.h"
 #include "cypher/execution_plan/ops/op_delete.h"
+#include "cypher/execution_plan/ops/op_gql_delete.h"
 #include "cypher/execution_plan/ops/op_optional.h"
 #include "cypher/execution_plan/ops/op_argument.h"
 #include "cypher/execution_plan/ops/op_apply.h"

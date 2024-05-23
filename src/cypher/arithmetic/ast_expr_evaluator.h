@@ -107,6 +107,7 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;
     std::any visit(geax::frontend::BBitAnd* node) override;
@@ -147,6 +148,7 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::SingleLabel* node) override;
     std::any visit(geax::frontend::LabelOr* node) override;
     std::any visit(geax::frontend::IsLabeled* node) override;
+    std::any visit(geax::frontend::IsNull* node) override;
 
     std::any reportError() override;
 

@@ -343,6 +343,19 @@ struct BuiltinFunction {
     static cypher::FieldData PolygonWKT(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 
+
+    static cypher::FieldData StartsWith(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData EndsWith(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Contains(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Regexp(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -550,6 +563,10 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("polygon", BuiltinFunction::Polygon);
         ae_registered_funcs.emplace("polygonwkb", BuiltinFunction::PolygonWKB);
         ae_registered_funcs.emplace("polygonwkt", BuiltinFunction::PolygonWKT);
+        ae_registered_funcs.emplace("startswith", BuiltinFunction::StartsWith);
+        ae_registered_funcs.emplace("endswith", BuiltinFunction::EndsWith);
+        ae_registered_funcs.emplace("contains", BuiltinFunction::Contains);
+        ae_registered_funcs.emplace("regexp", BuiltinFunction::Regexp);
 
         /* native API-like functions */
         ae_registered_funcs.emplace("native.getedgefield", BuiltinFunction::NativeGetEdgeField);

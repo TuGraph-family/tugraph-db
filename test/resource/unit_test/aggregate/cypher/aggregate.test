@@ -1,4 +1,4 @@
-CALL db.createVertexLabel('Person', 'name', 'name', STRING, false, 'age', INT16, true, 'eyes', STRING, true);
+CALL db.createVertexLabel('Person', 'name', 'name', 'STRING', false, 'age', 'INT16', true, 'eyes', 'STRING', true);
 CALL db.createEdgeLabel('KNOWS', '[]');
  CREATE (a:Person {name:'A', age:13}) CREATE (b:Person {name:'B', age:33, eyes:'blue'}) CREATE (c:Person {name:'C', age:44, eyes:'blue'}) CREATE (d:Person {name:'D', eyes:'brown'}) CREATE (e:Person {name:'E'}) CREATE (a)-[:KNOWS]->(b), (a)-[:KNOWS]->(c), (a)-[:KNOWS]->(d), (b)-[:KNOWS]->(e), (c)-[:KNOWS]->(e) ;
 MATCH (n:Person) RETURN avg(n.age) /* 30.0 */;

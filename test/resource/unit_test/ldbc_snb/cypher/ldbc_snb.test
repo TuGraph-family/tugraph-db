@@ -1,9 +1,9 @@
-CALL db.createVertexLabel('TagClass', 'name', 'name', STRING, false);
-CALL db.createVertexLabel('Tag', 'name', 'name', STRING, false);
-CALL db.createVertexLabel('Forum', 'name', 'name', STRING, false);
-CALL db.createVertexLabel('Person', 'id', 'id', INT32, false, 'birthday', STRING, true);
-CALL db.createVertexLabel('Comment', 'id', 'id', INT32, false);
-CALL db.createVertexLabel('Message', 'id', 'id', INT32, false);
+CALL db.createVertexLabel('TagClass', 'name', 'name', 'STRING', false);
+CALL db.createVertexLabel('Tag', 'name', 'name', 'STRING', false);
+CALL db.createVertexLabel('Forum', 'name', 'name', 'STRING', false);
+CALL db.createVertexLabel('Person', 'id', 'id', 'INT32', false, 'birthday', 'STRING', true);
+CALL db.createVertexLabel('Comment', 'id', 'id', 'INT32', false);
+CALL db.createVertexLabel('Message', 'id', 'id', 'INT32', false);
 CALL db.createEdgeLabel('hasTag', '[]');
 CALL db.createEdgeLabel('hasType', '[]');
 CALL db.createEdgeLabel('knows', '[]');

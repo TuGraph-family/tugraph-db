@@ -1,4 +1,4 @@
-CALL db.createVertexLabel('Person', 'name', 'name', STRING, false, 'age', INT16, true, 'eyes', STRING, true);
+CALL db.createVertexLabel('Person', 'name', 'name', 'STRING', false, 'age', 'INT16', true, 'eyes', 'STRING', true);
 []
 CALL db.createEdgeLabel('KNOWS', '[]');
 []

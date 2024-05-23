@@ -19,15 +19,15 @@ MATCH (a:Person {name:'Vanessa Redgrave'}) RETURN a,-2,9.78,"im a string";
 MATCH (a:Person {name:'Vanessa Redgrave'}) RETURN a,abs(-2),ceil(0.1),floor(0.9),tointeger(rand()),round(3.141592),sign(-17),sign(0.1);
 [{"a":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"abs(-2)":2,"ceil(0.100000)":1.0,"floor(0.900000)":0.0,"round(3.141592)":3.0,"sign(-17)":-1,"sign(0.100000)":1,"tointeger(rand())":0}]
 RETURN toInteger(2.0),toInteger(2.3),toInteger('3');
-[{"toInteger(\"3\")":3,"toInteger(2.000000)":2,"toInteger(2.300000)":2}]
+[{"toInteger('3')":3,"toInteger(2.0)":2,"toInteger(2.3)":2}]
 RETURN toBoolean(true),toBoolean('True');
-[{"toBoolean(\"True\")":true,"toBoolean(true)":true}]
+[{"toBoolean('True')":true,"toBoolean(true)":true}]
 RETURN toFloat(2),toFloat(2.3),toFloat('3'),toFloat('2.019');
-[{"toFloat(\"2.019\")":2.019,"toFloat(\"3\")":3.0,"toFloat(2)":2.0,"toFloat(2.300000)":2.3}]
+[{"toFloat('2.019')":2.019,"toFloat('3')":3.0,"toFloat(2)":2.0,"toFloat(2.3)":2.3}]
 RETURN toString(2),toString(2.3),toString(true),toString('haha');
-[{"toString(\"haha\")":"haha","toString(2)":"2","toString(2.300000)":"2.300000","toString(true)":"true"}]
+[{"toString('haha')":"haha","toString(2)":"2","toString(2.3)":"2.300000","toString(true)":"true"}]
 RETURN size('hello world!');
-[{"size(\"hello world!\")":12}]
+[{"size('hello world!')":12}]
 MATCH (n:Person) WHERE size(n.name) > 15 RETURN n.name,size(n.name);
 [{"n.name":"Christopher Nolan","size(n.name)":17},{"n.name":"Michael Redgrave","size(n.name)":16},{"n.name":"Natasha Richardson","size(n.name)":18},{"n.name":"Vanessa Redgrave","size(n.name)":16}]
 WITH ['one','two','three'] AS coll RETURN size(coll);
@@ -65,15 +65,15 @@ MATCH (n:Person) RETURN count(n) AS num_person;
 match (city:City {name:'New York'}) return id(city) as cityId, coalesce(city.name, city.cname) as cityName;
 [{"cityId":13,"cityName":"New York"}]
 RETURN coalesce(null);
-[{"coalesce((expr:NA))":null}]
+[{"coalesce(null)":null}]
 RETURN coalesce(2021);
 [{"coalesce(2021)":2021}]
 RETURN coalesce(2021, null);
-[{"coalesce(2021,(expr:NA))":2021}]
+[{"coalesce(2021, null)":2021}]
 RETURN coalesce(null, null);
-[{"coalesce((expr:NA),(expr:NA))":null}]
+[{"coalesce(null, null)":null}]
 MATCH (n) RETURN coalesce(n.birthyear, n.name);
-[{"coalesce(n.birthyear,n.name)":1910},{"coalesce(n.birthyear,n.name)":1908},{"coalesce(n.birthyear,n.name)":1937},{"coalesce(n.birthyear,n.name)":1939},{"coalesce(n.birthyear,n.name)":1952},{"coalesce(n.birthyear,n.name)":1963},{"coalesce(n.birthyear,n.name)":1930},{"coalesce(n.birthyear,n.name)":1954},{"coalesce(n.birthyear,n.name)":1986},{"coalesce(n.birthyear,n.name)":1965},{"coalesce(n.birthyear,n.name)":1873},{"coalesce(n.birthyear,n.name)":1932},{"coalesce(n.birthyear,n.name)":1970},{"coalesce(n.birthyear,n.name)":"New York"},{"coalesce(n.birthyear,n.name)":"London"},{"coalesce(n.birthyear,n.name)":"Houston"},{"coalesce(n.birthyear,n.name)":null},{"coalesce(n.birthyear,n.name)":null},{"coalesce(n.birthyear,n.name)":null},{"coalesce(n.birthyear,n.name)":null},{"coalesce(n.birthyear,n.name)":null}]
+[{"coalesce(n.birthyear, n.name)":1910},{"coalesce(n.birthyear, n.name)":1908},{"coalesce(n.birthyear, n.name)":1937},{"coalesce(n.birthyear, n.name)":1939},{"coalesce(n.birthyear, n.name)":1952},{"coalesce(n.birthyear, n.name)":1963},{"coalesce(n.birthyear, n.name)":1930},{"coalesce(n.birthyear, n.name)":1954},{"coalesce(n.birthyear, n.name)":1986},{"coalesce(n.birthyear, n.name)":1965},{"coalesce(n.birthyear, n.name)":1873},{"coalesce(n.birthyear, n.name)":1932},{"coalesce(n.birthyear, n.name)":1970},{"coalesce(n.birthyear, n.name)":"New York"},{"coalesce(n.birthyear, n.name)":"London"},{"coalesce(n.birthyear, n.name)":"Houston"},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null}]
 #EXPECT
 RETURN abs('haha');
 [CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Abs.

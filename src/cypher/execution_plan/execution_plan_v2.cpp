@@ -33,7 +33,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     }
     LOG_DEBUG() << DumpGraph();
     // build execution plan
-    ExecutionPlanMaker execution_plan_maker(pattern_graphs_);
+    ExecutionPlanMaker execution_plan_maker(pattern_graphs_, obj_alloc_);
     ret = execution_plan_maker.Build(astNode, root_);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = execution_plan_maker.ErrorMsg();

@@ -12,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "geax-front-end/ast/expr/BSquare.h"
 #include "geax-front-end/isogql/GQLAstVisitor.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
@@ -234,6 +235,8 @@ std::any PatternGraphMaker::visit(geax::frontend::SingleLabel* node) {
     } else if ((ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_))) {
         relp_t_->AddType(node->label());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    } else if ((ClauseGuard::InClause(geax::frontend::AstNodeType::kIsLabeled, cur_types_))) {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
     NOT_SUPPORT();
 }
@@ -391,6 +394,12 @@ std::any PatternGraphMaker::visit(geax::frontend::BNotGreaterThan* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::BSafeEqual* node) {
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::BSquare* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -640,7 +649,10 @@ std::any PatternGraphMaker::visit(geax::frontend::Ref* node) {
 
 std::any PatternGraphMaker::visit(geax::frontend::Param* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsNull* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::IsNull* node) {
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::IsDirected* node) { NOT_SUPPORT(); }
 
@@ -650,7 +662,12 @@ std::any PatternGraphMaker::visit(geax::frontend::IsSourceOf* node) { NOT_SUPPOR
 
 std::any PatternGraphMaker::visit(geax::frontend::IsDestinationOf* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::IsLabeled* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::IsLabeled* node) {
+    ClauseGuard cg(node->type(), cur_types_);
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->labelTree());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); }
 
@@ -872,7 +889,9 @@ std::any PatternGraphMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_
 
 std::any PatternGraphMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::DeleteStatement* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::DeleteStatement* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 

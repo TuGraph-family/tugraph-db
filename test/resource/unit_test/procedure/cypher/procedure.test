@@ -1,13 +1,13 @@
 -- loadProcedure scan_graph ../../test/test_procedures/scan_graph.cpp read_only=true
 -- loadProcedure standard ../../test/test_procedures/standard_result.cpp read_only=true
--- loadProcedure custom_shortestpath ../../test/test_procedures/custom_shortestpath.cpp read_only=true
--- loadProcedure custom_pagerank ../../test/test_procedures/custom_pagerank.cpp read_only=true
+-- loadProcedure custom_shortestpath ../../test/test_procedures/v2_path_process.cpp read_only=true
+-- loadProcedure custom_pagerank ../../test/test_procedures/v2_pagerank.cpp read_only=true
 -- loadProcedure peek_some_node_salt ../../test/test_procedures/peek_some_node_salt.cpp read_only=true
--- loadProcedure custom_path_process ../../test/test_procedures/custom_path_process.cpp read_only=true
--- loadProcedure custom_algo ../../test/test_procedures/custom_algo.cpp read_only=true
+-- loadProcedure custom_path_process ../../test/test_procedures/v2_path_process.cpp read_only=true
+-- loadProcedure custom_algo ../../test/test_procedures/v2_algo.cpp read_only=true
 
-CALL db.createVertexLabel('Director', 'name', 'name', STRING, false, 'age', INT16, true);
-CALL db.createVertexLabel('P2', 'flag1', 'flag1', BOOL, false, 'flag2', Bool, true);
+CALL db.createVertexLabel('Director', 'name', 'name', 'STRING', false, 'age', 'INT16', true);
+CALL db.createVertexLabel('P2', 'flag1', 'flag1', 'BOOL', false, 'flag2', 'Bool', true);
 CALL db.createEdgeLabel('LIKE', '[]');
 CALL db.addIndex('Person', 'birthyear', false);
 CAll db.subgraph([1,2,3]);

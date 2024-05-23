@@ -15,6 +15,7 @@
 #pragma once
 
 #include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/isogql/GQLResolveCtx.h"
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
@@ -36,6 +37,7 @@ class ExecutionPlanV2 {
     std::vector<PatternGraph> pattern_graphs_;
     OpBase* root_ = nullptr;
     std::string error_msg_;
+    geax::common::ObjectArenaAllocator obj_alloc_;
 
  private:
     DISABLE_COPY(ExecutionPlanV2);
