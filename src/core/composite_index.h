@@ -128,6 +128,7 @@ class CompositeIndex {
     friend class LightningGraph;
     friend class Transaction;
     friend class CompositeIndexIterator;
+    friend class IndexManager;
 
     std::shared_ptr<KvTable> table_;
     std::vector<FieldType> key_types;

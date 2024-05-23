@@ -27,6 +27,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
     : db_(db), index_list_table_(std::move(index_list_table)) {
     size_t v_index_len = strlen(_detail::VERTEX_INDEX);
     size_t e_index_len = strlen(_detail::EDGE_INDEX);
+    size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
     size_t v_ft_index_len = strlen(_detail::VERTEX_FULLTEXT_INDEX);
     size_t e_ft_index_len = strlen(_detail::EDGE_FULLTEXT_INDEX);
     auto it = index_list_table_->GetIterator(txn);
@@ -78,6 +79,18 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             const _detail::FieldExtractor* fe = schema->GetFieldExtractor(ft_idx.field);
             FMA_DBG_ASSERT(fe);
             schema->MarkFullTextIndexed(fe->GetFieldId(), true);
+        } else if (index_name.size() > c_index_len &&
+                   index_name.substr(index_name.size() - c_index_len) == _detail::COMPOSITE_INDEX) {
+            _detail::CompositeIndexEntry idx = LoadCompositeIndex(it->GetValue());
+            FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
+            Schema* schema = v_schema_manager->GetSchema(idx.label);
+            FMA_DBG_ASSERT(schema);
+            auto tbl = CompositeIndex::OpenTable(
+                txn, db_->GetStore(), idx.table_name, idx.field_types, idx.index_type);
+            auto index = std::make_unique<CompositeIndex>(
+                std::move(tbl), idx.field_types, idx.index_type);  // creates index table
+            index->SetReady();
+            schema->SetCompositeIndex(idx.field_names, index.release());
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
         }

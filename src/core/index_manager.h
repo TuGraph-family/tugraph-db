@@ -123,7 +123,7 @@ class IndexManager {
         for (auto &s : fields) {
             res += s + _detail::NAME_SEPARATOR;
         }
-        return res + _detail::VERTEX_INDEX;
+        return res + _detail::COMPOSITE_INDEX;
     }
 
     static std::string GetEdgeIndexTableName(const std::string& label, const std::string& field) {
@@ -152,6 +152,14 @@ class IndexManager {
     static _detail::IndexEntry LoadIndex(const Value& v) {
         fma_common::BinaryBuffer buf(v.Data(), v.Size());
         _detail::IndexEntry idx;
+        size_t r = fma_common::BinaryRead(buf, idx);
+        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load index meta info from buffer");
+        return idx;
+    }
+
+    static _detail::CompositeIndexEntry LoadCompositeIndex(const Value& v) {
+        fma_common::BinaryBuffer buf(v.Data(), v.Size());
+        _detail::CompositeIndexEntry idx;
         size_t r = fma_common::BinaryRead(buf, idx);
         if (r != v.Size()) THROW_CODE(InternalError, "Failed to load index meta info from buffer");
         return idx;
@@ -232,11 +240,15 @@ class IndexManager {
                              const std::string& field);
 
     // vertex index
-    std::vector<IndexSpec> ListAllIndexes(KvTransaction& txn) {
+    std::pair<std::vector<IndexSpec>, std::vector<CompositeIndexSpec>> ListAllIndexes(
+        KvTransaction& txn) {
         std::vector<IndexSpec> indexes;
+        std::vector<CompositeIndexSpec> compositeIndexes;
         IndexSpec is;
+        CompositeIndexSpec cis;
         size_t v_index_len = strlen(_detail::VERTEX_INDEX);
         size_t e_index_len = strlen(_detail::EDGE_INDEX);
+        size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
         auto it = index_list_table_->GetIterator(txn);
         for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
             std::string index_name = it->GetKey().AsString();
@@ -247,17 +259,24 @@ class IndexManager {
                 is.field = ent.field;
                 is.type = ent.type;
                 indexes.emplace_back(std::move(is));
-            }
-            if (index_name.size() > e_index_len &&
+            } else if (index_name.size() > e_index_len &&
                 index_name.substr(index_name.size() - e_index_len) == _detail::EDGE_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
                 is.label = ent.label;
                 is.field = ent.field;
                 is.type = ent.type;
                 indexes.emplace_back(std::move(is));
+            } else if (index_name.size() > c_index_len &&
+                       index_name.substr(index_name.size() - c_index_len) ==
+                       _detail::COMPOSITE_INDEX) {
+                _detail::CompositeIndexEntry idx = LoadCompositeIndex(it->GetValue());
+                cis.label = idx.label;
+                cis.fields = idx.field_names;
+                cis.type = idx.index_type;
+                compositeIndexes.emplace_back(std::move(cis));
             }
         }
-        return indexes;
+        return {indexes, compositeIndexes};
     }
 };
 }  // namespace lgraph

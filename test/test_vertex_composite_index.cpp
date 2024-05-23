@@ -78,7 +78,7 @@ int TestUniqueVertexCompositeIndexImpl() {
     UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
     graph.AlterVertexLabelModFields("person", {FieldSpec("score", FieldType::INT64, false)});
     UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
-    fma_common::file_system::RemoveDir("./testdb");
+    // fma_common::file_system::RemoveDir("./testdb");
     return 0;
 }
 

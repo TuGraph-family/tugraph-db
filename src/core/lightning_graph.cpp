@@ -65,7 +65,7 @@ void LightningGraph::DropAllVertex() {
         Transaction txn = CreateWriteTxn(false);
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         // clear indexes
-        auto indexes = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
         for (auto& idx : indexes) {
             auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
             auto e_schema = curr_schema->e_schema_manager.GetSchema(idx.label);
@@ -79,6 +79,13 @@ void LightningGraph::DropAllVertex() {
                 auto ext = e_schema->GetFieldExtractor(idx.field);
                 FMA_DBG_ASSERT(ext);
                 ext->GetEdgeIndex()->Clear(txn.GetTxn());
+            }
+        }
+        for (auto& idx : composite_indexes) {
+            auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
+            FMA_DBG_ASSERT(v_schema);
+            if (v_schema) {
+                v_schema->GetCompositeIndex(idx.fields)->Clear(txn.GetTxn());
             }
         }
         // clear detached property data
@@ -2620,7 +2627,7 @@ void LightningGraph::DropAllIndex() {
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
         std::unique_ptr<SchemaInfo> backup_schema(new SchemaInfo(*curr_schema.Get()));
-        auto indexes = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
 
         bool success = true;
         for (auto& idx : indexes) {
@@ -2642,6 +2649,14 @@ void LightningGraph::DropAllIndex() {
                 auto ext = e_schema->GetFieldExtractor(idx.field);
                 e_schema->UnEdgeIndex(ext->GetFieldId());
             }
+        }
+        for (auto& idx : composite_indexes) {
+            auto v_schema = new_schema->v_schema_manager.GetSchema(idx.label);
+            if (!index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), idx.label, idx.fields)) {
+                success = false;
+                break;
+            }
+            v_schema->UnVertexCompositeIndex(idx.fields);
         }
         if (success) {
             schema_.Assign(new_schema.release());

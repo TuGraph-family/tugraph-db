@@ -102,6 +102,7 @@ static const char* const COMPOSITE_INDEX_KEY_SEPARATOR = "_";
 static const char* const VERTEX_FULLTEXT_INDEX = "vertex_fulltext";
 static const char* const EDGE_FULLTEXT_INDEX = "edge_fulltext";
 static const char* const VERTEX_INDEX = "vertex_index";
+static const char* const COMPOSITE_INDEX = "composite_index";
 static const char* const EDGE_INDEX = "edge_index";
 static const char* const USER_TABLE_NAME = "_user_table_";
 static const char* const ROLE_TABLE_NAME = "_role_table_";
