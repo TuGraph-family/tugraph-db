@@ -63,6 +63,7 @@ struct CompositeIndexEntry {
     CompositeIndexEntry() {}
     CompositeIndexEntry(CompositeIndexEntry&& rhs)
         : label(std::move(rhs.label)),
+          n(rhs.n),
           field_names(std::move(rhs.field_names)),
           field_types(std::move(rhs.field_types)),
           table_name(std::move(rhs.table_name)),
@@ -90,11 +91,15 @@ struct CompositeIndexEntry {
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         size_t res = BinaryRead(buf, label) + BinaryRead(buf, n);
-        for (auto &f : field_names) {
+        for (int i = 0; i < n; ++i) {
+            std::string f;
             res += BinaryRead(buf, f);
+            field_names.push_back(f);
         }
-        for (auto &f : field_types) {
+        for (int i = 0; i < n; ++i) {
+            FieldType f;
             res += BinaryRead(buf, f);
+            field_types.push_back(f);
         }
         return res + BinaryRead(buf, table_name) + BinaryRead(buf, index_type);
     }
@@ -161,7 +166,8 @@ class IndexManager {
         fma_common::BinaryBuffer buf(v.Data(), v.Size());
         _detail::CompositeIndexEntry idx;
         size_t r = fma_common::BinaryRead(buf, idx);
-        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load index meta info from buffer");
+        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load composite "
+                                      "index meta info from buffer");
         return idx;
     }
 

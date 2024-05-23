@@ -145,6 +145,7 @@ bool IndexManager::AddVertexCompositeIndex(KvTransaction& txn, const std::string
     }
     _detail::CompositeIndexEntry cidx;
     cidx.label = label;
+    cidx.n = fields.size();
     cidx.field_names = fields;
     cidx.field_types = types;
     cidx.table_name = GetVertexCompositeIndexTableName(label, fields);
