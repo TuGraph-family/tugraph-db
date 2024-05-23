@@ -157,7 +157,7 @@ bool IndexManager::AddVertexCompositeIndex(KvTransaction& txn, const std::string
     it->AddKeyValue(Value::ConstRef(cidx.table_name), idxv);
 
     auto tbl = CompositeIndex::OpenTable(txn, db_->GetStore(), cidx.table_name, types, type);
-    index = std::make_unique<CompositeIndex>(std::move(tbl), types, type);  // creates index table
+    index.reset(new CompositeIndex(std::move(tbl), types, type)); // creates index table
     return true;
 }
 
