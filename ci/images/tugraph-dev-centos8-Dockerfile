@@ -7,3 +7,11 @@ RUN ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N "" && \
     ssh-keygen -t ecdsa -b 256 -f /etc/ssh/ssh_host_ecdsa_key -N "" && \
     ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N "" && \
     rm /run/nologin && rm /usr/sbin/nologin
+
+# braft
+# if it is not accessible, replace it with the link below
+# wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/braft-v1.1.2.zip \
+    && unzip braft-v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
+    && mkdir build && cd build && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
+    && rm -rf /braft*
