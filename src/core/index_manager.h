@@ -227,7 +227,7 @@ class IndexManager {
                                  const std::vector<std::string>& fields,
                                  const std::vector<FieldType>& types,
                                  CompositeIndexType type,
-                                 std::unique_ptr<CompositeIndex>& index);
+                                 std::shared_ptr<CompositeIndex>& index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
                       FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);

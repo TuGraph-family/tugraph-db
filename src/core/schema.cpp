@@ -62,7 +62,7 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
 void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
                                         lgraph::VertexId vid,
                                         const lgraph::Value& record) {
-    for (auto &kv : composite_index_map) {
+    for (const auto &kv : composite_index_map) {
         std::vector<std::string> ids;
         boost::split(ids, kv.first,
                      boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
@@ -169,7 +169,7 @@ void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::Verte
                                        const lgraph::Value& record,
                                        std::vector<std::string>& created) {
     created.reserve(composite_index_map.size());
-    for (auto &kv : composite_index_map) {
+    for (const auto &kv : composite_index_map) {
         std::vector<std::string> ids;
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
@@ -786,7 +786,7 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(const std::string& f
 
 std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
-    for (auto kv : composite_index_map) {
+    for (const auto &kv : composite_index_map) {
         std::vector<std::string> ids;
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;

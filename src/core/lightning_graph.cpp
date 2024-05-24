@@ -1813,14 +1813,14 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
     if (schema->GetCompositeIndex(fields) != nullptr)
         return false;
     if (is_vertex) {
-        std::unique_ptr<CompositeIndex> composite_index;
+        std::shared_ptr<CompositeIndex> composite_index;
         bool success = index_manager_->AddVertexCompositeIndex(txn.GetTxn(), label, fields,
                                                                field_types, type, composite_index);
         if (!success)
             THROW_CODE(InputError, "build index {}-{} failed", label, field_names);
 
         composite_index->SetReady();
-        schema->SetCompositeIndex(fields, composite_index.release());
+        schema->SetCompositeIndex(fields, composite_index.get());
         if (schema->DetachProperty()) {
             LOG_INFO() <<
                 FMA_FMT("start building vertex index for {}:{} in detached model",
