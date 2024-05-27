@@ -214,6 +214,13 @@ bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const 
     return graph_->BlockingAddIndex(label, field, type, true);
 }
 
+bool lgraph::AccessControlledDB::AddVertexCompositeIndex(const std::string& label,
+                                                         const std::vector<std::string>& fields,
+                                                         CompositeIndexType type) {
+    CheckFullAccess();
+    return graph_->BlockingAddCompositeIndex(label, fields, type, true);
+}
+
 bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const std::string& field,
                                           IndexType type) {
     CheckFullAccess();
@@ -269,6 +276,12 @@ bool lgraph::AccessControlledDB::DeleteEdgeIndex(const std::string& label,
     return graph_->DeleteIndex(label, field, false);
 }
 
+bool lgraph::AccessControlledDB::DeleteVertexCompositeIndex(const std::string& label,
+                                 const std::vector<std::string>& fields) {
+    CheckFullAccess();
+    return graph_->DeleteCompositeIndex(label, fields, true);
+}
+
 bool lgraph::AccessControlledDB::IsVertexIndexed(const std::string& label,
                                                  const std::string& field) {
     CheckReadAccess();
@@ -279,6 +292,12 @@ bool lgraph::AccessControlledDB::IsEdgeIndexed(const std::string& label,
                                                const std::string& field) {
     CheckReadAccess();
     return graph_->IsIndexed(label, field, false);
+}
+
+bool lgraph::AccessControlledDB::IsVertexCompositeIndexed(const std::string& label,
+                                 const std::vector<std::string>& fields) {
+    CheckReadAccess();
+    return graph_->IsCompositeIndexed(label, fields);
 }
 
 void lgraph::AccessControlledDB::WarmUp() const { graph_->WarmUp(); }

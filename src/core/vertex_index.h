@@ -34,6 +34,7 @@ namespace lgraph {
 class Transaction;
 class VertexIndex;
 class VertexIndexIterator;
+class Schema;
 
 /**
  * An VertexIndexValue packs multiple vids into a single value.
@@ -242,8 +243,6 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      */
     void RefreshContentIfKvIteratorModified() override;
 };
-
-class Schema;
 
 /**
  * The indices

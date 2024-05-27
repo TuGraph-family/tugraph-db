@@ -249,7 +249,7 @@ struct CompositeKeyCompare {
                       (char*)a->mv_data + (len - 1) * 2 + offset_a[i]};
                 pb = {static_cast<size_t>(offset_b[i + 1] - offset_b[i]),
                       (char*)b->mv_data + (len - 1) * 2 + offset_b[i]};
-                res = _detail::KeyCompareFunc<FieldType::DOUBLE>::func(&pa, &pb);
+                res = _detail::KeyCompareFunc<FieldType::STRING>::func(&pa, &pb);
                 break;
             case FieldType::BLOB:
                 THROW_CODE(KvException, "Blob fields cannot act as key.");

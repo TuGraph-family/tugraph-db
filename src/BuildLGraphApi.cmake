@@ -75,7 +75,8 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_vertex_iterator.cpp
         lgraph_api/lgraph_result.cpp
         lgraph_api/lgraph_exceptions.cpp
-        lgraph_api/result_element.cpp)
+        lgraph_api/result_element.cpp
+        lgraph_api/lgraph_vertex_composite_index_iterator.cpp)
 
 set(TARGET_LGRAPH lgraph)
 
