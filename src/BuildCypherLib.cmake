@@ -41,6 +41,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_relationship_count.cpp
         cypher/execution_plan/ops/op_remove.cpp
         cypher/execution_plan/ops/op_set.cpp
+        cypher/execution_plan/ops/op_gql_set.cpp
         cypher/execution_plan/ops/op_skip.cpp
         cypher/execution_plan/ops/op_sort.cpp
         cypher/execution_plan/ops/op_standalone_call.cpp

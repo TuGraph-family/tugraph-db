@@ -69,6 +69,7 @@ enum OpType {
     NODE_BY_ID_SEEK,
     GQL_CREATE,
     GQL_DELETE_,
+    GQL_UPDATE,
 };
 
 struct OpStats {

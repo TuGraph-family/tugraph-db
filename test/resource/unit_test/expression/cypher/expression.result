@@ -25,7 +25,7 @@ RETURN 1+2*3;
 RETURN (2+15)/2-3*8%10 /*4.5*/;
 [{"(2+15)/2-3*8%10":4}]
 WITH 2 AS a,15 AS b RETURN (a+b)/a-a*b%4;
-[{"a,b,\"+\",a,\"/\",a,b,\"*\",4,\"%\",\"-\"":6}]
+[{"(a+b)/a-a*b%4":6}]
 RETURN 2^3;
 [{"2^3":8.0}]
 RETURN 2^3^2;
@@ -195,13 +195,13 @@ RETURN range(0, 4), range(2, 18, 3) /* [0,1,2,3,4],[2,5,8,11,14,17] */;
 RETURN range(0, 10)[3];
 [{"range(0, 10)[3]":3}]
 RETURN range(0, 10)[-3] /* 8 */;
-[{"subscript(range(0,10),-3)":8}]
+[{"range(0, 10)[-3]":8}]
 RETURN range(0, 10)[15];
 [{"range(0, 10)[15]":null}]
 RETURN range(0, 10)[0..3];
 [{"range(0, 10)[0..3]":[0,1,2]}]
 RETURN range(0, 10)[0..-5] /* [0,1,2,3,4,5] */;
-[{"subscript(range(0,10),0,-5)":[0,1,2,3,4,5]}]
+[{"range(0, 10)[0..-5]":[0,1,2,3,4,5]}]
 RETURN range(0, 10)[3..3] /* [] */;
 [{"range(0, 10)[3..3]":[]}]
 RETURN range(0, 10)[3..1] /* [] */;
@@ -235,9 +235,9 @@ RETURN datetime('2017-05-01 10:00:00.000001') > datetime('2017-05-01 10:00:00');
 RETURN datetime('2017-05-01 10:00:00.000002') > datetime('2017-05-01 10:00:00.000001');
 [{"datetime('2017-05-01 10:00:00.000002') > datetime('2017-05-01 10:00:00.000001')":true}]
 WITH datetime('2017-05-01 10:00:00') AS t1, datetime('2017-05-03 08:00:00') AS t2 RETURN t1>t2,t1<t2;
-[{"{t1 < t2}":true,"{t1 > t2}":false}]
+[{"t1<t2":true,"t1>t2":false}]
 WITH true AS bt, false AS bf RETURN bt = false, bf = false, bt <> bf;
-[{"{bf = false}":true,"{bt != bf}":true,"{bt = false}":false}]
+[{"bf = false":true,"bt <> bf":true,"bt = false":false}]
 RETURN bin('MjAyMAo=') > bin('MjAxOQo=');
 [{"bin('MjAyMAo=') > bin('MjAxOQo=')":true}]
 RETURN bin('MjAyMAo=') < bin('MjAxOQo=');
@@ -245,7 +245,7 @@ RETURN bin('MjAyMAo=') < bin('MjAxOQo=');
 RETURN bin('MjAyMAo=') = bin('MjAyMAo=');
 [{"bin('MjAyMAo=') = bin('MjAyMAo=')":true}]
 WITH bin('MjAyMAo=') AS bin1, bin('MjAxOQo=') AS bin2 RETURN bin1>bin2,bin1<bin2;
-[{"{bin1 < bin2}":false,"{bin1 > bin2}":true}]
+[{"bin1<bin2":false,"bin1>bin2":true}]
 RETURN dateComponent(12345, 'year'), datetimeComponent(12345, 'month'), datetimeComponent(12345, 'day');
 [{"dateComponent(12345, 'year')":2003,"datetimeComponent(12345, 'day')":1,"datetimeComponent(12345, 'month')":1}]
 RETURN datetimeComponent(1582705717, 'year'),datetimeComponent(1582705717, 'month'),datetimeComponent(1582705717, 'day');

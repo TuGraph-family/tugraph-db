@@ -1280,6 +1280,11 @@ cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
     return cypher::FieldData(lgraph_api::FieldData(ret));
 }
 
+cypher::FieldData BuiltinFunction::Exists(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    return cypher::FieldData();
+}
+
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
                                        const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();

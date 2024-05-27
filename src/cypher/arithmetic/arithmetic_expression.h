@@ -356,6 +356,9 @@ struct BuiltinFunction {
     static cypher::FieldData Regexp(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 
+    static cypher::FieldData Exists(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -567,6 +570,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("endswith", BuiltinFunction::EndsWith);
         ae_registered_funcs.emplace("contains", BuiltinFunction::Contains);
         ae_registered_funcs.emplace("regexp", BuiltinFunction::Regexp);
+        ae_registered_funcs.emplace("exists", BuiltinFunction::Exists);
 
         /* native API-like functions */
         ae_registered_funcs.emplace("native.getedgefield", BuiltinFunction::NativeGetEdgeField);

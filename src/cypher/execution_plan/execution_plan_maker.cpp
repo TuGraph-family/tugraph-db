@@ -927,6 +927,19 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
                     order_by_items.emplace_back(std::make_pair(i, !order_by_field->order()));
                     break;
                 }
+            } else if (auto field = dynamic_cast<geax::frontend::GetField*>(order_by_field->field())) {
+                if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(field->expr())) {
+                    auto field_name = std::get<0>(items[i]);
+                    std::string field_name_str = order_by_ref->name();
+                    field_name_str.append(".");
+                    field_name_str.append(field->fieldName());
+                    if (field_name_str == field_name) {
+                        order_by_items.emplace_back(std::make_pair(i, !order_by_field->order()));
+                        break;
+                    }
+                } else {
+                    NOT_SUPPORT();
+                }
             } else {
                 NOT_SUPPORT();
             }
@@ -1011,7 +1024,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto op = new OpGqlSet(node->items(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
     auto op = new OpGqlDelete(node->items());
