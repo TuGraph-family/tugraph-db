@@ -1209,10 +1209,10 @@ enum class IndexType {
 };
 
 enum class CompositeIndexType {
-    /** @brief this is not unique composite index
-     *  Temporarily require all attributes to be non-empty attributes
-     * */
-    UniqueIndex = 1
+    /** @brief this is unique composite index */
+    UniqueIndex = 1,
+    /** @brief this is not unique composite index */
+    NonUniqueIndex = 2
 };
 
 /** @brief   An index specifier. */

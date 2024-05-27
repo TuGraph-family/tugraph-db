@@ -35,6 +35,8 @@ class Transaction;
 class VertexIndex;
 class VertexIndexIterator;
 class Schema;
+class CompositeIndex;
+class CompositeIndexIterator;
 
 /**
  * An VertexIndexValue packs multiple vids into a single value.
@@ -47,6 +49,8 @@ class VertexIndexValue {
 
     friend class VertexIndex;
     friend class VertexIndexIterator;
+    friend class CompositeIndex;
+    friend class CompositeIndexIterator;
 
     Value v_;
 

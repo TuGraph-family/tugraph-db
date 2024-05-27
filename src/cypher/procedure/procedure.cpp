@@ -194,8 +194,15 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
         bool unique = false, pair_unique = false;
         switch (i.type) {
         case lgraph::CompositeIndexType::UniqueIndex:
-            unique = true;
-            break;
+            {
+                unique = true;
+                break;
+            }
+        case lgraph::CompositeIndexType::NonUniqueIndex:
+            {
+                unique = false;
+                break;
+            }
         }
         r.AddConstant(lgraph::FieldData(unique));
         r.AddConstant(lgraph::FieldData(pair_unique));
@@ -277,8 +284,15 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
         bool unique = false, pair_unique = false;
         switch (i.type) {
         case lgraph::CompositeIndexType::UniqueIndex:
-            unique = true;
-            break;
+            {
+                unique = true;
+                break;
+            }
+        case lgraph::CompositeIndexType::NonUniqueIndex:
+            {
+                unique = false;
+                break;
+            }
         }
         r.AddConstant(lgraph::FieldData(unique));
         r.AddConstant(lgraph::FieldData(pair_unique));
@@ -1400,8 +1414,9 @@ void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
     for (auto &arg : fields_args) {
         fields.push_back(arg.String());
     }
-    // auto unique = args[2].Bool();
-    lgraph::CompositeIndexType type = lgraph::CompositeIndexType::UniqueIndex;
+    auto unique = args[2].Bool();
+    lgraph::CompositeIndexType type = unique ? lgraph::CompositeIndexType::UniqueIndex :
+                                      lgraph::CompositeIndexType::NonUniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
     if (!success) {

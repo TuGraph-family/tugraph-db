@@ -82,11 +82,63 @@ int TestUniqueVertexCompositeIndexImpl() {
     return 0;
 }
 
-/*int CURDVertexWithTooLongKey() {
+int TestNonUniqueVertexCompositeIndexImpl() {
+    Galaxy galaxy("./testdb", lgraph::_detail::DEFAULT_ADMIN_NAME,
+                  lgraph::_detail::DEFAULT_ADMIN_PASS, false, true);
+    UT_ASSERT(galaxy.CreateGraph("test", "test", 1<<20));
+    auto graph = galaxy.OpenGraph("test");
+    std::vector<FieldSpec> v_fds = {{"id", FieldType::INT64, false},
+                                    {"score", FieldType::INT64, false},
+                                    {"name", FieldType::STRING, false}};
+    UT_EXPECT_TRUE(graph.AddVertexLabel("person", v_fds, VertexOptions("id")));
+    auto txn = graph.CreateWriteTxn();
+    for (int i = 0; i < 10; ++i) {
+        txn.AddVertex("person", {"id", "score", "name"},
+                      {FieldData::Int64(i), FieldData::Int64(1),
+                       FieldData::String("1")});
+    }
+    txn.Commit();
+    graph.AddVertexCompositeIndex("person", {"score", "name"}, CompositeIndexType::NonUniqueIndex);
+    txn = graph.CreateWriteTxn();
+    for (int i = 10; i < 20; ++i) {
+        txn.AddVertex("person", {"id", "score", "name"},
+                      {FieldData::Int64(i), FieldData::Int64(2),
+                       FieldData::String("2")});
+    }
+    txn.Commit();
+    txn = graph.CreateReadTxn();
+    auto composite_indexes = txn.ListVertexCompositeIndexes();
+    UT_EXPECT_TRUE(composite_indexes.size() == 1);
+    UT_EXPECT_TRUE(composite_indexes[0].fields[0] == "score");
+    UT_EXPECT_TRUE(composite_indexes[0].fields[1] == "name");
+    int count = 0;
+    for (auto it = txn.GetVertexCompositeIndexIterator("person",
+         {"score", "name"}, {FieldData::Int64(1), FieldData::String("1")},
+         {FieldData::Int64(1), FieldData::String("1")});it.IsValid();it.Next()) {
+        auto tmp_it = txn.GetVertexIterator();
+        tmp_it.Goto(it.GetVid());
+        auto id = tmp_it.GetField("id").AsInt64();
+        UT_EXPECT_TRUE(id == count);
+        count++;
+    }
+    UT_EXPECT_TRUE(count == 10);
+    txn.Abort();
+    UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.DeleteVertexCompositeIndex("person", {"score", "name"});
+    UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AddVertexCompositeIndex("person", {"score", "name"}, CompositeIndexType::NonUniqueIndex);
+    UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AlterVertexLabelDelFields("person", {"score"});
+    UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AddVertexCompositeIndex("person", {"score", "name"}, CompositeIndexType::NonUniqueIndex);
+    UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    graph.AlterVertexLabelModFields("person", {FieldSpec("score", FieldType::INT64, false)});
+    UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
+    fma_common::file_system::RemoveDir("./testdb");
     return 0;
-}*/
+}
 
 TEST_F(TestVertexCompositeIndex, compositeIndex) {
     TestUniqueVertexCompositeIndexImpl();
-    // CURDVertexWithTooLongKey();
+    TestNonUniqueVertexCompositeIndexImpl();
 }
