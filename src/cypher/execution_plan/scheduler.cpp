@@ -80,6 +80,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
             LOG_DEBUG() << sql_query.ToString();
         }
         plan = std::make_shared<ExecutionPlan>();
+        plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         plan->Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         plan->Validate(ctx);
         if (plan->CommandType() != parser::CmdType::QUERY) {

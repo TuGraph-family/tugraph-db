@@ -184,6 +184,24 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
         r.AddConstant(lgraph::FieldData(pair_unique));
         records->emplace_back(r.Snapshot());
     }
+
+    auto vertex_composite_indexes = ctx->txn_->GetTxn()->ListVertexCompositeIndexes();
+    for (auto &i : vertex_composite_indexes) {
+        Record r;
+        r.AddConstant(lgraph::FieldData(i.label));
+        r.AddConstant(lgraph::FieldData(boost::join(i.fields, ",")));
+        r.AddConstant(lgraph::FieldData("vertex"));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::CompositeIndexType::UniqueIndex:
+            unique = true;
+            break;
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
+        records->emplace_back(r.Snapshot());
+    }
+
     auto edge_indexes = ctx->txn_->GetTxn()->ListEdgeIndexes();
     for (auto &i : edge_indexes) {
         Record r;
@@ -223,8 +241,10 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
     bool is_vertex = ParseIsVertex(args[1]);
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     std::vector<lgraph::IndexSpec> indexes;
+    std::vector<lgraph::CompositeIndexSpec> compositeIndexes;
     if (is_vertex) {
         indexes = ctx->txn_->GetTxn()->ListVertexIndexByLabel(label);
+        compositeIndexes = ctx->txn_->GetTxn()->ListVertexCompositeIndexByLabel(label);
     } else {
         indexes = ctx->txn_->GetTxn()->ListEdgeIndexByLabel(label);
     }
@@ -243,6 +263,21 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
             break;
         case lgraph::IndexType::NonuniqueIndex:
             // just to pass the compilation
+            break;
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
+        records->emplace_back(r.Snapshot());
+    }
+    for (auto &i : compositeIndexes) {
+        if (i.label != label) continue;
+        Record r;
+        r.AddConstant(lgraph::FieldData(i.label));
+        r.AddConstant(lgraph::FieldData(boost::join(i.fields, ",")));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::CompositeIndexType::UniqueIndex:
+            unique = true;
             break;
         }
         r.AddConstant(lgraph::FieldData(unique));
@@ -990,7 +1025,9 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     _ExtractFds(args, label, primary_fd, fds);
-    auto ret = ctx->ac_db_->AddLabel(true, label, fds, lgraph::VertexOptions(primary_fd));
+    lgraph::VertexOptions vo(primary_fd);
+    vo.detach_property = true;
+    auto ret = ctx->ac_db_->AddLabel(true, label, fds, vo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -1122,10 +1159,12 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
     if (is_vertex) {
         auto vo = std::make_unique<lgraph::VertexOptions>();
         vo->primary_field = primary_fd;
+        vo->detach_property = true;
         options = std::move(vo);
     } else {
         auto eo = std::make_unique<lgraph::EdgeOptions>();
         eo->edge_constraints = edge_constraints;
+        eo->detach_property = true;
         options = std::move(eo);
     }
     auto ret = ac_db.AddLabel(is_vertex, label, field_specs, *options);
@@ -1309,10 +1348,12 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
     _ExtractFds(args, label, extra, fds);
     auto ec = nlohmann::json::parse(extra);
     for (auto &item : ec) {
-        edge_constraints.push_back(std::make_pair(item[0], item[1]));
+        edge_constraints.emplace_back(item[0], item[1]);
     }
+    lgraph::EdgeOptions eo(edge_constraints);
+    eo.detach_property = true;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    auto ret = ac_db.AddLabel(false, label, fds, lgraph::EdgeOptions(edge_constraints));
+    auto ret = ac_db.AddLabel(false, label, fds, eo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -1337,6 +1378,35 @@ void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, co
     bool success = ac_db.AddVertexIndex(label, field, type);
     if (!success) {
         throw lgraph::IndexExistException(label, field);
+    }
+}
+
+void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
+                                                 const cypher::Record *record,
+                                                 const cypher::VEC_EXPR &args,
+                                                 const cypher::VEC_STR &yield_items,
+                                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 3,
+                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, unique)")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST, "field_names type should be list")
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "unique type should be boolean")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    /* close the previous txn first, in case of nested transaction */
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto fields_args = args[1].List();
+    std::vector<std::string> fields;
+    for (auto &arg : fields_args) {
+        fields.push_back(arg.String());
+    }
+    // auto unique = args[2].Bool();
+    lgraph::CompositeIndexType type = lgraph::CompositeIndexType::UniqueIndex;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
+    if (!success) {
+        std::string field_strings = boost::algorithm::join(fields, ",");
+        THROW_CODE(IndexExist, "VertexCompositeIndex [{}:{}] already exist.", label, field_strings);
     }
 }
 
@@ -2824,6 +2894,26 @@ void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, c
     }
 }
 
+void BuiltinProcedure::DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
+                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST,
+                     "field_names type should be list<string>")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<std::string> fields;
+    for (const auto &v : args[1].List()) {
+        fields.push_back(v.String());
+    }
+    bool success = ctx->ac_db_->DeleteVertexCompositeIndex(args[0].String(), fields);
+    if (!success) {
+        throw lgraph::IndexNotExistException(args[0].String(), args[1].String());
+    }
+}
+
 void BuiltinProcedure::DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -2845,6 +2935,18 @@ void BuiltinProcedure::DbDropDB(RTContext *ctx, const Record *record, const VEC_
                                            "given. Usage: db.dropDB()",
                                            args.size()))
     ctx->ac_db_->DropAllData();
+}
+
+void BuiltinProcedure::DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: db.dropAllVertex()",
+                                           args.size()))
+    ctx->ac_db_->DropAllVertex();
 }
 
 void BuiltinProcedure::DbTaskListTasks(RTContext *ctx, const Record *record, const VEC_EXPR &args,

@@ -293,7 +293,7 @@ struct LabelDesc {
     std::vector<ColumnSpec> columns;
     EdgeConstraints edge_constraints;
     bool is_vertex;
-    bool detach_property{false};
+    bool detach_property{true};
     LabelDesc() {}
     std::string ToString() const {
         std::string prefix = is_vertex ? "vertex" : "edge";

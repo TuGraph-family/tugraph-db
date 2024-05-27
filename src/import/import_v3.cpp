@@ -1324,7 +1324,8 @@ void Importer::RocksdbToLmdb() {
                                     auto& last = edge_property.back();
                                     if (std::get<1>(last).src == uid.src &&
                                         std::get<1>(last).lid == uid.lid &&
-                                        std::get<1>(last).dst == uid.dst) {
+                                        std::get<1>(last).dst == uid.dst &&
+                                        std::get<1>(last).tid == uid.tid) {
                                         uid.eid = std::get<1>(last).eid + 1;
                                     } else {
                                         uid.eid = 0;
