@@ -114,7 +114,7 @@ int TestNonUniqueVertexCompositeIndexImpl() {
     int count = 0;
     for (auto it = txn.GetVertexCompositeIndexIterator("person",
          {"score", "name"}, {FieldData::Int64(1), FieldData::String("1")},
-         {FieldData::Int64(1), FieldData::String("1")});it.IsValid();it.Next()) {
+         {FieldData::Int64(1), FieldData::String("1")}); it.IsValid(); it.Next()) {
         auto tmp_it = txn.GetVertexIterator();
         tmp_it.Goto(it.GetVid());
         auto id = tmp_it.GetField("id").AsInt64();
