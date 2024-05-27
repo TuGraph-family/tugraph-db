@@ -1,7 +1,6 @@
-MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
-[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+#MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(v2) as cnt;
-[{"cnt":4,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
+[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt;
 [{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt;
