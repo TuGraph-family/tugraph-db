@@ -86,7 +86,7 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
         do {
             res = root_->Consume(ctx);
 #ifndef NDEBUG
-            LOG_DEBUG() << "root op result: " << res << " (" << OpBase::OP_OK << " for OK)";
+          //  LOG_DEBUG() << "root op result: " << res << " (" << OpBase::OP_OK << " for OK)";
 #endif
         } while (res == OpBase::OP_OK);
         Reset();
