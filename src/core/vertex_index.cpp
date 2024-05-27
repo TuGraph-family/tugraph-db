@@ -463,6 +463,17 @@ bool VertexIndex::Update(KvTransaction& txn, const Value& old_key,
     return Add(txn, new_key, vid);
 }
 
+bool VertexIndex::UniqueIndexConflict(KvTransaction& txn, const Value& k) {
+    if (type_ != IndexType::GlobalUniqueIndex) {
+        THROW_CODE(InputError, "vertex UniqueIndexConflict only can be used in unique index.");
+    }
+    if (k.Size() > GetMaxVertexIndexKeySize()) {
+        return true;
+    }
+    Value v;
+    return table_->GetValue(txn, k, v);
+}
+
 bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     switch (type_) {
     case IndexType::GlobalUniqueIndex:

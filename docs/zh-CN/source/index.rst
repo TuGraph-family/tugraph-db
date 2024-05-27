@@ -10,6 +10,7 @@ TuGraph高性能图数据库
    2.introduction/index.rst
    3.quick-start/index.rst
    4.user-guide/index.rst
+   development_guide.md
    5.installation&running/index.rst
    6.utility-tools/index.rst
    7.client-tools/index.rst

@@ -52,7 +52,9 @@ class CypherBaseVisitor : public LcypherVisitor {
     std::string _curr_procedure_name;
     /* alias carry between query parts */
     std::vector<std::pair<std::string, cypher::SymbolNode::Type>> _carry;
-    std::string _listcompr_placeholder = "";
+    std::string _listcompr_placeholder;
+    std::unordered_map<std::string, std::set<std::string>> _node_property;
+    std::unordered_map<std::string, std::set<std::string>> _rel_property;
     enum _ClauseType : uint32_t {
         NA = 0x0,
         MATCH = 0x1,
@@ -144,6 +146,12 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     const std::vector<SglQuery> &GetQuery() const { return _query; }
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetNodeProperty() const {return _node_property;}
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetRelProperty() const {return _rel_property;}
 
     CmdType CommandType() const { return _cmd_type; }
 
@@ -819,6 +827,13 @@ class CypherBaseVisitor : public LcypherVisitor {
         if (ctx->oC_Properties() != nullptr) {
             TUP_PROPERTIES tmp = std::any_cast<TUP_PROPERTIES>(visit(ctx->oC_Properties()));
             properties = std::move(tmp);
+            for (const auto& pair : std::get<0>(properties).Map()) {
+                for (auto& label : node_labels) {
+                    if (!label.empty()) {
+                        _node_property[label].emplace(pair.first);
+                    }
+                }
+            }
         }
         AddSymbol(variable, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
         return std::make_tuple(variable, node_labels, properties);
@@ -882,6 +897,13 @@ class CypherBaseVisitor : public LcypherVisitor {
         if (ctx->oC_Properties() != nullptr) {
             TUP_PROPERTIES tmp = std::any_cast<TUP_PROPERTIES>(visit(ctx->oC_Properties()));
             properties = tmp;
+            for (const auto& pair : std::get<0>(properties).Map()) {
+                for (auto &rel_label : relationship_types) {
+                    if (!rel_label.empty()) {
+                        _rel_property[rel_label].emplace(pair.first);
+                    }
+                }
+            }
         }
         AddSymbol(variable, cypher::SymbolNode::RELATIONSHIP, cypher::SymbolNode::LOCAL);
         return std::make_tuple(variable, relationship_types, range_literal, properties);
@@ -916,6 +938,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &ctx_name : ctx->oC_RelTypeName()) {
             std::string name = std::any_cast<std::string>(visit(ctx_name));
             relationship_types.emplace_back(name);
+            _rel_property.emplace(name, std::set<std::string>{});
         }
         return relationship_types;
     }
@@ -930,6 +953,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &ctx_label : ctx->oC_NodeLabel()) {
             std::string label = std::any_cast<std::string>(visit(ctx_label));
             labels.emplace_back(label);
+            _node_property.emplace(label, std::set<std::string>{});
         }
         return labels;
     }
