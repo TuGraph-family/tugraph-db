@@ -14,7 +14,7 @@
  */
 
 #include <algorithm>
-#include "cypher_types.h"
+#include "cypher/cypher_types.h"
 #include "geax-front-end/ast/expr/VDouble.h"
 #include "core/data_type.h"
 #include "cypher/arithmetic/arithmetic_expression.h"

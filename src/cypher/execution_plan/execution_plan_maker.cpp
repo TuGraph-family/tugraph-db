@@ -315,8 +315,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         }
         expand_ops.emplace_back(expand_op);
         if (has_filter_per_level_[filter_level_]) {
-            OpFilter* filter = new OpFilter(std::make_shared<lgraph::GeaxExprFilter>(
-                    equal_filter_[filter_level_], pattern_graphs_[cur_pattern_graph_].symbol_table));
+            OpFilter* filter = new OpFilter(
+                std::make_shared<lgraph::GeaxExprFilter>(
+                equal_filter_[filter_level_], pattern_graphs_[cur_pattern_graph_].symbol_table));
             expand_ops.push_back(filter);
         }
         if (op_filter_ != nullptr) {
@@ -399,7 +400,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ElementFiller* node) {
         auto name = variable.value();
         ref->setName(std::move(name));
         field->setExpr(ref);
-
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -927,7 +927,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
                     order_by_items.emplace_back(std::make_pair(i, !order_by_field->order()));
                     break;
                 }
-            } else if (auto field = dynamic_cast<geax::frontend::GetField*>(order_by_field->field())) {
+            } else if (auto field = dynamic_cast<geax::frontend::GetField*>(
+                order_by_field->field())) {
                 if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(field->expr())) {
                     auto field_name = std::get<0>(items[i]);
                     std::string field_name_str = order_by_ref->name();

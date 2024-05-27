@@ -28,7 +28,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     ExecutionPlanMaker(std::vector<PatternGraph>& pattern_graphs,
       geax::common::ObjectArenaAllocator& alloc)
         : pattern_graphs_(pattern_graphs)
-        , objAlloc_(alloc){}
+        , objAlloc_(alloc) {}
     ~ExecutionPlanMaker() = default;
     geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, OpBase*& root);
     std::string ErrorMsg() { return error_msg_; }
