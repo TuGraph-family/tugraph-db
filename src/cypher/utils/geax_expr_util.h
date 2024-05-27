@@ -129,7 +129,7 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::Ref* node) override { return node->name(); }
     std::any visit(geax::frontend::Param* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::IsNull* node) override {
-          std::string str = std::any_cast<std::string>(node->expr()->accept(*this)); 
+          std::string str = std::any_cast<std::string>(node->expr()->accept(*this));
           str += "IS NULL";
           return str;
     }
