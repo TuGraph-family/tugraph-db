@@ -36,7 +36,7 @@ void checkedAnyCast(const std::any& s, TargetType& d) {
     try {
         d = std::any_cast<TargetType>(s);
     } catch (...) {
-        //  TODO(lingsu): remove in future
+        // TODO(lingsu): remove in future
         abort();
     }
 }
