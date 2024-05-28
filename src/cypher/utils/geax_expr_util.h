@@ -21,8 +21,6 @@
 #include "execution_plan/visitor/visitor.h"
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
-#include "geax-front-end/ast/expr/BSquare.h"
-#include "geax-front-end/ast/expr/IsNull.h"
 #include "parser/symbol_table.h"
 #include "cypher/cypher_types.h"
 #include "core/data_type.h"

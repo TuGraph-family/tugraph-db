@@ -19,7 +19,6 @@
 #include "geax-front-end/ast/expr/BSquare.h"
 #include "geax-front-end/ast/expr/GetField.h"
 #include "geax-front-end/ast/expr/Ref.h"
-#include "tools/lgraph_log.h"
 
 namespace cypher {
 
@@ -1015,7 +1014,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT();}
-
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 

@@ -29,9 +29,6 @@ geax::frontend::GEAXErrorCode PatternGraphMaker::Build(geax::frontend::AstNode* 
 
 std::any PatternGraphMaker::visit(geax::frontend::GraphPattern* node) {
     auto& path_patterns = node->pathPatterns();
-    // if (path_patterns.size() > 1) {
-    //     NOT_SUPPORT();
-    // }
     for (auto path_pattern : path_patterns) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_pattern);
     }

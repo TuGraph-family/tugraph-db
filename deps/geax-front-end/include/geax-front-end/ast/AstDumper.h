@@ -23,7 +23,6 @@
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
-#include "geax-front-end/ast/expr/BSquare.h"
 
 namespace geax {
 namespace frontend {
