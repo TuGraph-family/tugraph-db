@@ -242,8 +242,8 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
 
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      FMA_FMT("{} has to be a string ", args[0].String()))
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
-                     FMA_FMT("{} has to be a string ", args[0].String()))
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+                     FMA_FMT("{} has to be a string ", args[1].String()))
     auto label = args[0].String();
     bool is_vertex = ParseIsVertex(args[1]);
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
