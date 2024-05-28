@@ -31,11 +31,12 @@
 
 namespace cypher {
 
-template <typename Dst>
-void checkedAnyCast(const std::any& s, Dst& d) {
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType& d) {
     try {
-        d = std::any_cast<Dst>(s);
+        d = std::any_cast<TargetType>(s);
     } catch (...) {
+        //  TODO(lingsu): remove in future
         abort();
     }
 }

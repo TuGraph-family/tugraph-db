@@ -428,10 +428,8 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::LabelOr* node) {
     checkedAnyCast(node->left()->accept(*this), left);
     std::unordered_set<std::string> right;
     checkedAnyCast(node->left()->accept(*this), right);
-    std::unordered_set<std::string> res;
-    res.insert(left.begin(), left.end());
-    res.insert(right.begin(), right.end());
-    return res;
+    left.insert(right.begin(), right.end());
+    return left;
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::IsLabeled* node) {
@@ -445,12 +443,11 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::IsLabeled* node) {
     std::string label;
     if (e.IsNode()) {
         auto n = e.node;
-        CYPHER_THROW_ASSERT(n);
-        CYPHER_THROW_ASSERT(n->IsValidAfterMaterialize(ctx_));
+        CYPHER_THROW_ASSERT(n && n->IsValidAfterMaterialize(ctx_));
         label = n->ItRef()->GetLabel();
     } else if (e.IsRelationship()) {
         auto rel = e.relationship;
-        CYPHER_THROW_ASSERT(rel && rel->ItRef());
+        CYPHER_THROW_ASSERT(rel && rel->ItRef()->IsValid());
         label = rel->ItRef()->GetLabel();
     }
     exist = labels.count(label);

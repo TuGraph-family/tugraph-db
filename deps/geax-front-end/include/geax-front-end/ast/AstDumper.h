@@ -694,6 +694,15 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(rig);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
+    std::any visit(BSquare* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BSquare);
+        auto lef = node->left();
+        auto rig = node->right();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(lef);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(rig);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
     std::any visit(BMod* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(BMod);
@@ -706,15 +715,6 @@ public:
     std::any visit(BAnd* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(BAnd);
-        auto lef = node->left();
-        auto rig = node->right();
-        VISIT_PARAM_AND_CHECK_WITH_MSG(lef);
-        VISIT_PARAM_AND_CHECK_WITH_MSG(rig);
-        return GEAXErrorCode::GEAX_SUCCEED;
-    }
-    std::any visit(BSquare* node) override {
-        INDET_GUARD();
-        VARIABLE_GUARD_WITH_TYPE_NAME(BSquare);
         auto lef = node->left();
         auto rig = node->right();
         VISIT_PARAM_AND_CHECK_WITH_MSG(lef);
