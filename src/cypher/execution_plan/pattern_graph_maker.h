@@ -86,12 +86,12 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::BSmallerThan* node) override;
     std::any visit(geax::frontend::BNotGreaterThan* node) override;
     std::any visit(geax::frontend::BSafeEqual* node) override;
-    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAdd* node) override;
     std::any visit(geax::frontend::BSub* node) override;
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;

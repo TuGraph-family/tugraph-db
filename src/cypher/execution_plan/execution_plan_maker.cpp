@@ -547,8 +547,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::VSome* node) { NOT_SUPPORT();
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BEqual* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BSquare* node) { NOT_SUPPORT(); }
-
 std::any ExecutionPlanMaker::visit(geax::frontend::BNotEqual* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BGreaterThan* node) { NOT_SUPPORT(); }
@@ -570,6 +568,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::BDiv* node) { NOT_SUPPORT(); 
 std::any ExecutionPlanMaker::visit(geax::frontend::BMul* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BMod* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::BSquare* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BAnd* node) { NOT_SUPPORT(); }
 

@@ -12,12 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "geax-front-end/ast/expr/BSquare.h"
 #include "geax-front-end/isogql/GQLAstVisitor.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
-#include "tools/lgraph_log.h"
 
 namespace cypher {
 
@@ -396,12 +394,6 @@ std::any PatternGraphMaker::visit(geax::frontend::BSafeEqual* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::BSquare* node) {
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-}
-
 std::any PatternGraphMaker::visit(geax::frontend::BAdd* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
@@ -427,6 +419,12 @@ std::any PatternGraphMaker::visit(geax::frontend::BMul* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::BMod* node) {
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::BSquare* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;

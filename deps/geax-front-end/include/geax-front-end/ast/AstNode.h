@@ -139,8 +139,8 @@ using StrArray = std::array<const char* const, N>;
     TYPE(BSub, kBSub, "BSub")                                                             \
     TYPE(BMul, kBMul, "BMul")                                                             \
     TYPE(BDiv, kBDiv, "BDiv")                                                             \
-    TYPE(BSquare, kBSquare, "BSquare")                                                    \
     TYPE(BMod, kBMod, "BMod")                                                             \
+    TYPE(BSquare, kBSquare, "BSquare")                                                    \
     TYPE(BOr, kBOr, "BOr")                                                                \
     TYPE(BXor, kBXor, "BXor")                                                             \
     TYPE(BAnd, kBAnd, "BAnd")                                                             \

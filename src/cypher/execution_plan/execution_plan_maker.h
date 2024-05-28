@@ -110,7 +110,6 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::Tilde* node) override;
     std::any visit(geax::frontend::VSome* node) override;
 
-    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BEqual* node) override;
     std::any visit(geax::frontend::BNotEqual* node) override;
     std::any visit(geax::frontend::BGreaterThan* node) override;
@@ -123,6 +122,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;

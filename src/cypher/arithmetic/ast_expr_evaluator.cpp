@@ -202,14 +202,13 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BMul* node) { DO_BINARY
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BMod* node) { DO_BINARY_EXPR(Mod); }
 
+std::any cypher::AstExprEvaluator::visit(geax::frontend::BSquare* node) {DO_BINARY_EXPR(Pow); }
+
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BAnd* node) { DO_BINARY_EXPR(And); }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BOr* node) { DO_BINARY_EXPR(Or); }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BXor* node) { DO_BINARY_EXPR(Xor); }
-
-std::any cypher::AstExprEvaluator::visit(geax::frontend::BSquare* node) {DO_BINARY_EXPR(Pow); }
-
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BBitAnd* node) { NOT_SUPPORT_AND_THROW(); }
 

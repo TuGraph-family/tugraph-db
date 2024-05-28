@@ -16,7 +16,6 @@
 
 #include "geax-front-end/GEAXErrorCode.h"
 #include "geax-front-end/ast/Ast.h"
-#include "geax-front-end/ast/expr/BSquare.h"
 #include "utils/geax_util.h"
 
 namespace cypher {
@@ -104,12 +103,6 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    std::any visit(geax::frontend::BSquare* node) override {
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
-        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
-
     std::any visit(geax::frontend::BAdd* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
@@ -135,6 +128,12 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::BMod* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::BSquare* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
