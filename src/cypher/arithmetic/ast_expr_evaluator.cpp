@@ -21,7 +21,6 @@
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
-#include "tools/lgraph_log.h"
 
 #ifndef DO_BINARY_EXPR
 #define DO_BINARY_EXPR(func)                                       \
