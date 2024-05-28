@@ -16,7 +16,6 @@
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
 #include "cypher/execution_plan/execution_plan_maker.h"
-#include "execution_plan/ops/op_gql_standalone_call.h"
 #include "geax-front-end/ast/expr/BSquare.h"
 #include "geax-front-end/ast/expr/GetField.h"
 #include "geax-front-end/ast/expr/Ref.h"
@@ -1015,28 +1014,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
-    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
-    auto op = new OpGqlCreate(node->paths(), &pattern_graph);
-    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-}
+std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT();}
 
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
-    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
-    auto op = new OpGqlSet(node->items(), &pattern_graph);
-    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-}
+std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT();}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
-    auto op = new OpGqlDelete(node->items());
-    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-}
+std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) { NOT_SUPPORT();}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
