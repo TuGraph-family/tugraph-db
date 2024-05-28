@@ -16,9 +16,6 @@
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
 #include "cypher/execution_plan/execution_plan_maker.h"
-#include "geax-front-end/ast/expr/BSquare.h"
-#include "geax-front-end/ast/expr/GetField.h"
-#include "geax-front-end/ast/expr/Ref.h"
 
 namespace cypher {
 
