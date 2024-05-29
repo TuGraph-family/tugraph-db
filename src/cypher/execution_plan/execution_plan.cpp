@@ -1455,7 +1455,9 @@ int ExecutionPlan::Execute(RTContext *ctx) {
 const ResultInfo &ExecutionPlan::GetResultInfo() const { return _result_info; }
 
 std::string ExecutionPlan::DumpPlan(int indent, bool statistics) const {
-    std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
+    std::string s;
+    s.append(FMA_FMT("ReadOnly:{}\n", ReadOnly()));
+    s.append(statistics ? "Profile statistics:\n" : "Execution Plan:\n");
     OpBase::DumpStream(_root, indent, statistics, s);
     return s;
 }
