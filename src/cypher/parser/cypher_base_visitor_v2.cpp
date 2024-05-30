@@ -17,14 +17,6 @@
 #include "cypher/parser/data_typedef.h"
 #include "cypher/cypher_exception.h"
 #include "geax-front-end/ast/Ast.h"
-#include "geax-front-end/ast/AstNodeVisitor.h"
-#include "geax-front-end/ast/expr/BDiv.h"
-#include "geax-front-end/ast/expr/BMod.h"
-#include "geax-front-end/ast/expr/BMul.h"
-#include "geax-front-end/ast/expr/BSub.h"
-#include "geax-front-end/ast/expr/Expr.h"
-#include "geax-front-end/ast/expr/Function.h"
-#include "tools/lgraph_log.h"
 #include "cypher/parser/generated/LcypherParser.h"
 
 namespace parser {
@@ -294,7 +286,28 @@ std::any CypherBaseVisitorV2::visitOC_Match(LcypherParser::OC_MatchContext *ctx)
 }
 
 std::any CypherBaseVisitorV2::visitOC_Unwind(LcypherParser::OC_UnwindContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
+    geax::frontend::UnwindStatement* unwind = nullptr;
+    if (VisitGuard::InClause(VisitType::kReadingClause, visit_types_)) {
+        geax::frontend::AmbientLinearQueryStatement *node = nullptr;
+        checkedCast(node_, node);
+        unwind = ALLOC_GEAOBJECT(geax::frontend::UnwindStatement);
+        node->appendQueryStatement(unwind);
+
+    } else if (VisitGuard::InClause(VisitType::kUpdatingClause, visit_types_)) {
+        geax::frontend::LinearDataModifyingStatement *node = nullptr;
+        checkedCast(node_, node);
+        unwind = ALLOC_GEAOBJECT(geax::frontend::UnwindStatement);
+        node->appendQueryStatement(unwind);
+    }
+    geax::frontend::Expr *expr = nullptr;
+    checkedAnyCast(visit(ctx->oC_Expression()), expr);
+    unwind->setList(expr);
+    geax::frontend::Expr *name_expr = nullptr;
+    checkedAnyCast(visit(ctx->oC_Variable()), name_expr);
+    geax::frontend::VString *vstr = nullptr;
+    checkedCast(name_expr, vstr);
+    std::string variable = vstr->val();
+    unwind->setVariable(std::move(variable));
     return 0;
 }
 
@@ -1634,8 +1647,9 @@ std::any CypherBaseVisitorV2::visitOC_MapLiteral(LcypherParser::OC_MapLiteralCon
 }
 
 std::any CypherBaseVisitorV2::visitOC_Parameter(LcypherParser::OC_ParameterContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
-    return 0;
+    auto param = ALLOC_GEAOBJECT(geax::frontend::Param);
+    param->setName(ctx->getText());
+    return (geax::frontend::Expr *)param; 
 }
 
 std::any CypherBaseVisitorV2::visitOC_PropertyExpression(

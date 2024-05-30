@@ -205,7 +205,8 @@ struct OpBase {
         return type == OpType::PROJECT ||
                type == OpType::AGGREGATE
                // TODO(anyone) replace create/delete/set with 'empty project'
-               || type == OpType::CREATE || type == OpType::DELETE_ || type == OpType::UPDATE;
+               || type == OpType::CREATE || type == OpType::DELETE_ || type == OpType::UPDATE
+               || type == OpType::GQL_CREATE || type == OpType::GQL_DELETE_ || type == OpType::GQL_UPDATE;
     }
 
     // static methods

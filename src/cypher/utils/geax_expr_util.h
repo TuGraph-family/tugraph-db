@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 
+#include "arithmetic/ast_expr_evaluator.h"
 #include "execution_plan/visitor/visitor.h"
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
@@ -111,7 +112,22 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::BAggFunc* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MultiCount* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::Windowing* node) override { NOT_SUPPORT_AND_THROW(); }
-    std::any visit(geax::frontend::MkList* node) override { NOT_SUPPORT_AND_THROW(); }
+    std::any visit(geax::frontend::MkList* node) override {
+        std::string res("{");
+        const auto & exprs = node->elems();
+        for (size_t idx = 0; idx < exprs.size(); ++idx) {
+            std::string temp;
+            if (idx != exprs.size() - 1) {
+                checkedAnyCast(exprs[idx]->accept(*this), temp);
+                res += temp;
+                res += ", ";
+            }
+            checkedAnyCast(exprs[idx]->accept(*this), temp);
+            res += temp;
+            res += "}";
+        }
+        return res;
+    }
     std::any visit(geax::frontend::MkMap* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MkRecord* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MkSet* node) override { NOT_SUPPORT_AND_THROW(); }
@@ -124,10 +140,10 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::VDatetime* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::VDuration* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::VTime* node) override { NOT_SUPPORT_AND_THROW(); }
-    std::any visit(geax::frontend::VNull* node) override { NOT_SUPPORT_AND_THROW(); }
+    std::any visit(geax::frontend::VNull* node) override { return std::string("__nul__");}
     std::any visit(geax::frontend::VNone* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::Ref* node) override { return node->name(); }
-    std::any visit(geax::frontend::Param* node) override { NOT_SUPPORT_AND_THROW(); }
+    std::any visit(geax::frontend::Param* node) override { return node->name(); }
     std::any visit(geax::frontend::IsNull* node) override {
           std::string str = std::any_cast<std::string>(node->expr()->accept(*this));
           str += "IS NULL";

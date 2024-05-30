@@ -16,7 +16,6 @@
 
 #include "geax-front-end/GEAXErrorCode.h"
 #include "geax-front-end/ast/Ast.h"
-#include "geax-front-end/ast/expr/BSquare.h"
 #include "utils/geax_util.h"
 
 namespace cypher {
@@ -924,6 +923,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::ManagerStatement* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::UnwindStatement* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

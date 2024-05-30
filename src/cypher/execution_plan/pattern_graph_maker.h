@@ -197,11 +197,17 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ShowProcessListStatement* node) override;
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
+    std::any visit(geax::frontend::UnwindStatement* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
 
  private:
+   void AddSymbol(const std::string &symbol_alias, cypher::SymbolNode::Type type,
+                   cypher::SymbolNode::Scope scope);
+   void AddNode(Node *node);
+   void AddRelationship(Relationship* rel);
+
     ExecutionPlanV2* execution_plan_;
     std::vector<PatternGraph>& pattern_graphs_;
     std::vector<size_t> symbols_idx_;

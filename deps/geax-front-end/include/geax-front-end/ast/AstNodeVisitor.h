@@ -179,6 +179,7 @@ class MergeStatement;
 class ShowProcessListStatement;
 class KillStatement;
 class ManagerStatement;
+class UnwindStatement;
 
 class DummyNode;
 
@@ -359,6 +360,7 @@ class AstNodeVisitor {
     virtual std::any visit(ShowProcessListStatement* node) = 0;
     virtual std::any visit(KillStatement* node) = 0;
     virtual std::any visit(ManagerStatement* node) = 0;
+    virtual std::any visit(UnwindStatement* node) = 0;
 
     virtual std::any visit(DummyNode* node) = 0;
 
@@ -722,6 +724,9 @@ class AstExprNodeVisitorImpl : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(ManagerStatement*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(UnwindStatement*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
 
@@ -1195,6 +1200,9 @@ class AstLabelTreeNodeVisitorImpl : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(ManagerStatement*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(UnwindStatement*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
 

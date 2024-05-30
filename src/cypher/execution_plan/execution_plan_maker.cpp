@@ -315,8 +315,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         }
         expand_ops.emplace_back(expand_op);
         if (has_filter_per_level_[filter_level_]) {
-            OpFilter* filter = new OpFilter(
-                std::make_shared<lgraph::GeaxExprFilter>(
+            OpFilter* filter = new OpFilter(std::make_shared<lgraph::GeaxExprFilter>(
                 equal_filter_[filter_level_], pattern_graphs_[cur_pattern_graph_].symbol_table));
             expand_ops.push_back(filter);
         }
@@ -428,15 +427,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SingleLabel* node) {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     } else if ((ClauseGuard::InClause(geax::frontend::AstNodeType::kIsLabeled, cur_types_))) {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-     }
+    }
     NOT_SUPPORT();
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::LabelOr* node) {
-    if (node->left())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-    if (node->right())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    if (node->left()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    if (node->right()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -662,10 +659,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::IsDestinationOf* node) { NOT_
 
 std::any ExecutionPlanMaker::visit(geax::frontend::IsLabeled* node) {
     ClauseGuard cg(node->type(), cur_types_);
-    if (node->expr())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
-    if (node->labelTree())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->labelTree());
+    if (node->expr()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    if (node->labelTree()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->labelTree());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -770,9 +765,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
 
 std::any ExecutionPlanMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
     auto& query_stmts = node->queryStatements();
-    if (query_stmts.size() > 1) {
-        NOT_SUPPORT();
-    }
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }
@@ -821,7 +813,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     std::string name = std::get<std::string>(node->name());
     std::vector<OpBase*> expand_ops;
     auto op = new GqlStandaloneCall(name, node->args(), node->yield(),
-       pattern_graphs_[cur_pattern_graph_].symbol_table);
+                                    pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
     auto produce = new ProduceResults();
     expand_ops.emplace_back(produce);
@@ -834,19 +826,18 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     if (p == nullptr) {
         result_info_.header.colums.emplace_back(name);
     } else {
-        auto &yield = node->yield();
-        auto &result = p->signature.result_list;
+        auto& yield = node->yield();
+        auto& result = p->signature.result_list;
         if (!yield.has_value()) {
-            for (auto &r : result) {
+            for (auto& r : result) {
                 result_info_.header.colums.emplace_back(r.name, r.name, false, r.type);
             }
         } else {
             auto& items = yield.value()->items();
-            for (auto &item : items) {
-                for (auto &r : result) {
+            for (auto& item : items) {
+                for (auto& r : result) {
                     if (std::get<0>(item) == r.name) {
-                        result_info_.header.colums.emplace_back(r.name,
-                                                               r.name, false, r.type);
+                        result_info_.header.colums.emplace_back(r.name, r.name, false, r.type);
                         break;
                     }
                 }
@@ -881,35 +872,37 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
         }
         // build header
-        if (std::get<1>(item)->type() == geax::frontend::AstNodeType::kRef) {
-            std::string& name = ((geax::frontend::Ref*)std::get<1>(item))->name();
-            auto it = pattern_graph.symbol_table.symbols.find(name);
-            if (it == pattern_graph.symbol_table.symbols.end()) {
-                error_msg_ = "Unknown variable: " + name;
-                return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+        if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
+            if (std::get<1>(item)->type() == geax::frontend::AstNodeType::kRef) {
+                std::string& name = ((geax::frontend::Ref*)std::get<1>(item))->name();
+                auto it = pattern_graph.symbol_table.symbols.find(name);
+                if (it == pattern_graph.symbol_table.symbols.end()) {
+                    error_msg_ = "Unknown variable: " + name;
+                    return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+                }
+                lgraph_api::LGraphType column_type;
+                switch (it->second.type) {
+                case SymbolNode::NODE:
+                    column_type = lgraph_api::LGraphType::NODE;
+                    break;
+                case SymbolNode::RELATIONSHIP:
+                    column_type = lgraph_api::LGraphType::RELATIONSHIP;
+                    break;
+                case SymbolNode::NAMED_PATH:
+                    column_type = lgraph_api::LGraphType::PATH;
+                    break;
+                case SymbolNode::CONSTANT:
+                case SymbolNode::PARAMETER:
+                    column_type = lgraph_api::LGraphType::ANY;
+                    break;
+                default:
+                    NOT_SUPPORT();
+                }
+                result_info_.header.colums.emplace_back(name, alias, has_aggregation, column_type);
+            } else {
+                result_info_.header.colums.emplace_back(alias, alias, has_aggregation,
+                                                        lgraph_api::LGraphType::ANY);
             }
-            lgraph_api::LGraphType column_type;
-            switch (it->second.type) {
-            case SymbolNode::NODE:
-                column_type = lgraph_api::LGraphType::NODE;
-                break;
-            case SymbolNode::RELATIONSHIP:
-                column_type = lgraph_api::LGraphType::RELATIONSHIP;
-                break;
-            case SymbolNode::NAMED_PATH:
-                column_type = lgraph_api::LGraphType::PATH;
-                break;
-            case SymbolNode::CONSTANT:
-            case SymbolNode::PARAMETER:
-                column_type = lgraph_api::LGraphType::ANY;
-                break;
-            default:
-                NOT_SUPPORT();
-            }
-            result_info_.header.colums.emplace_back(name, alias, has_aggregation, column_type);
-        } else {
-            result_info_.header.colums.emplace_back(alias, alias, has_aggregation,
-                                                    lgraph_api::LGraphType::ANY);
         }
     }
     if (node->limit().has_value()) {
@@ -927,8 +920,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
                     order_by_items.emplace_back(std::make_pair(i, !order_by_field->order()));
                     break;
                 }
-            } else if (auto field = dynamic_cast<geax::frontend::GetField*>(
-                order_by_field->field())) {
+            } else if (auto field =
+                           dynamic_cast<geax::frontend::GetField*>(order_by_field->field())) {
                 if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(field->expr())) {
                     auto field_name = std::get<0>(items[i]);
                     std::string field_name_str = order_by_ref->name();
@@ -1022,7 +1015,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
@@ -1059,6 +1051,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ShowProcessListStatement* nod
 std::any ExecutionPlanMaker::visit(geax::frontend::KillStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ManagerStatement* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::UnwindStatement* node) {
+    ArithExprNode exp(node->list(), pattern_graphs_[cur_pattern_graph_].symbol_table);
+    auto unwind =
+        new Unwind(exp, node->variable(), &pattern_graphs_[cur_pattern_graph_].symbol_table);
+    _UpdateStreamRoot(unwind, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::DummyNode* node) { NOT_SUPPORT(); }
 

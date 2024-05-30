@@ -417,7 +417,17 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
     return std::any();
 }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) { NOT_SUPPORT_AND_THROW(); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) {
+    auto & variabel = node->name();
+    auto it = sym_tab_->symbols.find(variabel);
+    if (it == sym_tab_->symbols.end()) {
+        throw lgraph::CypherException("Parameter not defined: " + variabel);
+    }
+    if (record_->values[it->second.id].type == Entry::UNKNOWN) {
+            throw lgraph::CypherException("Undefined parameter: " + variabel);
+    }
+    return record_->values[it->second.id];
+}
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::SingleLabel* node) {
     std::unordered_set<std::string> set;

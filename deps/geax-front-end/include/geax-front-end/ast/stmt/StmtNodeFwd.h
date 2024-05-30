@@ -65,5 +65,6 @@
 #include "geax-front-end/ast/stmt/StatementWithYield.h"
 #include "geax-front-end/ast/stmt/TransactionActivity.h"
 #include "geax-front-end/ast/stmt/MergeStatement.h"
+#include "geax-front-end/ast/stmt/UnwindStatement.h"
 
 #endif  // GEAXFRONTEND_AST_STMT_STMTNODEFWD_H_

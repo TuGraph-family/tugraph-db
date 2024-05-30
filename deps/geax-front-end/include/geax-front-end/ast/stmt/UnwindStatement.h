@@ -13,36 +13,37 @@
  *
  */
 
-#ifndef GEAXFRONTEND_AST_CLAUSE_UNWIND_H_
-#define GEAXFRONTEND_AST_CLAUSE_UNWIND_H_
+#ifndef GEAXFRONTEND_AST_STMT_UnwindStatement_H_
+#define GEAXFRONTEND_AST_STMT_UnwindStatement_H_
 
-#include "geax-front-end/ast/AstNode.h"
+#include <string>
 #include "geax-front-end/ast/expr/Expr.h"
+#include "geax-front-end/ast/stmt/SimpleQueryStatement.h"
 
 namespace geax {
 namespace frontend {
 
-class Unwind : public AstNode {
+class UnwindStatement : public SimpleQueryStatement {
 public:
-    Unwind() : AstNode(AstNodeType::kUnwind) {}
-    ~Unwind() = default;
+    explicit UnwindStatement() 
+        : SimpleQueryStatement(AstNodeType::kUnwindStatement) {}
+    ~UnwindStatement() = default;
 
-    void setVariable(std::string&& variable) {variable_ = std::move(variable);}
+    void setVariable(std::string&& v) {variable_ = std::move(v);}
 
     const std::string& variable() {return variable_;}
 
-    void setExpr(Expr* expr) {exprList_ = expr;}
+    void setList(Expr* expr) {list_ = expr;}
 
-    const Expr* Expr() {return exprList_;}
+    Expr* list() const { return list_; }
 
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
-
 private:
     std::string variable_;
-    Expr* exprList_;
-};  // class Unwind
+    Expr* list_;
+};  // class SchemaRef
 
 }  // namespace frontend
 }  // namespace geax
 
-#endif  // GEAXFRONTEND_AST_CLAUSE_UNWIND_H_
+#endif  // GEAXFRONTEND_AST_STMT_UnwindStatement_H_
