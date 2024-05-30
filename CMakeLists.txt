@@ -3,10 +3,10 @@ project(TuGraph C CXX)
 
 message("Community version.")
 
-# options
+#options
 include(Options.cmake)
 
-# env
+#env
 set(LGRAPH_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(DEPS_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/include)
 set(DEPS_LIBRARY_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/install/lib)
@@ -24,12 +24,12 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     link_directories(${DEPS_LOCAL_LIBRARY_DIR})
 endif ()
 
-# output
+#output
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/output)
 
-# third-party
+#third - party
 if(NOT DEFINED TUGRAPH_THIRD_PARTY_DIR)
     set(TUGRAPH_THIRD_PARTY_DIR "/usr/local;/usr")
 endif()
@@ -37,14 +37,14 @@ if (NOT DEFINED GEAX_THIRD_PARTY_DIR)
     set(GEAX_THIRD_PARTY_DIR ${TUGRAPH_THIRD_PARTY_DIR})
 endif()
 
-# modules
+#modules
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(OpenSSL REQUIRED)
-# boost
+#boost
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
-# target
+#target
 set(GEAX_ENABLE_GLOG OFF)
 add_subdirectory(deps/geax-front-end)
 add_subdirectory(src)
@@ -55,7 +55,7 @@ if (BUILD_PROCEDURE)
     add_subdirectory(procedures)
 endif (BUILD_PROCEDURE)
 
-# unit_test
+#unit_test
 if (WITH_TESTS)
     add_subdirectory(test)
 endif (WITH_TESTS)

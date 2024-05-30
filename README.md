@@ -1,4 +1,4 @@
-# TuGraph
+#TuGraph
 
 [![Release](https://shields.io/github/v/release/tugraph-family/tugraph-db.svg?logo=stackblitz&label=Version&color=red)](https://github.com/TuGraph-family/tugraph-db/releases)
 [![UT&&IT](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml/badge.svg)](https://github.com/TuGraph-family/tugraph-db/actions/workflows/ci.yml)
@@ -106,6 +106,3 @@ Slack (For developer quick communication):
 
 Contact us via dingtalk, wechat, email and telephone:
 ![contacts](./docs/images/contact-en.png)
-
-
-

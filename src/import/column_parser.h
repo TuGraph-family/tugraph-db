@@ -31,7 +31,7 @@ namespace import_v2 {
 class BlockParser {
  public:
     virtual bool ReadBlock(std::vector<std::vector<FieldData>>& buf) = 0;
-    virtual ~BlockParser(){}
+    virtual ~BlockParser() {}
 };
 
 /** Parse each line of a csv into a vector of FieldData, excluding SKIP columns.
@@ -347,13 +347,13 @@ class ColumnParser : public BlockParser {
         values.clear();
         const char* p = beg;
         bool success = true;
-#define WARN_OR_THROW(except)                                    \
-    if (forgiving_) {                                            \
+#define WARN_OR_THROW(except)                                     \
+    if (forgiving_) {                                             \
         if (errors_++ < max_errors_) LOG_INFO() << except.what(); \
-        success = false;                                         \
-        break;                                                   \
-    } else {                                                     \
-        throw except;                                            \
+        success = false;                                          \
+        break;                                                    \
+    } else {                                                      \
+        throw except;                                             \
     }
 
         for (size_t column = 0; column < field_specs_.size() && success; column++) {
@@ -387,13 +387,13 @@ class ColumnParser : public BlockParser {
                 p = newp;
             }
         }
-#define WARN_OR_THROW2(except)                                                \
-    if (forgiving_) {                                                         \
+#define WARN_OR_THROW2(except)                                                 \
+    if (forgiving_) {                                                          \
         if (errors_++ < max_errors_) LOG_INFO() << except.what();              \
         if (errors_ == max_errors_) LOG_INFO() << "ignore more error message"; \
-        success = false;                                                      \
-    } else {                                                                  \
-        throw except;                                                         \
+        success = false;                                                       \
+    } else {                                                                   \
+        throw except;                                                          \
     }
 
         if (p != end && !fma_common::TextParserUtils::IsNewLine(*p)) {
@@ -472,7 +472,7 @@ class JsonLinesParser : public BlockParser {
 
 #define SKIP_OR_THROW(except)                                                           \
     if (forgiving_) {                                                                   \
-        if (errors_++ < max_errors_) LOG_INFO() << except.what();                        \
+        if (errors_++ < max_errors_) LOG_INFO() << except.what();                       \
         while (start < end && !fma_common::TextParserUtils::IsNewLine(*start)) start++; \
         while (start < end && fma_common::TextParserUtils::IsNewLine(*start)) start++;  \
         return std::tuple<size_t, bool>(start - original_starting, false);              \
@@ -488,14 +488,14 @@ class JsonLinesParser : public BlockParser {
         case 0:
             break;
         case 1:
-            {
-                istr.unget();  // hack
-                break;
-            }
+        {
+            istr.unget();  // hack
+            break;
+        }
         default:
-            {
-                SKIP_OR_THROW(ParseJsonException(start, end, err_code.message()));
-            }
+        {
+            SKIP_OR_THROW(ParseJsonException(start, end, err_code.message()));
+        }
         }
         using namespace lgraph::field_data_helper;
         try {
@@ -513,89 +513,89 @@ class JsonLinesParser : public BlockParser {
                 case FieldType::NUL:
                     FMA_ASSERT(false);
                 case FieldType::BOOL:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::BOOL>(str.data(),
-                                                                      str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Bool(val.as_bool());
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::BOOL>(str.data(),
+                                                                  str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Bool(val.as_bool());
                     }
+                    break;
+                }
                 case FieldType::INT8:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::INT8>(str.data(),
-                                                                      str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Int8(val.as_number().to_int32());
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::INT8>(str.data(),
+                                                                  str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Int8(val.as_number().to_int32());
                     }
+                    break;
+                }
                 case FieldType::INT16:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::INT16>(str.data(),
-                                                                       str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Int16(val.as_number().to_int32());
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::INT16>(str.data(),
+                                                                   str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Int16(val.as_number().to_int32());
                     }
+                    break;
+                }
                 case FieldType::INT32:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::INT32>(str.data(),
-                                                                       str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Int32(val.as_number().to_int32());
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::INT32>(str.data(),
+                                                                   str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Int32(val.as_number().to_int32());
                     }
+                    break;
+                }
                 case FieldType::INT64:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::INT64>(str.data(),
-                                                                       str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Int64(val.as_number().to_int64());
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::INT64>(str.data(),
+                                                                   str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Int64(val.as_number().to_int64());
                     }
+                    break;
+                }
                 case FieldType::FLOAT:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::FLOAT>(str.data(),
-                                                                       str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Float(static_cast<float>(val.as_double()));
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::FLOAT>(str.data(),
+                                                                   str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Float(static_cast<float>(val.as_double()));
                     }
+                    break;
+                }
                 case FieldType::DOUBLE:
-                    {
-                        const auto& val = json_obj.at(column);
-                        if (val.is_string()) {
-                            const auto& str = ToStdString(val.as_string());
-                            ParseStringIntoFieldData<FieldType::DOUBLE>(
-                                str.data(), str.data() + str.size(), fd);
-                        } else {
-                            fd = FieldData::Double(val.as_double());
-                        }
-                        break;
+                {
+                    const auto& val = json_obj.at(column);
+                    if (val.is_string()) {
+                        const auto& str = ToStdString(val.as_string());
+                        ParseStringIntoFieldData<FieldType::DOUBLE>(str.data(),
+                                                                    str.data() + str.size(), fd);
+                    } else {
+                        fd = FieldData::Double(val.as_double());
                     }
+                    break;
+                }
                 case FieldType::DATE:
                     fd = FieldData::Date(ToStdString(json_obj.at(column).as_string()));
                     break;
