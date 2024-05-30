@@ -6,6 +6,7 @@
 
 using namespace std;
 
+/*---RecordSet is using for record CSV file based information*/
 struct RecordSet {
     char* text;
     unsigned int columns;

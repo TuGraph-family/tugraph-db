@@ -4,6 +4,7 @@ using namespace std;
 
 #define MAX_PAD 64
 
+/*---To pursue speed, all CSV data is loaded into memory---*/
 RecordSet* RecordLoader::loadRecords(char* file_path, bool head_line) {
     unsigned long size;
     FILE* fp = fopen(file_path, "rb+");
@@ -50,6 +51,7 @@ RecordSet* RecordLoader::loadRecords(char* file_path, bool head_line) {
     return record;
 }
 
+/*---Determine the number of columns by scanning the head line---*/
 unsigned int RecordLoader::scanColumns(char* first_line, bool head_line, bool quote_sample) {
     unsigned int columns = 0;
     char* pos = (char*)&first_line[0];
@@ -103,6 +105,7 @@ unsigned int RecordLoader::scanColumns(char* first_line, bool head_line, bool qu
     return columns;
 }
 
+/*---Exponential sampling---*/
 bool RecordLoader::intervalSample(char* fileBegin, unsigned long length) {
     srand((unsigned)time(NULL));
     int Time = rand() % 1000 + 100;
@@ -119,6 +122,7 @@ bool RecordLoader::intervalSample(char* fileBegin, unsigned long length) {
     return quote;
 }
 
+/*---Check if double quotes exist in the sample line---*/
 bool RecordLoader::quoteBool(char*& sampleLine) {
     const __m256i emitting = _mm256_set1_epi8('"');
     char* sample32;
@@ -141,6 +145,7 @@ blSize::blSize(unsigned int block, unsigned int blnumber) {
     blockNumber = blnumber;
 }
 
+/*---Determine the size of the blocksize based on the size of the file---*/
 blSize* blSize::matchingBlock(unsigned long length, int avcore) {
     int fileSize = length / 1024 / 1024 / 1024 + 1;
     int blockSize = 0;

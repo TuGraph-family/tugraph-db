@@ -7,11 +7,13 @@ const int DFATable[4][3] = {
     {3, 2, 3},
 };
 
+/*---Set the size of the state matrix---*/
 int* bitmap::stateMetrix(int blockNum) {
     int* Metrix = new int[blockNum * 4];
     return Metrix;
 }
 
+/*---Sort the states within the matrix---*/
 int* sortMetrix(int* metrix, int blockNum) {
     int* stMetrix;
     stMetrix = new int[blockNum];
@@ -26,6 +28,7 @@ int* sortMetrix(int* metrix, int blockNum) {
 }
 
 // ---bitmap--- //
+/*---Multithreaded processing of CSV files---*/
 BitmapSet* bitmap::bmAlloc(unsigned long length, unsigned int blockNum, unsigned int blockSize,
                            bool quote, char*& fileBegin, int threads) {
     bool* bitmapField;
@@ -202,6 +205,7 @@ BitmapSet* bitmap::bmAlloc(unsigned long length, unsigned int blockNum, unsigned
     return BTMP;
 }
 
+/*---merge four states bitmap---*/
 void bitmap::mergebitmap(bool* totalBTMPF, bool* totalBTMPR, bool* fenbtmpF, bool* fenbtmpR,
                          unsigned int blockSize) {
     memcpy(totalBTMPF, fenbtmpF, blockSize * sizeof(bool));
@@ -211,6 +215,7 @@ void bitmap::mergebitmap(bool* totalBTMPF, bool* totalBTMPR, bool* fenbtmpF, boo
 // -----noquote----- //
 noquote::noquote(bool done) { Done = done; }
 
+/*---Directly detect the delimiter---*/
 void checkCR(char*& lineBegin, bool*& columnBegin, bool*& recordBegin) {
     const __m256i column = _mm256_set1_epi8(',');
     const __m256i record = _mm256_set1_epi8('\n');
@@ -231,6 +236,7 @@ void checkCR(char*& lineBegin, bool*& columnBegin, bool*& recordBegin) {
     }
 }
 
+/*---*/
 noquote* noquote::parse(int block, int frequence, char*& line_begin, char*& line_end,
                         bool*& col_column_begin, bool*& col_record_begin) {
     char* mlinebegin;
@@ -253,6 +259,7 @@ DFA::DFA(int block, int* metrix) {
     Metrix = metrix;
 }
 
+/*---Construction of a finite state machine---*/
 DFA* DFA::getDFA(int block, char*& line_begin, char*& line_end, bool*& field_IR, bool*& field_OR,
                  bool*& field_IQ, bool*& field_OQ, bool*& record_IR, bool*& record_OR,
                  bool*& record_IQ, bool*& record_OQ, int*& Metrix) {
@@ -267,7 +274,6 @@ DFA* DFA::getDFA(int block, char*& line_begin, char*& line_end, bool*& field_IR,
         result[i] = i;
         sig[i] = 0;
     }
-    // cout << "test " << endl;
     while (line_begin <= line_end) {
         if (*line_begin == ',') {
             symbol = 0;
