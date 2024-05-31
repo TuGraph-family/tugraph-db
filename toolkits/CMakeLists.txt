@@ -52,12 +52,6 @@ set(TARGET_LGRAPH_CLI lgraph_cli)
 add_executable(${TARGET_LGRAPH_CLI} lgraph_cli.cpp ${LGRAPH_ROOT_DIR}/toolkits/linenoise/linenoise.c)
 target_link_libraries(${TARGET_LGRAPH_CLI} bolt ${Boost_LIBRARIES})
 
-############### websocket ######################
-
-set(TARGET_WEBSOCKET websocket)
-add_executable(${TARGET_WEBSOCKET} websocket.cpp)
-target_link_libraries(${TARGET_WEBSOCKET} ${Boost_LIBRARIES})
-
 ############### lgraph_warmup ###################
 
 set(TARGET_LGRAPH_WARMUP lgraph_warmup)
