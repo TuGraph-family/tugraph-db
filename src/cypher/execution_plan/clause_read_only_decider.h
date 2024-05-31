@@ -20,7 +20,7 @@ namespace cypher {
 
 class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
  public:
-    ClauseReadOnlyDecider() {};
+    ClauseReadOnlyDecider() {}
 
     virtual ~ClauseReadOnlyDecider() = default;
 

@@ -5,7 +5,6 @@
 #include "LcypherVisitor.h"
 
 #include "LcypherParser.h"
-#include "tools/lgraph_log.h"
 
 
 using namespace antlrcpp;
@@ -811,6 +810,7 @@ LcypherParser::OC_CypherContext* LcypherParser::oC_Cypher() {
   OC_CypherContext *_localctx = _tracker.createInstance<OC_CypherContext>(_ctx, getState());
   enterRule(_localctx, 0, LcypherParser::RuleOC_Cypher);
   size_t _la = 0;
+
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
 #else
@@ -822,6 +822,7 @@ LcypherParser::OC_CypherContext* LcypherParser::oC_Cypher() {
     enterOuterAlt(_localctx, 1);
     setState(201);
     _errHandler->sync(this);
+
     _la = _input->LA(1);
     if (_la == LcypherParser::SP) {
       setState(200);
@@ -831,10 +832,12 @@ LcypherParser::OC_CypherContext* LcypherParser::oC_Cypher() {
     oC_Statement();
     setState(208);
     _errHandler->sync(this);
+
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx)) {
     case 1: {
       setState(205);
       _errHandler->sync(this);
+
       _la = _input->LA(1);
       if (_la == LcypherParser::SP) {
         setState(204);
@@ -844,11 +847,13 @@ LcypherParser::OC_CypherContext* LcypherParser::oC_Cypher() {
       match(LcypherParser::T__0);
       break;
     }
+
     default:
       break;
     }
     setState(211);
     _errHandler->sync(this);
+
     _la = _input->LA(1);
     if (_la == LcypherParser::SP) {
       setState(210);
@@ -856,12 +861,14 @@ LcypherParser::OC_CypherContext* LcypherParser::oC_Cypher() {
     }
     setState(213);
     match(LcypherParser::EOF);
+   
   }
   catch (RecognitionException &e) {
     _errHandler->reportError(this, e);
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -978,6 +985,7 @@ LcypherParser::OC_StatementContext* LcypherParser::oC_Statement() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1047,6 +1055,7 @@ LcypherParser::OC_QueryContext* LcypherParser::oC_Query() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1133,6 +1142,7 @@ LcypherParser::OC_RegularQueryContext* LcypherParser::oC_RegularQuery() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1273,6 +1283,7 @@ std::any LcypherParser::OC_SingleQueryContext::accept(tree::ParseTreeVisitor *vi
 LcypherParser::OC_SingleQueryContext* LcypherParser::oC_SingleQuery() {
   OC_SingleQueryContext *_localctx = _tracker.createInstance<OC_SingleQueryContext>(_ctx, getState());
   enterRule(_localctx, 10, LcypherParser::RuleOC_SingleQuery);
+
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
 #else
@@ -1290,23 +1301,25 @@ LcypherParser::OC_SingleQueryContext* LcypherParser::oC_SingleQuery() {
       oC_SinglePartQuery();
       break;
     }
+
     case 2: {
       enterOuterAlt(_localctx, 2);
       setState(257);
       oC_MultiPartQuery();
       break;
     }
+
     default:
       break;
     }
    
   }
-  
   catch (RecognitionException &e) {
     _errHandler->reportError(this, e);
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1477,6 +1490,7 @@ LcypherParser::OC_SinglePartQueryContext* LcypherParser::oC_SinglePartQuery() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1623,6 +1637,7 @@ LcypherParser::OC_MultiPartQueryContext* LcypherParser::oC_MultiPartQuery() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1808,6 +1823,7 @@ LcypherParser::OC_ReadingClauseContext* LcypherParser::oC_ReadingClause() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -1947,6 +1963,7 @@ LcypherParser::OC_MatchContext* LcypherParser::oC_Match() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -4477,6 +4494,7 @@ LcypherParser::OC_PatternContext* LcypherParser::oC_Pattern() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -4583,6 +4601,7 @@ LcypherParser::OC_PatternPartContext* LcypherParser::oC_PatternPart() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -4631,6 +4650,7 @@ LcypherParser::OC_AnonymousPatternPartContext* LcypherParser::oC_AnonymousPatter
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -4742,6 +4762,7 @@ LcypherParser::OC_PatternElementContext* LcypherParser::oC_PatternElement() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 
@@ -4868,6 +4889,7 @@ LcypherParser::OC_NodePatternContext* LcypherParser::oC_NodePattern() {
     _localctx->exception = std::current_exception();
     _errHandler->recover(this, _localctx->exception);
   }
+
   return _localctx;
 }
 

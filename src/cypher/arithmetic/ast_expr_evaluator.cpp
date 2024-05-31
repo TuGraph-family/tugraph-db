@@ -14,7 +14,6 @@
  */
 
 #include <algorithm>
-#include "cypher/cypher_types.h"
 #include "geax-front-end/ast/expr/VDouble.h"
 #include "core/data_type.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
@@ -43,13 +42,12 @@
 #endif
 
 cypher::FieldData doCallBuiltinFunc(const std::string& name, cypher::RTContext* ctx,
-                                      const cypher::Record& record,
-                                      const std::vector<cypher::ArithExprNode> &args) {
+                                    const cypher::Record& record,
+                                    const std::vector<cypher::ArithExprNode>& args) {
     static std::unordered_map<std::string, cypher::BuiltinFunction::FUNC> ae_registered_funcs =
         cypher::ArithOpNode::RegisterFuncs();
     auto it = ae_registered_funcs.find(name);
-    if (it == ae_registered_funcs.end())
-        NOT_SUPPORT_AND_THROW();
+    if (it == ae_registered_funcs.end()) NOT_SUPPORT_AND_THROW();
     cypher::BuiltinFunction::FUNC func = it->second;
     auto data = func(ctx, record, args);
     return data;
@@ -201,7 +199,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BMul* node) { DO_BINARY
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BMod* node) { DO_BINARY_EXPR(Mod); }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::BSquare* node) {DO_BINARY_EXPR(Pow); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::BSquare* node) { DO_BINARY_EXPR(Pow); }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BAnd* node) { DO_BINARY_EXPR(And); }
 
@@ -336,7 +334,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
     std::vector<::lgraph::FieldData> fields;
     fields.reserve(elems.size());
     std::vector<::lgraph::FieldData> list;
-    for (auto &e : elems) {
+    for (auto& e : elems) {
         auto entry = std::any_cast<Entry>(e->accept(*this));
         if (!entry.IsScalar()) NOT_SUPPORT_AND_THROW();
         list.emplace_back(entry.constant.scalar);

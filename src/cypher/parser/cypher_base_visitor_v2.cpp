@@ -79,12 +79,6 @@ const std::unordered_map<std::string, geax::frontend::GeneralSetFunction>
         {"min", geax::frontend::GeneralSetFunction::kMin},
         {"count", geax::frontend::GeneralSetFunction::kCount},
         {"collect", geax::frontend::GeneralSetFunction::kCollect}
-        //    "percentilecont",
-        //    "percentiledisc",
-        //    "stdev",
-        //    "stdevp",
-        //    "variance",
-        //    "variancep",
 };
 
 std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext *ruleCtx) const {
@@ -100,10 +94,8 @@ std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext *ruleCtx)
 CypherBaseVisitorV2::CypherBaseVisitorV2(geax::common::ObjectArenaAllocator &objAlloc,
                                          antlr4::tree::ParseTree *tree)
     : objAlloc_(objAlloc)
-      //, node_(objAlloc_.allocate<geax::frontend::ExplainActivity>())
-      ,
-      node_(ALLOC_GEAOBJECT(geax::frontend::NormalTransaction)),
-      anonymous_idx_(0) {
+    , node_(ALLOC_GEAOBJECT(geax::frontend::NormalTransaction))
+    , anonymous_idx_(0) {
     tree->accept(this);
 }
 
@@ -124,14 +116,12 @@ std::string CypherBaseVisitorV2::GenAnonymousAlias(bool is_node) {
 
 // TODO(lingsu): support EXPLAIN
 std::any CypherBaseVisitorV2::visitOC_Statement(LcypherParser::OC_StatementContext *ctx) {
-    //  geax::frontend::ExplainActivity* node =
-    //    static_cast<geax::frontend::ExplainActivity*>(node_);
     geax::frontend::NormalTransaction *node = nullptr;
     checkedCast(node_, node);
     if (ctx->EXPLAIN()) {
-        //  node->setIsProfile(false);
+        NOT_SUPPORT_AND_THROW();
     } else if (ctx->PROFILE()) {
-        //  node->setIsProfile(true);
+        NOT_SUPPORT_AND_THROW();
     } else {
         auto body = ALLOC_GEAOBJECT(geax::frontend::ProcedureBody);
         node->setProcedureBody(body);

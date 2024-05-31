@@ -17,14 +17,12 @@
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
 #include "cypher/graph/graph.h"
-#include "cypher/execution_plan/execution_plan_v2.h"
-#include "geax-front-end/ast/AstNodeVisitor.h"
 
 namespace cypher {
-   // TODO(lingsu): rename in the future
+// TODO(lingsu): rename in the future
 class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
  public:
-    PatternGraphMaker(std::vector<PatternGraph>& pattern_graphs)
+    explicit PatternGraphMaker(std::vector<PatternGraph>& pattern_graphs)
         : pattern_graphs_(pattern_graphs) {}
 
     geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);

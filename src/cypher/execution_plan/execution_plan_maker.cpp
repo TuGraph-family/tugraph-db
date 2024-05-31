@@ -312,8 +312,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         }
         expand_ops.emplace_back(expand_op);
         if (has_filter_per_level_[filter_level_]) {
-            OpFilter* filter = new OpFilter(
-                std::make_shared<lgraph::GeaxExprFilter>(
+            OpFilter* filter = new OpFilter(std::make_shared<lgraph::GeaxExprFilter>(
                 equal_filter_[filter_level_], pattern_graphs_[cur_pattern_graph_].symbol_table));
             expand_ops.push_back(filter);
         }
@@ -425,15 +424,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SingleLabel* node) {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     } else if ((ClauseGuard::InClause(geax::frontend::AstNodeType::kIsLabeled, cur_types_))) {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-     }
+    }
     NOT_SUPPORT();
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::LabelOr* node) {
-    if (node->left())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-    if (node->right())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    if (node->left()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    if (node->right()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -659,10 +656,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::IsDestinationOf* node) { NOT_
 
 std::any ExecutionPlanMaker::visit(geax::frontend::IsLabeled* node) {
     ClauseGuard cg(node->type(), cur_types_);
-    if (node->expr())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
-    if (node->labelTree())
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->labelTree());
+    if (node->expr()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    if (node->labelTree()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->labelTree());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -818,7 +813,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     std::string name = std::get<std::string>(node->name());
     std::vector<OpBase*> expand_ops;
     auto op = new GqlStandaloneCall(name, node->args(), node->yield(),
-       pattern_graphs_[cur_pattern_graph_].symbol_table);
+                                    pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
     auto produce = new ProduceResults();
     expand_ops.emplace_back(produce);
@@ -831,19 +826,18 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     if (p == nullptr) {
         result_info_.header.colums.emplace_back(name);
     } else {
-        auto &yield = node->yield();
-        auto &result = p->signature.result_list;
+        auto& yield = node->yield();
+        auto& result = p->signature.result_list;
         if (!yield.has_value()) {
-            for (auto &r : result) {
+            for (auto& r : result) {
                 result_info_.header.colums.emplace_back(r.name, r.name, false, r.type);
             }
         } else {
             auto& items = yield.value()->items();
-            for (auto &item : items) {
-                for (auto &r : result) {
+            for (auto& item : items) {
+                for (auto& r : result) {
                     if (std::get<0>(item) == r.name) {
-                        result_info_.header.colums.emplace_back(r.name,
-                                                               r.name, false, r.type);
+                        result_info_.header.colums.emplace_back(r.name, r.name, false, r.type);
                         break;
                     }
                 }
@@ -924,8 +918,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
                     order_by_items.emplace_back(std::make_pair(i, !order_by_field->order()));
                     break;
                 }
-            } else if (auto field = dynamic_cast<geax::frontend::GetField*>(
-                order_by_field->field())) {
+            } else if (auto field =
+                           dynamic_cast<geax::frontend::GetField*>(order_by_field->field())) {
                 if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(field->expr())) {
                     auto field_name = std::get<0>(items[i]);
                     std::string field_name_str = order_by_ref->name();
@@ -1012,13 +1006,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT();}
+std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT();}
+std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) { NOT_SUPPORT();}
+std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
