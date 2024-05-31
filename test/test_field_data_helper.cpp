@@ -508,7 +508,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     // testing float vector data
     {
         std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
-        Value v = ParseStringToValueOfFieldType("1.111000, 2.111000, 3.111000, 4.111000, 5.111000", 
+        Value v = ParseStringToValueOfFieldType("1.111000, 2.111000, 3.111000, 4.111000, 5.111000",
                                                  FieldType::FLOAT_VECTOR);
         UT_EXPECT_TRUE(v.AsType<std::vector<float>>() == vec1);
     }
