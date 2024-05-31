@@ -510,7 +510,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
         std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
         Value v = ParseStringToValueOfFieldType("1.111000, 2.111000, 3.111000, 4.111000, 5.111000",
                                                  FieldType::FLOAT_VECTOR);
-        UT_EXPECT_TRUE(v.AsType<std::vector<float>>() == vec1);
+        UT_EXPECT_EQ(v.AsType<std::vector<float>>(), vec1);
     }
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
