@@ -66,10 +66,7 @@ enum OpType {
     MERGE,
     TOPN,
     UNION,
-    NODE_BY_ID_SEEK,
-    GQL_CREATE,
-    GQL_DELETE_,
-    GQL_UPDATE,
+    NODE_BY_ID_SEEK
 };
 
 struct OpStats {

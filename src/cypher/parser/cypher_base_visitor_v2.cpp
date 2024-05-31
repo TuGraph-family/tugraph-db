@@ -12,19 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "cypher/parser/cypher_base_visitor_v2.h"
-#include <tuple>
 #include "cypher/utils/geax_util.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/cypher_exception.h"
-#include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
-#include "geax-front-end/ast/expr/BDiv.h"
-#include "geax-front-end/ast/expr/BMod.h"
-#include "geax-front-end/ast/expr/BMul.h"
-#include "geax-front-end/ast/expr/BSub.h"
-#include "geax-front-end/ast/expr/Expr.h"
-#include "geax-front-end/ast/expr/Function.h"
-#include "tools/lgraph_log.h"
 #include "cypher/parser/generated/LcypherParser.h"
 
 namespace parser {
@@ -61,20 +52,21 @@ void checkedCast(Base *b, Drive *&d) {
     assert(d);
 }
 
-template <typename Dst>
-void checkedAnyCast(const std::any &s, Dst *&d) {
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType*& d) {
     try {
-        d = std::any_cast<Dst *>(s);
+        d = std::any_cast<TargetType*>(s);
     } catch (...) {
+        // TODO(lingsu): remove in future
         assert(false);
     }
 }
-
-template <typename Dst>
-void checkedAnyCast(const std::any &s, Dst &d) {
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType& d) {
     try {
-        d = std::any_cast<Dst>(s);
+        d = std::any_cast<TargetType>(s);
     } catch (...) {
+        // TODO(lingsu): remove in future
         assert(false);
     }
 }
