@@ -59,37 +59,6 @@ class WCCCore:
             printf("num_activations = %lu\n", num_activations)
 
 
-@cython.cfunc
-def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict) -> cython.bint:
-    cost = time.time()
-    txn = db.CreateReadTxn()
-    olapondb = OlapOnDB[Empty](db[0], txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED)
-    cost = time.time() - cost
-    printf("prepare_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    cost = time.time()
-    a = WCCCore()
-    a.run(cython.address(olapondb))
-    cost = time.time() - cost
-    printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    component = [0] * int(olapondb.NumVertices())
-    i: size_t
-    for i in range(olapondb.NumVertices()):
-        component[a.label[i]] += 1
-    max_component = 0
-    num_components = 0
-    for i in range(olapondb.NumVertices()):
-        max_component = max(max_component, component[i])
-        if component[i] > 0:
-            num_components += 1
-    response["max_component"] = max_component
-    response["num_components"] = num_components
-    response["num_vertices"] = olapondb.NumVertices()
-    response["num_edges"] = olapondb.NumEdges()
-    return True
-
-
 @cython.ccall
 def Standalone(input_dir: str):
     cost = time.time()
@@ -116,15 +85,3 @@ def Standalone(input_dir: str):
             num_components += 1
     print("max_component = " + str(max_component))
     print("num_components = " + str(num_components))
-
-
-
-@cython.ccall
-def Process(db: lgraph_db_python.PyGraphDB, inp: bytes):
-    _inp = inp.decode("utf-8")
-    request = json.loads(_inp)
-    response = {}
-    addr = cython.declare(cython.Py_ssize_t, db.get_pointer())
-    procedure_process(cython.cast(cython.pointer(GraphDB), addr),
-                      request, response)
-    return (True, json.dumps(response))
