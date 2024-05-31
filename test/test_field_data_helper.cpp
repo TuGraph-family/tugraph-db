@@ -505,12 +505,13 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
                            "000000000000000004000000000000000400000000000000840000000000000F03F",
                            "0102000020231C00000300000000000000000000000000000000000000000"
                            "000000000004000000000000000400000000000000840000000000000F03F");
-    // testing float vector data 
+    // testing float vector data
     {
         std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
-        Value v = ParseStringToValueOfFieldType("1.111000, 2.111000, 3.111000, 4.111000, 5.111000", FieldType::FLOAT_VECTOR);
+        Value v = ParseStringToValueOfFieldType("1.111000, 2.111000, 3.111000, 4.111000, 5.111000", 
+                                                 FieldType::FLOAT_VECTOR);
         UT_EXPECT_TRUE(v.AsType<std::vector<float>>() == vec1);
-    };
+    }
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BOOL, "tr", 1));
