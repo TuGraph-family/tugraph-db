@@ -1283,6 +1283,8 @@ cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
 
 cypher::FieldData BuiltinFunction::Exists(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
+    // TODO(lingsu): implement in future
+    CYPHER_THROW_ASSERT(false);
     return cypher::FieldData();
 }
 

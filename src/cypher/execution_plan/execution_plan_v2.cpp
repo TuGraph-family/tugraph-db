@@ -17,6 +17,7 @@
 #include "cypher/execution_plan/pattern_graph_maker.h"
 #include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
+#include "cypher/execution_plan/clause_read_only_decider.h"
 
 namespace cypher {
 
@@ -25,7 +26,7 @@ ExecutionPlanV2::~ExecutionPlanV2() { OpBase::FreeStream(root_); }
 geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* astNode) {
     geax::frontend::GEAXErrorCode ret = geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     // build pattern graph
-    PatternGraphMaker pattern_graph_maker(this, pattern_graphs_);
+    PatternGraphMaker pattern_graph_maker(pattern_graphs_);
     ret = pattern_graph_maker.Build(astNode);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = pattern_graph_maker.ErrorMsg();
@@ -45,6 +46,14 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     LocateNodeByIndexedProp locate_node_by_indexed_prop;
     locate_node_by_indexed_prop.Execute(Root());
     LOG_DEBUG() << DumpPlan(0, false);
+
+    ClauseReadOnlyDecider decider;
+    ret = execution_plan_maker.Build(astNode, root_);
+    if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+        error_msg_ = execution_plan_maker.ErrorMsg();
+        return ret;
+    }
+    read_only_ = decider.IsReadOnly();
     return ret;
 }
 

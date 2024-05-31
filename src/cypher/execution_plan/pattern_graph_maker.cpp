@@ -781,7 +781,6 @@ std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node)
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
-    execution_plan_->SetReadOnly(true);
     auto& query_stmts = node->queryStatements();
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
@@ -855,7 +854,6 @@ std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node
 std::any PatternGraphMaker::visit(geax::frontend::CatalogModifyStatement* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::LinearDataModifyingStatement* node) {
-    execution_plan_->SetReadOnly(false);
     auto& queryStatements = node->queryStatements();
     for (auto queryStatement : queryStatements) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(queryStatement);
