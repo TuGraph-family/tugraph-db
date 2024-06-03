@@ -25,6 +25,7 @@
 #include "core/kv_table_comparators.h"
 #include "core/type_convert.h"
 #include "core/value.h"
+#include "core/vertex_index.h"
 
 namespace lgraph {
 class CompositeIndex;
@@ -37,6 +38,7 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
     std::unique_ptr<KvIterator> it_;
     Value key_end_;
     Value curr_key_;  // current indexed key, excluding vid
+    VertexIndexValue iv_;   // VertexIndexValue, if this is non-unique index
     bool valid_;
     int pos_;
     VertexId vid_;  // current vid
@@ -64,6 +66,10 @@ class CompositeIndexIterator : public ::lgraph::IteratorBase {
                         VertexId vid, CompositeIndexType type);
 
     bool KeyOutOfRange();
+
+    bool PrevKV();
+
+    bool KeyEquals(const Value& key);
 
     /** Loads content from iterator, assuming iterator is already at the right
      * position. */
@@ -154,6 +160,16 @@ class CompositeIndex {
                                               CompositeIndexType type);
 
     void _AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid);
+
+    /**
+     * Append an entry to non-unique vertex composite index.
+     *
+     * \param   txn     The transaction.
+     * \param   k       The key, raw format.
+     * \param   vids    All the vids corresponding to k. The vids must be sorted.
+     */
+    void _AppendNonUniqueCompositeIndexEntry(KvTransaction& txn, const Value& k,
+                                          const std::vector<VertexId>& vids);
 
     bool Add(KvTransaction& txn, const Value& k, int64_t vid);
 

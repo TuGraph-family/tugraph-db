@@ -419,7 +419,8 @@ VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& l
     ThrowIfInvalid();
     lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
         label_name, field_name, field_value_string, field_value_string);
-    if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
+    if (!iit.IsValid())
+        throw std::runtime_error("No vertex found with specified composite index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
@@ -429,7 +430,8 @@ VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& l
     ThrowIfInvalid();
     lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
         label_name, field_name, field_value, field_value);
-    if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
+    if (!iit.IsValid())
+        throw std::runtime_error("No vertex found with specified composite index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
@@ -483,7 +485,8 @@ VertexIterator Transaction::GetVertexByUniqueCompositeIndex(size_t label_id,
     ThrowIfInvalid();
     lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
         label_id, field_id, field_value, field_value);
-    if (!iit.IsValid()) throw std::runtime_error("No vertex found with specified index value.");
+    if (!iit.IsValid())
+        throw std::runtime_error("No vertex found with specified composite index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
