@@ -18,6 +18,7 @@
 #include "cypher/cypher_exception.h"
 #include "geax-front-end/ast/Ast.h"
 #include "cypher/parser/generated/LcypherParser.h"
+#include "geax-front-end/ast/expr/VString.h"
 
 namespace parser {
 
@@ -73,18 +74,15 @@ void checkedAnyCast(const std::any &s, Dst &d) {
 
 const std::unordered_map<std::string, geax::frontend::GeneralSetFunction>
     CypherBaseVisitorV2::S_AGG_LIST = {
-        {"sum", geax::frontend::GeneralSetFunction::kSum},
         {"avg", geax::frontend::GeneralSetFunction::kAvg},
+        {"count", geax::frontend::GeneralSetFunction::kCount},
         {"max", geax::frontend::GeneralSetFunction::kMax},
         {"min", geax::frontend::GeneralSetFunction::kMin},
-        {"count", geax::frontend::GeneralSetFunction::kCount},
-        {"collect", geax::frontend::GeneralSetFunction::kCollect}
-        //    "percentilecont",
-        //    "percentiledisc",
-        //    "stdev",
-        //    "stdevp",
-        //    "variance",
-        //    "variancep",
+        {"sum", geax::frontend::GeneralSetFunction::kSum},
+        {"collect", geax::frontend::GeneralSetFunction::kCollect},
+        {"stdDevSamp", geax::frontend::GeneralSetFunction::kStdDevSamp},
+        {"stdDevPop", geax::frontend::GeneralSetFunction::kStdDevPop},
+        {"groutConcat", geax::frontend::GeneralSetFunction::kGroupConcat}
 };
 
 std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext *ruleCtx) const {
@@ -1320,6 +1318,15 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
         return visit(ctx->oC_PatternComprehension());
     } else if (ctx->oC_Parameter()) {
         return visit(ctx->oC_Parameter());
+    } else if (ctx->COUNT()) {
+        auto func = ALLOC_GEAOBJECT(geax::frontend::AggFunc);
+        auto it = S_AGG_LIST.find("count");
+        func->setFuncName(it->second);
+        func->setDistinct(true);
+        auto param = ALLOC_GEAOBJECT(geax::frontend::VString);
+        param->setVal(std::string("*"));
+        func->setExpr(param);
+        return (geax::frontend::Expr *)func;
     }
     NOT_SUPPORT_AND_THROW();
 }
