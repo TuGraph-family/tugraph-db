@@ -33,7 +33,8 @@ int TestUniqueVertexCompositeIndexImpl() {
     auto graph = galaxy.OpenGraph("test");
     std::vector<FieldSpec> v_fds = {{"id", FieldType::INT64, false},
                                     {"score", FieldType::INT64, false},
-                                    {"name", FieldType::STRING, false}};
+                                    {"name", FieldType::STRING, false},
+                                    {"class", FieldType::STRING, true}};
     UT_EXPECT_TRUE(graph.AddVertexLabel("person", v_fds, VertexOptions("id")));
     auto txn = graph.CreateWriteTxn();
     for (int i = 0; i < 10; ++i) {
@@ -67,6 +68,27 @@ int TestUniqueVertexCompositeIndexImpl() {
     }
     UT_EXPECT_TRUE(count == 10);
     txn.Abort();
+    graph.AddVertexCompositeIndex("person", {"name", "class"}, CompositeIndexType::UniqueIndex);
+    txn = graph.CreateWriteTxn();
+    for (int i = 20; i < 30; ++i) {
+        txn.AddVertex("person", {"id", "score", "name", "class"},
+                      {FieldData::Int64(i), FieldData::Int64(i),
+                       FieldData::String(std::to_string(i)),
+                       FieldData::String(std::to_string(i))});
+    }
+    txn.Commit();
+    count = 0;
+    txn = graph.CreateReadTxn();
+    composite_indexes = txn.ListVertexCompositeIndexes();
+    UT_EXPECT_TRUE(composite_indexes.size() == 2);
+    for (auto it1 = txn.GetVertexCompositeIndexIterator("person",
+             std::vector<std::string>{"name", "class"}, {FieldData::String("20"),
+             FieldData::String("20")}, {FieldData::String("25"), FieldData::String("25")});
+         it1.IsValid(); it1.Next()) {
+        count++;
+    }
+    UT_EXPECT_TRUE(count == 6);
+    txn.Abort();
     UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
     graph.DeleteVertexCompositeIndex("person", {"score", "name"});
     UT_EXPECT_FALSE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
@@ -89,7 +111,8 @@ int TestNonUniqueVertexCompositeIndexImpl() {
     auto graph = galaxy.OpenGraph("test");
     std::vector<FieldSpec> v_fds = {{"id", FieldType::INT64, false},
                                     {"score", FieldType::INT64, false},
-                                    {"name", FieldType::STRING, false}};
+                                    {"name", FieldType::STRING, false},
+                                    {"class", FieldType::STRING, true}};
     UT_EXPECT_TRUE(graph.AddVertexLabel("person", v_fds, VertexOptions("id")));
     auto txn = graph.CreateWriteTxn();
     for (int i = 0; i < 10; ++i) {
@@ -122,6 +145,29 @@ int TestNonUniqueVertexCompositeIndexImpl() {
         count++;
     }
     UT_EXPECT_TRUE(count == 10);
+    txn.Abort();
+    graph.AddVertexCompositeIndex("person", {"name", "class"}, CompositeIndexType::NonUniqueIndex);
+    txn = graph.CreateWriteTxn();
+    for (int i = 20; i < 30; ++i) {
+        txn.AddVertex("person", {"id", "score", "name", "class"},
+                      {FieldData::Int64(i), FieldData::Int64(3),
+                       FieldData::String("3"),
+                       FieldData::String("3")});
+    }
+    txn.Commit();
+    txn = graph.CreateReadTxn();
+    composite_indexes = txn.ListVertexCompositeIndexes();
+    UT_EXPECT_TRUE(composite_indexes.size() == 2);
+    count = 20;
+    for (auto it = txn.GetVertexCompositeIndexIterator("person",
+             {"name", "class"}, {FieldData::String("3"), FieldData::String("3")},
+             {FieldData::String("3"), FieldData::String("3")}); it.IsValid(); it.Next()) {
+        auto tmp_it = txn.GetVertexIterator();
+        tmp_it.Goto(it.GetVid());
+        auto id = tmp_it.GetField("id").AsInt64();
+        UT_EXPECT_TRUE(id == count);
+        count++;
+    }
     txn.Abort();
     UT_EXPECT_TRUE(graph.IsVertexCompositeIndexed("person", {"score", "name"}));
     graph.DeleteVertexCompositeIndex("person", {"score", "name"});

@@ -1515,6 +1515,17 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
+                bool can_index = true;
+                for (const std::string &field : fields) {
+                    const _detail::FieldExtractor* extractor = v_schema->GetFieldExtractor(field);
+                    if (extractor->GetIsNull(prop)) {
+                        can_index = false;
+                        break;
+                    }
+                }
+                if (!can_index) {
+                    continue;
+                }
                 std::vector<Value> values;
                 std::vector<FieldType> types;
                 for (auto &field : fields) {
