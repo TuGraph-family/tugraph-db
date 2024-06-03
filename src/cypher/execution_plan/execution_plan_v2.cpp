@@ -48,11 +48,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     LOG_DEBUG() << DumpPlan(0, false);
 
     ClauseReadOnlyDecider decider;
-    ret = execution_plan_maker.Build(astNode, root_);
-    if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
-        error_msg_ = execution_plan_maker.ErrorMsg();
-        return ret;
-    }
+    decider.Build(astNode);
     read_only_ = decider.IsReadOnly();
     return ret;
 }

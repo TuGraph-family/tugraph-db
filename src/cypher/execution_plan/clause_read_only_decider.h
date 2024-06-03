@@ -32,6 +32,10 @@ class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
         return read_only_;
     }
 
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* root) {
+        return std::any_cast<geax::frontend::GEAXErrorCode>(root->accept(*this));
+    }
+
  private:
     std::any visit(geax::frontend::AmbientLinearQueryStatement* node) override {
         read_only_ = true;
