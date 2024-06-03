@@ -116,7 +116,6 @@ struct TypeCast<std::vector<float>> {
     static std::vector<float> AsType(void* p, size_t s) {
         std::vector<float>* floatvectorPtr = reinterpret_cast<std::vector<float>*>((char*)p);
         std::vector<float> floatvector(floatvectorPtr->begin(), floatvectorPtr->end());
-        //delete floatvectorPtr;
         return floatvector;
     }
 };
