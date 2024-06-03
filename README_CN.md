@@ -45,7 +45,7 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 一个简单的方法是使用docker进行设置，可以在[DockerHub](https://hub.docker.com/u/tugraph)中找到, 名称为`tugraph/tugraph-runtime-[os]:[tugraph version]`,
 例如， `tugraph/tugraph-runtime-centos7:3.3.0`。
 
-更多详情请参考[快速上手文档](./docs/zh-CN/source/3.quick-start/1.preparation.md).
+更多详情请参考 [快速上手文档](./docs/zh-CN/source/3.quick-start/1.preparation.md) 和 [业务开发指南](./docs/zh-CN/source/development_guide.md).
 
 ## 3. 从源代码编译
 

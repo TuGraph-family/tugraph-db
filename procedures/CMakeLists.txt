@@ -31,7 +31,7 @@ function(add_embed2 APP)
 endfunction()
 
 function(add_extension APP)
-    add_cython_target(${APP} algo_cython/${APP}.py CXX)
+    add_cython_target(${APP} algo_cython/${APP}_procedure.py CXX)
     add_library(${APP} MODULE ${APP})
     python_extension_module(${APP})
     target_link_libraries(${APP} ${Boost_LIBRARIES} lgraph libgomp.a dl)

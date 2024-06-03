@@ -107,38 +107,6 @@ class PageRankCore:
             self.iteration += 1
 
 
-@cython.cfunc
-def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict) -> cython.bint:
-    cost = time.time()
-    iteration = 20
-    if "iteration" in request:
-        iteration = request["iteration"]
-
-    txn = db.CreateReadTxn()
-    olapondb = OlapOnDB[Empty](db[0], txn, SNAPSHOT_PARALLEL)
-    # 并行创建OlapOnDB
-    # Cython不支持如 *db 的解引用操作，通过db[0]来解引用
-    cost = time.time() - cost
-    printf("prepare_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    cost = time.time()
-    a = PageRankCore()
-    a.run(cython.address(olapondb), iteration)
-    cost = time.time() - cost
-    printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    max_pr = cython.declare(cython.double, 0)
-    max_pr_vi = cython.declare(size_t, 0)
-    for i in range(olapondb.NumVertices()):
-        if max_pr < a.pr_curr[i]:
-            max_pr = a.pr_curr[i]
-            max_pr_vi = i
-    response["max_pr_vi"] = max_pr_vi
-    response["max_pr"] = max_pr
-    response["num_vertices"] = olapondb.NumVertices()
-    response["num_edges"] = olapondb.NumEdges()
-    return True
-
 @cython.ccall
 def Standalone(input_dir: str, num_iterations: size_t = 20):
 # Standalone为Standalone模式下插件入口，用cython.ccall修饰
@@ -164,18 +132,3 @@ def Standalone(input_dir: str, num_iterations: size_t = 20):
             max_pr = a.pr_curr[i]
             max_pr_vi = i
     printf("max rank value is pr[%lu] = %f\n", max_pr_vi, max_pr)
-
-
-@cython.ccall
-def Process(db: lgraph_db_python.PyGraphDB, inp: bytes):
-    # Process为embed模式和procedure模式下插件入口，用cython.ccall修饰
-    # Process函数必须名为Process，参数为lgraph_db_python.PyGraphDB与bytes
-    # 返回值必须为(bool, str)
-    _inp = inp.decode("utf-8")
-    request = json.loads(_inp)
-    response = {}
-    addr = cython.declare(cython.Py_ssize_t, db.get_pointer())
-    # 获取PyGraphDB中GraphDB对象的地址，转换为指针后传递
-    procedure_process(cython.cast(cython.pointer(GraphDB), addr),
-                      request, response)
-    return (True, json.dumps(response))

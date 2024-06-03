@@ -548,6 +548,8 @@ class EdgeIndex {
      */
     bool Add(KvTransaction& txn, const Value& k, const EdgeUid& euid);
 
+    bool UniqueIndexConflict(KvTransaction& txn, const Value& k);
+
     size_t GetMaxEdgeIndexKeySize();
 
     Value CutKeyIfLongOnlyForNonUniqueIndex(const Value& k);

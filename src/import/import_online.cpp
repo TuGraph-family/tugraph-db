@@ -137,8 +137,10 @@ std::string lgraph::import_v2::ImportOnline::ImportVertexes(
                 std::string msg = FMA_FMT("When importing vertex label [{}]:\n{}\n", label,
                                           PrintNestedException(e, 1));
                 if (!config.continue_on_error) THROW_CODE(InputError, msg);
+                values[i].Clear();
                 std::lock_guard<std::mutex> lg(err_mtx);
                 error.append(msg);
+                continue;
             }
         }
     };
@@ -299,6 +301,7 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
                 if (!config.continue_on_error) THROW_CODE(InputError, msg);
                 std::lock_guard<std::mutex> l(err_mtx);
                 error.append(msg);
+                continue;
             }
             std::lock_guard<std::mutex> l(edges_mtx);
             edges.emplace_back(src_vid, static_cast<LabelId>(label_id), dst_vid,

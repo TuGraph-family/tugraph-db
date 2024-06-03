@@ -17,14 +17,6 @@
 
 namespace lgraph {
 
-Value CompositeIndexValue::CreateKey(const Value &key) const {
-    int pos = GetVidCount() - 1;
-    Value v(key.Size() + _detail::VID_SIZE);
-    memcpy(v.Data(), key.Data(), key.Size());
-    memcpy(v.Data() + key.Size(), v_.Data() + 1 + pos * _detail::VID_SIZE, _detail::VID_SIZE);
-    return v;
-}
-
 CompositeIndex::CompositeIndex(std::shared_ptr<KvTable> table, std::vector<FieldType> key_types,
     CompositeIndexType type) : table_(std::move(table)), key_types(std::move(key_types)),
     ready_(false), disabled_(false), type_(type) {}
@@ -55,7 +47,6 @@ std::unique_ptr<KvTable> CompositeIndex::OpenTable(KvTransaction &txn, KvStore &
 void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
     FMA_DBG_ASSERT(type_ == CompositeIndexType::UniqueIndex);
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
-        txn.Abort();
         THROW_CODE(ReachMaximumCompositeIndexField, "The key of the composite index is "
                    "too long and exceeds the limit.");
     }
@@ -64,7 +55,6 @@ void CompositeIndex::_AppendCompositeIndexEntry(KvTransaction& txn, const Value&
 
 bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     if (k.Size() >= _detail::MAX_KEY_SIZE) {
-        txn.Abort();
         THROW_CODE(ReachMaximumCompositeIndexField, "The key of the composite index is "
                    "too long and exceeds the limit.");
     }
@@ -75,6 +65,147 @@ bool CompositeIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
         }
     }
     return false;
+}
+
+bool CompositeIndex::Delete(lgraph::KvTransaction &txn, const lgraph::Value &k, int64_t vid) {
+    CompositeIndexIterator it = GetUnmanagedIterator(txn, Value::ConstRef(k),
+                                                     Value::ConstRef(k), vid);
+    if (!it.IsValid() || it.KeyOutOfRange()) {
+        // no such key_vid
+        return false;
+    }
+    switch (type_) {
+    case CompositeIndexType::UniqueIndex:
+        {
+            it.it_->DeleteKey();
+            return true;
+        }
+    }
+    return false;
+}
+
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
+                                               lgraph::Transaction *txn,
+                                               lgraph::KvTable &table,
+                                               const lgraph::Value &key_start,
+                                               const lgraph::Value &key_end,
+                                               lgraph::VertexId vid, CompositeIndexType type)
+    : IteratorBase(txn),
+      index_(idx),
+      it_(table.GetClosestIterator(txn->GetTxn(),
+                                   type == CompositeIndexType::UniqueIndex ? key_start
+                                       : Value())),
+      key_end_(type == CompositeIndexType::UniqueIndex ? Value::MakeCopy(key_end)
+                                                    : Value()),
+      valid_(false),
+      pos_(0),
+      type_(type) {
+    if (!it_->IsValid() || KeyOutOfRange()) {
+        return;
+    }
+    LoadContentFromIt();
+}
+
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndex *idx,
+                                               lgraph::KvTransaction *txn,
+                                               lgraph::KvTable &table,
+                                               const lgraph::Value &key_start,
+                                               const lgraph::Value &key_end,
+                                               lgraph::VertexId vid,
+                                               lgraph::CompositeIndexType type)
+    : IteratorBase(nullptr),
+      index_(idx),
+      it_(table.GetClosestIterator(*txn,
+                                   type == CompositeIndexType::UniqueIndex ? key_start
+                                                                           : Value())),
+      key_end_(type == CompositeIndexType::UniqueIndex ? Value::MakeCopy(key_end)
+                                                       : Value()),
+      valid_(false),
+      pos_(0),
+      type_(type) {
+    if (!it_->IsValid() || KeyOutOfRange()) {
+        return;
+    }
+    LoadContentFromIt();
+}
+
+CompositeIndexIterator::CompositeIndexIterator(lgraph::CompositeIndexIterator &&rhs) noexcept
+    : IteratorBase(std::move(rhs)),
+    index_(rhs.index_),
+    it_(std::move(rhs.it_)),
+    key_end_(std::move(rhs.key_end_)),
+    curr_key_(std::move(rhs.curr_key_)),
+    valid_(rhs.valid_),
+    pos_(rhs.pos_),
+    vid_(rhs.vid_),
+    type_(rhs.type_) {
+    rhs.valid_ = false;
+}
+
+void CompositeIndexIterator::CloseImpl() {
+    it_->Close();
+    valid_ = false;
+}
+
+Value CompositeIndexIterator::GetKey() const {
+    switch (type_) {
+    case CompositeIndexType::UniqueIndex:
+        {
+            return it_->GetKey();
+        }
+    }
+    return {};
+}
+
+std::vector<FieldType> CompositeIndexIterator::KeyType() const {
+    return index_->key_types;
+}
+
+std::vector<FieldData> CompositeIndexIterator::GetKeyData() const {
+    return composite_index_helper::CompositeIndexKeyToFieldData(GetKey(), KeyType());
+}
+
+void CompositeIndexIterator::LoadContentFromIt() {
+    valid_ = true;
+    pos_ = 0;
+    curr_key_.Copy(GetKey());
+    switch (type_) {
+    case CompositeIndexType::UniqueIndex:
+        {
+            vid_ = _detail::GetVid(it_->GetValue().Data());
+            break;
+        }
+    }
+}
+
+bool CompositeIndexIterator::KeyOutOfRange() {
+    if (key_end_.Empty()) return false;
+    return it_->GetTable().CompareKey(it_->GetTxn(), it_->GetKey(), key_end_) > 0;
+}
+
+void CompositeIndexIterator::RefreshContentIfKvIteratorModified() {
+    if (IsValid() && it_->IsValid() && it_->UnderlyingPointerModified()) {
+        valid_ = false;
+        switch (type_) {
+        case CompositeIndexType::UniqueIndex:
+            {
+                if (!it_->GotoClosestKey(curr_key_)) return;
+                if (KeyOutOfRange()) return;
+                LoadContentFromIt();
+                return;
+            }
+        }
+        // now it_ points to a valid position, but not necessary the right one
+    }
+}
+
+bool CompositeIndexIterator::Next() {
+    valid_ = false;
+    if (!it_->Next() || KeyOutOfRange()) {
+        return false;
+    }
+    LoadContentFromIt();
+    return true;
 }
 
 }  // namespace lgraph
