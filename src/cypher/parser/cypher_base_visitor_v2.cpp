@@ -565,7 +565,7 @@ std::any CypherBaseVisitorV2::visitOC_SortItem(LcypherParser::OC_SortItemContext
     bool desc = ctx->DESCENDING() != nullptr || ctx->DESC() != nullptr ||
                 (ctx->ASCENDING() == nullptr && ctx->ASC() == nullptr);
     order->setField(expr);
-    order->setOrder(desc);
+    order->setOrder(!desc);
     return 0;
 }
 
