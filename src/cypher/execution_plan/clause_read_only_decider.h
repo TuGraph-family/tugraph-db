@@ -24,10 +24,6 @@ class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
 
     virtual ~ClauseReadOnlyDecider() = default;
 
-    /**
-     *  Determine if there are any invalid aggregate functions.
-     *  Return true if there are none.
-     */
     bool IsReadOnly() {
         return read_only_;
     }
