@@ -14,7 +14,8 @@
 1. 新增内置存储过程：upsertVertexByJson、upsertEdgeByJson、createVertexLabelByJson、createEdgeLabelByJson、dropAllVertex
 2. 支持自定义HA模式下snapshot开始时间
 3. 新增地理类型数据相关内置函数
-4. 其他错误修复
+4. 新增开发者说明文档
+5. 其他错误修复
 
 **接口更变:**
 

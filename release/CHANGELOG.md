@@ -14,7 +14,8 @@
 1. Add new built-in procedures: upsertVertexByJson, upsertEdgeByJson, createVertexLabelByJson, createEdgeLabelByJson, dropAllVertex.
 2. Support user-defined snapshot start time in HA mode.
 3. Add new functions for spatial data type.
-4. Other bug fixes.
+4. Add development guide doc
+5. Other bug fixes.
 
 **Interfaces Modification:**
 
