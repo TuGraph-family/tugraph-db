@@ -7,6 +7,7 @@
 1. DB-GPT中实现TuGraph上的知识图谱构建与检索: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.6
 2. DB-GPT支持TuGraph：https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.5
 3. 属性分离模式下的schema变更优化，支持快速变更
+4. 支持组合索引
 
 **优化和错误修复:**
 

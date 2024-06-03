@@ -7,6 +7,7 @@
 1. Integrate TuGraph-DB to GraphRAG framework in DB-GPT: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.6
 2. Support using TuGraph-DB in DB-GPT: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.5
 3. Support quick schema changes in detached property model.
+4. Support composite index
 
 **Improvements And Bug Fixes:**
 
