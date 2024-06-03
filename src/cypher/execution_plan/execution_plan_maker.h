@@ -16,7 +16,7 @@
 
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
-#include "geax-front-end/isogql/GQLResolveCtx.h"
+#include "geax-front-end/common/ObjectAllocator.h"
 #include "cypher/graph/graph.h"
 #include "cypher/execution_plan/ops/op.h"
 
