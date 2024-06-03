@@ -508,8 +508,7 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     // testing float vector data
     {
         std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
-        Value v = ParseStringToValueOfFieldType("1.111000, 2.111000, 3.111000, 4.111000, 5.111000",
-                                                 FieldType::FLOAT_VECTOR);
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "1.111000, 2.111000, 3.111000, 4.111000, 5.111000", vec1);
     }
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
@@ -530,7 +529,10 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POLYGON, "213234qweasda", "34.342as341123"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(SPATIAL, "213234qwe#@asda", "34.342as3@#41123"));
     // testing float vector data
-    UT_EXPECT_ANY_THROW(ParseStringToValueOfFieldType("213234qwe#@asda", FieldType::FLOAT_VECTOR));
+    {
+        std::vector<float> vec3 = {1.111, 2.111, 3.111, 4.111, 5.111};
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "213234qwe#@asda", vec3));
+    }
 }
 
 TEST_F(TestFieldDataHelper, ValueCompare) {
