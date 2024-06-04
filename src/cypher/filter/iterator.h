@@ -1134,7 +1134,11 @@ struct EuidHashSet {
 
     bool Erase(const lgraph::EIter &eit) {
         if (!eit.IsValid()) return false;
-        auto it = euid_hash_set.find(eit.GetUid());
+        return Erase(eit.GetUid());
+    }
+
+    bool Erase(const lgraph::EdgeUid &euid) {
+        auto it = euid_hash_set.find(euid);
         if (it == euid_hash_set.end()) return false;
         euid_hash_set.erase(it);
         return true;

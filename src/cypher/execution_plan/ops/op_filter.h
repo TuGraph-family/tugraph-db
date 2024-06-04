@@ -24,6 +24,7 @@ namespace cypher {
 
 class OpFilter : public OpBase {
     friend class EdgeFilterPushdownExpand;
+    friend class EdgeFilterPushdownVarLenExpand;
     std::shared_ptr<lgraph::Filter> filter_;
     /* FilterState
      * Different states in which ExpandAll can be at. */

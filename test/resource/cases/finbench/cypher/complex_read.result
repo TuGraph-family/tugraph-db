@@ -18,6 +18,26 @@ ORDER BY accountDistance, otherId, mediumId;
 [{"accountDistance":1,"mediumId":1,"mediumType":"Medium1","otherId":2},{"accountDistance":1,"mediumId":5,"mediumType":"Medium5","otherId":9},{"accountDistance":2,"mediumId":16,"mediumType":"Medium16","otherId":12}]
 
 
+# complex read 1
+MATCH p = (acc:Account {id:6})
+    -[e1:transfer *1..3]
+    ->(other:Account)<-[e2:signIn]-(medium)
+WHERE
+    isAsc(getMemberProp(e1, 'timestamp'))=true
+    AND head(getMemberProp(e1, 'timestamp')) > 10
+    AND last(getMemberProp(e1, 'timestamp')) < 30
+    AND e2.timestamp > 10
+    AND e2.timestamp < 30
+    AND medium.isBlocked = true
+RETURN DISTINCT
+    other.id as otherId,
+    length(p)-1 as accountDistance,
+    medium.id as mediumId,
+    medium.type as mediumType
+ORDER BY accountDistance, otherId, mediumId;
+[{"accountDistance":1,"mediumId":19,"mediumType":"Medium19","otherId":1},{"accountDistance":2,"mediumId":8,"mediumType":"Medium8","otherId":18}]
+
+
 # complex read 2
 MATCH (p:Person {id:12})-[e1:own]->(acc:Account)
     <-[e2:transfer*1..3]-(other:Account)
@@ -40,6 +60,30 @@ RETURN
     round(sumLoanBalance * 1000) / 1000 as sumLoanBalance
 ORDER BY sumLoanAmount DESC, otherId ASC;
 [{"otherId":6,"sumLoanAmount":279.0,"sumLoanBalance":134.0},{"otherId":17,"sumLoanAmount":157.0,"sumLoanBalance":25.0},{"otherId":14,"sumLoanAmount":85.0,"sumLoanBalance":51.0},{"otherId":18,"sumLoanAmount":57.0,"sumLoanBalance":80.0},{"otherId":5,"sumLoanAmount":16.0,"sumLoanBalance":28.0},{"otherId":0,"sumLoanAmount":13.0,"sumLoanBalance":0.0}]
+
+
+# complex read 2
+MATCH (p:Person {id:6})-[e1:own]->(acc:Account)
+    <-[e2:transfer*1..3]-(other:Account)
+WHERE
+    isDesc(getMemberProp(e2, 'timestamp'))=true
+    AND head(getMemberProp(e2, 'timestamp')) < 30
+    AND last(getMemberProp(e2, 'timestamp')) > 10
+WITH DISTINCT other
+MATCH (other)<-[e3:deposit]-(loan:Loan)
+WHERE
+    e3.timestamp > 10
+    AND e3.timestamp < 30
+WITH
+    other.id AS otherId,
+    sum(loan.loanAmount) as sumLoanAmount,
+    sum(loan.balance) as sumLoanBalance
+RETURN
+    otherId,
+    round(sumLoanAmount * 1000) / 1000 as sumLoanAmount,
+    round(sumLoanBalance * 1000) / 1000 as sumLoanBalance
+ORDER BY sumLoanAmount DESC, otherId ASC;
+[{"otherId":17,"sumLoanAmount":157.0,"sumLoanBalance":25.0},{"otherId":14,"sumLoanAmount":85.0,"sumLoanBalance":51.0},{"otherId":13,"sumLoanAmount":62.0,"sumLoanBalance":6.0},{"otherId":12,"sumLoanAmount":57.0,"sumLoanBalance":80.0}]
 
 
 # complex read 3
@@ -124,6 +168,23 @@ ORDER BY len DESC
 WHERE hasDuplicates(path)=false
 RETURN path;
 [{"path":[0,9]},{"path":[17,15]}]
+
+
+# complex read 5
+MATCH (person:Person {id: 6})-[e1:own]->(src:Account)
+WITH src
+MATCH p=(src)-[e2:transfer*1..3]->(dst:Account)
+WHERE
+    isAsc(getMemberProp(e2, 'timestamp'))=true
+    AND head(getMemberProp(e2, 'timestamp')) > 40
+    AND last(getMemberProp(e2, 'timestamp')) < 45
+WITH DISTINCT
+    getMemberProp(nodes(p), "id") as path,
+    length(p) as len
+ORDER BY len DESC
+WHERE hasDuplicates(path)=false
+RETURN path;
+[{"path":[6,16]},{"path":[9,12]},{"path":[18,2]}]
 
 
 # complex read 6
@@ -276,6 +337,24 @@ RETURN
     round(sumLoanAmount * 1000) / 1000 as sumLoanAmount,
     numLoans;
 [{"numLoans":4,"sumLoanAmount":300.0}]
+
+
+# complex read 11
+MATCH
+    (p1:Person {id:10})-[edge:guarantee*1..5]->(pN:Person)
+    -[:apply]->(loan:Loan)
+WHERE
+    minInList(getMemberProp(edge, 'timestamp')) > 10
+    AND maxInList(getMemberProp(edge, 'timestamp')) < 50
+WITH
+    DISTINCT loan
+WITH
+    sum(loan.loanAmount) as sumLoanAmount,
+    count(distinct loan) as numLoans
+RETURN
+    round(sumLoanAmount * 1000) / 1000 as sumLoanAmount,
+    numLoans;
+[{"numLoans":7,"sumLoanAmount":343.0}]
 
 
 # complex read 12
