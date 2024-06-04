@@ -232,7 +232,18 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BIndex* node) { NOT_SUP
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BLike* node) { NOT_SUPPORT_AND_THROW(); }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::BIn* node) { NOT_SUPPORT_AND_THROW(); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::BIn* node) {
+    auto l_val = std::any_cast<Entry>(node->left()->accept(*this));
+    auto r_val = std::any_cast<Entry>(node->right()->accept(*this));
+    if (!l_val.IsScalar()) NOT_SUPPORT_AND_THROW();
+    if (!r_val.IsArray()) NOT_SUPPORT_AND_THROW();
+    for (auto & val : *r_val.constant.array) {
+        if (l_val.constant.scalar == val) {
+            return Entry(cypher::FieldData(lgraph::FieldData(true)));
+        }
+    }
+    return Entry(cypher::FieldData(lgraph::FieldData(false)));
+}
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::If* node) { NOT_SUPPORT_AND_THROW(); }
 
@@ -265,7 +276,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Case* node) {
         if (node->elseBody().has_value()) {
             return node->elseBody().value()->accept(*this);
         } else {
-            NOT_SUPPORT_AND_THROW();
+           return Entry();
         }
 
     } else {

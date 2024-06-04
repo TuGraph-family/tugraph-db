@@ -41,7 +41,8 @@ enum class VisitType {
     kMatchPattern,
     kSetVariable,
     kSetNull,
-    kDeleteVariable
+    kDeleteVariable,
+    kWithClause
 };
 
 class VisitGuard {
@@ -71,6 +72,7 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     size_t anonymous_idx_;
     std::unordered_set<VisitType> visit_types_;
     static const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> S_AGG_LIST;
+    geax::frontend::PathChain* path_chain_;
 
  public:
     CypherBaseVisitorV2() = delete;

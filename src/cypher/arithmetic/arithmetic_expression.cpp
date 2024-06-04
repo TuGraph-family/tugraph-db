@@ -30,6 +30,7 @@
 #include "cypher/procedure/utils.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
 #include "lgraph/lgraph_types.h"
+#include "tools/lgraph_log.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
@@ -1276,13 +1277,15 @@ cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
     std::string dst_str = dst.constant.scalar.AsString();
     auto src = args[2].Evaluate(ctx, record);
     std::string src_str = src.constant.scalar.AsString();
+    if (src_str.empty()) return cypher::FieldData(lgraph_api::FieldData(false));
     bool ret = std::regex_match(src_str, std::regex(dst_str));
     return cypher::FieldData(lgraph_api::FieldData(ret));
 }
 
 cypher::FieldData BuiltinFunction::Exists(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
-    return cypher::FieldData();
+    auto res = args[1].Evaluate(ctx, record);
+    return cypher::FieldData(lgraph_api::FieldData(!res.IsNull()));
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
