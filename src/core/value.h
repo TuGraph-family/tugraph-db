@@ -114,8 +114,11 @@ struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
 template <>
 struct TypeCast<std::vector<float>> {
     static std::vector<float> AsType(void* p, size_t s) {
-        std::vector<float>* floatvectorPtr = (std::vector<float>*)((char*)p);
-        std::vector<float> floatvector = *floatvectorPtr;
+        std::vector<float> floatvector;
+        void* q = malloc(s);
+        memcpy(q, p, s);
+        std::vector<float>* floatvectorPtr = (std::vector<float>*)((char*)q);
+        floatvector = *floatvectorPtr;
         return floatvector;
     }
 };
