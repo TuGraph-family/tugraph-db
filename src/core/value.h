@@ -119,6 +119,7 @@ struct TypeCast<std::vector<float>> {
         memcpy(q, p, s);
         std::vector<float>* floatvectorPtr = (std::vector<float>*)((char*)q);
         floatvector = *floatvectorPtr;
+        delete floatvectorPtr;
         return floatvector;
     }
 };
