@@ -306,7 +306,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MatchCase* node) {
 std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
     std::unordered_map<std::string, std::function<std::shared_ptr<AggCtx>()>> registered_agg_funcs =
         ArithOpNode::RegisterAggFuncs();
-    auto agg_it = registered_agg_funcs.find(ToString(node->funcName()));
+    std::string func_name = ToString(node->funcName());
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    auto agg_it = registered_agg_funcs.find(func_name);
     if (agg_it != registered_agg_funcs.end()) {
         // Evalute Mode
         if (visit_mode_ == VisitMode::EVALUATE) {
@@ -334,6 +336,36 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BAggFunc* node) {
+    std::unordered_map<std::string, std::function<std::shared_ptr<AggCtx>()>> registered_agg_funcs =
+        ArithOpNode::RegisterAggFuncs();
+    std::string func_name = ToString(node->funcName());
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    auto agg_it = registered_agg_funcs.find(func_name);
+    if (agg_it != registered_agg_funcs.end()) {
+        // Evalute Mode
+        if (visit_mode_ == VisitMode::EVALUATE) {
+            if (agg_pos_ >= agg_ctxs_.size()) {
+                NOT_SUPPORT_AND_THROW();
+            }
+            return agg_ctxs_[agg_pos_++]->result;
+        } else if (visit_mode_ == VisitMode::AGGREGATE) {
+            // todo(...): registered_agg_funcs cannot be static and need improvement
+            // return Entry(agg_it->second());
+            if (agg_pos_ == agg_ctxs_.size()) {
+                agg_ctxs_.emplace_back(agg_it->second());
+            }
+            if (agg_pos_ >= agg_ctxs_.size()) {
+                NOT_SUPPORT_AND_THROW();
+            }
+            std::vector<Entry> args;
+            auto &left = node->lExpr();
+            args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(std::get<0>(left)))));
+            args.emplace_back(std::any_cast<Entry>(std::get<1>(left)->accept(*this)));
+            args.emplace_back(std::any_cast<Entry>(node->rExpr()->accept(*this)));
+            agg_ctxs_[agg_pos_]->Step(args);
+            return Entry(cypher::FieldData());
+        }
+    }
     NOT_SUPPORT_AND_THROW();
 }
 

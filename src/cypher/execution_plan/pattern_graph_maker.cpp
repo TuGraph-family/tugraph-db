@@ -575,7 +575,12 @@ std::any PatternGraphMaker::visit(geax::frontend::AggFunc* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::BAggFunc* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::BAggFunc* node) {
+    auto& left = node->lExpr();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(left));
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->rExpr());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::MultiCount* node) { NOT_SUPPORT(); }
 

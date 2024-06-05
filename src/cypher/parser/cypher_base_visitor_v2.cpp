@@ -18,6 +18,7 @@
 #include "cypher/cypher_exception.h"
 #include "geax-front-end/ast/Ast.h"
 #include "cypher/parser/generated/LcypherParser.h"
+#include "geax-front-end/ast/expr/BAggFunc.h"
 #include "geax-front-end/ast/expr/VString.h"
 #include "geax-front-end/ast/stmt/FilterStatement.h"
 #include "tools/lgraph_log.h"
@@ -84,7 +85,17 @@ const std::unordered_map<std::string, geax::frontend::GeneralSetFunction>
         {"collect", geax::frontend::GeneralSetFunction::kCollect},
         {"stdDevSamp", geax::frontend::GeneralSetFunction::kStdDevSamp},
         {"stdDevPop", geax::frontend::GeneralSetFunction::kStdDevPop},
-        {"groutConcat", geax::frontend::GeneralSetFunction::kGroupConcat}};
+        {"groutConcat", geax::frontend::GeneralSetFunction::kGroupConcat},
+        {"stDev", geax::frontend::GeneralSetFunction::kStDev},
+        {"stDevP", geax::frontend::GeneralSetFunction::kStDevP},
+        {"variance", geax::frontend::GeneralSetFunction::kVariance},
+        {"varianceP", geax::frontend::GeneralSetFunction::kVarianceP}};
+
+const std::unordered_map<std::string, geax::frontend::BinarySetFunction>
+    CypherBaseVisitorV2::S_BAGG_LIST = {
+        {"percentileCont", geax::frontend::BinarySetFunction::kPercentileCont},
+        {"percentileDisc",geax::frontend:: BinarySetFunction::kPercentileDisc},
+};
 
 std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext *ruleCtx) const {
     if (ruleCtx->children.size() == 0) {
@@ -1349,9 +1360,8 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
         return visit(ctx->oC_Parameter());
     } else if (ctx->COUNT()) {
         auto func = ALLOC_GEAOBJECT(geax::frontend::AggFunc);
-        auto it = S_AGG_LIST.find("count");
-        func->setFuncName(it->second);
-        func->setDistinct(true);
+        func->setFuncName(geax::frontend::GeneralSetFunction::kCount);
+        func->setDistinct(false);
         auto param = ALLOC_GEAOBJECT(geax::frontend::VString);
         param->setVal(std::string("*"));
         func->setExpr(param);
@@ -1470,6 +1480,7 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
     checkedAnyCast(visit(ctx->oC_FunctionName()), name);
     geax::frontend::Expr *res = nullptr;
     auto it = S_AGG_LIST.find(name);
+    auto bit = S_BAGG_LIST.find(name);
     if (name == "EXISTS") {
         if (ctx->oC_Expression().size() > 1) NOT_SUPPORT_AND_THROW();
         geax::frontend::Expr *expr = nullptr;
@@ -1485,6 +1496,7 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
             res = func;
         }
     } else if (it != S_AGG_LIST.end()) {
+        CYPHER_THROW_ASSERT(ctx->oC_Expression().size() == 1);
         auto func = ALLOC_GEAOBJECT(geax::frontend::AggFunc);
         func->setFuncName(it->second);
         if (ctx->DISTINCT()) {
@@ -1492,16 +1504,20 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
         } else {
             func->setDistinct(false);
         }
-
-        for (size_t idx = 0; idx < ctx->oC_Expression().size(); ++idx) {
-            geax::frontend::Expr *expr = nullptr;
-            checkedAnyCast(visit(ctx->oC_Expression(idx)), expr);
-            if (idx == 0) {
-                func->setExpr(expr);
-            } else {
-                func->appendDistinctBy(expr);
-            }
-        }
+        geax::frontend::Expr *expr = nullptr;
+        checkedAnyCast(visit(ctx->oC_Expression(0)), expr);
+        func->setExpr(expr);
+        res = func;
+    } else if (bit != S_BAGG_LIST.end()) {
+        CYPHER_THROW_ASSERT(ctx->oC_Expression().size() == 2);
+        auto func = ALLOC_GEAOBJECT(geax::frontend::BAggFunc);
+        func->setFuncName(bit->second);
+        geax::frontend::Expr *left = nullptr, *right = nullptr;
+        checkedAnyCast(visit(ctx->oC_Expression(0)), left);
+        checkedAnyCast(visit(ctx->oC_Expression(1)), right);
+        bool distinct = ctx->DISTINCT() ? true : false;
+        func->setLExpr(distinct, left);
+        func->setRExpr(right);
         res = func;
     } else {
         auto func = ALLOC_GEAOBJECT(geax::frontend::Function);

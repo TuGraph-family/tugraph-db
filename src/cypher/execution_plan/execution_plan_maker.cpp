@@ -872,37 +872,35 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
         }
         // build header
-        if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
-            if (std::get<1>(item)->type() == geax::frontend::AstNodeType::kRef) {
-                std::string& name = ((geax::frontend::Ref*)std::get<1>(item))->name();
-                auto it = pattern_graph.symbol_table.symbols.find(name);
-                if (it == pattern_graph.symbol_table.symbols.end()) {
-                    error_msg_ = "Unknown variable: " + name;
-                    return geax::frontend::GEAXErrorCode::GEAX_ERROR;
-                }
-                lgraph_api::LGraphType column_type;
-                switch (it->second.type) {
-                case SymbolNode::NODE:
-                    column_type = lgraph_api::LGraphType::NODE;
-                    break;
-                case SymbolNode::RELATIONSHIP:
-                    column_type = lgraph_api::LGraphType::RELATIONSHIP;
-                    break;
-                case SymbolNode::NAMED_PATH:
-                    column_type = lgraph_api::LGraphType::PATH;
-                    break;
-                case SymbolNode::CONSTANT:
-                case SymbolNode::PARAMETER:
-                    column_type = lgraph_api::LGraphType::ANY;
-                    break;
-                default:
-                    NOT_SUPPORT();
-                }
-                result_info_.header.colums.emplace_back(name, alias, has_aggregation, column_type);
-            } else {
-                result_info_.header.colums.emplace_back(alias, alias, has_aggregation,
-                                                        lgraph_api::LGraphType::ANY);
+        if (std::get<1>(item)->type() == geax::frontend::AstNodeType::kRef) {
+            std::string& name = ((geax::frontend::Ref*)std::get<1>(item))->name();
+            auto it = pattern_graph.symbol_table.symbols.find(name);
+            if (it == pattern_graph.symbol_table.symbols.end()) {
+                error_msg_ = "Unknown variable: " + name;
+                return geax::frontend::GEAXErrorCode::GEAX_ERROR;
             }
+            lgraph_api::LGraphType column_type;
+            switch (it->second.type) {
+            case SymbolNode::NODE:
+                column_type = lgraph_api::LGraphType::NODE;
+                break;
+            case SymbolNode::RELATIONSHIP:
+                column_type = lgraph_api::LGraphType::RELATIONSHIP;
+                break;
+            case SymbolNode::NAMED_PATH:
+                column_type = lgraph_api::LGraphType::PATH;
+                break;
+            case SymbolNode::CONSTANT:
+            case SymbolNode::PARAMETER:
+                column_type = lgraph_api::LGraphType::ANY;
+                break;
+            default:
+                NOT_SUPPORT();
+            }
+            result_info_.header.colums.emplace_back(name, alias, has_aggregation, column_type);
+        } else {
+            result_info_.header.colums.emplace_back(alias, alias, has_aggregation,
+                                                    lgraph_api::LGraphType::ANY);
         }
     }
     if (node->limit().has_value()) {
