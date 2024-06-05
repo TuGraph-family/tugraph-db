@@ -288,13 +288,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto head = node->head();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    std::vector<OpBase*> expand_ops;
+    if (last_op_) {
+        expand_ops.emplace_back(last_op_);
+        last_op_ = nullptr;
+    }
     // todo: ...
     ClauseGuard cg(node->type(), cur_types_);
     auto& tails = node->tails();
-    std::vector<OpBase*> expand_ops;
-    if (tails.size() == 0) {
-        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
     for (auto [edge, end_node] : tails) {
         start_t_ = node_t_;
         is_end_path_ = true;
@@ -327,7 +328,25 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
     if (auto op = _SingleBranchConnect(expand_ops)) {
-        _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+        // Handle the case where multiple PathChains are connected, with special handling
+        // for cases where multiple PathChains are mutually independent.
+        // Considering that _UpdateStreamRoot connections are more complex and AllNodeScan
+        // cannot be connected directly, this determination requires additional processing.
+        bool is_pathchain_independent = true;
+        if (is_pathchain_independent) {
+            if (pattern_graph_root_[cur_pattern_graph_]) {
+                auto connection = new CartesianProduct();
+                connection->AddChild(op);
+                connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+                pattern_graph_root_[cur_pattern_graph_] = connection;
+            } else {
+                pattern_graph_root_[cur_pattern_graph_] = op;
+            }
+        } else {
+            // For the associated case, currently handled through ast node rewriter, but this has
+            // performance issues. In the future, MultiMatch will be rewritten.
+            CYPHER_TODO();
+        }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -351,7 +370,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Node* node) {
         }
         std::reverse(expand_ops.begin(), expand_ops.end());
         if (auto op = _SingleBranchConnect(expand_ops)) {
-            _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+            // Do not connect op to pattern_graph_root_[cur_pattern_graph_] for now,
+            // use last_op_ to store it.
+            last_op_ = op;
         }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
