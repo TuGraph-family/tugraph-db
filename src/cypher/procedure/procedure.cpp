@@ -3633,11 +3633,15 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
         CYPHER_THROW_ASSERT(record);
         auto i = record->symbol_table->symbols.find(args[0].String());
         if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-        auto &eid = record->values[i->second.id];
-        if (!eid.IsString()) CYPHER_TODO();
+        auto &eids = record->values[i->second.id];
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-        value = ctx->txn_->GetTxn()->GetEdgeField(
-            _detail::ExtractEdgeUid(eid.constant.scalar.AsString()), it2->second.String());
+        if (eids.IsArray()) {
+            value = cypher::FieldData::Array(0);
+            for (auto &id : *eids.constant.array) {
+                value.array->emplace_back(ctx->txn_->GetTxn()->GetEdgeField(
+                    _detail::ExtractEdgeUid(id.AsString()), it2->second.String()));
+            }
+        }
     }
 
     auto pp = global_ptable.GetProcedure("algo.native.extract");
