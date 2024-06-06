@@ -492,6 +492,7 @@ struct FieldData {
 
     ~FieldData() {
         if (IsBufType(type)) delete data.buf;
+        if (type == FieldType::FLOAT_VECTOR) delete data.vp;
     }
 
     FieldData(const FieldData& rhs) {
