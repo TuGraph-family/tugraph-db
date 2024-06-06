@@ -3,7 +3,6 @@
 
 import cython
 from cython.cimports.olap_base import *
-from cython.cimports.olap_on_disk import *
 from cython.cimports.libc.stdio import printf
 from cython.cimports.libcpp.unordered_map import unordered_map
 from cython.operator import dereference as deref
@@ -113,36 +112,6 @@ def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict
     response["num_vertices"] = olapondb.NumVertices()
     response["num_edges"] = olapondb.NumEdges()
     return True
-
-
-@cython.ccall
-def Standalone(input_dir: str, num_iteration: size_t = 20):
-    cost = time.time()
-    graph = OlapOnDisk[Empty]()
-    config = ConfigBase[Empty]()
-    config.input_dir = input_dir.encode("utf-8")
-    graph.Load(config, MAKE_SYMMETRIC)
-    cost = time.time() - cost
-    printf("load_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    cost = time.time()
-    a = LPACore()
-    a.run(cython.address(graph), num_iteration)
-    cost = time.time() - cost
-    printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    community = [0] * int(graph.NumVertices())
-    i: size_t
-    for i in range(graph.NumVertices()):
-        community[a.label_curr[i]] += 1
-    max_community = 0
-    num_communities = 0
-    for i in range(graph.NumVertices()):
-        max_community = max(max_community, community[i])
-        if community[i] > 0:
-            num_communities += 1
-    print("max_community = " + str(max_community))
-    print("num_communities = " + str(num_communities))
 
 
 @cython.ccall

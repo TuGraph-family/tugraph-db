@@ -102,7 +102,7 @@ cdef extern from "lgraph/lgraph_edge_iterator.h" namespace "lgraph_api":
     cdef cppclass InEdgeIterator nogil:
         pass
 
-cdef extern from "../../include/lgraph/lgraph_utils.h" namespace "lgraph_api":
+cdef extern from "lgraph/lgraph_utils.h" namespace "lgraph_api":
     double get_time() nogil
 
 cdef extern from "lgraph/lgraph_galaxy.h" namespace "lgraph_api":

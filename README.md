@@ -45,7 +45,7 @@ You can find TuGraph's doc by [link](https://tugraph-db.readthedocs.io/en/latest
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
 
-For more details, please refer to [quick start doc](docs/en-US/source/3.quick-start/1.preparation.md).
+For more details, please refer to [quick start doc](docs/en-US/source/3.quick-start/1.preparation.md) and [development guide](./docs/zh-CN/source/development_guide.md).
 
 ## 3. Build from Source
 

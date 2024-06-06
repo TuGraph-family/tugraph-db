@@ -37,7 +37,14 @@ static void RRecordToURecord(
         auto &v = record_ptr->values[index];
         const auto &entry_type = v.type;
         const auto &header_type = header[index].second;
-
+        auto InsertVertex = [](lgraph_api::Record &record, const lgraph::VertexId &vid,
+                               const std::string &name, lgraph_api::Transaction *txn) {
+            if (vid >= 0) {
+                record.Insert(name, vid, txn);
+            } else {
+                record.InsertVertexByID(name, vid);
+            }
+        };
         if (entry_type == cypher::Entry::NODE_SNAPSHOT) {
             if (header_type == lgraph_api::LGraphType::NODE ||
                 header_type == lgraph_api::LGraphType::ANY) {
@@ -46,7 +53,7 @@ static void RRecordToURecord(
                 auto node_str = v.ToString();
                 CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
                 auto vid = static_cast<size_t>(std::stoll(match_group[2].str()));
-                record.InsertVertexByID(header[index].first, vid);
+                InsertVertex(record, vid, header[index].first, txn);
                 continue;
             } else {
                 throw lgraph::CypherException(
@@ -59,12 +66,7 @@ static void RRecordToURecord(
             if (header_type == lgraph_api::LGraphType::NODE ||
                 header_type == lgraph_api::LGraphType::ANY) {
                 auto vid = v.node->PullVid();
-                if (vid >= 0) {
-                    record.Insert(header[index].first, vid, txn);
-                } else {
-                    // OPTIONAL MATCH return null
-                    record.InsertVertexByID(header[index].first, vid);
-                }
+                InsertVertex(record, vid, header[index].first, txn);
                 continue;
             } else {
                 throw lgraph::CypherException(
@@ -90,8 +92,8 @@ static void RRecordToURecord(
                 auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
                 auto tid = static_cast<int64_t>(std::stoll(id++->str()));
                 auto eid = static_cast<uint16_t>(std::stoll(id++->str()));
-                record.InsertEdgeByID(header[index].first,
-                                      lgraph_api::EdgeUid(start, end, lid, tid, eid));
+                lgraph::EdgeUid uid = lgraph::EdgeUid(start, end, lid, tid, eid);
+                record.Insert(header[index].first, uid, txn);
                 continue;
             } else {
                 throw lgraph::CypherException(
@@ -104,8 +106,14 @@ static void RRecordToURecord(
             if (header_type == lgraph_api::LGraphType::RELATIONSHIP ||
                 header_type == lgraph_api::LGraphType::ANY) {
                 auto uit = v.relationship->ItRef();
-                auto uid = uit->GetUid();
-                record.Insert(header[index].first, uid, txn);
+                if (uit->IsValid()) {
+                    auto uid = uit->GetUid();
+                    record.Insert(header[index].first, uid, txn);
+                } else {
+                    lgraph::EdgeUid euid;
+                    euid.eid = -1;
+                    record.InsertEdgeByID(header[index].first, euid);
+                }
                 continue;
             } else {
                 throw lgraph::CypherException(
@@ -276,7 +284,7 @@ class ProduceResults : public OpBase {
             if (res != OP_OK) {
                 if (ctx->result_->Size() > 0 &&
                     session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
-                    session->ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
+                    session->ps.AppendRecords(ctx->result_->BoltRecords());
                 }
                 session->ps.AppendSuccess();
                 session->state = bolt::SessionState::READY;
@@ -287,7 +295,7 @@ class ProduceResults : public OpBase {
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
                 RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
-                session->ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
+                session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
                 if (--session->streaming_msg.value().n == 0) {

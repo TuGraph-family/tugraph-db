@@ -1,5 +1,27 @@
 # Change Log for TuGraph
 
+# 4.3.0 (2024-05-21)
+
+**Breaking Changes:**
+
+1. Integrate TuGraph-DB to GraphRAG framework in DB-GPT: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.6
+2. Support using TuGraph-DB in DB-GPT: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.5
+3. Support quick schema changes in detached property model.
+4. Support composite index
+
+**Improvements And Bug Fixes:**
+
+1. Add new built-in procedures: upsertVertexByJson, upsertEdgeByJson, createVertexLabelByJson, createEdgeLabelByJson, dropAllVertex.
+2. Support user-defined snapshot start time in HA mode.
+3. Add new functions for spatial data type.
+4. Add development guide doc
+5. Other bug fixes.
+
+**Interfaces Modification:**
+
+1. data imported in detached property model by default.
+2. new configuration `ha_first_snapshot_start_time` added.
+
 # 4.2.0 (2024-04-11)
 
 **Breaking Changes:**
