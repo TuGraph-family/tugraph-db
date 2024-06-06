@@ -114,7 +114,9 @@ struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
 template <>
 struct TypeCast<std::vector<float>> {
     static std::vector<float> AsType(void* p, size_t s) {
-        std::vector<float> floatvector(*(std::vector<float>*)((char*)p));
+        size_t num_floats = s / sizeof(float);  
+        std::vector<float> floatvector(num_floats);
+        std::memcpy(floatvector.data(), p, s);
         return floatvector;
     }
 };
@@ -397,6 +399,11 @@ class Value {
         memcpy(data_, s.data(), s.size());
     }
 
+    void Copy(const std::vector<float>& vec) {
+        Resize(vec.size() * sizeof(float));
+        memcpy(data_, vec.data(), vec.size() * sizeof(float));
+    }
+
     /**
      * Make a copy of the memory referred to by rhs. The new memory block is owned
      * by *this.
@@ -564,7 +571,7 @@ class Value {
      *
      * \return  A Value.
      */
-    static Value ConstRef(const std::vector<float>& s) { return Value(&s, sizeof(s)); }
+    static Value ConstRef(const std::vector<float>& s) { return Value(s.data(), s.size() * sizeof(float)); }
 
     /**
      * Create a Value that is a const reference to a string literal

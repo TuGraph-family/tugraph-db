@@ -1137,9 +1137,8 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
             if (vec.size() <= 1) {
                 ThrowParseError(str, FieldType::FLOAT_VECTOR);
             }
-            std::vector<float> vector(vec);
             Value v;
-            v.Copy(vector);
+            v.Copy(vec);
             return v;
         }
     }
