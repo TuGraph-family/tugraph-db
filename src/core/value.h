@@ -114,7 +114,7 @@ struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
 template <>
 struct TypeCast<std::vector<float>> {
     static std::vector<float> AsType(void* p, size_t s) {
-        size_t num_floats = s / sizeof(float);  
+        size_t num_floats = s / sizeof(float);
         std::vector<float> floatvector(num_floats);
         std::memcpy(floatvector.data(), p, s);
         return floatvector;
@@ -571,7 +571,9 @@ class Value {
      *
      * \return  A Value.
      */
-    static Value ConstRef(const std::vector<float>& s) { return Value(s.data(), s.size() * sizeof(float)); }
+    static Value ConstRef(const std::vector<float>& s) { 
+        return Value(s.data(), s.size() * sizeof(float));
+    }
 
     /**
      * Create a Value that is a const reference to a string literal
