@@ -503,7 +503,7 @@ struct FieldData {
             // the integer type must have the biggest size, see static_assertion below
             data.int64 = rhs.data.int64;
         } else {
-            data.vp = rhs.data.vp;
+            data.vp = new std::vector<float>(*rhs.data.vp);
         }
     }
 
