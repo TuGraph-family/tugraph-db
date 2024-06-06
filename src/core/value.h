@@ -571,7 +571,7 @@ class Value {
      *
      * \return  A Value.
      */
-    static Value ConstRef(const std::vector<float>& s) { 
+    static Value ConstRef(const std::vector<float>& s) {
         return Value(s.data(), s.size() * sizeof(float));
     }
 
