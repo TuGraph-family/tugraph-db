@@ -71,6 +71,7 @@ if [ -z "$CONTAINER_ID" ]; then
         -v /etc/passwd:/etc/passwd:ro \
         -v /etc/shadow:/etc/shadow:ro \
         -v /etc/sudoers:/etc/sudoers:ro \
+        -v /etc/ssh:/etc/ssh:ro \
         -v ${REPO_DIR}:/home/${USER_NAME}/tugraph-db \
         -w /home/${USER_NAME} \
         ${DOCKER_IMAGE} \
@@ -79,5 +80,3 @@ if [ -z "$CONTAINER_ID" ]; then
           echo 'export JAVA_HOME=/usr/lib/jvm/java-11-openjdk' > /home/${USER_NAME}/.bash_profile &&
           /usr/sbin/sshd -D"
 fi
-
-# docker exec -u ${USER_ID}:${GROUP_ID} -it ${CONTAINER_NAME} /bin/bash

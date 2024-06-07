@@ -37,7 +37,10 @@ RUN yum update -y && yum install -y \
     glibc-common \
     langpacks-zh_CN \
     which \
-    java-11-openjdk-devel
+    java-11-openjdk-devel \
+    openssh-server
+
+RUN rm /run/nologin && rm /usr/sbin/nologin
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
