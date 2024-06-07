@@ -42,7 +42,8 @@ enum class VisitType {
     kSetVariable,
     kSetNull,
     kDeleteVariable,
-    kWithClause
+    kWithClause,
+    kStandaloneCall
 };
 
 class VisitGuard {

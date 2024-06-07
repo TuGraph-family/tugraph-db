@@ -24,7 +24,6 @@ class GqlStandaloneCall : public OpBase {
     const std::string func_name_;
     const std::vector<geax::frontend::Expr*>& args_;
     const std::optional<geax::frontend::YieldField*>& yield_;
-    ProcedureV2 *procedure_ = nullptr;
     const SymbolTable& symbol_table_;
 
  public:
@@ -32,18 +31,13 @@ class GqlStandaloneCall : public OpBase {
                         const std::vector<geax::frontend::Expr*>& args,
                         const std::optional<geax::frontend::YieldField*>& yield,
                         const SymbolTable& symbol_table)
-        : OpBase(OpType::STANDALONE_CALL, "Standalone Call")
+        : OpBase(OpType::GQL_STANDALONE_CALL, "Gql Standalone Call")
         , func_name_(func_name)
         , args_(args)
         , yield_(yield)
         , symbol_table_(symbol_table) {}
 
     OpResult Initialize(RTContext *ctx) override {
-        auto p = global_ptable_v2.GetProcedureV2(func_name_);
-        if (!p) {
-            throw lgraph::EvaluationException("unregistered standalone function: " + func_name_);
-        }
-        procedure_ = p;
         return OP_OK;
     }
 

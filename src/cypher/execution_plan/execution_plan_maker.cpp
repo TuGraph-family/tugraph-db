@@ -327,6 +327,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
+    // The handling here is for the Match Clause, other situations need to be considered.
+    // The current design of the Visitor results in different logic for handling PathChain in
+    // different Clauses (Match, Create, and even Exists), which makes the code overly complex and
+    // needs refactoring.
+    if (!ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_)) {
+        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+    }
     if (auto op = _SingleBranchConnect(expand_ops)) {
         // Handle the case where multiple PathChains are connected, with special handling
         // for cases where multiple PathChains are mutually independent.
@@ -334,11 +341,15 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         // cannot be connected directly, this determination requires additional processing.
         bool is_pathchain_independent = true;
         if (is_pathchain_independent) {
-            if (pattern_graph_root_[cur_pattern_graph_]) {
+            if (pattern_graph_root_[cur_pattern_graph_] &&
+                (pattern_graph_root_[cur_pattern_graph_]->type != OpType::ARGUMENT &&
+                 pattern_graph_root_[cur_pattern_graph_]->type != OpType::UNWIND)) {
                 auto connection = new CartesianProduct();
-                connection->AddChild(op);
                 connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+                connection->AddChild(op);
                 pattern_graph_root_[cur_pattern_graph_] = connection;
+            } else if (pattern_graph_root_[cur_pattern_graph_]) {
+                _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
             } else {
                 pattern_graph_root_[cur_pattern_graph_] = op;
             }
@@ -820,7 +831,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) {
+    auto procedureStatement = node->procedureStatement();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(procedureStatement);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::CallProcedureStatement* node) {
     auto procedure = node->procedureCall();

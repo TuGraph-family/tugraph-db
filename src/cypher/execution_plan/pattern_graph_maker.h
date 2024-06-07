@@ -28,7 +28,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
         : execution_plan_(execution_plan)
         , pattern_graphs_(pattern_graphs) {}
 
-    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, RTContext* ctx);
     std::string ErrorMsg() { return error_msg_; }
 
  private:
@@ -215,6 +215,8 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::unordered_set<geax::frontend::AstNodeType> cur_types_;
     bool read_only_ = true;
     std::string error_msg_;
+    std::string curr_procedure_name_;
+    RTContext* ctx_;
 
     std::shared_ptr<Node> node_t_;
     std::shared_ptr<Node> start_t_;
