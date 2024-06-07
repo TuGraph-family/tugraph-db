@@ -15,6 +15,8 @@
 #include "db/db.h"
 #include "lgraph/lgraph_txn.h"
 
+bool lgraph::AccessControlledDB::enable_plugin = false;
+
 lgraph::AccessControlledDB::AccessControlledDB(ScopedRef<LightningGraph>&& ref,
                                                AccessLevel access_level,
                                                const std::string& user)
