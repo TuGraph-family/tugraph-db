@@ -137,24 +137,6 @@ class LCCCore:
         return sum_clco / num_vertices
 
 
-@cython.cfunc
-def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict) -> cython.bint:
-    cost = time.time()
-    txn = db.CreateReadTxn()
-    olapondb = OlapOnDB[Empty](db[0], txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED)
-    cost = time.time() - cost
-    printf("prepare_cost = %lf s\n", cython.cast(cython.double, cost))
-    a = LCCCore()
-    cost = time.time()
-    average_lcc = a.run(cython.address(olapondb))
-    cost = time.time() - cost
-    printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
-    response["average_lcc"] = average_lcc
-    response["num_vertices"] = olapondb.NumVertices()
-    response["num_edges"] = olapondb.NumEdges()
-    return True
-
-
 @cython.ccall
 def Standalone(input_dir: str):
     cost = time.time()
@@ -171,15 +153,3 @@ def Standalone(input_dir: str):
     cost = time.time() - cost
     printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
     print("average_lcc = {}".format(average_lcc))
-
-
-
-@cython.ccall
-def Process(db: lgraph_db_python.PyGraphDB, inp: bytes):
-    _inp = inp.decode("utf-8")
-    request = json.loads(_inp)
-    response = {}
-    addr = cython.declare(cython.Py_ssize_t, db.get_pointer())
-    procedure_process(cython.cast(cython.pointer(GraphDB), addr),
-                      request, response)
-    return (True, json.dumps(response))

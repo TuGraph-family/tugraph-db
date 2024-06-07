@@ -1209,10 +1209,10 @@ enum class IndexType {
 };
 
 enum class CompositeIndexType {
-    /** @brief this is not unique composite index
-     *  Temporarily require all attributes to be non-empty attributes
-     * */
-    UniqueIndex = 1
+    /** @brief this is unique composite index */
+    UniqueIndex = 1,
+    /** @brief this is not unique composite index */
+    NonUniqueIndex = 2
 };
 
 /** @brief   An index specifier. */
@@ -1222,6 +1222,15 @@ struct IndexSpec {
     /** @brief   field name */
     std::string field;
     IndexType type;
+};
+
+/** @brief   A composite index specifier. */
+struct CompositeIndexSpec {
+    /** @brief   label name */
+    std::string label;
+    /** @brief   fields name */
+    std::vector<std::string> fields;
+    CompositeIndexType type;
 };
 
 struct EdgeUid {

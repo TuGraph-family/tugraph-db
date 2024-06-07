@@ -29,6 +29,7 @@ struct ComparatorDesc {
         GRAPH_KEY = 4,
         BOTH_SIDE_VID = 5,
         COMPOSITE_KEY = 6,
+        COMPOSITE_KEY_AND_VID = 7,
         INVALID_TYPE = 255
     };
 
