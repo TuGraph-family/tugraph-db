@@ -27,6 +27,7 @@ class AccessControlledDB {
     AutoReadLock graph_ref_lock_;
     AccessLevel access_level_;
     std::string user_;
+    static bool enable_plugin;
 
     DISABLE_COPY(AccessControlledDB);
 
@@ -147,6 +148,10 @@ class AccessControlledDB {
 
     inline LightningGraph* GetLightningGraph() const { return graph_; }
 
+    inline static void SetEnablePlugin(bool enable_plugin_) {
+        AccessControlledDB::enable_plugin = enable_plugin_;
+    }
+
  private:
     inline void CheckReadAccess() const {
         if (access_level_ < AccessLevel::READ) THROW_CODE(Unauthorized, "No read permission.");
@@ -162,6 +167,11 @@ class AccessControlledDB {
 
     inline void CheckAdmin() const {
         if (user_ != _detail::DEFAULT_ADMIN_NAME) THROW_CODE(Unauthorized, "Not the admin user.");
+    }
+
+    inline void CheckLoadOrDeletePlugin() const {
+        if (!enable_plugin) THROW_CODE(Unauthorized, "No permission to load or delete plugin, "
+                                       "please use correct config and restart server!");
     }
 };
 }  // namespace lgraph

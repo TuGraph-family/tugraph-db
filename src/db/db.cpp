@@ -64,6 +64,7 @@ bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std:
                                             plugin::CodeType code_type, const std::string& desc,
                                             bool is_read_only, const std::string& version) {
     CheckAdmin();
+    CheckLoadOrDeletePlugin();
     return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, filename,
                                                           code_type, desc, is_read_only, version);
 }
@@ -71,6 +72,7 @@ bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std:
 bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& user,
                                            const std::string& name) {
     CheckAdmin();
+    CheckLoadOrDeletePlugin();
     return graph_->GetPluginManager()->DelPlugin(plugin_type, user, name);
 }
 
