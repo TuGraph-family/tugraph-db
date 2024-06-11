@@ -30,6 +30,7 @@
 #include "cypher/monitor/memory_monitor_allocator.h"
 #include "fma-common/encrypt.h"
 #include "import/import_v3.h"
+#include <regex>
 
 namespace cypher {
 
@@ -3713,17 +3714,28 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record, co
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
     CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"), 
                       "Distance type should be one of them : L2, IP");
+    std::vector<int> index_spec;                  
     switch(args.size()) {
         case 6:
             CYPHER_ARG_CHECK((args[5].type == parser::Expression::INT && args[5].Int() <= 65536 && args[5].Int() >= 1), 
                       "Please check the parameter, nlist should be an integer in the range [1,65536]");
+            index_spec.emplace_back(args[5].Int());
             break;
         default:
             throw lgraph::ReminderException("Please check the number of parameter!");
     }
-
-    
-
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto field = args[1].String();
+    auto index_type = args[2].String();
+    auto vec_dimension = args[3].Int();
+    auto distance_type = args[4].String();
+    lgraph::IndexType type = lgraph::IndexType::GlobalUniqueIndex;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVectorIndex(label, field, index_type, vec_dimension, distance_type, index_spec, type);
+    if (!success) {
+        throw lgraph::IndexExistException(label, field);
+    }
 }
 
 void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
@@ -3739,6 +3751,16 @@ void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record,
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
     CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"), 
                       "Distance type should be one of them : L2, IP");
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto field = args[1].String();
+    auto index_type = args[2].String();
+    auto vec_dimension = args[3].Int();
+    auto distance_type = args[4].String();
+    bool success = ctx->ac_db_->DeleteVectorIndex(label, field, index_type, vec_dimension, distance_type);
+    if (!success) {
+        throw lgraph::IndexNotExistException(label, field);
+    }
    
 }
 
@@ -3747,8 +3769,26 @@ void VectorFunc::ShowVectorIndex(RTContext *ctx, const cypher::Record *record, c
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 0, 
-                     "e.g. vector.showVectorIndex();");
-    
+                     "e.g. vector.showVectorIndex();");             
+    auto raw_txn = ctx->txn_->GetTxn();
+    lgraph::Transaction& txn = *raw_txn;
+    std::vector<std::string> name_table;
+    if(ctx->ac_db_->GetLightningGraph()->GetIndextableName(txn.GetTxn(), name_table)) {
+        for (auto& name : name_table) { 
+            std::regex re(R"(_@lgraph@_|vector_index)"); 
+            auto words_begin = std::sregex_token_iterator(name.begin(), name.end(), re, -1, std::regex_constants::match_not_bol | std::regex_constants::match_not_eol);  
+            auto words_end = std::sregex_token_iterator();  
+            Record r;
+            for (std::sregex_token_iterator i = words_begin; i != words_end; ++i) {  
+                if (!i->str().empty()) {
+                    r.AddConstant(lgraph::FieldData(i->str()));  
+                }  
+            }
+            records->emplace_back(r.Snapshot());    
+        }
+    } else {
+        throw lgraph::ReminderException("There is no vector index!");
+    }
 }
 
 void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,

@@ -200,6 +200,13 @@ bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field, I
     return db_->AddEdgeIndex(label, field, type);
 }
 
+bool GraphDB::AddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
+                             int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, IndexType type) {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    return db_->AddVectorIndex(label, field, index_type, vec_dimension, distance_type, index_spec, type);
+}
+
 bool GraphDB::IsVertexIndexed(const std::string& label, const std::string& field) {
     THROW_IF_INVALID();
     return db_->IsVertexIndexed(label, field);
@@ -214,6 +221,13 @@ bool GraphDB::DeleteVertexIndex(const std::string& label, const std::string& fie
     THROW_IF_INVALID();
     THROW_IF_RO();
     return db_->DeleteVertexIndex(label, field);
+}
+
+bool GraphDB::DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
+                                int vec_dimension, const std::string& distance_type) {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    return db_->DeleteVectorIndex(label, field, index_type, vec_dimension, distance_type);
 }
 
 bool GraphDB::DeleteEdgeIndex(const std::string& label, const std::string& field) {

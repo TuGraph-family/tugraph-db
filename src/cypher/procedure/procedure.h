@@ -923,9 +923,9 @@ static std::vector<Procedure> global_procedures = {
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
                   {"index_type", {2, lgraph_api::LGraphType::STRING}},
-                  {"vec_dimension", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"vec_dimension", {3, lgraph_api::LGraphType::STRING}},
                   {"distance_type", {4, lgraph_api::LGraphType::STRING}},
-                  {"index_spec", {5, lgraph_api::LGraphType::LIST}},
+                  {"index_spec", {5, lgraph_api::LGraphType::STRING}},
               }),
     
     Procedure("vector.VectorIndexQuery", VectorFunc::VectorIndexQuery,

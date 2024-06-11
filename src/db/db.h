@@ -107,9 +107,16 @@ class AccessControlledDB {
 
     bool AddEdgeIndex(const std::string& label, const std::string& field, IndexType type);
 
+    bool AddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
+                                                int vec_dimension, const std::string& distance_type, 
+                                                std::vector<int>& index_spec, IndexType type);
+
     bool DeleteVertexIndex(const std::string& label, const std::string& field);
 
     bool DeleteEdgeIndex(const std::string& label, const std::string& field);
+
+    bool DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
+                                                   int vec_dimension, const std::string& distance_type);
 
     bool IsVertexIndexed(const std::string& label, const std::string& field);
 
