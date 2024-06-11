@@ -214,7 +214,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     bolt_port = 0;
     bolt_io_thread_num = 1;
     // default disable plugin load/delete
-    bool enable_plugin = false;
+    enable_plugin = false;
 
     // parse options
     fma_common::Configuration argparser;
@@ -328,6 +328,6 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     argparser.Add(bolt_io_thread_num, "bolt_io_thread_num", true)
         .Comment("Number of bolt io threads.");
     argparser.Add(enable_plugin, "enable_plugin", true)
-        .Comment("Enable load/delete .");
+        .Comment("Enable load/delete procedure.");
     return argparser;
 }
