@@ -25,6 +25,7 @@
 #include "cypher/execution_plan/ops/op_expand_all.h"
 #include "cypher/execution_plan/ops/op_create.h"
 #include "cypher/execution_plan/ops/op_standalone_call.h"
+#include "cypher/execution_plan/ops/op_gql_standalone_call.h"
 #include "cypher/execution_plan/ops/op_var_len_expand.h"
 #include "cypher/execution_plan/ops/op_var_len_expand_into.h"
 #include "cypher/execution_plan/ops/op_inquery_call.h"

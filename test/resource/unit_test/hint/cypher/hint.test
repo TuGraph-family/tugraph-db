@@ -1,0 +1,5 @@
+
+MATCH (rachel:Person {name:'Rachel Kempson'})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name:'Richard Harris'}) RETURN family.name ;
+MATCH (rachel:Person {name:'Rachel Kempson'})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name:'Richard Harris'}) USING JOIN ON film RETURN family.name ;
+MATCH (rachel:Person {name:'Rachel Kempson'})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name:'Richard Harris'}) USING JOIN ON family RETURN family.name ;
+MATCH (camelot:Film {title:'Camelot'})<-[:ACTED_IN]-(actor)-[]->(x) USING START ON camelot RETURN x ;

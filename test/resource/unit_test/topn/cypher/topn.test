@@ -1,0 +1,7 @@
+MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+match (v1:Film) return v1.title order by v1.title limit 3;
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,v2.name as cnt order by cnt desc limit 3;
+match (:Person {name:'Vanessa Redgrave'})<-[:HAS_CHILD]-(p)-[:ACTED_IN*0..]->(m) return p.name,m order by p.name limit 3;
+MATCH (n) RETURN n.name AS name ORDER BY name LIMIT 10;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN m.birthyear, m.name ORDER BY m.name LIMIT 5;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN m.birthyear, m.name ORDER BY m.birthyear desc LIMIT 5;

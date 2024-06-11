@@ -44,12 +44,16 @@ namespace cypher {
 class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
  public:
     std::string dump(geax::frontend::Expr* node) {
-        return std::any_cast<std::string>(node->accept(*this));
+        std::string str;
+        checkedAnyCast(node->accept(*this), str);
+        return str;
     }
 
  private:
     std::any visit(geax::frontend::GetField* node) override {
-        return std::any_cast<std::string>(node->expr()->accept(*this)) + "." + node->fieldName();
+        std::string str;
+        checkedAnyCast(node->expr()->accept(*this), str);
+        return str + "." + node->fieldName();
     }
 
     std::any visit(geax::frontend::TupleGet* node) override { NOT_SUPPORT_AND_THROW(); }
@@ -69,9 +73,11 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::BDiv* node) override { BINARY_EXPR_TOSTRING("/"); }
     std::any visit(geax::frontend::BMul* node) override { BINARY_EXPR_TOSTRING("*"); }
     std::any visit(geax::frontend::BMod* node) override { BINARY_EXPR_TOSTRING("%"); }
+    std::any visit(geax::frontend::BSquare* node) override { BINARY_EXPR_TOSTRING(" ^ "); }
     std::any visit(geax::frontend::BAnd* node) override { BINARY_EXPR_TOSTRING(" and "); }
     std::any visit(geax::frontend::BOr* node) override { BINARY_EXPR_TOSTRING(" or "); }
     std::any visit(geax::frontend::BXor* node) override { BINARY_EXPR_TOSTRING(" xor "); }
+    std::any visit(geax::frontend::IsLabeled* node) override { UNARY_EXPR_TOSTRING(" isLabel "); }
     std::any visit(geax::frontend::BBitAnd* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::BBitOr* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::BBitXor* node) override { NOT_SUPPORT_AND_THROW(); }
@@ -120,6 +126,11 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::VNone* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::Ref* node) override { return node->name(); }
     std::any visit(geax::frontend::Param* node) override { NOT_SUPPORT_AND_THROW(); }
+    std::any visit(geax::frontend::IsNull* node) override {
+          std::string str = std::any_cast<std::string>(node->expr()->accept(*this));
+          str += " IS NULL";
+          return str;
+    }
     std::any reportError() override { return error_msg_; }
 
  private:

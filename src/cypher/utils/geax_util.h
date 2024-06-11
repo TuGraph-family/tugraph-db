@@ -73,3 +73,11 @@
         throw lgraph::CypherException(error_msg_);                                              \
     } while (0)
 #endif
+
+template <typename Base, typename Drive>
+void checkedCast(Base* b, Drive*& d) {
+    static_assert(std::is_base_of<Base, Drive>::value,
+            "type `Base` must be the base of type `Drive`");
+    d = dynamic_cast<Drive*>(b);
+    assert(d);
+}

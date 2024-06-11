@@ -42,13 +42,12 @@
 #endif
 
 cypher::FieldData doCallBuiltinFunc(const std::string& name, cypher::RTContext* ctx,
-                                      const cypher::Record& record,
-                                      const std::vector<cypher::ArithExprNode> &args) {
+                                    const cypher::Record& record,
+                                    const std::vector<cypher::ArithExprNode>& args) {
     static std::unordered_map<std::string, cypher::BuiltinFunction::FUNC> ae_registered_funcs =
         cypher::ArithOpNode::RegisterFuncs();
     auto it = ae_registered_funcs.find(name);
-    if (it == ae_registered_funcs.end())
-        NOT_SUPPORT_AND_THROW();
+    if (it == ae_registered_funcs.end()) NOT_SUPPORT_AND_THROW();
     cypher::BuiltinFunction::FUNC func = it->second;
     auto data = func(ctx, record, args);
     return data;
@@ -200,6 +199,8 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BMul* node) { DO_BINARY
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BMod* node) { DO_BINARY_EXPR(Mod); }
 
+std::any cypher::AstExprEvaluator::visit(geax::frontend::BSquare* node) { DO_BINARY_EXPR(Pow); }
+
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BAnd* node) { DO_BINARY_EXPR(And); }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BOr* node) { DO_BINARY_EXPR(Or); }
@@ -328,7 +329,18 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Windowing* node) {
     NOT_SUPPORT_AND_THROW();
 }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) { NOT_SUPPORT_AND_THROW(); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
+    const auto& elems = node->elems();
+    std::vector<::lgraph::FieldData> fields;
+    fields.reserve(elems.size());
+    std::vector<::lgraph::FieldData> list;
+    for (auto& e : elems) {
+        auto entry = std::any_cast<Entry>(e->accept(*this));
+        if (!entry.IsScalar()) NOT_SUPPORT_AND_THROW();
+        list.emplace_back(entry.constant.scalar);
+    }
+    return Entry(cypher::FieldData(list));
+}
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) { NOT_SUPPORT_AND_THROW(); }
 
@@ -376,6 +388,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::VNone* node) { NOT_SUPP
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
     auto it = sym_tab_->symbols.find(node->name());
+    if (it == sym_tab_->symbols.end()) NOT_SUPPORT_AND_THROW();
     switch (it->second.type) {
     case SymbolNode::NODE:
     case SymbolNode::RELATIONSHIP:
@@ -399,6 +412,52 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) { NOT_SUPPORT_AND_THROW(); }
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::SingleLabel* node) {
+    std::unordered_set<std::string> set;
+    set.insert(std::move(node->label()));
+    return set;
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::LabelOr* node) {
+    std::unordered_set<std::string> left;
+    checkedAnyCast(node->left()->accept(*this), left);
+    std::unordered_set<std::string> right;
+    checkedAnyCast(node->left()->accept(*this), right);
+    left.insert(right.begin(), right.end());
+    return left;
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::IsLabeled* node) {
+    Entry e;
+    checkedAnyCast(node->expr()->accept(*this), e);
+    CYPHER_THROW_ASSERT(e.IsNode() || e.IsRelationship());
+    auto alias = e.constant.scalar.AsString();
+    std::unordered_set<std::string> labels;
+    checkedAnyCast(node->labelTree()->accept(*this), labels);
+    bool exist = false;
+    std::string label;
+    if (e.IsNode()) {
+        auto n = e.node;
+        CYPHER_THROW_ASSERT(n && n->IsValidAfterMaterialize(ctx_));
+        label = n->ItRef()->GetLabel();
+    } else if (e.IsRelationship()) {
+        auto rel = e.relationship;
+        CYPHER_THROW_ASSERT(rel && rel->ItRef()->IsValid());
+        label = rel->ItRef()->GetLabel();
+    }
+    exist = labels.count(label);
+    return Entry(cypher::FieldData(lgraph::FieldData(exist)));
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::IsNull* node) {
+    Entry e;
+    checkedAnyCast(node->expr()->accept(*this), e);
+    cypher::FieldData ret;
+    ret.type = FieldData::SCALAR;
+    ret.scalar = ::lgraph::FieldData(e.IsNull());
+    return Entry(ret);
+}
 
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
 
