@@ -1611,6 +1611,8 @@ void test_cpp_procedure(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(json_val.size() == 0, true);
     std::string code_so_path = "./sortstr.so";
 
+    UT_LOG() << __FILE__ << __LINE__ <<
+        lgraph::AccessControlledDB::GetEnablePlugin();
     ret = client.LoadProcedure(str, code_so_path, "CPP", "test_procedure1",
                                "SO", "this is a test procedure", true, "v1");
     UT_EXPECT_TRUE(ret);

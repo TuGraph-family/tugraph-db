@@ -152,6 +152,10 @@ class AccessControlledDB {
         AccessControlledDB::enable_plugin = enable_plugin_;
     }
 
+    inline static bool GetEnablePlugin() {
+        return enable_plugin;
+    }
+
  private:
     inline void CheckReadAccess() const {
         if (access_level_ < AccessLevel::READ) THROW_CODE(Unauthorized, "No read permission.");
