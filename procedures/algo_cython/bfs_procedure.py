@@ -13,7 +13,6 @@ import json
 
 import cython
 from cython.cimports.olap_base import *
-from cython.cimports.olap_on_disk import *
 from cython.cimports.libc.stdio import printf
 import time
 import lgraph_db_python
@@ -117,28 +116,6 @@ def procedure_process(db: cython.pointer(GraphDB), request: dict, response: dict
     response["num_vertices"] = olapondb.NumVertices()
     response["num_edges"] = olapondb.NumEdges()
     return True
-
-
-@cython.ccall
-def Standalone(input_dir: str, root: size_t = 0):
-    # Standalone为Standalone模式下插件入口，用cython.ccall修饰
-    # 可以任意设置参数，相应修改 procedures/algo_cython/run_standalone.py即可
-    cost = time.time()
-    graph = OlapOnDisk[Empty]()
-    config = ConfigBase[Empty]()
-    config.input_dir = input_dir.encode("utf-8")
-    # config为C++类，config.input_dir为std::string，Python str需要encode才能传给std::string
-    graph.Load(config, DUAL_DIRECTION)
-    cost = time.time() - cost
-    printf("load_cost = %lf s\n", cython.cast(cython.double, cost))
-
-    cost = time.time()
-    a = BFSCore()
-    count = a.run(cython.address(graph), root)
-    # cython.address(graph)，取址，类似C++中&graph
-    cost = time.time() - cost
-    printf("core_cost = %lf s\n", cython.cast(cython.double, cost))
-    print("found_vertices = {}".format(count))
 
 
 @cython.ccall

@@ -194,8 +194,15 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
         bool unique = false, pair_unique = false;
         switch (i.type) {
         case lgraph::CompositeIndexType::UniqueIndex:
-            unique = true;
-            break;
+            {
+                unique = true;
+                break;
+            }
+        case lgraph::CompositeIndexType::NonUniqueIndex:
+            {
+                unique = false;
+                break;
+            }
         }
         r.AddConstant(lgraph::FieldData(unique));
         r.AddConstant(lgraph::FieldData(pair_unique));
@@ -235,8 +242,8 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
 
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      FMA_FMT("{} has to be a string ", args[0].String()))
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
-                     FMA_FMT("{} has to be a string ", args[0].String()))
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+                     FMA_FMT("{} has to be a string ", args[1].String()))
     auto label = args[0].String();
     bool is_vertex = ParseIsVertex(args[1]);
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -277,8 +284,15 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
         bool unique = false, pair_unique = false;
         switch (i.type) {
         case lgraph::CompositeIndexType::UniqueIndex:
-            unique = true;
-            break;
+            {
+                unique = true;
+                break;
+            }
+        case lgraph::CompositeIndexType::NonUniqueIndex:
+            {
+                unique = false;
+                break;
+            }
         }
         r.AddConstant(lgraph::FieldData(unique));
         r.AddConstant(lgraph::FieldData(pair_unique));
@@ -1400,8 +1414,9 @@ void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
     for (auto &arg : fields_args) {
         fields.push_back(arg.String());
     }
-    // auto unique = args[2].Bool();
-    lgraph::CompositeIndexType type = lgraph::CompositeIndexType::UniqueIndex;
+    auto unique = args[2].Bool();
+    lgraph::CompositeIndexType type = unique ? lgraph::CompositeIndexType::UniqueIndex :
+                                      lgraph::CompositeIndexType::NonUniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
     if (!success) {
@@ -3618,11 +3633,15 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
         CYPHER_THROW_ASSERT(record);
         auto i = record->symbol_table->symbols.find(args[0].String());
         if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-        auto &eid = record->values[i->second.id];
-        if (!eid.IsString()) CYPHER_TODO();
+        auto &eids = record->values[i->second.id];
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-        value = ctx->txn_->GetTxn()->GetEdgeField(
-            _detail::ExtractEdgeUid(eid.constant.scalar.AsString()), it2->second.String());
+        if (eids.IsArray()) {
+            value = cypher::FieldData::Array(0);
+            for (auto &id : *eids.constant.array) {
+                value.array->emplace_back(ctx->txn_->GetTxn()->GetEdgeField(
+                    _detail::ExtractEdgeUid(id.AsString()), it2->second.String()));
+            }
+        }
     }
 
     auto pp = global_ptable.GetProcedure("algo.native.extract");
