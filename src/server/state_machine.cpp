@@ -54,6 +54,8 @@ void lgraph::StateMachine::Start() {
             TakeSnapshot();
         }
     }
+    // assign AccessControllerDB enable_plugin
+    AccessControlledDB::SetEnablePlugin(global_config_->enable_plugin);
 }
 
 int64_t lgraph::StateMachine::GetVersion() { return galaxy_->GetRaftLogIndex(); }
