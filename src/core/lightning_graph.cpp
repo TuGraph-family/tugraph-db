@@ -2141,7 +2141,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
 
         // detach property
-        if (schema->DetachProperty()) {
+        /*if (schema->DetachProperty()) {
             LOG_INFO() <<
                 FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
             uint64_t count = 0;
@@ -2171,7 +2171,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             LOG_INFO() <<
                 FMA_FMT("end building vector index for {}:{} in detached model", label, field);
             return true;
-        }
+        }*/
 
         // now build index
         if (!known_vid_range) {
@@ -2200,8 +2200,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
     size_t fid = schema->GetFieldId(field);
     switch (extractor->Type()) {
     case FieldType::FLOAT_VECTOR:
-        BatchBuildIndex<double>(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
-                                is_vertex);
+
         break;
     default:
         throw std::runtime_error(std::string("Unhandled field type: ") +
