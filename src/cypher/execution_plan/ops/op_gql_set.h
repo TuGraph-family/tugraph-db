@@ -103,6 +103,7 @@ class OpGqlSet : public OpBase {
                 .append(" properties.");
             // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
             auto header = ctx->result_->Header();
+            header.clear();
             header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
             ctx->result_->ResetHeader(header);
             CYPHER_THROW_ASSERT(record);

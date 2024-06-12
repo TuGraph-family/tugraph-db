@@ -16,7 +16,6 @@
 #include <any>
 #include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/arithmetic/ast_agg_expr_detector.h"
-#include "geax-front-end/ast/expr/Ref.h"
 
 namespace cypher {
 
@@ -82,7 +81,7 @@ std::any AstAggExprDetector::visit(geax::frontend::BAggFunc* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any AstAggExprDetector::visit(geax::frontend::Ref* node) {
+std::any AstAggExprDetector::visit(geax::frontend::GetField* node) {
     if (in_agg_func_ == 0) {
         outside_var_ = true;
     }

@@ -348,6 +348,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
                 connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
                 connection->AddChild(op);
                 pattern_graph_root_[cur_pattern_graph_] = connection;
+            } else if (pattern_graph_root_[cur_pattern_graph_] &&
+                       pattern_graph_root_[cur_pattern_graph_]->type == OpType::UNWIND &&
+                       (*expand_ops.rbegin())->IsScan()) {
+                auto op = *expand_ops.rbegin();
+                auto connection = new CartesianProduct();
+                connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+                connection->AddChild(op);
+                pattern_graph_root_[cur_pattern_graph_] = connection;
             } else if (pattern_graph_root_[cur_pattern_graph_]) {
                 _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
             } else {
@@ -514,6 +522,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
     } else if (value->type() == geax::frontend::AstNodeType::kRef) {
         p.type = Property::VARIABLE;
         p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
+        if (is_end_path_) {
+            NOT_SUPPORT();
+        }
+    } else if (value->type() == geax::frontend::AstNodeType::kParam) {
+        p.type = Property::PARAMETER;
+        p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
         if (is_end_path_) {
             NOT_SUPPORT();
         }
