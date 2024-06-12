@@ -174,7 +174,7 @@ class AccessControlledDB {
     }
 
     inline void CheckLoadOrDeletePlugin() const {
-        if (!enable_plugin) THROW_CODE(Unauthorized, "No permission to load or delete plugin, "
+        if (!enable_plugin) THROW_CODE(PluginDisabled, "No permission to load or delete plugin, "
                                        "please use correct config and restart server!\n"
                                        "This function has security risks, please enable "
                                        "it with caution!");
