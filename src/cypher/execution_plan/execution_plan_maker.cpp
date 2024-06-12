@@ -482,6 +482,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         if (is_end_path_) {
             NOT_SUPPORT();
         }
+    } else if (value->type() == geax::frontend::AstNodeType::kParam) {
+        p.type = Property::PARAMETER;
+        p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
+        if (is_end_path_) {
+            NOT_SUPPORT();
+        }
     } else {
         NOT_SUPPORT();
     }
@@ -762,9 +768,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
 
 std::any ExecutionPlanMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
     auto& query_stmts = node->queryStatements();
-    if (query_stmts.size() > 1) {
-        NOT_SUPPORT();
-    }
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }
@@ -1006,13 +1009,27 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto op = new OpGqlCreate(node->paths(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ReplaceStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto op = new OpGqlSet(node->items(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
+    auto op = new OpGqlDelete(node->items());
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
