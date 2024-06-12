@@ -82,7 +82,7 @@ class OpGqlDelete : public OpBase {
     }
 
     void ResultSummary(RTContext *ctx) {
-        if (summary_) {            
+        if (summary_) {
             std::string summary;
             summary.append("deleted ")
                 .append(std::to_string(ctx->result_info_->statistics.vertices_deleted))
@@ -103,7 +103,7 @@ class OpGqlDelete : public OpBase {
     }
 
  public:
-    OpGqlDelete(const std::vector<std::string>& items)
+    explicit OpGqlDelete(const std::vector<std::string>& items)
         : OpBase(OpType::GQL_DELETE_, "Delete")
         , items_(items) {
         state = StreamUnInitialized;
