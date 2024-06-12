@@ -66,7 +66,7 @@ enum OpType {
     MERGE,
     TOPN,
     UNION,
-    NODE_BY_ID_SEEK,
+    NODE_BY_ID_SEEK
 };
 
 struct OpStats {

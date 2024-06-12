@@ -17,6 +17,7 @@
 #include "cypher/execution_plan/pattern_graph_maker.h"
 #include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
+#include "cypher/execution_plan/clause_read_only_decider.h"
 
 namespace cypher {
 
@@ -33,7 +34,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     }
     LOG_DEBUG() << DumpGraph();
     // build execution plan
-    ExecutionPlanMaker execution_plan_maker(pattern_graphs_);
+    ExecutionPlanMaker execution_plan_maker(pattern_graphs_, obj_alloc_);
     ret = execution_plan_maker.Build(astNode, root_);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = execution_plan_maker.ErrorMsg();
@@ -45,6 +46,10 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     LocateNodeByIndexedProp locate_node_by_indexed_prop;
     locate_node_by_indexed_prop.Execute(Root());
     LOG_DEBUG() << DumpPlan(0, false);
+
+    ClauseReadOnlyDecider decider;
+    ret = decider.Build(astNode);
+    read_only_ = decider.IsReadOnly();
     return ret;
 }
 
