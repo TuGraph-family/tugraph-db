@@ -76,7 +76,8 @@ X(ReminderException, "Reminder exception.") \
 X(GraphCreateException, "Graph create exception.") \
 X(CypherParameterTypeError, "Cypher parameter type error.") \
 X(ReachMaximumEid, "Edge eid exceeds the limit.")      \
-X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds the limit.")
+X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds the limit.") \
+X(PluginDisabled, "Plugin disabled!")
 
 enum class ErrorCode {
 #define X(code, msg) code,

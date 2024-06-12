@@ -31,7 +31,7 @@ class TestHA : public TuGraphTest {
             "true --enable_ha true --ha_node_offline_ms 5000 "
             "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
             "--rpc_port {} --directory ./db --log_dir "
-            "./log  --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
+            "./log  --ha_conf {} --enable_plugin 1 --verbose 1 -c lgraph_ha.json -d start";
 #else
         std::string cmd_f =
             "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
@@ -40,7 +40,8 @@ class TestHA : public TuGraphTest {
             "true --enable_ha true --ha_node_offline_ms 5000 "
             "--ha_node_remove_ms 10000 --ha_snapshot_interval_s -1 "
             "--rpc_port {} --directory ./db --log_dir "
-            "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+            "./log  --ha_conf {} --enable_plugin 1 --use_pthread 1 --verbose 1 -c "
+            "lgraph_ha.json -d start";
 #endif
 
         int rt;
@@ -194,13 +195,14 @@ TEST_F(TestHA, HAConsistency) {
         "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
         "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
         "--ha_snapshot_interval_s -1 --rpc_port {} --directory ./db --log_dir "
-        "./log  --ha_conf {} -c lgraph_ha.json -d start";
+        "./log  --ha_conf {} --enable_plugin 1 -c lgraph_ha.json -d start";
 #else
     cmd_f =
         "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
         "true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
         "--ha_snapshot_interval_s -1 --rpc_port {} --directory ./db --log_dir "
-        "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+        "./log  --ha_conf {} --enable_plugin 1 --use_pthread 1 --verbose 1 -c "
+        "lgraph_ha.json -d start";
 #endif
     cmd = FMA_FMT(cmd_f.c_str(), "ha3", host, "27074", "29094",
                   host + ":29092," + host + ":29093," + host + ":29094");

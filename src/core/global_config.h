@@ -48,7 +48,8 @@ struct BasicConfigs {
         , max_backup_log_file_size((size_t)1 << 30)
         , unlimited_token(false)
         , reset_admin_password(false)
-        , enable_realtime_count(true) {}
+        , enable_realtime_count(true)
+        , enable_plugin(false) {}
 
     BasicConfigs(const BasicConfigs &basicConfigs)
         : db_dir(basicConfigs.db_dir)
@@ -76,7 +77,8 @@ struct BasicConfigs {
           , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
           , ft_index_options(basicConfigs.ft_index_options)
           , unlimited_token(basicConfigs.unlimited_token)
-          , reset_admin_password(basicConfigs.reset_admin_password) {}
+          , reset_admin_password(basicConfigs.reset_admin_password)
+          , enable_plugin(basicConfigs.enable_plugin) {}
 
     std::string db_dir;  // db
     int thread_limit;                // number of threads, for both rpc and http
@@ -133,6 +135,8 @@ struct BasicConfigs {
     // bolt
     int bolt_port = 0;
     int bolt_io_thread_num = 1;
+    // default disable plugin load/delete
+    bool enable_plugin = false;
 };
 
 template <typename T>

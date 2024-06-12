@@ -88,6 +88,8 @@ LGraphServer::LGraphServer(std::shared_ptr<lgraph::GlobalConfig> config)
 LGraphServer::~LGraphServer() { Stop(false); }
 
 int LGraphServer::Start() {
+    // assign AccessControllerDB enable_plugin
+    AccessControlledDB::SetEnablePlugin(config_->enable_plugin);
     // adjust config
     if (config_->enable_ha && config_->ha_log_dir.empty()) {
 #if LGRAPH_SHARE_DIR
@@ -298,15 +300,6 @@ int LGraphServer::Start() {
             return Stop();
         }
         LOG_INFO() << "Server started.";
-
-#ifndef __SANITIZE_ADDRESS__
-        const std::string& hostname = fma_common::HardwareInfo::GetHostName();
-        const std::string server = "localhost:6091";
-        DBManagementClient::GetInstance().Init(hostname, config_->http_port, server);
-        heartbeat_detect = std::thread([]() {
-            DBManagementClient::GetInstance().DetectHeartbeat();
-        });
-#endif
     } catch (std::exception &e) {
         _kill_signal_.Notify();
         LOG_WARN() << "Server hit an exception and shuts down abnormally: " << e.what();

@@ -7,7 +7,7 @@ BASHOPT = {
     "cmd" : "echo run TestJavaClientAndOGM"
 }
 
-SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",
+SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092 --enable_plugin 1",
              "cleanup_dir":["./testdb"]}
 
 class TestJavaClientAndOGM:
