@@ -139,7 +139,7 @@ class TestQuery : public TuGraphTest {
             UT_DBG() << dumper.dump();
         }
         cypher::ExecutionPlanV2 execution_plan_v2;
-        ret = execution_plan_v2.Build(node);
+        ret = execution_plan_v2.Build(node, ctx_.get());
         if (ret != GEAXErrorCode::GEAX_SUCCEED) {
             UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
             result = execution_plan_v2.ErrorMsg();

@@ -33,6 +33,7 @@
 #include "cypher/parser/cypher_base_visitor_v2.h"
 #include "cypher/parser/cypher_error_listener.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
+#include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
 #include "cypher/execution_plan/runtime_context.h"
@@ -143,7 +144,7 @@ class TestCypherV2 : public TuGraphTest {
             UT_DBG() << dumper.dump();
         }
         cypher::ExecutionPlanV2 execution_plan_v2;
-        ret = execution_plan_v2.Build(node);
+        ret = execution_plan_v2.Build(node, ctx_.get());
         if (ret != GEAXErrorCode::GEAX_SUCCEED) {
             UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
             result = execution_plan_v2.ErrorMsg();
@@ -176,6 +177,8 @@ class TestCypherV2 : public TuGraphTest {
             // rewrite ast
             cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
             node->accept(gen_anonymous_alias_rewriter);
+            cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
+            node->accept(multi_path_pattern_rewriter);
             // dump
             AstDumper dumper;
             auto ret = dumper.handle(node);
@@ -191,7 +194,7 @@ class TestCypherV2 : public TuGraphTest {
             }
             LOG_INFO() << "------------------------- " << __FILE__ << " " << __LINE__;
             cypher::ExecutionPlanV2 execution_plan_v2;
-            ret = execution_plan_v2.Build(node);
+            ret = execution_plan_v2.Build(node, ctx_.get());
             if (ret != GEAXErrorCode::GEAX_SUCCEED) {
                 UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
                 result = execution_plan_v2.ErrorMsg();
