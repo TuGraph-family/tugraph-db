@@ -19,9 +19,8 @@
 
 #include "geax-front-end/ast/clause/ClauseNodeFwd.h"
 #include "geax-front-end/ast/expr/ExprNodeFwd.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/execution_plan/ops/op.h"
-#include "parser/clause.h"
-#include "tools/lgraph_log.h"
 
 // TODO(anyone) get resources then set all
 namespace cypher {

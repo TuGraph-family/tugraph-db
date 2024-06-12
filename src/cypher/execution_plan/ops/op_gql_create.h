@@ -17,12 +17,6 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic//arithmetic_expression.h"
 #include "cypher/cypher_exception.h"
-#include "geax-front-end/ast/clause/ClauseNodeFwd.h"
-#include "geax-front-end/ast/clause/LabelOr.h"
-#include "geax-front-end/ast/clause/LabelTree.h"
-#include "geax-front-end/ast/clause/SingleLabel.h"
-#include "geax-front-end/ast/expr/ExprNodeFwd.h"
-#include "tools/lgraph_log.h"
 
 namespace cypher {
 

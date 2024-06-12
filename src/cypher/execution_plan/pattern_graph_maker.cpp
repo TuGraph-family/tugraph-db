@@ -110,7 +110,8 @@ std::any PatternGraphMaker::visit(geax::frontend::Node* node) {
     node_t_ = std::make_shared<Node>();
     auto filler = node->filler();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(filler);
-    AddNode(node_t_.get()) return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    AddNode(node_t_.get());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::Edge* node) {
