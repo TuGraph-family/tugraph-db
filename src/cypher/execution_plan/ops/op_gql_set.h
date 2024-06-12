@@ -12,9 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-//
-// Created by dcy on 19-8-22.
-//
 #pragma once
 
 #include "geax-front-end/ast/clause/ClauseNodeFwd.h"
