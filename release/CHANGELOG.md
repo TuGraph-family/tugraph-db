@@ -1,5 +1,23 @@
 # Change Log for TuGraph
 
+# 4.3.1 (2024-06-13)
+
+**Breaking Changes:**
+
+1. Support non-unique composite index
+2. Cypher supports GQL ASTNode parsing links
+3. Support bolt data transfer over websocket
+
+**Improvements And Bug Fixes:**
+
+1. Fix the built-in stored procedure algo.native.extract
+2. Other bug fixes
+
+**Interface Modification:**
+
+1. The function of adding and deleting procedures is not enabled by default when lgraph_server is started. Enable_procedure must be configured to true to add and delete procedures
+2. The java client adds a callCypher interface to return header information
+
 # 4.3.0 (2024-05-21)
 
 **Breaking Changes:**
