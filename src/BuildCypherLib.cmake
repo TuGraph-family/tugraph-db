@@ -60,12 +60,14 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/parser/cypher_base_visitor.cpp
         cypher/parser/cypher_base_visitor_v2.cpp
         cypher/parser/cypher_error_listener.cpp
+        cypher/parser/expression.cpp
         cypher/parser/symbol_table.cpp
         cypher/parser/generated/LcypherLexer.cpp
         cypher/parser/generated/LcypherParser.cpp
         cypher/parser/generated/LcypherVisitor.cpp
         cypher/procedure/procedure.cpp
         cypher/procedure/procedure_v2.cpp
+        cypher/procedure/utils.cpp
         cypher/resultset/record.cpp
         cypher/monitor/monitor_manager.cpp
         cypher/execution_plan/optimization/rewrite/schema_rewrite.cpp
