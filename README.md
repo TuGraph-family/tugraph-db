@@ -95,6 +95,9 @@ NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-
     <td height="80"><a href="https://github.com/oceanbase/oceanbase"><img src="docs/images/partners/oceanbase.png" width="300" alt="OceanBase" /></a></td>
     <td height="80"><a href="https://github.com/secretflow/secretflow"><img src="docs/images/partners/secretflow.png" width="300" alt="SecretFlow" /></a></td>
   </tr>
+  <tr>
+    <td height="80"><a href="https://hellogithub.com/repository/1816669a47354a158b49f8887f91bcf5" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=1816669a47354a158b49f8887f91bcf5&claim_uid=vC6zMAZ9So3YN01" alt="Featured｜HelloGitHub" width="300" /></a></td>
+  </tr>
 </table>
 
 ## 6. Contact
