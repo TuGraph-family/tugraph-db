@@ -134,7 +134,8 @@ RelpID PatternGraph::AddRelationship(const std::set<std::string> &types, NodeID 
                                      parser::LinkDirection direction, const std::string &alias,
                                      Relationship::Derivation derivation,
                                      parser::Expression properties) {
-    return AddRelationship(types, lhs, rhs, direction, alias, -1, -1, derivation, std::move(properties));
+    return AddRelationship(types, lhs, rhs, direction, alias, -1, -1,
+                           derivation, std::move(properties));
 }
 
 RelpID PatternGraph::AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,

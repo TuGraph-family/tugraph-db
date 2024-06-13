@@ -227,4 +227,4 @@ std::string Expression::ToString(bool pretty) const {
     }
 }
 
-}
+}  // namespace parser

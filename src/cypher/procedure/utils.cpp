@@ -187,4 +187,4 @@ bool PluginAdapter::Process(const RTContext* ctx, const std::vector<ArithExprNod
     return true;
 }
 
-}
+}  // namespace cypher

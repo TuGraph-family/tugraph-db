@@ -43,4 +43,4 @@ void OpCreate::ExtractProperties(RTContext *ctx, const parser::TUP_PROPERTIES &p
         values.emplace_back(value.constant.scalar);
     }
 }
-}
+}  // namespace cypher

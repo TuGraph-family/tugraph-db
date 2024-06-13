@@ -29,4 +29,4 @@ void OpSet::ExtractProperties(RTContext *ctx, const parser::Expression &p,
     values.emplace_back(val.constant.scalar);
 }
 
-}
+}  // namespace cypher
