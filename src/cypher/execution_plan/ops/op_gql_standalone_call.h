@@ -31,7 +31,7 @@ class GqlStandaloneCall : public OpBase {
                         const std::vector<geax::frontend::Expr*>& args,
                         const std::optional<geax::frontend::YieldField*>& yield,
                         const SymbolTable& symbol_table)
-        : OpBase(OpType::GQL_STANDALONE_CALL, "Standalone Call")
+        : OpBase(OpType::GQL_STANDALONE_CALL, "Gql Standalone Call")
         , func_name_(func_name)
         , args_(args)
         , yield_(yield)

@@ -291,7 +291,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
     // TODO(lingsu): generate the pattern graph
-    // and select the starting point and end point according to the pattern graph
+    // and select the starting Node and end Node according to the pattern graph
     for (auto [edge, end_node] : tails) {
         start_t_ = node_t_;
         is_end_path_ = true;

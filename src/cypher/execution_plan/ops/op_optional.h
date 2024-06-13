@@ -23,7 +23,7 @@ namespace cypher {
 
 class Optional : public OpBase {
  public:
-    Optional() : OpBase(OpType::OPTIONAL_, "Optional") {}
+    Optional() : OpBase(OpType::OPTIONAL, "Optional") {}
 
     OpResult Initialize(RTContext *ctx) override {
         CYPHER_THROW_ASSERT(!children.empty());

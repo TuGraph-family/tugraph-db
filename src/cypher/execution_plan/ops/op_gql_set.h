@@ -114,7 +114,7 @@ class OpGqlSet : public OpBase {
  public:
     OpGqlSet(const std::vector<geax::frontend::SetItem*>& set_items,
             PatternGraph *pattern_graph)
-        : OpBase(OpType::GQL_UPDATE, "GqlSet")
+        : OpBase(OpType::GQL_UPDATE, "Gql Set")
         , set_items_(set_items) {
         state = StreamUnInitialized;
     }
