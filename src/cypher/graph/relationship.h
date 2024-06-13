@@ -21,12 +21,14 @@
 #include "cypher/graph/common.h"
 #include "parser/data_typedef.h"
 #include "cypher/filter/iterator.h"
+#include "cypher/parser/expression.h"
 
 namespace cypher {
 
 class Relationship {
     RelpID id_ = -1;
     std::set<std::string> types_;
+    parser::Expression properties_;
     NodeID lhs_ = -1;
     NodeID rhs_ = -1;
     std::string alias_;
@@ -62,6 +64,11 @@ class Relationship {
     RelpID ID() const;
 
     const std::set<std::string> &Types() const;
+
+    const parser::Expression& Properties() { return properties_; }
+    void SetProperties(parser::Expression props) {
+        properties_ = std::move(props);
+    }
 
     void SetTypes(const std::set<std::string> &types) { types_ = types; }
 

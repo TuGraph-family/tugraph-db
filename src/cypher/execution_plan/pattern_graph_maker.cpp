@@ -726,7 +726,7 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
                     auto dst_nid = graph.AddNode("", dst_alias, Node::ARGUMENT);
                     graph.AddRelationship(std::set<std::string>{}, src_nid, dst_nid,
                                           parser::LinkDirection::UNKNOWN, a.first,
-                                          Relationship::ARGUMENT);
+                                          Relationship::ARGUMENT, {});
                     auto& src_node = graph.GetNode(src_nid);
                     auto& dst_node = graph.GetNode(dst_nid);
                     src_node.Visited() = true;
