@@ -9,3 +9,15 @@ with "123dfd\\fd\"45a'bcd" as a return a;
 [{"a":"123dfd\\fd\"45a'bcd"}]
 optional MATCH (n:City {name:'London'})-[r]->(m) RETURN n.name,r,m;
 [{"m":"__null__","n.name":null,"r":"__null__"}]
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) RETURN r;
+[{"r":{"dst":13,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 14:00:00","weight":20.62},"src":8,"temporal_id":0}}]
+MATCH (n:Person)<-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]-(m) RETURN r;
+[]
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight > 20 RETURN r;
+[{"r":{"dst":13,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 14:00:00","weight":20.62},"src":8,"temporal_id":0}}]
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight < 20 RETURN r;
+[]
+MATCH (n:Person)-[r:ACTED_IN {charactername:'Henri Ducard'}]->(m) RETURN r;
+[{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0}}]
+MATCH (n:Person)<-[r:ACTED_IN {charactername:'Henri Ducard'}]-(m) RETURN r;
+[]
