@@ -67,7 +67,7 @@ enum OpType {
     TOPN,
     UNION,
     NODE_BY_ID_SEEK,
-    // TODO (lingsu): the operator and ast will be decoupled in the future, and ast will generate
+    // TODO(lingsu): the operator and ast will be decoupled in the future, and ast will generate
     // symbolic information and expression, then the operator will complete the calculation through
     // the symbolic information and expression. and then the operator will be unified, without
     // distinguishing gql or cypher

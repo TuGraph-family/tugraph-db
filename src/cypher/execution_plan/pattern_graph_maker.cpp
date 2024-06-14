@@ -257,8 +257,8 @@ std::any PatternGraphMaker::visit(geax::frontend::SingleLabel* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::LabelOr* node) {
-    if (node->left()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-    if (node->right()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
