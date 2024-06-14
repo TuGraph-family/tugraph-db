@@ -71,6 +71,7 @@ enum OpType {
     GQL_CREATE,
     GQL_DELETE_,
     GQL_UPDATE,
+    GQL_INQUERY_CALL
 };
 
 struct OpStats {

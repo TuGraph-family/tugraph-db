@@ -23,7 +23,6 @@
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
-#include "geax-front-end/ast/expr/BSquare.h"
 
 namespace geax {
 namespace frontend {
@@ -1478,6 +1477,17 @@ public:
         auto list = node->list();
         VISIT_PARAM_AND_CHECK_WITH_MSG(v);
         VISIT_PARAM_AND_CHECK_WITH_MSG(list);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(InQueryProcedureCall* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(InQueryProcedureCall);
+        auto& name = node->name();
+        auto& args = node->args();
+        auto& yield = node->yield();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(name);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(args);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(yield);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(DummyNode* node) override { return reportError(node); }

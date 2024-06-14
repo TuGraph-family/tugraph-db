@@ -17,6 +17,7 @@
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
+#include "geax-front-end/ast/stmt/InQueryProcedureCall.h"
 #include "geax-front-end/isogql/GQLResolveCtx.h"
 #include "cypher/graph/graph.h"
 #include "cypher/execution_plan/ops/op.h"
@@ -233,6 +234,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
     std::any visit(geax::frontend::UnwindStatement* node) override;
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;

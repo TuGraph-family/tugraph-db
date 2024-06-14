@@ -16,10 +16,6 @@
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
 #include "cypher/execution_plan/execution_plan_maker.h"
-#include "execution_plan/ops/op_gql_standalone_call.h"
-#include "geax-front-end/ast/expr/BSquare.h"
-#include "geax-front-end/ast/expr/GetField.h"
-#include "geax-front-end/ast/expr/Ref.h"
 #include "tools/lgraph_log.h"
 
 namespace cypher {
@@ -1105,6 +1101,17 @@ std::any ExecutionPlanMaker::visit(geax::frontend::UnwindStatement* node) {
     auto unwind =
         new Unwind(exp, node->variable(), &pattern_graphs_[cur_pattern_graph_].symbol_table);
     _UpdateStreamRoot(unwind, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
+    std::string name = std::get<std::string>(node->name());
+    std::vector<OpBase*> expand_ops;
+    auto op = new GqlInQueryCall(name, node->args(), node->yield(), &pattern_graphs_[cur_pattern_graph_]);
+    expand_ops.emplace_back(op);
+    if (auto op = _SingleBranchConnect(expand_ops)) {
+        _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 

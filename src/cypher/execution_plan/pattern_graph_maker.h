@@ -198,6 +198,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
     std::any visit(geax::frontend::UnwindStatement* node) override;
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;

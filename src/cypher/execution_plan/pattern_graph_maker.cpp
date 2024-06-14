@@ -18,7 +18,6 @@
 #include "cypher/execution_plan/pattern_graph_maker.h"
 #include "cypher/procedure/procedure_v2.h"
 #include "db/galaxy.h"
-#include "tools/lgraph_log.h"
 
 namespace cypher {
 
@@ -929,6 +928,9 @@ std::any PatternGraphMaker::visit(geax::frontend::NamedProcedureCall* node) {
     if (node->yield().has_value()) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
     }
+    for (auto& expr : node->args()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -1034,6 +1036,17 @@ std::any PatternGraphMaker::visit(geax::frontend::UnwindStatement* node) {
         }
     }
     AddSymbol(variable, SymbolNode::Type::CONSTANT, var_scope);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::InQueryProcedureCall* node) {
+    curr_procedure_name_ = std::get<std::string>(node->name());
+    if (node->yield().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+    }
+    for (auto& expr : node->args()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 

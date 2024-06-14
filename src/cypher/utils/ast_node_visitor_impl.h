@@ -930,6 +930,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     std::any visit(geax::frontend::DummyNode* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
