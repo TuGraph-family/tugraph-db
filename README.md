@@ -53,7 +53,7 @@ It's recommended to build TuGraph in linux system, and docker environment is a g
 
 Here are steps to compile TuGraph:
 1. run `deps/build_deps.sh` to build tugraph-web if you need. Skip this step otherwise.
-2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
+2. `cmake .. -DOURSYSTEM=centos7` or `cmake .. -DOURSYSTEM=ubuntu`
 3. `make`
 4. `make package` or `cpack --config CPackConfig.cmake`
 
@@ -65,7 +65,7 @@ $ git clone --recursive https://github.com/TuGraph-family/tugraph-db.git
 $ cd tugraph-db
 $ deps/build_deps.sh
 $ mkdir build && cd build
-$ cmake .. -DOURSYSTEM=centos
+$ cmake .. -DOURSYSTEM=centos7
 $ make
 $ make package
 ```
