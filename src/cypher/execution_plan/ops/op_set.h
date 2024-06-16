@@ -66,7 +66,7 @@ class OpSet : public OpBase {
             std::vector<float> vec;
             int dim = val.constant.array->size();
             if (dim >= 4096) {
-                throw lgraph::ReminderException("The dimensions of a vector cannot exceed 32768.");
+                throw lgraph::ReminderException("The dimensions of a vector cannot exceed 4096.");
             }
             for (int i = 0; i < dim; ++i) {
                 lgraph::FieldData FD = val.constant.array->at(i);
