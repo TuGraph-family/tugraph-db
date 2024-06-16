@@ -65,7 +65,7 @@ class OpSet : public OpBase {
         } else if (val.IsArray()) {
             std::vector<float> vec;
             int dim = val.constant.array->size();
-            if (dim >= 32768) {
+            if (dim >= 4096) {
                 throw lgraph::ReminderException("The dimensions of a vector cannot exceed 32768.");
             }
             for (int i = 0; i < dim; ++i) {
