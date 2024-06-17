@@ -106,7 +106,7 @@ class OpDelete : public OpBase {
 
  public:
     OpDelete(const parser::QueryPart *stmt, PatternGraph *pattern_graph)
-        : OpBase(OpType::DELETE, "Gql Delete")
+        : OpBase(OpType::DELETE_, "Gql Delete")
         , pattern_graph_(pattern_graph) {
         delete_data_ = *stmt->delete_clause;
         state = StreamUnInitialized;
