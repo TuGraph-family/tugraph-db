@@ -331,11 +331,28 @@ std::any CypherBaseVisitorV2::visitOC_Unwind(LcypherParser::OC_UnwindContext *ct
 }
 
 std::any CypherBaseVisitorV2::visitOC_Merge(LcypherParser::OC_MergeContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
+    geax::frontend::LinearDataModifyingStatement *node = nullptr;
+    checkedCast(node_, node);
+    auto merge = ALLOC_GEAOBJECT(geax::frontend::MergeStatement);
+    node->appendModifyStatement(merge);
+    auto path_pattern = ALLOC_GEAOBJECT(geax::frontend::PathPattern);
+    merge->setPathPattern(path_pattern);
+    VisitGuard guard(VisitType::kMergeClause, visit_types_);
+    SWITCH_CONTEXT_VISIT(ctx->oC_PatternPart(), path_pattern);
+    for (auto action : ctx->oC_MergeAction()) {
+        SWITCH_CONTEXT_VISIT(action, merge);
+    }
     return 0;
 }
 
 std::any CypherBaseVisitorV2::visitOC_MergeAction(LcypherParser::OC_MergeActionContext *ctx) {
+    if (ctx->MATCH()) {
+        VisitGuard guard(VisitType::kMergeOnMatch, visit_types_);
+        return visit(ctx->oC_Set());
+    } else if (ctx->CREATE()) {
+        VisitGuard guard(VisitType::kMergeOnCreate, visit_types_);
+        return visit(ctx->oC_Set());
+    }
     NOT_SUPPORT_AND_THROW();
     return 0;
 }
@@ -355,8 +372,22 @@ std::any CypherBaseVisitorV2::visitOC_Create(LcypherParser::OC_CreateContext *ct
 }
 
 std::any CypherBaseVisitorV2::visitOC_Set(LcypherParser::OC_SetContext *ctx) {
-    if (VisitGuard::InClause(VisitType::kReadingClause, visit_types_)) {
-        NOT_SUPPORT_AND_THROW();
+    if (VisitGuard::InClause(VisitType::kMergeClause, visit_types_)) {
+        geax::frontend::MergeStatement *node = nullptr;
+        checkedCast(node_, node);
+        if (VisitGuard::InClause(VisitType::kMergeOnMatch, visit_types_)) {
+            for (auto &item : ctx->oC_SetItem()) {
+                auto stmt = ALLOC_GEAOBJECT(geax::frontend::SetStatement);
+                node->appendOnMatch(stmt);
+                SWITCH_CONTEXT_VISIT(item, stmt);
+            }
+        } else if (VisitGuard::InClause(VisitType::kMergeOnCreate, visit_types_)) {
+            for (auto &item : ctx->oC_SetItem()) {
+                auto stmt = ALLOC_GEAOBJECT(geax::frontend::SetStatement);
+                node->appendOnCreate(stmt);
+                SWITCH_CONTEXT_VISIT(item, stmt);
+            }
+        }
     } else if (VisitGuard::InClause(VisitType::kUpdatingClause, visit_types_)) {
         geax::frontend::LinearDataModifyingStatement *node = nullptr;
         checkedCast(node_, node);
@@ -365,6 +396,8 @@ std::any CypherBaseVisitorV2::visitOC_Set(LcypherParser::OC_SetContext *ctx) {
             node->appendModifyStatement(stmt);
             SWITCH_CONTEXT_VISIT(item, stmt);
         }
+    } else {
+        NOT_SUPPORT_AND_THROW();
     }
     return 0;
 }
@@ -672,7 +705,8 @@ std::any CypherBaseVisitorV2::visitOC_Pattern(LcypherParser::OC_PatternContext *
 }
 
 std::any CypherBaseVisitorV2::visitOC_PatternPart(LcypherParser::OC_PatternPartContext *ctx) {
-    if (VisitGuard::InClause(VisitType::kReadingPattern, visit_types_)) {
+    if (VisitGuard::InClause(VisitType::kReadingPattern, visit_types_) ||
+        VisitGuard::InClause(VisitType::kMergeClause, visit_types_)) {
         geax::frontend::PathPattern *node = nullptr;
         checkedCast(node_, node);
         if (ctx->oC_Variable() != nullptr) {
@@ -708,6 +742,8 @@ std::any CypherBaseVisitorV2::visitOC_PatternPart(LcypherParser::OC_PatternPartC
         auto pc = ALLOC_GEAOBJECT(geax::frontend::PathChain);
         node->appendChain(pc);
         SWITCH_CONTEXT_VISIT(ctx->oC_AnonymousPatternPart(), pc);
+    } else {
+        NOT_SUPPORT_AND_THROW();
     }
     return 0;
 }
