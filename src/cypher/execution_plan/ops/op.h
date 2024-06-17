@@ -51,7 +51,7 @@ enum OpType {
     SORT,
     SKIP,
     LIMIT,
-    OPTIONAL,
+    OPTIONAL_,
     CREATE,
     UPDATE,
     DELETE_,

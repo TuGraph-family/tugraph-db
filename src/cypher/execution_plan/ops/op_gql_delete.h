@@ -104,7 +104,7 @@ class OpGqlDelete : public OpBase {
 
  public:
     explicit OpGqlDelete(const std::vector<std::string>& items)
-        : OpBase(OpType::GQL_DELETE, "Delete")
+        : OpBase(OpType::GQL_DELETE, "Gql Delete")
         , items_(items) {
         state = StreamUnInitialized;
     }
