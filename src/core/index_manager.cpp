@@ -29,6 +29,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
     size_t e_index_len = strlen(_detail::EDGE_INDEX);
     size_t v_ft_index_len = strlen(_detail::VERTEX_FULLTEXT_INDEX);
     size_t e_ft_index_len = strlen(_detail::EDGE_FULLTEXT_INDEX);
+    size_t vector_index_len = strlen(_detail::VECTOR_INDEX);
     auto it = index_list_table_->GetIterator(txn);
     for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
         std::string index_name = it->GetKey().AsString();
@@ -78,6 +79,42 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             const _detail::FieldExtractor* fe = schema->GetFieldExtractor(ft_idx.field);
             FMA_DBG_ASSERT(fe);
             schema->MarkFullTextIndexed(fe->GetFieldId(), true);
+        } else if (index_name.size() > vector_index_len &&
+                   index_name.substr(index_name.size() - vector_index_len) == _detail::VECTOR_INDEX) {
+            _detail::IndexEntry idx = LoadIndex(it->GetValue());
+            FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
+            Schema* schema = v_schema_manager->GetSchema(idx.label);
+            FMA_DBG_ASSERT(schema);
+            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
+            FMA_DBG_ASSERT(fe);
+            VertexIndex* index = new VertexIndex(nullptr, fe->Type(), idx.type);
+            std::vector<std::string> vectorindex;
+            std::regex re(R"(_@lgraph@_|vector_index)"); 
+            auto words_begin = std::sregex_token_iterator(index_name.begin(), index_name.end(), re, -1, std::regex_constants::match_not_bol | std::regex_constants::match_not_eol);  
+            auto words_end = std::sregex_token_iterator();  
+            for (std::sregex_token_iterator i = words_begin; i != words_end; ++i) {  
+                if (!i->str().empty()) {
+                    vectorindex.emplace_back(i->str());  
+                }  
+            }
+            auto label = vectorindex[0];
+            auto field = vectorindex[1];
+            auto index_type = vectorindex[2];
+            auto distance_type = vectorindex[4];
+            int vec_dimension = std::stoi(vectorindex[3]);
+            std::vector<int> index_spec;
+            std::regex pattern("-?[0-9]+\\.?[0-9]*");
+            std::sregex_iterator begin_it(vectorindex[5].begin(), vectorindex[5].end(), pattern), end_it;
+            while (begin_it != end_it) {  
+                std::smatch match = *begin_it;  
+                index_spec.push_back(std::stof(match.str()));  
+                ++begin_it; 
+            }
+            VectorIndex* vector_index = new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec);
+            index->SetReady();
+            schema->GetFieldExtractor(field)->GetVectorIndex()->GetVectorIndexManager().MakeVectorIndex();
+            schema->MarkVertexIndexed(fe->GetFieldId(), index);
+            schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
         }
@@ -125,7 +162,7 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label, const std::string& field, const std::string& index_type, 
                                   int vec_dimension, const std::string& distance_type, 
                                   std::vector<int>& index_spec, FieldType dt, IndexType type,
-                                  std::unique_ptr<VertexIndex>& index) {
+                                  std::unique_ptr<VertexIndex>& index, std::unique_ptr<VectorIndex>& vector_index) {
     _detail::IndexEntry idx;
     idx.label = label;
     idx.field = field;
@@ -141,6 +178,8 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label, 
     it->AddKeyValue(Value::ConstRef(idx.table_name), idxv);
 
     index.reset(new VertexIndex(nullptr, dt, type));  // no need to creates index table
+    
+    vector_index.reset(new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec)); 
     return true;
 }
 

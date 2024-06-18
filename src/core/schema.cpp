@@ -18,6 +18,7 @@
 #include "core/edge_index.h"
 #include "core/schema.h"
 #include "import/import_config_parser.h"
+#include "core/vector_index_layer.h"
 
 namespace lgraph {
 
@@ -48,14 +49,29 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
+        if (fe.Type() == FieldType::FLOAT_VECTOR) {
+            // count++ and update vector index
+            if (fe.GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
+                fe.GetVectorIndex()->GetVectorIndexManager().addCount();
+                if (fe.GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
+                    //auto count = fe.GetVectorIndex()->GetVectorIndexManager().getCount();
+                    //auto vectors = fe.GetVectorIndex()->GetVectorIndexManager().getData(txn, schema);
+                    //fe.GetVectorIndex()->Add(vectors, count);
+                    //fe.GetVectorIndex()->Build();
+                    //fe.GetVectorIndex()->Save();
+                }
+            }
+        } else {
+            VertexIndex* index = fe.GetVertexIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+                THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
+            }
         }
+
     }
 }
 
@@ -117,15 +133,30 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError,
-                "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
-                vid, fe.Name(), fe.FieldToString(record));
+        if (fe.Type() == FieldType::FLOAT_VECTOR) {
+            // count++ and update vector index
+            if (fe.GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
+                fe.GetVectorIndex()->GetVectorIndexManager().addCount();
+                if (fe.GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
+                    //auto count = fe.GetVectorIndex()->GetVectorIndexManager().getCount();
+                    //auto vectors = fe.GetVectorIndex()->GetVectorIndexManager().getData(txn, schema);
+                    //fe.GetVectorIndex()->Add(vectors, count);
+                    //fe.GetVectorIndex()->Build();
+                    //fe.GetVectorIndex()->Save();
+                }
+            }
+        } else {
+            VertexIndex* index = fe.GetVertexIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), vid)) {
+                THROW_CODE(InputError,
+                    "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
+                    vid, fe.Name(), fe.FieldToString(record));
+            }
         }
         created.push_back(idx);
+
     }
 }
 

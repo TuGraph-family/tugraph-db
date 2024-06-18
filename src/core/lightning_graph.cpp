@@ -18,7 +18,6 @@
 #include "import/import_config_parser.h"
 #include "fma-common/hardware_info.h"
 #include "core/vector_index_manager.h"
-#include "core/core/faiss_IVF_FLAT.h"
 
 namespace lgraph {
 thread_local bool LightningGraph::in_transaction_ = false;
@@ -2129,40 +2128,48 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
     }
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
-
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
+        std::unique_ptr<VectorIndex> vector_index;
         bool success = index_manager_->AddVectorIndex(txn.GetTxn(), label, field, index_type, vec_dimension, distance_type, index_spec,
-                                   extractor->Type(), type, vertex_index);
+                                   extractor->Type(), type, vertex_index, vector_index);
         if (!success)
             THROW_CODE(InputError, "build index {}-{} failed", label, field);
 
         vertex_index->SetReady();
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
+        schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
+
+        if ((extractor->GetVectorIndex()->GetVectorIndexManager()).MakeVectorIndex()) {
+            LOG_INFO() <<
+                FMA_FMT("set the vector index for {}:{}", label, field);
+        }
 
         // detach property
-        /*if (schema->DetachProperty()) {
+        if (schema->DetachProperty()) {
             LOG_INFO() <<
                 FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
             uint64_t count = 0;
+            std::vector<std::vector<float>> floatvector;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                //auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
                 }
-                //if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
-                //    THROW_CODE(InternalError,
-                //        "Failed to index vertex [{}] with field value [{}:{}]",
-                //        vid, extractor->Name(), extractor->FieldToString(prop));
-                //}
+                floatvector.emplace_back(prop.AsType<std::vector<float>>());
                 count++;
             }
-            VectorIndexManager vector_index_manager_ = VectorIndexManager(label, field, count);
-            if(vector_index_manager_.CheckdataSizeWhenCreate(txn.GetTxn())) {
-                Faiss_IVFFLAT index = Faiss_IVFFLAT(vec_dimension, index_spec[0], count);
-            
+
+            if ((extractor->GetVectorIndex()->GetVectorIndexManager()).UpdateCount(count)) {
+                if ((extractor->GetVectorIndex()->GetVectorIndexManager()).WhetherUpdate()) {
+                    //vector_index->Add(floatvector, count);
+                    //vector_index->Build();
+                    //vector_index->Save();
+                }
+            } else { 
+                return false; 
             }
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;
@@ -2171,45 +2178,10 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             LOG_INFO() <<
                 FMA_FMT("end building vector index for {}:{} in detached model", label, field);
             return true;
-        }*/
-
-        // now build index
-        if (!known_vid_range) {
-            start_vid = 0;
-            end_vid = txn.GetLooseNumVertex();
-            // vid range not known, try getting from index
-            VertexIndex* idx =
-                schema->GetFieldExtractor(schema->GetPrimaryField())->GetVertexIndex();
-            FMA_DBG_ASSERT(idx);
-            VertexId beg = std::numeric_limits<VertexId>::max();
-            VertexId end = 0;
-            for (auto it = idx->GetUnmanagedIterator(txn.GetTxn(), Value(), Value());
-                 it.IsValid(); it.Next()) {
-                VertexId vid = it.GetVid();
-                beg = std::min(beg, vid);
-                end = std::max(end, vid);
-            }
-            if (beg != std::numeric_limits<VertexId>::max()) start_vid = beg;
-            if (end != 0) end_vid = end + 1;
         }
     }
-
-    // now we know the start and end vid of this label, start building
-    // try building index
-    LabelId lid = schema->GetLabelId();
-    size_t fid = schema->GetFieldId(field);
-    switch (extractor->Type()) {
-    case FieldType::FLOAT_VECTOR:
-
-        break;
-    default:
-        throw std::runtime_error(std::string("Unhandled field type: ") +
-                                 field_data_helper::FieldTypeName(extractor->Type()));
-    }
-    txn.Commit();
-    // install the new index
-    schema_.Assign(new_schema.release());
     return true;
+        // TODO support non-detached models    
 }
 
 /**
@@ -2708,6 +2680,7 @@ bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::stri
     bool deleted = true;
     if (is_vertex) {
         schema->UnVertexIndex(extractor->GetFieldId());
+        schema->UnVectorIndex(extractor->GetFieldId());
         deleted = index_manager_->DeleteVectorIndex(txn.GetTxn(), label, field, index_type, vec_dimension, distance_type);
     } else {
         schema->UnEdgeIndex(extractor->GetFieldId());

@@ -30,6 +30,7 @@
 #include "core/schema.h"
 #include "core/schema_manager.h"
 #include "core/transaction.h"
+//#include "core/vector_index_layer.h"
 
 namespace lgraph {
 namespace _detail {
@@ -232,7 +233,7 @@ class IndexManager {
     bool AddVectorIndex(KvTransaction& txn, const std::string& label, const std::string& field, const std::string& index_type, 
                         int vec_dimension, const std::string& distance_type, 
                         std::vector<int>& index_spec, FieldType dt, IndexType type,
-                        std::unique_ptr<VertexIndex>& index);
+                        std::unique_ptr<VertexIndex>& index, std::unique_ptr<VectorIndex>& vector_index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
                       FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);

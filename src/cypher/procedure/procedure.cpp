@@ -30,6 +30,7 @@
 #include "cypher/monitor/memory_monitor_allocator.h"
 #include "fma-common/encrypt.h"
 #include "import/import_v3.h"
+
 #include <regex>
 
 namespace cypher {
@@ -991,7 +992,9 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     _ExtractFds(args, label, primary_fd, fds);
-    auto ret = ctx->ac_db_->AddLabel(true, label, fds, lgraph::VertexOptions(primary_fd));
+    lgraph::VertexOptions vo(primary_fd);
+    vo.detach_property = true;
+    auto ret = ctx->ac_db_->AddLabel(true, label, fds, vo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -3802,14 +3805,21 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
     CYPHER_ARG_CHECK(args[2].type == parser::Expression::LIST,  "Please check the vector you entered, e.g. [1, 2, 3]");
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT, "query_spec should be integer");
-    switch(args.size()) {
-        case 5:
-            CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
-                      "Please check the parameter, nprobe should be an integer in the range [1,65536]");
-            break;
-        default:
-            throw lgraph::ReminderException("Please check the number of parameter!");
-    }
+    auto search_vector = args[2].ToString();
+    std::vector<std::vector<float>> results;
+    std::vector<float> scores;
+    auto schema = ctx->txn_->GetTxn()->GetSchema(args[0].String(),true);
+    auto index_type = schema->GetFieldExtractor(args[1].String())->GetVectorIndex()->GetIndexType();
+    LOG_DEBUG() << index_type;
+    if (index_type == "IVF_FLAT") {
 
+        CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
+                         "Please check the parameter, nprobe should be an integer in the range [1,65536]");
+            
+        //schema.GetFieldExtractor(args[1].String())->GetVectorIndex()->Load();
+        //auto result = schema.GetFieldExtractor(args[1].String())->GetVectorIndex()->Search(args[4].Int());
+    } else {
+        throw lgraph::ReminderException("Please check the number of parameter!");
+    }          
 }
 }  // namespace cypher

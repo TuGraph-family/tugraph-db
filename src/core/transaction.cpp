@@ -866,6 +866,19 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
         if (fe->Type() == FieldType::BLOB) {
             UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
             // no need to update index since blob cannot be indexed
+        } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
+            fe->ParseAndSet(new_prop, values[i]);
+            // update vector index
+            if (fe->GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
+                fe->GetVectorIndex()->GetVectorIndexManager().addCount();
+                if (fe->GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
+                    //auto count = fe->GetVectorIndex()->GetVectorIndexManager().getCount();
+                    //auto vectors = fe.GetVectorIndex()->GetVectorIndexManager().getData(txn, schema);
+                    //fe.GetVectorIndex()->Add(vectors, count);
+                    //fe.GetVectorIndex()->Build();
+                    //fe.GetVectorIndex()->Save();
+                }
+            }
         } else {
             fe->ParseAndSet(new_prop, values[i]);
             // update index if there is no error

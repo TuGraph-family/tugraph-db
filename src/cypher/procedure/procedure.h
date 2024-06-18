@@ -939,7 +939,7 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"vec", {2, lgraph_api::LGraphType::STRING}},
                   {"score", {3, lgraph_api::LGraphType::FLOAT}},
               }),
 

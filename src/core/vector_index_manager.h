@@ -40,7 +40,7 @@ public:
 
    void addCount() { count_++; }
 
-   bool MakeVectorIndex() { indexed_ = true; return indexed_; }
+   bool MakeVectorIndex() { indexed_ = true;  return true; }
 
    //std::vector<std::vector<float>> getData(KvTransaction& txn, Schema schema);
 
