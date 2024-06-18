@@ -1076,7 +1076,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto op = new OpGqlMerge(node->onMatch(), node->onCreate(), node->pathPattern(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::OtherWise* node) { NOT_SUPPORT(); }
 

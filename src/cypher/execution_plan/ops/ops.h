@@ -48,6 +48,7 @@
 #include "cypher/execution_plan/ops/op_relationship_count.h"
 #include "cypher/execution_plan/ops/op_distinct.h"
 #include "cypher/execution_plan/ops/op_merge.h"
+#include "cypher/execution_plan/ops/op_gql_merge.h"
 #include "cypher/execution_plan/ops/op_remove.h"
 #include "cypher/execution_plan/ops/op_skip.h"
 #include "cypher/execution_plan/ops/op_all_node_scan_dynamic.h"
