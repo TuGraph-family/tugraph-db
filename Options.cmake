@@ -181,8 +181,3 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:${CXX_COMPILE_FLAG}>)
     ENDFOREACH ()
 endif ()
-
-if (ENABLE_PREDOWNLOAD_DEPENDS_PACKAGE)
-    execute_process(COMMAND /bin/sh install.sh
-            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src/python/FMA_shell/pkg)
-endif ()
