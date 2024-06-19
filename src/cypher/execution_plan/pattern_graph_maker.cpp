@@ -199,8 +199,11 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
         } else {
             if (it->second.scope == cypher::SymbolNode::ARGUMENT) {
                 node_t_->derivation_ = Node::Derivation::ARGUMENT;
-            } else if (it->second.scope == cypher::SymbolNode::LOCAL) {
-                node_t_->Visited() = true;
+            }
+            if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMergeStatement, cur_types_)) {
+                if (it->second.scope == cypher::SymbolNode::LOCAL) {
+                    node_t_->Visited() = true;
+                }
             }
         }
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
