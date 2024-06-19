@@ -48,7 +48,7 @@ class VarLenExpand : public OpBase {
             iter_type = types.empty() ? lgraph::EIter::BI_EDGE : lgraph::EIter::BI_TYPE_EDGE;
             break;
         }
-        eit.Initialize(ctx->txn_->GetTxn().get(), iter_type, vid, types);
+        eit.Initialize(ctx->txn_->GetTxn().get(), iter_type, vid, types, {});
     }
 
 #if 0  // 20210704

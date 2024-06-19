@@ -29,6 +29,8 @@
 #include "cypher/parser/clause.h"
 #include "cypher/parser/symbol_table.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
+#include "cypher/filter/filter.h"
+#include "db/galaxy.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
