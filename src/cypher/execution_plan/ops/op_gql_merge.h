@@ -299,7 +299,9 @@ class OpGqlMerge : public OpBase {
         if (!node_pattern->filler()->v().has_value()) CYPHER_TODO();
         auto node_variable = node_pattern->filler()->v().value();  // string
         std::vector<std::string> labels;
-        ExtractLabelTree(labels, node_pattern->filler()->label().value());
+        if (node_pattern->filler()->label().has_value()) {
+            ExtractLabelTree(labels, node_pattern->filler()->label().value());
+        }
         std::vector<std::string> fields;
         std::vector<lgraph::FieldData> values;
         ExtractProperties(ctx, field_names, field_values, node_pattern->filler());
@@ -360,7 +362,9 @@ class OpGqlMerge : public OpBase {
         }
         auto &edge_variable = rls_patt->filler()->v().value();
         std::vector<std::string> edge_labels;
-        ExtractLabelTree(edge_labels, rls_patt->filler()->label().value());
+        if (rls_patt->filler()->label().has_value()) {
+            ExtractLabelTree(edge_labels, rls_patt->filler()->label().value());
+        }
         if (edge_labels.empty()) throw lgraph::CypherException("edge label missing in merge");
         auto &src_node = pattern_graph_->GetNode(src_node_var);
         auto &dst_node = pattern_graph_->GetNode(dst_node_var);  // get node.Lable() get node.Prop()

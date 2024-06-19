@@ -199,6 +199,8 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
         } else {
             if (it->second.scope == cypher::SymbolNode::ARGUMENT) {
                 node_t_->derivation_ = Node::Derivation::ARGUMENT;
+            } else if (it->second.scope == cypher::SymbolNode::LOCAL) {
+                node_t_->Visited() = true;
             }
         }
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
@@ -296,6 +298,12 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
         } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
             p.type = Property::VALUE;
             p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
+        } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
+        } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
         } else if (value->type() == geax::frontend::AstNodeType::kRef) {
             p.type = Property::VARIABLE;
             p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
@@ -311,7 +319,7 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
             node_t_->SetProperty(p);
             return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
         } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
-            NOT_SUPPORT();
+            return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
         }
         NOT_SUPPORT();
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement, cur_types_)) {
@@ -1081,6 +1089,8 @@ void PatternGraphMaker::AddSymbol(const std::string& symbol_alias, cypher::Symbo
 void PatternGraphMaker::AddNode(Node* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     if (!pattern_graph.GetNode(node->Alias()).Empty()) {
+        if (node->Visited())
+            pattern_graph.GetNode(node->Alias()).Visited() = true;
         return;
     }
     pattern_graph.AddNode(node);
