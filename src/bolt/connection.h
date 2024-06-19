@@ -26,14 +26,15 @@
 #include <unordered_map>
 #include <fstream>
 #include <utility>
-#include "boost/asio.hpp"
+#include <boost/asio.hpp>
+#include <boost/beast/websocket.hpp>
 #include "bolt/hydrator.h"
 #include "bolt/pack_stream.h"
 #include "tools/lgraph_log.h"
 
 namespace bolt {
 using boost::asio::ip::tcp;
-
+namespace websocket = boost::beast::websocket;
 void socket_set_options(tcp::socket& socket);
 
 class Connection : private boost::asio::noncopyable {
@@ -45,9 +46,18 @@ class Connection : private boost::asio::noncopyable {
         LOG_DEBUG() << FMA_FMT("destroy connection[id:{}]", conn_id_);
     }
     tcp::socket& socket() { return socket_; }
+    websocket::stream<tcp::socket>& ws() { return *ws_; }
+    void ResetToWebSocket() {
+        ws_ = std::make_unique<websocket::stream<tcp::socket>>(std::move(socket_));
+        ws_->binary(true);
+    }
     virtual void Close() {
         boost::system::error_code ec;
-        socket_.close(ec);
+        if (ws_) {
+            ws_->close(websocket::close_code::normal, ec);
+        } else {
+            socket_.close(ec);
+        }
         if (ec) {
             LOG_WARN() << "Close error: " << ec.message();
         }
@@ -61,6 +71,7 @@ class Connection : private boost::asio::noncopyable {
  private:
     boost::asio::io_service& io_service_;
     tcp::socket socket_;
+    std::unique_ptr<websocket::stream<tcp::socket>> ws_;
     int64_t conn_id_ = 0;
     std::atomic<bool> has_closed_;
 };
@@ -85,17 +96,26 @@ class BoltConnection
         return context_.get();
     }
  private:
-    void ReadHandshakeDone(const boost::system::error_code &ec, size_t size);
-    void ReadChunkSizeDone(const boost::system::error_code &ec, size_t size);
-    void ReadChunkDone(const boost::system::error_code &ec, size_t size);
-    void WriteResponseDone(const boost::system::error_code &ec, size_t size);
+    enum class Protocol {
+        None = 0,
+        Socket,
+        WebSocket
+    };
+    void ReadMagicDone(const boost::system::error_code &ec);
+    void ReadBoltIdentificationDone(const boost::system::error_code &ec);
+    void ReadVersionNegotiationDone(const boost::system::error_code &ec);
+    void ReadChunkSizeDone(const boost::system::error_code &ec);
+    void ReadChunkDone(const boost::system::error_code &ec);
+    void WriteResponseDone(const boost::system::error_code &ec);
+    void WebSocketAcceptDone(boost::system::error_code ec);
     void DoSend();
 
     std::function<void(BoltConnection& conn, BoltMsg msg,
                        std::vector<std::any> fields)> handle_;
-    uint8_t bolt_identification_[4] = {0x60, 0x60, 0xB0, 0x17};
-    uint8_t handshake_buffer_[20] = {0};
-    uint8_t version_buffer_[4] = {0};
+    const uint8_t bolt_magic_[4] = {0x60, 0x60, 0xB0, 0x17};
+    const uint8_t ws_magic_[4] = {'G', 'E', 'T', ' '};  // websocket
+    uint8_t buffer4_[4] = {0};
+    uint8_t buffer16_[16] = {0};
     uint16_t chunk_size_ = 0;
     std::vector<uint8_t> chunk_;
     Unpacker unpacker_;
@@ -104,6 +124,7 @@ class BoltConnection
     std::vector<boost::asio::const_buffer> send_buffers_;
     // only shared_ptr can store void pointer
     std::shared_ptr<void> context_;
+    Protocol protocol_ = Protocol::None;
 };
 
 }  // namespace bolt

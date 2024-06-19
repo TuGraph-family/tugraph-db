@@ -16,9 +16,7 @@
 // Created by wt on 6/12/18.
 //
 #pragma once
-
-#include "filter/iterator.h"
-
+#include "cypher/cypher_types.h"
 namespace cypher {
 
 typedef int64_t NodeID;

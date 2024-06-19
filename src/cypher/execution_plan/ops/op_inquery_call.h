@@ -25,6 +25,7 @@
 #include "cypher/procedure/utils.h"
 #include "cypher/cypher_exception.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 namespace cypher {
 class InQueryCall : public OpBase {

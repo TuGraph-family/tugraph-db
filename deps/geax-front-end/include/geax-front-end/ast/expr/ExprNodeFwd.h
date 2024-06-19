@@ -39,6 +39,7 @@
 #include "geax-front-end/ast/expr/BLike.h"
 #include "geax-front-end/ast/expr/BMod.h"
 #include "geax-front-end/ast/expr/BMul.h"
+#include "geax-front-end/ast/expr/BSquare.h"
 #include "geax-front-end/ast/expr/BNotEqual.h"
 #include "geax-front-end/ast/expr/BNotGreaterThan.h"
 #include "geax-front-end/ast/expr/BNotSmallerThan.h"

@@ -73,6 +73,7 @@ TEST_P(TestRestClient, RestClient) {
     gconfig->db_dir = db_dir;
     gconfig->server_key_file = key_path;
     gconfig->server_cert_file = cert_path;
+    gconfig->enable_plugin = true;
 
     auto StartEmptyServer = [&]() {
         std::unique_ptr<LGraphServer> server(new LGraphServer(gconfig));

@@ -102,6 +102,7 @@ created 0 vertices, created 1 edges.
 n
 (:person {int16:16,float:1.11,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})
 @plan
+ReadOnly:1
 Execution Plan:
 Produce Results
     Project [n]
@@ -156,7 +157,7 @@ p
 ["n"]
 ["(:person {int16:16,float:1.11,double:100.98,int8:8,string:\"foo bar\",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})"]
 ["@plan"]
-["Execution Plan:\nProduce Results\n    Project [n]\n        Expand(All) [n --> m ]\n            Node By Label Scan [n:person]\n"]
+["ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Expand(All) [n --> m ]\n            Node By Label Scan [n:person]\n"]
 ["r"]
 ["[:is_friend {message:\"hi..\"}]"]
 ["@profile"]
@@ -228,6 +229,7 @@ p
 +-------------------------------------------+
 | @plan                                     |
 +-------------------------------------------+
+| ReadOnly:1                                |
 | Execution Plan:                           |
 | Produce Results                           |
 | Project [n]                               |

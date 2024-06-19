@@ -31,12 +31,13 @@
 
 namespace cypher {
 
-template <typename Dst>
-void checkedAnyCast(const std::any& s, Dst& d) {
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType& d) {
     try {
-        d = std::any_cast<Dst>(s);
+        d = std::any_cast<TargetType>(s);
     } catch (...) {
-        abort();
+        // TODO(lingsu): remove in future
+        assert(false);
     }
 }
 
@@ -106,8 +107,8 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
-    std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BSquare* node) override;
+    std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;
     std::any visit(geax::frontend::BBitAnd* node) override;

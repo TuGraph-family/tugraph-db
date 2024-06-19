@@ -14,12 +14,10 @@
 
 #pragma once
 
-#include "server/state_machine.h"
-#include "procedure/procedure_v2.h"
 #include "cypher/execution_plan/ops/op.h"
-#include "geax-front-end/ast/clause/ClauseNodeFwd.h"
 
 namespace cypher {
+    // TODO(lingsu): rename in the future
 class GqlStandaloneCall : public OpBase {
     const std::string func_name_;
     const std::vector<geax::frontend::Expr*>& args_;

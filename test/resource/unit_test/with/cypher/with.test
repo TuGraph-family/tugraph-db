@@ -3,7 +3,11 @@ match (n {name:'Liam Neeson'}) with n as n1 match (n {name:'Dennis Quaid'}) with
 match (n {name:'Liam Neeson'}) with n as n1 match (n {name:'Dennis Quaid'}) with n as n2, n1.name as n1name match (n {name:'John Williams'}) return n,n2,n1name;
 match (n {name:'Liam Neeson'}) with n return n;
 match (n {name:'Liam Neeson'}) with n match (n)-->(m) return n,m;
+<<<<<<< HEAD
 match (n {name:'London'}) with n optional match (n)-->(m) return n,m;
+=======
+#match (n {name:'London'}) with n optional match (n)-->(m) return n,m;
+>>>>>>> master
 match (a {name:'Liam Neeson'})-[r]->(b) with b match (b)-[]->(c) return c;
 match (a {name:'Liam Neeson'}),(b {name:'London'}) with a, b match (c:Film) return a,b,c;
 match (n {name:'Liam Neeson'}) with n match (n) return n.name;
@@ -11,7 +15,11 @@ match (a {name:'Liam Neeson'}), (b {name:'London'}) with a, b match (a), (b) ret
 MATCH (a {name:'Liam Neeson'})-[r]->(b) RETURN a,count(b) AS out_num;
 MATCH (a {name:'Liam Neeson'})-[r]->(b) WITH a,count(b) AS out_num MATCH (a)<-[]-(c) RETURN count(c) AS in_num,out_num;
 match (a {name:'Liam Neeson'})-[r]->(b) with a,b match (b)-[]->(c) return a,b,c;
+<<<<<<< HEAD
 match (n {name:'Liam Neeson'}),(m {name:'Natasha Richardson'}),(n)-[r]->(m) return r,type(r);
+=======
+#match (n {name:'Liam Neeson'}),(m {name:'Natasha Richardson'}),(n)-[r]->(m) return r,type(r);
+>>>>>>> master
 match (n {name:'Liam Neeson'}),(m {name:'Natasha Richardson'}) with n,m match (n)-[r]->(m) return r,type(r);
 match (n {name:'Liam Neeson'}),(m {name:'Liam Neeson'}) with n,m optional match (n)-[r]->(m) return r,type(r);
 match (n {name:'Liam Neeson'})-[r]->(m) with r return r,type(r);

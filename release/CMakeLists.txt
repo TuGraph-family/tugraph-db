@@ -11,14 +11,6 @@ set(CPACK_RPM_PACKAGE_PROVIDES "libc.so.6(GLIBC_PRIVATE)(64bit)")
 
 set(CPACK_PACKAGE_ARCHITECTURE ${CMAKE_HOST_SYSTEM_PROCESSOR})
 
-if (ENABLE_PREDOWNLOAD_DEPENDS_PACKAGE)
-    set(CPCK_DEBIAN_PACKAGE_DEPENDS "python, python-pip")
-    set(CPACK_RPM_PACKAGE_REQUIRES "python >= 2.5.0, python2-pip >= 8.1.2")
-    set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/src/python/FMA_shell/pkg/postinst;${CMAKE_SOURCE_DIR}/src/python/FMA_shell/pkg/prerm;")
-    set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/src/python/FMA_shell/pkg/postinst")
-    set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/src/python/FMA_shell/pkg/prerm")
-endif ()
-
 set(CPACK_BUILD_TYPE_MINI "")
 if (MINI_RUNTIME)
     set(CPACK_BUILD_TYPE_MINI "-mini")

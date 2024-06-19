@@ -137,10 +137,10 @@ using StrArray = std::array<const char* const, N>;
     TYPE(BNotSmallerThan, kBNotSmallerThan, "BNotSmallerThan")                            \
     TYPE(BAdd, kBAdd, "BAdd")                                                             \
     TYPE(BSub, kBSub, "BSub")                                                             \
-    TYPE(BSquare, kBSquare, "BSquare")                                                    \
     TYPE(BMul, kBMul, "BMul")                                                             \
     TYPE(BDiv, kBDiv, "BDiv")                                                             \
     TYPE(BMod, kBMod, "BMod")                                                             \
+    TYPE(BSquare, kBSquare, "BSquare")                                                    \
     TYPE(BOr, kBOr, "BOr")                                                                \
     TYPE(BXor, kBXor, "BXor")                                                             \
     TYPE(BAnd, kBAnd, "BAnd")                                                             \

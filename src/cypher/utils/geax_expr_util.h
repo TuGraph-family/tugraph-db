@@ -22,22 +22,20 @@
 #include "execution_plan/visitor/visitor.h"
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
-#include "geax-front-end/ast/expr/BSquare.h"
-#include "geax-front-end/ast/expr/IsNull.h"
 #include "parser/symbol_table.h"
 #include "cypher/cypher_types.h"
 #include "core/data_type.h"
 #include "geax-front-end/ast/Ast.h"
 
-#ifndef BINARY_EXPR_TOSTRING
-#define BINARY_EXPR_TOSTRING(op)                                         \
+#ifndef EXP_BINARY_EXPR_TOSTRING
+#define EXP_BINARY_EXPR_TOSTRING(op)                                     \
     auto lef = std::any_cast<std::string>(node->left()->accept(*this));  \
     auto rig = std::any_cast<std::string>(node->right()->accept(*this)); \
     return "(" + lef + op + rig + ")";
 #endif
 
-#ifndef UNARY_EXPR_TOSTRING
-#define UNARY_EXPR_TOSTRING(op)                                          \
+#ifndef EXP_UNARY_EXPR_TOSTRING
+#define EXP_UNARY_EXPR_TOSTRING(op)                                      \
     auto expr = std::any_cast<std::string>(node->expr()->accept(*this)); \
     return "(" + std::string(op) + expr + ")";
 #endif
@@ -60,27 +58,27 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     }
 
     std::any visit(geax::frontend::TupleGet* node) override { NOT_SUPPORT_AND_THROW(); }
-    std::any visit(geax::frontend::Not* node) override { UNARY_EXPR_TOSTRING("!"); }
-    std::any visit(geax::frontend::Neg* node) override { UNARY_EXPR_TOSTRING("-"); }
+    std::any visit(geax::frontend::Not* node) override {EXP_UNARY_EXPR_TOSTRING("!"); }
+    std::any visit(geax::frontend::Neg* node) override {EXP_UNARY_EXPR_TOSTRING("-"); }
     std::any visit(geax::frontend::Tilde* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::VSome* node) override { NOT_SUPPORT_AND_THROW(); }
-    std::any visit(geax::frontend::BEqual* node) override { BINARY_EXPR_TOSTRING("="); }
-    std::any visit(geax::frontend::BNotEqual* node) override { BINARY_EXPR_TOSTRING("!="); }
-    std::any visit(geax::frontend::BGreaterThan* node) override { BINARY_EXPR_TOSTRING(">"); }
-    std::any visit(geax::frontend::BNotSmallerThan* node) override { BINARY_EXPR_TOSTRING(">="); }
-    std::any visit(geax::frontend::BSmallerThan* node) override { BINARY_EXPR_TOSTRING("<"); }
-    std::any visit(geax::frontend::BNotGreaterThan* node) override { BINARY_EXPR_TOSTRING("<="); }
+    std::any visit(geax::frontend::BEqual* node) override {EXP_BINARY_EXPR_TOSTRING("="); }
+    std::any visit(geax::frontend::BNotEqual* node) override {EXP_BINARY_EXPR_TOSTRING("!="); }
+    std::any visit(geax::frontend::BGreaterThan* node) override {EXP_BINARY_EXPR_TOSTRING(">"); }
+    std::any visit(geax::frontend::BNotSmallerThan* node) override {EXP_BINARY_EXPR_TOSTRING(">="); }
+    std::any visit(geax::frontend::BSmallerThan* node) override {EXP_BINARY_EXPR_TOSTRING("<"); }
+    std::any visit(geax::frontend::BNotGreaterThan* node) override {EXP_BINARY_EXPR_TOSTRING("<="); }
     std::any visit(geax::frontend::BSafeEqual* node) override { NOT_SUPPORT_AND_THROW(); }
-    std::any visit(geax::frontend::BAdd* node) override { BINARY_EXPR_TOSTRING("+"); }
-    std::any visit(geax::frontend::BSub* node) override { BINARY_EXPR_TOSTRING("-"); }
-    std::any visit(geax::frontend::BDiv* node) override { BINARY_EXPR_TOSTRING("/"); }
-    std::any visit(geax::frontend::BMul* node) override { BINARY_EXPR_TOSTRING("*"); }
-    std::any visit(geax::frontend::BMod* node) override { BINARY_EXPR_TOSTRING("%"); }
-    std::any visit(geax::frontend::BAnd* node) override { BINARY_EXPR_TOSTRING(" and "); }
-    std::any visit(geax::frontend::BSquare* node) override { BINARY_EXPR_TOSTRING(" ^ "); }
-    std::any visit(geax::frontend::BOr* node) override { BINARY_EXPR_TOSTRING(" or "); }
-    std::any visit(geax::frontend::BXor* node) override { BINARY_EXPR_TOSTRING(" xor "); }
-    std::any visit(geax::frontend::IsLabeled* node) override { UNARY_EXPR_TOSTRING(" isLabel "); }
+    std::any visit(geax::frontend::BAdd* node) override {EXP_BINARY_EXPR_TOSTRING("+"); }
+    std::any visit(geax::frontend::BSub* node) override {EXP_BINARY_EXPR_TOSTRING("-"); }
+    std::any visit(geax::frontend::BDiv* node) override {EXP_BINARY_EXPR_TOSTRING("/"); }
+    std::any visit(geax::frontend::BMul* node) override {EXP_BINARY_EXPR_TOSTRING("*"); }
+    std::any visit(geax::frontend::BMod* node) override {EXP_BINARY_EXPR_TOSTRING("%"); }
+    std::any visit(geax::frontend::BSquare* node) override {EXP_BINARY_EXPR_TOSTRING(" ^ "); }
+    std::any visit(geax::frontend::BAnd* node) override {EXP_BINARY_EXPR_TOSTRING(" and "); }
+    std::any visit(geax::frontend::BOr* node) override {EXP_BINARY_EXPR_TOSTRING(" or "); }
+    std::any visit(geax::frontend::BXor* node) override {EXP_BINARY_EXPR_TOSTRING(" xor "); }
+    std::any visit(geax::frontend::IsLabeled* node) override {EXP_UNARY_EXPR_TOSTRING(" isLabel "); }
     std::any visit(geax::frontend::BBitAnd* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::BBitOr* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::BBitXor* node) override { NOT_SUPPORT_AND_THROW(); }

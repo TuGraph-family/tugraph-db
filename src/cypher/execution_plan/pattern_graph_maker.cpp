@@ -31,9 +31,6 @@ geax::frontend::GEAXErrorCode PatternGraphMaker::Build(geax::frontend::AstNode* 
 
 std::any PatternGraphMaker::visit(geax::frontend::GraphPattern* node) {
     auto& path_patterns = node->pathPatterns();
-    // if (path_patterns.size() > 1) {
-    //     NOT_SUPPORT();
-    // }
     for (auto path_pattern : path_patterns) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_pattern);
     }
@@ -275,8 +272,8 @@ std::any PatternGraphMaker::visit(geax::frontend::SingleLabel* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::LabelOr* node) {
-    if (node->left()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-    if (node->right()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -502,12 +499,6 @@ std::any PatternGraphMaker::visit(geax::frontend::BSafeEqual* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::BSquare* node) {
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-}
-
 std::any PatternGraphMaker::visit(geax::frontend::BAdd* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
@@ -533,6 +524,12 @@ std::any PatternGraphMaker::visit(geax::frontend::BMul* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::BMod* node) {
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::BSquare* node) {
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -842,7 +839,7 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
                     auto dst_nid = graph.AddNode("", dst_alias, Node::ARGUMENT);
                     graph.AddRelationship(std::set<std::string>{}, src_nid, dst_nid,
                                           parser::LinkDirection::UNKNOWN, a.first,
-                                          Relationship::ARGUMENT);
+                                          Relationship::ARGUMENT, {});
                     auto& src_node = graph.GetNode(src_nid);
                     auto& dst_node = graph.GetNode(dst_nid);
                     src_node.Visited() = true;
@@ -897,7 +894,6 @@ std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node)
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
-    execution_plan_->SetReadOnly(true);
     auto& query_stmts = node->queryStatements();
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
@@ -988,7 +984,6 @@ std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node
 std::any PatternGraphMaker::visit(geax::frontend::CatalogModifyStatement* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::LinearDataModifyingStatement* node) {
-    execution_plan_->SetReadOnly(false);
     auto& queryStatements = node->queryStatements();
     for (auto queryStatement : queryStatements) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(queryStatement);

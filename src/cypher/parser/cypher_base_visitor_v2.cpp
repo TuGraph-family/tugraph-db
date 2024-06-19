@@ -16,7 +16,7 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/cypher_exception.h"
-#include "geax-front-end/ast/Ast.h"
+#include "geax-front-end/ast/AstNodeVisitor.h"
 #include "cypher/parser/generated/LcypherParser.h"
 
 namespace parser {
@@ -53,20 +53,21 @@ void checkedCast(Base *b, Drive *&d) {
     assert(d);
 }
 
-template <typename Dst>
-void checkedAnyCast(const std::any &s, Dst *&d) {
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType*& d) {
     try {
-        d = std::any_cast<Dst *>(s);
+        d = std::any_cast<TargetType*>(s);
     } catch (...) {
+        // TODO(lingsu): remove in future
         assert(false);
     }
 }
-
-template <typename Dst>
-void checkedAnyCast(const std::any &s, Dst &d) {
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType& d) {
     try {
-        d = std::any_cast<Dst>(s);
+        d = std::any_cast<TargetType>(s);
     } catch (...) {
+        // TODO(lingsu): remove in future
         assert(false);
     }
 }
@@ -105,9 +106,7 @@ std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext *ruleCtx)
 
 CypherBaseVisitorV2::CypherBaseVisitorV2(geax::common::ObjectArenaAllocator &objAlloc,
                                          antlr4::tree::ParseTree *tree)
-    : objAlloc_(objAlloc)
-      //, node_(objAlloc_.allocate<geax::frontend::ExplainActivity>())
-      ,
+    : objAlloc_(objAlloc),
       node_(ALLOC_GEAOBJECT(geax::frontend::NormalTransaction)),
       anonymous_idx_(0),
       visit_types_(),
@@ -133,14 +132,12 @@ std::string CypherBaseVisitorV2::GenAnonymousAlias(bool is_node) {
 
 // TODO(lingsu): support EXPLAIN
 std::any CypherBaseVisitorV2::visitOC_Statement(LcypherParser::OC_StatementContext *ctx) {
-    //  geax::frontend::ExplainActivity* node =
-    //    static_cast<geax::frontend::ExplainActivity*>(node_);
     geax::frontend::NormalTransaction *node = nullptr;
     checkedCast(node_, node);
     if (ctx->EXPLAIN()) {
-        //  node->setIsProfile(false);
+        NOT_SUPPORT_AND_THROW();
     } else if (ctx->PROFILE()) {
-        //  node->setIsProfile(true);
+        NOT_SUPPORT_AND_THROW();
     } else {
         auto body = ALLOC_GEAOBJECT(geax::frontend::ProcedureBody);
         node->setProcedureBody(body);
@@ -647,7 +644,6 @@ std::any CypherBaseVisitorV2::visitOC_SortItem(LcypherParser::OC_SortItemContext
     checkedAnyCast(visit(ctx->oC_Expression()), expr);
     bool ascending = ctx->ASCENDING() != nullptr || ctx->ASC() != nullptr ||
                      (ctx->DESCENDING() == nullptr && ctx->DESC() == nullptr);
-    LOG_INFO() << "------------------ascending = " << ascending;
     order->setField(expr);
     order->setOrder(!ascending);
     return 0;

@@ -209,7 +209,6 @@ void BuiltinProcedureV2::DbListLabelIndexes(RTContext *ctx, const Record *record
                      FMA_FMT("Function requires 2 arguments, but {} are "
                              "given. Usage: db.listLabelIndexes(label_name, label_type)",
                              args.size()))
-
     CYPHER_ARG_CHECK(args[0].IsString(), FMA_FMT("{} has to be a string ", args[0].ToString()))
     CYPHER_ARG_CHECK(args[1].IsString(), FMA_FMT("{} has to be a string ", args[1].ToString()))
     auto label = args[0].constant.scalar.AsString();

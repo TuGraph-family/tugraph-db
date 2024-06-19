@@ -21,12 +21,11 @@
 #include "geax-front-end/ast/AstNodeVisitor.h"
 
 namespace cypher {
+// TODO(lingsu): rename in the future
 class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
  public:
-    PatternGraphMaker(ExecutionPlanV2* execution_plan,
-                     std::vector<PatternGraph>& pattern_graphs)
-        : execution_plan_(execution_plan)
-        , pattern_graphs_(pattern_graphs) {}
+    explicit PatternGraphMaker(std::vector<PatternGraph>& pattern_graphs)
+        : pattern_graphs_(pattern_graphs) {}
 
     geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, RTContext* ctx);
     std::string ErrorMsg() { return error_msg_; }
@@ -86,12 +85,12 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::BSmallerThan* node) override;
     std::any visit(geax::frontend::BNotGreaterThan* node) override;
     std::any visit(geax::frontend::BSafeEqual* node) override;
-    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAdd* node) override;
     std::any visit(geax::frontend::BSub* node) override;
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;
@@ -204,12 +203,10 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any reportError() override;
 
  private:
-   void AddSymbol(const std::string &symbol_alias, cypher::SymbolNode::Type type,
+    void AddSymbol(const std::string& symbol_alias, cypher::SymbolNode::Type type,
                    cypher::SymbolNode::Scope scope);
-   void AddNode(Node *node);
-   void AddRelationship(Relationship* rel);
-
-    ExecutionPlanV2* execution_plan_;
+    void AddNode(Node* node);
+    void AddRelationship(Relationship* rel);
     std::vector<PatternGraph>& pattern_graphs_;
     std::vector<size_t> symbols_idx_;
     size_t cur_pattern_graph_;

@@ -13,11 +13,12 @@
  */
 
 #include "procedure/utils.h"
+#include "cypher/procedure/procedure_v2.h"
 #include "cypher/execution_plan/ops/op_gql_standalone_call.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
 #include "arithmetic/arithmetic_expression.h"
-#include "tools/lgraph_log.h"
+#include "db/galaxy.h"
 
 cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) {
     auto names = fma_common::Split(func_name_, ".");

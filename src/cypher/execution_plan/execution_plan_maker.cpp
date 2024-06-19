@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-
+ 
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
@@ -291,6 +291,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     // todo: ...
     ClauseGuard cg(node->type(), cur_types_);
     auto& tails = node->tails();
+    if (tails.size() == 0) {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+    // TODO(lingsu): generate the pattern graph
+    // and select the starting Node and end Node according to the pattern graph
     for (auto [edge, end_node] : tails) {
         start_t_ = node_t_;
         is_end_path_ = true;
@@ -606,8 +611,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::VSome* node) { NOT_SUPPORT();
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BEqual* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BSquare* node) { NOT_SUPPORT(); }
-
 std::any ExecutionPlanMaker::visit(geax::frontend::BNotEqual* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BGreaterThan* node) { NOT_SUPPORT(); }
@@ -629,6 +632,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::BDiv* node) { NOT_SUPPORT(); 
 std::any ExecutionPlanMaker::visit(geax::frontend::BMul* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BMod* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::BSquare* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BAnd* node) { NOT_SUPPORT(); }
 

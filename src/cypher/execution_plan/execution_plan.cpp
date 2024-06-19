@@ -71,7 +71,7 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 auto dst_nid = graph.AddNode("", dst_alias, Node::ARGUMENT);
                 graph.AddRelationship(std::set<std::string>{}, src_nid, dst_nid,
                                       parser::LinkDirection::UNKNOWN, a.first,
-                                      Relationship::ARGUMENT);
+                                      Relationship::ARGUMENT, {});
                 auto &src_node = graph.GetNode(src_nid);
                 auto &dst_node = graph.GetNode(dst_nid);
                 src_node.Visited() = true;
@@ -1455,7 +1455,9 @@ int ExecutionPlan::Execute(RTContext *ctx) {
 const ResultInfo &ExecutionPlan::GetResultInfo() const { return _result_info; }
 
 std::string ExecutionPlan::DumpPlan(int indent, bool statistics) const {
-    std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
+    std::string s;
+    s.append(FMA_FMT("ReadOnly:{}\n", ReadOnly()));
+    s.append(statistics ? "Profile statistics:\n" : "Execution Plan:\n");
     OpBase::DumpStream(_root, indent, statistics, s);
     return s;
 }
