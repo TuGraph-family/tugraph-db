@@ -291,9 +291,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     // todo: ...
     ClauseGuard cg(node->type(), cur_types_);
     auto& tails = node->tails();
-    if (tails.size() == 0) {
-        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
     // TODO(lingsu): generate the pattern graph
     // and select the starting Node and end Node according to the pattern graph
     for (auto [edge, end_node] : tails) {
@@ -334,6 +331,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     if (!ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_)) {
         return geax::frontend::GEAXErrorCode::GEAX_ERROR;
     }
+
     if (auto op = _SingleBranchConnect(expand_ops)) {
         // Handle the case where multiple PathChains are connected, with special handling
         // for cases where multiple PathChains are mutually independent.
