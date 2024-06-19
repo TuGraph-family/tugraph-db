@@ -1374,8 +1374,8 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL algo.shortestPath(n1,n2,{maxHops:3}) YIELD nodeCount RETURN n2.name,nodeCount /* 2 "
         "results */",
         "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
-        "CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost "
-        "RETURN nodeCount,totalCost /* 3,2.0 */",
+        "CALL algo.shortestPath(n1,n2,{edgeFilter:[{label:'HAS_CHILD'}]}) YIELD nodeCount,totalCost"
+        " RETURN nodeCount,totalCost /* 3,2.0 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'London'})\n"
         "CALL algo.allShortestPaths(n1,n2) YIELD nodeIds,cost RETURN nodeIds,cost /* 2 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'Liam Neeson'})\n"
