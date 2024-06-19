@@ -1,0 +1,5 @@
+
+MATCH (p)-[:ACTED_IN]->(x), (p)-[:MARRIED]->(y), (p)-[:HAS_CHILD]->(z) RETURN p,x,y,z;
+MATCH (x)<-[:ACTED_IN]-(p)-[:MARRIED]->(y), (p)-[:HAS_CHILD]->(z) RETURN p,x,y,z;
+MATCH (n:Film), (m:City) RETURN n, m;
+MATCH (n1:Person {name: "John Williams"})-[]->(m1:Film), (n2: Person {name: "Michael Redgrave"})-[]->(m2:Film) WHERE m1.title = m2.title RETURN m1, m2;

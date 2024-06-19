@@ -19,6 +19,7 @@
 #ifndef VISIT_AND_CHECK_WITH_ERROR_MSG
 #define VISIT_AND_CHECK_WITH_ERROR_MSG(ast)                                                       \
     do {                                                                                          \
+        if (!ast) NOT_SUPPORT();                                                                  \
         auto res = std::any_cast<geax::frontend::GEAXErrorCode>(visit(ast));                      \
         if (res != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {                                 \
             error_msg_ = error_msg_.empty() ? fma_common::StringFormatter::Format(                \
@@ -33,6 +34,7 @@
 #ifndef ACCEPT_AND_CHECK_WITH_ERROR_MSG
 #define ACCEPT_AND_CHECK_WITH_ERROR_MSG(ast)                                                      \
     do {                                                                                          \
+        if (!ast) NOT_SUPPORT();                                                                  \
         auto res = std::any_cast<geax::frontend::GEAXErrorCode>(ast->accept(*this));              \
         if (res != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {                                 \
             error_msg_ = error_msg_.empty() ? fma_common::StringFormatter::Format(                \
@@ -73,3 +75,11 @@
         throw lgraph::CypherException(error_msg_);                                              \
     } while (0)
 #endif
+
+template <typename Base, typename Drive>
+void checkedCast(Base* b, Drive*& d) {
+    static_assert(std::is_base_of<Base, Drive>::value,
+            "type `Base` must be the base of type `Drive`");
+    d = dynamic_cast<Drive*>(b);
+    assert(d);
+}

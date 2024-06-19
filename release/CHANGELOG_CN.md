@@ -1,5 +1,23 @@
 # TuGraph 更新日志
 
+# 4.3.1 (2024-06-13)
+
+**重大变更:**
+
+1. 支持非唯一组合索引
+2. cypher支持GQL ASTNode解析链路
+3. 支持通过websocket进行Bolt数据传输
+
+**优化和错误修复:**
+
+1. 修复内置存储过程algo.native.extract
+2. 其他错误修复
+
+**接口更变:**
+
+1. lgraph_server启动时默认不打开增删procedure的功能，需配置enable_procedure为true才可增删procedure
+2. java client新增callCypher接口可返回header信息
+
 # 4.3.0 (2024-05-21)
 
 **重大变更:**

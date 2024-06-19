@@ -12,13 +12,13 @@ const char ha_mkdir[] = "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_snapshot_interval_s -1 --ha_node_join_group_s 60 "
-    "--rpc_port {} --directory ./db --log_dir "
+    "--rpc_port {} --enable_plugin 1 --directory ./db --log_dir "
     "./log --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_is_witness 1 "
     "--ha_snapshot_interval_s -1 --ha_node_join_group_s 60 "
-    "--rpc_port {} --directory ./db --log_dir "
+    "--rpc_port {} --enable_plugin 1 --directory ./db --log_dir "
     "./log --ha_conf {} --verbose 1 "
     "-c lgraph_ha.json --ha_enable_witness_to_leader {} -d start";
 #else
@@ -26,10 +26,10 @@ const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_snapshot_interval_s -1 "
     "--ha_node_join_group_s 60 --rpc_port {} --directory ./db --log_dir "
-    "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+    "./log --enable_plugin 1  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_is_witness 1 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --enable_plugin 1 --ha_is_witness 1 --ha_snapshot_interval_s -1 "
     "--ha_node_join_group_s 60 --rpc_port {} --directory ./db --log_dir "
     "./log --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json "
     "--ha_enable_witness_to_leader {} -d start";

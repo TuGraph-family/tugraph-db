@@ -14,7 +14,7 @@ include(BuildClients.cmake)
 include(BuildCythonExtension.cmake)
 include(BuildBoltLib.cmake)
 
-install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_cpp_rpc lgraph_client_cpp_rest lgraph_client_python lgraph_db_python
+install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_python lgraph_db_python
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib64)
 install(DIRECTORY
@@ -31,13 +31,6 @@ install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
         DESTINATION share/lgraph/resource/procedure_demo/)
-install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/python/FMA_shell
-        DESTINATION share/)
-# install python restful client
-install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/client/python/TuGraphClient
-        DESTINATION share/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
         DESTINATION bin)

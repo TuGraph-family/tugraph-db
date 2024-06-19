@@ -1,0 +1,11 @@
+
+MATCH (n:Person {name:'Vanessa Redgrave'}) RETURN n;
+MATCH (m:Film {title:'The Parent Trap'}) RETURN m.title,m;
+MATCH (people:Person) RETURN people.name LIMIT 7;
+MATCH (people:Person) RETURN people.name SKIP 7;
+MATCH (people:Person) RETURN people.name SKIP 3 LIMIT 4;
+MATCH (post60s:Person) WHERE post60s.birthyear >= 1960 AND post60s.birthyear < 1970 RETURN post60s.name;
+MATCH (a:Person) WHERE a.birthyear < 1960 OR a.birthyear >= 1970 RETURN a.name;
+MATCH (a:Person) WHERE a.birthyear >= 1960 XOR id(a) > 10 RETURN a,a.birthyear;
+MATCH (n {name:'Vanessa Redgrave'}) RETURN n;
+MATCH (n:Person)-[r:BORN_IN]->() WHERE abs(r.weight-20.21)<0.00001 RETURN n,r,r.weight;

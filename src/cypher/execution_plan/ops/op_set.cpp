@@ -17,3 +17,16 @@
 //
 
 #include "cypher/execution_plan/ops/op_set.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
+
+namespace cypher {
+
+void OpSet::ExtractProperties(RTContext *ctx, const parser::Expression &p,
+                       std::vector<lgraph::FieldData> &values) {
+    ArithExprNode ae(p, *record->symbol_table);
+    auto val = ae.Evaluate(ctx, *record);
+    if (!val.IsScalar()) CYPHER_TODO();
+    values.emplace_back(val.constant.scalar);
+}
+
+}  // namespace cypher
