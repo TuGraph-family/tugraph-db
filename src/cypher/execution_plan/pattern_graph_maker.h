@@ -199,6 +199,11 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any reportError() override;
 
  private:
+    void AddSymbol(const std::string& symbol_alias, cypher::SymbolNode::Type type,
+                   cypher::SymbolNode::Scope scope);
+    void AddNode(Node* node);
+    void AddRelationship(Relationship* rel);
+
     std::vector<PatternGraph>& pattern_graphs_;
     std::vector<size_t> symbols_idx_;
     size_t cur_pattern_graph_;

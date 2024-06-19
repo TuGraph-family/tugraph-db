@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,26 +12,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-//
-// Created by dcy on 19-8-22.
-//
 #pragma once
 
 #include "cypher/execution_plan/ops/op.h"
-#include "parser/clause.h"
 
 namespace cypher {
 
-class OpDelete : public OpBase {
-    parser::Clause::TYPE_DELETE delete_data_;
-    PatternGraph *pattern_graph_ = nullptr;
+class OpGqlDelete : public OpBase {
+    const std::vector<std::string>& items_;
     std::vector<lgraph::VertexId> vertices_to_delete_;
     std::vector<lgraph::EdgeUid> edges_to_delete_;
     bool summary_ = false;
 
     void CollectVEToDelete() {
-        for (auto &dd : delete_data_) {
-            auto it = record->symbol_table->symbols.find(dd.ToString());
+        for (auto &item : items_) {
+            auto it = record->symbol_table->symbols.find(item);
             CYPHER_THROW_ASSERT(it != record->symbol_table->symbols.end());
             if (it->second.type == SymbolNode::NODE) {
                 auto node = record->values[it->second.id].node;
@@ -94,7 +89,10 @@ class OpDelete : public OpBase {
                 .append(" vertices, deleted ")
                 .append(std::to_string(ctx->result_info_->statistics.edges_deleted))
                 .append(" edges.");
-            CYPHER_THROW_ASSERT(ctx->result_->Header().size() == 1);
+            auto header = ctx->result_->Header();
+            header.clear();
+            header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
+            ctx->result_->ResetHeader(header);
             CYPHER_THROW_ASSERT(record);
             record->values.clear();
             record->AddConstant(lgraph::FieldData(summary));
@@ -105,10 +103,9 @@ class OpDelete : public OpBase {
     }
 
  public:
-    OpDelete(const parser::QueryPart *stmt, PatternGraph *pattern_graph)
-        : OpBase(OpType::DELETE_, "Delete")
-        , pattern_graph_(pattern_graph) {
-        delete_data_ = *stmt->delete_clause;
+    explicit OpGqlDelete(const std::vector<std::string>& items)
+        : OpBase(OpType::GQL_DELETE, "Gql Delete")
+        , items_(items) {
         state = StreamUnInitialized;
     }
 
@@ -147,10 +144,6 @@ class OpDelete : public OpBase {
         std::string str(name);
         return str;
     }
-
-    const parser::Clause::TYPE_DELETE& GetDeleteData() const { return delete_data_; }
-
-    PatternGraph* GetPatternGraph() const { return pattern_graph_; }
 
     CYPHER_DEFINE_VISITABLE()
 
