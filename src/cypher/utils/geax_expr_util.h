@@ -18,7 +18,6 @@
 #include <string>
 #include <utility>
 
-#include "arithmetic/ast_expr_evaluator.h"
 #include "execution_plan/visitor/visitor.h"
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"

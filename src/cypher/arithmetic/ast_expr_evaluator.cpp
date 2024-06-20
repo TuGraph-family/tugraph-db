@@ -17,14 +17,12 @@
 #include <cstdlib>
 #include <unordered_map>
 #include "cypher/cypher_types.h"
-#include "geax-front-end/ast/expr/VDouble.h"
 #include "core/data_type.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
 #include "lgraph/lgraph_types.h"
-#include "tools/lgraph_log.h"
 
 #ifndef DO_BINARY_EXPR
 #define DO_BINARY_EXPR(func)                                       \

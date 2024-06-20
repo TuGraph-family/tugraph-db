@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "cypher/parser/cypher_base_visitor_v2.h"
-#include <tuple>
 #include "cypher/utils/geax_util.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/cypher_exception.h"

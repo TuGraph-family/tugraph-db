@@ -74,7 +74,7 @@ class OpGqlSet : public OpBase {
 
     void SetVE(RTContext *ctx) {
         for (auto & item : set_items_) {
-            if (typeid(*item) != typeid(geax::frontend::UpdateProperties)) 
+            if (typeid(*item) != typeid(geax::frontend::UpdateProperties))
                 CYPHER_TODO();
             geax::frontend::UpdateProperties* props = nullptr;
             checkedCast(item, props);
