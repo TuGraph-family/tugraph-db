@@ -24,12 +24,11 @@
 #include <regex>
 #include "cypher/cypher_exception.h"
 #include "cypher/cypher_types.h"
+#include "cypher/procedure/utils.h"
 #include "cypher/parser/expression.h"
 #include "cypher/parser/clause.h"
 #include "cypher/parser/symbol_table.h"
-#include "cypher/procedure/utils.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
-#include "lgraph/lgraph_types.h"
 #include "cypher/filter/filter.h"
 #include "db/galaxy.h"
 

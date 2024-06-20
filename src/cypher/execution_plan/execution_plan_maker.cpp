@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
- 
+
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
@@ -1096,7 +1096,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
-    auto op = new OpGqlMerge(node->onMatch(), node->onCreate(), node->pathPattern(), &pattern_graph);
+    auto op =
+        new OpGqlMerge(node->onMatch(), node->onCreate(), node->pathPattern(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -1130,7 +1131,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::UnwindStatement* node) {
 std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
     std::string name = std::get<std::string>(node->name());
     std::vector<OpBase*> expand_ops;
-    auto op = new GqlInQueryCall(name, node->args(), node->yield(), &pattern_graphs_[cur_pattern_graph_]);
+    auto op =
+        new GqlInQueryCall(name, node->args(), node->yield(), &pattern_graphs_[cur_pattern_graph_]);
     expand_ops.emplace_back(op);
     if (auto op = _SingleBranchConnect(expand_ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);

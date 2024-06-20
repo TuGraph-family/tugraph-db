@@ -136,7 +136,6 @@ class Utils {
 
     static bool CallPlugin(const RTContext& ctx, lgraph::plugin::Type type, const std::string& name,
                            const std::vector<geax::frontend::Expr*>& params, std::string& output) {
-
         std::string input;
         CYPHER_THROW_ASSERT(params.size() <= 1);
         if (!params.empty()) {

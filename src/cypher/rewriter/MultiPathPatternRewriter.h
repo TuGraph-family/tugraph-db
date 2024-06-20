@@ -26,7 +26,7 @@ namespace cypher {
 
 class MultiPathPatternRewriter : public AstNodeVisitorImpl {
  public:
-    MultiPathPatternRewriter(geax::common::ObjectArenaAllocator& allocator)
+    explicit MultiPathPatternRewriter(geax::common::ObjectArenaAllocator& allocator)
         : allocator_(allocator) {}
     std::any visit(geax::frontend::GraphPattern* node) override {
         in_graph_pattern_ = true;

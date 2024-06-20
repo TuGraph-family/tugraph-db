@@ -74,7 +74,6 @@ class BNotSmallerThan;
 class BSmallerThan;
 class BNotGreaterThan;
 class BSafeEqual;
-class BSquare;
 class BAdd;
 class BSub;
 class BMod;

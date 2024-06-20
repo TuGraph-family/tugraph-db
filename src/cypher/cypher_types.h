@@ -24,7 +24,7 @@
 namespace cypher {
 
 struct FieldData {
-    // TODO (lingsu) : a default state should be added
+    // TODO(lingsu) : a default state should be added
     enum FieldType { SCALAR, ARRAY, MAP } type;
 
     ::lgraph::FieldData scalar;
@@ -98,7 +98,7 @@ struct FieldData {
             scalar = std::move(rhs.scalar);
             break;
         }
-        // TODO (lingsu) : rhs should return to the default state
+        // TODO(lingsu) : rhs should return to the default state
         rhs.type = SCALAR;
     }
 
@@ -187,7 +187,7 @@ struct FieldData {
             scalar = std::move(rhs.scalar);
             break;
         }
-        // TODO (lingsu) : rhs should return to the default state
+        // TODO(lingsu) : rhs should return to the default state
         rhs.type = SCALAR;
         return *this;
     }

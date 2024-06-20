@@ -2474,9 +2474,9 @@ static void _EmplaceBackwardNeighbor(
 }
 
 void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
-                            const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
-                            const int depth, const std::string &edge_label, cypher::Path &path,
-                            std::vector<cypher::Path> &paths) {
+                               const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
+                               const int depth, const std::string &edge_label, cypher::Path &path,
+                               std::vector<cypher::Path> &paths) {
     if (depth != 0) {
         if (edge_label.empty()) {
             for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
@@ -2484,7 +2484,8 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
                     path.PopBack();
                 }
             }
@@ -2493,7 +2494,8 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
                     path.PopBack();
                 }
             }
@@ -2506,7 +2508,8 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
                     path.PopBack();
                 }
             }
@@ -2517,7 +2520,8 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
                     path.PopBack();
                 }
             }
@@ -2839,8 +2843,7 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
         }
     }
     std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>> lmap =
-        {
-            {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
+        { {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
         };
     Record r;
     for (auto &title : titles) {
