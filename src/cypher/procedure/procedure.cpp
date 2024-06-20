@@ -3301,16 +3301,17 @@ static void _EmplaceBackwardNeighbor(
 
 void _EnumeratePartialPaths(lgraph::Transaction &txn,
                             const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
-                            const int depth, const std::string &edge_label, cypher::Path &path,
+                            const int depth, const std::vector<std::string> &edge_labels,
+                            cypher::Path &path,
                             std::vector<cypher::Path> &paths) {
     if (depth != 0) {
-        if (edge_label.empty()) {
+        if (edge_labels.empty()) {
             for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
                 int64_t nbr = eit.GetDst();
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path, paths);
                     path.PopBack();
                 }
             }
@@ -3319,32 +3320,38 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path, paths);
                     path.PopBack();
                 }
             }
         } else {
-            auto edge_lid = txn.GetLabelId(false, edge_label);
-            for (auto eit = txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                 eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() != edge_lid) break;
-                int64_t nbr = eit.GetDst();
-                auto it = hop_info.find(nbr);
-                if (it != hop_info.end() && it->second == depth - 1) {
-                    path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
-                    path.PopBack();
+            for (auto& edge_label : edge_labels) {
+                auto edge_lid = txn.GetLabelId(false, edge_label);
+                for (auto eit =
+                         txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                     eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() != edge_lid) break;
+                    int64_t nbr = eit.GetDst();
+                    auto it = hop_info.find(nbr);
+                    if (it != hop_info.end() && it->second == depth - 1) {
+                        path.Append(eit.GetUid());
+                        _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
+                                               paths);
+                        path.PopBack();
+                    }
                 }
-            }
-            for (auto eit = txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                 eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() != edge_lid) break;
-                int64_t nbr = eit.GetSrc();
-                auto it = hop_info.find(nbr);
-                if (it != hop_info.end() && it->second == depth - 1) {
-                    path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
-                    path.PopBack();
+                for (auto eit =
+                         txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                     eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() != edge_lid) break;
+                    int64_t nbr = eit.GetSrc();
+                    auto it = hop_info.find(nbr);
+                    if (it != hop_info.end() && it->second == depth - 1) {
+                        path.Append(eit.GetUid());
+                        _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
+                                               paths);
+                        path.PopBack();
+                    }
                 }
             }
         }
@@ -3354,7 +3361,8 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
 }
 
 static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::VertexId start_vid,
-                                           lgraph::VertexId end_vid, const std::string &edge_label,
+                                           lgraph::VertexId end_vid,
+                                           const std::vector<std::string> &edge_labels,
                                            std::vector<cypher::Path> &paths) {
     // TODO(heng): fix PrimaryId
     if (start_vid == end_vid) {
@@ -3377,7 +3385,7 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         if (forward_q.size() <= backward_q.size()) {
             fhop++;
             for (auto vid : forward_q) {
-                if (edge_label.empty()) {
+                if (edge_labels.empty()) {
                     for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
                     }
@@ -3385,18 +3393,20 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
                     }
                 } else {
-                    auto edge_lid = txn.GetLabelId(false, edge_label);
-                    for (auto eit =
-                             txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
-                    }
-                    for (auto eit =
-                             txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                    for (auto& edge_label : edge_labels) {
+                        auto edge_lid = txn.GetLabelId(false, edge_label);
+                        for (auto eit = txn.GetOutEdgeIterator(
+                                 lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                        }
+                        for (auto eit = txn.GetInEdgeIterator(
+                                 lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                        }
                     }
                 }
             }
@@ -3405,7 +3415,7 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         } else {
             bhop++;
             for (auto vid : backward_q) {
-                if (edge_label.empty()) {
+                if (edge_labels.empty()) {
                     for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
                     }
@@ -3413,18 +3423,20 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
                     }
                 } else {
-                    auto edge_lid = txn.GetLabelId(false, edge_label);
-                    for (auto eit =
-                             txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
-                    }
-                    for (auto eit =
-                             txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                    for (auto& edge_label : edge_labels) {
+                        auto edge_lid = txn.GetLabelId(false, edge_label);
+                        for (auto eit = txn.GetOutEdgeIterator(
+                                 lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                        }
+                        for (auto eit = txn.GetInEdgeIterator(
+                                 lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                        }
                     }
                 }
             }
@@ -3439,10 +3451,10 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         auto bvid = std::get<1>(hit);
         cypher::Path path;
         path.SetStart(fvid);
-        _EnumeratePartialPaths(txn, parent, fvid, parent[fvid], edge_label, path, fpaths);
+        _EnumeratePartialPaths(txn, parent, fvid, parent[fvid], edge_labels, path, fpaths);
         path.Clear();
         path.SetStart(bvid);
-        _EnumeratePartialPaths(txn, child, bvid, child[bvid], edge_label, path, bpaths);
+        _EnumeratePartialPaths(txn, child, bvid, child[bvid], edge_labels, path, bpaths);
         for (auto &fpath : fpaths) {
             fpath.Reverse();
             fpath.Append(std::get<4>(hit)
@@ -3563,13 +3575,19 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
                          args[1].type == parser::Expression::VARIABLE &&
                          (args.size() == 2 || args[2].type == parser::Expression::MAP),
                      "wrong type")
-    std::string edge_label;
+    std::vector<std::string> edge_labels;
     if (args.size() == 3) {
         auto &map = args[2].Map();
-        auto it = map.find("relationshipQuery");
-        if (it != map.end()) {
-            if (it->second.type != parser::Expression::STRING) CYPHER_TODO();
-            edge_label = it->second.String();
+        auto iter = map.find("edgeFilter");
+        if (iter != map.end()) {
+            if (iter->second.type != parser::Expression::LIST) CYPHER_TODO();
+            for (auto& item : iter->second.List()) {
+                if (item.type != parser::Expression::MAP) CYPHER_TODO();
+                auto& edge_filter = item.Map();
+                auto label_iter = edge_filter.find("label");
+                if (label_iter == edge_filter.end()) CYPHER_TODO();
+                edge_labels.push_back(label_iter->second.String());
+            }
         }
     }
     CYPHER_THROW_ASSERT(record);
@@ -3582,7 +3600,7 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
     auto end_vid = record->values[it2->second.id].node->PullVid();
     std::vector<cypher::Path> paths;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, paths);
+    _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_labels, paths);
 
     auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&

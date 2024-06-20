@@ -2047,13 +2047,13 @@ CREATE (e)-[:ROAD {cost:40}]->(f);
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN value",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
-        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "CALL algo.allShortestPaths(n1, n2, {edgeFilter:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
         "sum(value) AS score",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
-        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "CALL algo.allShortestPaths(n1, n2, {edgeFilter:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds,cost WITH nodeIds,relationshipIds,cost\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value WITH nodeIds, "
