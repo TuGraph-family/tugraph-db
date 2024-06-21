@@ -3591,7 +3591,7 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
         if (iter != map.end()) {
             if (iter->second.type != parser::Expression::LIST &&
                 iter->second.type != parser::Expression::STRING) CYPHER_TODO();
-            if (iter->second.type != parser::Expression::STRING) {
+            if (iter->second.type == parser::Expression::STRING) {
                 edge_labels.push_back(iter->second.String());
             } else {
                 for (auto &item : iter->second.List()) {

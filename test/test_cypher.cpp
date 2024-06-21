@@ -1374,7 +1374,11 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL algo.shortestPath(n1,n2,{maxHops:3}) YIELD nodeCount RETURN n2.name,nodeCount /* 2 "
         "results */",
         "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
-        "CALL algo.shortestPath(n1,n2,{edgeFilter:[{label:'HAS_CHILD'}]}) YIELD nodeCount,totalCost"
+        "CALL algo.shortestPath(n1,n2,{relationshipQuery:[{label:'HAS_CHILD'}]}) "
+        "YIELD nodeCount,totalCost"
+        " RETURN nodeCount,totalCost /* 3,2.0 */",
+        "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
+        "CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost"
         " RETURN nodeCount,totalCost /* 3,2.0 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'London'})\n"
         "CALL algo.allShortestPaths(n1,n2) YIELD nodeIds,cost RETURN nodeIds,cost /* 2 */",
@@ -2047,13 +2051,19 @@ CREATE (e)-[:ROAD {cost:40}]->(f);
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN value",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
-        "CALL algo.allShortestPaths(n1, n2, {edgeFilter:[{label:'ROAD'}]}) YIELD "
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
         "sum(value) AS score",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
-        "CALL algo.allShortestPaths(n1, n2, {edgeFilter:[{label:'ROAD'}]}) YIELD "
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
+        "UNWIND relationshipIds AS rid\n"
+        "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
+        "sum(value) AS score",
+        "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds,cost WITH nodeIds,relationshipIds,cost\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value WITH nodeIds, "
