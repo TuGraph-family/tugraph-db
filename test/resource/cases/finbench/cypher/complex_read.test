@@ -47,7 +47,7 @@ CALL algo.shortestPath(
     dst,
     {
         direction: 'PointingRight',
-        edgeFilter: [
+        relationshipQuery: [
             {
                 label:'transfer',
                 property_filter: {

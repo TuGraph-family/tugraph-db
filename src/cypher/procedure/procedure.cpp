@@ -3484,32 +3484,41 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     if (args.size() == 3) {
         auto &map = args[2].Map();
         // edgeFilter
-        auto iter = map.find("edgeFilter");
+        auto iter = map.find("relationshipQuery");
         if (iter != map.end()) {
-            if (iter->second.type != parser::Expression::LIST) CYPHER_TODO();
-            for (auto& item : iter->second.List()) {
-                if (item.type != parser::Expression::MAP) CYPHER_TODO();
-                auto& edge_filter = item.Map();
-                auto label_iter = edge_filter.find("label");
-                if (label_iter == edge_filter.end()) CYPHER_TODO();
+            if (iter->second.type != parser::Expression::LIST &&
+                iter->second.type != parser::Expression::STRING) CYPHER_TODO();
+            if (iter->second.type == parser::Expression::STRING) {
                 EdgeFilter e_filter;
-                e_filter.label = label_iter->second.String();
-                auto property_filter_iter = edge_filter.find("property_filter");
-                if (property_filter_iter != edge_filter.end()) {
-                    if (property_filter_iter->second.type != parser::Expression::MAP) CYPHER_TODO();
-                    for (auto &kv : property_filter_iter->second.Map()) {
-                        if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
-                        std::unordered_map<std::string, lgraph::FieldData> filter_t;
-                        for (auto& filter_pair : kv.second.Map()) {
-                            lgraph::FieldData field;
-                            if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
-                            field = parser::MakeFieldData(filter_pair.second);
-                            filter_t.emplace(filter_pair.first, field);
-                        }
-                        e_filter.property_filter.emplace(kv.first, filter_t);
-                    }
-                }
+                e_filter.label = iter->second.String();
                 edge_filters.emplace_back(std::move(e_filter));
+            } else {
+                for (auto &item : iter->second.List()) {
+                    if (item.type != parser::Expression::MAP) CYPHER_TODO();
+                    auto &edge_filter = item.Map();
+                    auto label_iter = edge_filter.find("label");
+                    if (label_iter == edge_filter.end()) CYPHER_TODO();
+                    EdgeFilter e_filter;
+                    e_filter.label = label_iter->second.String();
+                    auto property_filter_iter =
+                        edge_filter.find("property_filter");
+                    if (property_filter_iter != edge_filter.end()) {
+                        if (property_filter_iter->second.type != parser::Expression::MAP)
+                            CYPHER_TODO();
+                        for (auto &kv : property_filter_iter->second.Map()) {
+                            if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
+                            std::unordered_map<std::string, lgraph::FieldData> filter_t;
+                            for (auto &filter_pair : kv.second.Map()) {
+                                lgraph::FieldData field;
+                                if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
+                                field = parser::MakeFieldData(filter_pair.second);
+                                filter_t.emplace(filter_pair.first, field);
+                            }
+                            e_filter.property_filter.emplace(kv.first, filter_t);
+                        }
+                    }
+                    edge_filters.emplace_back(std::move(e_filter));
+                }
             }
         }
         // maxHops
@@ -3578,15 +3587,20 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
     std::vector<std::string> edge_labels;
     if (args.size() == 3) {
         auto &map = args[2].Map();
-        auto iter = map.find("edgeFilter");
+        auto iter = map.find("relationshipQuery");
         if (iter != map.end()) {
-            if (iter->second.type != parser::Expression::LIST) CYPHER_TODO();
-            for (auto& item : iter->second.List()) {
-                if (item.type != parser::Expression::MAP) CYPHER_TODO();
-                auto& edge_filter = item.Map();
-                auto label_iter = edge_filter.find("label");
-                if (label_iter == edge_filter.end()) CYPHER_TODO();
-                edge_labels.push_back(label_iter->second.String());
+            if (iter->second.type != parser::Expression::LIST &&
+                iter->second.type != parser::Expression::STRING) CYPHER_TODO();
+            if (iter->second.type == parser::Expression::STRING) {
+                edge_labels.push_back(iter->second.String());
+            } else {
+                for (auto &item : iter->second.List()) {
+                    if (item.type != parser::Expression::MAP) CYPHER_TODO();
+                    auto &edge_filter = item.Map();
+                    auto label_iter = edge_filter.find("label");
+                    if (label_iter == edge_filter.end()) CYPHER_TODO();
+                    edge_labels.push_back(label_iter->second.String());
+                }
             }
         }
     }
