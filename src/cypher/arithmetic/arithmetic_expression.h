@@ -656,6 +656,7 @@ struct ArithExprNode {
     // note: avoid put non-primitive data into union
     ArithOperandNode operand;
     ArithOpNode op;
+    parser::Expression expression_;
     geax::frontend::Expr *expr_;
     std::shared_ptr<AstExprEvaluator> evaluator;
 
@@ -674,7 +675,7 @@ struct ArithExprNode {
 
     ArithExprNode() = default;
 
-    ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab);
+    ArithExprNode(parser::Expression expr, const SymbolTable &sym_tab);
 
     ArithExprNode(geax::frontend::Expr *expr, const SymbolTable &sym_tab) {
         SetAstExp(expr, sym_tab);

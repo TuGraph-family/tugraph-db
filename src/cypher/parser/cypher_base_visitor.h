@@ -114,6 +114,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         return false;
     }
+    void AstRewrite(cypher::RTContext *ctx);
 
  public:
     CypherBaseVisitor() = default;
@@ -125,6 +126,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &q : _query) {
             for (auto &p : q.parts) p.Enrich();
         }
+        AstRewrite(ctx);
     }
 
     /**
@@ -148,6 +150,8 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     const std::vector<SglQuery> &GetQuery() const { return _query; }
+
+    std::vector<SglQuery> &GetQuery() { return _query; }
 
     const std::unordered_map<std::string, std::set<std::string>>&
     GetNodeProperty() const {return _node_property;}
