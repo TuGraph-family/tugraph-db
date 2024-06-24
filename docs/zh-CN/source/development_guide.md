@@ -219,7 +219,7 @@ CALL db.deleteEdgeIndex('edge1', 'field1')
 
 读的是统计数据，轻操作。
 ```
-dbms.meta.countDetail()
+CALL dbms.meta.countDetail()
 ```
 
 ## 导入数据
