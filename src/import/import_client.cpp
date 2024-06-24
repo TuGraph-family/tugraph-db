@@ -97,7 +97,7 @@ void lgraph::import_v2::OnlineImportClient::DoImport() {
             }
             ++packages_processed;
             LOG_INFO() << fma_common::StringFormatter::Format("importing ({}) packages",
-                                                             packages_processed);
+                                                              packages_processed);
             if (is_first_package) {
                 if (fd.n_header_line >
                     static_cast<size_t>(std::count(begin, end, '\n')) + (end[-1] != '\n'))
@@ -141,31 +141,28 @@ void lgraph::import_v2::OnlineImportClient::DoFullImport() const {
     double t1 = fma_common::GetTime();
     RestClient client(config_.url);
     client.Login(config_.username, config_.password);
-    std::string str = FMA_FMT("CALL db.importor.fullImportor(\\{{}:\"{}\", {}:\"{}\", {}:\"{}\", "
+    std::string str = FMA_FMT(
+        "CALL db.importor.fullImportor(\\{{}:\"{}\", {}:\"{}\", {}:\"{}\", "
         "{}:{}, {}:\"{}\", {}:\"{}\", {}:{}, {}:{}, "
         "{}:{}, {}:{}, {}:{}, {}:{}, {}:{}, "
         "{}:{}, {}:{}, {}:{}, {}:{}, {}:\"{}\"\\})",
-        "config_file", config_.config_file, "username", config_.username,
-        "password", config_.password, "continue_on_error",
-        config_.continue_on_error ? "true" : "false",
+        "config_file", config_.config_file, "username", config_.username, "password",
+        config_.password, "continue_on_error", config_.continue_on_error ? "true" : "false",
         "graph_name", config_.graph_name, "delimiter", config_.delimiter, "delete_if_exists",
-        config_.delete_if_exists ? "true" : "false",
-        "parse_block_size", config_.parse_block_size,
-        "parse_block_threads", config_.parse_block_threads,
-        "parse_file_threads", config_.parse_file_threads,
-        "generate_sst_threads", config_.generate_sst_threads,
-        "read_rocksdb_threads", config_.read_rocksdb_threads,
-        "vid_num_per_reading", config_.vid_num_per_reading,
-        "max_size_per_reading", config_.max_size_per_reading,
-        "compact", config_.compact ? "true" : "false",
-        "keep_vid_in_memory", config_.keep_vid_in_memory ? "true" : "false",
-        "enable_fulltext_index", config_.enable_fulltext_index ? "true" : "false",
-        "fulltext_index_analyzer", config_.fulltext_index_analyzer);
+        config_.delete_if_exists ? "true" : "false", "parse_block_size", config_.parse_block_size,
+        "parse_block_threads", config_.parse_block_threads, "parse_file_threads",
+        config_.parse_file_threads, "generate_sst_threads", config_.generate_sst_threads,
+        "read_rocksdb_threads", config_.read_rocksdb_threads, "vid_num_per_reading",
+        config_.vid_num_per_reading, "max_size_per_reading", config_.max_size_per_reading,
+        "compact", config_.compact ? "true" : "false", "keep_vid_in_memory",
+        config_.keep_vid_in_memory ? "true" : "false", "enable_fulltext_index",
+        config_.enable_fulltext_index ? "true" : "false", "fulltext_index_analyzer",
+        config_.fulltext_index_analyzer);
     auto log = client.EvalCypher("", str)["result"][0][0].as_string();
     if (!log.empty()) {
         std::vector<std::string> parts;
         boost::split(parts, log, boost::is_any_of("\n"));
-        for (const auto &item : parts) {
+        for (const auto& item : parts) {
             if (!item.empty()) LOG_INFO() << item;
         }
     }
@@ -177,9 +174,9 @@ void lgraph::import_v2::OnlineImportClient::DoFullImportFile() const {
     double t1 = fma_common::GetTime();
     RestClient client(config_.url);
     client.Login(config_.username, config_.password);
-    std::string cypher = FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",{}))",
-                                 config_.graph_name, config_.path,
-                                 config_.remote ? "true" : "false");
+    std::string cypher =
+        FMA_FMT(R"(CALL db.importor.fullFileImportor("{}","{}",{}))", config_.graph_name,
+                config_.path, config_.remote ? "true" : "false");
     client.EvalCypher("", cypher);
     double t2 = fma_common::GetTime();
     LOG_INFO() << "Full online import file finished in " << t2 - t1 << " seconds.";

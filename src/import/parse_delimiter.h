@@ -35,95 +35,95 @@ inline std::string ParseDelimiter(const std::string& delimiter) {
             }
             switch (*p) {
             case ('\\'):
-                {
-                    ret.push_back('\\');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\\');
+                p++;
+                break;
+            }
             case ('a'):
-                {
-                    ret.push_back('\a');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\a');
+                p++;
+                break;
+            }
             case ('f'):
-                {
-                    ret.push_back('\f');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\f');
+                p++;
+                break;
+            }
             case ('n'):
-                {
-                    ret.push_back('\n');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\n');
+                p++;
+                break;
+            }
             case ('r'):
-                {
-                    ret.push_back('\r');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\r');
+                p++;
+                break;
+            }
             case ('t'):
-                {
-                    ret.push_back('\t');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\t');
+                p++;
+                break;
+            }
             case ('v'):
-                {
-                    ret.push_back('\v');
-                    p++;
-                    break;
-                }
+            {
+                ret.push_back('\v');
+                p++;
+                break;
+            }
             case ('x'):
-                {
-                    // \xnn hex numbers
+            {
+                // \xnn hex numbers
+                p++;
+                uint8_t c = 0;
+                for (int i = 0; i < 2; i++) {
+                    if (p >= e)
+                        THROW_CODE(InputError,
+                                   "Illegal escape sequence: " + std::string(start_p, p));
+                    if (*p >= '0' && *p <= '9')
+                        c = c * 16 + *p - '0';
+                    else if (*p >= 'a' && *p <= 'f')
+                        c = c * 16 + (*p - 'a' + 10);
+                    else if (*p >= 'A' && *p <= 'F')
+                        c = c * 16 + (*p - 'A' + 10);
+                    else
+                        THROW_CODE(InputError,
+                                   "Illegal escape sequence: " + std::string(start_p, p + 1));
                     p++;
-                    uint8_t c = 0;
-                    for (int i = 0; i < 2; i++) {
+                }
+                ret.push_back((char)c);
+                break;
+            }
+            default:
+            {
+                if (*p >= '0' && *p <= '9') {
+                    // \nnn octal numbers
+                    uint16_t c = 0;
+                    for (int i = 0; i < 3; i++) {
                         if (p >= e)
                             THROW_CODE(InputError,
                                        "Illegal escape sequence: " + std::string(start_p, p));
-                        if (*p >= '0' && *p <= '9')
-                            c = c * 16 + *p - '0';
-                        else if (*p >= 'a' && *p <= 'f')
-                            c = c * 16 + (*p - 'a' + 10);
-                        else if (*p >= 'A' && *p <= 'F')
-                            c = c * 16 + (*p - 'A' + 10);
-                        else
-                            THROW_CODE(InputError, "Illegal escape sequence: " +
-                                             std::string(start_p, p + 1));
+                        if (*p < '0' || *p > '7')
+                            THROW_CODE(InputError,
+                                       "Illegal escape sequence: " + std::string(start_p, p + 1));
+                        c = c * 8 + *p - '0';
                         p++;
                     }
+                    if (c >= 256)
+                        THROW_CODE(InputError,
+                                   "Illegal escape sequence: " + std::string(start_p, p));
                     ret.push_back((char)c);
                     break;
+                } else {
+                    THROW_CODE(InputError,
+                               "Illegal escape sequence: " + std::string(start_p, p + 1));
                 }
-            default:
-                {
-                    if (*p >= '0' && *p <= '9') {
-                        // \nnn octal numbers
-                        uint16_t c = 0;
-                        for (int i = 0; i < 3; i++) {
-                            if (p >= e)
-                                THROW_CODE(InputError, "Illegal escape sequence: " +
-                                                 std::string(start_p, p));
-                            if (*p < '0' || *p > '7')
-                                THROW_CODE(InputError, "Illegal escape sequence: " +
-                                                 std::string(start_p, p + 1));
-                            c = c * 8 + *p - '0';
-                            p++;
-                        }
-                        if (c >= 256)
-                            THROW_CODE(InputError,
-                                       "Illegal escape sequence: " + std::string(start_p, p));
-                        ret.push_back((char)c);
-                        break;
-                    } else {
-                        THROW_CODE(InputError,
-                                   "Illegal escape sequence: " + std::string(start_p, p + 1));
-                    }
-                }
+            }
             }
         } else {
             ret.push_back(*p);
