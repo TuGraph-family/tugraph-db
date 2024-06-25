@@ -14,7 +14,6 @@
  */
 
 #include <algorithm>
-#include <cstdlib>
 #include <unordered_map>
 #include "cypher/cypher_types.h"
 #include "core/data_type.h"
@@ -114,8 +113,7 @@ static cypher::FieldData Neg(const cypher::FieldData& x) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::GetField* node) {
     auto expr = std::any_cast<Entry>(node->expr()->accept(*this));
-    Entry e(cypher::FieldData(expr.GetEntityField(ctx_, node->fieldName())));
-    return e;
+    return Entry(cypher::FieldData(expr.GetEntityField(ctx_, node->fieldName())));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::TupleGet* node) {

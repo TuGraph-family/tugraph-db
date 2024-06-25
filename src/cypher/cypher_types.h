@@ -63,7 +63,7 @@ struct FieldData {
             delete array;
             break;
         case MAP:
-            delete array;
+            delete map;
             break;
         case SCALAR:
             break;
@@ -194,7 +194,7 @@ struct FieldData {
 
     bool operator==(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+            throw std::runtime_error("Unable to compare between different field data types");
         switch (type) {
         case ARRAY:
             CYPHER_TODO();
@@ -211,7 +211,7 @@ struct FieldData {
 
     bool operator>(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+            throw std::runtime_error("Unable to compare between different field data types");
         switch (type) {
         case ARRAY:
             CYPHER_TODO();
@@ -226,7 +226,7 @@ struct FieldData {
 
     bool operator>=(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+            throw std::runtime_error("Unable to compare between different field data types");
         switch (type) {
         case ARRAY:
             CYPHER_TODO();
