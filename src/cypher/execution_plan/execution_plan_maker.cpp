@@ -974,6 +974,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         ops.emplace_back(new Skip(std::get<0>(node->offset().value())));
     }
     std::vector<std::pair<int, bool>> order_by_items;
+    // TODO(lingsu): check whether the orderby key appears in the symbol table or return items,
+    // and GetField type should complement the return items
     for (auto order_by_field : node->orderBys()) {
         for (size_t i = 0; i < items.size(); ++i) {
             if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(order_by_field->field())) {
@@ -1002,7 +1004,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         }
     }
     if (order_by_items.size() != node->orderBys().size()) {
-        NOT_SUPPORT_WITH_MSG("Unknown order by field");
+        THROW_CODE(InputError, FMA_FMT("Unknown order by field"));
     }
     if (!order_by_items.empty()) {
         ops.emplace_back(new Sort(

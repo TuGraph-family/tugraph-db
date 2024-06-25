@@ -157,6 +157,10 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
         str += "IS NULL";
         return str;
     }
+    std::any visit(geax::frontend::Exists*) override {
+        std::string str("Exists Expr");
+        return str;
+    }
     std::any reportError() override { return error_msg_; }
 
  private:

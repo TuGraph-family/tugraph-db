@@ -22,6 +22,7 @@
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
+#include "lgraph/lgraph_exceptions.h"
 
 #ifndef DO_BINARY_EXPR
 #define DO_BINARY_EXPR(func)                                       \
@@ -259,7 +260,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Function* node) {
         }
         return Entry(it->second(ctx_, *record_, args));
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(InputError, FMA_FMT("Plugin [{}] does not exist.", func_name));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Case* node) {
@@ -524,6 +525,12 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::IsNull* node) {
     ret.type = FieldData::SCALAR;
     ret.scalar = ::lgraph::FieldData(e.IsNull());
     return Entry(ret);
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
+    auto path_chains = node->pathChains();
+    if (path_chains.size() > 1) NOT_SUPPORT_AND_THROW();
+    NOT_SUPPORT_AND_THROW();
 }
 
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
