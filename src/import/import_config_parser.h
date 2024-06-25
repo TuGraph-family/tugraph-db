@@ -960,7 +960,7 @@ class ImportConfParser {
                 cd.data_format = item["format"];
 
                 if (cd.data_format != "CSV" && cd.data_format != "JSON" &&
-                    cd.data_format != "GraphAr) {
+                    cd.data_format != "GraphAr") {
                     THROW_CODE(InputError,
                         "\"format\" value error : {}, should be CSV, JSON or GraphAr in json {}",
                                 cd.data_format, item.dump(4));
