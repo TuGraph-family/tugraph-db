@@ -100,8 +100,27 @@ class BuiltinProcedure {
     static void DbWarmUp(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbUpsertVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                               const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertEdge(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertVertexByJson(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertEdgeByJson(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbCreateVertexLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                     const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR &args, const VEC_STR &yield_items,
+                                          std::vector<Record> *records);
+
+    static void DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                          const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbGetLabelSchema(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records);
@@ -128,6 +147,10 @@ class BuiltinProcedure {
 
     static void DbAddVertexIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbAddVertexCompositeIndex(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR &args, const VEC_STR &yield_items,
+                                          std::vector<Record> *records);
 
     static void DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
@@ -331,10 +354,16 @@ class BuiltinProcedure {
     static void DbDeleteEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                              const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbDropDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                         const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbTaskListTasks(RTContext *ctx, const Record *record, const VEC_EXPR &args,
@@ -371,6 +400,12 @@ class AlgoFunc {
 
     static void Jaccard(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                         const VEC_STR &yield_items, std::vector<Record> *records);
+};
+
+class SpatialFunc {
+ public:
+    static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                          const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -481,7 +516,7 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
-                                  {"label_type", {1, lgraph_api::LGraphType::LIST}}},
+                                  {"label_type", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
@@ -494,6 +529,14 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.warmup", BuiltinProcedure::DbWarmUp, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"time_used", {0, lgraph_api::LGraphType::STRING}}}, true, true),
+
+    Procedure("db.createVertexLabelByJson", BuiltinProcedure::DbCreateVertexLabelByJson,
+              Procedure::SIG_SPEC{{"json_data", {0, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.createEdgeLabelByJson", BuiltinProcedure::DbCreateEdgeLabelByJson,
+              Procedure::SIG_SPEC{{"json_data", {0, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.createVertexLabel", BuiltinProcedure::DbCreateVertexLabel,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
@@ -551,6 +594,58 @@ static std::vector<Procedure> global_procedures = {
               },
               false, true),
 
+    Procedure("db.upsertVertex", BuiltinProcedure::DbUpsertVertex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    Procedure("db.upsertVertexByJson", BuiltinProcedure::DbUpsertVertexByJson,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    Procedure("db.upsertEdge", BuiltinProcedure::DbUpsertEdge,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"start_spec", {1, lgraph_api::LGraphType::STRING}},
+                                  {"end_spec", {2, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {3, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    Procedure("db.upsertEdgeByJson", BuiltinProcedure::DbUpsertEdgeByJson,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"start_spec", {1, lgraph_api::LGraphType::STRING}},
+                                  {"end_spec", {2, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {3, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
     Procedure("db.alterLabelModFields", BuiltinProcedure::DbAlterLabelModFields,
               Procedure::SIG_SPEC{{"label_type", {0, lgraph_api::LGraphType::STRING}},
                                   {"label_name", {1, lgraph_api::LGraphType::STRING}},
@@ -568,6 +663,12 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.addIndex", BuiltinProcedure::DbAddVertexIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.addVertexCompositeIndex", BuiltinProcedure::DbAddVertexCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_names", {1, lgraph_api::LGraphType::LIST}},
                                   {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
@@ -790,6 +891,12 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{
                   {"similarity", {0, lgraph_api::LGraphType::FLOAT}},
               }),
+    // spatial
+    Procedure("spatial.distance", SpatialFunc::Distance,
+              Procedure::SIG_SPEC{
+                 {"Spatial1", {0, lgraph_api::LGraphType::STRING}},
+                 {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
+              Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},
@@ -957,10 +1064,18 @@ static std::vector<Procedure> global_procedures = {
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
+    Procedure("db.deleteCompositeIndex", BuiltinProcedure::DbDeleteCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_name", {1, lgraph_api::LGraphType::LIST}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
     Procedure("db.flushDB", BuiltinProcedure::DbFlushDB, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.dropDB", BuiltinProcedure::DbDropDB, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.dropAllVertex", BuiltinProcedure::DbDropAllVertex, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("dbms.task.listTasks", BuiltinProcedure::DbTaskListTasks, Procedure::SIG_SPEC{},

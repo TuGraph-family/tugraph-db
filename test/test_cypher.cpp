@@ -67,6 +67,7 @@ int test_file_script(const std::string &file, cypher::RTContext *ctx) {
         for (auto &p : s.parts) p.symbol_table.DumpTable();
     }
     cypher::ExecutionPlan execution_plan;
+    execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
     execution_plan.Build(stmt, visitor.CommandType(), ctx);
     execution_plan.Validate(ctx);
     execution_plan.DumpGraph();
@@ -92,6 +93,7 @@ int test_interactive(cypher::RTContext *ctx) {
             parser.addErrorListener(&CypherErrorListener::INSTANCE);
             visitor.visit(parser.oC_Cypher());
             cypher::ExecutionPlan execution_plan;
+            execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
             execution_plan.Validate(ctx);
             execution_plan.Execute(ctx);
@@ -116,6 +118,7 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
+        execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         execution_plan.Validate(ctx);
         execution_plan.DumpGraph();
@@ -179,6 +182,27 @@ int test_find(cypher::RTContext *ctx) {
     }
     eval_scripts_check(ctx, scripts, check);
     return 0;
+}
+
+void test_invalid_schema(cypher::RTContext *ctx) {
+    std::string cypher;
+    cypher = "MATCH (n:Person_x {name:'Vanessa Redgrave'})-[:ACTED_IN]->(m) RETURN n,m.title";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n:Person {name_x:'Vanessa Redgrave'})-[:ACTED_IN]->(m) RETURN n,m.title";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n:Person {name:'Vanessa Redgrave'})-[:ACTED_IN_x]->(m) RETURN n,m.title";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n)<-[relatedTo]-(vanessa:Person_x {name:'Vanessa'}) RETURN n,relatedTo";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (n)<-[relatedTo]-(vanessa:Person {name_x:'Vanessa'}) RETURN n,relatedTo";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "CREATE (:City {name:'Shanghai'}), (:City_x {name:'Zhongshan'})";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "CREATE (:City {name_x:'Shanghai'}), (:City {name:'Zhongshan'})";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
+    cypher = "MATCH (c {name:'Houston'}) WITH c "
+        "MATCH (p:Person {name:'Liam Neeson'}) CREATE (c)-[:HAS_CHILD_x]->(p)";
+    UT_EXPECT_THROW_MSG(eval_script(ctx, cypher), "No such")
 }
 
 int test_query(cypher::RTContext *ctx) {
@@ -745,7 +769,8 @@ int test_expression(cypher::RTContext *ctx) {
         {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[]->(:Person)) /*true*/", 1},
         {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[]->(:City)) /*false*/", 1},
         {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:MARRIED]->()) /*true*/", 1},
-        {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:NO_TYPE]->()) /*false*/", 1},
+        // TODO(botu.wzy)
+        // {"MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:NO_TYPE]->()) /*false*/", 1},
         {"MATCH (n {name:'Rachel Kempson'}),(m {name:'Liam Neeson'}) RETURN exists((n)-[]->(m)) "
          "/*false*/",
          1},
@@ -839,6 +864,29 @@ int test_expression(cypher::RTContext *ctx) {
         {"RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, "
          "'second'), datetimeComponent(1582705717000, 'microsecond')",
          1},
+        {"RETURN point('0101000020E6100000000000000000F03F0000000000000040') as p3", 1},
+        {"RETURN linestring('0102000020231C000003000000000000000000000000000000000000000"
+                            "00000000000004000000000000000400000000000000840000000000000F03F')", 1},
+        {"RETURN polygon('0103000020E6100000010000000500000000000000000000000000000000"
+                         "00000000000000000000000000000000001C400000000000001040000000000000"
+                         "00400000000000000040000000000000000000000000000000000000000000000000')"
+                         , 1},
+        {"RETURN point(1.0, 2.0, 4326)", 1},   // (p1, p2), srid
+        {"RETURN point(3.0, 1.0, 7203)", 1},
+        {"RETURN point(2.32, 4.96)", 1},
+        {"WITH point(1, 1, 4326) AS p1, point(1, 1, 4326) AS p2 RETURN p1 = p2", 1},
+        {"RETURN pointwkb('0101000000000000000000F03F0000000000000040'), 4326", 1},
+        {"RETURN pointwkt('POINT(1.0 1.0)'), 7203", 1},
+        {"RETURN pointwkb('0101000000000000000000F03F0000000000000040')", 1},
+        {"RETURN pointwkt('POINT(1.0 1.0)')", 1},
+        {"RETURN linestringwkb('01020000000300000000000000000000000000000000"
+        "000000000000000000004000000000000000400000000000000840000000000000F03F', 7203)",
+        1},
+        {"RETURN linestringwkt('LINESTRING(0 0,2 2,3 1)', 7203)", 1},
+        {"RETURN polygonwkb('0103000000010000000500000000000000000000000000000000000000000"
+        "00000000000000000000000001C4000000000000010400000000000000040"
+        "0000000000000040000000000000000000000000000000000000000000000000', 4326)", 1},
+        {"RETURN polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))', 7203)", 1},
     };
     std::vector<std::string> scripts;
     std::vector<int> check;
@@ -1326,8 +1374,12 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL algo.shortestPath(n1,n2,{maxHops:3}) YIELD nodeCount RETURN n2.name,nodeCount /* 2 "
         "results */",
         "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
-        "CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost "
-        "RETURN nodeCount,totalCost /* 3,2.0 */",
+        "CALL algo.shortestPath(n1,n2,{relationshipQuery:[{label:'HAS_CHILD'}]}) "
+        "YIELD nodeCount,totalCost"
+        " RETURN nodeCount,totalCost /* 3,2.0 */",
+        "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
+        "CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost"
+        " RETURN nodeCount,totalCost /* 3,2.0 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'London'})\n"
         "CALL algo.allShortestPaths(n1,n2) YIELD nodeIds,cost RETURN nodeIds,cost /* 2 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'Liam Neeson'})\n"
@@ -1769,17 +1821,17 @@ int test_create_label(cypher::RTContext *ctx) {
         "CALL db.createLabel('edge', 'WROTE_MUSIC_FOR', '[]')",
         "CALL db.createLabel('edge', 'ACTED_IN', '[]', ['charactername', string, true])",
         R"(
-CREATE (rachel:Person:Actor {name: 'Rachel Kempson', birthyear: 1910})
-CREATE (michael:Person:Actor {name: 'Michael Redgrave', birthyear: 1908})
-CREATE (vanessa:Person:Actor {name: 'Vanessa Redgrave', birthyear: 1937})
-CREATE (corin:Person:Actor {name: 'Corin Redgrave', birthyear: 1939})
-CREATE (liam:Person:Actor {name: 'Liam Neeson', birthyear: 1952})
-CREATE (natasha:Person:Actor {name: 'Natasha Richardson', birthyear: 1963})
-CREATE (richard:Person:Actor {name: 'Richard Harris', birthyear: 1930})
-CREATE (dennis:Person:Actor {name: 'Dennis Quaid', birthyear: 1954})
-CREATE (lindsay:Person:Actor {name: 'Lindsay Lohan', birthyear: 1986})
-CREATE (jemma:Person:Actor {name: 'Jemma Redgrave', birthyear: 1965})
-CREATE (roy:Person:Actor {name: 'Roy Redgrave', birthyear: 1873})
+CREATE (rachel:Person {name: 'Rachel Kempson', birthyear: 1910})
+CREATE (michael:Person {name: 'Michael Redgrave', birthyear: 1908})
+CREATE (vanessa:Person {name: 'Vanessa Redgrave', birthyear: 1937})
+CREATE (corin:Person {name: 'Corin Redgrave', birthyear: 1939})
+CREATE (liam:Person {name: 'Liam Neeson', birthyear: 1952})
+CREATE (natasha:Person {name: 'Natasha Richardson', birthyear: 1963})
+CREATE (richard:Person {name: 'Richard Harris', birthyear: 1930})
+CREATE (dennis:Person {name: 'Dennis Quaid', birthyear: 1954})
+CREATE (lindsay:Person {name: 'Lindsay Lohan', birthyear: 1986})
+CREATE (jemma:Person {name: 'Jemma Redgrave', birthyear: 1965})
+CREATE (roy:Person {name: 'Roy Redgrave', birthyear: 1873})
 
 CREATE (john:Person {name: 'John Williams', birthyear: 1932})
 CREATE (christopher:Person {name: 'Christopher Nolan', birthyear: 1970})
@@ -1846,17 +1898,17 @@ int test_create_yago(cypher::RTContext *ctx) {
         "CALL db.createEdgeLabel('WROTE_MUSIC_FOR', '[]')",
         "CALL db.createEdgeLabel('ACTED_IN', '[]', 'charactername', STRING, false)",
         R"(
-CREATE (rachel:Person:Actor {name: 'Rachel Kempson', birthyear: 1910})
-CREATE (michael:Person:Actor {name: 'Michael Redgrave', birthyear: 1908})
-CREATE (vanessa:Person:Actor {name: 'Vanessa Redgrave', birthyear: 1937})
-CREATE (corin:Person:Actor {name: 'Corin Redgrave', birthyear: 1939})
-CREATE (liam:Person:Actor {name: 'Liam Neeson', birthyear: 1952})
-CREATE (natasha:Person:Actor {name: 'Natasha Richardson', birthyear: 1963})
-CREATE (richard:Person:Actor {name: 'Richard Harris', birthyear: 1930})
-CREATE (dennis:Person:Actor {name: 'Dennis Quaid', birthyear: 1954})
-CREATE (lindsay:Person:Actor {name: 'Lindsay Lohan', birthyear: 1986})
-CREATE (jemma:Person:Actor {name: 'Jemma Redgrave', birthyear: 1965})
-CREATE (roy:Person:Actor {name: 'Roy Redgrave', birthyear: 1873})
+CREATE (rachel:Person {name: 'Rachel Kempson', birthyear: 1910})
+CREATE (michael:Person {name: 'Michael Redgrave', birthyear: 1908})
+CREATE (vanessa:Person {name: 'Vanessa Redgrave', birthyear: 1937})
+CREATE (corin:Person {name: 'Corin Redgrave', birthyear: 1939})
+CREATE (liam:Person {name: 'Liam Neeson', birthyear: 1952})
+CREATE (natasha:Person {name: 'Natasha Richardson', birthyear: 1963})
+CREATE (richard:Person {name: 'Richard Harris', birthyear: 1930})
+CREATE (dennis:Person {name: 'Dennis Quaid', birthyear: 1954})
+CREATE (lindsay:Person {name: 'Lindsay Lohan', birthyear: 1986})
+CREATE (jemma:Person {name: 'Jemma Redgrave', birthyear: 1965})
+CREATE (roy:Person {name: 'Roy Redgrave', birthyear: 1873})
 
 CREATE (john:Person {name: 'John Williams', birthyear: 1932})
 CREATE (christopher:Person {name: 'Christopher Nolan', birthyear: 1970})
@@ -1999,13 +2051,19 @@ CREATE (e)-[:ROAD {cost:40}]->(f);
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN value",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
-        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
         "sum(value) AS score",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
         "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
+        "UNWIND relationshipIds AS rid\n"
+        "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
+        "sum(value) AS score",
+        "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds,cost WITH nodeIds,relationshipIds,cost\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value WITH nodeIds, "
@@ -2114,11 +2172,14 @@ int test_opt(cypher::RTContext *ctx) {
         {"MATCH ()-[r]->(:Person) RETURN count(r) /* 11 */", 1},
         {"MATCH ()-[r]->(:Film) RETURN count(r) /* 11 */", 1},
         {"MATCH (:Person)-[r]->(:Film) RETURN count(r) /* 11 */", 1},
-        {"MATCH (:Person)-[r]->(:NO_LABEL) RETURN count(r) /* 0 */", 1},
+        // TODO(botu.wzy)
+        // {"MATCH (:Person)-[r]->(:NO_LABEL) RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED]->() RETURN count(r) /* 4 */", 1},
-        {"MATCH ()-[r:NO_LABEL]->() RETURN count(r) /* 0 */", 1},
+        // TODO(botu.wzy)
+        // {"MATCH ()-[r:NO_LABEL]->() RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]->() RETURN count(r) /* 10 */", 1},
-        {"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]->() RETURN count(r) /* 10 */", 1},
+        // TODO(botu.wzy)
+        // {"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]->() RETURN count(r) /* 10 */", 1},
         {"MATCH (:Person)-[r:MARRIED|BORN_IN]->() RETURN count(r) /* 10 */", 1},
         {"MATCH (:City)-[r:MARRIED|BORN_IN]->() RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]->(:Person) RETURN count(r) /* 4 */", 1},
@@ -2133,11 +2194,14 @@ int test_opt(cypher::RTContext *ctx) {
         {"MATCH ()-[r]-(:Person) RETURN count(r) /* 39 */", 1},
         {"MATCH ()-[r]-(:Film) RETURN count(r) /* 11 */", 1},
         {"MATCH (:Person)-[r]-(:Film) RETURN count(r) /* 11 */", 1},
-        {"MATCH (:Person)-[r]-(:NO_LABEL) RETURN count(r) /* 0 */", 1},
+        // TODO(botu.wzy)
+        // {"MATCH (:Person)-[r]-(:NO_LABEL) RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED]-() RETURN count(r) /* 8 */", 1},
-        {"MATCH ()-[r:NO_LABEL]-() RETURN count(r) /* 0 */", 1},
+        // TODO(botu.wzy)
+        // {"MATCH ()-[r:NO_LABEL]-() RETURN count(r) /* 0 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]-() RETURN count(r) /* 20 */", 1},
-        {"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]-() RETURN count(r) /* 20 */", 1},
+        // TODO(botu.wzy)
+        // {"MATCH ()-[r:MARRIED|BORN_IN|NO_LABEL]-() RETURN count(r) /* 20 */", 1},
         {"MATCH (:Person)-[r:MARRIED|BORN_IN]-() RETURN count(r) /* 14 */", 1},
         {"MATCH (:City)-[r:MARRIED|BORN_IN]-() RETURN count(r) /* 6 */", 1},
         {"MATCH ()-[r:MARRIED|BORN_IN]-(:Person) RETURN count(r) /* 14 */", 1},
@@ -2384,6 +2448,50 @@ void debug_stack_chaos(cypher::RTContext *ctx) {
     txn.Abort();
 }
 
+int test_spatial_procedure(cypher::RTContext *ctx) {
+    static const std::vector<std::string> scripts_ = {
+    "CALL db.createVertexLabel('Location', 'name', 'name', STRING, false, 'geo', POINT, false)",
+    "CREATE (a_:Location {name:'A_', geo: POINT(1.0, 2.0)})",
+    "CREATE (b_:Location {name:'B_', geo: POINT(1.0, 2.0)})",
+    "CALL db.createVertexLabel"
+    "('Location_', 'name', 'name', STRING, false, 'geo1', LINESTRING, false,"
+    "'geo2', POLYGON, false)",
+    "CREATE (c_:Location_ "
+    "{name:'C_', geo1: LINESTRING('0102000020E6100000030000000000000000000000000"
+    "0000000000000000000000000004000000000000000400000000000000840000000000000F03F'), "
+    "geo2: polygonwkt('POLYGON((0 0,0 7,4 2,2 0,0 0))')})"
+    };
+    eval_scripts(ctx, scripts_);
+
+    static const std::vector<std::pair<std::string, int>> script_check = {
+    {"with point(2.0, 2.0, 7203) as p1, point(2.0, 1.0, 7203) as p2\n"
+     "CALL spatial.distance(p1, p2) YIELD distance RETURN distance = 1", 1},
+    {"with LineStringWKB('01020000000300000000000000000000000000000000"
+     "000000000000000000004000000000000000400000000000000840000000000000F03F') "
+     "as linestring, "
+     "PolygonWKT('POLYGON((0 0,0 7,4 2,2 0,0 0))', 4326) as polygon\n"
+     "CALL spatial.distance(linestring, polygon) YIELD distance RETURN distance = 0", 1},
+    {"MATCH (l1:Location {name:'A_'}), (l2:Location {name:'B_'}) with\n"
+     "l1.geo as g1, l2.geo as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance = 0", 1},
+    {"MATCH (l2:Location {name:'B_'}), (l3:Location_ {name:'C_'}) with\n"
+     "l2.geo as g2, l3.geo2 as g3\n"
+     "CALL spatial.distance(g2, g3) YIELD distance RETURN distance = 0", 1},
+    {"MATCH (l1:Location_ {name:'C_'}) with\n"
+     "l1.geo1 as g1, l1.geo2 as g2\n"
+     "CALL spatial.distance(g1, g2) YIELD distance RETURN distance = 0", 1},
+    };
+    std::vector<std::string> scripts;
+    std::vector<int> check;
+    for (auto &s : script_check) {
+        scripts.emplace_back(s.first);
+        check.emplace_back(s.second);
+    }
+    eval_scripts_check(ctx, scripts, check);
+
+    return 0;
+}
+
 enum TestCase {
     TC_FILE_SCRIPT = 1,
     TC_INTERACTIVE = 2,
@@ -2417,6 +2525,7 @@ enum TestCase {
     TC_AGGREGATE,
     TC_ALGO,
     TC_TOPN,
+    TC_SPATIAL_PROCEDURE,
     TC_ERROR_REPORT = 201,
     TC_DEBUG_STACK_CHAOS,
     TC_LDBC_SNB = 301,
@@ -2426,6 +2535,7 @@ enum TestCase {
     TC_CREATE_LABEL = 404,
     TC_READONLY = 500,
     TC_EDGE_ID = 501,
+    TC_INVALID_SCHEMA = 502,
     TC_EMPTY_GRAPH = 700,
 };
 
@@ -2451,16 +2561,17 @@ TEST_P(TestCypher, Cypher) {
         "{}-list-comprehension"
         " {}-profile; {}-unwind; {}-procedure; {}-add; {}-set; {}-del; {}-remove; {}-order by; "
         "{}-merge;"
-        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-error report; {}-snb; "
-        "{}-optimization; {}-fix_crash_issues;"
+        " {}-create yago; {}-aggregate; {}-algo; {}-topn; {}-spatial_procedure; "
+        "{}-error report; {}-snb; {}-optimization; {}-fix_crash_issues;"
         " {}-undefined_variable; {}-create_label; {}-determine_read_only; {}-edge_id_query;"
         " {}-empty_graph;",
         TC_FILE_SCRIPT, TC_INTERACTIVE, TC_FIND, TC_QUERY, TC_HINT, TC_MULTI_MATCH,
         TC_OPTIONAL_MATCH, TC_UNION, TC_FUNCTION, TC_PARAMETER, TC_VAR_LEN_EDGE, TC_UNIQUENESS,
         TC_FUNC_FILTER, TC_EXPRESSION, TC_WITH, TC_LIST_COMPREHENSION, TC_PROFILE, TC_UNWIND,
         TC_PROCEDURE, TC_ADD, TC_SET, TC_DELETE, TC_REMOVE, TC_ORDER_BY, TC_MERGE, TC_CREATE_YAGO,
-        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT, TC_FIX_CRASH_ISSUES,
-        TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID, TC_EMPTY_GRAPH);
+        TC_AGGREGATE, TC_ALGO, TC_TOPN, TC_SPATIAL_PROCEDURE, TC_ERROR_REPORT, TC_LDBC_SNB, TC_OPT,
+        TC_FIX_CRASH_ISSUES, TC_UNDEFINED_VAR, TC_CREATE_LABEL, TC_READONLY, TC_EDGE_ID,
+        TC_EMPTY_GRAPH);
     test_case = GetParam().tc;
     database = GetParam().d;
     int argc = _ut_argc;
@@ -2577,6 +2688,9 @@ TEST_P(TestCypher, Cypher) {
             case TC_TOPN:
                 test_topn(&db);
                 break;
+            case TC_SPATIAL_PROCEDURE:
+                test_spatial_procedure(&db);
+                break;
             case TC_MERGE:
                 test_merge(&db);
                 break;
@@ -2610,6 +2724,9 @@ TEST_P(TestCypher, Cypher) {
             case TC_EMPTY_GRAPH:
                 TestCypherEmptyGraph(&db);
                 break;
+            case TC_INVALID_SCHEMA:
+                test_invalid_schema(&db);
+                break;
             default:
                 break;
         }
@@ -2628,6 +2745,6 @@ INSTANTIATE_TEST_CASE_P(
            ParamCypher{15, 1}, ParamCypher{16, 1}, ParamCypher{18, 1}, ParamCypher{101, 1},
            ParamCypher{102, 1}, ParamCypher{103, 1}, ParamCypher{104, 2}, ParamCypher{105, 2},
            ParamCypher{106, 1}, ParamCypher{107, 1}, ParamCypher{108, 2}, ParamCypher{109, 2},
-           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{301, 2},
-           ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1}, ParamCypher{404, 2},
-           ParamCypher{500, 0}, ParamCypher{501, 1}));
+           ParamCypher{110, 2}, ParamCypher{111, 2}, ParamCypher{112, 1}, ParamCypher{113, 1},
+           ParamCypher{301, 2}, ParamCypher{401, 1}, ParamCypher{402, 1}, ParamCypher{403, 1},
+           ParamCypher{404, 2}, ParamCypher{500, 0}, ParamCypher{501, 1}, ParamCypher{502, 1}));

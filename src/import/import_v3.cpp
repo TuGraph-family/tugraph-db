@@ -41,7 +41,7 @@ void Importer::OnErrorOffline(const std::string& msg) {
     LOG_WARN() << msg;
     if (!config_.continue_on_error) {
         LOG_WARN() << "If you wish to ignore the errors, use "
-                     "--continue_on_error true";
+                      "--continue_on_error true";
         if (!config_.import_online) {
             exit(-1);
         } else {
@@ -109,15 +109,14 @@ void Importer::DoImportOffline() {
         bool ok = db_->AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
             if (!config_.import_online) {
-                LOG_INFO() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge",
-                                     v.name);
+                LOG_INFO() << FMA_FMT("Add {} label:{}", v.is_vertex ? "vertex" : "edge", v.name);
             } else {
-                online_full_import_oss << FMA_FMT("Add {} label:{}\n",
-                                                  v.is_vertex ? "vertex" : "edge", v.name);
+                online_full_import_oss
+                    << FMA_FMT("Add {} label:{}\n", v.is_vertex ? "vertex" : "edge", v.name);
             }
         } else {
-            THROW_CODE(InputError,
-                "{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name);
+            THROW_CODE(InputError, "{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge",
+                       v.name);
         }
         auto lid = db_->CreateReadTxn().GetLabelId(v.is_vertex, v.name);
         if (v.is_vertex) {
@@ -152,63 +151,69 @@ void Importer::DoImportOffline() {
                     // create index, ID column has creadted
                     if (db_->AddVertexIndex(v.name, spec.name, spec.idxType)) {
                         if (!config_.import_online) {
-                            LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
-                                                 v.name, spec.name, static_cast<int>(spec.idxType));
+                            LOG_INFO()
+                                << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]", v.name,
+                                           spec.name, static_cast<int>(spec.idxType));
                         } else {
-                            online_full_import_oss << FMA_FMT("Add vertex index [label:{}, "
-                                "field:{}, type:{}]\n", v.name, spec.name,
-                                static_cast<int>(spec.idxType));
+                            online_full_import_oss << FMA_FMT(
+                                "Add vertex index [label:{}, "
+                                "field:{}, type:{}]\n",
+                                v.name, spec.name, static_cast<int>(spec.idxType));
                         }
                     } else {
-                        THROW_CODE(InputError,
-                            "Vertex index [label:{}, field:{}] already exists",
-                                    v.name, spec.name);
+                        THROW_CODE(InputError, "Vertex index [label:{}, field:{}] already exists",
+                                   v.name, spec.name);
                     }
                 } else if (v.is_vertex && spec.index && !spec.primary &&
-                           (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
-                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
+                           spec.idxType != lgraph::IndexType::NonuniqueIndex) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
-                                "index [label:{}, field:{}]. You should create an index for "
-                                "an attribute column after the import is complete",
-                                v.name, spec.name);
+                               "offline import does not support to create a unique "
+                               "index [label:{}, field:{}]. You should create an index for "
+                               "an attribute column after the import is complete",
+                               v.name, spec.name);
                 } else if (!v.is_vertex && spec.index &&
-                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                           (spec.idxType == lgraph::IndexType::NonuniqueIndex ||
+                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                         if (!config_.import_online) {
-                            LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
-                                                 v.name, spec.name, static_cast<int>(spec.idxType));
+                            LOG_INFO()
+                                << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]", v.name,
+                                           spec.name, static_cast<int>(spec.idxType));
                         } else {
-                            online_full_import_oss << FMA_FMT("Add edge index [label:{}, field:{},"
-                                " type:{}]\n", v.name, spec.name, static_cast<int>(spec.idxType));
+                            online_full_import_oss << FMA_FMT(
+                                "Add edge index [label:{}, field:{},"
+                                " type:{}]\n",
+                                v.name, spec.name, static_cast<int>(spec.idxType));
                         }
                     } else {
-                        THROW_CODE(InputError,
-                            "Edge index [label:{}, field:{}] already exists",
-                                    v.name, spec.name);
+                        THROW_CODE(InputError, "Edge index [label:{}, field:{}] already exists",
+                                   v.name, spec.name);
                     }
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
-                                "index [label:{}, field:{}]. You should create an index for "
-                                "an attribute column after the import is complete",
-                                v.name, spec.name);
+                               "offline import does not support to create an unique "
+                               "index [label:{}, field:{}]. You should create an index for "
+                               "an attribute column after the import is complete",
+                               v.name, spec.name);
                 }
                 if (spec.fulltext) {
                     bool ok = db_->AddFullTextIndex(v.is_vertex, v.name, spec.name);
                     if (ok) {
                         if (!config_.import_online) {
-                            LOG_INFO() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
-                                         v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                            LOG_INFO()
+                                << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
+                                           v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                         } else {
-                            online_full_import_oss << FMA_FMT("Add fulltext index [{} label:{}, "
-                                "field:{}]\n", v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                            online_full_import_oss << FMA_FMT(
+                                "Add fulltext index [{} label:{}, "
+                                "field:{}]\n",
+                                v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                         }
                     } else {
                         THROW_CODE(InputError,
-                            "Fulltext index [{} label:{}, field:{}] already exists",
-                            v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                                   "Fulltext index [{} label:{}, field:{}] already exists",
+                                   v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     }
                 }
             }
@@ -265,7 +270,7 @@ void Importer::VertexDataToSST() {
         if (!file.is_vertex_file) {
             continue;
         }
-        boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, &file](){
+        boost::asio::post(*parse_file_threads_, [this, &blob_writer, &pending_tasks, &file]() {
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -505,8 +510,9 @@ void Importer::VertexDataToSST() {
         if (!config_.import_online) {
             LOG_INFO() << "vids CompactRange, time: " << fma_common::GetTime() - begin << "s";
         } else {
-            online_full_import_oss << "vids CompactRange, time: " +
-                   std::to_string(fma_common::GetTime() - begin) + "s\n";
+            online_full_import_oss
+                << "vids CompactRange, time: " + std::to_string(fma_common::GetTime() - begin) +
+                       "s\n";
         }
     }
 
@@ -552,9 +558,8 @@ void Importer::EdgeDataToSST() {
         if (file.is_vertex_file) {
             continue;
         }
-        boost::asio::post(*parse_file_threads_,
-                          [this, &file, &blob_writer, &pending_tasks,
-                           &sst_file_id, &unique_index_keys](){
+        boost::asio::post(*parse_file_threads_, [this, &file, &blob_writer, &pending_tasks,
+                                                 &sst_file_id, &unique_index_keys]() {
             try {
                 std::vector<FieldSpec> fts;
                 {
@@ -773,8 +778,8 @@ void Importer::EdgeDataToSST() {
                                     if (unique_index_col.IsString() &&
                                         unique_index_col.string().size() >
                                             lgraph::_detail::MAX_KEY_SIZE) {
-                                        OnErrorOffline("Unique index string key is too long: "
-                                                       + unique_index_col.string().substr(0, 1024));
+                                        OnErrorOffline("Unique index string key is too long: " +
+                                                       unique_index_col.string().substr(0, 1024));
                                         continue;
                                     }
                                     std::string unique_key;
@@ -1071,7 +1076,8 @@ void Importer::RocksdbToLmdb() {
         if (!config_.import_online) {
             exit(-1);
         } else {
-            throw std::runtime_error("no sst files are created, "
+            throw std::runtime_error(
+                "no sst files are created, "
                 "please check if the input vertex and edge files are valid");
         }
     }
@@ -1094,8 +1100,8 @@ void Importer::RocksdbToLmdb() {
         if (!config_.import_online) {
             LOG_INFO() << "CompactRange, time: " << fma_common::GetTime() - begin << "s";
         } else {
-            online_full_import_oss << "CompactRange, time: " +
-                                          std::to_string(fma_common::GetTime() - begin) + "s\n";
+            online_full_import_oss
+                << "CompactRange, time: " + std::to_string(fma_common::GetTime() - begin) + "s\n";
         }
     }
     if (!config_.keep_vid_in_memory) {
@@ -1156,41 +1162,42 @@ void Importer::RocksdbToLmdb() {
             EdgeId out_last_eid = -1, in_last_eid = -1;
             size_t total_size = 0;
             VertexId pre_vid = InvalidVid;
+            EdgeUid last_uid(-1, -1, 0, -1, -1);
 
-            auto throw_kvs_to_lmdb = [&lmdb_writer, &pending_tasks, this, &stage, i]
-                (std::vector<std::pair<Value, Value>> kvs,
-                 std::vector<std::tuple<LabelId, VertexId, Value>> v_property,
-                 std::vector<std::tuple<LabelId, EdgeUid, Value>> e_property){
-                while (stage != i || pending_tasks > 1) {
-                    fma_common::SleepUs(1000);
-                }
-                if (kvs.empty()) {
-                    return;
-                }
-                pending_tasks++;
-                boost::asio::post(*lmdb_writer, [this, &pending_tasks,
-                                                 kvs = std::move(kvs),
-                                                 v_property = std::move(v_property),
-                                                 e_property = std::move(e_property)]() {
-                    Transaction txn = db_->CreateWriteTxn();
-                    for (auto& kv : kvs) {
-                        txn.ImportAppendDataRaw(kv.first, kv.second);
+            auto throw_kvs_to_lmdb =
+                [&lmdb_writer, &pending_tasks, this, &stage, i](
+                    std::vector<std::pair<Value, Value>> kvs,
+                    std::vector<std::tuple<LabelId, VertexId, Value>> v_property,
+                    std::vector<std::tuple<LabelId, EdgeUid, Value>> e_property) {
+                    while (stage != i || pending_tasks > 1) {
+                        fma_common::SleepUs(1000);
                     }
-                    txn.RefreshNextVid();
-                    for (auto& pro : v_property) {
-                        auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), true));
-                        s->AddDetachedVertexProperty(
-                            txn.GetTxn(), std::get<1>(pro), std::get<2>(pro));
+                    if (kvs.empty()) {
+                        return;
                     }
-                    for (auto& pro : e_property) {
-                        auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), false));
-                        s->AddDetachedEdgeProperty(
-                            txn.GetTxn(), std::get<1>(pro), std::get<2>(pro));
-                    }
-                    txn.Commit();
-                    pending_tasks--;
-                });
-            };
+                    pending_tasks++;
+                    boost::asio::post(*lmdb_writer, [this, &pending_tasks, kvs = std::move(kvs),
+                                                     v_property = std::move(v_property),
+                                                     e_property = std::move(e_property)]() {
+                        Transaction txn = db_->CreateWriteTxn();
+                        for (auto& kv : kvs) {
+                            txn.ImportAppendDataRaw(kv.first, kv.second);
+                        }
+                        txn.RefreshNextVid();
+                        for (auto& pro : v_property) {
+                            auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), true));
+                            s->AddDetachedVertexProperty(txn.GetTxn(), std::get<1>(pro),
+                                                         std::get<2>(pro));
+                        }
+                        for (auto& pro : e_property) {
+                            auto s = (Schema*)(txn.GetSchema(std::get<0>(pro), false));
+                            s->AddDetachedEdgeProperty(txn.GetTxn(), std::get<1>(pro),
+                                                       std::get<2>(pro));
+                        }
+                        txn.Commit();
+                        pending_tasks--;
+                    });
+                };
             auto make_kvs = [&]() {
                 if (!split) {
                     lgraph::graph::VertexValue vov(GetConstRef(vdata));
@@ -1241,6 +1248,7 @@ void Importer::RocksdbToLmdb() {
                 in_last_dst = -1;
                 out_last_eid = -1;
                 in_last_eid = -1;
+                last_uid = {-1, -1, 0, -1, -1};
             };
 
             while (true) {
@@ -1314,18 +1322,13 @@ void Importer::RocksdbToLmdb() {
                                 uid.lid = labelId;
                                 uid.dst = vertexId;
                                 uid.tid = tid;
-                                if (edge_property.empty()) {
-                                    uid.eid = 0;
+                                if (last_uid.src == uid.src && last_uid.lid == uid.lid &&
+                                    last_uid.dst == uid.dst && last_uid.tid == uid.tid) {
+                                    uid.eid = last_uid.eid + 1;
                                 } else {
-                                    auto& last = edge_property.back();
-                                    if (std::get<1>(last).src == uid.src &&
-                                        std::get<1>(last).lid == uid.lid &&
-                                        std::get<1>(last).dst == uid.dst) {
-                                        uid.eid = std::get<1>(last).eid + 1;
-                                    } else {
-                                        uid.eid = 0;
-                                    }
+                                    uid.eid = 0;
                                 }
+                                last_uid = uid;
                                 edge_property.emplace_back(labelId, uid,
                                                            Value::MakeCopy(val.data(), val.size()));
                                 outs.emplace_back(labelId, tid, vertexId, import_v2::DenseString());
@@ -1403,8 +1406,8 @@ void Importer::RocksdbToLmdb() {
     if (!config_.import_online) {
         LOG_INFO() << "Dump rocksdb into lmdb, time: " << t2 - t1 << "s";
     } else {
-        online_full_import_oss << "Dump rocksdb into lmdb, time: " +
-                                      std::to_string(t2 - t1) + "s\n";
+        online_full_import_oss << "Dump rocksdb into lmdb, time: " + std::to_string(t2 - t1) +
+                                      "s\n";
     }
 }
 
@@ -1414,10 +1417,10 @@ void Importer::WriteCount() {
     }
     Transaction txn = db_->CreateWriteTxn();
     for (auto& pair : vertex_count_) {
-        txn.IncreaseCount(true, pair.first, pair.second);
+        txn.GetVertexDeltaCount()[pair.first] = pair.second;
     }
     for (auto& pair : edge_count_) {
-        txn.IncreaseCount(false, pair.first, pair.second);
+        txn.GetEdgeDeltaCount()[pair.first] = pair.second;
     }
     txn.Commit();
 }
@@ -1454,9 +1457,7 @@ AccessControlledDB Importer::OpenGraph(Galaxy& galaxy, bool empty_db) {
     return galaxy.OpenGraph(config_.user, config_.graph);
 }
 
-std::string Importer::OnlineFullImportLog() {
-    return online_full_import_oss.str();
-}
+std::string Importer::OnlineFullImportLog() { return online_full_import_oss.str(); }
 
 }  // namespace import_v3
 }  // namespace lgraph

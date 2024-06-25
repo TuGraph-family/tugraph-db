@@ -295,6 +295,70 @@ struct BuiltinFunction {
     static cypher::FieldData Mask(RTContext *ctx, const Record &record,
                                     const std::vector<ArithExprNode> &args);
 
+    /* spatial functions */
+    /**
+     * create point type data by point(double a, double b, srid(4326 in default))
+     * or point(EWKB);
+    */
+    static cypher::FieldData Point(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     * create point type data by pointwkb(wkb, srid(4326 in default)); 
+    */
+    static cypher::FieldData PointWKB(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     * create point type data by pointwkt(wkt, srid(4326 in default));
+    */
+    static cypher::FieldData PointWKT(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     * create linestring by LinieString(EKWB);
+    */
+    static cypher::FieldData LineString(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     *  create linestring by linestringwkb(wkb, srid(4326 in default)); 
+    */
+    static cypher::FieldData LineStringWKB(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     *  create linestring by linestringwkt(wkt, srid(4326 in default));
+    */
+    static cypher::FieldData LineStringWKT(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     *  create polygon by polygon(EWKB); 
+    */
+    static cypher::FieldData Polygon(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     *  create polygon by polygonwkb(wkb, srid(4326 in default)); 
+    */
+    static cypher::FieldData PolygonWKB(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    /**
+     *  create polygon by polygonwkt(wkt, srid(4326 in default)); 
+    */
+    static cypher::FieldData PolygonWKT(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+
+    static cypher::FieldData StartsWith(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData EndsWith(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Contains(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Regexp(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Exists(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -492,6 +556,22 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("mask", BuiltinFunction::Mask);
         ae_registered_funcs.emplace("bin", BuiltinFunction::Bin);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
+        /* spatial functions */
+        ae_registered_funcs.emplace("point", BuiltinFunction::Point);
+        ae_registered_funcs.emplace("pointwkb", BuiltinFunction::PointWKB);
+        ae_registered_funcs.emplace("pointwkt", BuiltinFunction::PointWKT);
+        ae_registered_funcs.emplace("linestring", BuiltinFunction::LineString);
+        ae_registered_funcs.emplace("linestringwkb", BuiltinFunction::LineStringWKB);
+        ae_registered_funcs.emplace("linestringwkt", BuiltinFunction::LineStringWKT);
+        ae_registered_funcs.emplace("polygon", BuiltinFunction::Polygon);
+        ae_registered_funcs.emplace("polygonwkb", BuiltinFunction::PolygonWKB);
+        ae_registered_funcs.emplace("polygonwkt", BuiltinFunction::PolygonWKT);
+        ae_registered_funcs.emplace("startswith", BuiltinFunction::StartsWith);
+        ae_registered_funcs.emplace("endswith", BuiltinFunction::EndsWith);
+        ae_registered_funcs.emplace("contains", BuiltinFunction::Contains);
+        ae_registered_funcs.emplace("regexp", BuiltinFunction::Regexp);
+        ae_registered_funcs.emplace("exists", BuiltinFunction::Exists);
+
         /* native API-like functions */
         ae_registered_funcs.emplace("native.getedgefield", BuiltinFunction::NativeGetEdgeField);
         /* internal functions */

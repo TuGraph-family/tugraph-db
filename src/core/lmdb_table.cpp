@@ -86,6 +86,26 @@ bool LMDBKvTable::HasKey(KvTransaction& txn, const Value& key) {
     return false;
 }
 
+bool LMDBKvTable::GetValue(KvTransaction& txn, const Value& key, Value& value) {
+    ThrowIfTaskKilled();
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    if (lmdb_txn.optimistic_) {
+        THROW_CODE(KvException, "GetValue does not support optimistic txn");
+    }
+    MDB_val val;
+    MDB_val k = key.MakeMdbVal();
+    int ec = mdb_get(lmdb_txn.GetTxn(), dbi_, &k, &val);
+    if (ec == MDB_SUCCESS) {
+        value.AssignConstRef((char*)val.mv_data + sizeof(size_t), val.mv_size - sizeof(size_t));
+        return true;
+    }
+    if (ec == MDB_NOTFOUND) {
+        return false;
+    }
+    THROW_ERR(ec);
+    return false;
+}
+
 Value LMDBKvTable::GetValue(KvTransaction& txn, const Value& key, bool for_update) {
     ThrowIfTaskKilled();
     auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);

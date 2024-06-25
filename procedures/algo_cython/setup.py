@@ -4,7 +4,7 @@ from Cython.Build import cythonize
 
 ext_modules = [
     Extension(
-        "pagerank", ['pagerank.py'],
+        "pagerank", ['pagerank_procedure.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
         include_dirs=["../../src", "../../include"],
@@ -12,7 +12,7 @@ ext_modules = [
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
     Extension(
-        "sssp", ['sssp.py'],
+        "sssp", ['sssp_procedure.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
         include_dirs=["../../src", "../../include"],
@@ -20,7 +20,7 @@ ext_modules = [
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
     Extension(
-        "wcc", ['wcc.py'],
+        "wcc", ['wcc_procedure.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
         include_dirs=["../../src", "../../include"],
@@ -28,7 +28,7 @@ ext_modules = [
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
     Extension(
-        "lpa", ['lpa.py'],
+        "lpa", ['lpa_procedure.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
         include_dirs=["../../src", "../../include"],
@@ -36,7 +36,7 @@ ext_modules = [
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
     Extension(
-        "lcc", ['lcc.py'],
+        "lcc", ['lcc_procedure.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
         include_dirs=["../../src", "../../include"],
@@ -44,7 +44,7 @@ ext_modules = [
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     ),
     Extension(
-        "bfs", ['bfs.py'],
+        "bfs", ['bfs_procedure.py'],
         libraries=['lgraph'],
         extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
         include_dirs=["../../src", "../../include"],

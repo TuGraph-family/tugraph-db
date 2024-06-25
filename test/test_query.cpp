@@ -167,10 +167,17 @@ class TestQuery : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             parser::CypherBaseVisitor visitor(ctx_.get(), parser.oC_Cypher());
+            LOG_INFO() << "-----CLAUSE TO STRING-----";
+            LOG_INFO() << visitor.GetQuery().size();
+            for (const auto &sql_query : visitor.GetQuery()) {
+                LOG_INFO() << sql_query.ToString();
+            }
             cypher::ExecutionPlan execution_plan;
+            execution_plan.PreValidate(ctx_.get(), visitor.GetNodeProperty(),
+                                       visitor.GetRelProperty());
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
             execution_plan.Validate(ctx_.get());
-            execution_plan.DumpGraph();
+            LOG_INFO() << execution_plan.DumpGraph();
             execution_plan.DumpPlan(0, false);
             execution_plan.Execute(ctx_.get());
             result = ctx_->result_->Dump(false);
@@ -368,5 +375,6 @@ TEST_F(TestQuery, TestCypherFinbench) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
     set_query_type(lgraph::ut::QUERY_TYPE::CYPHER);
     std::string dir = test_suite_dir_ + "/finbench/cypher";
+    lgraph::AccessControlledDB::SetEnablePlugin(true);
     test_files(dir);
 }

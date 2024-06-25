@@ -31,6 +31,7 @@ add_executable(unit_test
         test_cpp_procedure.cpp
         test_cppresetsdk_json.cpp
         test_cypher.cpp
+        test_cypher_v2.cpp
         test_cypher_plan.cpp
         test_data_type.cpp
         test_db_management_client.cpp
@@ -116,6 +117,7 @@ add_executable(unit_test
         test_vertex_index.cpp
         test_vid_table.cpp
         test_edge_constraint.cpp
+        test_upsert.cpp
         test_olap_vertex_traversal.cpp
         test_lgraph_log.cpp
         test_detach_property.cpp
@@ -128,6 +130,10 @@ add_executable(unit_test
         test_lgraph_cli.cpp
         test_ha_witness.cpp
         test_ha_full_import.cpp
+        test_del_detached_label.cpp
+        test_null_index.cpp
+        test_alter_detached_label.cpp
+        test_vertex_composite_index.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
         ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp

@@ -71,7 +71,7 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 auto dst_nid = graph.AddNode("", dst_alias, Node::ARGUMENT);
                 graph.AddRelationship(std::set<std::string>{}, src_nid, dst_nid,
                                       parser::LinkDirection::UNKNOWN, a.first,
-                                      Relationship::ARGUMENT);
+                                      Relationship::ARGUMENT, {});
                 auto &src_node = graph.GetNode(src_nid);
                 auto &dst_node = graph.GetNode(dst_nid);
                 src_node.Visited() = true;
@@ -1291,6 +1291,46 @@ void ExecutionPlan::Build(const std::vector<parser::SglQuery> &stmt, parser::Cmd
     pass_manager.ExecutePasses();
 }
 
+void ExecutionPlan::PreValidate(
+    cypher::RTContext *ctx,
+    const std::unordered_map<std::string, std::set<std::string>>& node,
+    const std::unordered_map<std::string, std::set<std::string>>& edge) {
+    if (node.empty() && edge.empty()) {
+        return;
+    }
+    if (ctx->graph_.empty()) {
+        return;
+    }
+    auto graph = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    auto txn = graph.CreateReadTxn();
+    const auto& si = txn.GetSchemaInfo();
+    for (const auto& pair : node) {
+        auto s = si.v_schema_manager.GetSchema(pair.first);
+        if (!s) {
+            THROW_CODE(CypherException, "No such vertex label: {}", pair.first);
+        }
+        for (const auto& name : pair.second) {
+            size_t fid;
+            if (!s->TryGetFieldId(name, fid)) {
+                THROW_CODE(CypherException, "No such vertex property: {}.{}", pair.first, name);
+            }
+        }
+    }
+    for (const auto& pair : edge) {
+        auto s = si.e_schema_manager.GetSchema(pair.first);
+        if (!s) {
+            THROW_CODE(CypherException, "No such edge label: {}", pair.first);
+        }
+        for (const auto& name : pair.second) {
+            size_t fid;
+            if (!s->TryGetFieldId(name, fid)) {
+                THROW_CODE(CypherException, "No such edge property: {}.{}", pair.first, name);
+            }
+        }
+    }
+    txn.Abort();
+}
+
 void ExecutionPlan::Validate(cypher::RTContext *ctx) {
     // todo(kehuang): Add validation manager here.
     GraphNameChecker checker(_root, ctx);
@@ -1368,6 +1408,7 @@ int ExecutionPlan::Execute(RTContext *ctx) {
         ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
         auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
         session->state = bolt::SessionState::STREAMING;
+        ctx->result_->MarkPythonDriver(session->python_driver);
     }
 
     try {
@@ -1414,7 +1455,9 @@ int ExecutionPlan::Execute(RTContext *ctx) {
 const ResultInfo &ExecutionPlan::GetResultInfo() const { return _result_info; }
 
 std::string ExecutionPlan::DumpPlan(int indent, bool statistics) const {
-    std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
+    std::string s;
+    s.append(FMA_FMT("ReadOnly:{}\n", ReadOnly()));
+    s.append(statistics ? "Profile statistics:\n" : "Execution Plan:\n");
     OpBase::DumpStream(_root, indent, statistics, s);
     return s;
 }

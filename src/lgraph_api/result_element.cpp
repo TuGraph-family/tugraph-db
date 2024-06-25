@@ -52,6 +52,9 @@ bolt::Node Node::ToBolt() {
 }
 
 nlohmann::json Relationship::ToJson() {
+    if (id == -1) {
+        return json("__null__");;
+    }
     json result;
     std::map<std::string, json> j_properties;
     result["identity"] = id;
@@ -72,9 +75,13 @@ nlohmann::json Relationship::ToJson() {
     return result;
 }
 
-bolt::RelNode Relationship::ToBoltUnbound() {
+bolt::RelNode Relationship::ToBoltUnbound(int64_t* v_eid) {
     bolt::RelNode rel;
-    rel.id = id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.name = label;
     for (auto &pair : properties) {
         rel.props.emplace(pair.first, pair.second.ToBolt());
@@ -82,9 +89,13 @@ bolt::RelNode Relationship::ToBoltUnbound() {
     return rel;
 }
 
-bolt::Relationship Relationship::ToBolt() {
+bolt::Relationship Relationship::ToBolt(int64_t* v_eid) {
     bolt::Relationship rel;
-    rel.id = id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.startId = src;
     rel.endId = dst;
     rel.type = label;
@@ -357,7 +368,7 @@ json ResultElement::ToJson() {
     return result;
 }
 
-std::any ResultElement::ToBolt() {
+std::any ResultElement::ToBolt(int64_t* v_eid) {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
@@ -409,9 +420,17 @@ std::any ResultElement::ToBolt() {
         }
         return ret;*/
     } else if (type_ == LGraphType::NODE) {
-        return v.node->ToBolt();
+        if (v.node->id == -1) {
+            return {};
+        } else {
+            return v.node->ToBolt();
+        }
     } else if (type_ == LGraphType::RELATIONSHIP) {
-        return v.repl->ToBolt();
+        if (v.repl->id == -1) {
+            return {};
+        } else {
+            return v.repl->ToBolt(v_eid);
+        }
     } else if (type_ == LGraphType::PATH) {
         bolt::InternalPath path;
         for (size_t i = 0; i < v.path->size(); i++) {
@@ -419,7 +438,8 @@ std::any ResultElement::ToBolt() {
             if (p.type_ == LGraphType::NODE) {
                 path.nodes.push_back(p.v.node->ToBolt());
             } else {
-                path.rels.push_back(p.v.repl->ToBoltUnbound());
+                // The neo4j python client checks the uniqueness of the edge id.
+                path.rels.push_back(p.v.repl->ToBoltUnbound(v_eid));
             }
             if (i >= 1) {
                 if (i%2 == 1) {

@@ -27,6 +27,8 @@
 #include "procedure/procedure.h"
 #include "core/defs.h"
 #include "db/galaxy.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
+#include "cypher/filter/filter.h"
 
 #if __APPLE__
 #ifdef TRUE
@@ -52,7 +54,9 @@ class CypherBaseVisitor : public LcypherVisitor {
     std::string _curr_procedure_name;
     /* alias carry between query parts */
     std::vector<std::pair<std::string, cypher::SymbolNode::Type>> _carry;
-    std::string _listcompr_placeholder = "";
+    std::string _listcompr_placeholder;
+    std::unordered_map<std::string, std::set<std::string>> _node_property;
+    std::unordered_map<std::string, std::set<std::string>> _rel_property;
     enum _ClauseType : uint32_t {
         NA = 0x0,
         MATCH = 0x1,
@@ -144,6 +148,12 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     const std::vector<SglQuery> &GetQuery() const { return _query; }
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetNodeProperty() const {return _node_property;}
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetRelProperty() const {return _rel_property;}
 
     CmdType CommandType() const { return _cmd_type; }
 
@@ -819,6 +829,13 @@ class CypherBaseVisitor : public LcypherVisitor {
         if (ctx->oC_Properties() != nullptr) {
             TUP_PROPERTIES tmp = std::any_cast<TUP_PROPERTIES>(visit(ctx->oC_Properties()));
             properties = std::move(tmp);
+            for (const auto& pair : std::get<0>(properties).Map()) {
+                for (auto& label : node_labels) {
+                    if (!label.empty()) {
+                        _node_property[label].emplace(pair.first);
+                    }
+                }
+            }
         }
         AddSymbol(variable, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
         return std::make_tuple(variable, node_labels, properties);
@@ -882,19 +899,39 @@ class CypherBaseVisitor : public LcypherVisitor {
         if (ctx->oC_Properties() != nullptr) {
             TUP_PROPERTIES tmp = std::any_cast<TUP_PROPERTIES>(visit(ctx->oC_Properties()));
             properties = tmp;
+            for (const auto& pair : std::get<0>(properties).Map()) {
+                for (auto &rel_label : relationship_types) {
+                    if (!rel_label.empty()) {
+                        _rel_property[rel_label].emplace(pair.first);
+                    }
+                }
+            }
         }
         AddSymbol(variable, cypher::SymbolNode::RELATIONSHIP, cypher::SymbolNode::LOCAL);
         return std::make_tuple(variable, relationship_types, range_literal, properties);
     }
 
     std::any visitOC_Properties(LcypherParser::OC_PropertiesContext *ctx) override {
-        if (ctx->oC_MapLiteral() == nullptr) {
-            CYPHER_TODO();
-            return visitChildren(ctx);
-        }
-        Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
         std::string parameter;
-        return std::make_tuple(map_literal, parameter);
+        if (ctx->oC_MapLiteral()) {
+            Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
+            return std::make_tuple(map_literal, parameter);
+        } else if (ctx->oC_Parameter()) {
+            std::string parameter_val = ctx->oC_Parameter()->getText();
+            if (ctx_->bolt_parameters_) {
+                auto iter = ctx_->bolt_parameters_->find(parameter_val);
+                if (iter == ctx_->bolt_parameters_->end()) {
+                    throw lgraph::CypherException(
+                        FMA_FMT("Parameter {} missing value", parameter_val));
+                }
+                if (iter->second.type != Expression::DataType::MAP) {
+                    throw lgraph::CypherException(
+                        FMA_FMT("Parameter {} should be MAP type", parameter_val));
+                }
+                return std::make_tuple(iter->second, parameter);
+            }
+        }
+        CYPHER_TODO();
     }
 
     std::any visitOC_RelationshipTypes(
@@ -903,6 +940,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &ctx_name : ctx->oC_RelTypeName()) {
             std::string name = std::any_cast<std::string>(visit(ctx_name));
             relationship_types.emplace_back(name);
+            _rel_property.emplace(name, std::set<std::string>{});
         }
         return relationship_types;
     }
@@ -917,6 +955,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &ctx_label : ctx->oC_NodeLabel()) {
             std::string label = std::any_cast<std::string>(visit(ctx_label));
             labels.emplace_back(label);
+            _node_property.emplace(label, std::set<std::string>{});
         }
         return labels;
     }
@@ -1397,6 +1436,13 @@ class CypherBaseVisitor : public LcypherVisitor {
             return expr;
         } else if (ctx->oC_Parameter()) {
             std::string parameter = ctx->oC_Parameter()->getText();
+            if (ctx_->bolt_parameters_) {
+                auto iter = ctx_->bolt_parameters_->find(parameter);
+                if (iter == ctx_->bolt_parameters_->end()) {
+                    throw lgraph::CypherException(FMA_FMT("Parameter {} missing value", parameter));
+                }
+                return iter->second;
+            }
             AddSymbol(parameter, cypher::SymbolNode::PARAMETER, cypher::SymbolNode::LOCAL);
             Expression expr;
             expr.type = Expression::PARAMETER;
@@ -1442,10 +1488,16 @@ class CypherBaseVisitor : public LcypherVisitor {
             return visitChildren(ctx);
         } else if (ctx->StringLiteral() != nullptr) {
             auto str = ctx->StringLiteral()->getText();
-            CYPHER_THROW_ASSERT(!str.empty() && (str[0] == '\'' || str[0] == '\"') &&
-                                (str[str.size() - 1] == '\'' || str[str.size() - 1] == '\"'));
+            std::string res;
+            // remove escape character
+            for (size_t i = 1; i < str.length() - 1; i++) {
+                if (str[i] == '\\') {
+                    i++;
+                }
+                res.push_back(str[i]);
+            }
             expr.type = Expression::STRING;
-            expr.data = std::make_shared<std::string>(str.substr(1, str.size() - 2));
+            expr.data = std::make_shared<std::string>(std::move(res));
             return expr;
         } else if (ctx->oC_BooleanLiteral() != nullptr) {
             return visitChildren(ctx);
@@ -1824,6 +1876,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         static const std::vector<std::string> excluded_set = {
             "INT8",   "INT16", "INT32",    "INT64", "FLOAT", "DOUBLE",
             "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",
+            "POINT", "LINESTRING", "POLYGON", "SPATIAL"
         };
         if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
                 std::string upper_var(var.size(), ' ');

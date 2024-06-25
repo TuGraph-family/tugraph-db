@@ -30,6 +30,7 @@
 #include "core/schema_common.h"
 #include "core/value.h"
 #include "core/full_text_index.h"
+#include "core/composite_index.h"
 
 namespace lgraph {
 class Schema;
@@ -59,6 +60,7 @@ class SchemaManager;
 */
 class Schema {
     friend class SchemaManager;
+    friend class Transaction;
     std::string label_;
     LabelId label_id_ = 0;
     bool label_in_record_ = true;  // whether to store label id in record
@@ -84,6 +86,7 @@ class Schema {
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
     std::shared_ptr<KvTable> property_table_;
+    std::unordered_map<std::string, std::shared_ptr<CompositeIndex>> composite_index_map;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
@@ -96,6 +99,26 @@ class Schema {
     void SetDeleted(bool deleted) { deleted_ = deleted; }
 
     bool GetDeleted() const { return deleted_; }
+
+    std::string GetCompositeIndexMapKey(const std::vector<std::string> &fields) {
+        std::string res = std::to_string(name_to_idx_[fields[0]]);
+        int n = fields.size();
+        for (int i = 1; i < n; ++i) {
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
+                   std::to_string(name_to_idx_[fields[i]]);
+        }
+        return res;
+    }
+
+    std::string GetCompositeIndexMapKey(const std::vector<size_t> &field_ids) {
+        std::string res = std::to_string(field_ids[0]);
+        int n = field_ids.size();
+        for (int i = 1; i < n; ++i) {
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
+                   std::to_string(field_ids[i]);
+        }
+        return res;
+    }
 
  public:
     typedef BlobManager::BlobKey BlobKey;
@@ -409,6 +432,10 @@ class Schema {
         fields_[field_idx].SetEdgeIndex(nullptr);
     }
 
+    void UnVertexCompositeIndex(const std::vector<std::string> &fields) {
+        composite_index_map.erase(GetCompositeIndexMapKey(fields));
+    }
+
     void MarkFullTextIndexed(size_t field_idx, bool fulltext_indexed) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         if (!fulltext_indexed) {
@@ -421,9 +448,14 @@ class Schema {
 
     const std::unordered_set<size_t>& GetIndexedFields() const { return indexed_fields_; }
     const std::unordered_set<size_t>& GetFullTextFields() const { return fulltext_fields_; }
+
+    std::vector<CompositeIndexSpec> GetCompositeIndexSpec() const;
+
     void DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record);
+
+    void DeleteVertexCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                                 const std::vector<size_t>& created);
@@ -443,13 +475,38 @@ class Schema {
     void AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& record,
                           std::vector<size_t>& created);
 
+    void AddVertexToCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                          std::vector<std::string >& created);
+    bool VertexUniqueIndexConflict(KvTransaction& txn, const Value& record);
+
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                         std::vector<size_t>& created);
+    bool EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);
     void AddEdgeToFullTextIndex(EdgeUid euid, const Value& record,
                                 std::vector<FTIndexEntry>& buffers);
+
+    void SetCompositeIndex(const std::vector<std::string> &fields, CompositeIndex* index) {
+        composite_index_map.emplace(GetCompositeIndexMapKey(fields),
+                                    std::make_shared<CompositeIndex>(*index));
+    }
+
+    CompositeIndex* GetCompositeIndex(const std::vector<std::string> &fields) {
+        auto it = composite_index_map.find(GetCompositeIndexMapKey(fields));
+        if (it == composite_index_map.end()) return nullptr;
+        return it->second.get();
+    }
+
+    CompositeIndex* GetCompositeIndex(const std::vector<size_t> &field_ids) {
+        auto it = composite_index_map.find(GetCompositeIndexMapKey(field_ids));
+        if (it == composite_index_map.end()) return nullptr;
+        return it->second.get();
+    }
+
+    std::vector<std::vector<std::string>> GetRelationalCompositeIndexKey(
+        const std::vector<size_t> &fields);
 
     //----------------------
     // serialize/deserialize

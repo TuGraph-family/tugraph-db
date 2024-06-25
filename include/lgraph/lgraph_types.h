@@ -852,14 +852,14 @@ struct FieldData {
 
     inline ::lgraph_api::Spatial<::lgraph_api::Wgs84> AsWgsSpatial()
     const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        if (IsSpatial()) return ::lgraph_api::Spatial
         <::lgraph_api::Wgs84>(*data.buf);
         throw std::bad_cast();
     }
 
     inline ::lgraph_api::Spatial<::lgraph_api::Cartesian> AsCartesianSpatial()
     const {
-        if (type == FieldType::SPATIAL) return ::lgraph_api::Spatial
+        if (IsSpatial()) return ::lgraph_api::Spatial
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
     }
@@ -1140,7 +1140,8 @@ struct FieldData {
     bool IsPolygon() const { return type == FieldType::POLYGON; }
 
     /** @brief   Query if this object is spatial*/
-    bool IsSpatial() const { return type == FieldType::SPATIAL; }
+    bool IsSpatial() const { return type == FieldType::SPATIAL || IsPoint() || IsLineString()
+    || IsPolygon(); }
 
  private:
     /** @brief   Query if 't' is BLOB or STRING */
@@ -1207,6 +1208,13 @@ enum class IndexType {
     PairUniqueIndex = 2
 };
 
+enum class CompositeIndexType {
+    /** @brief this is unique composite index */
+    UniqueIndex = 1,
+    /** @brief this is not unique composite index */
+    NonUniqueIndex = 2
+};
+
 /** @brief   An index specifier. */
 struct IndexSpec {
     /** @brief   label name */
@@ -1214,6 +1222,15 @@ struct IndexSpec {
     /** @brief   field name */
     std::string field;
     IndexType type;
+};
+
+/** @brief   A composite index specifier. */
+struct CompositeIndexSpec {
+    /** @brief   label name */
+    std::string label;
+    /** @brief   fields name */
+    std::vector<std::string> fields;
+    CompositeIndexType type;
 };
 
 struct EdgeUid {
@@ -1240,6 +1257,10 @@ struct EdgeUid {
     inline bool operator==(const EdgeUid& rhs) const {
         return src == rhs.src && dst == rhs.dst && lid == rhs.lid && eid == rhs.eid &&
                tid == rhs.tid;
+    }
+
+    inline bool operator!=(const EdgeUid& rhs) const {
+        return !this->operator==(rhs);
     }
 
     inline bool operator<(const EdgeUid& rhs) const {

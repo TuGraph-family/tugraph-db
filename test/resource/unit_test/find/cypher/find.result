@@ -1,0 +1,21 @@
+
+MATCH (n:Person {name:'Vanessa Redgrave'}) RETURN n;
+[{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (m:Film {title:'The Parent Trap'}) RETURN m.title,m;
+[{"m":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}},"m.title":"The Parent Trap"}]
+MATCH (people:Person) RETURN people.name LIMIT 7;
+[{"people.name":"Christopher Nolan"},{"people.name":"Corin Redgrave"},{"people.name":"Dennis Quaid"},{"people.name":"Jemma Redgrave"},{"people.name":"John Williams"},{"people.name":"Liam Neeson"},{"people.name":"Lindsay Lohan"}]
+MATCH (people:Person) RETURN people.name SKIP 7;
+[{"people.name":"Michael Redgrave"},{"people.name":"Natasha Richardson"},{"people.name":"Rachel Kempson"},{"people.name":"Richard Harris"},{"people.name":"Roy Redgrave"},{"people.name":"Vanessa Redgrave"}]
+MATCH (people:Person) RETURN people.name SKIP 3 LIMIT 4;
+[{"people.name":"Jemma Redgrave"},{"people.name":"John Williams"},{"people.name":"Liam Neeson"},{"people.name":"Lindsay Lohan"}]
+MATCH (post60s:Person) WHERE post60s.birthyear >= 1960 AND post60s.birthyear < 1970 RETURN post60s.name;
+[{"post60s.name":"Jemma Redgrave"},{"post60s.name":"Natasha Richardson"}]
+MATCH (a:Person) WHERE a.birthyear < 1960 OR a.birthyear >= 1970 RETURN a.name;
+[{"a.name":"Christopher Nolan"},{"a.name":"Corin Redgrave"},{"a.name":"Dennis Quaid"},{"a.name":"John Williams"},{"a.name":"Liam Neeson"},{"a.name":"Lindsay Lohan"},{"a.name":"Michael Redgrave"},{"a.name":"Rachel Kempson"},{"a.name":"Richard Harris"},{"a.name":"Roy Redgrave"},{"a.name":"Vanessa Redgrave"}]
+MATCH (a:Person) WHERE a.birthyear >= 1960 XOR id(a) > 10 RETURN a,a.birthyear;
+[{"a":{"identity":9,"label":"Person","properties":{"birthyear":1965,"name":"Jemma Redgrave"}},"a.birthyear":1965},{"a":{"identity":11,"label":"Person","properties":{"birthyear":1932,"name":"John Williams"}},"a.birthyear":1932},{"a":{"identity":8,"label":"Person","properties":{"birthyear":1986,"name":"Lindsay Lohan"}},"a.birthyear":1986},{"a":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"a.birthyear":1963}]
+MATCH (n {name:'Vanessa Redgrave'}) RETURN n;
+[{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (n:Person)-[r:BORN_IN]->() WHERE abs(r.weight-20.21)<0.00001 RETURN n,r,r.weight;
+[{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 10:00:00","weight":20.21},"src":2,"temporal_id":0},"r.weight":20.21}]

@@ -1,0 +1,4 @@
+MATCH (a {name:'Liam Neeson'}) REMOVE a.birthyear RETURN a.name,a.birthyear;
+[{"a.birthyear":null,"a.name":"Liam Neeson"}]
+MATCH (a {name:'Liam Neeson'}) REMOVE a.name RETURN a.name,a.birthyear;
+[FieldCannotBeSetNull] Field [name] is not optional.

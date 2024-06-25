@@ -1,0 +1,2 @@
+MATCH (n:Person) WHERE n.name = $name RETURN n;
+MATCH (n:Person {name:$name}) RETURN n;

@@ -72,9 +72,9 @@ enum PackType {
  */
 class KeyPacker {
     static const size_t FID_OFF = 0;                                      // first vid
-    static const size_t PT_OFF = FID_OFF + ::lgraph::_detail::VID_SIZE;   // pair type
+    static const size_t PT_OFF = FID_OFF + ::lgraph::_detail::VID_SIZE;   // pack type
     static const size_t LID_OFF = PT_OFF + 1;                             // label
-    static const size_t TID_OFF = LID_OFF + ::lgraph::_detail::LID_SIZE;  // primary id
+    static const size_t TID_OFF = LID_OFF + ::lgraph::_detail::LID_SIZE;  // temporal id
     static const size_t SID_OFF = TID_OFF + ::lgraph::_detail::TID_SIZE;  // second vid
     static const size_t EID_OFF = SID_OFF + ::lgraph::_detail::VID_SIZE;  // edge id
     static const size_t EDGE_KEY_SIZE = EID_OFF + ::lgraph::_detail::EID_SIZE;
@@ -268,7 +268,7 @@ class KeyPacker {
         return v;
     }
 
-    static EdgeUid GetEuidFromPropertyTableKey(const Value& key) {
+    static EdgeUid GetEuidFromPropertyTableKey(const Value& key, uint16_t lid) {
         auto no_tid = ::lgraph::_detail::VID_SIZE*2 + ::lgraph::_detail::EID_SIZE;
         auto with_tid = ::lgraph::_detail::VID_SIZE*2 +
               ::lgraph::_detail::EID_SIZE +
@@ -276,6 +276,7 @@ class KeyPacker {
         FMA_ASSERT(key.Size() == no_tid || key.Size() == with_tid);
         bool compress_tid = (key.Size() == no_tid);
         EdgeUid ret;
+        ret.lid = lid;
         uint8_t offset = 0;
         ret.src = GetNByteIntId<::lgraph::_detail::VID_SIZE>(key.Data());
         offset = ::lgraph::_detail::VID_SIZE;
