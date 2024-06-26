@@ -909,8 +909,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         return std::make_tuple(variable, relationship_types, range_literal, properties);
     }
 
-    std::any visitOC_RelationshipTypes(
-        LcypherParser::OC_RelationshipTypesContext *ctx) override {
+    std::any visitOC_Properties(LcypherParser::OC_PropertiesContext *ctx) override {
         std::string parameter;
         if (ctx->oC_MapLiteral()) {
             Expression map_literal = std::any_cast<Expression>(visit(ctx->oC_MapLiteral()));
@@ -933,7 +932,8 @@ class CypherBaseVisitor : public LcypherVisitor {
         CYPHER_TODO();
     }
 
-    std::any visitOC_RelationshipTypes(LcypherParser::OC_RelationshipTypesContext *ctx) override {
+    std::any visitOC_RelationshipTypes(
+        LcypherParser::OC_RelationshipTypesContext *ctx) override {
         VEC_STR relationship_types;
         for (auto &ctx_name : ctx->oC_RelTypeName()) {
             std::string name = std::any_cast<std::string>(visit(ctx_name));

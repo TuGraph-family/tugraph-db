@@ -75,7 +75,7 @@ namespace http {
         switch (lgraph_resp.error_code()) {                                \
         case LGraphResponse::AUTH_ERROR:                                   \
             THROW_CODE(Unauthorized, lgraph_resp.error());      \
-        case LGraphResponse::BAD_REQUEST: 
+        case LGraphResponse::BAD_REQUEST:                                  \
             THROW_CODE(BadRequest, lgraph_resp.error());    \
         case LGraphResponse::REDIRECT:                                     \
             return;                                                        \
@@ -342,10 +342,10 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
     try {
         flag = boost::lexical_cast<int16_t>(flag_str);
     } catch (boost::bad_lexical_cast& e) {
+        THROW_CODE(BadRequest, "`flag` should be an integer of the string type");
+    }
     if (flag < 0)
         THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
-    }
-    if (flag < 0) THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
 
     std::string file_name;
     GET_FIELD_OR_THROW_BAD_REQUEST(req, std::string, HTTP_FILE_NAME, file_name);

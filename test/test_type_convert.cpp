@@ -68,7 +68,7 @@ TEST_F(TestTypeConvert, TypeConvert) {
     UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point_wgs), FieldType::POINT).AsWgsPoint() ==
     ::lgraph_api::Point<::lgraph_api::Wgs84>(point_wgs));
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point_wgs), FieldType::POINT).ToString(),
-                     point_wgs);
+    point_wgs);
     UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point_cartesian),
     FieldType::POINT).AsCartesianPoint() ==
     ::lgraph_api::Point<::lgraph_api::Cartesian>(point_cartesian));

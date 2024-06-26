@@ -256,7 +256,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
             throw ParseFieldDataException(Name(), data, Type());
         ::lgraph_api::SpatialType s;
 
-                    // throw ParseStringException in this function;
+        // throw ParseStringException in this function;
         try {
             s = ::lgraph_api::ExtractType(*data.data.buf);
         }  catch (...) {

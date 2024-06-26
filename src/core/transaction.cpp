@@ -1139,8 +1139,8 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                     bool r = index->Update(*txn_, old_v, new_v, euid);
                     if (!r)
                         THROW_CODE(InputError,
-                                   "failed to update edge index, {}:[{}] already exists",
-                                   fe->Name(), fe->FieldToString(new_prop));
+                            "failed to update edge index, {}:[{}] already exists", fe->Name(),
+                                                 fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), euid);
