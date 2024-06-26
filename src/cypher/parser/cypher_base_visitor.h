@@ -150,7 +150,7 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     const std::vector<SglQuery> &GetQuery() const { return _query; }
-    
+
     const std::unordered_map<std::string, std::set<std::string>>&
     GetNodeProperty() const {return _node_property;}
 
