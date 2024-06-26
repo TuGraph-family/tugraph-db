@@ -14,6 +14,7 @@
 
 #include "import/graphar_parser.h"
 #include "import/graphar_config.h"
+#include "import/import_exception.h"
 
 namespace lgraph {
 namespace import_v2 {
