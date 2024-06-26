@@ -36,7 +36,7 @@ GraphArchive::Property GraphArParser::GetPrimaryKey(const GraphArchive::VertexIn
     for (const auto& ver_props : ver_groups)
         for (const auto& prop : ver_props->GetProperties())
             if (prop.is_primary) return prop;
-    throw InputError("The primary key of [" + ver_info.GetLabel() + "] is not found!");
+    THROW_CODE(InputError, "The primary key of [" + ver_info.GetLabel() + "] is not found!");
 }
 
 /**
@@ -63,7 +63,7 @@ FieldData GraphArParser::ParseData(T& data, const std::string& prop,
     case GraphArchive::Type::STRING:
         return FieldData::String(data.template property<std::string>(prop).value());
     default:
-        throw InputError("Unsupported data type error!");
+        THROW_CODE(InputError, "Unsupported data type error!");
         break;
     }
     return FieldData();
@@ -86,7 +86,7 @@ void GraphArParser::MapIdPrimary(PrimaryMap& primary_map,
     auto ver_info = graph_info->GetVertexInfo(ver_label);
     GraphArchive::Property ver_prop = GetPrimaryKey(*ver_info);
     if (!ver_prop.is_primary) {
-        throw InputError("the primary key of [" + ver_label + "] is not found!");
+        THROW_CODE(InputError, "the primary key of [" + ver_label + "] is not found!");
     }
     auto vertices = GraphArchive::VerticesCollection::Make(graph_info, ver_label).value();
     for (auto it = vertices->begin(); it != vertices->end(); ++it) {
@@ -113,7 +113,7 @@ GraphArchive::AdjListType GraphArParser::GetOneAdjListType(
         return GraphArchive::AdjListType::ordered_by_source;
     if (edge_info.HasAdjacentListType(GraphArchive::AdjListType::ordered_by_dest))
         return GraphArchive::AdjListType::ordered_by_dest;
-    throw InputError("The GraphAr edge" + edge_info.GetEdgeLabel() + " has not AdjListType!");
+    THROW_CODE(InputError, "The GraphAr edge" + edge_info.GetEdgeLabel() + " has not AdjListType!");
 }
 
 /**

@@ -18,7 +18,6 @@
 #include <gar/graph_info.h>
 #include <gar/api.h>
 
-#include "import/import_exception.h"
 #include "tools/json.hpp"
 
 namespace lgraph {
@@ -55,7 +54,7 @@ inline void ParseType(const std::shared_ptr<GraphArchive::DataType>& data_type,
         type_name = "STRING";
         break;
     default:
-        throw InputError("Unsupported data type error!");
+        THROW_CODE(InputError, "Unsupported data type error!");
         break;
     }
 }
@@ -171,7 +170,7 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
             gar_conf["schema"].push_back(schema_node);
         } else {
             if (!CheckEdgePropsEqual(properties, edge_labels[label])) {
-                throw InputError("The edge [" + label + "] has different properties!");
+                THROW_CODE(InputError, "The edge [" + label + "] has different properties!");
             }
         }
 
