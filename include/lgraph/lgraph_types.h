@@ -1312,7 +1312,7 @@ struct EdgeUid {
         return src < rhs.src || (src == rhs.src && dst < rhs.dst) ||
                (src == rhs.src && dst == rhs.dst && lid < rhs.lid) ||
                (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid < rhs.tid) ||
-               (src == rhs.src && dst == rhs.dst && lid == rhs.lid && 
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid &&
                 tid == rhs.tid && eid < rhs.eid);
     }
 
@@ -1320,7 +1320,7 @@ struct EdgeUid {
         return src > rhs.src || (src == rhs.src && dst > rhs.dst) ||
                (src == rhs.src && dst == rhs.dst && lid > rhs.lid) ||
                (src == rhs.src && dst == rhs.dst && lid == rhs.lid && tid > rhs.tid) ||
-               (src == rhs.src && dst == rhs.dst && lid == rhs.lid && 
+               (src == rhs.src && dst == rhs.dst && lid == rhs.lid &&
                 tid == rhs.tid && eid > rhs.eid);
     }
 
