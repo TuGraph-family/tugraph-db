@@ -18,6 +18,7 @@
 #include <gar/graph_info.h>
 #include <gar/api.h>
 
+#include "import/import_exception.h"
 #include "tools/json.hpp"
 
 namespace lgraph {
