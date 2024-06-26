@@ -451,7 +451,7 @@ void Result::Load(const std::string &output) {
                     break;
                 case LGraphType::DOUBLE:
                     record->Insert(title,
-                                   FieldData(std::forward<double>(col.value().get<double>())));
+                                  FieldData(std::forward<double>(col.value().get<double>())));
                     break;
                 case LGraphType::BOOLEAN:
                     record->Insert(title, FieldData(std::forward<bool>(col.value().get<bool>())));

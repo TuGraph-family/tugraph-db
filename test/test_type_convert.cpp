@@ -54,53 +54,47 @@ TEST_F(TestTypeConvert, TypeConvert) {
     // Testing spatial data;
     std::string point_wgs = "0101000020E6100000000000000000F03F000000000000F03F";
     std::string point_cartesian = "0101000020231C0000000000000000F03F000000000000F03F";
-    std::string linestring_wgs =
-        "0102000020E61000000300000000000000000000000000"
-        "000000000000000000000000004000000000000000400000000000000840000000000000F03F";
-    std::string linestring_cartesian =
-        "0102000020231C00000300000000000000000000000000"
-        "000000000000000000000000004000000000000000400000000000000840000000000000F03F";
-    std::string polygon_wgs =
-        "0103000020E6100000010000000500000000000000000000000"
-        "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
-        "00000000000000040000000000000000000000000000000000000000000000000";
-    std::string polygon_cartesian =
-        "0103000020231C0000010000000500000000000000000000000"
-        "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
-        "00000000000000040000000000000000000000000000000000000000000000000";
+    std::string linestring_wgs = "0102000020E61000000300000000000000000000000000"
+    "000000000000000000000000004000000000000000400000000000000840000000000000F03F";
+    std::string linestring_cartesian = "0102000020231C00000300000000000000000000000000"
+    "000000000000000000000000004000000000000000400000000000000840000000000000F03F";
+    std::string polygon_wgs = "0103000020E6100000010000000500000000000000000000000"
+    "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
+    "00000000000000040000000000000000000000000000000000000000000000000";
+    std::string polygon_cartesian = "0103000020231C0000010000000500000000000000000000000"
+    "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
+    "00000000000000040000000000000000000000000000000000000000000000000";
 
     UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point_wgs), FieldType::POINT).AsWgsPoint() ==
-                   ::lgraph_api::Point<::lgraph_api::Wgs84>(point_wgs));
+    ::lgraph_api::Point<::lgraph_api::Wgs84>(point_wgs));
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point_wgs), FieldType::POINT).ToString(),
-                 point_wgs);
-    UT_EXPECT_TRUE(
-        ValueToFieldData(Value::ConstRef(point_cartesian), FieldType::POINT).AsCartesianPoint() ==
-        ::lgraph_api::Point<::lgraph_api::Cartesian>(point_cartesian));
+                     point_wgs);
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(point_cartesian),
+    FieldType::POINT).AsCartesianPoint() ==
+    ::lgraph_api::Point<::lgraph_api::Cartesian>(point_cartesian));
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(point_cartesian), FieldType::POINT).ToString(),
-                 point_cartesian);
-    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(linestring_wgs), FieldType::LINESTRING)
-                       .AsWgsLineString() ==
-                   ::lgraph_api::LineString<::lgraph_api::Wgs84>(linestring_wgs));
-    UT_EXPECT_EQ(
-        ValueToFieldData(Value::ConstRef(linestring_wgs), FieldType::LINESTRING).ToString(),
-        linestring_wgs);
-    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(linestring_cartesian), FieldType::LINESTRING)
-                       .AsCartesianLineString() ==
-                   ::lgraph_api::LineString<::lgraph_api::Cartesian>(linestring_cartesian));
-    UT_EXPECT_EQ(
-        ValueToFieldData(Value::ConstRef(linestring_cartesian), FieldType::LINESTRING).ToString(),
-        linestring_cartesian);
-    UT_EXPECT_TRUE(
-        ValueToFieldData(Value::ConstRef(polygon_wgs), FieldType::POLYGON).AsWgsPolygon() ==
-        ::lgraph_api::Polygon<::lgraph_api::Wgs84>(polygon_wgs));
-    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(polygon_wgs), FieldType::POLYGON).ToString(),
-                 polygon_wgs);
-    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(polygon_cartesian), FieldType::POLYGON)
-                       .AsCartesianPolygon() ==
-                   ::lgraph_api::Polygon<::lgraph_api::Cartesian>(polygon_cartesian));
-    UT_EXPECT_EQ(
-        ValueToFieldData(Value::ConstRef(polygon_cartesian), FieldType::POLYGON).ToString(),
-        polygon_cartesian);
+    point_cartesian);
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(linestring_wgs),
+    FieldType::LINESTRING).AsWgsLineString() ==
+    ::lgraph_api::LineString<::lgraph_api::Wgs84>(linestring_wgs));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(linestring_wgs),
+    FieldType::LINESTRING).ToString(), linestring_wgs);
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(linestring_cartesian),
+    FieldType::LINESTRING).AsCartesianLineString() ==
+    ::lgraph_api::LineString<::lgraph_api::Cartesian>(linestring_cartesian));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(linestring_cartesian),
+    FieldType::LINESTRING).ToString(), linestring_cartesian);
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(polygon_wgs),
+    FieldType::POLYGON).AsWgsPolygon() ==
+    ::lgraph_api::Polygon<::lgraph_api::Wgs84>(polygon_wgs));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(polygon_wgs),
+    FieldType::POLYGON).ToString(), polygon_wgs);
+    UT_EXPECT_TRUE(ValueToFieldData(Value::ConstRef(polygon_cartesian),
+    FieldType::POLYGON).AsCartesianPolygon() ==
+    ::lgraph_api::Polygon<::lgraph_api::Cartesian>(polygon_cartesian));
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(polygon_cartesian),
+    FieldType::POLYGON).ToString(),
+    polygon_cartesian);
 
     // Testing float vector data
     std::vector<float> vec = {1.111, 2.111, 3.111, 4.111};

@@ -441,8 +441,8 @@ void RestServer::Start() {
 #ifndef _WIN32
         // for http over ssl, https
         fma_common::InputFmaStream is(config_.server_key);
-        if (!is.Good())
-            THROW_CODE(InternalError, "Failed to open server key file " + config_.server_key);
+        if (!is.Good()) THROW_CODE(InternalError,
+                                   "Failed to open server key file " + config_.server_key);
         std::string key_buf(is.Size(), 0);
         is.Read(&key_buf[0], key_buf.size());
         is.Close();
@@ -462,8 +462,8 @@ void RestServer::Start() {
                 ctx.use_private_key(key, boost::asio::ssl::context::pem);
             } catch (std::exception& e) {
                 LOG_ERROR() << "Oops, error occurred! Please make sure server's cert & key "
-                               "are correct. Detail: "
-                            << e.what();
+                             "are correct. Detail: "
+                          << e.what();
             }
         });
         listener_ = http_listener(addr, server_config);
@@ -497,7 +497,8 @@ void RestServer::Stop() {
         cypher_scheduler_ = nullptr;
 #endif
     } catch (std::exception& e) {
-        LOG_WARN() << "Failed to stop REST server: " << e.what();
+        LOG_WARN() << "Failed to stop REST server: "
+            << e.what();
     }
 }
 
@@ -628,7 +629,8 @@ http_response RestServer::GetCorsResponse(status_code code) const {
  */
 void RestServer::RespondUnauthorized(const http_request& request,
                                      const std::string& error = "") const {
-    LOG_WARN() << "Unauthorized request: " << _TS(request.to_string()) << ": " << error;
+    LOG_WARN() << "Unauthorized request: " << _TS(request.to_string()) << ": "
+                             << error;
     http_response response = GetCorsResponse(status_codes::Unauthorized);
     web::json::value body;
     body[RestStrings::ERR_MSG] = web::json::value(_TU("Unauthorized: " + error));
@@ -708,7 +710,8 @@ void RestServer::RespondSuccess(const http_request& request) const {
 void RestServer::RespondRedirect(const http_request& request, const std::string& host,
                                  const utility::string_t& relative_path, bool need_leader) const {
     AUDIT_LOG_FAIL("Request redirected");
-    LOG_DEBUG() << "Request redirected during handling of request " << _TS(request.to_string());
+    LOG_DEBUG() << "Request redirected during handling of request "
+                            << _TS(request.to_string());
     http_response response = GetCorsResponse(status_codes::TemporaryRedirect);
     web::json::value body;
     body[RestStrings::LOCATION] = web::json::value(_TU(host));
@@ -732,8 +735,8 @@ void RestServer::RespondRedirect(const http_request& request, const std::string&
  */
 void RestServer::RespondInternalError(const http_request& request, const std::string& e) const {
     AUDIT_LOG_FAIL(e);
-    LOG_WARN() << "Exception occurred during handling of request " << _TS(request.to_string())
-               << ": " << e;
+    LOG_WARN() << "Exception occurred during handling of request "
+                             << _TS(request.to_string()) << ": " << e;
     http_response response = GetCorsResponse(status_codes::InternalError);
     web::json::value body;
     body[RestStrings::ERR_MSG] = web::json::value(_TU(e));
@@ -750,8 +753,8 @@ void RestServer::RespondInternalError(const http_request& request, const std::st
 void RestServer::RespondInternalException(const http_request& request,
                                           const std::exception& e) const {
     AUDIT_LOG_FAIL(e.what());
-    LOG_WARN() << "Exception occurred during handling of request " << _TS(request.to_string())
-               << ": " << e.what();
+    LOG_WARN() << "Exception occurred during handling of request "
+                             << _TS(request.to_string()) << ": " << e.what();
     RespondInternalError(request, e.what());
 }
 
@@ -1065,7 +1068,8 @@ void RestServer::HandleGetInfo(const std::string& user, const http_request& requ
         std::vector<lgraph::AuditLog> logs = AuditLogger::GetInstance().GetLog(
             begin_time, end_time, search_user, num_log, descending_order);
         response = ValueToJson(logs);
-        LOG_DEBUG() << "Get " << logs.size() << " logs.";  //<< " " << _TS(response.serialize());
+        LOG_DEBUG() << "Get " << logs.size()
+                                << " logs.";  //<< " " << _TS(response.serialize());
         return RespondSuccess(request, response);
     }
     if (paths[1] == RestStrings::CPU) {
@@ -1543,10 +1547,10 @@ void RestServer::HandlePostLogin(const web::http::http_request& request,
 
 // /refresh
 void RestServer::HandlePostRefresh(const std::string& user, const std::string& token,
-                                   const web::http::http_request& request,
-                                   const utility::string_t& relative_path,
-                                   const std::vector<utility::string_t>& paths,
-                                   const web::json::value& body) const {
+                                const web::http::http_request& request,
+                                const utility::string_t& relative_path,
+                                const std::vector<utility::string_t>& paths,
+                                const web::json::value& body) const {
     if (paths.size() != 1) {
         BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
         return RespondBadURI(request);
@@ -1562,10 +1566,10 @@ void RestServer::HandlePostRefresh(const std::string& user, const std::string& t
 
 // /update_token_time
 void RestServer::HandlePostUpdateTokenTime(const std::string& user, const std::string& token,
-                                           const web::http::http_request& request,
-                                           const utility::string_t& relative_path,
-                                           const std::vector<utility::string_t>& paths,
-                                           const web::json::value& body) const {
+                                const web::http::http_request& request,
+                                 const utility::string_t& relative_path,
+                                 const std::vector<utility::string_t>& paths,
+                                 const web::json::value& body) const {
     if (paths.size() != 1) {
         BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
         return RespondBadURI(request);
@@ -1573,9 +1577,10 @@ void RestServer::HandlePostUpdateTokenTime(const std::string& user, const std::s
     if (token.empty()) return RespondUnauthorized(request, "Bad token.");
     int refresh_time;
     int expire_time;
-    if (!ExtractIntField(body, RestStrings::REFRESH_TIME, refresh_time) ||
-        !ExtractIntField(body, RestStrings::EXPIRE_TIME, expire_time)) {
-        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
+    if (!ExtractIntField(body, RestStrings::REFRESH_TIME, refresh_time)
+        || !ExtractIntField(body, RestStrings::EXPIRE_TIME, expire_time)) {
+        BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false,
+                      "POST " + _TS(relative_path));
         return RespondBadRequest(request, "`refresh_time` or `expire_time` not specified.");
     }
     _HoldReadLock(galaxy_->GetReloadLock());
@@ -1587,10 +1592,10 @@ void RestServer::HandlePostUpdateTokenTime(const std::string& user, const std::s
 
 // /get_token_time
 void RestServer::HandlePostGetTokenTime(const std::string& user, const std::string& token,
-                                        const web::http::http_request& request,
-                                        const utility::string_t& relative_path,
-                                        const std::vector<utility::string_t>& paths,
-                                        const web::json::value& body) const {
+                                const web::http::http_request& request,
+                                 const utility::string_t& relative_path,
+                                 const std::vector<utility::string_t>& paths,
+                                 const web::json::value& body) const {
     if (paths.size() != 1) {
         BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
         return RespondBadURI(request);
@@ -1609,10 +1614,10 @@ void RestServer::HandlePostGetTokenTime(const std::string& user, const std::stri
 
 // /logout
 void RestServer::HandlePostLogout(const std::string& user, const std::string& token,
-                                  const web::http::http_request& request,
-                                  const utility::string_t& relative_path,
-                                  const std::vector<utility::string_t>& paths,
-                                  const web::json::value& body) const {
+                                const web::http::http_request& request,
+                                 const utility::string_t& relative_path,
+                                 const std::vector<utility::string_t>& paths,
+                                 const web::json::value& body) const {
     if (paths.size() != 1) {
         BEG_AUDIT_LOG(user, "", lgraph::LogApiType::Security, false, "POST " + _TS(relative_path));
         return RespondBadURI(request);
@@ -1711,7 +1716,8 @@ void RestServer::HandlePostGraphQuery(const std::string& user, const std::string
     cypher::RTContext ctx(state_machine_, galaxy_, user, graph);
     std::string name;
     std::string type;
-    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query, name, type);
+    bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query,
+                                                    name, type);
     if (name.empty() || type.empty()) {
         proto_req.set_is_write_op(!ret);
     } else {
@@ -1997,8 +2003,8 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
         if (!ExtractStringField(body, RestStrings::NAME, *req->mutable_name()) ||
             !ExtractBoolField(body, RestStrings::READONLY, read_only) ||
             !ExtractObjectArray(body, RestStrings::CODE, &codes) ||
-            (codes.size() > 1 &&
-             !ExtractObjectArray(body, RestStrings::FILENAMES, req->mutable_file_name()))) {
+            (codes.size() > 1 && !ExtractObjectArray(
+                                     body, RestStrings::FILENAMES, req->mutable_file_name()))) {
             BEG_AUDIT_LOG(user, _TS(paths[1]), lgraph::LogApiType::Plugin, true,
                           "POST " + _TS(relative_path));
             return RespondBadJSON(request);
@@ -2009,7 +2015,7 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
         }
         preq->set_version(version);
         req->set_read_only(read_only);
-        for (auto& code : codes) {
+        for (auto &code : codes) {
             std::vector<unsigned char> decoded = utility::conversions::from_base64(_TU(code));
             req->add_code(std::string(decoded.begin(), decoded.end()));
         }
@@ -2066,8 +2072,8 @@ void RestServer::HandlePostPlugin(const std::string& user, const std::string& to
                 web::json::value(_TU(proto_resp.plugin_response().call_plugin_response().reply()));
             return RespondSuccess(request, body);
         } else {
-            LOG_DEBUG() << "Plugin request failed with RSM error " << proto_resp.error_code()
-                        << ": " << proto_resp.error();
+            LOG_DEBUG() << "Plugin request failed with RSM error "
+                                    << proto_resp.error_code() << ": " << proto_resp.error();
             return RespondRSMError(request, proto_resp, relative_path, "Plugin");
         }
     }
@@ -2222,12 +2228,12 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
         }
         if (src_id_index != NOT_FOUND) {
             auto iter = std::find_if(properties.begin(), properties.end(),
-                                     [](auto& item) { return item == "SRC_ID"; });
+                                     [](auto& item){return item == "SRC_ID";});
             properties.erase(iter);
         }
         if (dst_id_index != NOT_FOUND) {
             auto iter = std::find_if(properties.begin(), properties.end(),
-                                     [](auto& item) { return item == "DST_ID"; });
+                                     [](auto& item){return item == "DST_ID";});
             properties.erase(iter);
         }
     }
@@ -2240,13 +2246,13 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
     response.set_body(buffer.create_istream(), _TU("text/plain"));
     auto response_done = request.reply(response);
     std::string chunk;
-    auto write_fields = [&](const std::vector<FieldData>& fds) {
+    auto write_fields = [&](const std::vector<FieldData>& fds){
         nlohmann::json line;
         for (auto& fd : fds) {
             line.push_back(fd.ToString());
         }
         chunk.append(line.dump()).append(1, '\n');
-        if (chunk.size() > 1024 * 1024) {
+        if (chunk.size() > 1024*1024) {
             // TODO(botu) : Is there a better way to confirm the other peer is disconnected?
             if (response_done.is_done()) {
                 LOG_ERROR() << "response is done, the client may have been disconnected";
@@ -2275,11 +2281,13 @@ void RestServer::HandlePostExport(const std::string& user, const std::string& to
     } else {
         auto src_schema = txn.GetSchema(src_label, true);
         if (!src_schema) {
-            return RespondBadRequest(request, FMA_FMT("No such vertex label: {}", src_label));
+            return RespondBadRequest(
+                request, FMA_FMT("No such vertex label: {}", src_label));
         }
         auto dst_schema = txn.GetSchema(dst_label, true);
         if (!dst_schema) {
-            return RespondBadRequest(request, FMA_FMT("No such vertex label: {}", dst_label));
+            return RespondBadRequest(
+                request, FMA_FMT("No such vertex label: {}", dst_label));
         }
         auto dst_vit = txn.GetVertexIterator();
         auto src_fid = src_schema->GetFieldId(src_schema->GetPrimaryField());
@@ -2890,8 +2898,9 @@ void RestServer::handle_delete(http_request request) {
         std::string token;
         std::string user = GetUser(request, &token);
         const auto& relative_path = uri::decode(request.relative_uri().path());
-        LOG_DEBUG() << "\n----------------" << "\n[" << user << "]\tDELETE\t" << _TS(relative_path)
-                    << "\n----------------";
+        LOG_DEBUG() << "\n----------------"
+                  << "\n[" << user << "]\tDELETE\t" << _TS(relative_path)
+                  << "\n----------------";
 
         auto paths = uri::split_path(relative_path);
         if (paths.empty()) return RespondBadURI(request);
@@ -2941,16 +2950,13 @@ void RestServer::handle_delete(http_request request) {
         }
     } catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-        case lgraph_api::ErrorCode::Unauthorized:
-            {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.msg());
             }
-        case lgraph_api::ErrorCode::InputError:
-            {
+            case lgraph_api::ErrorCode::InputError: {
                 return RespondBadRequest(request, e.msg());
             }
-        default:
-            {
+            default: {
                 return RespondInternalException(request, e);
             }
         }
@@ -2978,8 +2984,9 @@ void RestServer::handle_get(http_request request) {
         std::string user;
         std::string token;
         if (fp != RestPathCases::WEB) user = GetUser(request, &token);
-        LOG_DEBUG() << "\n----------------" << "\n[" << user << "]\tGET\t" << _TS(relative_path)
-                    << "\n----------------";
+        LOG_DEBUG() << "\n----------------"
+                                << "\n[" << user << "]\tGET\t" << _TS(relative_path)
+                                << "\n----------------";
 
         switch (fp) {
         case RestPathCases::INVALID:
@@ -3030,16 +3037,13 @@ void RestServer::handle_get(http_request request) {
         FMA_ASSERT(false);  // we should have treated every case in switch()
     } catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-        case lgraph_api::ErrorCode::Unauthorized:
-            {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
-        case lgraph_api::ErrorCode::InputError:
-            {
+            case lgraph_api::ErrorCode::InputError: {
                 return RespondBadRequest(request, e.what());
             }
-        default:
-            {
+            default: {
                 return RespondInternalException(request, e);
             }
         }
@@ -3074,16 +3078,16 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         std::string token;
         std::string user;
         if (fpc != RestPathCases::LOGIN) user = GetUser(request, &token);
-        if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH &&
-            fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
+        if (fpc != RestPathCases::LOGIN && fpc != RestPathCases::REFRESH
+            && fpc != RestPathCases::UpdateTokenTime && fpc != RestPathCases::GetTokenTime) {
             if (!galaxy_->JudgeRefreshTime(token)) {
                 LOG_WARN() << "token has already expire";
                 THROW_CODE(Unauthorized, "token has already expire");
             }
         }
-        LOG_DEBUG() << "\n----------------" << "\n[" << user << "]\tPOST\t" << _TS(relative_path)
-                    << "\n"
-                    << _TS(body.serialize()).substr(0, 1024) << "\n--------------";
+        LOG_DEBUG() << "\n----------------"
+                  << "\n[" << user << "]\tPOST\t" << _TS(relative_path) << "\n"
+                  << _TS(body.serialize()).substr(0, 1024) << "\n--------------";
 
         // release read lock in case request is handled in another thread and requires
         // write lock
@@ -3156,16 +3160,13 @@ void RestServer::do_handle_post(http_request request, const web::json::value& bo
         FMA_ASSERT(false);
     } catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-        case lgraph_api::ErrorCode::Unauthorized:
-            {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
-        case lgraph_api::ErrorCode::InputError:
-            {
+            case lgraph_api::ErrorCode::InputError: {
                 return RespondBadRequest(request, e.what());
             }
-        default:
-            {
+            default: {
                 return RespondInternalException(request, e);
             }
         }
@@ -3195,9 +3196,9 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
         std::string token;
         std::string user = GetUser(request, &token);
         const auto& relative_path = uri::decode(request.relative_uri().path());
-        LOG_DEBUG() << "\n----------------" << "\n[" << user << "]\tPUT\t" << _TS(relative_path)
-                    << "\n"
-                    << _TS(body.serialize()).substr(0, 1024) << "\n----------------";
+        LOG_DEBUG() << "\n----------------"
+                                << "\n[" << user << "]\tPUT\t" << _TS(relative_path) << "\n"
+                                << _TS(body.serialize()).substr(0, 1024) << "\n----------------";
 
         auto paths = uri::split_path(relative_path);
         if (paths.empty()) return RespondBadURI(request);
@@ -3234,16 +3235,13 @@ void RestServer::do_handle_put(http_request request, const web::json::value& bod
         }
     } catch (lgraph_api::LgraphException& e) {
         switch (e.code()) {
-        case lgraph_api::ErrorCode::Unauthorized:
-            {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(request, e.what());
             }
-        case lgraph_api::ErrorCode::InputError:
-            {
+            case lgraph_api::ErrorCode::InputError: {
                 return RespondBadRequest(request, e.what());
             }
-        default:
-            {
+            default: {
                 return RespondInternalException(request, e);
             }
         }

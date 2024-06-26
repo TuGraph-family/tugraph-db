@@ -29,61 +29,63 @@
 namespace lgraph {
 namespace http {
 
-#define _GET_PLUGIN_TYPE(procedureType, _type)                                              \
-    do {                                                                                    \
-        if (procedureType == plugin::PLUGIN_LANG_TYPE_CPP)                                  \
-            _type = PluginManager::PluginType::CPP;                                         \
-        else if (procedureType == plugin::PLUGIN_LANG_TYPE_PYTHON)                          \
-            _type = PluginManager::PluginType::PYTHON;                                      \
-        else if (procedureType == plugin::PLUGIN_LANG_TYPE_ANY)                             \
-            _type = PluginManager::PluginType::ANY;                                         \
-        else                                                                                \
-            THROW_CODE(BadRequest, FMA_FMT("Invalid procedure type [{}].", procedureType)); \
+#define _GET_PLUGIN_TYPE(procedureType, _type)                           \
+    do {                                                                 \
+        if (procedureType == plugin::PLUGIN_LANG_TYPE_CPP)               \
+            _type = PluginManager::PluginType::CPP;                      \
+        else if (procedureType == plugin::PLUGIN_LANG_TYPE_PYTHON)       \
+            _type = PluginManager::PluginType::PYTHON;                   \
+        else if (procedureType == plugin::PLUGIN_LANG_TYPE_ANY)          \
+            _type = PluginManager::PluginType::ANY;                      \
+        else                                                             \
+            THROW_CODE(BadRequest,                          \
+                FMA_FMT("Invalid procedure type [{}].", procedureType)); \
     } while (0)
 
 // TODO(qishipeng): check the procedure type used in each function
-#define _GET_PLUGIN_REQUEST_TYPE(procedureType, _type)                                      \
-    do {                                                                                    \
-        if (procedureType == plugin::PLUGIN_LANG_TYPE_CPP)                                  \
-            _type = PluginRequest::CPP;                                                     \
-        else if (procedureType == plugin::PLUGIN_LANG_TYPE_PYTHON)                          \
-            _type = PluginRequest::PYTHON;                                                  \
-        else if (procedureType == plugin::PLUGIN_LANG_TYPE_ANY)                             \
-            _type = PluginRequest::ANY;                                                     \
-        else                                                                                \
-            THROW_CODE(BadRequest, FMA_FMT("Invalid procedure type [{}].", procedureType)); \
+#define _GET_PLUGIN_REQUEST_TYPE(procedureType, _type)                   \
+    do {                                                                 \
+        if (procedureType == plugin::PLUGIN_LANG_TYPE_CPP)               \
+            _type = PluginRequest::CPP;                                  \
+        else if (procedureType == plugin::PLUGIN_LANG_TYPE_PYTHON)       \
+            _type = PluginRequest::PYTHON;                               \
+        else if (procedureType == plugin::PLUGIN_LANG_TYPE_ANY)          \
+            _type = PluginRequest::ANY;                                  \
+        else                                                             \
+            THROW_CODE(BadRequest,                          \
+                FMA_FMT("Invalid procedure type [{}].", procedureType)); \
     } while (0)
 
-#define _GET_PLUGIN_REQUEST_CODE_TYPE(codeType, _type)                   \
-    do {                                                                 \
-        if (codeType == plugin::PLUGIN_CODE_TYPE_PY)                     \
-            _type = LoadPluginRequest::PY;                               \
-        else if (codeType == plugin::PLUGIN_CODE_TYPE_SO)                \
-            _type = LoadPluginRequest::SO;                               \
-        else if (codeType == plugin::PLUGIN_CODE_TYPE_ZIP)               \
-            _type = LoadPluginRequest::ZIP;                              \
-        else if (codeType == plugin::PLUGIN_CODE_TYPE_CPP)               \
-            _type = LoadPluginRequest::CPP;                              \
-        else                                                             \
+#define _GET_PLUGIN_REQUEST_CODE_TYPE(codeType, _type)                                           \
+    do {                                                                                         \
+        if (codeType == plugin::PLUGIN_CODE_TYPE_PY)                                             \
+            _type = LoadPluginRequest::PY;                                                       \
+        else if (codeType == plugin::PLUGIN_CODE_TYPE_SO)                                        \
+            _type = LoadPluginRequest::SO;                                                       \
+        else if (codeType == plugin::PLUGIN_CODE_TYPE_ZIP)                                       \
+            _type = LoadPluginRequest::ZIP;                                                      \
+        else if (codeType == plugin::PLUGIN_CODE_TYPE_CPP)                                       \
+            _type = LoadPluginRequest::CPP;                                                      \
+        else                                                                                     \
             THROW_CODE(BadRequest, "Invalid code_type [{}].", codeType); \
     } while (0)
 
-#define _HANDLE_LGRAPH_RESPONSE_ERROR(lgraph_resp)          \
-    do {                                                    \
-        switch (lgraph_resp.error_code()) {                 \
-        case LGraphResponse::AUTH_ERROR:                    \
-            THROW_CODE(Unauthorized, lgraph_resp.error());  \
-        case LGraphResponse::BAD_REQUEST:                   \
+#define _HANDLE_LGRAPH_RESPONSE_ERROR(lgraph_resp)                         \
+    do {                                                                   \
+        switch (lgraph_resp.error_code()) {                                \
+        case LGraphResponse::AUTH_ERROR:                                   \
+            THROW_CODE(Unauthorized, lgraph_resp.error());      \
+        case LGraphResponse::BAD_REQUEST: 
             THROW_CODE(BadRequest, lgraph_resp.error());    \
-        case LGraphResponse::REDIRECT:                      \
-            return;                                         \
-        case LGraphResponse::EXCEPTION:                     \
+        case LGraphResponse::REDIRECT:                                     \
+            return;                                                        \
+        case LGraphResponse::EXCEPTION:                                    \
             THROW_CODE(InternalError, lgraph_resp.error()); \
-        case LGraphResponse::KILLED:                        \
+        case LGraphResponse::KILLED:                                       \
             THROW_CODE(BadRequest, "Task killed.");         \
-        default:                                            \
+        default:                                                           \
             THROW_CODE(InternalError, lgraph_resp.error()); \
-        }                                                   \
+        }                                                                  \
     } while (0)
 
 nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
@@ -227,20 +229,16 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
         it->second(cntl, res);
     } catch (const lgraph_api::LgraphException& e) {
         switch (e.code()) {
-        case lgraph_api::ErrorCode::Unauthorized:
-            {
+            case lgraph_api::ErrorCode::Unauthorized: {
                 return RespondUnauthorized(cntl, e.msg());
             }
-        case lgraph_api::ErrorCode::BadRequest:
-            {
+            case lgraph_api::ErrorCode::BadRequest: {
                 return RespondBadRequest(cntl, e.msg());
             }
-        case lgraph_api::ErrorCode::InternalError:
-            {
+            case lgraph_api::ErrorCode::InternalError: {
                 return RespondInternalError(cntl, e.msg());
             }
-        default:
-            {
+            default: {
                 return RespondBadRequest(cntl, e.msg());
             }
         }
@@ -254,11 +252,12 @@ void HttpService::Query(google::protobuf::RpcController* cntl_base, const HttpRe
 void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res) {
     const std::string token = CheckTokenOrThrowException(cntl);
 
-    auto get_parameter = [](const brpc::Controller* cntl, const std::string& key) {
+    auto get_parameter = [](const brpc::Controller* cntl, const std::string& key){
         const std::string* data = cntl->http_request().GetHeader(key);
-        if (data) return data;
+        if (data)
+            return data;
         std::string lower_key = key;
-        for (char& c : lower_key) {
+        for (char &c : lower_key) {
             c = std::tolower(static_cast<unsigned char>(c));
         }
         return cntl->http_request().GetHeader(lower_key);
@@ -269,8 +268,8 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
 
     if (file_name == nullptr || begin_str == nullptr || size_str == nullptr) {
         THROW_CODE(BadRequest,
-                   "request header should has a fileName, "
-                   "a beginPos and a size parameter");
+            "request header should has a fileName, "
+            "a beginPos and a size parameter");
     }
     off_t begin;
     ssize_t size;
@@ -278,7 +277,8 @@ void HttpService::DoUploadRequest(const brpc::Controller* cntl, std::string& res
         begin = boost::lexical_cast<off_t>(*begin_str);
         size = boost::lexical_cast<ssize_t>(*size_str);
     } catch (boost::bad_lexical_cast& e) {
-        THROW_CODE(BadRequest, "beginPos and Size should be an integer of the string type");
+        THROW_CODE(BadRequest,
+            "beginPos and Size should be an integer of the string type");
     }
     int fd = OpenUserFile(token, *file_name);
     butil::IOBuf content = cntl->request_attachment();
@@ -309,7 +309,8 @@ void HttpService::DoClearCache(const brpc::Controller* cntl, std::string& res) {
     } catch (boost::bad_lexical_cast& e) {
         THROW_CODE(BadRequest, "`flag` should be an integer of the string type");
     }
-    if (flag < 0) THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
+    if (flag < 0)
+        THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
     switch (flag) {
     case HTTP_SPECIFIED_FILE:
         {
@@ -341,7 +342,8 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
     try {
         flag = boost::lexical_cast<int16_t>(flag_str);
     } catch (boost::bad_lexical_cast& e) {
-        THROW_CODE(BadRequest, "`flag` should be an integer of the string type");
+    if (flag < 0)
+        THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
     }
     if (flag < 0) THROW_CODE(BadRequest, "`flag` should be greater than or equal to 0");
 
@@ -366,7 +368,8 @@ void HttpService::DoCheckFile(const brpc::Controller* cntl, std::string& res) {
             try {
                 file_size = boost::lexical_cast<off_t>(size_str);
             } catch (boost::bad_lexical_cast& e) {
-                THROW_CODE(BadRequest, "`file_size` should be an integer of the string type");
+                THROW_CODE(BadRequest,
+                    "`file_size` should be an integer of the string type");
             }
             if (file_size != GetFileSize(absolute_file_name)) {
                 js["pass"] = false;
@@ -403,7 +406,8 @@ void HttpService::DoImportFile(const brpc::Controller* cntl, std::string& res) {
         try {
             skip_packages = boost::lexical_cast<uint64_t>(skip_str);
         } catch (boost::bad_lexical_cast& e) {
-            THROW_CODE(BadRequest, "skipPackages should be an integer of the string type");
+            THROW_CODE(BadRequest,
+                "skipPackages should be an integer of the string type");
         }
     }
 
@@ -631,7 +635,8 @@ int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     std::vector<std::string> fields;
     fields.reserve(10);
     boost::split(fields, file_name, boost::is_any_of("/"));
-    if (user == fields[0]) THROW_CODE(BadRequest, "invalid fileName : {}", file_name);
+    if (user == fields[0])
+        THROW_CODE(BadRequest, "invalid fileName : {}", file_name);
     fma_common::LocalFileSystem fs;
     std::string user_directory = import_manager_.GetUserPath(user);
     for (size_t idx = 0; idx < fields.size() - 1; ++idx) {
@@ -640,8 +645,8 @@ int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     }
     if (fs.FileExists(user_directory)) {
         if (!fs.IsDir(user_directory)) {
-            THROW_CODE(InternalError, "{} already exists and it is not a directory",
-                       user_directory);
+            THROW_CODE(InternalError,
+                "{} already exists and it is not a directory", user_directory);
         }
     } else {
         fs.Mkdir(user_directory);
@@ -649,7 +654,8 @@ int HttpService::OpenUserFile(const std::string& token, std::string file_name) {
     const std::string absolute_file_name = user_directory + "/" + fields[fields.size() - 1];
     int fd = open(absolute_file_name.data(), O_CREAT | O_WRONLY, 0666);
     if (fd < 0) {
-        THROW_CODE(InternalError, "{} file open failed", absolute_file_name);
+        THROW_CODE(InternalError,
+            "{} file open failed", absolute_file_name);
     }
     return fd;
 }
@@ -688,8 +694,8 @@ void HttpService::DeleteSpecifiedFile(const std::string& token, const std::strin
 void HttpService::DeleteSpecifiedUserFiles(const std::string& token, const std::string& user_name) {
     const std::string user = galaxy_->ParseAndValidateToken(token);
     if (user != user_name || !galaxy_->IsAdmin(user)) {
-        THROW_CODE(BadRequest, "{} is not admin user, can't remove other people's file directories",
-                   user_name);
+        THROW_CODE(BadRequest,
+            "{} is not admin user, can't remove other people's file directories", user_name);
     }
     const std::string user_directory = import_manager_.GetUserPath(user);
 
@@ -712,7 +718,8 @@ void HttpService::DeleteAllUserFiles(const std::string& token) {
     std::string user_name;
     user_name = galaxy_->ParseTokenAndCheckIfIsAdmin(token, &is_admin);
     if (!is_admin) {
-        THROW_CODE(BadRequest, "{} is not admin user, can't remove all directories", user_name);
+        THROW_CODE(BadRequest,
+            "{} is not admin user, can't remove all directories", user_name);
     }
     const std::string all_directory = import_manager_.GetRootPath();
 
@@ -750,8 +757,8 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "procedureType", procedureType);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
     if (version != plugin::PLUGIN_VERSION_1 && version != plugin::PLUGIN_VERSION_2) {
-        THROW_CODE(BadRequest, "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1,
-                   plugin::PLUGIN_VERSION_2);
+        THROW_CODE(BadRequest,
+            "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1, plugin::PLUGIN_VERSION_2);
     }
     PluginRequest* preq = lgraph_req.mutable_plugin_request();
     preq->set_graph(graphName);
@@ -776,7 +783,7 @@ void HttpService::DoUploadProcedure(const brpc::Controller* cntl, std::string& r
     LoadPluginRequest* req = preq->mutable_load_plugin_request();
     req->set_name(procedureName);
     req->set_read_only(readonly);
-    for (auto& code : content) {
+    for (auto &code : content) {
         std::vector<unsigned char> decoded = utility::conversions::from_base64(code);
         req->add_code(std::string(decoded.begin(), decoded.end()));
     }
@@ -805,8 +812,9 @@ void HttpService::DoListProcedures(const brpc::Controller* cntl, std::string& re
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
     if (version != plugin::PLUGIN_VERSION_1 && version != plugin::PLUGIN_VERSION_2 &&
         version != plugin::PLUGIN_VERSION_ANY) {
-        THROW_CODE(BadRequest, "Version must be [{}] or [{}] or [{}]", plugin::PLUGIN_VERSION_1,
-                   plugin::PLUGIN_VERSION_2, plugin::PLUGIN_VERSION_ANY);
+        THROW_CODE(BadRequest, "Version must be [{}] or [{}] or [{}]",
+                   plugin::PLUGIN_VERSION_1,
+                    plugin::PLUGIN_VERSION_2, plugin::PLUGIN_VERSION_ANY);
     }
 
     LGraphRequest lgraph_req;
@@ -993,7 +1001,8 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
         ApplyToStateMachine(lgraph_req, lgraph_res);
         BuildJsonGraphQueryResponse(lgraph_res, res);
     } else {
-        THROW_CODE(BadRequest, "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1,
+        THROW_CODE(BadRequest,
+            "Version must be [{}] or [{}]", plugin::PLUGIN_VERSION_1,
                    plugin::PLUGIN_VERSION_2);
     }
 }
@@ -1013,12 +1022,14 @@ void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoName", algoName);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "algoType", algoType);
     if (algoType != plugin::PLUGIN_LANG_TYPE_PYTHON && algoType != plugin::PLUGIN_LANG_TYPE_CPP) {
-        THROW_CODE(BadRequest, "AlgoType must be [{}] or [{}]", plugin::PLUGIN_LANG_TYPE_PYTHON,
-                   plugin::PLUGIN_LANG_TYPE_CPP);
+        THROW_CODE(BadRequest, "AlgoType must be [{}] or [{}]",
+                                                      plugin::PLUGIN_LANG_TYPE_PYTHON,
+                                                      plugin::PLUGIN_LANG_TYPE_CPP);
     }
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "version", version);
     if (version != plugin::PLUGIN_VERSION_1) {
-        THROW_CODE(BadRequest, "Version must be [{}] for long algo job", plugin::PLUGIN_VERSION_1);
+        THROW_CODE(BadRequest,
+            "Version must be [{}] for long algo job", plugin::PLUGIN_VERSION_1);
     }
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "jobParam", jobParam);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "nodeType", nodeType);
@@ -1026,8 +1037,9 @@ void HttpService::DoCreateProcedureJob(const brpc::Controller* cntl, std::string
     GET_FIELD_OR_THROW_BAD_REQUEST(params, std::string, "outputType", outputType);
     if (outputType != HTTP_PROCEDURE_OUTPUT_TYPE_FILE &&
         outputType != HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH) {
-        THROW_CODE(BadRequest, "OutputType must be [{}] or [{}]", HTTP_PROCEDURE_OUTPUT_TYPE_FILE,
-                   HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH);
+        THROW_CODE(BadRequest, "OutputType must be [{}] or [{}]",
+                                                      HTTP_PROCEDURE_OUTPUT_TYPE_FILE,
+                                                      HTTP_PROCEDURE_OUTPUT_TYPE_GRAPH);
     }
     GET_FIELD_OR_THROW_BAD_REQUEST(params, double, "timeout", timeout);
     GET_FIELD_OR_THROW_BAD_REQUEST(params, bool, "inProcess", inProcess);

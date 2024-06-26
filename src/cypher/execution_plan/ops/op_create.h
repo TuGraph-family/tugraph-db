@@ -256,9 +256,9 @@ class OpCreate : public OpBase {
         for (auto child : children) {
             child->Initialize(ctx);
         }
-        record = children.empty()
-                     ? std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_, ctx->param_tab_)
-                     : children[0]->record;
+        record = children.empty() ?
+            std::make_shared<Record>(sym_tab_.symbols.size(), &sym_tab_, ctx->param_tab_)
+                                  : children[0]->record;
         return OP_OK;
     }
 
@@ -302,9 +302,9 @@ class OpCreate : public OpBase {
         return str;
     }
 
-    const SymbolTable &SymTab() const { return sym_tab_; }
+    const SymbolTable& SymTab() const { return sym_tab_; }
 
-    PatternGraph *GetPatternGraph() const { return pattern_graph_; }
+    PatternGraph* GetPatternGraph() const { return pattern_graph_; }
 
     CYPHER_DEFINE_VISITABLE()
 
