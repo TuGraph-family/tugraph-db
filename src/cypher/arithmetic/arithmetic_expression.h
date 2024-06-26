@@ -675,7 +675,7 @@ struct ArithExprNode {
 
     ArithExprNode() = default;
 
-    ArithExprNode(parser::Expression expr, const SymbolTable &sym_tab);
+    ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab);
 
     ArithExprNode(geax::frontend::Expr *expr, const SymbolTable &sym_tab) {
         SetAstExp(expr, sym_tab);

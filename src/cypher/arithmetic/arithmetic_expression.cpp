@@ -1472,8 +1472,8 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
     }
 }
 
-ArithExprNode::ArithExprNode(parser::Expression expr, const SymbolTable &sym_tab) {
-    expression_ = std::move(expr);
+ArithExprNode::ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab) {
+    expression_ = expr;
     Set(expression_, sym_tab);
 }
 
