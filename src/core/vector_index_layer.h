@@ -3,6 +3,10 @@
 #include <vector>
 #include <cstdint>
 #include "core/vector_index_manager.h"
+#include "faiss/IndexFlat.h"
+#include "faiss/IndexIVFFlat.h"
+#include "faiss/index_io.h"
+#include "faiss/impl/io.h"
 
 namespace lgraph {
 
@@ -21,8 +25,9 @@ class VectorIndex {
     std::vector<int> index_spec_;
     int query_spec_;
     size_t num_of_return_;
-    std::vector<uint8_t> index_;
-    VectorIndexManager vector_index_manager_;  
+    faiss::IndexFlatL2* quantizer_;
+    faiss::Index* index_;
+    VectorIndexManager vector_index_manager_; 
 
  public:
     VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec);
@@ -34,6 +39,8 @@ class VectorIndex {
     VectorIndex& operator=(const VectorIndex& rhs) = delete;
 
     VectorIndex& operator=(VectorIndex&& rhs) = delete;
+    
+    ~VectorIndex();
 
     // get label
     std::string GetLabel() { return label_; }
@@ -72,7 +79,9 @@ class VectorIndex {
     void Load(std::vector<uint8_t>& idx_bytes);
 
     // search vector in index
-    bool Search(const std::vector<float> query, size_t num_results, std::vector<std::vector<float>>& vector_results, std::vector<float> score_results);
+    bool Search(const std::vector<float> query, size_t num_results, size_t near_results, std::vector<std::vector<float>>& vector_results);
 
+    // get IndexIVFFlat
+    faiss::IndexIVFFlat* GetIndexIVFFlat() { return dynamic_cast<faiss::IndexIVFFlat*>(index_); }
 };
 }  // namespace lgraph
