@@ -15,57 +15,57 @@
 
 namespace parser {
 using namespace cypher;
+using ArithExprType = ArithExprNode::ArithExprType;
+using ArithOperandType = ArithOperandNode::ArithOperandType;
 void RewriteFilterAst(std::shared_ptr<lgraph::Filter>& filter,
                       std::vector<TUP_PATTERN_PART>& pattern,
                       const lgraph::SchemaInfo& si) {
     if (filter->Type() == lgraph::Filter::Type::RANGE_FILTER) {
         bool rewrite = false;
         auto& range_filter = dynamic_cast<lgraph::RangeFilter&>(*filter);
-        if (range_filter.GetCompareOp() == lgraph::CompareOp::LBR_EQ) {
-            auto& range_filter_left = range_filter.GetAeLeft();
-            auto& range_filter_right = range_filter.GetAeRight();
-            if (range_filter_left.type == ArithExprNode::ArithExprType::AR_EXP_OPERAND) {
-                if (range_filter_left.operand.type ==
-                    ArithOperandNode::ArithOperandType::AR_OPERAND_VARIADIC) {
-                    for (auto &pattern_part : pattern) {
-                        auto &pattern_element = std::get<1>(pattern_part);
-                        std::vector<TUP_NODE_PATTERN*> node_patterns;
-                        node_patterns.push_back(&std::get<0>(pattern_element));
-                        for (auto& item : std::get<1>(pattern_element)) {
-                            node_patterns.push_back(&std::get<1>(item));
-                        }
-                        for (auto p : node_patterns) {
-                            auto& node_pattern = *p;
-                            const std::string &node_variable = std::get<0>(node_pattern);
-                            if (node_variable != range_filter_left.operand.variadic.alias) {
-                                continue;
-                            }
-                            auto &node_labels = std::get<1>(node_pattern);
-                            if (!node_labels.empty()) {
-                                auto label = node_labels[0];
-                                auto &properties = std::get<2>(node_pattern);
-                                auto &expr_prop = std::get<0>(properties);
-                                if (expr_prop.type == parser::Expression::NA ||
-                                    (expr_prop.type == parser::Expression::MAP &&
-                                     expr_prop.Map().empty())) {
-                                    auto s = si.v_schema_manager.GetSchema(label);
-                                    if (!s)
-                                        THROW_CODE(CypherException, "No such vertex label: {}",
-                                                   label);
-                                    if (s->GetPrimaryField() ==
-                                        range_filter_left.operand.variadic.entity_prop) {
-                                        Expression::EXPR_TYPE_MAP map_exp;
-                                        map_exp[range_filter_left.operand.variadic.entity_prop]
-                                            = range_filter_right.expression_;
-                                        // rewrite ast
-                                        rewrite = true;
-                                        expr_prop.type = Expression::MAP;
-                                        expr_prop.data =
-                                            std::make_shared<Expression::EXPR_TYPE_MAP>(
-                                                std::move(map_exp));
-                                    }
-                                }
-                            }
+        if (range_filter.GetCompareOp() != lgraph::CompareOp::LBR_EQ) {
+            return;
+        }
+        auto& rf_left = range_filter.GetAeLeft();
+        auto& rf_right = range_filter.GetAeRight();
+        if (!(rf_left.type == ArithExprType::AR_EXP_OPERAND &&
+            rf_left.operand.type == ArithOperandType::AR_OPERAND_VARIADIC &&
+            rf_right.type == ArithExprType::AR_EXP_OPERAND &&
+            rf_left.operand.type == ArithOperandType::AR_OPERAND_CONSTANT)) {
+            return;
+        }
+        for (auto &pattern_part : pattern) {
+            auto &pattern_element = std::get<1>(pattern_part);
+            std::vector<TUP_NODE_PATTERN*> node_patterns;
+            node_patterns.push_back(&std::get<0>(pattern_element));
+            for (auto& item : std::get<1>(pattern_element)) {
+                node_patterns.push_back(&std::get<1>(item));
+            }
+            for (auto p : node_patterns) {
+                auto& node_pattern = *p;
+                const std::string &node_variable = std::get<0>(node_pattern);
+                if (node_variable != rf_left.operand.variadic.alias) {
+                    continue;
+                }
+                auto &node_labels = std::get<1>(node_pattern);
+                if (!node_labels.empty()) {
+                    auto label = node_labels[0];
+                    auto &properties = std::get<2>(node_pattern);
+                    auto &expr_prop = std::get<0>(properties);
+                    if (expr_prop.type == parser::Expression::NA ||
+                        (expr_prop.type == parser::Expression::MAP &&
+                         expr_prop.Map().empty())) {
+                        auto s = si.v_schema_manager.GetSchema(label);
+                        if (!s)
+                            THROW_CODE(CypherException, "No such vertex label: {}", label);
+                        if (s->GetPrimaryField() == rf_left.operand.variadic.entity_prop) {
+                            Expression::EXPR_TYPE_MAP map_exp;
+                            map_exp[rf_left.operand.variadic.entity_prop] = rf_right.expression_;
+                            // rewrite ast
+                            rewrite = true;
+                            expr_prop.type = Expression::MAP;
+                            expr_prop.data = std::make_shared<Expression::EXPR_TYPE_MAP>(
+                                std::move(map_exp));
                         }
                     }
                 }
