@@ -20,6 +20,7 @@
 #include "procedure/procedure.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
+#include "db/galaxy.h"
 
 cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
     auto &call = call_clause_;

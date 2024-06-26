@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include "cypher/graph/common.h"
+#include "cypher/filter/iterator.h"
 
 namespace cypher {
 class RTContext;

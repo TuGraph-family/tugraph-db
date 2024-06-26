@@ -1155,6 +1155,7 @@ void Importer::RocksdbToLmdb() {
             EdgeId out_last_eid = -1, in_last_eid = -1;
             size_t total_size = 0;
             VertexId pre_vid = InvalidVid;
+            EdgeUid last_uid(-1, -1, 0, -1, -1);
 
             auto throw_kvs_to_lmdb = [&lmdb_writer, &pending_tasks, this, &stage, i]
                 (std::vector<std::pair<Value, Value>> kvs,
@@ -1243,6 +1244,7 @@ void Importer::RocksdbToLmdb() {
                 in_last_dst = -1;
                 out_last_eid = -1;
                 in_last_eid = -1;
+                last_uid = {-1, -1, 0, -1, -1};
             };
 
             while (true) {
@@ -1318,19 +1320,15 @@ void Importer::RocksdbToLmdb() {
                                 uid.lid = labelId;
                                 uid.dst = vertexId;
                                 uid.tid = tid;
-                                if (edge_property.empty()) {
-                                    uid.eid = 0;
+                                if (last_uid.src == uid.src &&
+                                    last_uid.lid == uid.lid &&
+                                    last_uid.dst == uid.dst &&
+                                    last_uid.tid == uid.tid) {
+                                    uid.eid = last_uid.eid + 1;
                                 } else {
-                                    auto& last = edge_property.back();
-                                    if (std::get<1>(last).src == uid.src &&
-                                        std::get<1>(last).lid == uid.lid &&
-                                        std::get<1>(last).dst == uid.dst &&
-                                        std::get<1>(last).tid == uid.tid) {
-                                        uid.eid = std::get<1>(last).eid + 1;
-                                    } else {
-                                        uid.eid = 0;
-                                    }
+                                    uid.eid = 0;
                                 }
+                                last_uid = uid;
                                 edge_property.emplace_back(
                                     labelId, uid, Value::MakeCopy(val.data(), val.size()));
                                 outs.emplace_back(labelId, tid, vertexId, import_v2::DenseString());

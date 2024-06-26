@@ -16,6 +16,7 @@
 
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/common/ObjectAllocator.h"
 #include "cypher/graph/graph.h"
 #include "cypher/execution_plan/ops/op.h"
 
@@ -23,8 +24,10 @@ namespace cypher {
 
 class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
  public:
-    explicit ExecutionPlanMaker(std::vector<PatternGraph>& pattern_graphs)
-        : pattern_graphs_(pattern_graphs) {}
+    ExecutionPlanMaker(std::vector<PatternGraph>& pattern_graphs,
+      geax::common::ObjectArenaAllocator& alloc)
+        : pattern_graphs_(pattern_graphs)
+        , objAlloc_(alloc) {}
     ~ExecutionPlanMaker() = default;
     geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, OpBase*& root);
     std::string ErrorMsg() { return error_msg_; }
@@ -44,6 +47,11 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::shared_ptr<Node> start_t_;
     std::shared_ptr<Relationship> relp_t_;
     OpFilter* op_filter_ = nullptr;
+    geax::common::ObjectArenaAllocator& objAlloc_;
+    std::vector<geax::frontend::BEqual*> equal_filter_;
+    std::vector<bool> has_filter_per_level_;
+    uint32_t filter_level_ = 0;
+    bool is_end_path_ = false;
 
  private:
     DISABLE_COPY(ExecutionPlanMaker);
@@ -114,6 +122,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;

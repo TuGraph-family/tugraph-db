@@ -83,6 +83,7 @@ void on_initialize_rpc_server() {
     sm_config.rpc_port = 19099;
 
     gconfig->ft_index_options.enable_fulltext_index = true;
+    lgraph::AccessControlledDB::SetEnablePlugin(true);
     ptr_state_machine = new lgraph::StateMachine(sm_config, gconfig);
     ptr_rpc_service = new RPCService(ptr_state_machine);
 

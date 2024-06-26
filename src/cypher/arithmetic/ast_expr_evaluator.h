@@ -31,6 +31,16 @@
 
 namespace cypher {
 
+template <typename TargetType>
+void checkedAnyCast(const std::any& s, TargetType& d) {
+    try {
+        d = std::any_cast<TargetType>(s);
+    } catch (...) {
+        // TODO(lingsu): remove in future
+        assert(false);
+    }
+}
+
 class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
  public:
     AstExprEvaluator() = delete;
@@ -54,7 +64,9 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
         record_ = record;
         agg_pos_ = 0;
         visit_mode_ = VisitMode::EVALUATE;
-        return std::any_cast<Entry>(expr_->accept(*this));
+        Entry entry;
+        checkedAnyCast(expr_->accept(*this), entry);
+        return entry;
     }
 
     void Aggregate(RTContext* ctx, const Record* record) {
@@ -95,6 +107,7 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;
@@ -133,6 +146,10 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
     std::any visit(geax::frontend::Param* node) override;
+    std::any visit(geax::frontend::SingleLabel* node) override;
+    std::any visit(geax::frontend::LabelOr* node) override;
+    std::any visit(geax::frontend::IsLabeled* node) override;
+    std::any visit(geax::frontend::IsNull* node) override;
 
     std::any reportError() override;
 

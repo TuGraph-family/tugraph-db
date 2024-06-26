@@ -22,13 +22,15 @@ namespace lgraph::ut {
 
 enum class QUERY_TYPE {
     CYPHER,
-    GQL
+    GQL,
+    NEWCYPHER
 };
 
 static std::string ToString(const QUERY_TYPE n) {
     static const std::unordered_map<QUERY_TYPE, std::string> map = {
         {QUERY_TYPE::CYPHER, "CYPHER"},
         {QUERY_TYPE::GQL, "GQL"},
+        {QUERY_TYPE::NEWCYPHER, "NEWCYPHER"},
     };
     auto it = map.find(n);
     if (it == map.end()) {
@@ -42,6 +44,7 @@ static bool ToType(const std::string& str, QUERY_TYPE& n) {
     static const std::unordered_map<std::string, QUERY_TYPE> map = {
         {"CYPHER", QUERY_TYPE::CYPHER},
         {"GQL", QUERY_TYPE::GQL},
+        {"NEWCYPHER", QUERY_TYPE::NEWCYPHER},
     };
     auto it = map.find(fma_common::ToUpper(str));
     if (it == map.end()) {

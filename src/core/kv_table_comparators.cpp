@@ -186,6 +186,17 @@ static int LexicalKeyBothVidCompareFunc(const MDB_val* a, const MDB_val* b) {
 
 struct CompositeKeyCompare {
     inline static std::vector<FieldType> data_types = {};
+    static int CompositeKeyWithVidCompareFunc(const MDB_val* a, const MDB_val* b) {
+        MDB_val pa{a->mv_size - VID_SIZE, a->mv_data};
+        MDB_val pb{b->mv_size - VID_SIZE, b->mv_data};
+        int res = CompositeKeyCompareFunc(&pa, &pb);
+        if (res != 0)
+            return res;
+        int64_t a_vid = GetVid((char*)a->mv_data + a->mv_size - VID_SIZE);
+        int64_t b_vid = GetVid((char*)b->mv_data + b->mv_size - VID_SIZE);
+        return a_vid < b_vid ? -1 : a_vid > b_vid ? 1 : 0;
+    }
+
     static int CompositeKeyCompareFunc(const MDB_val* a, const MDB_val* b) {
         int len = data_types.size();
         std::vector<int16_t> offset_a(len + 1), offset_b(len + 1);
@@ -328,6 +339,11 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
         {
             _detail::CompositeKeyCompare::data_types = desc.data_types;
             return _detail::CompositeKeyCompare::CompositeKeyCompareFunc;
+        }
+    case ComparatorDesc::COMPOSITE_KEY_AND_VID:
+        {
+            _detail::CompositeKeyCompare::data_types = desc.data_types;
+            return _detail::CompositeKeyCompare::CompositeKeyWithVidCompareFunc;
         }
     default:
         THROW_CODE(KvException, "Unrecognized comparator type: {}", desc.comp_type);

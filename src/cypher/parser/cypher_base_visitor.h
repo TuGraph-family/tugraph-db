@@ -27,6 +27,8 @@
 #include "procedure/procedure.h"
 #include "core/defs.h"
 #include "db/galaxy.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
+#include "cypher/filter/filter.h"
 
 #if __APPLE__
 #ifdef TRUE
