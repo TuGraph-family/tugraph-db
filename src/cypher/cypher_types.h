@@ -168,9 +168,11 @@ struct FieldData {
         switch (type) {
         case ARRAY:
             delete array;
+            array = nullptr;
             break;
         case MAP:
             delete map;
+            map = nullptr;
             break;
         case SCALAR:
             break;
@@ -178,10 +180,10 @@ struct FieldData {
         type = rhs.type;
         switch (type) {
         case ARRAY:
-            array = new std::vector<::lgraph::FieldData>(*rhs.array);
+            std::swap(array, rhs.array);
             break;
         case MAP:
-            map = new std::unordered_map<std::string, lgraph::FieldData>(*rhs.map);
+            std::swap(map, rhs.map);
             break;
         case SCALAR:
             scalar = std::move(rhs.scalar);
