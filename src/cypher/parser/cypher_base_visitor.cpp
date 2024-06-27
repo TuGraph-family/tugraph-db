@@ -31,7 +31,7 @@ void RewriteFilterAst(std::shared_ptr<lgraph::Filter>& filter,
         if (!(rf_left.type == ArithExprType::AR_EXP_OPERAND &&
             rf_left.operand.type == ArithOperandType::AR_OPERAND_VARIADIC &&
             rf_right.type == ArithExprType::AR_EXP_OPERAND &&
-            rf_left.operand.type == ArithOperandType::AR_OPERAND_CONSTANT)) {
+              rf_right.operand.type == ArithOperandType::AR_OPERAND_CONSTANT)) {
             return;
         }
         for (auto &pattern_part : pattern) {
