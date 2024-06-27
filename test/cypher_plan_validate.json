@@ -111,6 +111,28 @@
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Apply\n            Expand(All) [n1 --> m1 ]\n                Node By Label Scan Dynamic [n1:Person]\n                    Argument [cp]\n            Aggregate [cp]\n                Expand(All) [n2 --> m1 ]\n                    Expand(All) [n1 --> n2 ]\n                        Node By Label Scan [n1:Person]\n",
             "res": 1
           }
+        ],
+        "where_rewrite": [
+          {
+            "query": "match(p:Person),(c:City) where p.name = 'Christopher Nolan' and c.name = 'Houston' return p,c",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [p,c]\n        Cartesian Product\n            Node Index Seek [p]  IN []\n            Node Index Seek [c]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match(p1:Person)-[r:HAS_CHILD]->(p2:Person) where p1.name = 'Vanessa Redgrave' and p2.name = 'Natasha Richardson' return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Filter [{p2.name = Natasha Richardson}]\n            Expand(All) [p1 --> p2 ]\n                Node Index Seek [p1]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match(p1:Person)-[r:HAS_CHILD]->(p2:Person) where p1.name = 'Vanessa Redgrave' and p2.name = 'Natasha Richardson' return r union match(p1:Person)-[r:HAS_CHILD]->(p2:Person) where p1.name = 'Michael Redgrave' and p2.name = 'Vanessa Redgrave' return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Union\n        Project [r]\n            Filter [{p2.name = Natasha Richardson}]\n                Expand(All) [p1 --> p2 ]\n                    Node Index Seek [p1]  IN []\n        Project [r]\n            Filter [{p2.name = Vanessa Redgrave}]\n                Expand(All) [p1 --> p2 ]\n                    Node Index Seek [p1]  IN []\n",
+            "res": 2
+          },
+          {
+            "query": "match(c:City)<-[r:BORN_IN]-(p:Person) where c.name = 'London' and p.name <> 'Christopher Nolan' return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Filter [{p.name != Christopher Nolan}]\n            Expand(All) [c <-- p ]\n                Node Index Seek [c]  IN []\n",
+            "res": 2
+          }
         ]
       }
     }
