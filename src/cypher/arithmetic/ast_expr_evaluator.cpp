@@ -14,7 +14,8 @@
  */
 
 #include <algorithm>
-#include "geax-front-end/ast/expr/VDouble.h"
+#include <unordered_map>
+#include "cypher/cypher_types.h"
 #include "core/data_type.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/resultset/record.h"
@@ -227,7 +228,18 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BIndex* node) { NOT_SUP
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BLike* node) { NOT_SUPPORT_AND_THROW(); }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::BIn* node) { NOT_SUPPORT_AND_THROW(); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::BIn* node) {
+    auto l_val = std::any_cast<Entry>(node->left()->accept(*this));
+    auto r_val = std::any_cast<Entry>(node->right()->accept(*this));
+    if (!l_val.IsScalar()) NOT_SUPPORT_AND_THROW();
+    if (!r_val.IsArray()) NOT_SUPPORT_AND_THROW();
+    for (auto& val : *r_val.constant.array) {
+        if (l_val.constant.scalar == val) {
+            return Entry(cypher::FieldData(lgraph::FieldData(true)));
+        }
+    }
+    return Entry(cypher::FieldData(lgraph::FieldData(false)));
+}
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::If* node) { NOT_SUPPORT_AND_THROW(); }
 
@@ -260,7 +272,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Case* node) {
         if (node->elseBody().has_value()) {
             return node->elseBody().value()->accept(*this);
         } else {
-            NOT_SUPPORT_AND_THROW();
+            return Entry();
         }
 
     } else {
@@ -290,12 +302,14 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MatchCase* node) {
 std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
     std::unordered_map<std::string, std::function<std::shared_ptr<AggCtx>()>> registered_agg_funcs =
         ArithOpNode::RegisterAggFuncs();
-    auto agg_it = registered_agg_funcs.find(ToString(node->funcName()));
+    std::string func_name = ToString(node->funcName());
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    auto agg_it = registered_agg_funcs.find(func_name);
     if (agg_it != registered_agg_funcs.end()) {
         // Evalute Mode
         if (visit_mode_ == VisitMode::EVALUATE) {
             if (agg_pos_ >= agg_ctxs_.size()) {
-                NOT_SUPPORT_AND_THROW();
+                return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
             }
             return agg_ctxs_[agg_pos_++]->result;
         } else if (visit_mode_ == VisitMode::AGGREGATE) {
@@ -318,6 +332,36 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BAggFunc* node) {
+    std::unordered_map<std::string, std::function<std::shared_ptr<AggCtx>()>> registered_agg_funcs =
+        ArithOpNode::RegisterAggFuncs();
+    std::string func_name = ToString(node->funcName());
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    auto agg_it = registered_agg_funcs.find(func_name);
+    if (agg_it != registered_agg_funcs.end()) {
+        // Evalute Mode
+        if (visit_mode_ == VisitMode::EVALUATE) {
+            if (agg_pos_ >= agg_ctxs_.size()) {
+                return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+            }
+            return agg_ctxs_[agg_pos_++]->result;
+        } else if (visit_mode_ == VisitMode::AGGREGATE) {
+            // todo(...): registered_agg_funcs cannot be static and need improvement
+            // return Entry(agg_it->second());
+            if (agg_pos_ == agg_ctxs_.size()) {
+                agg_ctxs_.emplace_back(agg_it->second());
+            }
+            if (agg_pos_ >= agg_ctxs_.size()) {
+                NOT_SUPPORT_AND_THROW();
+            }
+            std::vector<Entry> args;
+            auto& left = node->lExpr();
+            args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(std::get<0>(left)))));
+            args.emplace_back(std::any_cast<Entry>(std::get<1>(left)->accept(*this)));
+            args.emplace_back(std::any_cast<Entry>(node->rExpr()->accept(*this)));
+            agg_ctxs_[agg_pos_]->Step(args);
+            return Entry(cypher::FieldData());
+        }
+    }
     NOT_SUPPORT_AND_THROW();
 }
 
@@ -342,7 +386,18 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
     return Entry(cypher::FieldData(list));
 }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) { NOT_SUPPORT_AND_THROW(); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) {
+    const auto& elems = node->elems();
+    std::unordered_map<std::string, ::lgraph::FieldData> map;
+    for (const auto& pair : elems) {
+        auto key = std::any_cast<Entry>(std::get<0>(pair)->accept(*this));
+        auto val = std::any_cast<Entry>(std::get<1>(pair)->accept(*this));
+        if (!key.IsString()) NOT_SUPPORT_AND_THROW();
+        if (!val.IsScalar()) NOT_SUPPORT_AND_THROW();
+        map.emplace(key.constant.ToString(), val.constant.scalar);
+    }
+    return Entry(cypher::FieldData(map));
+}
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::MkRecord* node) {
     NOT_SUPPORT_AND_THROW();
@@ -411,7 +466,17 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
     return std::any();
 }
 
-std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) { NOT_SUPPORT_AND_THROW(); }
+std::any cypher::AstExprEvaluator::visit(geax::frontend::Param* node) {
+    auto& variabel = node->name();
+    auto it = sym_tab_->symbols.find(variabel);
+    if (it == sym_tab_->symbols.end()) {
+        throw lgraph::CypherException("Parameter not defined: " + variabel);
+    }
+    if (record_->values[it->second.id].type == Entry::UNKNOWN) {
+        throw lgraph::CypherException("Undefined parameter: " + variabel);
+    }
+    return record_->values[it->second.id];
+}
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::SingleLabel* node) {
     std::unordered_set<std::string> set;

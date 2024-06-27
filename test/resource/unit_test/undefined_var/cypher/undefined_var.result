@@ -3,15 +3,15 @@ MATCH (n:Person) RETURN q;
 MATCH (n:Person) RETURN n.name + q.name;
 [CypherException] CypherException: Unknown variable: q
 MATCH (n:Person) WITH q as m RETURN m;
-[InputError] Variable `q` not defined
+[CypherException] CypherException: Unknown variable: q
 MATCH (n:Person) WITH k RETURN n;
-[InputError] Variable `k` not defined
+[CypherException] CypherException: Unknown variable: k
 UNWIND k as n RETURN n;
-[InputError] Variable `k` not defined
+[CypherException] CypherException: Unknown variable: k
 MATCH (n:Person) WHERE n.name = k RETURN n;
 [CypherException] CypherException: Unknown variable: k
 MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by number;
-[InputError] Variable `number` not defined
+[CypherException] CypherException: Unknown variable: k
 WITH [1,2,3] AS k RETURN [x in k | x + y] AS result;
 [InputError] Variable `y` not defined
 REMOVE a.name;
@@ -29,4 +29,4 @@ MATCH(n:Person {name: 'D'}) DELETE k;
 MATCH(n)-[r:REL]-(m) DELETE k;
 [InputError] Variable `k` not defined
 MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) WITH v1, count(*) AS edge_num WHERE non_edge > 1 RETURN v1,edge_num;
-[InputError] Variable `non_edge` not defined
+[CypherException] CypherException: Unknown variable: non_edge

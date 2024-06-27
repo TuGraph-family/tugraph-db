@@ -6,7 +6,6 @@ OPTIONAL MATCH (n:City {name:'London'})-[r]-(m) RETURN n.name, r, m;
 MATCH (n:City {name:'London'}) WITH n.name AS city_name OPTIONAL MATCH (n:Person {name:'NoOne'}) RETURN n.name, city_name;
 MATCH (n:City) WITH n MATCH (n)-->(m) RETURN n,m;
 MATCH (n:City) WITH n OPTIONAL MATCH (n)-->(m) RETURN n,m;
-
-# MATCH (n:City {name:'London'}) OPTIONAL MATCH (n)-[r]->(m) RETURN n.name, r, m ;
-# MATCH (n:City {name:'London'}) OPTIONAL MATCH (m:NoLabel) RETURN n.name, m ;
-# MATCH (n:Person {name:'Vanessa Redgrave'}) OPTIONAL MATCH (n)-[:ACTED_IN]->(m)-[:NoType]->(l) RETURN n, m, l;
+MATCH (n:City {name:'London'}) OPTIONAL MATCH (n)-[r]->(m) RETURN n.name, r, m ;
+MATCH (n:City {name:'London'}) OPTIONAL MATCH (m:NoLabel) RETURN n.name, m ;
+MATCH (n:Person {name:'Vanessa Redgrave'}) OPTIONAL MATCH (n)-[:ACTED_IN]->(m)-[:NoType]->(l) RETURN n, m, l;

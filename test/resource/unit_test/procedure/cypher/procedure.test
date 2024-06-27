@@ -5,7 +5,6 @@
 -- loadProcedure peek_some_node_salt ../../test/test_procedures/peek_some_node_salt.cpp read_only=true
 -- loadProcedure custom_path_process ../../test/test_procedures/v2_path_process.cpp read_only=true
 -- loadProcedure custom_algo ../../test/test_procedures/v2_algo.cpp read_only=true
-
 CALL db.createVertexLabel('Director', 'name', 'name', 'STRING', false, 'age', 'INT16', true);
 CALL db.createVertexLabel('P2', 'flag1', 'flag1', 'BOOL', false, 'flag2', 'Bool', true);
 CALL db.createEdgeLabel('LIKE', '[]');

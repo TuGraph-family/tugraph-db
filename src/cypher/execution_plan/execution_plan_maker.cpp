@@ -283,13 +283,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto head = node->head();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    std::vector<OpBase*> expand_ops;
+    if (last_op_) {
+        expand_ops.emplace_back(last_op_);
+        last_op_ = nullptr;
+    }
     // todo: ...
     ClauseGuard cg(node->type(), cur_types_);
     auto& tails = node->tails();
-    std::vector<OpBase*> expand_ops;
-    if (tails.size() == 0) {
-        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
     // TODO(lingsu): generate the pattern graph
     // and select the starting Node and end Node according to the pattern graph
     for (auto [edge, end_node] : tails) {
@@ -323,8 +324,46 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
+    // The handling here is for the Match Clause, other situations need to be considered.
+    // The current design of the Visitor results in different logic for handling PathChain in
+    // different Clauses (Match, Create, and even Exists), which makes the code overly complex and
+    // needs refactoring.
+    if (!ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_)) {
+        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+    }
+
     if (auto op = _SingleBranchConnect(expand_ops)) {
-        _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+        // Handle the case where multiple PathChains are connected, with special handling
+        // for cases where multiple PathChains are mutually independent.
+        // Considering that _UpdateStreamRoot connections are more complex and AllNodeScan
+        // cannot be connected directly, this determination requires additional processing.
+        bool is_pathchain_independent = true;
+        if (is_pathchain_independent) {
+            if (pattern_graph_root_[cur_pattern_graph_] &&
+                (pattern_graph_root_[cur_pattern_graph_]->type != OpType::ARGUMENT &&
+                 pattern_graph_root_[cur_pattern_graph_]->type != OpType::UNWIND)) {
+                auto connection = new CartesianProduct();
+                connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+                connection->AddChild(op);
+                pattern_graph_root_[cur_pattern_graph_] = connection;
+            } else if (pattern_graph_root_[cur_pattern_graph_] &&
+                       pattern_graph_root_[cur_pattern_graph_]->type == OpType::UNWIND &&
+                       (*expand_ops.rbegin())->IsScan()) {
+                auto op = *expand_ops.rbegin();
+                auto connection = new CartesianProduct();
+                connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+                connection->AddChild(op);
+                pattern_graph_root_[cur_pattern_graph_] = connection;
+            } else if (pattern_graph_root_[cur_pattern_graph_]) {
+                _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+            } else {
+                pattern_graph_root_[cur_pattern_graph_] = op;
+            }
+        } else {
+            // For the associated case, currently handled through ast node rewriter, but this has
+            // performance issues. In the future, MultiMatch will be rewritten.
+            CYPHER_TODO();
+        }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -348,7 +387,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Node* node) {
         }
         std::reverse(expand_ops.begin(), expand_ops.end());
         if (auto op = _SingleBranchConnect(expand_ops)) {
-            _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+            // Do not connect op to pattern_graph_root_[cur_pattern_graph_] for now,
+            // use last_op_ to store it.
+            last_op_ = op;
         }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -474,6 +515,22 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         if (is_end_path_) {
             auto right = objAlloc_.allocate<geax::frontend::VInt>();
             right->setVal(((geax::frontend::VInt*)value)->val());
+            expr->setRight(right);
+        }
+    } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
+        p.type = Property::VALUE;
+        p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
+        if (is_end_path_) {
+            auto right = objAlloc_.allocate<geax::frontend::VBool>();
+            right->setVal(((geax::frontend::VBool*)value)->val());
+            expr->setRight(right);
+        }
+    } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
+        p.type = Property::VALUE;
+        p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
+        if (is_end_path_) {
+            auto right = objAlloc_.allocate<geax::frontend::VDouble>();
+            right->setVal(((geax::frontend::VDouble*)value)->val());
             expr->setRight(right);
         }
     } else if (value->type() == geax::frontend::AstNodeType::kRef) {
@@ -802,7 +859,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::CallQueryStatement* node) {
+    auto procedureStatement = node->procedureStatement();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(procedureStatement);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::CallProcedureStatement* node) {
     auto procedure = node->procedureCall();
@@ -1033,7 +1094,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    auto op =
+        new OpGqlMerge(node->onMatch(), node->onCreate(), node->pathPattern(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::OtherWise* node) { NOT_SUPPORT(); }
 
@@ -1052,6 +1119,26 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ShowProcessListStatement* nod
 std::any ExecutionPlanMaker::visit(geax::frontend::KillStatement* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ManagerStatement* node) { NOT_SUPPORT(); }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::UnwindStatement* node) {
+    ArithExprNode exp(node->list(), pattern_graphs_[cur_pattern_graph_].symbol_table);
+    auto unwind =
+        new Unwind(exp, node->variable(), &pattern_graphs_[cur_pattern_graph_].symbol_table);
+    _UpdateStreamRoot(unwind, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
+    std::string name = std::get<std::string>(node->name());
+    std::vector<OpBase*> expand_ops;
+    auto op =
+        new GqlInQueryCall(name, node->args(), node->yield(), &pattern_graphs_[cur_pattern_graph_]);
+    expand_ops.emplace_back(op);
+    if (auto op = _SingleBranchConnect(expand_ops)) {
+        _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::DummyNode* node) { NOT_SUPPORT(); }
 

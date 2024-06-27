@@ -15,7 +15,7 @@ MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) WITH a,sy CREATE 
 CREATE (passerC:Person {name:'Passerby C'});
 [{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
 MATCH (p:Person {name:'Passerby C'}) RETURN exists(p.birthyear) /* false */;
-[{"{EXISTS(p.birthyear)}":false}]
+[{"exists(p.birthyear)":false}]
 WITH 'Passerby D' AS x, 2020 AS y CREATE (:Person {name:x, birthyear:y});
 [{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
 MATCH (a {name:'Passerby A'}) CREATE (:Person {name:'Passerby E', birthyear:a.birthyear});

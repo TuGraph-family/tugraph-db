@@ -12,11 +12,12 @@ MATCH (n {name:'B'})-[r:KNOWS]->() DELETE r;
 [{"<SUMMARY>":"deleted 0 vertices, deleted 2 edges."}]
 MATCH (n:Person {name:'F'})-[r:KNOWS]->(m:Person {name:'I'}) DELETE r;
 [{"<SUMMARY>":"deleted 0 vertices, deleted 1 edges."}]
-#MATCH (n:Person {name:'A'}),(m:Person {name:'C'}) WITH n,m MATCH (n)-[r]->(m) DELETE r;
+MATCH (n:Person {name:'A'}),(m:Person {name:'C'}) WITH n,m MATCH (n)-[r]->(m) DELETE r;
+[{"<SUMMARY>":"deleted 0 vertices, deleted 1 edges."}]
 match (n)-[r]->(m) return r,properties(r) /*debug*/;
-[{"properties(r)":{"_EID_":"0_1_0_0_0","_LABEL_":"KNOWS","weight":10},"r":{"dst":1,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":10},"src":0,"temporal_id":0}},{"properties(r)":{"_EID_":"0_2_0_0_0","_LABEL_":"KNOWS","weight":15},"r":{"dst":2,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":15},"src":0,"temporal_id":0}},{"properties(r)":{"_EID_":"2_4_0_0_0","_LABEL_":"KNOWS","weight":12},"r":{"dst":4,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":12},"src":2,"temporal_id":0}},{"properties(r)":{"_EID_":"5_6_0_0_0","_LABEL_":"KNOWS","weight":0},"r":{"dst":6,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":0},"src":5,"temporal_id":0}},{"properties(r)":{"_EID_":"5_7_0_0_0","_LABEL_":"KNOWS","weight":0},"r":{"dst":7,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":0},"src":5,"temporal_id":0}}]
+[{"properties(r)":{"_EID_":"0_1_0_0_0","_LABEL_":"KNOWS","weight":10},"r":{"dst":1,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":10},"src":0,"temporal_id":0}},{"properties(r)":{"_EID_":"2_4_0_0_0","_LABEL_":"KNOWS","weight":12},"r":{"dst":4,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":12},"src":2,"temporal_id":0}},{"properties(r)":{"_EID_":"5_6_0_0_0","_LABEL_":"KNOWS","weight":0},"r":{"dst":6,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":0},"src":5,"temporal_id":0}},{"properties(r)":{"_EID_":"5_7_0_0_0","_LABEL_":"KNOWS","weight":0},"r":{"dst":7,"forward":false,"identity":0,"label":"KNOWS","label_id":0,"properties":{"weight":0},"src":5,"temporal_id":0}}]
 MATCH (n:Person {name:'A'}) DELETE n;
-[{"<SUMMARY>":"deleted 1 vertices, deleted 2 edges."}]
+[{"<SUMMARY>":"deleted 1 vertices, deleted 1 edges."}]
 MATCH (n:Person {name:'B'}) WITH n DELETE n;
 [{"<SUMMARY>":"deleted 1 vertices, deleted 0 edges."}]
 match (n) return n,properties(n) /*debug*/;

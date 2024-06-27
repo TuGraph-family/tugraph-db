@@ -16,10 +16,14 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
+#include "cypher/procedure/procedure_v2.h"
+#include "db/galaxy.h"
 
 namespace cypher {
 
-geax::frontend::GEAXErrorCode PatternGraphMaker::Build(geax::frontend::AstNode* astNode) {
+geax::frontend::GEAXErrorCode PatternGraphMaker::Build(geax::frontend::AstNode* astNode,
+                                                       RTContext* ctx) {
+    ctx_ = ctx;
     cur_pattern_graph_ = -1;
     cur_types_.clear();
     return std::any_cast<geax::frontend::GEAXErrorCode>(astNode->accept(*this));
@@ -182,6 +186,9 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
                 } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement,
                                                  cur_types_)) {
                     node_t_->derivation_ = Node::Derivation::CREATED;
+                } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMergeStatement,
+                                                 cur_types_)) {
+                    node_t_->derivation_ = Node::Derivation::MERGED;
                 } else {
                     NOT_SUPPORT();
                 }
@@ -189,6 +196,11 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
         } else {
             if (it->second.scope == cypher::SymbolNode::ARGUMENT) {
                 node_t_->derivation_ = Node::Derivation::ARGUMENT;
+            }
+            if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMergeStatement, cur_types_)) {
+                if (it->second.scope == cypher::SymbolNode::LOCAL) {
+                    node_t_->Visited() = true;
+                }
             }
         }
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
@@ -203,6 +215,9 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
                 } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement,
                                                  cur_types_)) {
                     relp_t_->derivation_ = Relationship::Derivation::CREATED;
+                } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMergeStatement,
+                                                 cur_types_)) {
+                    relp_t_->derivation_ = Relationship::Derivation::MERGED;
                 } else {
                     NOT_SUPPORT();
                 }
@@ -267,7 +282,8 @@ std::any PatternGraphMaker::visit(geax::frontend::LabelAnd* node) { NOT_SUPPORT(
 std::any PatternGraphMaker::visit(geax::frontend::LabelNot* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
-    if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_)) {
+    if (ClauseGuard::InClause(geax::frontend::AstNodeType::kMatchStatement, cur_types_) ||
+        ClauseGuard::InClause(geax::frontend::AstNodeType::kMergeStatement, cur_types_)) {
         auto& properties = node->properties();
         if (properties.size() != 1) {
             NOT_SUPPORT();
@@ -282,6 +298,12 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
         } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
             p.type = Property::VALUE;
             p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
+        } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
+        } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
         } else if (value->type() == geax::frontend::AstNodeType::kRef) {
             p.type = Property::VARIABLE;
             p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
@@ -297,7 +319,7 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
             node_t_->SetProperty(p);
             return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
         } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
-            NOT_SUPPORT();
+            return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
         }
         NOT_SUPPORT();
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement, cur_types_)) {
@@ -307,7 +329,67 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
     }
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
+    auto p = global_ptable_v2.GetProcedureV2(curr_procedure_name_);
+    if (p) {
+        for (auto& pair : node->items()) {
+            const std::string& name = std::get<0>(pair);
+            auto type = lgraph_api::LGraphType::NUL;
+            for (auto& r : p->signature.result_list) {
+                if (r.name == name) {
+                    type = r.type;
+                }
+            }
+            switch (type) {
+            case lgraph_api::LGraphType::NODE:
+                AddSymbol(name, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
+                break;
+            default:
+                AddSymbol(name, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
+                break;
+            }
+        }
+    } else {
+        auto names = fma_common::Split(curr_procedure_name_, ".");
+        if (names.size() > 2 && names[0] == "plugin") {
+            std::string input, output;
+            auto type = names[1] == "cpp" ? lgraph::PluginManager::PluginType::CPP
+                                          : lgraph::PluginManager::PluginType::PYTHON;
+            if (type == lgraph::PluginManager::PluginType::PYTHON) {
+                NOT_SUPPORT();
+            }
+            auto db = ctx_->galaxy_->OpenGraph(ctx_->user_, ctx_->graph_);
+            auto pm = db.GetLightningGraph()->GetPluginManager();
+            lgraph_api::SigSpec* sig_spec = nullptr;
+            if (!pm->GetPluginSignature(type, ctx_->user_, names[2], &sig_spec) ||
+                sig_spec == nullptr) {
+                NOT_SUPPORT();
+            }
+
+            for (auto& pair : node->items()) {
+                const std::string& name = std::get<0>(pair);
+                auto type = lgraph_api::LGraphType::NUL;
+                const auto iter =
+                    std::find_if(sig_spec->result_list.cbegin(), sig_spec->result_list.cend(),
+                                 [&name](const auto& param) { return name == param.name; });
+                if (iter == sig_spec->result_list.cend()) {
+                    NOT_SUPPORT();
+                }
+                switch (type) {
+                case lgraph_api::LGraphType::NODE:
+                    AddSymbol(name, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
+                    break;
+                default:
+                    AddSymbol(name, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
+                    break;
+                }
+            }
+        } else {
+            NOT_SUPPORT();
+        }
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::TableFunctionClause* node) { NOT_SUPPORT(); }
 
@@ -575,7 +657,12 @@ std::any PatternGraphMaker::visit(geax::frontend::AggFunc* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::BAggFunc* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::BAggFunc* node) {
+    auto& left = node->lExpr();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(left));
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->rExpr());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::MultiCount* node) { NOT_SUPPORT(); }
 
@@ -836,13 +923,30 @@ std::any PatternGraphMaker::visit(geax::frontend::FilterStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::CallQueryStatement* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::CallQueryStatement* node) {
+    auto procedureStatement = node->procedureStatement();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(procedureStatement);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any PatternGraphMaker::visit(geax::frontend::CallProcedureStatement* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::CallProcedureStatement* node) {
+    auto procedure = node->procedureCall();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(procedure);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::InlineProcedureCall* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::NamedProcedureCall* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::NamedProcedureCall* node) {
+    curr_procedure_name_ = std::get<std::string>(node->name());
+    if (node->yield().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+    }
+    for (auto& expr : node->args()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::ForStatement* node) { NOT_SUPPORT(); }
 
@@ -916,7 +1020,17 @@ std::any PatternGraphMaker::visit(geax::frontend::DeleteStatement* node) {
 
 std::any PatternGraphMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
 
-std::any PatternGraphMaker::visit(geax::frontend::MergeStatement* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::MergeStatement* node) {
+    ClauseGuard cg(node->type(), cur_types_);
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->pathPattern());
+    for (auto& match : node->onMatch()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(match);
+    }
+    for (auto& create : node->onCreate()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(create);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::OtherWise* node) { NOT_SUPPORT(); }
 
@@ -932,6 +1046,33 @@ std::any PatternGraphMaker::visit(geax::frontend::KillStatement* node) { NOT_SUP
 
 std::any PatternGraphMaker::visit(geax::frontend::ManagerStatement* node) { NOT_SUPPORT(); }
 
+std::any PatternGraphMaker::visit(geax::frontend::UnwindStatement* node) {
+    const std::string& variable = node->variable();
+    auto list = node->list();
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(list);
+    auto var_scope = cypher::SymbolNode::Scope::LOCAL;
+    if (typeid(*list) == typeid(geax::frontend::Ref)) {
+        geax::frontend::Ref* ref = (geax::frontend::Ref*)list;
+        if (pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(ref->name()) !=
+            pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.end()) {
+            var_scope = cypher::SymbolNode::Scope::DERIVED_ARGUMENT;
+        }
+    }
+    AddSymbol(variable, SymbolNode::Type::CONSTANT, var_scope);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::InQueryProcedureCall* node) {
+    curr_procedure_name_ = std::get<std::string>(node->name());
+    if (node->yield().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+    }
+    for (auto& expr : node->args()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
 std::any PatternGraphMaker::visit(geax::frontend::DummyNode* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::reportError() { return error_msg_; }
@@ -946,6 +1087,8 @@ void PatternGraphMaker::AddSymbol(const std::string& symbol_alias, cypher::Symbo
 void PatternGraphMaker::AddNode(Node* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     if (!pattern_graph.GetNode(node->Alias()).Empty()) {
+        if (node->Visited())
+            pattern_graph.GetNode(node->Alias()).Visited() = true;
         return;
     }
     pattern_graph.AddNode(node);

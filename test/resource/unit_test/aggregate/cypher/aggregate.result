@@ -9,15 +9,15 @@ MATCH (n:Person) RETURN avg(n.age) /* 30.0 */;
 MATCH (n { name: 'A' })-->(x) RETURN count(x) /* 3 */;
 [{"count(x)":3}]
 MATCH (n:Person) RETURN count(n.age) /* 3 */;
-[{"count(n.age)":5}]
+[{"count(n.age)":3}]
 MATCH (n:Person) RETURN max(n.age) /* 44 */;
 [{"max(n.age)":44.0}]
 MATCH (n:Person) RETURN min(n.age) /* 13 */;
 [{"min(n.age)":13.0}]
 MATCH (n:Person) RETURN percentileCont(n.age, 0.4) /* 29 */;
-[{"percentileCont(n.age,0.400000)":29.0}]
+[{"percentileCont(n.age, 0.4)":29.0}]
 MATCH (n:Person) RETURN percentileDisc(n.age, 0.5) /* 33 */;
-[{"percentileDisc(n.age,0.500000)":33.0}]
+[{"percentileDisc(n.age, 0.5)":33.0}]
 MATCH (n:Person) RETURN stDev(n.age) /* 15.716234 */;
 [{"stDev(n.age)":15.716233645501712}]
 MATCH (n:Person) RETURN stDevP(n.age) /* 12.832251 */;
@@ -29,11 +29,11 @@ MATCH (n:Person) RETURN varianceP(n.age);
 MATCH (n:Person) RETURN collect(n.age) /* 13,33,44 */;
 [{"collect(n.age)":[13,33,44]}]
 MATCH (n:Person) RETURN collect([n.name,n.age]) /* [[A, 13], [B, 33], [C, 44], [D, null], [E, null]] */;
-[{"collect(expr::prop = {n.name},expr::prop = {n.age})":"[[A,13],[B,33],[C,44],[D,NUL],[E,NUL]]"}]
+[{"collect([n.name,n.age])":"[[A,13],[B,33],[C,44],[D,NUL],[E,NUL]]"}]
 MATCH (n {name: 'A'})-[]->(x) RETURN label(n), n.age, count(*) /* Person,13,3.000000 */;
 [{"count(*)":3,"label(n)":"Person","n.age":13}]
 MATCH (n {name: 'A'})-[]->(x) RETURN label(n), n, count(*) /* Person,V[0],3.000000 */;
-[{"count(*)":3,"label(n)":"Person","n":{"identity":0}}]
+[{"count(*)":3,"label(n)":"Person","n":{"identity":0,"label":"Person","properties":{"age":13,"eyes":null,"name":"A"}}}]
 MATCH (n {name: 'A'})-[r]->() RETURN type(r), count(*) /* KNOWS,3.00000 */;
 [{"count(*)":3,"type(r)":"KNOWS"}]
 MATCH (n:Person) WHERE n.age = 13 OR n.age > 40 RETURN count(n) AS nCount;

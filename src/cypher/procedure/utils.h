@@ -21,6 +21,7 @@
 #include "lgraph/lgraph_types.h"
 #include "lgraph/lgraph_result.h"
 #include "lgraph_api/result_element.h"
+#include "geax-front-end/ast/utils/AstUtil.h"
 
 namespace lgraph {
 
@@ -128,6 +129,17 @@ class Utils {
             default:
                 throw lgraph::EvaluationException("Invalid argument");
             }
+        }
+        return ctx.ac_db_->CallPlugin(ctx.txn_.get(), type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
+                                      input, 0, false, output);
+    }
+
+    static bool CallPlugin(const RTContext& ctx, lgraph::plugin::Type type, const std::string& name,
+                           const std::vector<geax::frontend::Expr*>& params, std::string& output) {
+        std::string input;
+        CYPHER_THROW_ASSERT(params.size() <= 1);
+        if (!params.empty()) {
+            input = geax::frontend::ToString(params[0]);
         }
         return ctx.ac_db_->CallPlugin(ctx.txn_.get(), type, "A_DUMMY_TOKEN_FOR_CPP_PLUGIN", name,
                                       input, 0, false, output);

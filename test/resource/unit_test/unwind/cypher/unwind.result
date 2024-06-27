@@ -13,7 +13,7 @@ UNWIND NULL AS x RETURN x, 'some_literal';
 UNWIND [1,2] AS x MATCH (n {name:'Houston'}) RETURN x,n;
 [{"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2}]
 UNWIND [1,2] AS x MATCH (n {name:'Houston'}),(m:Film) RETURN x,n,m;
-[{"m":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":18,"label":"Film","properties":{"title":"Harry Potter and the Sorcerer's Stone"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":18,"label":"Film","properties":{"title":"Harry Potter and the Sorcerer's Stone"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2}]
+[{"m":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":18,"label":"Film","properties":{"title":"Harry Potter and the Sorcerer's Stone"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":18,"label":"Film","properties":{"title":"Harry Potter and the Sorcerer's Stone"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2},{"m":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":1},{"m":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":2}]
 UNWIND ['Paris','Houston'] AS x MATCH (n {name:x}),(m:Film) RETURN x,n,m;
 [{"m":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":"Houston"},{"m":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":"Houston"},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":"Houston"},{"m":{"identity":18,"label":"Film","properties":{"title":"Harry Potter and the Sorcerer's Stone"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":"Houston"},{"m":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}},"n":{"identity":15,"label":"City","properties":{"name":"Houston"}},"x":"Houston"}]
 MATCH (c {name:'Houston'}) WITH c MATCH (c)<-[r]-(p) RETURN p;
@@ -22,17 +22,13 @@ MATCH (c {name:'Houston'}) WITH c MATCH (p)-[r]->(c) RETURN p;
 [{"p":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}}}]
 MATCH (a {name:'Liam Neeson'}) WITH a,'London' AS cid MATCH (c {name:cid}) RETURN a,c;
 [{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"c":{"identity":14,"label":"City","properties":{"name":"London"}}}]
-MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,count(c);
+MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,count(c);
 [{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"count(c)":2}]
-MATCH (a {name:'Liam Neeson'}),(b {name:'Dennis Quaid'}) WITH a,b,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,b,count(c);
+MATCH (a {name:'Liam Neeson'}),(b {name:'Dennis Quaid'}) WITH a,b,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,b,count(c);
 [{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"b":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"count(c)":2}]
-MATCH (a {name:'Dennis Quaid'}) WITH a,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid})<-[]-(a) RETURN a,count(c);
+MATCH (a {name:'Dennis Quaid'}) WITH a,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid})<-[]-(a) RETURN a,count(c);
 [{"a":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"count(c)":1}]
-MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid})<-[]-()-[:MARRIED]->(a) RETURN a,count(c);
+MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid})<-[]-()-[:MARRIED]->(a) RETURN a,count(c);
 [{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"count(c)":1}]
 MATCH (c {name:'Houston'}) WITH c MATCH (p:Person {name:'Liam Neeson'}) CREATE (c)-[:HAS_CHILD]->(p);
 [{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
@@ -40,16 +36,11 @@ MATCH (c {name:'Houston'}) WITH c UNWIND $personIds AS pId MATCH (q:Person {name
 [{"<SUMMARY>":"created 0 vertices, created 3 edges."}]
 MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer1', birthyear:2002})-[r:BORN_IN]->(c) RETURN p,r,c;
 [{"c":{"identity":15,"label":"City","properties":{"name":"Houston"}},"p":{"identity":21,"label":"Person","properties":{"birthyear":2002,"name":"passer1"}},"r":{"dst":15,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":null,"weight":null},"src":21,"temporal_id":0}}]
-MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer2', birthyear:2002})-[r:BORN_IN]->(c) WITH p
-UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q);
+MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer2', birthyear:2002})-[r:BORN_IN]->(c) WITH p UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q);
 [{"<SUMMARY>":"created 1 vertices, created 4 edges."}]
-MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer3', birthyear:2002})-[r:BORN_IN]->(c) WITH p
-UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p
-UNWIND ['Liam Neeson'] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,7 */;
+MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer3', birthyear:2002})-[r:BORN_IN]->(c) WITH p UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p UNWIND ['Liam Neeson'] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,7 */;
 [{"<SUMMARY>":"created 1 vertices, created 7 edges."}]
-MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer4', birthyear:2002})-[r:BORN_IN]->(c) WITH p
-UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p
-UNWIND [] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,4 */;
+MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer4', birthyear:2002})-[r:BORN_IN]->(c) WITH p UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p UNWIND [] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,4 */;
 [{"<SUMMARY>":"created 1 vertices, created 4 edges."}]
 WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH x RETURN collect(x);
 [{"collect(x)":[1,1,2,2]}]
