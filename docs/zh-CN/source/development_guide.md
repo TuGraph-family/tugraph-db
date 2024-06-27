@@ -41,7 +41,7 @@ CALL dbms.graph.listGraphs()
 
 ### 刷新子图文件系统缓存数据
 ```
-db.flushDB()
+CALL db.flushDB()
 ```
 
 ## 点类型操作
@@ -230,7 +230,7 @@ CALL dbms.meta.countDetail()
 
 推荐使用driver里面的参数化特性，第二个参数直接传入一个 `list`结构体，避免自己构造语句。
 ```
-db.upsertVertex('node1', [{id:1, name:'name1'},{id:2, name:'name2'}])
+CALL db.upsertVertex('node1', [{id:1, name:'name1'},{id:2, name:'name2'}])
 ```
 ### 批量upsert边数据
 如果两点之间不存在某条类型的边就插入，如果存在就更新该边的属性。
