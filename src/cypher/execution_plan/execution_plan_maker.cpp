@@ -1008,8 +1008,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
     }
     if (!order_by_items.empty()) {
         ops.emplace_back(new Sort(
-            order_by_items, node->limit().has_value() ? std::get<0>(node->limit().value()) : -1,
-            node->offset().has_value() ? std::get<0>(node->offset().value()) : -1));
+            order_by_items, node->offset().has_value() ? std::get<0>(node->offset().value()) : -1,
+            node->limit().has_value() ? std::get<0>(node->limit().value()) : -1));
     }
     // AGGREGATE
     bool has_aggregation = false;

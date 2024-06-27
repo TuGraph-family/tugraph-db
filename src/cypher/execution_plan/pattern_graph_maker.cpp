@@ -18,6 +18,7 @@
 #include "cypher/execution_plan/pattern_graph_maker.h"
 #include "cypher/procedure/procedure_v2.h"
 #include "db/galaxy.h"
+#include <unordered_set>
 
 namespace cypher {
 
@@ -982,8 +983,14 @@ std::any PatternGraphMaker::visit(geax::frontend::ForStatement* node) { NOT_SUPP
 std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node) {
     auto& items = node->items();
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    std::unordered_set<std::string> filter;
     for (auto item : items) {
         auto alias = std::get<0>(item);
+        if (!filter.count(alias)) {
+            filter.insert(alias);
+        } else {
+            THROW_CODE(CypherException, FMA_FMT("Duplicate alias: {}", alias));
+        }
         auto expr = std::get<1>(item);
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
         SymbolNode::Type symbol_type = SymbolNode::Type::CONSTANT;
@@ -993,8 +1000,9 @@ std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node
                 symbol_type = ref_symbol->second.type;
             }
         }
-        if (pattern_graph.symbol_table.symbols.find(alias) ==
-            pattern_graph.symbol_table.symbols.end()) {
+        if (cur_pattern_graph_ < pattern_graphs_.size() - 1 &&
+            pattern_graph.symbol_table.symbols.find(alias) ==
+                pattern_graph.symbol_table.symbols.end()) {
             pattern_graph.symbol_table.symbols.emplace(
                 alias,
                 SymbolNode(symbols_idx_[cur_pattern_graph_]++, symbol_type, SymbolNode::LOCAL));

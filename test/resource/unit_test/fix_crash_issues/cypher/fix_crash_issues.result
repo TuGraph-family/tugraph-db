@@ -49,7 +49,7 @@ REMOVE a.name;
 SET a :MyLabel;
 [InputError] Variable `a` not defined
 MATCH (n:Person) WITH n,n.name RETURN n.name;
-[ParserException] ParserException: Non-variable expression in WITH must be aliased
+[ParserException] Non-variable expression in WITH must be aliased
 WITH * MERGE(n:Person) RETURN n;
 [CypherException] CypherException: WITH * syntax is not implemented now
 RETURN * UNION RETURN *;
@@ -71,9 +71,9 @@ MERGE (n:null {id: 2909}) RETURN n;
 MATCH (n:Person {name:'Liam Neeson'}), (m:Person {name:'Liam Neeson'}), (o:Person {name:'Liam Neeson'}) WHERE custom.myadd('asd')='1' RETURN 1;
 [InputError] Plugin [custom.myadd] does not exist.
 MATCH (movie)<-[r]-(n) WITH n,n MATCH (n1) RETURN n1 LIMIT 1;
-[CypherException] CypherException: Duplicate alias: n
+[CypherException] Duplicate alias: n
 MATCH (movie)<-[r]-(n) return n,n limit 1;
-[CypherException] CypherException: Duplicate alias: n
+[CypherException] Duplicate alias: n
 MATCH (n) RETURN n LIMIT 5;
 [{"n":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"n":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}}},{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}},{"n":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}}},{"n":{"identity":4,"label":"Person","properties":{"birthyear":2252,"name":"Liam Neeson"}}}]
 CALL db.vertexLabels;
