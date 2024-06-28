@@ -16,6 +16,9 @@
 
 #include "parser/clause.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "geax-front-end/ast/clause/RemoveItem.h"
+#include "geax-front-end/ast/clause/RemoveSingleProperty.h"
+#include "cypher/utils/geax_util.h"
 
 namespace cypher {
 
