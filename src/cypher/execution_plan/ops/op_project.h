@@ -101,7 +101,7 @@ class Project : public OpBase {
             // on the second call.
             if (single_response_) return OP_DEPLETED;
             single_response_ = true;
-            r = std::make_shared<Record>();  // fake empty record.
+            r = std::make_shared<Record>(sym_tab_.symbols.size());  // fake empty record.
         }
         if (res != OP_OK) return res;
         int re_idx = 0;

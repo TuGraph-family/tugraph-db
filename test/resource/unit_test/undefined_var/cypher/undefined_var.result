@@ -13,7 +13,7 @@ MATCH (n:Person) WHERE n.name = k RETURN n;
 MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by number;
 [CypherException] CypherException: Unknown variable: k
 WITH [1,2,3] AS k RETURN [x in k | x + y] AS result;
-[InputError] Variable `y` not defined
+[CypherException] CypherException: Unknown variable: y
 REMOVE a.name;
 [InputError] Variable `a` not defined
 SET a :MyLabel;

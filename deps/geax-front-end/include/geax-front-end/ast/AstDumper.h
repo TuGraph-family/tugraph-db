@@ -484,6 +484,15 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(value);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
+    std::any visit(RemoveSingleProperty* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(RemoveSingleProperty);
+        auto& v = node->v();
+        auto& property = node->property();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(v);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(property);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
     std::any visit(SetLabel* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(GetField);
@@ -1340,9 +1349,13 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(items);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
-    std::any visit(RemoveStatement*) override {
+    std::any visit(RemoveStatement* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(RemoveStatement);
+        auto& items = node->items();
+        for (auto &item : items) {
+            VISIT_PARAM_AND_CHECK_WITH_MSG(item);
+        }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(MergeStatement* node) override {
@@ -1491,6 +1504,10 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(DummyNode* node) override { return reportError(node); }
+    std::any visit(ListComprehension* node) override {
+        VISIT_PARAM_AND_CHECK_WITH_MSG(node->elems());
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
 
 protected:
     std::any reportError() override { return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT; }
