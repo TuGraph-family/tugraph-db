@@ -421,6 +421,10 @@ class AstDumper : public AstNodeVisitor {
         VARIABLE_GUARD_WITH_TYPE_NAME();
         auto& items = node->items();
         VISIT_AND_CHECK_WITH_MSG(items);
+        auto predicate = node->predicate();
+        if (predicate) {
+            VISIT_PARAM_AND_CHECK_WITH_MSG(predicate);
+        }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(TableFunctionClause* node) override {

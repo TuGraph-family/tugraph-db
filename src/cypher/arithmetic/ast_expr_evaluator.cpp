@@ -115,8 +115,9 @@ static cypher::FieldData Neg(const cypher::FieldData& x) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::GetField* node) {
     auto expr = std::any_cast<Entry>(node->expr()->accept(*this));
-    Entry e(cypher::FieldData(expr.GetEntityField(ctx_, node->fieldName())));
-    return e;
+    auto field = expr.GetEntityField(ctx_, node->fieldName());
+    if (field.is_null()) THROW_CODE(CypherException, " unknown label or field");
+    return Entry(cypher::FieldData(field));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::TupleGet* node) {

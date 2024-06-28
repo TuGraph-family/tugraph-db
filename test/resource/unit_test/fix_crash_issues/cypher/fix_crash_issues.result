@@ -41,7 +41,7 @@ MATCH (m:Person)-[r:BORN_IN]->(n:City) WHERE n.name = 'London' and r.weight >= 1
 MATCH (n:City) RETURN collect(n.name) + n.name;
 Variables cannot be used outside of the Agg function, for example: sum(n) + m
 MATCH (n:Person) RETURN NOT n.nam;
-[CypherException] CypherException: unknown label or field
+[CypherException]  unknown label or field
 MATCH (n:Person) RETURN -n.name;
 [CypherException] CypherException: Type mismatch: expect Integer or Float in sub expr
 REMOVE a.name;
@@ -51,7 +51,7 @@ SET a :MyLabel;
 MATCH (n:Person) WITH n,n.name RETURN n.name;
 [ParserException] Non-variable expression in WITH must be aliased
 WITH * MERGE(n:Person) RETURN n;
-[CypherException] CypherException: WITH * syntax is not implemented now
+[CypherException]  WITH * syntax is not implemented now
 RETURN * UNION RETURN *;
 [CypherException] CypherException: All sub queries in an UNION must have the same column names.
 RETURN * UNION RETURN 1 AS a;

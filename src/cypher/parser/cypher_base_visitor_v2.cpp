@@ -510,7 +510,9 @@ std::any CypherBaseVisitorV2::visitOC_StandaloneCall(LcypherParser::OC_Standalon
 }
 
 std::any CypherBaseVisitorV2::visitOC_YieldItems(LcypherParser::OC_YieldItemsContext *ctx) {
-    if (ctx->oC_Where()) NOT_SUPPORT_AND_THROW();
+    if (ctx->oC_Where()) {
+        visit(ctx->oC_Where());
+    }
     for (auto &item : ctx->oC_YieldItem()) {
         visit(item);
     }
@@ -586,6 +588,10 @@ std::any CypherBaseVisitorV2::visitOC_ReturnBody(LcypherParser::OC_ReturnBodyCon
 }
 
 std::any CypherBaseVisitorV2::visitOC_ReturnItems(LcypherParser::OC_ReturnItemsContext *ctx) {
+    if (VisitGuard::InClause(VisitType::kWithClause, visit_types_)) {
+        if (ctx->children[0]->getText() == "*")
+            THROW_CODE(CypherException, "WITH * syntax is not implemented now");
+    }
     for (auto &item : ctx->oC_ReturnItem()) {
         visit(item);
     }
@@ -673,6 +679,12 @@ std::any CypherBaseVisitorV2::visitOC_Where(LcypherParser::OC_WhereContext *ctx)
         } else {
             NOT_SUPPORT_AND_THROW();
         }
+    } else if (VisitGuard::InClause(VisitType::kInQueryCall, visit_types_)) {
+        geax::frontend::YieldField *yield_fields = nullptr;
+        checkedCast(node_, yield_fields);
+        geax::frontend::Expr *expr = nullptr;
+        checkedAnyCast(visit(ctx->oC_Expression()), expr);
+        yield_fields->setPredicate(expr);
     } else {
         geax::frontend::GraphPattern *node = nullptr;
         checkedCast(node_, node);
@@ -1860,7 +1872,9 @@ std::any CypherBaseVisitorV2::visitOC_DoubleLiteral(LcypherParser::OC_DoubleLite
 
 std::any CypherBaseVisitorV2::visitOC_SchemaName(LcypherParser::OC_SchemaNameContext *ctx) {
     if (ctx->oC_ReservedWord()) {
-        NOT_SUPPORT_AND_THROW();
+        auto s = ALLOC_GEAOBJECT(geax::frontend::VString);
+        s->setVal(ctx->getText());
+        return (geax::frontend::Expr *)s;
     } else {
         return visitOC_SymbolicName(ctx->oC_SymbolicName());
     }

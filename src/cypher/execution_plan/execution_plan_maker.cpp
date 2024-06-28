@@ -557,7 +557,16 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
     NOT_SUPPORT();
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::YieldField* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::YieldField* node) {
+    if (node->predicate()) {
+        auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
+            node->predicate(), pattern_graphs_[cur_pattern_graph_].symbol_table);
+        auto op_filter = new OpFilter(expr_filter);
+        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        pattern_graph_root_[cur_pattern_graph_] = op_filter;
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::TableFunctionClause* node) { NOT_SUPPORT(); }
 
@@ -1138,6 +1147,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
     expand_ops.emplace_back(op);
     if (auto op = _SingleBranchConnect(expand_ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    }
+    if (node->yield().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }

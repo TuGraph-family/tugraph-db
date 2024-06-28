@@ -395,6 +395,9 @@ std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
             NOT_SUPPORT();
         }
     }
+    if (node->predicate()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->predicate());
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 

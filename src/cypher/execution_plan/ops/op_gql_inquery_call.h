@@ -180,7 +180,6 @@ class GqlInQueryCall : public OpBase {
                 parameters.reserve(args_.size());
                 for (auto expr : args_) {
                     ArithExprNode node(expr, pattern_graph_->symbol_table);
-                    // TODO(lingsu): dummy record
                     parameters.emplace_back(node.Evaluate(ctx, *record.get()));
                 }
                 p->function(ctx, record.get(), parameters, _yield_items, &buffer_);
@@ -206,7 +205,6 @@ class GqlInQueryCall : public OpBase {
                     parameters.reserve(args_.size());
                     for (auto expr : args_) {
                         ArithExprNode node(expr, pattern_graph_->symbol_table);
-                        // TODO(lingsu): dummy record
                         parameters.emplace_back(node.Evaluate(ctx, *record.get()));
                     }
                     p->function(ctx, record.get(), parameters, _yield_items, &buffer_);
