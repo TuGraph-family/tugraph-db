@@ -958,9 +958,11 @@ class ImportConfParser {
                     cd.size = fs::file_size(file);
                 }
                 cd.data_format = item["format"];
-                if (cd.data_format != "CSV" && cd.data_format != "JSON") {
+
+                if (cd.data_format != "CSV" && cd.data_format != "JSON" &&
+                    cd.data_format != "GraphAr") {
                     THROW_CODE(InputError,
-                        "\"format\" value error : {}, should be CSV or JSON in json {}",
+                        "\"format\" value error : {}, should be CSV, JSON or GraphAr in json {}",
                                 cd.data_format, item.dump(4));
                 }
                 cd.label = item["label"];
