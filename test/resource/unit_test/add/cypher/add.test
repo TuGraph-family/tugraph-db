@@ -1,10 +1,10 @@
 CREATE (passerA:Person {name:'Passerby A', birthyear:1983}) CREATE (passerB:Person {name:'Passerby B', birthyear:1984}) CREATE (passerA)-[:MARRIED]->(passerB),       (passerB)-[:MARRIED]->(passerA);
-#MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
 MATCH (a:Person {name:'Lindsay Lohan'})-[r]->(b:Film {title:'The Parent Trap'}) RETURN r;
-#MATCH (a:Film),(b:City) CREATE (a)-[:BORN_IN]->(b) /* 15 edges */;
+MATCH (a:Film),(b:City) CREATE (a)-[:BORN_IN]->(b) /* 15 edges */;
 CREATE (sy:City {name:'Sanya'}) RETURN sy,sy.name;
-#MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) CREATE (a)-[r:BORN_IN]->(sy) RETURN a.name,r,sy.name;
-#MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) WITH a,sy CREATE (a)-[r:BORN_IN]->(sy);
+MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) CREATE (a)-[r:BORN_IN]->(sy) RETURN a.name,r,sy.name;
+MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) WITH a,sy CREATE (a)-[r:BORN_IN]->(sy);
 CREATE (passerC:Person {name:'Passerby C'});
 MATCH (p:Person {name:'Passerby C'}) RETURN exists(p.birthyear) /* false */;
 WITH 'Passerby D' AS x, 2020 AS y CREATE (:Person {name:x, birthyear:y});

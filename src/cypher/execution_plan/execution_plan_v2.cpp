@@ -23,11 +23,12 @@ namespace cypher {
 
 ExecutionPlanV2::~ExecutionPlanV2() { OpBase::FreeStream(root_); }
 
-geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* astNode) {
+geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* astNode,
+                                                     RTContext* ctx) {
     geax::frontend::GEAXErrorCode ret = geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     // build pattern graph
     PatternGraphMaker pattern_graph_maker(pattern_graphs_);
-    ret = pattern_graph_maker.Build(astNode);
+    ret = pattern_graph_maker.Build(astNode, ctx);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = pattern_graph_maker.ErrorMsg();
         return ret;
@@ -134,7 +135,7 @@ std::string ExecutionPlanV2::DumpPlan(int indent, bool statistics) const {
 
 std::string ExecutionPlanV2::DumpGraph() const {
     std::string s;
-    for (auto &g : pattern_graphs_) s.append(g.DumpGraph());
+    for (auto& g : pattern_graphs_) s.append(g.DumpGraph());
     return s;
 }
 

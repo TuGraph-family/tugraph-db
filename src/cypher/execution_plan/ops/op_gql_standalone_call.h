@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include "procedure/procedure_v2.h"
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
@@ -23,7 +22,6 @@ class GqlStandaloneCall : public OpBase {
     const std::string func_name_;
     const std::vector<geax::frontend::Expr*>& args_;
     const std::optional<geax::frontend::YieldField*>& yield_;
-    ProcedureV2 *procedure_ = nullptr;
     const SymbolTable& symbol_table_;
 
  public:
@@ -38,11 +36,6 @@ class GqlStandaloneCall : public OpBase {
         , symbol_table_(symbol_table) {}
 
     OpResult Initialize(RTContext *ctx) override {
-        auto p = global_ptable_v2.GetProcedureV2(func_name_);
-        if (!p) {
-            throw lgraph::EvaluationException("unregistered standalone function: " + func_name_);
-        }
-        procedure_ = p;
         return OP_OK;
     }
 

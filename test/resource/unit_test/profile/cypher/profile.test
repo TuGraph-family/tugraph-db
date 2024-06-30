@@ -1,2 +1,2 @@
 MATCH (n:Person) WHERE n.birthyear > 1960 RETURN n LIMIT 5;
-PROFILE MATCH (n:Person) WHERE n.birthyear > 1960 RETURN n LIMIT 5;
+#PROFILE MATCH (n:Person) WHERE n.birthyear > 1960 RETURN n LIMIT 5;

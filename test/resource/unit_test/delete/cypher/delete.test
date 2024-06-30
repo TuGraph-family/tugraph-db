@@ -5,7 +5,7 @@ match (n)-[r]->(m) return r,properties(r) /*debug*/;
 MATCH (n {name:'D'}) DELETE n;
 MATCH (n {name:'B'})-[r:KNOWS]->() DELETE r;
 MATCH (n:Person {name:'F'})-[r:KNOWS]->(m:Person {name:'I'}) DELETE r;
-#MATCH (n:Person {name:'A'}),(m:Person {name:'C'}) WITH n,m MATCH (n)-[r]->(m) DELETE r;
+MATCH (n:Person {name:'A'}),(m:Person {name:'C'}) WITH n,m MATCH (n)-[r]->(m) DELETE r;
 match (n)-[r]->(m) return r,properties(r) /*debug*/;
 MATCH (n:Person {name:'A'}) DELETE n;
 MATCH (n:Person {name:'B'}) WITH n DELETE n;

@@ -44,7 +44,8 @@ class AstAggExprDetector : public cypher::AstNodeVisitorImpl {
 
  private:
     std::any visit(geax::frontend::AggFunc* node) override;
-    std::any visit(geax::frontend::Ref* node) override;
+    std::any visit(geax::frontend::BAggFunc* node) override;
+    std::any visit(geax::frontend::GetField* node) override;
     bool nested_agg_func_ = false;
     size_t in_agg_func_ = 0;
     bool outside_var_ = false;

@@ -13,20 +13,87 @@
  */
 
 #include "procedure/utils.h"
+#include "cypher/procedure/procedure_v2.h"
 #include "cypher/execution_plan/ops/op_gql_standalone_call.h"
-#include "procedure/procedure.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
 #include "arithmetic/arithmetic_expression.h"
-#include "tools/lgraph_log.h"
+#include "db/galaxy.h"
 
 cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) {
     auto names = fma_common::Split(func_name_, ".");
     if (names.size() > 2 && names[0] == "plugin") {
-        CYPHER_TODO();
+        std::string input, output;
+        auto type = names[1] == "cpp" ? lgraph::PluginManager::PluginType::CPP
+                                      : lgraph::PluginManager::PluginType::PYTHON;
+        if (type == lgraph::PluginManager::PluginType::PYTHON) {
+            throw lgraph::EvaluationException(
+                "Calling python plugin in CYPHER is disabled in this release.");
+        }
+        auto token = "A_DUMMY_TOKEN_FOR_CPP_PLUGIN";
+        auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+        if (names[2] == "list") {
+            auto plugins = ac_db.ListPlugins(type, token);
+            // TODO(anyone): return records other than just strings
+            auto &header = ctx->result_->Header();
+            if (header.size() > 1)
+                THROW_CODE(InputError, "Plugin [{}] header is excaption.", names[2]);
+            auto title = header[0].first;
+            for (auto &p : plugins) {
+                std::string s;
+                s.append(p.name).append(" | ").append(p.desc).append(" | ").append(
+                    p.read_only ? "READ" : "WRITE");
+
+                auto r = ctx->result_->MutableRecord();
+                r->Insert(title, lgraph::FieldData(s));
+            }
+        } else {
+            if (ctx->txn_) ctx->txn_->Abort();
+            bool exists = Utils::CallPlugin(*ctx, type, names[2], args_, output);
+            if (!exists) THROW_CODE(InputError, "Plugin [{}] does not exist.", names[2]);
+            ctx->result_->Load(output);
+#if 0
+            /* TODO(anyone): redundant parse */
+            try {
+                std::vector<std::string> headers;
+                std::vector<Record> records;
+                size_t i = 0, size = 0;
+                auto res = nlohmann::json::parse(output);
+                CYPHER_THROW_ASSERT(res.is_array());
+                for (auto it = res.begin(); it != res.end(); it++) {
+                    CYPHER_THROW_ASSERT(it.value().is_object());
+                    Record r;
+                    bool fill_header = headers.empty();
+                    for (auto it2 = it.value().begin(); it2 != it.value().end(); it2++) {
+                        if (fill_header) headers.emplace_back(it2.key());
+                        std::stringstream ss;
+                        ss << it2.value();
+                        r.AddConstant(lgraph::FieldData(ss.str()));
+                    }
+                    records.emplace_back(r);
+                }
+                ctx->result_info_->header.colums.clear();
+                for (auto &h : headers) {
+                    ctx->result_info_->header.colums.emplace_back(h);
+                }
+                for (auto &r : records) ctx->result_info_->AddRecord(r);
+            } catch (std::exception &e) {
+                throw lgraph::EvaluationException(std::string("parse json error: ") + e.what());
+            }
+#endif
+        }
     } else {
+        auto p = global_ptable_v2.GetProcedureV2(func_name_);
+        if (!p) {
+            throw lgraph::EvaluationException("unregistered standalone function: " + func_name_);
+        }
         std::vector<Record> records;
         std::vector<std::string> _yield_items;
+        if (yield_.has_value()) {
+            for (auto &pair : yield_.value()->items()) {
+                _yield_items.emplace_back(std::get<0>(pair));
+            }
+        }
         std::vector<Entry> parameters;
         parameters.reserve(args_.size());
         for (auto expr : args_) {
@@ -34,7 +101,7 @@ cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) 
             // TODO(lingsu): dummy record
             parameters.emplace_back(node.Evaluate(ctx, Record(1)));
         }
-        procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
+        p->function(ctx, nullptr, parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
             auto record = ctx->result_->MutableRecord();

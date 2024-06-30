@@ -4,7 +4,7 @@ MATCH (n:Person {name:'NoOne'}) RETURN n;
 OPTIONAL MATCH (n:Person {name:'NoOne'}) RETURN n;
 [{"n":"__null__"}]
 OPTIONAL MATCH (n:City {name:'London'})-[r]->(m) RETURN n.name, r, m;
-[{"m":"__null__","n.name":null,"r":{"dst":0,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":14,"temporal_id":0}}]
+[{"m":"__null__","n.name":null,"r":"__null__"}]
 OPTIONAL MATCH (n:City {name:'London'})-[r]-(m) RETURN n.name, r, m;
 [{"m":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"n.name":"London","r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 10:00:00","weight":20.21},"src":2,"temporal_id":0}},{"m":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"n.name":"London","r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 11:00:00","weight":20.18},"src":5,"temporal_id":0}},{"m":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}},"n.name":"London","r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 12:00:00","weight":19.93},"src":12,"temporal_id":0}}]
 MATCH (n:City {name:'London'}) WITH n.name AS city_name OPTIONAL MATCH (n:Person {name:'NoOne'}) RETURN n.name, city_name;
@@ -13,7 +13,9 @@ MATCH (n:City) WITH n MATCH (n)-->(m) RETURN n,m;
 []
 MATCH (n:City) WITH n OPTIONAL MATCH (n)-->(m) RETURN n,m;
 [{"m":"__null__","n":{"identity":15,"label":"City","properties":{"name":"Houston"}}},{"m":"__null__","n":{"identity":14,"label":"City","properties":{"name":"London"}}},{"m":"__null__","n":{"identity":13,"label":"City","properties":{"name":"New York"}}}]
-
-# MATCH (n:City {name:'London'}) OPTIONAL MATCH (n)-[r]->(m) RETURN n.name, r, m ;
-# MATCH (n:City {name:'London'}) OPTIONAL MATCH (m:NoLabel) RETURN n.name, m ;
-# MATCH (n:Person {name:'Vanessa Redgrave'}) OPTIONAL MATCH (n)-[:ACTED_IN]->(m)-[:NoType]->(l) RETURN n, m, l;
+MATCH (n:City {name:'London'}) OPTIONAL MATCH (n)-[r]->(m) RETURN n.name, r, m ;
+[CypherException] CypherException: Function not implemented yet: AddClause at src/cypher/parser/clause.h:300
+MATCH (n:City {name:'London'}) OPTIONAL MATCH (m:NoLabel) RETURN n.name, m ;
+[CypherException] CypherException: Function not implemented yet: AddClause at src/cypher/parser/clause.h:300
+MATCH (n:Person {name:'Vanessa Redgrave'}) OPTIONAL MATCH (n)-[:ACTED_IN]->(m)-[:NoType]->(l) RETURN n, m, l;
+[CypherException] CypherException: Function not implemented yet: AddClause at src/cypher/parser/clause.h:300
