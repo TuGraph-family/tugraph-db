@@ -19,6 +19,8 @@
 #define GEAXFRONTEND_AST_CLAUSE_YIELDFIELD_H_
 
 #include "geax-front-end/ast/AstNode.h"
+#include <vector>
+#include <tuple>
 
 namespace geax {
 namespace frontend {

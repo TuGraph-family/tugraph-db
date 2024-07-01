@@ -114,6 +114,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         return false;
     }
+    void AstRewrite(cypher::RTContext *ctx);
 
  public:
     CypherBaseVisitor() = default;
@@ -125,6 +126,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &q : _query) {
             for (auto &p : q.parts) p.Enrich();
         }
+        AstRewrite(ctx);
     }
 
     /**

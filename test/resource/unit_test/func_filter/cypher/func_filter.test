@@ -1,5 +1,5 @@
 MATCH (n) WHERE id(n) = 6 RETURN n.name;
 MATCH (n) WHERE id(n) <> 6 RETURN n;
 MATCH ()-[r]->() WHERE type(r) = 'ACTED_IN' RETURN r,type(r);
-#MATCH ()-[r]->() WHERE type(4) = 'ACTED_IN' RETURN r,type(r) /* invalid argument */;
+MATCH ()-[r]->() WHERE type(4) = 'ACTED_IN' RETURN r,type(r) /* invalid argument */;
 MATCH (a)-->(b)-->(c)<--(d) WHERE id(b) <> id(d) AND id(a) > id(d) AND id(b) < id(c) RETURN a,b,c,d;

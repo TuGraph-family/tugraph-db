@@ -209,11 +209,10 @@ void BuiltinProcedureV2::DbListLabelIndexes(RTContext *ctx, const Record *record
                      FMA_FMT("Function requires 2 arguments, but {} are "
                              "given. Usage: db.listLabelIndexes(label_name, label_type)",
                              args.size()))
-
-    CYPHER_ARG_CHECK(!args[0].IsString(), FMA_FMT("{} has to be a string ", args[0].ToString()))
     CYPHER_ARG_CHECK(args[0].IsString(), FMA_FMT("{} has to be a string ", args[0].ToString()))
+    CYPHER_ARG_CHECK(args[1].IsString(), FMA_FMT("{} has to be a string ", args[1].ToString()))
     auto label = args[0].constant.scalar.AsString();
-    bool is_vertex = ParseIsVertex(label);
+    bool is_vertex = ParseIsVertex(args[1].constant.scalar.AsString());
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     std::vector<lgraph::IndexSpec> indexes;
     if (is_vertex) {
@@ -336,21 +335,19 @@ void BuiltinProcedureV2::_ExtractFds(const VEC_EXPR_V2 &args, std::string &label
 void BuiltinProcedureV2::_ExtractAccessLevel(
     const VEC_EXPR_V2 &args, std::string &role,
     std::unordered_map<std::string, lgraph::AccessLevel> &leves) {
-    // CYPHER_ARG_CHECK(args.size() == 2,
-    //                  "Not enough arguments. This function takes 2 or "
-    //                  "more arguments. first is a string, other arguments are map");
-    // CYPHER_ARG_CHECK(args[0].IsString(),
-    //                  "wrong arguments type，has to be a string");
-    // CYPHER_ARG_CHECK(args[1].type == parser::Expression::MAP,
-    //                  "wrong arguments type， has to be a map");
-    // role = args[0].constant.scalar.AsString();
-    // std::unordered_map<std::string, lgraph::AccessLevel> temp_levels;
-    // for (auto &kv : args[1].Map()) {
-    //     auto it = ValidAccessLevels.find(kv.second.constant.scalar.AsString());
-    //     CYPHER_ARG_CHECK(it != ValidAccessLevels.end(), "unknown access level");
-    //     temp_levels[kv.first] = it->second;
-    // }
-    // std::swap(leves, temp_levels);
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "Not enough arguments. This function takes 2 or "
+                     "more arguments. first is a string, other arguments are map");
+    CYPHER_ARG_CHECK(args[0].IsString(), "wrong arguments type，has to be a string");
+    CYPHER_ARG_CHECK(args[1].IsMap(), "wrong arguments type， has to be a map");
+    role = args[0].constant.scalar.AsString();
+    std::unordered_map<std::string, lgraph::AccessLevel> temp_levels;
+    for (auto &kv : *args[1].constant.map) {
+        auto it = ValidAccessLevels.find(kv.second.AsString());
+        CYPHER_ARG_CHECK(it != ValidAccessLevels.end(), "unknown access level");
+        temp_levels[kv.first] = it->second;
+    }
+    std::swap(leves, temp_levels);
 }
 
 static ::std::vector<::lgraph::FieldSpec> ParseFieldSpecs(const VEC_EXPR_V2 &args,
@@ -1094,36 +1091,36 @@ void BuiltinProcedureV2::DbmsGraphModGraph(RTContext *ctx, const cypher::Record 
                                            const cypher::VEC_EXPR_V2 &args,
                                            const cypher::VEC_STR_V2 &yield_items,
                                            std::vector<Record> *records) {
-    // CYPHER_ARG_CHECK(
-    //     args.size() == 2,
-    //     "This function takes exactly 2 arguments. e.g.  dbms.graph.modGraph(graph_name,config)");
-    // CYPHER_ARG_CHECK(args[0].IsString(), "graph_name must be string");
-    // /* close the previous txn first, in case of nested transaction */
-    // if (ctx->txn_) ctx->txn_->Abort();
-    // lgraph::DBConfig config;
-    // CYPHER_ARG_CHECK(args[1].type == parser::Expression::MAP, "Illega must be map");
-    // lgraph::GraphManager::ModGraphActions act;
-    // act.mod_size = false;
-    // act.mod_desc = false;
-    // for (auto &kv : args[1].Map()) {
-    //     if (kv.first == "max_size_GB") {
-    //         act.mod_size = true;
-    //         if (kv.second.type != parser::Expression::INT)
-    //             THROW_CODE(InputError, "Invalid value for max_size_GB: must be integer");
-    //         act.max_size = kv.second.constant.scalar.integer() << 30;
-    //     } else if (kv.first == "description") {
-    //         act.mod_desc = true;
-    //         if (kv.second.type != parser::Expression::STRING)
-    //             THROW_CODE(InputError, "Invalid value for description: must be string");
-    //         act.desc = kv.second.constant.scalar.AsString();
-    //     } else {
-    //         THROW_CODE(InputError, "Invalid config key: " + kv.first);
-    //     }
-    // }
-    // bool success = ctx->galaxy_->ModGraph(ctx->user_, args[0].constant.scalar.AsString(), act);
-    // if (!success) {
-    //     throw lgraph::GraphNotExistException(args[0].constant.scalar.AsString());
-    // }
+    CYPHER_ARG_CHECK(
+        args.size() == 2,
+        "This function takes exactly 2 arguments. e.g.  dbms.graph.modGraph(graph_name,config)");
+    CYPHER_ARG_CHECK(args[0].IsString(), "graph_name must be string");
+    /* close the previous txn first, in case of nested transaction */
+    if (ctx->txn_) ctx->txn_->Abort();
+    lgraph::DBConfig config;
+    CYPHER_ARG_CHECK(args[1].IsMap(), "Illega must be map");
+    lgraph::GraphManager::ModGraphActions act;
+    act.mod_size = false;
+    act.mod_desc = false;
+    for (auto &kv : *args[1].constant.map) {
+        if (kv.first == "max_size_GB") {
+            act.mod_size = true;
+            if (!kv.second.IsInteger())
+                THROW_CODE(InputError, "Invalid value for max_size_GB: must be integer");
+            act.max_size = kv.second.integer() << 30;
+        } else if (kv.first == "description") {
+            act.mod_desc = true;
+            if (kv.second.IsString())
+                THROW_CODE(InputError, "Invalid value for description: must be string");
+            act.desc = kv.second.AsString();
+        } else {
+            THROW_CODE(InputError, "Invalid config key: " + kv.first);
+        }
+    }
+    bool success = ctx->galaxy_->ModGraph(ctx->user_, args[0].constant.scalar.AsString(), act);
+    if (!success) {
+        throw lgraph::GraphNotExistException(args[0].constant.scalar.AsString());
+    }
 }
 
 void BuiltinProcedureV2::DbmsGraphDeleteGraph(RTContext *ctx, const cypher::Record *record,
@@ -1466,44 +1463,42 @@ void BuiltinProcedureV2::DbmsSecurityRebuildRoleAccessLevel(RTContext *ctx, cons
                                                             const VEC_EXPR_V2 &args,
                                                             const VEC_STR_V2 &yield_items,
                                                             std::vector<Record> *records) {
-    // if (!ctx->galaxy_->IsAdmin(ctx->user_))
-    //     THROW_CODE(Unauthorized, "Admin access right required.");
-    // CYPHER_ARG_CHECK(
-    //     args.size() == 2,
-    //     "need two parameters, e.g. dbms.security.modAllRoleAccessLevel(role, access_level)")
-    // CYPHER_ARG_CHECK(args[0].IsString(), "role type should be string")
-    // CYPHER_ARG_CHECK(args[1].type == parser::Expression::MAP,
-    //                  "access_level type should be map, key and val both string")
-    // std::string role;
-    // std::unordered_map<std::string, lgraph::AccessLevel> levels;
-    // _ExtractAccessLevel(args, role, levels);
-    // if (ctx->txn_) ctx->txn_->Abort();
-    // bool success = ctx->galaxy_->ModAllRoleAccessLevel(role, levels);
-    // if (!success) {
-    //     throw lgraph::RoleNotExistException(args[0].constant.scalar.AsString());
-    // }
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
+    CYPHER_ARG_CHECK(
+        args.size() == 2,
+        "need two parameters, e.g. dbms.security.modAllRoleAccessLevel(role, access_level)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "role type should be string")
+    CYPHER_ARG_CHECK(args[1].IsMap(), "access_level type should be map, key and val both string")
+    std::string role;
+    std::unordered_map<std::string, lgraph::AccessLevel> levels;
+    _ExtractAccessLevel(args, role, levels);
+    if (ctx->txn_) ctx->txn_->Abort();
+    bool success = ctx->galaxy_->ModAllRoleAccessLevel(role, levels);
+    if (!success) {
+        throw lgraph::RoleNotExistException(args[0].constant.scalar.AsString());
+    }
 }
 
 void BuiltinProcedureV2::DbmsSecurityModRoleAccessLevel(RTContext *ctx, const Record *record,
                                                         const VEC_EXPR_V2 &args,
                                                         const VEC_STR_V2 &yield_items,
                                                         std::vector<Record> *records) {
-    // if (!ctx->galaxy_->IsAdmin(ctx->user_))
-    //     THROW_CODE(Unauthorized, "Admin access right required.");
-    // CYPHER_ARG_CHECK(
-    //     args.size() == 2,
-    //     "need two parameters, e.g. dbms.security.modRoleAccessLevel(role, access_level)")
-    // CYPHER_ARG_CHECK(args[0].IsString(), "role type should be string")
-    // CYPHER_ARG_CHECK(args[1].type == parser::Expression::MAP,
-    //                  "access_level type should be map, key and val both string")
-    // std::string role;
-    // std::unordered_map<std::string, lgraph::AccessLevel> levels;
-    // _ExtractAccessLevel(args, role, levels);
-    // if (ctx->txn_) ctx->txn_->Abort();
-    // bool success = ctx->galaxy_->ModRoleAccessLevel(role, levels);
-    // if (!success) {
-    //     throw lgraph::RoleNotExistException(args[0].constant.scalar.AsString());
-    // }
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
+    CYPHER_ARG_CHECK(
+        args.size() == 2,
+        "need two parameters, e.g. dbms.security.modRoleAccessLevel(role, access_level)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "role type should be string")
+    CYPHER_ARG_CHECK(args[1].IsMap(), "access_level type should be map, key and val both string")
+    std::string role;
+    std::unordered_map<std::string, lgraph::AccessLevel> levels;
+    _ExtractAccessLevel(args, role, levels);
+    if (ctx->txn_) ctx->txn_->Abort();
+    bool success = ctx->galaxy_->ModRoleAccessLevel(role, levels);
+    if (!success) {
+        throw lgraph::RoleNotExistException(args[0].constant.scalar.AsString());
+    }
 }
 
 void BuiltinProcedureV2::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const Record *record,
@@ -1682,60 +1677,56 @@ void BuiltinProcedureV2::DbmsSecurityAddUserRoles(RTContext *ctx, const Record *
 void BuiltinProcedureV2::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
                                             const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
                                             std::vector<Record> *records) {
-    // CYPHER_ARG_CHECK(
-    //     args.size() == 7,
-    //     "need seven parameters, e.g. db.plugin.loadPlugin(plugin_type,"
-    //     "plugin_name, plugin_content, code_type, plugin_description, read_only, version)")
-    // CYPHER_ARG_CHECK(args[0].IsString(),
-    //                  "plugin_type type should be string")
-    // CYPHER_ARG_CHECK(args[1].IsString(),
-    //                  "plugin_name type should be string")
-    // CYPHER_ARG_CHECK(args[3].IsString(), "code_type type should be string")
-    // CYPHER_ARG_CHECK(args[4].IsString(),
-    //                  "plugin_description type should be string")
-    // CYPHER_ARG_CHECK(args[5].IsBool(), "read_only type should be boolean")
-    // CYPHER_ARG_CHECK(args[6].IsString(), "version type should be string")
-    // CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    // if (ctx->txn_) ctx->txn_->Abort();
-    // lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    // auto plugin_type_it = ValidPluginType.find(args[0].constant.scalar.AsString());
-    // CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
-    //                  "unknown plugin_type, one of ('CPP', 'PY')");
-    // auto code_type_it = ValidPluginCodeType.find(args[3].constant.scalar.AsString());
-    // CYPHER_ARG_CHECK(code_type_it != ValidPluginCodeType.end(),
-    //                  "unknown plugin_type, one of ('PY', 'SO', 'CPP', 'ZIP')");
-    // bool success = false;
-    // fma_common::encrypt::Base64 base64;
-    // if (args[2].IsString()) {
-    //     std::string content = base64.Decode(args[2].constant.scalar.AsString());
-    //     success =
-    //         db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].constant.scalar.AsString(),
-    //                       std::vector<std::string>{content}, std::vector<std::string>{},
-    //                       code_type_it->second, args[4].constant.scalar.AsString(),
-    //                       args[5].constant.scalar.AsBool(), args[6].constant.scalar.AsString());
-    // } else if (args[2].type == parser::Expression::MAP) {
-    //     std::vector<std::string> filenames;
-    //     std::vector<std::string> codes;
-    //     for (auto &kv : args[2].Map()) {
-    //         if (kv.first[0] == '`' && kv.first.back() == '`') {
-    //             filenames.push_back(kv.first.substr(1, kv.first.size() - 2));
-    //         } else {
-    //             filenames.push_back(kv.first);
-    //         }
-    //         codes.push_back(base64.Decode(kv.second.constant.scalar.AsString()));
-    //     }
-    //     success =
-    //         db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].constant.scalar.AsString(),
-    //         codes, filenames,
-    //                       code_type_it->second, args[4].constant.scalar.AsString(),
-    //                       args[5].constant.scalar.AsBool(), args[6].constant.scalar.AsString());
-    // } else {
-    //     throw lgraph::ReminderException("plugin_content should be string or map");
-    // }
+    CYPHER_ARG_CHECK(
+        args.size() == 7,
+        "need seven parameters, e.g. db.plugin.loadPlugin(plugin_type,"
+        "plugin_name, plugin_content, code_type, plugin_description, read_only, version)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "plugin_type type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(), "plugin_name type should be string")
+    CYPHER_ARG_CHECK(args[3].IsString(), "code_type type should be string")
+    CYPHER_ARG_CHECK(args[4].IsString(), "plugin_description type should be string")
+    CYPHER_ARG_CHECK(args[5].IsBool(), "read_only type should be boolean")
+    CYPHER_ARG_CHECK(args[6].IsString(), "version type should be string")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    auto plugin_type_it = ValidPluginType.find(args[0].constant.scalar.AsString());
+    CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
+                     "unknown plugin_type, one of ('CPP', 'PY')");
+    auto code_type_it = ValidPluginCodeType.find(args[3].constant.scalar.AsString());
+    CYPHER_ARG_CHECK(code_type_it != ValidPluginCodeType.end(),
+                     "unknown plugin_type, one of ('PY', 'SO', 'CPP', 'ZIP')");
+    bool success = false;
+    fma_common::encrypt::Base64 base64;
+    if (args[2].IsString()) {
+        std::string content = base64.Decode(args[2].constant.scalar.AsString());
+        success =
+            db.LoadPlugin(plugin_type_it->second, ctx->user_, args[1].constant.scalar.AsString(),
+                          std::vector<std::string>{content}, std::vector<std::string>{},
+                          code_type_it->second, args[4].constant.scalar.AsString(),
+                          args[5].constant.scalar.AsBool(), args[6].constant.scalar.AsString());
+    } else if (args[2].IsMap()) {
+        std::vector<std::string> filenames;
+        std::vector<std::string> codes;
+        for (auto &kv : *args[2].constant.map) {
+            if (kv.first[0] == '`' && kv.first.back() == '`') {
+                filenames.push_back(kv.first.substr(1, kv.first.size() - 2));
+            } else {
+                filenames.push_back(kv.first);
+            }
+            codes.push_back(base64.Decode(kv.second.AsString()));
+        }
+        success = db.LoadPlugin(
+            plugin_type_it->second, ctx->user_, args[1].constant.scalar.AsString(), codes,
+            filenames, code_type_it->second, args[4].constant.scalar.AsString(),
+            args[5].constant.scalar.AsBool(), args[6].constant.scalar.AsString());
+    } else {
+        throw lgraph::ReminderException("plugin_content should be string or map");
+    }
 
-    // if (!success) {
-    //     throw lgraph::PluginExistException(args[1].constant.scalar.AsString());
-    // }
+    if (!success) {
+        throw lgraph::PluginExistException(args[1].constant.scalar.AsString());
+    }
 }
 
 void BuiltinProcedureV2::DbPluginDeletePlugin(RTContext *ctx, const Record *record,
@@ -1914,133 +1905,127 @@ void BuiltinProcedureV2::DbImportorFullImportor(RTContext *ctx, const Record *re
                                                 const VEC_EXPR_V2 &args,
                                                 const VEC_STR_V2 &yield_items,
                                                 std::vector<Record> *records) {
-    //     ctx->txn_.reset();
-    //     ctx->ac_db_.reset();
-    //     CYPHER_ARG_CHECK(args.size() == 1,
-    //                      "need exactly one parameter. "
-    //                      "e.g. db.importor.fullImportor({})")
-    //     CYPHER_ARG_CHECK(args[0].type == parser::Expression::MAP, "conf type should be map")
-    //     if (!ctx->galaxy_->IsAdmin(ctx->user_))
-    //         THROW_CODE(Unauthorized, "Admin access right required.");
+    ctx->txn_.reset();
+    ctx->ac_db_.reset();
+    CYPHER_ARG_CHECK(args.size() == 1,
+                     "need exactly one parameter. "
+                     "e.g. db.importor.fullImportor({})")
+    CYPHER_ARG_CHECK(args[0].IsMap(), "conf type should be map")
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
 
-    //     // parse parameter
-    //     lgraph::import_v3::Importer::Config import_config_v3;
-    //     std::map<std::string, lgraph::FieldData> full_import_conf;
-    //     for (auto &kv : args[0].Map()) {
-    //         full_import_conf[kv.first] = parser::MakeFieldData(kv.second);
-    //     }
-    //     auto check = [&full_import_conf](const std::string& name, lgraph::FieldType type) {
-    //         if (full_import_conf.count(name) && full_import_conf[name].GetType() != type)
-    //             throw lgraph::CypherException("Option " + name + " is not " + to_string(type));
-    //         return full_import_conf.count(name);
-    //     };
+    // parse parameter
+    lgraph::import_v3::Importer::Config import_config_v3;
+    std::map<std::string, lgraph::FieldData> full_import_conf;
+    for (auto &kv : *args[0].constant.map) {
+        full_import_conf[kv.first] = kv.second;
+    }
+    auto check = [&full_import_conf](const std::string &name, lgraph::FieldType type) {
+        if (full_import_conf.count(name) && full_import_conf[name].GetType() != type)
+            throw lgraph::CypherException("Option " + name + " is not " + to_string(type));
+        return full_import_conf.count(name);
+    };
 
-    //     if (!full_import_conf.count("config_file"))
-    //         THROW_CODE(InputError, "Option config_file does not exist.");
-    //     if (!check("graph_name", lgraph::FieldType::STRING))
-    //         full_import_conf["graph_name"] =
-    //         lgraph::FieldData(lgraph::_detail::DEFAULT_GRAPH_DB_NAME);
-    //     if (!check("delete_if_exists", lgraph::FieldType::BOOL))
-    //         full_import_conf["delete_if_exists"] = lgraph::FieldData(false);
-    //     if (!check("username", lgraph::FieldType::STRING))
-    //         full_import_conf["username"] =
-    //         lgraph::FieldData(lgraph::_detail::DEFAULT_ADMIN_NAME);
-    //     if (!full_import_conf["delete_if_exists"].AsBool() &&
-    //     ctx->galaxy_->ListGraphsInternal().count(
-    //                                               full_import_conf["graph_name"].string())) {
-    //         throw lgraph::CypherException("DB exists and cannot be deleted.");
-    //     }
+    if (!full_import_conf.count("config_file"))
+        THROW_CODE(InputError, "Option config_file does not exist.");
+    if (!check("graph_name", lgraph::FieldType::STRING))
+        full_import_conf["graph_name"] = lgraph::FieldData(lgraph::_detail::DEFAULT_GRAPH_DB_NAME);
+    if (!check("delete_if_exists", lgraph::FieldType::BOOL))
+        full_import_conf["delete_if_exists"] = lgraph::FieldData(false);
+    if (!check("username", lgraph::FieldType::STRING))
+        full_import_conf["username"] = lgraph::FieldData(lgraph::_detail::DEFAULT_ADMIN_NAME);
+    if (!full_import_conf["delete_if_exists"].AsBool() &&
+        ctx->galaxy_->ListGraphsInternal().count(full_import_conf["graph_name"].string())) {
+        throw lgraph::CypherException("DB exists and cannot be deleted.");
+    }
 
-    //     std::mutex mu;
-    //     std::condition_variable cv;
-    //     bool ok_to_leave = false;
-    //     std::string data_file_path, log, error;
-    //     std::thread worker([&]() {
-    //         std::lock_guard<std::mutex> l(mu);
-    //         try {
-    //             import_config_v3.db_dir = ctx->galaxy_->GetConfig().dir + "/.import_tmp";
-    //             import_config_v3.graph = lgraph::_detail::DEFAULT_GRAPH_DB_NAME;
-    //             import_config_v3.config_file = full_import_conf["config_file"].string();
-    //             import_config_v3.user = full_import_conf["username"].string();
-    //             if (check("password", lgraph::FieldType::STRING))
-    //                 import_config_v3.password = full_import_conf["password"].string();
-    //             if (check("continue_on_error", lgraph::FieldType::BOOL))
-    //                 import_config_v3.continue_on_error =
-    //                 full_import_conf["continue_on_error"].AsBool();
-    //             if (check("delimiter", lgraph::FieldType::STRING))
-    //                 import_config_v3.delimiter = full_import_conf["delimiter"].string();
-    //             import_config_v3.delete_if_exists = true;
-    //             if (check("parse_block_size", lgraph::FieldType::INT64))
-    //                 import_config_v3.parse_block_size =
-    //                 full_import_conf["parse_block_size"].AsInt64();
-    //             if (check("parse_block_threads", lgraph::FieldType::INT64))
-    //                 import_config_v3.parse_block_threads =
-    //                     full_import_conf["parse_block_threads"].AsInt64();
-    //             if (check("parse_file_threads", lgraph::FieldType::INT64))
-    //                 import_config_v3.parse_file_threads =
-    //                     full_import_conf["parse_file_threads"].AsInt64();
-    //             if (check("generate_sst_threads", lgraph::FieldType::INT64))
-    //                 import_config_v3.generate_sst_threads =
-    //                     full_import_conf["generate_sst_threads"].AsInt64();
-    //             if (check("read_rocksdb_threads", lgraph::FieldType::INT64))
-    //                 import_config_v3.read_rocksdb_threads =
-    //                     full_import_conf["read_rocksdb_threads"].AsInt64();
-    //             if (check("vid_num_per_reading", lgraph::FieldType::INT64))
-    //                 import_config_v3.vid_num_per_reading =
-    //                     full_import_conf["vid_num_per_reading"].AsInt64();
-    //             if (check("max_size_per_reading", lgraph::FieldType::INT64))
-    //                 import_config_v3.max_size_per_reading =
-    //                     full_import_conf["max_size_per_reading"].AsInt64();
-    //             if (check("compact", lgraph::FieldType::BOOL))
-    //                 import_config_v3.compact = full_import_conf["compact"].AsBool();
-    //             if (check("keep_vid_in_memory", lgraph::FieldType::BOOL))
-    //                 import_config_v3.keep_vid_in_memory =
-    //                     full_import_conf["keep_vid_in_memory"].AsBool();
-    //             if (check("enable_fulltext_index", lgraph::FieldType::BOOL))
-    //                 import_config_v3.enable_fulltext_index =
-    //                     full_import_conf["enable_fulltext_index"].AsBool();
-    //             if (check("fulltext_index_analyzer", lgraph::FieldType::STRING))
-    //                 import_config_v3.fulltext_index_analyzer =
-    //                     full_import_conf["fulltext_index_analyzer"].string();
-    //             import_config_v3.import_online = true;
-    //             lgraph::import_v3::Importer importer(import_config_v3);
-    //             importer.DoImportOffline();
-    //             log = importer.OnlineFullImportLog();
-    //             for (const auto& entry :
-    //             std::filesystem::directory_iterator(import_config_v3.db_dir)) {
-    //                 if (entry.is_directory() && entry.path().filename().string() != ".meta" &&
-    //                     std::filesystem::exists(entry.path().string() + "/data.mdb")) {
-    //                     data_file_path = entry.path().string() + "/data.mdb";
-    //                     break;
-    //                 }
-    //             }
-    //         } catch (std::exception &e) {
-    //             error = e.what();
-    //         }
-    //         ok_to_leave = true;
-    //         cv.notify_all();
-    //     });
-    //     worker.detach();
-    //     std::unique_lock<std::mutex> l(mu);
-    //     while (!ok_to_leave) cv.wait(l);
-    //     auto& fs = fma_common::FileSystem::GetFileSystem(ctx->galaxy_->GetConfig().dir +
-    //                                                      "/.import_tmp");
-    //     if (error.empty()) {
-    //         lgraph::DBConfig dbConfig;
-    //         dbConfig.dir = ctx->galaxy_->GetConfig().dir;
-    //         dbConfig.name = full_import_conf["graph_name"].string();
-    //         dbConfig.create_if_not_exist = true;
-    //         ctx->galaxy_->CreateGraph(full_import_conf["username"].string(),
-    //                                   full_import_conf["graph_name"].string(), dbConfig,
-    //                                   data_file_path);
-    //         fs.RemoveDir(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
-    //         Record r;
-    //         r.AddConstant(lgraph::FieldData(log));
-    //         records->emplace_back(r.Snapshot());
-    //     } else {
-    //         fs.RemoveDir(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
-    //         throw lgraph::CypherException(error);
-    //     }
+    std::mutex mu;
+    std::condition_variable cv;
+    bool ok_to_leave = false;
+    std::string data_file_path, log, error;
+    std::thread worker([&]() {
+        std::lock_guard<std::mutex> l(mu);
+        try {
+            import_config_v3.db_dir = ctx->galaxy_->GetConfig().dir + "/.import_tmp";
+            import_config_v3.graph = lgraph::_detail::DEFAULT_GRAPH_DB_NAME;
+            import_config_v3.config_file = full_import_conf["config_file"].string();
+            import_config_v3.user = full_import_conf["username"].string();
+            if (check("password", lgraph::FieldType::STRING))
+                import_config_v3.password = full_import_conf["password"].string();
+            if (check("continue_on_error", lgraph::FieldType::BOOL))
+                import_config_v3.continue_on_error = full_import_conf["continue_on_error"].AsBool();
+            if (check("delimiter", lgraph::FieldType::STRING))
+                import_config_v3.delimiter = full_import_conf["delimiter"].string();
+            import_config_v3.delete_if_exists = true;
+            if (check("parse_block_size", lgraph::FieldType::INT64))
+                import_config_v3.parse_block_size = full_import_conf["parse_block_size"].AsInt64();
+            if (check("parse_block_threads", lgraph::FieldType::INT64))
+                import_config_v3.parse_block_threads =
+                    full_import_conf["parse_block_threads"].AsInt64();
+            if (check("parse_file_threads", lgraph::FieldType::INT64))
+                import_config_v3.parse_file_threads =
+                    full_import_conf["parse_file_threads"].AsInt64();
+            if (check("generate_sst_threads", lgraph::FieldType::INT64))
+                import_config_v3.generate_sst_threads =
+                    full_import_conf["generate_sst_threads"].AsInt64();
+            if (check("read_rocksdb_threads", lgraph::FieldType::INT64))
+                import_config_v3.read_rocksdb_threads =
+                    full_import_conf["read_rocksdb_threads"].AsInt64();
+            if (check("vid_num_per_reading", lgraph::FieldType::INT64))
+                import_config_v3.vid_num_per_reading =
+                    full_import_conf["vid_num_per_reading"].AsInt64();
+            if (check("max_size_per_reading", lgraph::FieldType::INT64))
+                import_config_v3.max_size_per_reading =
+                    full_import_conf["max_size_per_reading"].AsInt64();
+            if (check("compact", lgraph::FieldType::BOOL))
+                import_config_v3.compact = full_import_conf["compact"].AsBool();
+            if (check("keep_vid_in_memory", lgraph::FieldType::BOOL))
+                import_config_v3.keep_vid_in_memory =
+                    full_import_conf["keep_vid_in_memory"].AsBool();
+            if (check("enable_fulltext_index", lgraph::FieldType::BOOL))
+                import_config_v3.enable_fulltext_index =
+                    full_import_conf["enable_fulltext_index"].AsBool();
+            if (check("fulltext_index_analyzer", lgraph::FieldType::STRING))
+                import_config_v3.fulltext_index_analyzer =
+                    full_import_conf["fulltext_index_analyzer"].string();
+            import_config_v3.import_online = true;
+            lgraph::import_v3::Importer importer(import_config_v3);
+            importer.DoImportOffline();
+            log = importer.OnlineFullImportLog();
+            for (const auto &entry : std::filesystem::directory_iterator(import_config_v3.db_dir)) {
+                if (entry.is_directory() && entry.path().filename().string() != ".meta" &&
+                    std::filesystem::exists(entry.path().string() + "/data.mdb")) {
+                    data_file_path = entry.path().string() + "/data.mdb";
+                    break;
+                }
+            }
+        } catch (std::exception &e) {
+            error = e.what();
+        }
+        ok_to_leave = true;
+        cv.notify_all();
+    });
+    worker.detach();
+    std::unique_lock<std::mutex> l(mu);
+    while (!ok_to_leave) cv.wait(l);
+    auto &fs =
+        fma_common::FileSystem::GetFileSystem(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
+    if (error.empty()) {
+        lgraph::DBConfig dbConfig;
+        dbConfig.dir = ctx->galaxy_->GetConfig().dir;
+        dbConfig.name = full_import_conf["graph_name"].string();
+        dbConfig.create_if_not_exist = true;
+        ctx->galaxy_->CreateGraph(full_import_conf["username"].string(),
+                                  full_import_conf["graph_name"].string(), dbConfig,
+                                  data_file_path);
+        fs.RemoveDir(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
+        Record r;
+        r.AddConstant(lgraph::FieldData(log));
+        records->emplace_back(r.Snapshot());
+    } else {
+        fs.RemoveDir(ctx->galaxy_->GetConfig().dir + "/.import_tmp");
+        throw lgraph::CypherException(error);
+    }
 }
 
 void BuiltinProcedureV2::DbImportorFullFileImportor(RTContext *ctx, const Record *record,
@@ -2257,110 +2242,107 @@ void BuiltinProcedureV2::DbmsHaClusterInfo(RTContext *ctx, const Record *record,
     records->emplace_back(r.Snapshot());
 }
 
-// static void _FetchPath(lgraph::Transaction &txn, size_t hops,
-//                        std::unordered_map<lgraph::VertexId, lgraph::VertexId> &parent,
-//                        std::unordered_map<lgraph::VertexId, lgraph::VertexId> &child,
-//                        lgraph::VertexId vid_from, lgraph::VertexId vid_a, lgraph::VertexId vid_b,
-//                        lgraph::VertexId vid_to, cypher::Path &path) {
-//     std::vector<lgraph::VertexId> vids;
-//     auto vid = vid_a;
-//     while (vid != vid_from) {
-//         vids.push_back(vid);
-//         vid = parent[vid];
-//     }
-//     vids.push_back(vid);
-//     std::reverse(vids.begin(), vids.end());
-//     vid = vid_b;
-//     while (vid != vid_to) {
-//         vids.push_back(vid);
-//         vid = child[vid];
-//     }
-//     vids.push_back(vid);
-//     if (hops != 0 && vids.size() != hops + 1) {
-//         throw lgraph::ReminderException("_FetchPath failed");
-//     }
-//     for (size_t i = 0; i < hops; i++) {
-//         // TODO(any): fake edges!
-//         path.Append(lgraph::EdgeUid(vids[i], vids[i + 1], 0, 0, 0));
-//     }
-// }
+static void _FetchPath(lgraph::Transaction &txn, size_t hops,
+                       std::unordered_map<lgraph::VertexId, lgraph::VertexId> &parent,
+                       std::unordered_map<lgraph::VertexId, lgraph::VertexId> &child,
+                       lgraph::VertexId vid_from, lgraph::VertexId vid_a, lgraph::VertexId vid_b,
+                       lgraph::VertexId vid_to, cypher::Path &path) {
+    std::vector<lgraph::VertexId> vids;
+    auto vid = vid_a;
+    while (vid != vid_from) {
+        vids.push_back(vid);
+        vid = parent[vid];
+    }
+    vids.push_back(vid);
+    std::reverse(vids.begin(), vids.end());
+    vid = vid_b;
+    while (vid != vid_to) {
+        vids.push_back(vid);
+        vid = child[vid];
+    }
+    vids.push_back(vid);
+    if (hops != 0 && vids.size() != hops + 1) {
+        throw lgraph::ReminderException("_FetchPath failed");
+    }
+    for (size_t i = 0; i < hops; i++) {
+        // TODO(any): fake edges!
+        path.Append(lgraph::EdgeUid(vids[i], vids[i + 1], 0, 0, 0));
+    }
+}
 
-// template<typename EIT>
-// static bool _Filter(lgraph::Transaction &txn, const EIT &eit,
-//                     const EDGE_FILTER_T &edge_filter) {
-//     for (auto &kv1 : edge_filter) {
-//         auto field = txn.GetEdgeField(eit.GetUid(), kv1.first);
-//         for (auto &kv2 : kv1.second) {
-//             if ((kv2.first == "smaller_than" && field >= kv2.second) ||
-//                 (kv2.first == "greater_than" && field <= kv2.second)) {
-//                 return false;
-//             }
-//         }
-//     }
-//     return true;
-// }
+template <typename EIT>
+static bool _Filter(lgraph::Transaction &txn, const EIT &eit, const EDGE_FILTER_T &edge_filter) {
+    for (auto &kv1 : edge_filter) {
+        auto field = txn.GetEdgeField(eit.GetUid(), kv1.first);
+        for (auto &kv2 : kv1.second) {
+            if ((kv2.first == "smaller_than" && field >= kv2.second) ||
+                (kv2.first == "greater_than" && field <= kv2.second)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
-// static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn,
-// lgraph::VertexId vid,
-//                                                    const std::string &edge_label,
-//                                                    const EDGE_FILTER_T& edge_filter,
-//                                                    const parser::LinkDirection& direction,
-//                                                    std::optional<size_t> per_node_limit) {
-//     auto vit = txn.GetVertexIterator(vid);
-//     CYPHER_THROW_ASSERT(vit.IsValid());
-//     std::vector<lgraph::VertexId> neighbors;
-//     if (edge_label.empty()) {
-//         bool out_edge_left = false, in_edge_left = false;
-//         neighbors = vit.ListDstVids(nullptr, nullptr,
-//                              per_node_limit.has_value() ? per_node_limit.value() : 10000,
-//                              &out_edge_left, nullptr);
-//         auto srcIds = vit.ListSrcVids(nullptr, nullptr,
-//                              per_node_limit.has_value() ? per_node_limit.value() : 10000,
-//                              &in_edge_left, nullptr);
-//         if (out_edge_left || in_edge_left) {
-//             LOG_WARN() << "Result trimmed down because " << vid
-//                                     << " has more than 10000 in/out neighbours";
-//         }
-//         if (direction == parser::LinkDirection::RIGHT_TO_LEFT) {
-//             neighbors = srcIds;
-//         } else if (direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-//             neighbors.reserve(neighbors.size() + srcIds.size());
-//             neighbors.insert(neighbors.end(), srcIds.begin(), srcIds.end());
-//         }
-//     } else {
-//         auto edge_lid = txn.GetLabelId(false, edge_label);
-//         if (direction == parser::LinkDirection::LEFT_TO_RIGHT ||
-//             direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-//             size_t count = 0;
-//             for (auto eit = vit.GetOutEdgeIterator(lgraph::EdgeUid(
-// vid, 0, edge_lid, 0, 0), true);
-//                  eit.IsValid(); eit.Next()) {
-//                 if (eit.GetLabelId() != edge_lid) break;
-//                 count += 1;
-//                 if (per_node_limit.has_value() && count > per_node_limit.value()) {
-//                     break;
-//                 }
-//                 if (!_Filter(txn, eit, edge_filter)) continue;
-//                 neighbors.push_back(eit.GetDst());
-//             }
-//         }
-//         if (direction == parser::LinkDirection::RIGHT_TO_LEFT ||
-//             direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-//             size_t count = 0;
-//             for (auto eit = vit.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-//                  eit.IsValid(); eit.Next()) {
-//                 if (eit.GetLabelId() != edge_lid) break;
-//                 count += 1;
-//                 if (per_node_limit.has_value() && count > per_node_limit.value()) {
-//                     break;
-//                 }
-//                 if (!_Filter(txn, eit, edge_filter)) continue;
-//                 neighbors.push_back(eit.GetSrc());
-//             }
-//         }
-//     }
-//     return neighbors;
-// }
+static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgraph::VertexId vid,
+                                                   const std::string &edge_label,
+                                                   const EDGE_FILTER_T &edge_filter,
+                                                   const parser::LinkDirection &direction,
+                                                   std::optional<size_t> per_node_limit) {
+    auto vit = txn.GetVertexIterator(vid);
+    CYPHER_THROW_ASSERT(vit.IsValid());
+    std::vector<lgraph::VertexId> neighbors;
+    if (edge_label.empty()) {
+        bool out_edge_left = false, in_edge_left = false;
+        neighbors = vit.ListDstVids(nullptr, nullptr,
+                                    per_node_limit.has_value() ? per_node_limit.value() : 10000,
+                                    &out_edge_left, nullptr);
+        auto srcIds = vit.ListSrcVids(nullptr, nullptr,
+                                      per_node_limit.has_value() ? per_node_limit.value() : 10000,
+                                      &in_edge_left, nullptr);
+        if (out_edge_left || in_edge_left) {
+            LOG_WARN() << "Result trimmed down because " << vid
+                       << " has more than 10000 in/out neighbours";
+        }
+        if (direction == parser::LinkDirection::RIGHT_TO_LEFT) {
+            neighbors = srcIds;
+        } else if (direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
+            neighbors.reserve(neighbors.size() + srcIds.size());
+            neighbors.insert(neighbors.end(), srcIds.begin(), srcIds.end());
+        }
+    } else {
+        auto edge_lid = txn.GetLabelId(false, edge_label);
+        if (direction == parser::LinkDirection::LEFT_TO_RIGHT ||
+            direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
+            size_t count = 0;
+            for (auto eit = vit.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != edge_lid) break;
+                count += 1;
+                if (per_node_limit.has_value() && count > per_node_limit.value()) {
+                    break;
+                }
+                if (!_Filter(txn, eit, edge_filter)) continue;
+                neighbors.push_back(eit.GetDst());
+            }
+        }
+        if (direction == parser::LinkDirection::RIGHT_TO_LEFT ||
+            direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
+            size_t count = 0;
+            for (auto eit = vit.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != edge_lid) break;
+                count += 1;
+                if (per_node_limit.has_value() && count > per_node_limit.value()) {
+                    break;
+                }
+                if (!_Filter(txn, eit, edge_filter)) continue;
+                neighbors.push_back(eit.GetSrc());
+            }
+        }
+    }
+    return neighbors;
+}
 
 /* All the shortestPath procedures assume that they are being executed on undirected graphs.
  * Just like described in neo4j:
@@ -2369,517 +2351,505 @@ void BuiltinProcedureV2::DbmsHaClusterInfo(RTContext *ctx, const Record *record,
  * running these algorithms on a graph where the direction is important, you can use the direction
  * parameter. For example, direction:"INCOMING" or direction:"OUTGOING".
  */
-// static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexId start_vid,
-//                                        lgraph::VertexId end_vid, const std::string &edge_label,
-//                                        size_t max_hops, cypher::Path &path,
-//                                        const EDGE_FILTER_T &edge_filter,
-// parser::LinkDirection &dir,
-//                                        std::optional<size_t> per_node_limit) {
-//     path.Clear();
-//     path.SetStart(start_vid);
-//     if (start_vid == end_vid) return;
-//     std::unordered_map<lgraph::VertexId, lgraph::VertexId> parent{{start_vid, start_vid}};
-//     std::unordered_map<lgraph::VertexId, lgraph::VertexId> child{{end_vid, end_vid}};
-//     std::vector<lgraph::VertexId> forward_q{start_vid};
-//     std::vector<lgraph::VertexId> backward_q{end_vid};
-//     size_t hops = 0;
-//     parser::LinkDirection forward_dir = dir;
-//     parser::LinkDirection backward_dir =
-//         dir == parser::LinkDirection::RIGHT_TO_LEFT   ? parser::LinkDirection::LEFT_TO_RIGHT
-//         : dir == parser::LinkDirection::LEFT_TO_RIGHT ? parser::LinkDirection::RIGHT_TO_LEFT
-//                                                       : parser::LinkDirection::DIR_NOT_SPECIFIED;
-//     while (hops++ < max_hops) {
-//         std::vector<lgraph::VertexId> next_q;
-//         // decide which way to search first
-//         if (forward_q.size() <= backward_q.size()) {
-//             // search forward
-//             for (auto vid : forward_q) {
-//                 auto nbrs = _GetNeighbors(txn, vid, edge_label, edge_filter, forward_dir,
-//                                           per_node_limit);
-//                 for (auto nbr : nbrs) {
-//                     if (child.find(nbr) != child.end()) {
-//                         // found the path
-//                         _FetchPath(txn, hops, parent, child, start_vid, vid, nbr, end_vid, path);
-//                         return;
-//                     }
-//                     auto it = parent.find(nbr);
-//                     if (it == parent.end()) {
-//                         parent.emplace_hint(it, nbr, vid);
-//                         next_q.push_back(nbr);
-//                     }
-//                 }
-//             }
-//             if (next_q.empty()) break;
-//             forward_q = std::move(next_q);
-//         } else {
-//             for (auto vid : backward_q) {
-//                 auto nbrs = _GetNeighbors(txn, vid, edge_label, edge_filter, backward_dir,
-//                                           per_node_limit);
-//                 for (auto nbr : nbrs) {
-//                     if (parent.find(nbr) != parent.end()) {
-//                         // found the path
-//                         _FetchPath(txn, hops, parent, child, start_vid, nbr, vid, end_vid, path);
-//                         return;
-//                     }
-//                     auto it = child.find(nbr);
-//                     if (it == child.end()) {
-//                         child.emplace_hint(it, nbr, vid);
-//                         next_q.push_back(nbr);
-//                     }
-//                 }
-//             }
-//             if (next_q.empty()) break;
-//             backward_q = std::move(next_q);
-//         }
-//     }
-// }
+static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexId start_vid,
+                                       lgraph::VertexId end_vid, const std::string &edge_label,
+                                       size_t max_hops, cypher::Path &path,
+                                       const EDGE_FILTER_T &edge_filter, parser::LinkDirection &dir,
+                                       std::optional<size_t> per_node_limit) {
+    path.Clear();
+    path.SetStart(start_vid);
+    if (start_vid == end_vid) return;
+    std::unordered_map<lgraph::VertexId, lgraph::VertexId> parent{{start_vid, start_vid}};
+    std::unordered_map<lgraph::VertexId, lgraph::VertexId> child{{end_vid, end_vid}};
+    std::vector<lgraph::VertexId> forward_q{start_vid};
+    std::vector<lgraph::VertexId> backward_q{end_vid};
+    size_t hops = 0;
+    parser::LinkDirection forward_dir = dir;
+    parser::LinkDirection backward_dir =
+        dir == parser::LinkDirection::RIGHT_TO_LEFT   ? parser::LinkDirection::LEFT_TO_RIGHT
+        : dir == parser::LinkDirection::LEFT_TO_RIGHT ? parser::LinkDirection::RIGHT_TO_LEFT
+                                                      : parser::LinkDirection::DIR_NOT_SPECIFIED;
+    while (hops++ < max_hops) {
+        std::vector<lgraph::VertexId> next_q;
+        // decide which way to search first
+        if (forward_q.size() <= backward_q.size()) {
+            // search forward
+            for (auto vid : forward_q) {
+                auto nbrs =
+                    _GetNeighbors(txn, vid, edge_label, edge_filter, forward_dir, per_node_limit);
+                for (auto nbr : nbrs) {
+                    if (child.find(nbr) != child.end()) {
+                        // found the path
+                        _FetchPath(txn, hops, parent, child, start_vid, vid, nbr, end_vid, path);
+                        return;
+                    }
+                    auto it = parent.find(nbr);
+                    if (it == parent.end()) {
+                        parent.emplace_hint(it, nbr, vid);
+                        next_q.push_back(nbr);
+                    }
+                }
+            }
+            if (next_q.empty()) break;
+            forward_q = std::move(next_q);
+        } else {
+            for (auto vid : backward_q) {
+                auto nbrs =
+                    _GetNeighbors(txn, vid, edge_label, edge_filter, backward_dir, per_node_limit);
+                for (auto nbr : nbrs) {
+                    if (parent.find(nbr) != parent.end()) {
+                        // found the path
+                        _FetchPath(txn, hops, parent, child, start_vid, nbr, vid, end_vid, path);
+                        return;
+                    }
+                    auto it = child.find(nbr);
+                    if (it == child.end()) {
+                        child.emplace_hint(it, nbr, vid);
+                        next_q.push_back(nbr);
+                    }
+                }
+            }
+            if (next_q.empty()) break;
+            backward_q = std::move(next_q);
+        }
+    }
+}
 
-// template <typename EIT>
-// static void _EmplaceForwardNeighbor(
-//     const EIT &eit, const int fhop, const std::unordered_map<lgraph::VertexId, int> &child,
-//     std::unordered_map<lgraph::VertexId, int> &parent,
-//     std::vector<std::tuple<lgraph::VertexId, lgraph::VertexId, lgraph::LabelId, lgraph::EdgeId,
-//                            bool>> &hits,
-//     std::vector<lgraph::VertexId> &next_q) {
-//     lgraph::VertexId vid, nbr;
-//     bool direction;
-//     if (std::is_same<EIT, ::lgraph::graph::OutEdgeIterator>::value) {
-//         vid = eit.GetSrc();
-//         nbr = eit.GetDst();
-//         direction = true;
-//     } else {
-//         vid = eit.GetDst();
-//         nbr = eit.GetSrc();
-//         direction = false;
-//     }
-//     if (child.find(nbr) != child.end()) {
-//         hits.emplace_back(vid, nbr, eit.GetLabelId(), eit.GetEdgeId(), direction);
-//     } else {
-//         auto it = parent.find(nbr);
-//         if (it == parent.end()) {
-//             parent.emplace_hint(it, nbr, fhop);
-//             next_q.emplace_back(nbr);
-//         }
-//     }
-// }
+template <typename EIT>
+static void _EmplaceForwardNeighbor(
+    const EIT &eit, const int fhop, const std::unordered_map<lgraph::VertexId, int> &child,
+    std::unordered_map<lgraph::VertexId, int> &parent,
+    std::vector<std::tuple<lgraph::VertexId, lgraph::VertexId, lgraph::LabelId, lgraph::EdgeId,
+                           bool>> &hits,
+    std::vector<lgraph::VertexId> &next_q) {
+    lgraph::VertexId vid, nbr;
+    bool direction;
+    if (std::is_same<EIT, ::lgraph::graph::OutEdgeIterator>::value) {
+        vid = eit.GetSrc();
+        nbr = eit.GetDst();
+        direction = true;
+    } else {
+        vid = eit.GetDst();
+        nbr = eit.GetSrc();
+        direction = false;
+    }
+    if (child.find(nbr) != child.end()) {
+        hits.emplace_back(vid, nbr, eit.GetLabelId(), eit.GetEdgeId(), direction);
+    } else {
+        auto it = parent.find(nbr);
+        if (it == parent.end()) {
+            parent.emplace_hint(it, nbr, fhop);
+            next_q.emplace_back(nbr);
+        }
+    }
+}
 
-// template <typename EIT>
-// static void _EmplaceBackwardNeighbor(
-//     const EIT &eit, const int bhop, const std::unordered_map<lgraph::VertexId, int> &parent,
-//     std::unordered_map<lgraph::VertexId, int> &child,
-//     std::vector<std::tuple<lgraph::VertexId, lgraph::VertexId, lgraph::LabelId, lgraph::EdgeId,
-//                            bool>> &hits,
-//     std::vector<lgraph::VertexId> &next_q) {
-//     lgraph::VertexId vid, nbr;
-//     bool direction;
-//     if (std::is_same<EIT, ::lgraph::graph::OutEdgeIterator>::value) {
-//         vid = eit.GetSrc();
-//         nbr = eit.GetDst();
-//         direction = false;
-//     } else {
-//         vid = eit.GetDst();
-//         nbr = eit.GetSrc();
-//         direction = true;
-//     }
-//     if (parent.find(nbr) != parent.end()) {
-//         hits.emplace_back(nbr, vid, eit.GetLabelId(), eit.GetEdgeId(), direction);
-//     } else {
-//         auto it = child.find(nbr);
-//         if (it == child.end()) {
-//             child.emplace_hint(it, nbr, bhop);
-//             next_q.emplace_back(nbr);
-//         }
-//     }
-// }
+template <typename EIT>
+static void _EmplaceBackwardNeighbor(
+    const EIT &eit, const int bhop, const std::unordered_map<lgraph::VertexId, int> &parent,
+    std::unordered_map<lgraph::VertexId, int> &child,
+    std::vector<std::tuple<lgraph::VertexId, lgraph::VertexId, lgraph::LabelId, lgraph::EdgeId,
+                           bool>> &hits,
+    std::vector<lgraph::VertexId> &next_q) {
+    lgraph::VertexId vid, nbr;
+    bool direction;
+    if (std::is_same<EIT, ::lgraph::graph::OutEdgeIterator>::value) {
+        vid = eit.GetSrc();
+        nbr = eit.GetDst();
+        direction = false;
+    } else {
+        vid = eit.GetDst();
+        nbr = eit.GetSrc();
+        direction = true;
+    }
+    if (parent.find(nbr) != parent.end()) {
+        hits.emplace_back(nbr, vid, eit.GetLabelId(), eit.GetEdgeId(), direction);
+    } else {
+        auto it = child.find(nbr);
+        if (it == child.end()) {
+            child.emplace_hint(it, nbr, bhop);
+            next_q.emplace_back(nbr);
+        }
+    }
+}
 
-// void _EnumeratePartialPaths(lgraph::Transaction &txn,
-//                             const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
-//                             const int depth, const std::string &edge_label, cypher::Path &path,
-//                             std::vector<cypher::Path> &paths) {
-//     if (depth != 0) {
-//         if (edge_label.empty()) {
-//             for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
-//                 int64_t nbr = eit.GetDst();
-//                 auto it = hop_info.find(nbr);
-//                 if (it != hop_info.end() && it->second == depth - 1) {
-//                     path.Append(eit.GetUid());
-//                     _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1,
-// edge_label, path, paths);
-//                     path.PopBack();
-//                 }
-//             }
-//             for (auto eit = txn.GetInEdgeIterator(vid); eit.IsValid(); eit.Next()) {
-//                 int64_t nbr = eit.GetSrc();
-//                 auto it = hop_info.find(nbr);
-//                 if (it != hop_info.end() && it->second == depth - 1) {
-//                     path.Append(eit.GetUid());
-//                     _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1,
-// edge_label, path, paths);
-//                     path.PopBack();
-//                 }
-//             }
-//         } else {
-//             auto edge_lid = txn.GetLabelId(false, edge_label);
-//             for (auto eit = txn.GetOutEdgeIterator(lgraph::EdgeUid(
-// vid, 0, edge_lid, 0, 0), true);
-//                  eit.IsValid(); eit.Next()) {
-//                 if (eit.GetLabelId() != edge_lid) break;
-//                 int64_t nbr = eit.GetDst();
-//                 auto it = hop_info.find(nbr);
-//                 if (it != hop_info.end() && it->second == depth - 1) {
-//                     path.Append(eit.GetUid());
-//                     _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1,
-// edge_label, path, paths);
-//                     path.PopBack();
-//                 }
-//             }
-//             for (auto eit = txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-//                  eit.IsValid(); eit.Next()) {
-//                 if (eit.GetLabelId() != edge_lid) break;
-//                 int64_t nbr = eit.GetSrc();
-//                 auto it = hop_info.find(nbr);
-//                 if (it != hop_info.end() && it->second == depth - 1) {
-//                     path.Append(eit.GetUid());
-//                     _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1,
-// edge_label, path, paths);
-//                     path.PopBack();
-//                 }
-//             }
-//         }
-//     } else {
-//         paths.emplace_back(path);
-//     }
-// }
+void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
+                               const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
+                               const int depth, const std::string &edge_label, cypher::Path &path,
+                               std::vector<cypher::Path> &paths) {
+    if (depth != 0) {
+        if (edge_label.empty()) {
+            for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
+                int64_t nbr = eit.GetDst();
+                auto it = hop_info.find(nbr);
+                if (it != hop_info.end() && it->second == depth - 1) {
+                    path.Append(eit.GetUid());
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
+                    path.PopBack();
+                }
+            }
+            for (auto eit = txn.GetInEdgeIterator(vid); eit.IsValid(); eit.Next()) {
+                int64_t nbr = eit.GetSrc();
+                auto it = hop_info.find(nbr);
+                if (it != hop_info.end() && it->second == depth - 1) {
+                    path.Append(eit.GetUid());
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
+                    path.PopBack();
+                }
+            }
+        } else {
+            auto edge_lid = txn.GetLabelId(false, edge_label);
+            for (auto eit = txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != edge_lid) break;
+                int64_t nbr = eit.GetDst();
+                auto it = hop_info.find(nbr);
+                if (it != hop_info.end() && it->second == depth - 1) {
+                    path.Append(eit.GetUid());
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
+                    path.PopBack();
+                }
+            }
+            for (auto eit = txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                 eit.IsValid(); eit.Next()) {
+                if (eit.GetLabelId() != edge_lid) break;
+                int64_t nbr = eit.GetSrc();
+                auto it = hop_info.find(nbr);
+                if (it != hop_info.end() && it->second == depth - 1) {
+                    path.Append(eit.GetUid());
+                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_label, path,
+                                              paths);
+                    path.PopBack();
+                }
+            }
+        }
+    } else {
+        paths.emplace_back(path);
+    }
+}
 
-// static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::VertexId start_vid,
-//                                   lgraph::VertexId end_vid, const std::string &edge_label,
-//                                   std::vector<cypher::Path> &paths) {
-//     // TODO(heng): fix PrimaryId
-//     if (start_vid == end_vid) {
-//         paths.emplace_back(cypher::Path());
-//         paths.back().SetStart(start_vid);
-//         return;
-//     }
-//     std::unordered_map<lgraph::VertexId, int> parent{{start_vid, 0}};
-//     std::unordered_map<lgraph::VertexId, int> child{{end_vid, 0}};
-//     std::vector<lgraph::VertexId> forward_q{start_vid};
-//     std::vector<lgraph::VertexId> backward_q{end_vid};
-//     int fhop = 0;
-//     int bhop = 0;
-//     // <fvid, bvid, lid, eid, direction>
-//     std::vector<
-//         std::tuple<lgraph::VertexId, lgraph::VertexId, lgraph::LabelId, lgraph::EdgeId, bool>>
-//         hits;
-//     for (int hop = 0; !forward_q.empty() && !backward_q.empty() && hits.empty(); hop++) {
-//         std::vector<lgraph::VertexId> next_q;
-//         if (forward_q.size() <= backward_q.size()) {
-//             fhop++;
-//             for (auto vid : forward_q) {
-//                 if (edge_label.empty()) {
-//                     for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
-//                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
-//                     }
-//                     for (auto eit = txn.GetInEdgeIterator(vid); eit.IsValid(); eit.Next()) {
-//                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
-//                     }
-//                 } else {
-//                     auto edge_lid = txn.GetLabelId(false, edge_label);
-//                     for (auto eit =
-//                          txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-//                          eit.IsValid(); eit.Next()) {
-//                         if (eit.GetLabelId() != edge_lid) break;
-//                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
-//                     }
-//                     for (auto eit =
-//                          txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-//                          eit.IsValid(); eit.Next()) {
-//                         if (eit.GetLabelId() != edge_lid) break;
-//                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
-//                     }
-//                 }
-//             }
-//             std::sort(next_q.begin(), next_q.end());
-//             forward_q.swap(next_q);
-//         } else {
-//             bhop++;
-//             for (auto vid : backward_q) {
-//                 if (edge_label.empty()) {
-//                     for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
-//                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
-//                     }
-//                     for (auto eit = txn.GetInEdgeIterator(vid); eit.IsValid(); eit.Next()) {
-//                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
-//                     }
-//                 } else {
-//                     auto edge_lid = txn.GetLabelId(false, edge_label);
-//                     for (auto eit =
-//                          txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-//                          eit.IsValid(); eit.Next()) {
-//                         if (eit.GetLabelId() != edge_lid) break;
-//                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
-//                     }
-//                     for (auto eit =
-//                          txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-//                          eit.IsValid(); eit.Next()) {
-//                         if (eit.GetLabelId() != edge_lid) break;
-//                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
-//                     }
-//                 }
-//             }
-//             std::sort(next_q.begin(), next_q.end());
-//             backward_q.swap(next_q);
-//         }
-//     }
-//     for (auto &hit : hits) {
-//         std::vector<cypher::Path> fpaths;
-//         std::vector<cypher::Path> bpaths;
-//         auto fvid = std::get<0>(hit);
-//         auto bvid = std::get<1>(hit);
-//         cypher::Path path;
-//         path.SetStart(fvid);
-//         _EnumeratePartialPaths(txn, parent, fvid, parent[fvid], edge_label, path, fpaths);
-//         path.Clear();
-//         path.SetStart(bvid);
-//         _EnumeratePartialPaths(txn, child, bvid, child[bvid], edge_label, path, bpaths);
-//         for (auto &fpath : fpaths) {
-//             fpath.Reverse();
-//             fpath.Append(std::get<4>(hit)
-//                        ? lgraph::EdgeUid(fvid, bvid, std::get<2>(hit), 0, std::get<3>(hit))
-//                        : lgraph::EdgeUid(bvid, fvid, std::get<2>(hit), 0, std::get<3>(hit)));
-//             for (auto &bpath : bpaths) {
-//                 paths.emplace_back(fpath);
-//                 for (int i = 0; i < (int)bpath.Length(); i++)
-//                     paths.back().Append(bpath.GetNthEdge(i));
-//             }
-//         }
-//     }
-// }
+static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::VertexId start_vid,
+                                           lgraph::VertexId end_vid, const std::string &edge_label,
+                                           std::vector<cypher::Path> &paths) {
+    // TODO(heng): fix PrimaryId
+    if (start_vid == end_vid) {
+        paths.emplace_back(cypher::Path());
+        paths.back().SetStart(start_vid);
+        return;
+    }
+    std::unordered_map<lgraph::VertexId, int> parent{{start_vid, 0}};
+    std::unordered_map<lgraph::VertexId, int> child{{end_vid, 0}};
+    std::vector<lgraph::VertexId> forward_q{start_vid};
+    std::vector<lgraph::VertexId> backward_q{end_vid};
+    int fhop = 0;
+    int bhop = 0;
+    // <fvid, bvid, lid, eid, direction>
+    std::vector<
+        std::tuple<lgraph::VertexId, lgraph::VertexId, lgraph::LabelId, lgraph::EdgeId, bool>>
+        hits;
+    for (int hop = 0; !forward_q.empty() && !backward_q.empty() && hits.empty(); hop++) {
+        std::vector<lgraph::VertexId> next_q;
+        if (forward_q.size() <= backward_q.size()) {
+            fhop++;
+            for (auto vid : forward_q) {
+                if (edge_label.empty()) {
+                    for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
+                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                    }
+                    for (auto eit = txn.GetInEdgeIterator(vid); eit.IsValid(); eit.Next()) {
+                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                    }
+                } else {
+                    auto edge_lid = txn.GetLabelId(false, edge_label);
+                    for (auto eit =
+                             txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                         eit.IsValid(); eit.Next()) {
+                        if (eit.GetLabelId() != edge_lid) break;
+                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                    }
+                    for (auto eit =
+                             txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                         eit.IsValid(); eit.Next()) {
+                        if (eit.GetLabelId() != edge_lid) break;
+                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                    }
+                }
+            }
+            std::sort(next_q.begin(), next_q.end());
+            forward_q.swap(next_q);
+        } else {
+            bhop++;
+            for (auto vid : backward_q) {
+                if (edge_label.empty()) {
+                    for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
+                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                    }
+                    for (auto eit = txn.GetInEdgeIterator(vid); eit.IsValid(); eit.Next()) {
+                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                    }
+                } else {
+                    auto edge_lid = txn.GetLabelId(false, edge_label);
+                    for (auto eit =
+                             txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                         eit.IsValid(); eit.Next()) {
+                        if (eit.GetLabelId() != edge_lid) break;
+                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                    }
+                    for (auto eit =
+                             txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                         eit.IsValid(); eit.Next()) {
+                        if (eit.GetLabelId() != edge_lid) break;
+                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                    }
+                }
+            }
+            std::sort(next_q.begin(), next_q.end());
+            backward_q.swap(next_q);
+        }
+    }
+    for (auto &hit : hits) {
+        std::vector<cypher::Path> fpaths;
+        std::vector<cypher::Path> bpaths;
+        auto fvid = std::get<0>(hit);
+        auto bvid = std::get<1>(hit);
+        cypher::Path path;
+        path.SetStart(fvid);
+        _EnumeratePartialPaths_v2(txn, parent, fvid, parent[fvid], edge_label, path, fpaths);
+        path.Clear();
+        path.SetStart(bvid);
+        _EnumeratePartialPaths_v2(txn, child, bvid, child[bvid], edge_label, path, bpaths);
+        for (auto &fpath : fpaths) {
+            fpath.Reverse();
+            fpath.Append(std::get<4>(hit)
+                             ? lgraph::EdgeUid(fvid, bvid, std::get<2>(hit), 0, std::get<3>(hit))
+                             : lgraph::EdgeUid(bvid, fvid, std::get<2>(hit), 0, std::get<3>(hit)));
+            for (auto &bpath : bpaths) {
+                paths.emplace_back(fpath);
+                for (int i = 0; i < (int)bpath.Length(); i++)
+                    paths.back().Append(bpath.GetNthEdge(i));
+            }
+        }
+    }
+}
 
 void AlgoFuncV2::ShortestPath(RTContext *ctx, const Record *record, const cypher::VEC_EXPR_V2 &args,
                               const cypher::VEC_STR_V2 &yield_items,
                               std::vector<cypher::Record> *records) {
-    // CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    // CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    // CYPHER_ARG_CHECK(args[0].IsString() &&
-    //                      args[1].IsString() &&
-    //                      (args.size() == 2 || args[2].type == parser::Expression::MAP),
-    //                  "wrong type")
-    // std::string edge_label;
-    // EDGE_FILTER_T edge_filter;
-    // parser::LinkDirection direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
-    // size_t max_hops = 20;
-    // if (args.size() == 3) {
-    //     auto &map = args[2].Map();
-    //     auto it = map.find("relationshipQuery");
-    //     if (it != map.end()) {
-    //         if (it->second.type != parser::Expression::STRING) CYPHER_TODO();
-    //         edge_label = it->second.constant.scalar.AsString();
-    //     }
-    //     auto max = map.find("maxHops");
-    //     if (max != map.end()) {
-    //         if (max->second.type != parser::Expression::INT) CYPHER_TODO();
-    //         max_hops = max->second.constant.scalar.integer();
-    //     }
-    //     auto map_edge_filter = map.find("edgeFilter");
-    //     if (map_edge_filter != map.end()) {
-    //         if (map_edge_filter->second.type != parser::Expression::MAP) CYPHER_TODO();
-    //         for (auto &kv : map_edge_filter->second.Map()) {
-    //             if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
-    //             std::unordered_map<std::string, lgraph::FieldData> filter_t;
-    //             for (auto filter_pair : kv.second.Map()) {
-    //                 lgraph::FieldData field;
-    //                 if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
-    //                 field = parser::MakeFieldData(filter_pair.second);
-    //                 filter_t.emplace(filter_pair.first, field);
-    //             }
-    //             edge_filter.emplace(kv.first, filter_t);
-    //         }
-    //     }
-    //     auto it_dir = map.find("direction");
-    //     if (it_dir != map.end()) {
-    //         if (it_dir->second.type != parser::Expression::STRING) CYPHER_TODO();
-    //         if (it_dir->second.constant.scalar.AsString() == "PointingLeft") {
-    //             direction = parser::LinkDirection::RIGHT_TO_LEFT;
-    //         } else if (it_dir->second.constant.scalar.AsString() == "PointingRight") {
-    //             direction = parser::LinkDirection::LEFT_TO_RIGHT;
-    //         } else if (it_dir->second.constant.scalar.AsString() == "AnyDirection") {
-    //             direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
-    //         } else {
-    //             CYPHER_TODO();
-    //         }
-    //     }
-    // }
-    // CYPHER_THROW_ASSERT(record);
-    // auto it1 = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-    // auto it2 = record->symbol_table->symbols.find(args[1].constant.scalar.AsString());
-    // if (it1 == record->symbol_table->symbols.end()
-    // || it2 == record->symbol_table->symbols.end()) {
-    //     CYPHER_TODO();
-    // }
-    // auto start_vid = record->values[it1->second.id].node->PullVid();
-    // auto end_vid = record->values[it2->second.id].node->PullVid();
-    // cypher::Path path;
-    // auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    // _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, max_hops,
-    //                            path, edge_filter, direction, std::nullopt);
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
+    CYPHER_ARG_CHECK(
+        args[0].IsString() && args[1].IsString() && (args.size() == 2 || args[2].IsMap()),
+        "wrong type")
+    std::string edge_label;
+    EDGE_FILTER_T edge_filter;
+    parser::LinkDirection direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
+    size_t max_hops = 20;
+    if (args.size() == 3) {
+        auto &map = *args[2].constant.map;
+        auto it = map.find("relationshipQuery");
+        if (it != map.end()) {
+            if (it->second.IsString()) CYPHER_TODO();
+            edge_label = it->second.AsString();
+        }
+        auto max = map.find("maxHops");
+        if (max != map.end()) {
+            if (max->second.IsInteger()) CYPHER_TODO();
+            max_hops = max->second.integer();
+        }
+        auto map_edge_filter = map.find("edgeFilter");
+        if (map_edge_filter != map.end()) {
+            CYPHER_TODO();
+            // if (map_edge_filter->second.type != parser::Expression::MAP) CYPHER_TODO();
+            // for (auto &kv : map_edge_filter->second.Map()) {
+            //     if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
+            //     std::unordered_map<std::string, lgraph::FieldData> filter_t;
+            //     for (auto filter_pair : kv.second.Map()) {
+            //         lgraph::FieldData field;
+            //         if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
+            //         field = parser::MakeFieldData(filter_pair.second);
+            //         filter_t.emplace(filter_pair.first, field);
+            //     }
+            //     edge_filter.emplace(kv.first, filter_t);
+            // }
+        }
+        auto it_dir = map.find("direction");
+        if (it_dir != map.end()) {
+            if (!it_dir->second.IsString()) CYPHER_TODO();
+            if (it_dir->second.AsString() == "PointingLeft") {
+                direction = parser::LinkDirection::RIGHT_TO_LEFT;
+            } else if (it_dir->second.AsString() == "PointingRight") {
+                direction = parser::LinkDirection::LEFT_TO_RIGHT;
+            } else if (it_dir->second.AsString() == "AnyDirection") {
+                direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
+            } else {
+                CYPHER_TODO();
+            }
+        }
+    }
+    CYPHER_THROW_ASSERT(record);
+    auto it1 = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
+    auto it2 = record->symbol_table->symbols.find(args[1].constant.scalar.AsString());
+    if (it1 == record->symbol_table->symbols.end() || it2 == record->symbol_table->symbols.end()) {
+        CYPHER_TODO();
+    }
+    auto start_vid = record->values[it1->second.id].node->PullVid();
+    auto end_vid = record->values[it2->second.id].node->PullVid();
+    cypher::Path path;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, max_hops, path,
+                               edge_filter, direction, std::nullopt);
 
-    // auto pp = global_ptable.GetProcedure("algo.shortestPath");
-    // CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
-    //                     pp->ContainsYieldItem("totalCost") && pp->ContainsYieldItem("path"));
-    // cypher::VEC_STR_V2 titles = ProcedureTitlesV2("algo.shortestPath", yield_items);
-    // std::unordered_map<std::string, std::function<void(Record &)>> lmap = {
-    //     {"nodeCount",
-    //      [&](Record &r) {
-    //          r.AddConstant(lgraph::FieldData(
-    //              static_cast<int32_t>(path.Length() == 0 ? 0 : path.Length() + 1)));
-    //      }},
-    //     {"totalCost",
-    //      [&](Record &r) { r.AddConstant(
-    // lgraph::FieldData(static_cast<float>(path.Length()))); }},
-    //     {"path", [&](Record &r) { r.AddConstant(lgraph::FieldData(path.ToString())); }}};
-    // Record r;
-    // for (auto &title : titles) {
-    //     lmap.find(title)->second(r);
-    // }
-    // records->emplace_back(r.Snapshot());
+    auto pp = global_ptable.GetProcedure("algo.shortestPath");
+    CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
+                        pp->ContainsYieldItem("totalCost") && pp->ContainsYieldItem("path"));
+    cypher::VEC_STR_V2 titles = ProcedureTitlesV2("algo.shortestPath", yield_items);
+    std::unordered_map<std::string, std::function<void(Record &)>> lmap = {
+        {"nodeCount",
+         [&](Record &r) {
+             r.AddConstant(lgraph::FieldData(
+                 static_cast<int32_t>(path.Length() == 0 ? 0 : path.Length() + 1)));
+         }},
+        {"totalCost",
+         [&](Record &r) { r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length()))); }},
+        {"path", [&](Record &r) { r.AddConstant(lgraph::FieldData(path.ToString())); }}};
+    Record r;
+    for (auto &title : titles) {
+        lmap.find(title)->second(r);
+    }
+    records->emplace_back(r.Snapshot());
 }
 
 void AlgoFuncV2::AllShortestPaths(RTContext *ctx, const Record *record,
                                   const cypher::VEC_EXPR_V2 &args,
                                   const cypher::VEC_STR_V2 &yield_items,
                                   std::vector<cypher::Record> *records) {
-    // CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    // CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    // CYPHER_ARG_CHECK(args[0].IsString() &&
-    //                      args[1].IsString() &&
-    //                      (args.size() == 2 || args[2].type == parser::Expression::MAP),
-    //                  "wrong type")
-    // std::string edge_label;
-    // if (args.size() == 3) {
-    //     auto &map = args[2].Map();
-    //     auto it = map.find("relationshipQuery");
-    //     if (it != map.end()) {
-    //         if (it->second.type != parser::Expression::STRING) CYPHER_TODO();
-    //         edge_label = it->second.constant.scalar.AsString();
-    //     }
-    // }
-    // CYPHER_THROW_ASSERT(record);
-    // auto it1 = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-    // auto it2 = record->symbol_table->symbols.find(args[1].constant.scalar.AsString());
-    // if (it1 == record->symbol_table->symbols.end() ||
-    // it2 == record->symbol_table->symbols.end()) {
-    //     CYPHER_TODO();
-    // }
-    // auto start_vid = record->values[it1->second.id].node->PullVid();
-    // auto end_vid = record->values[it2->second.id].node->PullVid();
-    // std::vector<cypher::Path> paths;
-    // auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    // _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, paths);
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
+    CYPHER_ARG_CHECK(
+        args[0].IsString() && args[1].IsString() && (args.size() == 2 || args[2].IsMap()),
+        "wrong type")
+    std::string edge_label;
+    if (args.size() == 3) {
+        auto &map = *args[2].constant.map;
+        auto it = map.find("relationshipQuery");
+        if (it != map.end()) {
+            if (!it->second.IsString()) CYPHER_TODO();
+            edge_label = it->second.AsString();
+        }
+    }
+    CYPHER_THROW_ASSERT(record);
+    auto it1 = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
+    auto it2 = record->symbol_table->symbols.find(args[1].constant.scalar.AsString());
+    if (it1 == record->symbol_table->symbols.end() || it2 == record->symbol_table->symbols.end()) {
+        CYPHER_TODO();
+    }
+    auto start_vid = record->values[it1->second.id].node->PullVid();
+    auto end_vid = record->values[it2->second.id].node->PullVid();
+    std::vector<cypher::Path> paths;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, paths);
 
-    // auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
-    // CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
-    //         pp->ContainsYieldItem("relationshipIds") && pp->ContainsYieldItem("cost"));
-    // cypher::VEC_STR_V2 titles = ProcedureTitlesV2("algo.allShortestPaths", yield_items);
-    // std::unordered_map<std::string, std::function<void(const cypher::Path &, Record &)>> lmap = {
-    //     {"nodeIds",
-    //      [&](const cypher::Path &path, Record &r) {
-    //          auto ids = cypher::FieldData::Array(0);
-    //          for (int i = 0; i <= (int)path.Length(); i++) {
-    //              ids.array->emplace_back(
-    // lgraph::FieldData(static_cast<int64_t>(path.ids_[i * 2])));
-    //          }
-    //          r.AddConstant(ids);
-    //      }},
-    //     {"relationshipIds",
-    //      [&](const cypher::Path &path, Record &r) {
-    //          auto ids = cypher::FieldData::Array(0);
-    //          for (int i = 0; i < (int)path.Length(); i++) {
-    //              ids.array->emplace_back(
-    //                  lgraph::FieldData(_detail::EdgeUid2String(path.GetNthEdge(i))));
-    //          }
-    //          r.AddConstant(ids);
-    //      }},
-    //     {"cost",
-    //      [&](const cypher::Path &path, Record &r) {
-    //          r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length())));
-    //      }},
-    // };
-    // for (auto &path : paths) {
-    //     Record r;
-    //     for (auto &title : titles) {
-    //         lmap.find(title)->second(path, r);
-    //     }
-    //     records->emplace_back(r.Snapshot());
-    // }
+    auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
+    CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
+                        pp->ContainsYieldItem("relationshipIds") && pp->ContainsYieldItem("cost"));
+    cypher::VEC_STR_V2 titles = ProcedureTitlesV2("algo.allShortestPaths", yield_items);
+    std::unordered_map<std::string, std::function<void(const cypher::Path &, Record &)>> lmap = {
+        {"nodeIds",
+         [&](const cypher::Path &path, Record &r) {
+             auto ids = cypher::FieldData::Array(0);
+             for (int i = 0; i <= (int)path.Length(); i++) {
+                 ids.array->emplace_back(lgraph::FieldData(static_cast<int64_t>(path.ids_[i * 2])));
+             }
+             r.AddConstant(ids);
+         }},
+        {"relationshipIds",
+         [&](const cypher::Path &path, Record &r) {
+             auto ids = cypher::FieldData::Array(0);
+             for (int i = 0; i < (int)path.Length(); i++) {
+                 ids.array->emplace_back(
+                     lgraph::FieldData(_detail::EdgeUid2String(path.GetNthEdge(i))));
+             }
+             r.AddConstant(ids);
+         }},
+        {"cost",
+         [&](const cypher::Path &path, Record &r) {
+             r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length())));
+         }},
+    };
+    for (auto &path : paths) {
+        Record r;
+        for (auto &title : titles) {
+            lmap.find(title)->second(path, r);
+        }
+        records->emplace_back(r.Snapshot());
+    }
 }
 
 void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
                                const cypher::VEC_EXPR_V2 &args,
                                const cypher::VEC_STR_V2 &yield_items,
                                struct std::vector<cypher::Record> *records) {
-    // CYPHER_DB_PROCEDURE_GRAPH_CHECK();
-    // CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    // CYPHER_ARG_CHECK(
-    //     args[0].IsString() && args[1].type == parser::Expression::MAP,
-    //     "wrong type")
-    // auto &config = args[1].Map();
-    // auto it1 = config.find("isNode");
-    // auto it2 = config.find("field");
-    // if (it1 == config.end() || it1->second.type != parser::Expression::BOOL ||
-    //     it2 == config.end() || it2->second.type != parser::Expression::STRING) {
-    //     CYPHER_TODO();
-    // }
-    // cypher::FieldData value;
-    // if (it1->second.constant.scalar.AsBool()) {
-    //     CYPHER_THROW_ASSERT(record);
-    //     auto i = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-    //     if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-    //     auto &vid = record->values[i->second.id];
-    //     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    //     if (vid.IsArray()) {
-    //         value = cypher::FieldData::Array(0);
-    //         for (auto &id : *vid.constant.array) {
-    //             value.array->emplace_back(
-    //                 ctx->txn_->GetTxn()->GetVertexField(id.AsInt64(),
-    // it2->second.constant.scalar.AsString()));
-    //         }
-    //     } else {
-    //         CYPHER_TODO();
-    //     }
-    // } else {
-    //     CYPHER_THROW_ASSERT(record);
-    //     auto i = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-    //     if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-    //     auto &eid = record->values[i->second.id];
-    //     if (!eid.IsString()) CYPHER_TODO();
-    //     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    //     value = ctx->txn_->GetTxn()->GetEdgeField(
-    //         _detail::ExtractEdgeUid(eid.constant.scalar.AsString()),
-    // it2->second.constant.scalar.AsString());
-    // }
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
+    CYPHER_ARG_CHECK(args[0].IsString() && args[1].IsMap(), "wrong type")
+    auto &config = *args[1].constant.map;
+    auto it1 = config.find("isNode");
+    auto it2 = config.find("field");
+    if (it1 == config.end() || !it1->second.IsBool() || it2 == config.end() ||
+        !it2->second.IsString()) {
+        CYPHER_TODO();
+    }
+    cypher::FieldData value;
+    if (it1->second.AsBool()) {
+        CYPHER_THROW_ASSERT(record);
+        auto i = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
+        if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
+        auto &vid = record->values[i->second.id];
+        auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+        if (vid.IsArray()) {
+            value = cypher::FieldData::Array(0);
+            for (auto &id : *vid.constant.array) {
+                value.array->emplace_back(
+                    ctx->txn_->GetTxn()->GetVertexField(id.AsInt64(), it2->second.AsString()));
+            }
+        } else {
+            CYPHER_TODO();
+        }
+    } else {
+        CYPHER_THROW_ASSERT(record);
+        auto i = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
+        if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
+        auto &eid = record->values[i->second.id];
+        if (!eid.IsString()) CYPHER_TODO();
+        auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+        value = ctx->txn_->GetTxn()->GetEdgeField(
+            _detail::ExtractEdgeUid(eid.constant.scalar.AsString()), it2->second.AsString());
+    }
 
-    // auto pp = global_ptable.GetProcedure("algo.native.extract");
-    // CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
-    // cypher::VEC_STR_V2 titles;
-    // if (yield_items.empty()) {
-    //     for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
-    // } else {
-    //     for (auto &item : yield_items) {
-    //         if (!pp->ContainsYieldItem(item)) {
-    //             throw lgraph::CypherException("Unknown procedure output: " + item);
-    //         }
-    //         titles.emplace_back(item);
-    //     }
-    // }
-    // std::unordered_map<std::string,
-    //                   std::function<void(const cypher::FieldData &, Record &)>> lmap = {
-    //     {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
-    // };
-    // Record r;
-    // for (auto &title : titles) {
-    //     lmap.find(title)->second(value, r);
-    // }
-    // records->emplace_back(r.Snapshot());
+    auto pp = global_ptable.GetProcedure("algo.native.extract");
+    CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
+    cypher::VEC_STR_V2 titles;
+    if (yield_items.empty()) {
+        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
+    } else {
+        for (auto &item : yield_items) {
+            if (!pp->ContainsYieldItem(item)) {
+                throw lgraph::CypherException("Unknown procedure output: " + item);
+            }
+            titles.emplace_back(item);
+        }
+    }
+    std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>> lmap =
+        { {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
+        };
+    Record r;
+    for (auto &title : titles) {
+        lmap.find(title)->second(value, r);
+    }
+    records->emplace_back(r.Snapshot());
 }
 
 void AlgoFuncV2::PageRank(RTContext *ctx, const cypher::Record *record,

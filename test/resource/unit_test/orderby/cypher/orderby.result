@@ -1,6 +1,7 @@
-#MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(v2) as cnt;
-[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
+[{"cnt":4,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt;
 [{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":1,"v1.title":"Harry Potter and the Sorcerer's Stone"},{"cnt":1,"v1.title":"Goodbye, Mr. Chips"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt;
@@ -14,7 +15,7 @@ match (v1:Film) return distinct v1.title order by v1.title;
 match (v1:Film) return distinct v1.title order by v1.title limit 3 /* Batman, Camelot, Goodbye */;
 [{"v1.title":"Batman Begins"},{"v1.title":"Camelot"},{"v1.title":"Goodbye, Mr. Chips"}]
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc limit 3 /* NOTE: unstable heap sort */;
-[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":2,"v1.title":"Camelot"},{"cnt":2,"v1.title":"Batman Begins"}]
+[{"cnt":3,"v1.title":"The Parent Trap"},{"cnt":2,"v1.title":"Batman Begins"},{"cnt":2,"v1.title":"Camelot"}]
 match (:Person {name:'Vanessa Redgrave'})<-[:HAS_CHILD]-(p)-[:ACTED_IN*0..]->(m) return p.name,m order by p.name;
 [{"m":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"p.name":"Michael Redgrave"},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"p.name":"Michael Redgrave"},{"m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"p.name":"Rachel Kempson"}]
 MATCH (n) RETURN n,n.name AS name ORDER BY name;
@@ -32,4 +33,4 @@ MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.nam
 MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name SKIP 2 LIMIT 3;
 [{"m.name":"Liam Neeson"},{"m.name":"Michael Redgrave"},{"m.name":"Natasha Richardson"}]
 MATCH (v1:Film)<-[r:ACTED_IN|DIRECTED]-(v2:Person) RETURN v1.title AS title, r ORDER BY title LIMIT 5;
-[{"r":{"dst":17,"forward":false,"identity":0,"label":"DIRECTED","label_id":3,"src":12,"temporal_id":0},"title":"Batman Begins"},{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0},"title":"Batman Begins"},{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"King Arthur"},"src":6,"temporal_id":0},"title":"Camelot"},{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0},"title":"Camelot"},{"r":{"dst":16,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"The Headmaster"},"src":1,"temporal_id":0},"title":"Goodbye, Mr. Chips"}]
+[{"r":{"dst":17,"forward":false,"identity":0,"label":"DIRECTED","label_id":3,"src":12,"temporal_id":0},"title":"Batman Begins"},{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0},"title":"Batman Begins"},{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0},"title":"Camelot"},{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"King Arthur"},"src":6,"temporal_id":0},"title":"Camelot"},{"r":{"dst":16,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"The Headmaster"},"src":1,"temporal_id":0},"title":"Goodbye, Mr. Chips"}]

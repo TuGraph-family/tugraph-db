@@ -5,7 +5,7 @@ match (v1:Film) return v1.title order by v1.title limit 3;
 match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,v2.name as cnt order by cnt desc limit 3;
 [{"cnt":"Vanessa Redgrave","v1.title":"Camelot"},{"cnt":"Richard Harris","v1.title":"Camelot"},{"cnt":"Richard Harris","v1.title":"Harry Potter and the Sorcerer's Stone"}]
 match (:Person {name:'Vanessa Redgrave'})<-[:HAS_CHILD]-(p)-[:ACTED_IN*0..]->(m) return p.name,m order by p.name limit 3;
-[{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"p.name":"Michael Redgrave"},{"m":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"p.name":"Michael Redgrave"},{"m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"p.name":"Rachel Kempson"}]
+[{"m":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"p.name":"Michael Redgrave"},{"m":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"p.name":"Michael Redgrave"},{"m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"p.name":"Rachel Kempson"}]
 MATCH (n) RETURN n.name AS name ORDER BY name LIMIT 10;
 [{"name":null},{"name":null},{"name":null},{"name":null},{"name":null},{"name":"Christopher Nolan"},{"name":"Corin Redgrave"},{"name":"Dennis Quaid"},{"name":"Houston"},{"name":"Jemma Redgrave"}]
 MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN m.birthyear, m.name ORDER BY m.name LIMIT 5;

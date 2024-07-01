@@ -1284,9 +1284,8 @@ cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
 
 cypher::FieldData BuiltinFunction::Exists(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
-    // TODO(lingsu): implement in future
-    CYPHER_TODO();
-    return cypher::FieldData();
+    auto res = args[1].Evaluate(ctx, record);
+    return cypher::FieldData(lgraph_api::FieldData(!res.IsNull()));
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
@@ -1473,7 +1472,8 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
 }
 
 ArithExprNode::ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab) {
-    Set(expr, sym_tab);
+    expression_ = expr;
+    Set(expression_, sym_tab);
 }
 
 void ArithExprNode::SetOperand(ArithOperandNode::ArithOperandType operand_type,

@@ -2401,11 +2401,11 @@ int test_edge_id_query(cypher::RTContext *ctx) {
     return 0;
 }
 
-void TestCypherDetermineReadonly() {
+void TestCypherDetermineReadonly(cypher::RTContext *ctx) {
     std::string dummy;
     UT_EXPECT_EQ(
         cypher::Scheduler::DetermineReadOnly(
-            nullptr,
+            ctx,
             lgraph_api::GraphQueryType::CYPHER,
             "match (n) return n limit 100",
             dummy,
@@ -2413,7 +2413,7 @@ void TestCypherDetermineReadonly() {
         true);
     UT_EXPECT_EQ(
         cypher::Scheduler::DetermineReadOnly(
-            nullptr,
+            ctx,
             lgraph_api::GraphQueryType::CYPHER,
             "CALL dbms.listGraphs()",
             dummy,
@@ -2716,7 +2716,7 @@ TEST_P(TestCypher, Cypher) {
                 test_create_label(&db);
                 break;
             case TC_READONLY:
-                TestCypherDetermineReadonly();
+                TestCypherDetermineReadonly(&db);
                 break;
             case TC_EDGE_ID:
                 test_edge_id_query(&db);

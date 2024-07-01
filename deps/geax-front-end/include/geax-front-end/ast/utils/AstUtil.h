@@ -85,6 +85,7 @@ private:
     std::any visit(geax::frontend::BDiv* node) override { BINARY_EXPR_TOSTRING("/"); }
     std::any visit(geax::frontend::BMul* node) override { BINARY_EXPR_TOSTRING("*"); }
     std::any visit(geax::frontend::BMod* node) override { BINARY_EXPR_TOSTRING("%"); }
+    std::any visit(geax::frontend::BSquare* node) override { BINARY_EXPR_TOSTRING("^"); }
     std::any visit(geax::frontend::BAnd* node) override { BINARY_EXPR_TOSTRING("and"); }
     std::any visit(geax::frontend::BOr* node) override { BINARY_EXPR_TOSTRING("or"); }
     std::any visit(geax::frontend::BXor* node) override { BINARY_EXPR_TOSTRING("xor"); }

@@ -8,7 +8,8 @@ match (n {name:'Liam Neeson'}) with n return n;
 [{"n":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}}]
 match (n {name:'Liam Neeson'}) with n match (n)-->(m) return n,m;
 [{"m":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"n":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"m":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"n":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}}]
-#match (n {name:'London'}) with n optional match (n)-->(m) return n,m;
+match (n {name:'London'}) with n optional match (n)-->(m) return n,m;
+[{"m":"__null__","n":{"identity":14,"label":"City","properties":{"name":"London"}}}]
 match (a {name:'Liam Neeson'})-[r]->(b) with b match (b)-[]->(c) return c;
 [{"c":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"c":{"identity":14,"label":"City","properties":{"name":"London"}}},{"c":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}}}]
 match (a {name:'Liam Neeson'}),(b {name:'London'}) with a, b match (c:Film) return a,b,c;
@@ -23,11 +24,12 @@ MATCH (a {name:'Liam Neeson'})-[r]->(b) WITH a,count(b) AS out_num MATCH (a)<-[]
 [{"in_num":1,"out_num":2}]
 match (a {name:'Liam Neeson'})-[r]->(b) with a,b match (b)-[]->(c) return a,b,c;
 [{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"b":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"c":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"b":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"c":{"identity":14,"label":"City","properties":{"name":"London"}}},{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"b":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"c":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}}}]
-#match (n {name:'Liam Neeson'}),(m {name:'Natasha Richardson'}),(n)-[r]->(m) return r,type(r);
+match (n {name:'Liam Neeson'}),(m {name:'Natasha Richardson'}),(n)-[r]->(m) return r,type(r);
+[{"r":{"dst":5,"forward":false,"identity":0,"label":"MARRIED","label_id":1,"src":4,"temporal_id":0},"type(r)":"MARRIED"}]
 match (n {name:'Liam Neeson'}),(m {name:'Natasha Richardson'}) with n,m match (n)-[r]->(m) return r,type(r);
 [{"r":{"dst":5,"forward":false,"identity":0,"label":"MARRIED","label_id":1,"src":4,"temporal_id":0},"type(r)":"MARRIED"}]
 match (n {name:'Liam Neeson'}),(m {name:'Liam Neeson'}) with n,m optional match (n)-[r]->(m) return r,type(r);
-[{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0},"type(r)":null}]
+[{"r":"__null__","type(r)":null}]
 match (n {name:'Liam Neeson'})-[r]->(m) with r return r,type(r);
 [{"r":{"dst":5,"forward":false,"identity":0,"label":"MARRIED","label_id":1,"src":4,"temporal_id":0},"type(r)":"MARRIED"},{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0},"type(r)":"ACTED_IN"}]
 match (n:City) with count (n) as num_city match (n:Film) return count(n) as num_film, num_city;
@@ -74,13 +76,19 @@ WITH 1 AS a MATCH (n:City) RETURN DISTINCT a,n;
 [{"a":1,"n":{"identity":13,"label":"City","properties":{"name":"New York"}}},{"a":1,"n":{"identity":14,"label":"City","properties":{"name":"London"}}},{"a":1,"n":{"identity":15,"label":"City","properties":{"name":"Houston"}}}]
 MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m MATCH (m)-[:ACTED_IN]->(film) RETURN m.name,film;
 [{"film":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"m.name":"Vanessa Redgrave"},{"film":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"m.name":"Michael Redgrave"}]
-#MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film) RETURN m.name,film;
-#MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(coactor) RETURN m.name,film,coactor;
-#MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film) WITH m,film RETURN m.name,film;
-#MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film) WITH m,film OPTIONAL MATCH (film)<-[:WROTE_MUSIC_FOR]-(musician) RETURN m.name,film,musician;
+MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film) RETURN m.name,film;
+[{"film":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"m.name":"Vanessa Redgrave"},{"film":"__null__","m.name":"Corin Redgrave"},{"film":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"m.name":"Michael Redgrave"}]
+MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(coactor) RETURN m.name,film,coactor;
+[{"coactor":{"identity":6,"label":"Person","properties":{"birthyear":1930,"name":"Richard Harris"}},"film":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"m.name":"Vanessa Redgrave"},{"coactor":"__null__","film":"__null__","m.name":"Corin Redgrave"},{"coactor":"__null__","film":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"m.name":"Michael Redgrave"}]
+MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film) WITH m,film RETURN m.name,film;
+[{"film":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"m.name":"Vanessa Redgrave"},{"film":"__null__","m.name":"Corin Redgrave"},{"film":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"m.name":"Michael Redgrave"}]
+MATCH (n {name:'Rachel Kempson'})-[]->(m:Person) WITH m OPTIONAL MATCH (m)-[:ACTED_IN]->(film) WITH m,film OPTIONAL MATCH (film)<-[:WROTE_MUSIC_FOR]-(musician) RETURN m.name,film,musician;
+[{"film":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"m.name":"Vanessa Redgrave","musician":"__null__"},{"film":"__null__","m.name":"Corin Redgrave","musician":"__null__"},{"film":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}},"m.name":"Michael Redgrave","musician":{"identity":11,"label":"Person","properties":{"birthyear":1932,"name":"John Williams"}}}]
 match (n:Person) where n.name='Michael Redgrave' with n.birthyear as nb match (p)-[:HAS_CHILD]->(c) where p.birthyear=nb return c.name;
 [{"c.name":"Vanessa Redgrave"},{"c.name":"Corin Redgrave"}]
-#match (n:Person) where n.name='Roy Redgrave' or n.name='Michael Redgrave' with collect(id(n)) as cn match (p:Person) where id(p) in cn return p.name;
-#match (n:Person) where n.name='Roy Redgrave' or n.name='Michael Redgrave' with n, collect(id(n)) as cn match (p:Person) where id(p) in cn return p.name;
+match (n:Person) where n.name='Roy Redgrave' or n.name='Michael Redgrave' with collect(id(n)) as cn match (p:Person) where id(p) in cn return p.name;
+[{"p.name":"Michael Redgrave"},{"p.name":"Roy Redgrave"}]
+match (n:Person) where n.name='Roy Redgrave' or n.name='Michael Redgrave' with n, collect(id(n)) as cn match (p:Person) where id(p) in cn return p.name;
+[{"p.name":"Roy Redgrave"},{"p.name":"Michael Redgrave"}]
 match (c:Person)-[:HAS_CHILD]->(f:Person) where c.name='Roy Redgrave' with c, f match (m:Person)-[:ACTED_IN]->(film:Film)<-[:WROTE_MUSIC_FOR]-(p:Person) where m.name=f.name return c.name, p.name;
 [{"c.name":"Roy Redgrave","p.name":"John Williams"}]

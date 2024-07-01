@@ -33,6 +33,7 @@ add_executable(unit_test
         test_cypher.cpp
         test_cypher_v2.cpp
         test_cypher_plan.cpp
+        test_cypher_field_data.cpp
         test_data_type.cpp
         test_db_management_client.cpp
         test_dense_string.cpp
@@ -57,6 +58,7 @@ add_executable(unit_test
         test_import_planner.cpp
         test_import_v2.cpp
         test_import_v3.cpp
+        test_import_gar.cpp
         test_type_convert.cpp
         test_json_convert.cpp
         test_lgraph.cpp
@@ -142,7 +144,8 @@ target_link_libraries(unit_test
         lgraph_server_lib
         geax_isogql
         bolt
-        librocksdb.a)
+        librocksdb.a
+        gar)
 
 target_link_libraries(unit_test
         ${GTEST_MAIN_LIB}

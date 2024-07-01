@@ -43,6 +43,9 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     size_t cur_pattern_graph_;
     size_t pattern_graph_size_;
 
+    // last_op_ is used to store the root node of the operators created during pre-order traversal
+    OpBase* last_op_ = nullptr;
+
     std::shared_ptr<Node> node_t_;
     std::shared_ptr<Node> start_t_;
     std::shared_ptr<Relationship> relp_t_;
@@ -228,6 +231,8 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ShowProcessListStatement* node) override;
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
+    std::any visit(geax::frontend::UnwindStatement* node) override;
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
