@@ -63,7 +63,7 @@ struct FieldData {
             delete array;
             break;
         case MAP:
-            delete array;
+            delete map;
             break;
         case SCALAR:
             break;
@@ -168,9 +168,11 @@ struct FieldData {
         switch (type) {
         case ARRAY:
             delete array;
+            array = nullptr;
             break;
         case MAP:
             delete map;
+            map = nullptr;
             break;
         case SCALAR:
             break;
@@ -178,10 +180,10 @@ struct FieldData {
         type = rhs.type;
         switch (type) {
         case ARRAY:
-            array = new std::vector<::lgraph::FieldData>(*rhs.array);
+            std::swap(array, rhs.array);
             break;
         case MAP:
-            map = new std::unordered_map<std::string, lgraph::FieldData>(*rhs.map);
+            std::swap(map, rhs.map);
             break;
         case SCALAR:
             scalar = std::move(rhs.scalar);
@@ -194,7 +196,7 @@ struct FieldData {
 
     bool operator==(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+            throw std::runtime_error("Unable to compare between different field data types");
         switch (type) {
         case ARRAY:
             CYPHER_TODO();
@@ -211,7 +213,7 @@ struct FieldData {
 
     bool operator>(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+            throw std::runtime_error("Unable to compare between different field data types");
         switch (type) {
         case ARRAY:
             CYPHER_TODO();
@@ -226,7 +228,7 @@ struct FieldData {
 
     bool operator>=(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
+            throw std::runtime_error("Unable to compare between different field data types");
         switch (type) {
         case ARRAY:
             CYPHER_TODO();

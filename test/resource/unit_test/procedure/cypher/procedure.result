@@ -167,7 +167,7 @@ MATCH (n1 {name:'Michael Redgrave'}),(n2:City) CALL algo.shortestPath(n1,n2) YIE
 [{"n2.name":"Houston","nodeCount":6,"totalCost":5.0},{"n2.name":"London","nodeCount":3,"totalCost":2.0},{"n2.name":"New York","nodeCount":4,"totalCost":3.0}]
 MATCH (n1 {name:'Michael Redgrave'}),(n2:City) CALL algo.shortestPath(n1,n2,{maxHops:3}) YIELD nodeCount RETURN n2.name,nodeCount /* 2 results */;
 [{"n2.name":"Houston","nodeCount":0},{"n2.name":"London","nodeCount":3},{"n2.name":"New York","nodeCount":4}]
-MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'}) CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost RETURN nodeCount,totalCost /* 3,2.0 */;
+MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'}) CALL algo.shortestPath(n1,n2,{relationshipQuery:[{label:'HAS_CHILD'}}]) YIELD nodeCount,totalCost RETURN nodeCount,totalCost /* 3,2.0 */;
 [{"nodeCount":3,"totalCost":2.0}]
 MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'London'}) CALL algo.allShortestPaths(n1,n2) YIELD nodeIds,cost RETURN nodeIds,cost /* 2 */;
 [{"cost":3.0,"nodeIds":[3,0,2,14]},{"cost":3.0,"nodeIds":[3,1,2,14]}]

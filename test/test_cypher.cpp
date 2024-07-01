@@ -1374,8 +1374,12 @@ int test_procedure(cypher::RTContext *ctx) {
         "CALL algo.shortestPath(n1,n2,{maxHops:3}) YIELD nodeCount RETURN n2.name,nodeCount /* 2 "
         "results */",
         "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
-        "CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost "
-        "RETURN nodeCount,totalCost /* 3,2.0 */",
+        "CALL algo.shortestPath(n1,n2,{relationshipQuery:[{label:'HAS_CHILD'}]}) "
+        "YIELD nodeCount,totalCost"
+        " RETURN nodeCount,totalCost /* 3,2.0 */",
+        "MATCH (n1 {name:'Michael Redgrave'}),(n2 {name:'Rachel Kempson'})\n"
+        "CALL algo.shortestPath(n1,n2,{relationshipQuery:'HAS_CHILD'}) YIELD nodeCount,totalCost"
+        " RETURN nodeCount,totalCost /* 3,2.0 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'London'})\n"
         "CALL algo.allShortestPaths(n1,n2) YIELD nodeIds,cost RETURN nodeIds,cost /* 2 */",
         "MATCH (n1 {name:'Corin Redgrave'}),(n2 {name:'Liam Neeson'})\n"
@@ -2047,13 +2051,19 @@ CREATE (e)-[:ROAD {cost:40}]->(f);
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN value",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
-        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
         "sum(value) AS score",
         "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
         "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:'ROAD'}) YIELD "
+        "nodeIds,relationshipIds WITH nodeIds,relationshipIds\n"
+        "UNWIND relationshipIds AS rid\n"
+        "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value RETURN nodeIds, "
+        "sum(value) AS score",
+        "MATCH (n1:Loc {name:'A'}), (n2:Loc {name:'E'})\n"
+        "CALL algo.allShortestPaths(n1, n2, {relationshipQuery:[{label:'ROAD'}]}) YIELD "
         "nodeIds,relationshipIds,cost WITH nodeIds,relationshipIds,cost\n"
         "UNWIND relationshipIds AS rid\n"
         "CALL algo.native.extract(rid, {isNode:false, field:'cost'}) YIELD value WITH nodeIds, "
@@ -2391,11 +2401,11 @@ int test_edge_id_query(cypher::RTContext *ctx) {
     return 0;
 }
 
-void TestCypherDetermineReadonly() {
+void TestCypherDetermineReadonly(cypher::RTContext *ctx) {
     std::string dummy;
     UT_EXPECT_EQ(
         cypher::Scheduler::DetermineReadOnly(
-            nullptr,
+            ctx,
             lgraph_api::GraphQueryType::CYPHER,
             "match (n) return n limit 100",
             dummy,
@@ -2403,7 +2413,7 @@ void TestCypherDetermineReadonly() {
         true);
     UT_EXPECT_EQ(
         cypher::Scheduler::DetermineReadOnly(
-            nullptr,
+            ctx,
             lgraph_api::GraphQueryType::CYPHER,
             "CALL dbms.listGraphs()",
             dummy,
@@ -2706,7 +2716,7 @@ TEST_P(TestCypher, Cypher) {
                 test_create_label(&db);
                 break;
             case TC_READONLY:
-                TestCypherDetermineReadonly();
+                TestCypherDetermineReadonly(&db);
                 break;
             case TC_EDGE_ID:
                 test_edge_id_query(&db);

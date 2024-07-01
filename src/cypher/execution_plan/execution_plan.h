@@ -102,7 +102,6 @@ class ExecutionPlan {
 
     void Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
                cypher::RTContext *ctx);
-
     void PreValidate(cypher::RTContext *ctx,
                      const std::unordered_map<std::string, std::set<std::string>>& node,
                      const std::unordered_map<std::string, std::set<std::string>>& edge);

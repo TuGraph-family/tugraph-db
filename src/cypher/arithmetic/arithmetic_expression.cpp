@@ -1473,7 +1473,8 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
 }
 
 ArithExprNode::ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab) {
-    Set(expr, sym_tab);
+    expression_ = expr;
+    Set(expression_, sym_tab);
 }
 
 void ArithExprNode::SetOperand(ArithOperandNode::ArithOperandType operand_type,
