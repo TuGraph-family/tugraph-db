@@ -1255,7 +1255,7 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
 //===============================
 template <FieldType T>
 inline int ValueCompare(const void* p1, size_t s1, const void* p2, size_t s2) {
-    if (s1 == (size_t)32 || s2 == (size_t)32) abort();
+    if (s1 == (size_t)32 || s2 == (size_t)32) throw std::runtime_error("cannot compare");
     FMA_DBG_ASSERT(s1 == _detail::FieldTypeSizes[T] && s2 == _detail::FieldTypeSizes[T]);
     typename FieldType2StorageType<T>::type v1, v2;
     memcpy(&v1, p1, s1);
@@ -1302,8 +1302,7 @@ inline int ValueCompare<FieldType::SPATIAL>(const void* p1, size_t s1, const voi
 template <>
 inline int ValueCompare<FieldType::FLOAT_VECTOR>(const void* p1, size_t s1, const void* p2,
                                                  size_t s2) {
-    std::runtime_error("you cannot compare vectors");
-    abort();
+    throw std::runtime_error("you cannot compare vectors");
 }
 
 }  // namespace field_data_helper
