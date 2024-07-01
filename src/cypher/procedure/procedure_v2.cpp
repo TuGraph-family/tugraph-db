@@ -2640,9 +2640,8 @@ void AlgoFuncV2::ShortestPath(RTContext *ctx, const Record *record, const cypher
                               std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    CYPHER_ARG_CHECK(
-        args[0].IsString() && args[1].IsString() && (args.size() == 2 || args[2].IsMap()),
-        "wrong type")
+    CYPHER_ARG_CHECK(args[0].IsNode() && args[1].IsNode() && (args.size() == 2 || args[2].IsMap()),
+                     "wrong type")
     std::string edge_label;
     EDGE_FILTER_T edge_filter;
     parser::LinkDirection direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
@@ -2651,12 +2650,12 @@ void AlgoFuncV2::ShortestPath(RTContext *ctx, const Record *record, const cypher
         auto &map = *args[2].constant.map;
         auto it = map.find("relationshipQuery");
         if (it != map.end()) {
-            if (it->second.IsString()) CYPHER_TODO();
+            if (!it->second.IsString()) CYPHER_TODO();
             edge_label = it->second.AsString();
         }
         auto max = map.find("maxHops");
         if (max != map.end()) {
-            if (max->second.IsInteger()) CYPHER_TODO();
+            if (!max->second.IsInteger()) CYPHER_TODO();
             max_hops = max->second.integer();
         }
         auto map_edge_filter = map.find("edgeFilter");
@@ -2690,13 +2689,8 @@ void AlgoFuncV2::ShortestPath(RTContext *ctx, const Record *record, const cypher
         }
     }
     CYPHER_THROW_ASSERT(record);
-    auto it1 = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-    auto it2 = record->symbol_table->symbols.find(args[1].constant.scalar.AsString());
-    if (it1 == record->symbol_table->symbols.end() || it2 == record->symbol_table->symbols.end()) {
-        CYPHER_TODO();
-    }
-    auto start_vid = record->values[it1->second.id].node->PullVid();
-    auto end_vid = record->values[it2->second.id].node->PullVid();
+    auto start_vid = args[0].node->PullVid();
+    auto end_vid = args[1].node->PullVid();
     cypher::Path path;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, max_hops, path,
@@ -2728,9 +2722,8 @@ void AlgoFuncV2::AllShortestPaths(RTContext *ctx, const Record *record,
                                   std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    CYPHER_ARG_CHECK(
-        args[0].IsString() && args[1].IsString() && (args.size() == 2 || args[2].IsMap()),
-        "wrong type")
+    CYPHER_ARG_CHECK(args[0].IsNode() && args[1].IsNode() && (args.size() == 2 || args[2].IsMap()),
+                     "wrong type")
     std::string edge_label;
     if (args.size() == 3) {
         auto &map = *args[2].constant.map;
@@ -2741,13 +2734,8 @@ void AlgoFuncV2::AllShortestPaths(RTContext *ctx, const Record *record,
         }
     }
     CYPHER_THROW_ASSERT(record);
-    auto it1 = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-    auto it2 = record->symbol_table->symbols.find(args[1].constant.scalar.AsString());
-    if (it1 == record->symbol_table->symbols.end() || it2 == record->symbol_table->symbols.end()) {
-        CYPHER_TODO();
-    }
-    auto start_vid = record->values[it1->second.id].node->PullVid();
-    auto end_vid = record->values[it2->second.id].node->PullVid();
+    auto start_vid = args[0].node->PullVid();
+    auto end_vid = args[1].node->PullVid();
     std::vector<cypher::Path> paths;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, paths);
@@ -2794,7 +2782,7 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
                                struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    CYPHER_ARG_CHECK(args[0].IsString() && args[1].IsMap(), "wrong type")
+    CYPHER_ARG_CHECK(args[0].type == Entry::RecordEntryType::CONSTANT && args[1].IsMap(), "wrong type")
     auto &config = *args[1].constant.map;
     auto it1 = config.find("isNode");
     auto it2 = config.find("field");
@@ -2805,9 +2793,7 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
     cypher::FieldData value;
     if (it1->second.AsBool()) {
         CYPHER_THROW_ASSERT(record);
-        auto i = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-        if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-        auto &vid = record->values[i->second.id];
+        auto &vid = args[0];
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
         if (vid.IsArray()) {
             value = cypher::FieldData::Array(0);
@@ -2820,9 +2806,7 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
         }
     } else {
         CYPHER_THROW_ASSERT(record);
-        auto i = record->symbol_table->symbols.find(args[0].constant.scalar.AsString());
-        if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-        auto &eid = record->values[i->second.id];
+        auto &eid = args[0];
         if (!eid.IsString()) CYPHER_TODO();
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
         value = ctx->txn_->GetTxn()->GetEdgeField(
@@ -2843,7 +2827,8 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
         }
     }
     std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>> lmap =
-        { {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
+        {
+            {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
         };
     Record r;
     for (auto &title : titles) {

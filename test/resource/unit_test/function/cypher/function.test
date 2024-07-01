@@ -36,7 +36,6 @@ RETURN coalesce(2021);
 RETURN coalesce(2021, null);
 RETURN coalesce(null, null);
 MATCH (n) RETURN coalesce(n.birthyear, n.name);
-#EXPECT
 RETURN abs('haha');
 RETURN ceil('haha');
 RETURN floor('haha');
