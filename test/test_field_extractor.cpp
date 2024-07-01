@@ -122,12 +122,7 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
 
     // check parse from FieldData
     fe.ParseAndSet(v, fd_ok);
-    if (ft != FLOAT_VECTOR) {
-        UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()) == fd_ok);
-    } else {
-        UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()).AsFloatVector() ==
-                       fd_ok.AsFloatVector());
-    }
+    UT_EXPECT_TRUE(FieldData(fe.GetConstRef(v).AsType<T>()) == fd_ok);
 
     // check parse errors
     UT_EXPECT_THROW(fe.ParseAndSet(v, str_fail), lgraph::ParseStringException);
