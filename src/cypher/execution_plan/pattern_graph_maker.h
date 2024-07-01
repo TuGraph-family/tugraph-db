@@ -66,6 +66,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ResetTimeZone* node) override;
     std::any visit(geax::frontend::ResetGraph* node) override;
     std::any visit(geax::frontend::ResetParam* node) override;
+    std::any visit(geax::frontend::RemoveSingleProperty* node) override;
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -130,6 +131,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
     std::any visit(geax::frontend::Param* node) override;
+    std::any visit(geax::frontend::ListComprehension* node) override;
 
     // predicates
     std::any visit(geax::frontend::IsNull* node) override;
@@ -206,6 +208,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     void AddNode(Node* node);
     void AddRelationship(Relationship* rel);
     std::vector<PatternGraph>& pattern_graphs_;
+    std::vector<bool> pattern_graph_in_union_;
     std::vector<size_t> symbols_idx_;
     size_t cur_pattern_graph_;
     std::unordered_set<geax::frontend::AstNodeType> cur_types_;

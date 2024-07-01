@@ -21,6 +21,7 @@
 #include "cypher/cypher_exception.h"
 #include "geax-front-end/common/ObjectAllocator.h"
 #include "geax-front-end/ast/Ast.h"
+#include "cypher/parser/data_typedef.h"
 
 #if __APPLE__
 #ifdef TRUE
@@ -48,7 +49,8 @@ enum class VisitType {
     kWithClause,
     kStandaloneCall,
     kInQueryCall,
-    kSinglePartQuery
+    kSinglePartQuery,
+    kUnionClause
 };
 
 class VisitGuard {
@@ -81,10 +83,12 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     static const std::unordered_map<std::string, geax::frontend::BinarySetFunction> S_BAGG_LIST;
     geax::frontend::PathChain* path_chain_;
     geax::frontend::FilterStatement* filter_in_with_clause_;
+    parser::CmdType _cmd_type;
 
  public:
     CypherBaseVisitorV2() = delete;
 
+    parser::CmdType CommandType() const { return _cmd_type; }
 
     CypherBaseVisitorV2(geax::common::ObjectArenaAllocator& objAlloc,
             antlr4::tree::ParseTree *tree);

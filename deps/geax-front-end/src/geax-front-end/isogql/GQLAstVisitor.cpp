@@ -939,6 +939,11 @@ std::any GQLAstVisitor::visitAmbientLinearDataModifyingStatementBody(
                 dataModifyStmt->appendModifyStatement(merge);
                 break;
             }
+            case AstNodeType::kRemoveStatement: {
+                RemoveStatement* remove = castAs<RemoveStatement>(childRes_, AstNodeType::kRemoveStatement);
+                dataModifyStmt->appendModifyStatement(remove);
+                break;
+            }
             default:
                 ret = GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
                 LOG(WARNING) << "Child type is not supported. " << KV("type", childRes_->type())
@@ -5331,6 +5336,55 @@ std::string GQLAstVisitor::escapeText(const std::string& text) const {
         }
     }
     return buff;
+}
+std::any GQLAstVisitor::visitRemoveStatement(GqlParser::RemoveStatementContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    RemoveStatement* removeStatement = ALLOC_GEAOBJECT(RemoveStatement);
+    DEFER(removeStatement, ret);
+
+    GqlParser::RemoveItemListContext* removeItemListCtx = nullptr;
+    if (GEAX_IS_NULL(removeItemListCtx = ctx->removeItemList())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "RemoveItemListCtx is not set: " << K(ret);
+    } else {
+        std::vector<GqlParser::RemoveItemContext*> removeItemCtxVec = removeItemListCtx->removeItem();
+        for (size_t i = 0; GEAX_OK(ret) && i < removeItemCtxVec.size(); ++i) {
+            if (GEAX_IS_NULL(removeItemCtxVec[i])) {
+                ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+                LOG(WARNING) << "SetItem is not set in SetStatement: " << K(ret);
+            } else if (GEAX_RET_FAIL(VISIT_RULE_WITH_FA(removeItemCtxVec[i], removeStatement))) {
+                LOG(WARNING) << "Failed to visit setItem: " << K(ret);
+            }
+        }
+    }
+
+    return {};
+}
+std::any GQLAstVisitor::visitRemovePropertyItem(GqlParser::RemovePropertyItemContext* ctx) {
+    auto ret = GEAXErrorCode::GEAX_SUCCEED;
+    DEFER_RET(ret);
+
+    GqlParser::BindingVariableContext* refCtx = nullptr;
+    GqlParser::PropertyNameContext* nameCtx = nullptr;
+    RemoveStatement* removeStatement = nullptr;
+    if (GEAX_IS_NULL(removeStatement = castAs<RemoveStatement>(faRes_, AstNodeType::kRemoveStatement))) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "Failed to cast to node kRemoveStatement: " << K(ret);
+    } else if (GEAX_IS_NULL(ctx->bindingVariableReference()) ||
+               GEAX_IS_NULL(refCtx = ctx->bindingVariableReference()->bindingVariable())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "BindingVariable is not set: " << K(ret);
+    } else if (GEAX_IS_NULL(nameCtx = ctx->propertyName())) {
+        ret = GEAXErrorCode::GEAX_COMMON_NULLPTR;
+        LOG(WARNING) << "PropertyName is not set: " << K(ret);
+    } else {
+        auto* removeSingleProperty = ALLOC_GEAOBJECT(RemoveSingleProperty);
+        removeSingleProperty->setV(refCtx->getText());
+        removeSingleProperty->setProperty(trimAccentGrave(nameCtx->getText()));
+        removeStatement->appendItem(removeSingleProperty);
+    }
+
+    return {};
 }
 
 template <typename T>

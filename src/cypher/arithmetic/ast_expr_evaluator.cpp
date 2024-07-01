@@ -526,4 +526,51 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::IsNull* node) {
 
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
 
+std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
+    geax::frontend::Ref *ref = nullptr;
+    geax::frontend::Expr *in_expr = nullptr, *op_expr = nullptr;
+    checkedCast(node->elems()[0], ref);
+    checkedCast(node->elems()[1], in_expr);
+    checkedCast(node->elems()[2], op_expr);
+    Entry in_e;
+    if (in_expr->type() == geax::frontend::AstNodeType::kRef) {
+        checkedAnyCast(in_expr->accept(*this), in_e);
+    } else if (in_expr->type() == geax::frontend::AstNodeType::kFunc) {
+        auto* range = (geax::frontend::Function*)in_expr;
+        if (boost::to_lower_copy(range->name()) != "range") CYPHER_TODO();
+        int s = (int)range->args().size();
+        std::vector<geax::frontend::Expr*> transfer_args(s);
+        for (int i = 0; i < s; ++i) {
+            auto arg = range->args()[i];
+            if (arg->type() == geax::frontend::AstNodeType::kFunc) {
+                Entry entry_arg;
+                checkedAnyCast(arg->accept(*this), entry_arg);
+                auto vint = new geax::frontend::VInt();
+                vint->setVal(entry_arg.constant.scalar.AsInt64());
+                transfer_args[i] = vint;
+            } else {
+                transfer_args[i] = arg;
+            }
+        }
+        range->setArgs(std::move(transfer_args));
+        checkedAnyCast(range->accept(*this), in_e);
+    } else {
+        CYPHER_TODO();
+    }
+    auto data_array = in_e.constant.array;
+    std::vector<::lgraph::FieldData> ret_data;
+    for (auto &data : *data_array) {
+        auto it = sym_tab_->symbols.find(ref->name());
+        if (it == sym_tab_->symbols.end()) CYPHER_TODO();
+        cypher::FieldData arg;
+        arg.type = FieldData::SCALAR;
+        arg.scalar = ::lgraph::FieldData(data.AsInt64());
+        const_cast<Record*>(record_)->values[it->second.id] = Entry(arg);
+        Entry one_result;
+        checkedAnyCast(op_expr->accept(*this), one_result);
+        ret_data.push_back(one_result.constant.scalar);
+    }
+    return Entry(cypher::FieldData(ret_data));
+}
+
 }  // namespace cypher

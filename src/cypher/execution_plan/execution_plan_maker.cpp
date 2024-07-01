@@ -117,6 +117,23 @@ static OpBase* _Connect(OpBase* lhs, OpBase* rhs, PatternGraph* pattern_graph) {
     return rhs;
 }
 
+static bool CheckReturnElements(const std::vector<std::string> &last_ret,
+                                const std::vector<std::string> &now_ret) {
+    // some certain single query (e.g. MATCH(n) RETURN *) without no return items
+    // cannot be unioned.
+    if (last_ret.empty() || now_ret.empty()) {
+        return false;
+    }
+    // if two queries return different size of items, cannot be unioned
+    if (last_ret.size() != now_ret.size()) {
+        return false;
+    }
+    for (int j = 0; j < (int)last_ret.size(); j++) {
+        if (last_ret[j] != now_ret[j]) return false;
+    }
+    return true;
+}
+
 geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode* astNode,
                                                         OpBase*& root) {
     cur_types_.clear();
@@ -125,9 +142,11 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
         return ret;
     }
     _DumpPlanBeforeConnect(0, false);
+    LOG_INFO() << "Dump plan finished!" << __FILE__ << __LINE__;
     root = pattern_graph_root_[0];
     for (size_t i = 1; i < pattern_graph_root_.size(); i++) {
-        root = _Connect(root, pattern_graph_root_[i], &(pattern_graphs_[i]));
+        if (should_connect_[i])
+            root = _Connect(root, pattern_graph_root_[i], &(pattern_graphs_[i]));
     }
     if (op_filter_ != nullptr) {
         NOT_SUPPORT();
@@ -137,7 +156,10 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
-    for (auto seg : pattern_graph_root_) OpBase::DumpStream(seg, 0, false, s);
+    for (size_t i = 1; i < pattern_graph_root_.size(); i++) {
+        if (should_connect_[i])
+            OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
+    }
     LOG_DEBUG() << s;
     return s;
 }
@@ -760,10 +782,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SessionSet* node) { NOT_SUPPO
 std::any ExecutionPlanMaker::visit(geax::frontend::SessionReset* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ProcedureBody* node) {
-    pattern_graph_size_ = node->statements().size();
+    pattern_graph_size_ = pattern_graphs_.size();
     pattern_graph_root_.resize(pattern_graph_size_, nullptr);
+    should_connect_.resize(pattern_graph_size_, true);
+    cur_pattern_graph_ = -1;
     for (size_t i = 0; i < node->statements().size(); i++) {
-        cur_pattern_graph_ = i;
+        cur_pattern_graph_ += 1;
         // Build Argument
         auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
         for (auto& symbol : sym_tab.symbols) {
@@ -820,6 +844,19 @@ std::any ExecutionPlanMaker::visit(geax::frontend::JoinRightPart* node) { NOT_SU
 std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node) {
     auto head = node->head();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    if (!node->body().empty()) {
+        auto op_union = new Union();
+        op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        auto op_produce = new ProduceResults();
+        op_produce->AddChild(op_union);
+        pattern_graph_root_[cur_pattern_graph_] = op_produce;
+        for (auto statement : node->body()) {
+            cur_pattern_graph_ += 1;
+            should_connect_[cur_pattern_graph_] = false;
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(statement));
+            op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]->children[0]);
+        }
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -922,6 +959,21 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
     }
     std::vector<std::tuple<ArithExprNode, std::string>> arith_items;
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    if (!should_connect_[cur_pattern_graph_]) {
+        std::vector<std::string> last_ret, now_ret;
+        for (auto &col : result_info_.header.colums) {
+            last_ret.push_back(col.alias);
+        }
+        for (auto& item : items) {
+            now_ret.push_back(std::get<0>(item));
+        }
+        std::sort(last_ret.begin(), last_ret.end());
+        std::sort(now_ret.begin(), now_ret.end());
+        if (!CheckReturnElements(last_ret, now_ret)) {
+            throw lgraph::CypherException(
+                "All sub queries in an UNION must have the same column names.");
+        }
+    }
     result_info_.header.colums.clear();
     for (auto& item : items) {
         ArithExprNode ae(std::get<1>(item), pattern_graph.symbol_table);
@@ -1092,7 +1144,19 @@ std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    for (auto &item : node->items()) {
+        geax::frontend::RemoveSingleProperty *remove;
+        checkedCast(item, remove);
+        if (!_IsVariableDefined(remove->v())) {
+            THROW_CODE(InputError, "Variable `{}` not defined", remove->v());
+        }
+    }
+    auto op = new OpGqlRemove(node->items(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
@@ -1143,5 +1207,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
 std::any ExecutionPlanMaker::visit(geax::frontend::DummyNode* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::reportError() { return error_msg_; }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::RemoveSingleProperty* node) {
+    return std::any();
+}
+std::any ExecutionPlanMaker::visit(geax::frontend::ListComprehension* node) { return std::any(); }
 
 }  // namespace cypher
