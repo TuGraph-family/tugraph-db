@@ -269,7 +269,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         AddSymbol(variable, cypher::SymbolNode::CONSTANT, var_scope);
         Clause clause;
         clause.type = Clause::UNWIND;
-        clause.data = std::make_shared<Clause::TYPE_UNWIND>(e, variable);
+        clause.data = std::make_shared<Clause::TYPE_UNWIND>(e, variable, false);
         _query[_curr_query].parts[_curr_part].AddClause(clause);
         _LeaveClauseUNWIND();
         return 0;
@@ -654,8 +654,16 @@ class CypherBaseVisitor : public LcypherVisitor {
                 }
                 // sort_item alias is not in return_item
                 if (!sort_idx_found) {
-                    THROW_CODE(InputError,
-                        "Variable `{}` not defined", sort_item.first.ToString());
+                    // THROW_CODE(InputError,
+                    //     "Variable `{}` not defined", sort_item.first.ToString());
+                    //将sort_item插入到return_items结尾，并更新sort_item_idx
+                    auto expr = sort_item.first;
+                    auto alias = sort_item.first.ToString();
+                    bool isHidden = true;
+                    return_items.emplace_back(std::make_tuple(expr, alias, isHidden));
+                    int cur_sort_item_idx = return_items.size() - 1;
+                    //cur_sort_item_idx是排序的列，sort_item.second是ASC或DESC
+                    sort_items_idx.emplace_back(cur_sort_item_idx, sort_item.second);
                 }
             }
             CYPHER_THROW_ASSERT(sort_items_idx.size() == sort_items.size());
