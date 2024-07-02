@@ -153,7 +153,7 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
             auto &e = std::get<0>(item);
             auto &alias = std::get<1>(item);
             bool isHidden = std::get<2>(item);
-            if(isHidden){
+            if (isHidden) {
                 continue;
             }
             ArithExprNode ae(e, stmt.symbol_table);

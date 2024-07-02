@@ -656,13 +656,11 @@ class CypherBaseVisitor : public LcypherVisitor {
                 if (!sort_idx_found) {
                     // THROW_CODE(InputError,
                     //     "Variable `{}` not defined", sort_item.first.ToString());
-                    //将sort_item插入到return_items结尾，并更新sort_item_idx
                     auto expr = sort_item.first;
                     auto alias = sort_item.first.ToString();
                     bool isHidden = true;
                     return_items.emplace_back(std::make_tuple(expr, alias, isHidden));
                     int cur_sort_item_idx = return_items.size() - 1;
-                    //cur_sort_item_idx是排序的列，sort_item.second是ASC或DESC
                     sort_items_idx.emplace_back(cur_sort_item_idx, sort_item.second);
                 }
             }
@@ -720,7 +718,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             AddSymbol(as_variable.empty() ? variable : as_variable, type,
                       cypher::SymbolNode::LOCAL);
         }
-        return std::make_tuple(expr, as_variable);
+        return std::make_tuple(expr, as_variable, false);
     }
 
     std::any visitOC_Order(LcypherParser::OC_OrderContext *ctx) override {
