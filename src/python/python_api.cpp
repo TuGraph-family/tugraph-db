@@ -112,6 +112,8 @@ inline pybind11::object FieldDataToPyObj(const FieldData& data) {
     case FieldType::POLYGON:
     case FieldType::SPATIAL:
         return pybind11::str(*data.data.buf);
+    case FieldType::FLOAT_VECTOR:
+        return pybind11::cast(data.AsFloatVector());
     }
     FMA_ASSERT(false);
     return pybind11::none();
@@ -145,7 +147,7 @@ void register_python_api(pybind11::module& m) {
         .def_readwrite("name", &FieldSpec::name, "Name of this field.")
         .def_readwrite("type", &FieldSpec::type,
                        "Type of this field, INT8, INT16, ..., POINT, LINESTRING,"
-                       "POLYGON, SPATIAL.")
+                       "POLYGON, SPATIAL, FLOAT_VECTOR")
         .def_readwrite("nullable", &FieldSpec::optional, "Whether this field can be null.")
         .def("__repr__", [](const FieldSpec& a) {
             return fma_common::StringFormatter::Format("(name:{}, type:{}, nullable:{})", a.name,
@@ -303,6 +305,11 @@ void register_python_api(pybind11::module& m) {
                 return FieldData::Spatial(str);
             },
             "Make a Spatial value")
+        .def_static(
+            "Float_Vector", [](std::vector<float>& vec) {
+                return FieldData::FloatVector(vec);
+            },
+            "Make a FLOAT VECTOR value")
         .def("AsBool", &FieldData::AsBool, "Get value as bool, throws exception on type mismatch",
              pybind11::call_guard<SignalsGuard>())
         .def("AsInt8", &FieldData::AsInt8, "Get value as int8, throws exception on type mismatch",
@@ -399,6 +406,12 @@ void register_python_api(pybind11::module& m) {
             "Get value as spatial, throws exception on type mismatch",
             pybind11::call_guard<SignalsGuard>())
         .def(
+            "AsFloatVector", [](const FieldData& a) {
+                return a.AsFloatVector();
+            },
+            "Get value as float vector, throws exception on type mismatch",
+            pybind11::call_guard<SignalsGuard>())
+        .def(
             "ToPython", [](const FieldData& fd) { return FieldDataToPyObj(fd); },
             "Convert to corresponding Python type.",
             pybind11::call_guard<SignalsGuard>())
@@ -472,6 +485,7 @@ void register_python_api(pybind11::module& m) {
         .value("LINESTRING", FieldType::LINESTRING)
         .value("POLYGON", FieldType::POLYGON)
         .value("SPATIAL", FieldType::SPATIAL)
+        .value("FLOAT_VECTOR", FieldType::FLOAT_VECTOR)
         .export_values();
 
     pybind11::enum_<lgraph_api::AccessLevel>(m, "AccessLevel", pybind11::arithmetic(),

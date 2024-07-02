@@ -328,6 +328,8 @@ KeySortFunc GetKeyComparator(const ComparatorDesc& desc) {
                 return _detail::LexicalKeyBothVidCompareFunc;
         case FieldType::BLOB:
             THROW_CODE(KvException, "Blob fields cannot act as key.");
+        case FieldType::FLOAT_VECTOR:
+            THROW_CODE(KvException, "Float vector fields cannot act as key.");
         default:
             THROW_CODE(KvException, "Unknown data type: {}", desc.data_type);
         }

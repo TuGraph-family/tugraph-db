@@ -421,7 +421,6 @@ std::vector<std::vector<std::any>> Result::BoltRecords() {
     return ret;
 }
 
-
 void Result::Load(const std::string &output) {
     try {
         auto j = json::parse(output);
