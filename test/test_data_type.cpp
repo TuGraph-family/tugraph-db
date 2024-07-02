@@ -69,7 +69,7 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 0,
         WKB_Polygon)).is_buf());
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon)).is_buf());
-        UT_EXPECT_TRUE(!FieldData::FloatVector(vec).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec).is_buf());
 
         // Constructor and AsXXX()
         UT_EXPECT_EQ(FieldData(true).AsBool(), true);
@@ -188,7 +188,7 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon))
         == FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon)));
 
-        UT_EXPECT_TRUE(!(FieldData::FloatVector(vec) == FieldData::FloatVector(vec)));
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec) == FieldData::FloatVector(vec));
 
         UT_EXPECT_ANY_THROW(FieldData::Int8(1) > FieldData::Bool(false));
         UT_EXPECT_TRUE(FieldData::Int8(1) > FieldData::Int8(-10));

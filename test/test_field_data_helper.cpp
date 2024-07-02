@@ -231,8 +231,10 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
                             "0102000020231C00000300000000000000000000000000000000000000000"
                             "000000000004000000000000000400000000000000840000000000000F03F");
     // testing float vector data;
-    std::vector<float> vec = {1.111, 2.111, 3.111, 4.111, 5.111};
-    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1.111000,2.111000,3.111000,4.111000,5.111000", vec);
+    std::vector<float> vec1 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec1);
+    std::vector<float> vec2 = {1111111, 2111111, 3111111, 4111111, 5111111};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111111,211111,3111111,4111111,5111111", vec2);
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
@@ -427,15 +429,25 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
 
     // testing float vector
     {
-        std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
-        FieldData fd1 = FieldData(vec1);
+        std::vector<float> vec3 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+        FieldData fd1 = FieldData(vec3);
         Value v1;
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd1, FieldType::FLOAT_VECTOR, v1), true);
-        std::vector<float> vec2 = {};
+        std::vector<float> vec4 = {};
         for (size_t i = 0; i < v1.AsType<std::vector<float>>().size(); i++) {
-            vec2.push_back(v1.AsType<std::vector<float>>().at(i));
+            vec4.push_back(v1.AsType<std::vector<float>>().at(i));
         }
-        UT_EXPECT_EQ(vec2, vec1);
+        UT_EXPECT_EQ(vec4, vec3);
+
+        std::vector<float> vec5 = {1111111, 2111111, 3111111, 4111111, 5111111};
+        FieldData fd2 = FieldData(vec5);
+        Value v2;
+        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd2, FieldType::FLOAT_VECTOR, v2), true);
+        std::vector<float> vec6 = {};
+        for (size_t i = 0; i < v2.AsType<std::vector<float>>().size(); i++) {
+            vec6.push_back(v2.AsType<std::vector<float>>().at(i));
+        }
+        UT_EXPECT_EQ(vec6, vec5);
     }
 }
 
@@ -523,8 +535,8 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(SPATIAL, "213234qwe#@asda", "34.342as3@#41123"));
     // testing float vector data
     {
-        std::vector<float> vec3 = {1.111, 2.111, 3.111, 4.111, 5.111};
-        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "213234qwe#@asda", vec3));
+        std::vector<float> vec7 = {1.111, 2.111, 3.111, 4.111, 5.111};
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "213234qwe#@asda", vec7));
     }
 }
 

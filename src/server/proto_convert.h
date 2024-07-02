@@ -165,7 +165,7 @@ struct FieldDataConvert {
             return ret->set_spatial(std::move(*fd.data.buf));
         case FieldType::FLOAT_VECTOR:
             {
-                lgraph::floatvector* point = new lgraph::floatvector;
+                lgraph::FloatVector* point = new lgraph::FloatVector;
                 for (float num : *fd.data.vp) {
                     point->add_fv(num);
                 }
@@ -211,7 +211,7 @@ struct FieldDataConvert {
             return ret->set_spatial(*fd.data.buf);
         case FieldType::FLOAT_VECTOR:
             {
-                lgraph::floatvector* point = new lgraph::floatvector;
+                lgraph::FloatVector* point = new lgraph::FloatVector;
                 for (float num : *fd.data.vp) {
                     point->add_fv(num);
                 }

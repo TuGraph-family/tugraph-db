@@ -833,7 +833,6 @@ struct FieldData {
     }
 
     inline ::lgraph_api::Point<::lgraph_api::Cartesian> AsCartesianPoint() const {
-        if (type == FieldType::POINT)
         if (type == FieldType::POINT) return ::lgraph_api::Point
         <::lgraph_api::Cartesian>(*data.buf);
         throw std::bad_cast();
