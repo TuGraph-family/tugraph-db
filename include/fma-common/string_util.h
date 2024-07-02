@@ -672,7 +672,7 @@ inline std::string ToString(void* p) {
     return std::string(buf, r);
 }
 
-inline std::string ToString(std::vector<float>& fv) {
+inline std::string ToString(std::vector<float> fv) {
     std::string vec_str;
     for (size_t i = 0; i < fv.size(); i++) {
         vec_str += std::to_string(fv.at(i)) + ",";

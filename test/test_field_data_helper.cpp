@@ -234,7 +234,7 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     std::vector<float> vec1 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
     _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec1);
     std::vector<float> vec2 = {1111111, 2111111, 3111111, 4111111, 5111111};
-    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111111,211111,3111111,4111111,5111111", vec2);
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111111,2111111,3111111,4111111,5111111", vec2);
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
