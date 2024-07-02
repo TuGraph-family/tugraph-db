@@ -133,6 +133,23 @@
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Filter [{p.name != Christopher Nolan}]\n            Expand(All) [c <-- p ]\n                Node Index Seek [c]  IN []\n",
             "res": 2
           }
+        ],
+        "start_vertex": [
+          {
+            "query": "match(c:City)<-[r:BORN_IN]-(p:Person {name:'Christopher Nolan'}) return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Expand(All) [p --> c ]\n            Node Index Seek [p]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match(c:City)<-[r:BORN_IN]-(p:Person) where p.name = 'Christopher Nolan' return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Expand(All) [p --> c ]\n            Node Index Seek [p]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match (n:Person)-[r:HAS_CHILD]->(m:Person)<-[r1:MARRIED]-(m1:Person) where m.name = 'Michael Redgrave' return n,m1",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n,m1]\n        Expand(All) [m <-- m1 ]\n            Expand(All) [m <-- n ]\n                Node Index Seek [m]  IN []\n",
+            "res": 1
+          }
         ]
       }
     }
