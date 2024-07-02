@@ -46,6 +46,7 @@ X(ParseStringException, "Parse string exception.") \
 X(ParseIncompatibleType, "Parse incompatible type.") \
 X(ParseFieldDataException, "Parse field data exception.") \
 X(DataSizeTooLarge, "Data size too large.") \
+X(VectorSizeTooLarge, "Vector size too large.") \
 X(RecordSizeLimitExceeded, "Record size limit exceeded.") \
 X(LabelNotExist, "Label not exist.") \
 X(LabelExist, "Label exist.") \
