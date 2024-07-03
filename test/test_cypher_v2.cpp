@@ -464,12 +464,12 @@ TEST_F(TestCypherV2, TestAdd) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestSet) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/set/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestSet) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/set/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestDelete) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);

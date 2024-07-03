@@ -12,13 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <unordered_set>
 #include "geax-front-end/isogql/GQLAstVisitor.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
 #include "cypher/procedure/procedure_v2.h"
 #include "db/galaxy.h"
-#include <unordered_set>
+
 
 namespace cypher {
 
@@ -68,8 +69,6 @@ std::any PatternGraphMaker::visit(geax::frontend::PathPattern* node) {
         auto& path_elements = pattern_graph.symbol_table.anot_collection.path_elements;
         std::vector<Node>& nodes = pattern_graph.GetNodes();
         std::vector<Relationship>& relationships = pattern_graph.GetRelationships();
-        // if (nodes.size() != relationships.size() + 1)
-        //     throw lgraph::CypherException("PathPattern error: " + node->alias().value());
         std::vector<std::shared_ptr<geax::frontend::Ref>> paths;
         paths.reserve(nodes.size() + relationships.size());
         size_t idx;

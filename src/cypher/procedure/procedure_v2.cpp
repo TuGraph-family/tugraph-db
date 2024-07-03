@@ -2782,7 +2782,8 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
                                struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
-    CYPHER_ARG_CHECK(args[0].type == Entry::RecordEntryType::CONSTANT && args[1].IsMap(), "wrong type")
+    CYPHER_ARG_CHECK(args[0].type == Entry::RecordEntryType::CONSTANT && args[1].IsMap(),
+                     "wrong type")
     auto &config = *args[1].constant.map;
     auto it1 = config.find("isNode");
     auto it2 = config.find("field");
@@ -2826,8 +2827,8 @@ void AlgoFuncV2::NativeExtract(RTContext *ctx, const cypher::Record *record,
             titles.emplace_back(item);
         }
     }
-    std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>> lmap =
-        {
+    std::unordered_map<std::string, std::function<
+        void(const cypher::FieldData &, Record &)>> lmap = {
             {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
         };
     Record r;
