@@ -1,6 +1,0 @@
-#MATCH (n:person) RETURN n, n.name ORDER BY n.name 
-#MATCH (p:Person) RETURN p.name, p.birthyear ORDER BY p.name, p.birthyear
-MATCH (p:Person) 
-RETURN p.name
-ORDER BY p.birthyear ASC
-LIMIT 5
