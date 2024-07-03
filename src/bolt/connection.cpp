@@ -228,13 +228,13 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec) {
         auto len = unpacker_.Len();
         auto tag = static_cast<BoltMsg>(unpacker_.StructTag());
         std::vector<std::any> fields;
-        for (uint32_t i = 0; i < len; i++) {
-            unpacker_.Next();
-            fields.push_back(bolt::ServerHydrator(unpacker_));
-        }
-        LOG_DEBUG() << FMA_FMT("msg: {}, fields: {}",
-                               ToString(tag), Print(fields));
         try {
+            for (uint32_t i = 0; i < len; i++) {
+                unpacker_.Next();
+                fields.push_back(bolt::ServerHydrator(unpacker_));
+            }
+            LOG_DEBUG() << FMA_FMT("msg: {}, fields: {}",
+                                   ToString(tag), Print(fields));
             handle_(*this, tag, std::move(fields));
         } catch (const std::exception& e) {
             LOG_ERROR() << "Exception in bolt connection: " << e.what();
