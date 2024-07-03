@@ -5,7 +5,8 @@ set(TARGET_BOLT_LIB bolt)
 set(BOLT_SRC
     bolt/connection.cpp
     bolt/hydrator.cpp
-    bolt/pack.cpp)
+    bolt/pack.cpp
+    lgraph_api/lgraph_exceptions.cpp)
 
 add_library(${TARGET_BOLT_LIB} STATIC ${BOLT_SRC})
 
