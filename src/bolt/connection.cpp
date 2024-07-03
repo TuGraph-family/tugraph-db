@@ -34,6 +34,36 @@ void socket_set_options(tcp::socket& socket) {
     socket.set_option(ip::tcp::socket::reuse_address(true));
 }
 
+void BoltConnection::WebSocketReadSomeDone(const boost::system::error_code &ec, std::size_t bytes_transferred) {
+    if (ec) {
+        LOG_WARN() << FMA_FMT("WebSocketReadSomeDone error: {}", ec.message());
+        Close();
+        return;
+    }
+    ws_total_read_ += bytes_transferred;
+    if (ws_total_read_ < ws_buffer_size_) {
+        WebSocketReadSome();
+    } else {
+        ws_cb_(ec);
+    }
+}
+
+void BoltConnection::WebSocketReadSome() {
+    ws().async_read_some(
+        buffer(ws_buffer_ + ws_total_read_, ws_buffer_size_ - ws_total_read_),
+        std::bind(&BoltConnection::WebSocketReadSomeDone, shared_from_this(),
+                  std::placeholders::_1, std::placeholders::_2));
+}
+
+void BoltConnection::WebSocketAsyncRead(const mutable_buffer& buffer, const std::function<void(const boost::system::error_code &ec)>& cb) {
+    ws_buffer_ = (char*)buffer.data();
+    ws_buffer_size_ = buffer.size();
+    ws_total_read_ = 0;
+    ws_cb_ = cb;
+    WebSocketReadSome();
+}
+
+
 void BoltConnection::ReadMagicDone(const boost::system::error_code &ec) {
     if (ec) {
         LOG_WARN() << FMA_FMT("ReadMagicDone error: {}", ec.message());
@@ -137,7 +167,7 @@ void BoltConnection::ReadBoltIdentificationDone(const boost::system::error_code&
     }
     if (*(uint32_t*)buffer4_ == *(uint32_t*)bolt_magic_) {
         // read bolt versions
-        ws().async_read_some(
+        WebSocketAsyncRead(
             buffer(buffer16_),
             std::bind(&BoltConnection::ReadVersionNegotiationDone,
                       shared_from_this(), std::placeholders::_1));
@@ -148,13 +178,13 @@ void BoltConnection::ReadBoltIdentificationDone(const boost::system::error_code&
 }
 
 
-void BoltConnection::WebSocketAcceptDone(boost::system::error_code ec) {
+void BoltConnection::WebSocketAcceptDone(const boost::system::error_code &ec) {
     if (ec) {
         LOG_WARN() << FMA_FMT("WebSocketAcceptDone error: {}", ec.message());
         Close();
         return;
     }
-    ws().async_read_some(buffer(buffer4_),
+    WebSocketAsyncRead(buffer(buffer4_),
                std::bind(&BoltConnection::ReadBoltIdentificationDone,
                          shared_from_this(), std::placeholders::_1));
 }
@@ -209,7 +239,7 @@ void BoltConnection::WriteResponseDone(const boost::system::error_code& ec) {
                    std::bind(&BoltConnection::ReadChunkSizeDone, shared_from_this(),
                              std::placeholders::_1));
     } else {
-        ws().async_read_some(buffer(&chunk_size_, sizeof(chunk_size_)),
+        WebSocketAsyncRead(buffer(&chunk_size_, sizeof(chunk_size_)),
                               std::bind(&BoltConnection::ReadChunkSizeDone, shared_from_this(),
                                         std::placeholders::_1));
     }
@@ -253,7 +283,7 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec) {
                    std::bind(&BoltConnection::ReadChunkDone, shared_from_this(),
                              std::placeholders::_1));
     } else {
-        ws().async_read_some(
+        WebSocketAsyncRead(
             buffer(chunk_.data() + old_size, chunk_size_),
             std::bind(&BoltConnection::ReadChunkDone, shared_from_this(),
                       std::placeholders::_1));
@@ -271,7 +301,7 @@ void BoltConnection::ReadChunkDone(const boost::system::error_code& ec) {
                    std::bind(&BoltConnection::ReadChunkSizeDone, shared_from_this(),
                              std::placeholders::_1));
     } else {
-        ws().async_read_some(
+        WebSocketAsyncRead(
             buffer(&chunk_size_, sizeof(chunk_size_)),
             std::bind(&BoltConnection::ReadChunkSizeDone, shared_from_this(),
                       std::placeholders::_1));
