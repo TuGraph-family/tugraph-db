@@ -24,9 +24,8 @@ class VectorIndex {
     int vec_dimension_;
     std::vector<int> index_spec_;
     int query_spec_;
-    size_t num_of_return_;
     faiss::IndexFlatL2* quantizer_;
-    faiss::Index* index_;
+    faiss::IndexIVFFlat* index_;
     VectorIndexManager vector_index_manager_; 
 
  public:
@@ -63,9 +62,6 @@ class VectorIndex {
     //set search specification
     bool SetSearchSpec(int query_spec);
 
-    //set return number of vector
-    bool SetReturnNum(size_t return_num);
-
     // add vector to index and build index
     bool Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors);
 
@@ -80,8 +76,5 @@ class VectorIndex {
 
     // search vector in index
     bool Search(const std::vector<float> query, size_t num_results, size_t near_results, std::vector<std::vector<float>>& vector_results);
-
-    // get IndexIVFFlat
-    faiss::IndexIVFFlat* GetIndexIVFFlat() { return dynamic_cast<faiss::IndexIVFFlat*>(index_); }
 };
 }  // namespace lgraph

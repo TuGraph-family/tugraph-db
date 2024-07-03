@@ -4,7 +4,7 @@ namespace lgraph {
 VectorIndex::VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec)
     : label_(label), name_(name), distance_type_(distance_type), index_type_(index_type), 
       vec_dimension_(vec_dimension), index_spec_(index_spec),
-      query_spec_{10}, num_of_return_(1), quantizer_(nullptr), index_(nullptr),
+      query_spec_{10}, quantizer_(nullptr), index_(nullptr),
       vector_index_manager_(size_t(0), label, name) {}
 
 VectorIndex::VectorIndex(const VectorIndex& rhs)
@@ -15,7 +15,6 @@ VectorIndex::VectorIndex(const VectorIndex& rhs)
       vec_dimension_(rhs.vec_dimension_), 
       index_spec_(rhs.index_spec_),
       query_spec_{rhs.query_spec_}, 
-      num_of_return_(rhs.num_of_return_),
       quantizer_(rhs.quantizer_),
       index_(rhs.index_),
       vector_index_manager_(rhs.vector_index_manager_) {}
@@ -36,11 +35,6 @@ bool VectorIndex::SetSearchSpec(int query_spec) {
     return true;
 }
 
-bool VectorIndex::SetReturnNum(size_t return_num) {
-    num_of_return_ = return_num;
-    return true;
-}
-
 // add vector to index
 bool VectorIndex::Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) {
     //reduce dimension
@@ -51,15 +45,14 @@ bool VectorIndex::Add(const std::vector<std::vector<float>>& vectors, size_t num
     }
     // TODO
     if ("IVF_Flat" == index_type_) {
-        faiss::IndexIVFFlat* ivf_index = GetIndexIVFFlat();
-        if (ivf_index == nullptr) {
+        if (index_ == nullptr) {
             return false;
         }
         // train after build quantizer
-        assert(!ivf_index->is_trained);
-        ivf_index->train(num_vectors, index_vectors.data());
-        assert(ivf_index->is_trained);
-        ivf_index->add(num_vectors, index_vectors.data());
+        assert(!index_->is_trained);
+        index_->train(num_vectors, index_vectors.data());
+        assert(index_->is_trained);
+        index_->add(num_vectors, index_vectors.data());
     } else {
         return false;
     }
@@ -89,7 +82,7 @@ std::vector<uint8_t> VectorIndex::Save() {
 void VectorIndex::Load(std::vector<uint8_t>& idx_bytes) {
     faiss::VectorIOReader reader;
     reader.data = idx_bytes;
-    index_ = faiss::read_index(&reader);
+    index_ = dynamic_cast<faiss::IndexIVFFlat*>(faiss::read_index(&reader));
 }
 
 // search vector in index
@@ -100,6 +93,7 @@ bool VectorIndex::Search(const std::vector<float> query, size_t num_results, siz
 
     std::vector<float> distances(num_results * near_results);
     std::vector<faiss::idx_t> indices(num_results * near_results);
+    index_->nprobe = query_spec_;
     index_->search(num_results, query.data(), near_results, distances.data(), indices.data());
     // merge distances and indices into vector_results
     vector_results.resize(num_results);
