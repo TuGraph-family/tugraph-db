@@ -4,7 +4,7 @@ namespace lgraph {
 VectorIndex::VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec)
     : label_(label), name_(name), distance_type_(distance_type), index_type_(index_type), 
       vec_dimension_(vec_dimension), index_spec_(index_spec),
-      query_spec_{10}, quantizer_(nullptr), index_(nullptr),
+      query_spec_(10), quantizer_(nullptr), index_(nullptr),
       vector_index_manager_(size_t(0), label, name) {}
 
 VectorIndex::VectorIndex(const VectorIndex& rhs)
@@ -86,25 +86,14 @@ void VectorIndex::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool VectorIndex::Search(const std::vector<float> query, size_t num_results, size_t near_results, std::vector<std::vector<float>>& vector_results) {
-    if (num_results * vec_dimension_ != query.size()) {
+bool VectorIndex::Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<faiss::idx_t>& indices) {
+    if (query.empty() || num_results == 0) {
         return false;
     }
-
-    std::vector<float> distances(num_results * near_results);
-    std::vector<faiss::idx_t> indices(num_results * near_results);
+    distances.resize(num_results * 1);
+    indices.resize(num_results * 1);
     index_->nprobe = query_spec_;
-    index_->search(num_results, query.data(), near_results, distances.data(), indices.data());
-    // merge distances and indices into vector_results
-    vector_results.resize(num_results);
-    for (size_t i = 0; i < num_results; ++i) {
-        vector_results[i].resize(near_results * 2);
-        for (size_t j = 0; j < near_results; ++j) {
-            size_t idx = i * near_results + j;
-            vector_results[i][j] = static_cast<float>(indices[idx]);
-            vector_results[i][near_results + j] = distances[idx];
-        }
-    }
-    return true;
+    index_->search(1, query.data(), num_results, distances.data(), indices.data());
+    return !indices.empty();
 }
 }

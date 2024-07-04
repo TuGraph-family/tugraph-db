@@ -75,6 +75,6 @@ class VectorIndex {
     void Load(std::vector<uint8_t>& idx_bytes);
 
     // search vector in index
-    bool Search(const std::vector<float> query, size_t num_results, size_t near_results, std::vector<std::vector<float>>& vector_results);
+    bool Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<faiss::idx_t>& indices);
 };
 }  // namespace lgraph
