@@ -3746,7 +3746,7 @@ void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 5, 
-                     "e.g. vector.addVectorIndex(label_name, field_name, index_type, vec_dimension, distance_type);");
+                     "e.g. vector.deleteVectorIndex(label_name, field_name, index_type, vec_dimension, distance_type);");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
     CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT"), 
@@ -3803,21 +3803,51 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
     CYPHER_ARG_CHECK(args[2].type == parser::Expression::LIST,  "Please check the vector you entered, e.g. [1, 2, 3]");
-    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "num_of_return should be integer");
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT, "query_spec should be integer");
-    auto search_vector = args[2].ToString();
-    std::vector<std::vector<float>> results;
-    std::vector<float> scores;
-    auto schema = ctx->txn_->GetTxn()->GetSchema(args[0].String(),true);
+    std::vector<float> query_vector;
+    for (size_t i = 0; i < args[2].List().size(); ++i) {
+        query_vector.emplace_back(float(args[2].List()[i].Double()));
+    }
+    auto raw_txn = ctx->txn_->GetTxn();
+    lgraph::Transaction& txn = *raw_txn;
+    auto SchemaInfo = ctx->txn_->GetTxn()->GetSchemaInfo();
+    //SchemaInfoGetSchema(args[0].String(), true);
+    ::lgraph::Schema* schema = SchemaInfo.v_schema_manager.GetSchema(args[0].String());
     auto index_type = schema->GetFieldExtractor(args[1].String())->GetVectorIndex()->GetIndexType();
-    LOG_DEBUG() << index_type;
     if (index_type == "IVF_FLAT") {
-
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
                          "Please check the parameter, nprobe should be an integer in the range [1,65536]");
             
         //schema.GetFieldExtractor(args[1].String())->GetVectorIndex()->Load();
-        //auto result = schema.GetFieldExtractor(args[1].String())->GetVectorIndex()->Search(args[4].Int());
+        auto extr = schema->GetFieldExtractor(args[1].String());
+        std::vector<float> distances; 
+        std::vector<int64_t> indices;
+        int64_t count = 0;
+        auto result = extr->GetVectorIndex()->Search(query_vector, size_t(args[3].Int()), distances, indices);
+        if (result) {
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto prop = kv_iter->GetValue();
+                if (extr->GetIsNull(prop)) {
+                    continue;
+                }
+                Record r;
+                auto vector = extr->FieldToString(prop);
+                auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                for (size_t i = 0; i < distances.size(); ++i) {
+                    if (count == indices[i]) {
+                        r.AddConstant(::lgraph::FieldData(std::to_string(static_cast<long long>(vid))));
+                        r.AddConstant(::lgraph::FieldData(args[0].String()));
+                        r.AddConstant(::lgraph::FieldData(args[1].String()));
+                        r.AddConstant(::lgraph::FieldData(vector));
+                        r.AddConstant(::lgraph::FieldData(distances[i]));
+                        records->emplace_back(r.Snapshot());  
+                    }
+                }
+                count++;
+            }
+        }
     } else {
         throw lgraph::ReminderException("Please check the number of parameter!");
     }          

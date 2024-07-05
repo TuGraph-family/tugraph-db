@@ -2153,7 +2153,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             std::vector<std::vector<float>> floatvector;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                //auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                // auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
@@ -2164,8 +2164,8 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
 
             if ((extractor->GetVectorIndex()->GetVectorIndexManager()).UpdateCount(count)) {
                 if ((extractor->GetVectorIndex()->GetVectorIndexManager()).WhetherUpdate()) {
-                    //vector_index->Add(floatvector, count);
-                    //vector_index->Build();
+                    vector_index->Build();
+                    vector_index->Add(floatvector, count);
                     //vector_index->Save();
                 }
             } else { 
@@ -2180,7 +2180,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             return true;
         }
     }
-    return true;
+    return false;
         // TODO support non-detached models    
 }
 

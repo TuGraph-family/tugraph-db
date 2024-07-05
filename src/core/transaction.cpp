@@ -872,10 +872,20 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
             if (fe->GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
                 fe->GetVectorIndex()->GetVectorIndexManager().addCount();
                 if (fe->GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
-                    //auto count = fe->GetVectorIndex()->GetVectorIndexManager().getCount();
-                    //auto vectors = fe.GetVectorIndex()->GetVectorIndexManager().getData(txn, schema);
-                    //fe.GetVectorIndex()->Add(vectors, count);
-                    //fe.GetVectorIndex()->Build();
+                    uint64_t count = 0;
+                    std::vector<std::vector<float>> floatvector;
+                    auto kv_iter = schema->GetPropertyTable().GetIterator(*txn_);
+                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                        //auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                        auto prop = kv_iter->GetValue();
+                        if (fe->GetIsNull(prop)) {
+                            continue;
+                        }
+                        floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                        count++;
+                    }
+                    fe->GetVectorIndex()->Build();
+                    fe->GetVectorIndex()->Add(floatvector, count);
                     //fe.GetVectorIndex()->Save();
                 }
             }

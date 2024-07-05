@@ -42,8 +42,6 @@ public:
 
    bool MakeVectorIndex() { indexed_ = true;  return true; }
 
-   //std::vector<std::vector<float>> getData(KvTransaction& txn, Schema schema);
-
    bool UpdateCount(size_t& DataSize) { count_ = DataSize;  return true; } 
 
    bool WhetherUpdate();

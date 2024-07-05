@@ -937,10 +937,11 @@ static std::vector<Procedure> global_procedures = {
                   {"query_spec", {4, lgraph_api::LGraphType::INTEGER}},
               },
               Procedure::SIG_SPEC{
-                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
-                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                  {"vec", {2, lgraph_api::LGraphType::STRING}},
-                  {"score", {3, lgraph_api::LGraphType::FLOAT}},
+                  {"vid", {0, lgraph_api::LGraphType::STRING}},
+                  {"label_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {2, lgraph_api::LGraphType::STRING}},
+                  {"vec", {3, lgraph_api::LGraphType::STRING}},
+                  {"score", {4, lgraph_api::LGraphType::FLOAT}},
               }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,

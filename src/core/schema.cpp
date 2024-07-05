@@ -54,10 +54,20 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
             if (fe.GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
                 fe.GetVectorIndex()->GetVectorIndexManager().addCount();
                 if (fe.GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
-                    //auto count = fe.GetVectorIndex()->GetVectorIndexManager().getCount();
-                    //auto vectors = fe.GetVectorIndex()->GetVectorIndexManager().getData(txn, schema);
-                    //fe.GetVectorIndex()->Add(vectors, count);
-                    //fe.GetVectorIndex()->Build();
+                    uint64_t count = 0;
+                    std::vector<std::vector<float>> floatvector;
+                    auto kv_iter = GetPropertyTable().GetIterator(txn);
+                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                        //auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                        auto prop = kv_iter->GetValue();
+                        if (fe.GetIsNull(prop)) {
+                            continue;
+                        }
+                        floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                        count++;
+                    }
+                    fe.GetVectorIndex()->Build();
+                    fe.GetVectorIndex()->Add(floatvector, count);
                     //fe.GetVectorIndex()->Save();
                 }
             }
@@ -138,10 +148,20 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
             if (fe.GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
                 fe.GetVectorIndex()->GetVectorIndexManager().addCount();
                 if (fe.GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
-                    //auto count = fe.GetVectorIndex()->GetVectorIndexManager().getCount();
-                    //auto vectors = fe.GetVectorIndex()->GetVectorIndexManager().getData(txn, schema);
-                    //fe.GetVectorIndex()->Add(vectors, count);
-                    //fe.GetVectorIndex()->Build();
+                    uint64_t count = 0;
+                    std::vector<std::vector<float>> floatvector;
+                    auto kv_iter = GetPropertyTable().GetIterator(txn);
+                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                        //auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                        auto prop = kv_iter->GetValue();
+                        if (fe.GetIsNull(prop)) {
+                            continue;
+                        }
+                        floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                        count++;
+                    }
+                    fe.GetVectorIndex()->Build();
+                    fe.GetVectorIndex()->Add(floatvector, count);
                     //fe.GetVectorIndex()->Save();
                 }
             }

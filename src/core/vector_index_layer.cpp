@@ -86,7 +86,7 @@ void VectorIndex::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool VectorIndex::Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<faiss::idx_t>& indices) {
+bool VectorIndex::Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<int64_t>& indices) {
     if (query.empty() || num_results == 0) {
         return false;
     }
