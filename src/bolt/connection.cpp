@@ -34,7 +34,8 @@ void socket_set_options(tcp::socket& socket) {
     socket.set_option(ip::tcp::socket::reuse_address(true));
 }
 
-void BoltConnection::WebSocketReadSomeDone(const boost::system::error_code &ec, std::size_t bytes_transferred) {
+void BoltConnection::WebSocketReadSomeDone(const boost::system::error_code &ec,
+                                           std::size_t bytes_transferred) {
     if (ec) {
         LOG_WARN() << FMA_FMT("WebSocketReadSomeDone error: {}", ec.message());
         Close();
@@ -55,7 +56,9 @@ void BoltConnection::WebSocketReadSome() {
                   std::placeholders::_1, std::placeholders::_2));
 }
 
-void BoltConnection::WebSocketAsyncRead(const mutable_buffer& buffer, const std::function<void(const boost::system::error_code &ec)>& cb) {
+void BoltConnection::WebSocketAsyncRead(
+    const mutable_buffer& buffer,
+    const std::function<void(const boost::system::error_code &ec)>& cb) {
     ws_buffer_ = (char*)buffer.data();
     ws_buffer_size_ = buffer.size();
     ws_total_read_ = 0;

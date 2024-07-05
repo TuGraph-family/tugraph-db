@@ -108,7 +108,8 @@ class BoltConnection
     void ReadChunkDone(const boost::system::error_code &ec);
     void WriteResponseDone(const boost::system::error_code &ec);
     void WebSocketAcceptDone(const boost::system::error_code &ec);
-    void WebSocketAsyncRead(const boost::asio::mutable_buffer& buffer, const std::function<void(const boost::system::error_code &ec)>& cb);
+    void WebSocketAsyncRead(const boost::asio::mutable_buffer& buffer,
+                            const std::function<void(const boost::system::error_code &ec)>& cb);
     void WebSocketReadSome();
     void WebSocketReadSomeDone(const boost::system::error_code &ec, std::size_t bytes_transferred);
     void DoSend();

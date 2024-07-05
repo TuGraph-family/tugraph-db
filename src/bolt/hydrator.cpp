@@ -914,7 +914,8 @@ std::any ServerHydrator(Unpacker& unpacker) {
         case PackType::False:
             return false;
         default: {
-            THROW_CODE(BoltDataException, "Unsupported type to unpack: {}", static_cast<int>(unpacker.CurrentType()));
+            THROW_CODE(BoltDataException, "Unsupported type to unpack: {}",
+                       static_cast<int>(unpacker.CurrentType()));
         }
     }
 }
