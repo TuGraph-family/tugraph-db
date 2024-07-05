@@ -15,6 +15,9 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
+#include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/expr/Exists.h"
+#include "tools/lgraph_log.h"
 #include "cypher/execution_plan/execution_plan_maker.h"
 
 namespace cypher {
@@ -264,6 +267,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::GraphPattern* node) {
         auto op_filter = new OpFilter(expr_filter);
         op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
         pattern_graph_root_[cur_pattern_graph_] = op_filter;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->where().value());
     }
     if (node->yield().has_value()) {
         NOT_SUPPORT();
@@ -324,6 +328,22 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
+    if (ClauseGuard::InClause(geax::frontend::AstNodeType::kExists, cur_types_)) {
+        for (auto op : expand_ops) {
+            LOG_INFO() << "------------PathChain expand_ops = " << op->ToString();
+        }
+        auto op = _SingleBranchConnect(expand_ops);
+        LOG_INFO() << "------------PathChain _SingleBranchConnect op = " << op->ToString();
+        LOG_INFO() << "------------PathChain pattern_graph_root_[cur_pattern_graph_] = "
+                   << pattern_graph_root_[cur_pattern_graph_]->ToString();
+        if (pattern_graph_root_[cur_pattern_graph_]) {
+            auto connection = new CartesianProduct();
+            connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+            connection->AddChild(op);
+            pattern_graph_root_[cur_pattern_graph_] = connection;
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
     // The handling here is for the Match Clause, other situations need to be considered.
     // The current design of the Visitor results in different logic for handling PathChain in
     // different Clauses (Match, Create, and even Exists), which makes the code overly complex and
@@ -608,7 +628,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::GetField* node) { NOT_SUPPORT
 
 std::any ExecutionPlanMaker::visit(geax::frontend::TupleGet* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Not* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Not* node) {
+    if (node->expr()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Neg* node) { NOT_SUPPORT(); }
 
@@ -714,7 +737,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::VNull* node) { NOT_SUPPORT();
 
 std::any ExecutionPlanMaker::visit(geax::frontend::VNone* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Ref* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Ref* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::IsNull* node) { NOT_SUPPORT(); }
 
@@ -737,7 +762,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); 
 
 std::any ExecutionPlanMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Exists* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Exists* node) {
+    ClauseGuard cg(node->type(), cur_types_);
+    for (auto& path_chain : node->pathChains()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_chain);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ExplainActivity* node) { NOT_SUPPORT(); }
 
@@ -932,11 +963,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
     std::vector<std::tuple<ArithExprNode, std::string>> arith_items;
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     result_info_.header.colums.clear();
+    ClauseGuard cg(node->type(), cur_types_);
     for (auto& item : items) {
-        ArithExprNode ae(std::get<1>(item), pattern_graph.symbol_table);
+        auto expr = std::get<1>(item);
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
+        ArithExprNode ae(expr, pattern_graph.symbol_table);
         auto alias = std::get<0>(item);
         arith_items.push_back(std::make_tuple(ae, alias));
-        AstAggExprDetector agg_expr_detector(std::get<1>(item));
+        AstAggExprDetector agg_expr_detector(expr);
         bool has_aggregation = false;
         if (agg_expr_detector.Validate()) {
             has_aggregation = agg_expr_detector.HasValidAggFunc();
@@ -945,8 +979,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
         }
         // build header
-        if (std::get<1>(item)->type() == geax::frontend::AstNodeType::kRef) {
-            std::string& name = ((geax::frontend::Ref*)std::get<1>(item))->name();
+        if (expr->type() == geax::frontend::AstNodeType::kRef) {
+            std::string& name = ((geax::frontend::Ref*)expr)->name();
             auto it = pattern_graph.symbol_table.symbols.find(name);
             if (it == pattern_graph.symbol_table.symbols.end()) {
                 error_msg_ = "Unknown variable: " + name;

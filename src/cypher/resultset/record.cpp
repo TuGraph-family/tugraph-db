@@ -47,6 +47,36 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
     }
 }
 
+bool Entry::GetEntityEfficient(RTContext *ctx) const {
+    switch (type) {
+    case NODE:
+        {
+            auto vit = node->ItRef();
+            CYPHER_THROW_ASSERT(node && vit);
+            return node->IsValidAfterMaterialize(ctx);
+        }
+    case RELATIONSHIP:
+        {
+            if (relationship->VarLen()) {
+                auto & eits = relationship->ItsRef();
+                for (auto& it : eits) {
+                    if (!it.IsValid()) return false;
+                }
+                return true;
+            } else {
+                auto eit = relationship->ItRef();
+                CYPHER_THROW_ASSERT(relationship && eit);
+                return eit->IsValid();
+            }
+        }
+    case NODE_SNAPSHOT:
+    case RELP_SNAPSHOT:
+        CYPHER_TODO();
+    default:
+        return false;
+    }
+}
+
 void Record::SetParameter(const PARAM_TAB &ptab) {
     if (!symbol_table || ptab.empty()) return;
     for (auto &param : ptab) {

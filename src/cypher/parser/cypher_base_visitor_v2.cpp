@@ -1564,7 +1564,6 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
         } else if (typeid(*expr) == typeid(geax::frontend::Node)) {
             auto exists = ALLOC_GEAOBJECT(geax::frontend::Exists);
             exists->appendPathChain(path_chain_);
-            exists->setExpr((geax::frontend::Expr *)path_chain_->head());
             res = exists;
         } else {
             NOT_SUPPORT_AND_THROW();
