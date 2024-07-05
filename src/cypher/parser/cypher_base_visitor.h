@@ -1878,7 +1878,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         static const std::vector<std::string> excluded_set = {
             "INT8",       "INT16",   "INT32",    "INT64",        "FLOAT", "DOUBLE",
             "STRING",     "DATE",    "DATETIME", "BLOB",         "BOOL",  "POINT",
-            "LINESTRING", "POLYGON", "SPATIAL",  "FLOAT_VECTOR",
+            "LINESTRING", "POLYGON", "SPATIAL",  "FLOAT_VECTOR"
         };
         if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
                 std::string upper_var(var.size(), ' ');

@@ -921,7 +921,11 @@ struct FieldData {
             {
                 std::string vec_str;
                 for (float num : *data.vp) {
-                    vec_str += std::to_string(num);
+                    if (num > 999999) {
+                        vec_str += std::to_string(num).substr(0, 7);
+                    } else {
+                        vec_str += std::to_string(num).substr(0, 8);
+                    }
                     vec_str += ',';
                 }
                 vec_str.pop_back();

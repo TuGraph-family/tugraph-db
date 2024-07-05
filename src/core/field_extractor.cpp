@@ -94,6 +94,20 @@ template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
                                                           const std::string& data) const {
     std::vector<float> vec;
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");  
+    if (std::regex_search(data, nonNumbersAndCommas)) {
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    if (!std::regex_match(data, vector)) {
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (data.front() == ',' || data.back() == ',' || data.find(",,") != std::string::npos) {
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
+    }
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(data.begin(), data.end(), pattern), end_it;
     while (begin_it != end_it) {

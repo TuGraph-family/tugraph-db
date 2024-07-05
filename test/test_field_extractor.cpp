@@ -80,6 +80,20 @@ inline lgraph::SpatialCartesian ParseStringToT<lgraph::SpatialCartesian>
 template <>
 inline std::vector<float> ParseStringToT<std::vector<float>>(const std::string& str) {
     std::vector<float> vec;
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");  
+    if (std::regex_search(str, nonNumbersAndCommas)) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    if (!std::regex_match(str, vector)) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (str.front() == ',' || str.back() == ',' || str.find(",,") != std::string::npos) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
     while (begin_it != end_it) {

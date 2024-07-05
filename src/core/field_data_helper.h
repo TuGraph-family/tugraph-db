@@ -66,7 +66,7 @@ static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
                                                  "DATE",  "DATETIME", "STRING", "BLOB",
                                                  "POINT", "LINESTRING", "POLYGON", "SPATIAL",
-                                                 "FLOAT_VECTOR", "DOUBLE_VECTOR", "BIN_VECTOR"};
+                                                 "FLOAT_VECTOR"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
     std::unordered_map<std::string, FieldType> ret;
@@ -94,9 +94,7 @@ static constexpr size_t FieldTypeSizes[] = {
     0,   // LineString
     0,   // Polygon
     0,   // Spatial
-    0,   // float vector
-    0,   // double vector
-    0    // binary vector
+    0    // float vector
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -116,9 +114,7 @@ static constexpr bool IsFixedLengthType[] = {
     false,  // LineString
     false,  // Polygon
     false,  // Spatial
-    false,  // float vector
-    false,  // double vector
-    false   // binary vector
+    false   // float vector
 };
 
 template <class T, size_t N>
@@ -708,8 +704,23 @@ template <>
 inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg, const char* end,
                                                                 FieldData& fd) {
     std::string cd;
+    // string copy
     size_t s = fma_common::TextParserUtils::ParseCsvString(beg, end, cd);
     if (s == 0) return 0;
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");
+    if (std::regex_search(cd, nonNumbersAndCommas)) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    if (!std::regex_match(cd, vector)) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (cd.front() == ',' || cd.back() == ',' || cd.find(",,") != std::string::npos) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
     std::vector<float> vec;
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(cd.begin(), cd.end(), pattern), end_it;
@@ -719,7 +730,7 @@ inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg,
         ++begin_it;
     }
     fd = FieldData::FloatVector(vec);
-    return s;
+    return s; 
 }
 
 template <FieldType DstType>
@@ -793,6 +804,20 @@ inline bool ParseStringIntoStorageType<FieldType::SPATIAL>
 template <>
 inline bool ParseStringIntoStorageType<FieldType::FLOAT_VECTOR>
 (const std::string& str, std::vector<float>& sd) {
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");  
+    if (std::regex_search(str, nonNumbersAndCommas)) {
+        return false;
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    if (!std::regex_match(str, vector)) {
+        return false;
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (str.front() == ',' || str.back() == ',' || str.find(",,") != std::string::npos) {
+        return false;
+    } 
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
     while (begin_it != end_it) {
@@ -800,11 +825,7 @@ inline bool ParseStringIntoStorageType<FieldType::FLOAT_VECTOR>
         sd.push_back(std::stof(match.str()));
         ++begin_it;
     }
-    if (sd.size() <= 1) {
-        return false;
-    } else {
-        return true;
-    }
+    return true;
 }
 
 // This converts FieldData of different type into DstType
@@ -1142,15 +1163,26 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
     case FieldType::FLOAT_VECTOR:
         {
             std::vector<float> vec;
+            // check if there are only numbers and commas
+            std::regex nonNumbersAndCommas("[^0-9,.]");  
+            if (std::regex_search(str, nonNumbersAndCommas)) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
+            // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+            std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+            if (!std::regex_match(str, vector)) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
+            // check if there are 1.000,,2.000 & 1.000,2.000,
+            if (str.front() == ',' || str.back() == ',' || str.find(",,") != std::string::npos) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
             std::regex pattern("-?[0-9]+\\.?[0-9]*");
             std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
             while (begin_it != end_it) {
                 std::smatch match = *begin_it;
                 vec.push_back(std::stof(match.str()));
                 ++begin_it;
-            }
-            if (vec.size() <= 1) {
-                ThrowParseError(str, FieldType::FLOAT_VECTOR);
             }
             Value v;
             v.Copy(vec);
@@ -1302,7 +1334,7 @@ inline int ValueCompare<FieldType::SPATIAL>(const void* p1, size_t s1, const voi
 template <>
 inline int ValueCompare<FieldType::FLOAT_VECTOR>(const void* p1, size_t s1, const void* p2,
                                                  size_t s2) {
-    throw std::runtime_error("you cannot compare vectors");
+    throw std::runtime_error("cannot compare vectors");
 }
 
 }  // namespace field_data_helper
