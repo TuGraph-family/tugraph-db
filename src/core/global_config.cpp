@@ -129,7 +129,8 @@ std::map<std::string, lgraph::FieldData> lgraph::GlobalConfig::ToFieldDataMap() 
         v["ha_bootstrap_role"] = FieldData(ha_bootstrap_role);
     }
     v["browser.credential_timeout"] = FieldData(browser_options.credential_timeout);
-    v["browser.retain_connection_credentials"] = FieldData(browser_options.retain_connection_credentials);
+    v["browser.retain_connection_credentials"] =
+        FieldData(browser_options.retain_connection_credentials);
     return v;
 }
 int lgraph::GlobalConfig::PrintVersion(std::string &config_file, std::string &cmd,
@@ -333,7 +334,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Enable load/delete procedure.");
     argparser.Add(browser_options.credential_timeout, "browser.credential_timeout", true)
         .Comment("Config the timeout of browser credentials stored in local storage.");
-    argparser.Add(browser_options.retain_connection_credentials, "browser.retain_connection_credentials", true)
+    argparser.Add(browser_options.retain_connection_credentials,
+                  "browser.retain_connection_credentials", true)
         .Comment("Config browser whether to store user credentials in local storage.");
     return argparser;
 }
