@@ -11,3 +11,4 @@ MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) whe
 MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight < 20 RETURN r;
 MATCH (n:Person)-[r:ACTED_IN {charactername:'Henri Ducard'}]->(m) RETURN r;
 MATCH (n:Person)<-[r:ACTED_IN {charactername:'Henri Ducard'}]-(m) RETURN r;
+MATCH (p:Person) RETURN p.name ORDER BY p.birthyear DESC;
