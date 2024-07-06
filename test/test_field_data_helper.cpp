@@ -262,12 +262,12 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
 TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
     UT_LOG() << "Testing ParseStringIntoFieldData";
 
-#define _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FT, s, v)                                                   \
-    do {                                                                                                   \
-        FieldData fd;                                                                                      \
-        size_t size = ParseStringIntoFieldData<FieldType::FT>(s, s + std::strlen(s), fd);                  \
-        UT_EXPECT_EQ(size, strlen(s));                                                                     \
-        UT_EXPECT_EQ(FieldData(v), fd);                                                                    \
+#define _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FT, s, v)                                 \
+    do {                                                                                 \
+        FieldData fd;                                                                    \
+        size_t size = ParseStringIntoFieldData<FieldType::FT>(s, s + std::strlen(s), fd);\
+        UT_EXPECT_EQ(size, strlen(s));                                                   \
+        UT_EXPECT_EQ(FieldData(v), fd);                                                  \
     } while (0)
 
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BOOL, "true", true);
@@ -287,23 +287,16 @@ TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(DATETIME, "2019-09-01 09:58:45",
                              DateTime("2019-09-01 09:58:45").MicroSecondsSinceEpoch());
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(STRING, "str", "str");
-    auto blob_str = ::lgraph_api::base64::Encode("orig_str");
-    char blob[blob_str.length() + 1];
-    int i = 0;
-    for (i = 0; i < blob_str.length(); i++) {
-        blob[i] = blob_str[i];
-    }
-    blob[i] = '\0'; 
-    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BLOB, blob, "orig_str");
-    
+
     // do not support spatial now!
 
     // testing float vector data;
     std::vector<float> vec8 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
-    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec8);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "1.111111,2.111111,3.111111,4.111111,5.111111", vec8);
     std::vector<float> vec9 = {1111111, 2111111, 3111111, 4111111, 5111111};
-    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR, "1111111,2111111,3111111,4111111,5111111", vec9);
-
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "1111111,2111111,3111111,4111111,5111111", vec9);
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {

@@ -81,12 +81,12 @@ template <>
 inline std::vector<float> ParseStringToT<std::vector<float>>(const std::string& str) {
     std::vector<float> vec;
     // check if there are only numbers and commas
-    std::regex nonNumbersAndCommas("[^0-9,.]");  
+    std::regex nonNumbersAndCommas("[^0-9,.]");
     if (std::regex_search(str, nonNumbersAndCommas)) {
         THROW_CODE(InputError, "This is not a float vector string");
     }
     // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
-    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
     if (!std::regex_match(str, vector)) {
         THROW_CODE(InputError, "This is not a float vector string");
     }

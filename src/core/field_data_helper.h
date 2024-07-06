@@ -713,7 +713,7 @@ inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg,
         THROW_CODE(InputError, "This is not a float vector string");
     }
     // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
-    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
     if (!std::regex_match(cd, vector)) {
         THROW_CODE(InputError, "This is not a float vector string");
     }
@@ -730,7 +730,7 @@ inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg,
         ++begin_it;
     }
     fd = FieldData::FloatVector(vec);
-    return s; 
+    return s;
 }
 
 template <FieldType DstType>
@@ -805,19 +805,19 @@ template <>
 inline bool ParseStringIntoStorageType<FieldType::FLOAT_VECTOR>
 (const std::string& str, std::vector<float>& sd) {
     // check if there are only numbers and commas
-    std::regex nonNumbersAndCommas("[^0-9,.]");  
+    std::regex nonNumbersAndCommas("[^0-9,.]");
     if (std::regex_search(str, nonNumbersAndCommas)) {
         return false;
     }
     // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
-    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
     if (!std::regex_match(str, vector)) {
         return false;
     }
     // check if there are 1.000,,2.000 & 1.000,2.000,
     if (str.front() == ',' || str.back() == ',' || str.find(",,") != std::string::npos) {
         return false;
-    } 
+    }
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
     while (begin_it != end_it) {
@@ -1164,12 +1164,12 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
         {
             std::vector<float> vec;
             // check if there are only numbers and commas
-            std::regex nonNumbersAndCommas("[^0-9,.]");  
+            std::regex nonNumbersAndCommas("[^0-9,.]");
             if (std::regex_search(str, nonNumbersAndCommas)) {
                 ThrowParseError(str, FieldType::FLOAT_VECTOR);
             }
             // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
-            std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");  
+            std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
             if (!std::regex_match(str, vector)) {
                 ThrowParseError(str, FieldType::FLOAT_VECTOR);
             }
