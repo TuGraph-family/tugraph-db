@@ -928,7 +928,9 @@ struct FieldData {
                     }
                     vec_str += ',';
                 }
-                vec_str.pop_back();
+                if (!vec_str.empty()) {
+                    vec_str.pop_back();
+                }
                 return vec_str;
             }
         }
