@@ -107,7 +107,11 @@ class BoltConnection
     void ReadChunkSizeDone(const boost::system::error_code &ec);
     void ReadChunkDone(const boost::system::error_code &ec);
     void WriteResponseDone(const boost::system::error_code &ec);
-    void WebSocketAcceptDone(boost::system::error_code ec);
+    void WebSocketAcceptDone(const boost::system::error_code &ec);
+    void WebSocketAsyncRead(const boost::asio::mutable_buffer& buffer,
+                            const std::function<void(const boost::system::error_code &ec)>& cb);
+    void WebSocketReadSome();
+    void WebSocketReadSomeDone(const boost::system::error_code &ec, std::size_t bytes_transferred);
     void DoSend();
 
     std::function<void(BoltConnection& conn, BoltMsg msg,
@@ -125,6 +129,10 @@ class BoltConnection
     // only shared_ptr can store void pointer
     std::shared_ptr<void> context_;
     Protocol protocol_ = Protocol::None;
+    char*  ws_buffer_ = nullptr;
+    size_t ws_buffer_size_ = 0;
+    size_t ws_total_read_ = 0;
+    std::function<void(const boost::system::error_code &ec)> ws_cb_;
 };
 
 }  // namespace bolt
