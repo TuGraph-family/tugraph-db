@@ -1396,7 +1396,11 @@ void ArithOperandNode::SetEntity(const std::string &alias, const SymbolTable &sy
     type = AR_OPERAND_VARIADIC;
     variadic.alias = alias;
     auto it = sym_tab.symbols.find(alias);
-    CYPHER_THROW_ASSERT(it != sym_tab.symbols.end());
+    if (it == sym_tab.symbols.end()) {
+        THROW_CODE(InputError,
+            "Variable `{}` not defined", alias);
+    }
+    // CYPHER_THROW_ASSERT(it != sym_tab.symbols.end());
     variadic.alias_idx = it->second.id;
 }
 
