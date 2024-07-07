@@ -369,7 +369,12 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
         {
             std::string vec_str;
             for (size_t i = 0; i < record.AsType<std::vector<float>>().size(); i++) {
-                vec_str += std::to_string(record.AsType<std::vector<float>>().at(i)) + ",";
+                if (record.AsType<std::vector<float>>().at(i) > 999999) {
+                    vec_str += std::to_string(record.AsType<std::vector<float>>().at(i)).substr(0, 7);
+                } else {
+                    vec_str += std::to_string(record.AsType<std::vector<float>>().at(i)).substr(0, 8);
+                }
+                vec_str += ',';
             }
             if (!vec_str.empty()) {
                 vec_str.pop_back();

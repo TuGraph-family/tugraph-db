@@ -235,6 +235,14 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec1);
     std::vector<float> vec2 = {1111111, 2111111, 3111111, 4111111, 5111111};
     _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111111,2111111,3111111,4111111,5111111", vec2);
+    std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "0.111111,0.222222,0.333333,0.444444", vector1);
+    std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "111.1111,222.2222,333.3333,444.4444", vector2);
+    std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "111111.0,222222.0,333333.0", vector3);
+    std::vector<float> vector4 = {1111, 2222, 3333, 4444};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111.000,2222.000,3333.000,4444.000", vector4);
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
@@ -257,6 +265,10 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_FAIL(POLYGON, "asdjasncioo");
     _CHECK_PARSE_STRING_FAIL(SPATIAL, "123@.adsas--=");
     _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "ABCDEFG");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "12345");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "12345,,12345");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "123abcde");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "12345,12345,");
 }
 
 TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
@@ -296,6 +308,9 @@ TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
     std::vector<float> vec9 = {1111111, 2111111, 3111111, 4111111, 5111111};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
                              "1111111,2111111,3111111,4111111,5111111", vec9);
+    std::vector<float> vec10 = {1111, 2111, 3111, 4111, 5111};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "1111.000,2111.000,3111.000,4111.000,5111.000", vec10);
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -553,6 +568,12 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
         std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
         _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
                                "1.111000,2.111000,3.111000,4.111000,5.111000", vec1);
+        std::vector<float> vec2 = {1111, 2111, 3111, 4111, 5111};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
+                               "1111.000,2111.000,3111.000,4111.000,5111.000", vec2);
+        std::vector<float> vec3 = {1111111, 2222222, 3333333};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
+                               "1111111,2222222,3333333", vec3);
     }
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
