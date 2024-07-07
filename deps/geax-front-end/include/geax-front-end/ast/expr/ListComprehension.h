@@ -26,7 +26,7 @@ namespace frontend {
 
 class ListComprehension : public Expr {
 public:
-   explicit ListComprehension() : Expr(AstNodeType::kListComprehension) {}
+   ListComprehension() : Expr(AstNodeType::kListComprehension) {}
    ~ListComprehension() = default;
    void appendElem(Expr* expr) { elems_.emplace_back(expr); }
    void setElems(std::vector<Expr*>&& elems) { elems_ = std::move(elems); }
