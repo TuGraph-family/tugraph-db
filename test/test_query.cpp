@@ -178,7 +178,7 @@ class TestQuery : public TuGraphTest {
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
             execution_plan.Validate(ctx_.get());
             LOG_INFO() << execution_plan.DumpGraph();
-            execution_plan.DumpPlan(0, false);
+            LOG_INFO() << execution_plan.DumpPlan(0, false);
             execution_plan.Execute(ctx_.get());
             result = ctx_->result_->Dump(false);
             UT_LOG() << "-----result-----";
