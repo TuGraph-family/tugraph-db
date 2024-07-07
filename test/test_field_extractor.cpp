@@ -310,12 +310,12 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         CheckParseDataType<std::vector<float>>(
             FieldType::FLOAT_VECTOR, value_tmp, "111.1111,222.2222,333.3333",
             FieldData::FloatVector(vec4), "abcdefg", FieldData("sad"), false);
-        
+
         std::vector<float> vec5 = {0.111111, 0.222222, 0.3333333};
         CheckParseDataType<std::vector<float>>(
             FieldType::FLOAT_VECTOR, value_tmp, "0.111111,0.222222,0.3333333",
             FieldData::FloatVector(vec5), "abcdefg", FieldData("sad"), false);
-            
+
         std::vector<float> vec6 = {111111.0, 222222.0, 333333.0};
         CheckParseDataType<std::vector<float>>(
             FieldType::FLOAT_VECTOR, value_tmp, "111111.0,222222.0,333333.0",
