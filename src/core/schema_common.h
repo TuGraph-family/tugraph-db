@@ -202,6 +202,14 @@ class FullTextIndexExistException : public LgraphException {
                           "FullText Index [{}:{}] already exist.", label, field) {}
 };
 
+class VectorSizeTooLargeException : public LgraphException {
+ public:
+    VectorSizeTooLargeException(const std::string& field, size_t dsize, size_t max_size)
+        : LgraphException(ErrorCode::VectorSizeTooLarge,
+                          "Failed to set field [{}]: Vector size too big, max is {}, given {}",
+                          field, max_size, dsize) {}
+};
+
 class UserNotExistException : public LgraphException {
  public:
     explicit UserNotExistException(const std::string& user)

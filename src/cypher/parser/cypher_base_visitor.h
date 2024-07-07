@@ -1882,9 +1882,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         // TODO(anyone) The Lcypher parser parse the following `WORD` in StandaloneCall parameter as
         // VARIABLE IT SHOULD BE PARSED AS KEYWORD. THIS IS A WORKAROUND WAY. SEE ISSUE: #164
         static const std::vector<std::string> excluded_set = {
-            "INT8",   "INT16", "INT32",    "INT64", "FLOAT", "DOUBLE",
-            "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",
-            "POINT", "LINESTRING", "POLYGON", "SPATIAL"
+            "INT8",       "INT16",   "INT32",    "INT64",        "FLOAT", "DOUBLE",
+            "STRING",     "DATE",    "DATETIME", "BLOB",         "BOOL",  "POINT",
+            "LINESTRING", "POLYGON", "SPATIAL",  "FLOAT_VECTOR"
         };
         if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
                 std::string upper_var(var.size(), ' ');
