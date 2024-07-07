@@ -311,6 +311,12 @@ TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
     std::vector<float> vec10 = {1111, 2111, 3111, 4111, 5111};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
                              "1111.000,2111.000,3111.000,4111.000,5111.000", vec10);
+    std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR, "0.111111,0.222222,0.333333,0.444444", vector1);
+    std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR, "111.1111,222.2222,333.3333,444.4444", vector2);
+    std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR, "111111.0,222222.0,333333.0", vector3);
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -483,25 +489,24 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
 
     // testing float vector
     {
-        std::vector<float> vec3 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
-        FieldData fd1 = FieldData(vec3);
-        Value v1;
-        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd1, FieldType::FLOAT_VECTOR, v1), true);
-        std::vector<float> vec4 = {};
-        for (size_t i = 0; i < v1.AsType<std::vector<float>>().size(); i++) {
-            vec4.push_back(v1.AsType<std::vector<float>>().at(i));
+        std::vector<std::vector<float>> test_vector = {
+            {1.111111, 2.111111, 3.111111, 4.111111, 5.111111},
+            {1111111, 2111111, 3111111, 4111111, 5111111},
+            {0.111111, 0.222222, 0.3333333},
+            {111.1111, 222.2222, 333.3333},
+            {111111.0, 222222.0, 333333.0},
+            {1111, 2222, 3333}
+        };
+        for (size_t i = 0; i < test_vector.size(); i++) {
+            FieldData fd = FieldData(test_vector[i]);
+            Value v;
+            UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::FLOAT_VECTOR, v), true);
+            std::vector<float> vec = {};
+            for (size_t i = 0; i < v.AsType<std::vector<float>>().size(); i++) {
+                vec.push_back(v.AsType<std::vector<float>>().at(i));
+            }
+            UT_EXPECT_EQ(test_vector.at(i), vec);
         }
-        UT_EXPECT_EQ(vec4, vec3);
-
-        std::vector<float> vec5 = {1111111, 2111111, 3111111, 4111111, 5111111};
-        FieldData fd2 = FieldData(vec5);
-        Value v2;
-        UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd2, FieldType::FLOAT_VECTOR, v2), true);
-        std::vector<float> vec6 = {};
-        for (size_t i = 0; i < v2.AsType<std::vector<float>>().size(); i++) {
-            vec6.push_back(v2.AsType<std::vector<float>>().at(i));
-        }
-        UT_EXPECT_EQ(vec6, vec5);
     }
 }
 
@@ -574,6 +579,14 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
         std::vector<float> vec3 = {1111111, 2222222, 3333333};
         _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
                                "1111111,2222222,3333333", vec3);
+        std::vector<float> vec5 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec5);
+        std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "0.111111,0.222222,0.333333,0.444444", vector1);
+        std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "111.1111,222.2222,333.3333,444.4444", vector2);
+        std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "111111.0,222222.0,333333.0", vector3);
     }
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
@@ -597,6 +610,9 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     {
         std::vector<float> vec7 = {1.111, 2.111, 3.111, 4.111, 5.111};
         UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "213234qwe#@asda", vec7));
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "111,222,", vec7));
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "2,1,,323", vec7));
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, ",2,1,3", vec7));
     }
 }
 

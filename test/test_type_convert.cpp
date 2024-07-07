@@ -102,7 +102,7 @@ TEST_F(TestTypeConvert, TypeConvert) {
         ValueToFieldData(Value::ConstRef(vec), FieldType::FLOAT_VECTOR).AsFloatVector() == vec);
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(vec), FieldType::FLOAT_VECTOR).ToString(),
                  "1.111000,2.111000,3.111000,4.111000");
-    
+
     std::vector<float> vec1 = {1111, 2111, 3111, 4111};
     UT_EXPECT_TRUE(
         ValueToFieldData(Value::ConstRef(vec1), FieldType::FLOAT_VECTOR).AsFloatVector() == vec1);
@@ -114,4 +114,16 @@ TEST_F(TestTypeConvert, TypeConvert) {
         ValueToFieldData(Value::ConstRef(vec3), FieldType::FLOAT_VECTOR).AsFloatVector() == vec3);
     UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(vec3), FieldType::FLOAT_VECTOR).ToString(),
                  "1111111,2111111,3111111,4111111");
+
+    std::vector<float> vec4 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+    UT_EXPECT_TRUE(
+        ValueToFieldData(Value::ConstRef(vec4), FieldType::FLOAT_VECTOR).AsFloatVector() == vec4);
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(vec4), FieldType::FLOAT_VECTOR).ToString(),
+                 "1.111111,2.111111,3.111111,4.111111,5.111111");
+
+    std::vector<float> vec5 = {111111.0, 222222.0, 333333.0};
+    UT_EXPECT_TRUE(
+        ValueToFieldData(Value::ConstRef(vec5), FieldType::FLOAT_VECTOR).AsFloatVector() == vec5);
+    UT_EXPECT_EQ(ValueToFieldData(Value::ConstRef(vec5), FieldType::FLOAT_VECTOR).ToString(),
+                 "111111.0,222222.0,333333.0");
 }

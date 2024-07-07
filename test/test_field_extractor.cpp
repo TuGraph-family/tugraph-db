@@ -295,7 +295,7 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         CheckParseDataType<std::vector<float>>(
             FieldType::FLOAT_VECTOR, value_tmp, "1.111000,2.111000,3.111000,4.111000,5.111000",
             FieldData::FloatVector(vec1), "abcdefg", FieldData("sad"), false);
-        
+
         std::vector<float> vec2 = {1111111, 2111111, 3111111, 4111111, 5111111};
         CheckParseDataType<std::vector<float>>(
             FieldType::FLOAT_VECTOR, value_tmp, "1111111,2111111,3111111,4111111,5111111",
@@ -305,6 +305,21 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         CheckParseDataType<std::vector<float>>(
             FieldType::FLOAT_VECTOR, value_tmp, "1111.000,2111.000,3111.000,4111.000,5111.000",
             FieldData::FloatVector(vec3), "abcdefg", FieldData("sad"), false);
+
+        std::vector<float> vec4 = {111.1111, 222.2222, 333.3333};
+        CheckParseDataType<std::vector<float>>(
+            FieldType::FLOAT_VECTOR, value_tmp, "111.1111,222.2222,333.3333",
+            FieldData::FloatVector(vec4), "abcdefg", FieldData("sad"), false);
+        
+        std::vector<float> vec5 = {0.111111, 0.222222, 0.3333333};
+        CheckParseDataType<std::vector<float>>(
+            FieldType::FLOAT_VECTOR, value_tmp, "0.111111,0.222222,0.3333333",
+            FieldData::FloatVector(vec5), "abcdefg", FieldData("sad"), false);
+            
+        std::vector<float> vec6 = {111111.0, 222222.0, 333333.0};
+        CheckParseDataType<std::vector<float>>(
+            FieldType::FLOAT_VECTOR, value_tmp, "111111.0,222222.0,333333.0",
+            FieldData::FloatVector(vec6), "abcdefg", FieldData("sad"), false);
 
         CheckParseStringAndBlob(FieldType::STRING, value_tmp, "this is a string",
                                 FieldData("another string"),
