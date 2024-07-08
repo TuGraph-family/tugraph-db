@@ -372,6 +372,15 @@ web::json::value ProtoFieldDataToJson(const ProtoFieldData& data) {
     case ProtoFieldData::kSpatial:
         // TODO(shw): string(_TU(Polygon(data.spatial()).ToString()));
         return web::json::value::string(_TU(data.spatial()));
+    case ProtoFieldData::kFvector:
+        {
+            std::vector<web::json::value> json_vec;
+            auto size = data.fvector().fv_size();
+            for (int i = 0; i < size; i++) {
+                json_vec.push_back(web::json::value::number(data.fvector().fv(i)));
+            }
+            return web::json::value::array(json_vec);
+        }
     }
     FMA_ASSERT(false);
     return web::json::value::null();

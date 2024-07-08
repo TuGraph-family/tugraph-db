@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -404,6 +404,10 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
         }
+    }
+    case FieldType::FLOAT_VECTOR:
+    {
+        return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
     }
     case FieldType::NUL:
         LOG_ERROR() << "FieldType NUL";
