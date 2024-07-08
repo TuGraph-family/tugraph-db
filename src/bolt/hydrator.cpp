@@ -26,6 +26,7 @@
 #include "bolt/spatial.h"
 #include "bolt/temporal.h"
 #include "fma-common/string_formatter.h"
+#include "lgraph/lgraph_exceptions.h"
 
 namespace bolt {
 const char* containsSystemUpdatesKey = "contains-system-updates";
@@ -882,7 +883,7 @@ std::any ServerHydrator(Unpacker& unpacker) {
         case PackType::String:
             return unpacker.String();
         case PackType::Structure: {
-            LOG_FATAL() << "No support for unpacking struct in server stub";
+            THROW_CODE(BoltDataException, "No support for unpacking struct in server stub");
         }
         case PackType::Bytes:
             return unpacker.ByteArray();
@@ -913,8 +914,8 @@ std::any ServerHydrator(Unpacker& unpacker) {
         case PackType::False:
             return false;
         default: {
-            LOG_FATAL() << "Unsupported type to unpack";
-            return {};
+            THROW_CODE(BoltDataException, "Unsupported type to unpack: {}",
+                       static_cast<int>(unpacker.CurrentType()));
         }
     }
 }

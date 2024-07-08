@@ -24,54 +24,54 @@ CREATE (n:City {name: 'Shanghai', area:6340.5, population:2423.78}) ;
 [{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
 
 MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.birthyear":161,"n.gender":1}]
 MERGE (n:Person {name:'Zhugeliang'}) ON CREATE SET n.gender=1,n.birthyear=181 RETURN n.name ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.name":"Zhugeliang"}]
 MERGE (n:Person {name:'Liubei'}) ON MATCH SET n.birthyear=2010 RETURN n.birthyear ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.birthyear":2010}]
 MERGE(n:Person {name:'Liubei'}) ON CREATE SET n.gender=1 ON MATCH SET n.birthyear=2020 RETURN n.name, n.gender,n.birthyear ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.birthyear":2020,"n.gender":1,"n.name":"Liubei"}]
 MERGE(n:Person {name:'Huatuo'}) ON CREATE SET n.gender=1 ON MATCH SET n.birthyear=2020 RETURN n.name, n.gender,n.birthyear ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.birthyear":null,"n.gender":1,"n.name":"Huatuo"}]
 MERGE(n:Person {name:'Liubei'}) ON MATCH SET n.gender=0,n.birthyear=2050 RETURN n.name, n.gender,n.birthyear ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.birthyear":2050,"n.gender":0,"n.name":"Liubei"}]
 MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE (n)-[r:Knows{intimacy:0.6}]->(m) RETURN r.intimacy ;
-[]
+[{"r.intimacy":0.6}]
 MATCH(n:Person {name:'Caocao'}), (m:Person {name:'Sunquan'}) MERGE (n)-[r:Knows]->(m) RETURN r.intimacy ;
-[]
+[{"r.intimacy":0.6}]
 MATCH (n:Person),(m:City) WHERE n.name='Caocao' AND m.name='Beijing' MERGE (n)-[r:Livein]->(m) RETURN r ;
-[InputError] Vertex label "Person" does not exist.
+[{"r":{"dst":5,"forward":false,"identity":0,"label":"Livein","label_id":1,"src":1,"temporal_id":0}}]
 MATCH (n:Person {name:'Caocao'}) MERGE (n)-[r:Knows]->(m:Person {name:'Sunquan'})RETURN r ;
-[]
+[{"r":{"dst":2,"forward":false,"identity":0,"label":"Knows","label_id":0,"properties":{"intimacy":0.6},"src":1,"temporal_id":0}}]
 MATCH (n:Person),(m:City) WHERE n.birthyear >= 160 AND m.name = 'Beijing' MERGE (n)-[r:Livein]->(m) RETURN r ;
-[InputError] Vertex label "Person" does not exist.
+[{"r":{"dst":5,"forward":false,"identity":0,"label":"Livein","label_id":1,"src":3,"temporal_id":0}},{"r":{"dst":5,"forward":false,"identity":0,"label":"Livein","label_id":1,"src":0,"temporal_id":0}},{"r":{"dst":5,"forward":false,"identity":0,"label":"Livein","label_id":1,"src":2,"temporal_id":0}},{"r":{"dst":5,"forward":false,"identity":0,"label":"Livein","label_id":1,"src":7,"temporal_id":0}}]
 MERGE (n:Person {name:'Caocao'})-[r:Knows]->(m:Person {name:'Caogai'})RETURN r ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"r":{"dst":9,"forward":false,"identity":0,"label":"Knows","label_id":0,"properties":{"intimacy":null},"src":1,"temporal_id":0}}]
 MERGE (n:Person {name:'Huatuo'}) RETURN n.name ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.name":"Huatuo"}]
 MERGE (n:Person {name:'Xunyu'}) RETURN n.name ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.name":"Xunyu"}]
 MERGE (n:Person {name:'Liubei'}) RETURN n.birthyear, n.gender ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"n.birthyear":2050,"n.gender":0}]
 MERGE (node1: Person {name: 'lisi'}) ON CREATE SET node1.birthyear = 1903 WITH node1 MATCH (node1) WHERE node1.birthyear < 1904 SET node1.birthyear = 1904 RETURN id(node1), node1.name, node1.birthyear ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"id(node1)":11,"node1.birthyear":1904,"node1.name":"lisi"}]
 MERGE (n: Person {name: 'wangwu'}) ON CREATE SET n.birthyear = 1903 ON CREATE SET n.name = 'wangwu2' WITH n MATCH (n) WHERE n.birthyear < 2002 SET n += {birthyear: 2002, name: 'wangwu2'} RETURN id(n), n.name, n.birthyear ;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"id(n)":12,"n.birthyear":2002,"n.name":"wangwu2"}]
 MERGE (a:Person {name: 'zhangsan'}) SET a.birthyear = 2020 RETURN a.birthyear;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"a.birthyear":2020}]
 MERGE (a:Person {name: 'zhangsan'}) DELETE a;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"<SUMMARY>":"deleted 1 vertices, deleted 0 edges."}]
 MERGE (a:Person {name: 'zhangsan'}) CREATE (b:Person {name : 'xiaoming'})RETURN b;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"b":{"identity":15,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"xiaoming"}}}]
 MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"m":{"identity":11,"label":"Person","properties":{"birthyear":1904,"gender":null,"name":"lisi"}},"n":{"identity":14,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"zhangsan"}}}]
 MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) RETURN n,m;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"m":{"identity":11,"label":"Person","properties":{"birthyear":1904,"gender":null,"name":"lisi"}},"n":{"identity":14,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"zhangsan"}}}]
 MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) CREATE (n)-[r:Knows]->(m) RETURN n, r, m;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"m":{"identity":11,"label":"Person","properties":{"birthyear":1904,"gender":null,"name":"lisi"}},"n":{"identity":14,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"zhangsan"}},"r":{"dst":11,"forward":false,"identity":0,"label":"Knows","label_id":0,"properties":{"intimacy":null},"src":14,"temporal_id":0}}]
 MERGE (n:Person {name:'zhangsan'}) MERGE (m:Person {name:'lisi'}) MERGE (n)-[r:Knows]->(m) return n, r, m;
-[CypherException] CypherException: cannot match node with given label and properties
+[{"m":{"identity":11,"label":"Person","properties":{"birthyear":1904,"gender":null,"name":"lisi"}},"n":{"identity":14,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"zhangsan"}},"r":{"dst":11,"forward":false,"identity":0,"label":"Knows","label_id":0,"properties":{"intimacy":null},"src":14,"temporal_id":0}}]
 MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 CREATE (b:Person {name:'wangwu'}) RETURN b;
-[]
+[{"b":{"identity":16,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"wangwu"}}}]
 MATCH (a:Person {name:'zhangsan'}) SET a.birthyear = 2023 MERGE (b:Person {name:'wangwu'}) RETURN b;
-[]
+[{"b":{"identity":16,"label":"Person","properties":{"birthyear":null,"gender":null,"name":"wangwu"}}}]

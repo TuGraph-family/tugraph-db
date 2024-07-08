@@ -2,7 +2,7 @@ CALL db.createVertexLabel('Person', 'name', 'name', 'STRING', false, 'age', 'INT
 CALL db.createEdgeLabel('KNOWS', '[]', 'weight', 'INT16', true);
 CREATE (a:Person {name:'A', age:13, date:DATE('2023-07-23')}) CREATE (b:Person {name:'B', age:33, eyes:'blue'}) CREATE (c:Person {name:'C', age:44, eyes:'blue'}) CREATE (d:Person {name:'D', eyes:'brown'}) CREATE (e:Person {name:'E'}) CREATE (f:Person {name:'F', age:1}) CREATE (g:Person {name:'G', age:2}) CREATE (h:Person {name:'H', age:2}) CREATE (i1:Person {name:'I', age:3}) CREATE (a)-[:KNOWS {weight:10}]->(b), (a)-[:KNOWS {weight:15}]->(c), (a)-[:KNOWS {weight:40}]->(d), (b)-[:KNOWS {weight:20}]->(e), (c)-[:KNOWS {weight:12}]->(e),(f)-[:KNOWS {weight:0}]->(g), (f)-[:KNOWS {weight:0}]->(h),(f)-[:KNOWS {weight:0}]->(i1) ;
 MATCH (n:Person {name:'E'}) SET n.name='X';
-#MATCH (n:Person {name:'A'}), (m:Person {name:'B'}) SET n.age=50 SET m.age=51;
+MATCH (n:Person {name:'A'}), (m:Person {name:'B'}) SET n.age=50 SET m.age=51;
 MATCH (n:Person {name:'A'})-[e:KNOWS]->(m:Person) SET n.age=50 SET e.weight=50;
 MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = 34;
 MATCH (n:Person {name:'B'})<-[]-(m:Person) SET m.age = id(n);

@@ -36,12 +36,19 @@ namespace parser {
 enum class VisitType {
     kReadingClause,
     kUpdatingClause,
+    kMergeClause,
+    kMergeOnMatch,
+    kMergeOnCreate,
     kReadingPattern,
     kUpdatingPattern,
     kMatchPattern,
     kSetVariable,
     kSetNull,
-    kDeleteVariable
+    kDeleteVariable,
+    kWithClause,
+    kStandaloneCall,
+    kInQueryCall,
+    kSinglePartQuery
 };
 
 class VisitGuard {
@@ -71,6 +78,9 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     size_t anonymous_idx_;
     std::unordered_set<VisitType> visit_types_;
     static const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> S_AGG_LIST;
+    static const std::unordered_map<std::string, geax::frontend::BinarySetFunction> S_BAGG_LIST;
+    geax::frontend::PathChain* path_chain_;
+    geax::frontend::FilterStatement* filter_in_with_clause_;
 
  public:
     CypherBaseVisitorV2() = delete;

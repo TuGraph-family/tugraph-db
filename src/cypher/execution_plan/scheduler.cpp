@@ -181,7 +181,7 @@ void Scheduler::EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &
         LOG_DEBUG() << dumper.dump();
     }
     cypher::ExecutionPlanV2 execution_plan_v2;
-    ret = execution_plan_v2.Build(node);
+    ret = execution_plan_v2.Build(node, ctx);
     elapsed.t_compile = fma_common::GetTime() - t0;
     if (ret != GEAXErrorCode::GEAX_SUCCEED) {
         LOG_DEBUG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();

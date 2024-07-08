@@ -23,7 +23,7 @@ class ExecutionPlanV2 {
  public:
     ExecutionPlanV2() = default;
     ~ExecutionPlanV2();
-    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, RTContext* ctx);
     int Execute(RTContext* ctx);
     std::string DumpPlan(int indent, bool statistics) const;
     std::string DumpGraph() const;

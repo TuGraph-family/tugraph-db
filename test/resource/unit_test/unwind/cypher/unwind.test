@@ -10,25 +10,16 @@ UNWIND ['Paris','Houston'] AS x MATCH (n {name:x}),(m:Film) RETURN x,n,m;
 MATCH (c {name:'Houston'}) WITH c MATCH (c)<-[r]-(p) RETURN p;
 MATCH (c {name:'Houston'}) WITH c MATCH (p)-[r]->(c) RETURN p;
 MATCH (a {name:'Liam Neeson'}) WITH a,'London' AS cid MATCH (c {name:cid}) RETURN a,c;
-MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,count(c);
-MATCH (a {name:'Liam Neeson'}),(b {name:'Dennis Quaid'}) WITH a,b,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,b,count(c);
-MATCH (a {name:'Dennis Quaid'}) WITH a,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid})<-[]-(a) RETURN a,count(c);
-MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids
-UNWIND cids AS cid MATCH (c {name:cid})<-[]-()-[:MARRIED]->(a) RETURN a,count(c);
+MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,count(c);
+MATCH (a {name:'Liam Neeson'}),(b {name:'Dennis Quaid'}) WITH a,b,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid}) RETURN a,b,count(c);
+MATCH (a {name:'Dennis Quaid'}) WITH a,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid})<-[]-(a) RETURN a,count(c);
+MATCH (a {name:'Liam Neeson'}) WITH a,['London','Houston'] AS cids UNWIND cids AS cid MATCH (c {name:cid})<-[]-()-[:MARRIED]->(a) RETURN a,count(c);
 MATCH (c {name:'Houston'}) WITH c MATCH (p:Person {name:'Liam Neeson'}) CREATE (c)-[:HAS_CHILD]->(p);
 MATCH (c {name:'Houston'}) WITH c UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (c)-[:HAS_CHILD]->(q);
 MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer1', birthyear:2002})-[r:BORN_IN]->(c) RETURN p,r,c;
-MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer2', birthyear:2002})-[r:BORN_IN]->(c) WITH p
-UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q);
-MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer3', birthyear:2002})-[r:BORN_IN]->(c) WITH p
-UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p
-UNWIND ['Liam Neeson'] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,7 */;
-MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer4', birthyear:2002})-[r:BORN_IN]->(c) WITH p
-UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p
-UNWIND [] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,4 */;
+MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer2', birthyear:2002})-[r:BORN_IN]->(c) WITH p UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q);
+MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer3', birthyear:2002})-[r:BORN_IN]->(c) WITH p UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p UNWIND ['Liam Neeson'] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,7 */;
+MATCH (c {name:'Houston'}) CREATE (p:Person {name:'passer4', birthyear:2002})-[r:BORN_IN]->(c) WITH p UNWIND $personIds AS pId MATCH (q:Person {name:pId}) CREATE (p)-[:HAS_CHILD]->(q) WITH p UNWIND [] AS sId MATCH (s:Person {name:sId}) CREATE (p)-[:DIRECTED]->(s) /* 1,4 */;
 WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH x RETURN collect(x);
 WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH x RETURN collect(DISTINCT x);
 CREATE (:City {name:'Shanghai'}), (:City {name:'Zhongshan'}), (:Person {name:'Zhongshan'});

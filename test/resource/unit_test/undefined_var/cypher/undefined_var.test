@@ -8,8 +8,8 @@ MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct
 WITH [1,2,3] AS k RETURN [x in k | x + y] AS result;
 REMOVE a.name;
 SET a :MyLabel;
-MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET z=m;
-MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET n=z;
+#MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET z=m;
+#MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET n=z;
 MATCH (n:Person {name:'X'}) SET z.name = "Y";
 MATCH(n:Person {name: 'D'}) DELETE k;
 MATCH(n)-[r:REL]-(m) DELETE k;

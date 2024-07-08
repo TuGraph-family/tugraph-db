@@ -114,6 +114,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         }
         return false;
     }
+    void AstRewrite(cypher::RTContext *ctx);
 
  public:
     CypherBaseVisitor() = default;
@@ -125,6 +126,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         for (auto &q : _query) {
             for (auto &p : q.parts) p.Enrich();
         }
+        AstRewrite(ctx);
     }
 
     /**
@@ -267,7 +269,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         AddSymbol(variable, cypher::SymbolNode::CONSTANT, var_scope);
         Clause clause;
         clause.type = Clause::UNWIND;
-        clause.data = std::make_shared<Clause::TYPE_UNWIND>(e, variable);
+        clause.data = std::make_shared<Clause::TYPE_UNWIND>(e, variable, false);
         _query[_curr_query].parts[_curr_part].AddClause(clause);
         _LeaveClauseUNWIND();
         return 0;
@@ -652,8 +654,14 @@ class CypherBaseVisitor : public LcypherVisitor {
                 }
                 // sort_item alias is not in return_item
                 if (!sort_idx_found) {
-                    THROW_CODE(InputError,
-                        "Variable `{}` not defined", sort_item.first.ToString());
+                    // THROW_CODE(InputError,
+                    //     "Variable `{}` not defined", sort_item.first.ToString());
+                    auto expr = sort_item.first;
+                    auto alias = sort_item.first.ToString();
+                    bool isHidden = true;
+                    return_items.emplace_back(std::make_tuple(expr, alias, isHidden));
+                    int cur_sort_item_idx = return_items.size() - 1;
+                    sort_items_idx.emplace_back(cur_sort_item_idx, sort_item.second);
                 }
             }
             CYPHER_THROW_ASSERT(sort_items_idx.size() == sort_items.size());
@@ -710,7 +718,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             AddSymbol(as_variable.empty() ? variable : as_variable, type,
                       cypher::SymbolNode::LOCAL);
         }
-        return std::make_tuple(expr, as_variable);
+        return std::make_tuple(expr, as_variable, false);
     }
 
     std::any visitOC_Order(LcypherParser::OC_OrderContext *ctx) override {
@@ -1874,9 +1882,9 @@ class CypherBaseVisitor : public LcypherVisitor {
         // TODO(anyone) The Lcypher parser parse the following `WORD` in StandaloneCall parameter as
         // VARIABLE IT SHOULD BE PARSED AS KEYWORD. THIS IS A WORKAROUND WAY. SEE ISSUE: #164
         static const std::vector<std::string> excluded_set = {
-            "INT8",   "INT16", "INT32",    "INT64", "FLOAT", "DOUBLE",
-            "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",
-            "POINT", "LINESTRING", "POLYGON", "SPATIAL"
+            "INT8",       "INT16",   "INT32",    "INT64",        "FLOAT", "DOUBLE",
+            "STRING",     "DATE",    "DATETIME", "BLOB",         "BOOL",  "POINT",
+            "LINESTRING", "POLYGON", "SPATIAL",  "FLOAT_VECTOR"
         };
         if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
                 std::string upper_var(var.size(), ' ');

@@ -51,6 +51,14 @@ TEST_F(TestDataType, DataType) {
         "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
         "00000000000000040000000000000000000000000000000000000000000000000";
 
+        // data prepared for vector
+        std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111, 6.111};
+        std::vector<float> vec2 = {1111111, 2111111, 3111111, 4111111, 5111111, 6111111};
+        std::vector<float> vec3 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+        std::vector<float> vec4 = {1111.000, 2222.000, 3333.000};
+        std::vector<float> vec5 = {111111.0, 222222.0, 333333.0};
+        std::vector<float> vec6 = {1111, 2222, 3333};
+
         // is_null and is_buf
         UT_EXPECT_TRUE(FieldData().is_null());
         UT_EXPECT_TRUE(!FieldData(123).is_null());
@@ -66,6 +74,12 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POLYGON, 0,
         WKB_Polygon)).is_buf());
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon)).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec1).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec2).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec3).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec4).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec5).is_buf());
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec6).is_buf());
 
         // Constructor and AsXXX()
         UT_EXPECT_EQ(FieldData(true).AsBool(), true);
@@ -97,6 +111,7 @@ TEST_F(TestDataType, DataType) {
         std::string orig = "orig string";
         UT_EXPECT_EQ(FieldData::BlobFromBase64(::lgraph_api::base64::Encode(orig)).AsBlob(), orig);
 
+
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
         WKB_Point)).AsWgsSpatial() == Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0,
         WKB_Point));
@@ -111,6 +126,12 @@ TEST_F(TestDataType, DataType) {
         LineString<Wgs84>(EWKB_LineString));
         UT_EXPECT_TRUE(FieldData::Polygon(EWKB_Polygon).AsWgsPolygon() ==
         Polygon<Wgs84>(EWKB_Polygon));
+        UT_EXPECT_EQ(FieldData::FloatVector(vec1).AsFloatVector(), vec1);
+        UT_EXPECT_EQ(FieldData::FloatVector(vec2).AsFloatVector(), vec2);
+        UT_EXPECT_EQ(FieldData::FloatVector(vec3).AsFloatVector(), vec3);
+        UT_EXPECT_EQ(FieldData::FloatVector(vec4).AsFloatVector(), vec4);
+        UT_EXPECT_EQ(FieldData::FloatVector(vec5).AsFloatVector(), vec5);
+        UT_EXPECT_EQ(FieldData::FloatVector(vec6).AsFloatVector(), vec6);
 
         // ToString
         UT_EXPECT_EQ(FieldData::Bool(true).ToString(), "true");
@@ -136,6 +157,18 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_EQ(FieldData::LineString(LineString<Wgs84>
         (EWKB_LineString)).ToString(), EWKB_LineString);
         UT_EXPECT_EQ(FieldData::Polygon(Polygon<Wgs84>(EWKB_Polygon)).ToString(), EWKB_Polygon);
+        UT_EXPECT_EQ(FieldData::FloatVector(vec1).ToString(),
+                     "1.111000,2.111000,3.111000,4.111000,5.111000,6.111000");
+        UT_EXPECT_EQ(FieldData::FloatVector(vec2).ToString(),
+                     "1111111,2111111,3111111,4111111,5111111,6111111");
+        UT_EXPECT_EQ(FieldData::FloatVector(vec3).ToString(),
+                     "1.111111,2.111111,3.111111,4.111111,5.111111");
+        UT_EXPECT_EQ(FieldData::FloatVector(vec4).ToString(),
+                     "1111.000,2222.000,3333.000");
+        UT_EXPECT_EQ(FieldData::FloatVector(vec5).ToString(),
+                     "111111.0,222222.0,333333.0");
+        UT_EXPECT_EQ(FieldData::FloatVector(vec6).ToString(),
+                     "1111.000,2222.000,3333.000");
 
         // compare operators
         UT_EXPECT_ANY_THROW(FieldData::Int8(1) == FieldData::Bool(false));
@@ -180,6 +213,12 @@ TEST_F(TestDataType, DataType) {
         UT_EXPECT_TRUE(FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon))
         == FieldData::Spatial(Spatial<Wgs84>(EWKB_Polygon)));
 
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec1) == FieldData::FloatVector(vec1));
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec2) == FieldData::FloatVector(vec2));
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec3) == FieldData::FloatVector(vec3));
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec4) == FieldData::FloatVector(vec4));
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec5) == FieldData::FloatVector(vec5));
+        UT_EXPECT_FALSE(FieldData::FloatVector(vec6) == FieldData::FloatVector(vec6));
 
         UT_EXPECT_ANY_THROW(FieldData::Int8(1) > FieldData::Bool(false));
         UT_EXPECT_TRUE(FieldData::Int8(1) > FieldData::Int8(-10));

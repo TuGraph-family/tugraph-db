@@ -122,6 +122,15 @@ nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
         return nlohmann::json(data.polygon());
     case ProtoFieldData::kSpatial:
         return nlohmann::json(data.spatial());
+    case ProtoFieldData::kFvector:
+        {
+            nlohmann::json vec = nlohmann::json::array();
+            auto size = data.fvector().fv_size();
+            for (int i = 0; i < size; i++) {
+                vec.push_back(data.fvector().fv(i));
+            }
+            return vec;
+        }
     }
     FMA_ASSERT(false);
     return nlohmann::json();

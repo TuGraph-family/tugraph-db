@@ -25,7 +25,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     explicit PatternGraphMaker(std::vector<PatternGraph>& pattern_graphs)
         : pattern_graphs_(pattern_graphs) {}
 
-    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, RTContext* ctx);
     std::string ErrorMsg() { return error_msg_; }
 
  private:
@@ -194,6 +194,8 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ShowProcessListStatement* node) override;
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
+    std::any visit(geax::frontend::UnwindStatement* node) override;
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
@@ -203,13 +205,14 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
                    cypher::SymbolNode::Scope scope);
     void AddNode(Node* node);
     void AddRelationship(Relationship* rel);
-
     std::vector<PatternGraph>& pattern_graphs_;
     std::vector<size_t> symbols_idx_;
     size_t cur_pattern_graph_;
     std::unordered_set<geax::frontend::AstNodeType> cur_types_;
     bool read_only_ = true;
     std::string error_msg_;
+    std::string curr_procedure_name_;
+    RTContext* ctx_;
 
     std::shared_ptr<Node> node_t_;
     std::shared_ptr<Node> start_t_;
