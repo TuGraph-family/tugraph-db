@@ -240,25 +240,6 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
 
-    bool _IsVariableDefined(const std::string &var) {
-        if (var.empty()) {
-            return true;
-        }
-        static const std::vector<std::string> excluded_set = {
-            "INT8",   "INT16", "INT32",    "INT64", "FLOAT", "DOUBLE",
-            "STRING", "DATE",  "DATETIME", "BLOB",  "BOOL",
-            "POINT", "LINESTRING", "POLYGON", "SPATIAL"
-        };
-        if (std::find_if(excluded_set.begin(), excluded_set.end(), [&var](const std::string &kw) {
-                std::string upper_var(var.size(), ' ');
-                std::transform(var.begin(), var.end(), upper_var.begin(), ::toupper);
-                return upper_var == kw;
-            }) != excluded_set.end()) {
-            return true;
-        }
-        const auto &symbols = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
-        return symbols.find(var) != symbols.end();
-    }
 };
 
 }  // namespace cypher
