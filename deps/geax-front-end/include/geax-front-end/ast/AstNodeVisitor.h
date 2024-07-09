@@ -487,7 +487,7 @@ class AstExprNodeVisitorImpl : public AstNodeVisitor {
     virtual std::any visit(ResetParam*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
-    std::any visit(RemoveSingleProperty* node) override {
+    virtual std::any visit(RemoveSingleProperty* node) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
 

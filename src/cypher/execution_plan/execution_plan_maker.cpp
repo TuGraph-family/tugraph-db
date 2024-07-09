@@ -142,11 +142,12 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
         return ret;
     }
     _DumpPlanBeforeConnect(0, false);
-    LOG_INFO() << "Dump plan finished!";
+    LOG_DEBUG() << "Dump plan finished!";
     root = pattern_graph_root_[0];
     for (size_t i = 1; i < pattern_graph_root_.size(); i++) {
-        if (should_connect_[i])
+        if (should_connect_[i]) {
             root = _Connect(root, pattern_graph_root_[i], &(pattern_graphs_[i]));
+        }
     }
     if (op_filter_ != nullptr) {
         NOT_SUPPORT();
@@ -156,11 +157,15 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
-    for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
-        if (should_connect_[i])
-            OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
+    if (lgraph_log::LoggerManager::GetInstance().GetLevel()
+        == lgraph_log::severity_level::DEBUG) {
+        for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
+            if (should_connect_[i]) {
+                OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
+            }
+        }
+        LOG_DEBUG() << s;
     }
-    LOG_INFO() << s;
     return s;
 }
 
