@@ -83,12 +83,12 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     static const std::unordered_map<std::string, geax::frontend::BinarySetFunction> S_BAGG_LIST;
     geax::frontend::PathChain* path_chain_;
     geax::frontend::FilterStatement* filter_in_with_clause_;
-    parser::CmdType _cmd_type;
+    parser::CmdType cmd_type_;
 
  public:
     CypherBaseVisitorV2() = delete;
 
-    parser::CmdType CommandType() const { return _cmd_type; }
+    parser::CmdType CommandType() const { return cmd_type_; }
 
     CypherBaseVisitorV2(geax::common::ObjectArenaAllocator& objAlloc,
             antlr4::tree::ParseTree *tree);

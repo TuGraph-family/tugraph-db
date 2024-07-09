@@ -817,7 +817,7 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
     for (auto i : node->statements()) {
         auto statement = i->statement();
         pattern_graphs_size += 1;
-        if (typeid(*statement) == typeid(geax::frontend::QueryStatement)) {
+        if (statement->type() == geax::frontend::AstNodeType::kQueryStatement) {
             geax::frontend::QueryStatement *queryStatement =
                 (geax::frontend::QueryStatement*)statement;
             // not support join query, but support union query
@@ -825,8 +825,9 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
             int union_size = queryStatement->joinQuery()->head()->body().size();
             pattern_graphs_size += union_size;
             if (union_size) {
-                for (int j = 0; j <= union_size; ++j)
+                for (int j = 0; j <= union_size; ++j) {
                     pattern_graph_in_union_.push_back(true);
+                }
             } else {
                 pattern_graph_in_union_.push_back(false);
             }

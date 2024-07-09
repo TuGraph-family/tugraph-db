@@ -133,7 +133,7 @@ std::string CypherBaseVisitorV2::GenAnonymousAlias(bool is_node) {
 std::any CypherBaseVisitorV2::visitOC_Statement(LcypherParser::OC_StatementContext *ctx) {
     geax::frontend::NormalTransaction *node = nullptr;
     checkedCast(node_, node);
-    _cmd_type = ctx->EXPLAIN() ? parser::CmdType::EXPLAIN
+    cmd_type_ = ctx->EXPLAIN() ? parser::CmdType::EXPLAIN
                 : ctx->PROFILE() ? parser::CmdType::PROFILE
                 : parser::CmdType::QUERY;
     auto body = ALLOC_GEAOBJECT(geax::frontend::ProcedureBody);
