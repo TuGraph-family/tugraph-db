@@ -1154,7 +1154,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) {
     for (auto &item : node->items()) {
         geax::frontend::RemoveSingleProperty *remove;
         checkedCast(item, remove);
-        if (!_IsVariableDefined(remove->v())) {
+        if (pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(remove->v()) ==
+            pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.end()) {
             THROW_CODE(InputError, "Variable `{}` not defined", remove->v());
         }
     }
