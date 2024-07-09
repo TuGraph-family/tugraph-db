@@ -21,82 +21,30 @@
 #include "fma-common/configuration.h"
 
 namespace lgraph {
+
+struct BrowserOptions {
+    bool retain_connection_credentials = true;
+    int credential_timeout = 3600;
+};
+
 struct BasicConfigs {
-    BasicConfigs()
-        : db_dir("./lgraph_db")
-        , thread_limit(0)
-        , subprocess_max_idle_seconds(600)
-        , bind_host("0.0.0.0")
-        , enable_ssl(false)
-        , server_key_file()
-        , server_cert_file()
-        , http_port(7071)
-        , http_web_dir("./resource")
-        , http_disable_auth(false)
-        , jwt_secret("fma.ai")
-        , enable_rpc(false)
-        , rpc_port(9091)
-        , use_pthread(false)
-        , verbose(1)
-        , log_dir()
-        , max_log_file_size_mb(256)
-        , max_n_log_files(16)
-        , audit_log_expire(0)
-        , audit_log_dir("./audit_log")
-        , backup_log_dir("./binlog")
-        , snapshot_dir("./snapshot_log")
-        , max_backup_log_file_size((size_t)1 << 30)
-        , unlimited_token(false)
-        , reset_admin_password(false)
-        , enable_realtime_count(true)
-        , enable_plugin(false) {}
-
-    BasicConfigs(const BasicConfigs &basicConfigs)
-        : db_dir(basicConfigs.db_dir)
-          , thread_limit(basicConfigs.thread_limit)
-          , subprocess_max_idle_seconds(basicConfigs.subprocess_max_idle_seconds)
-          , bind_host(basicConfigs.bind_host)
-          , enable_ssl(basicConfigs.enable_ssl)
-          , server_key_file(basicConfigs.server_key_file)
-          , server_cert_file(basicConfigs.server_cert_file)
-          , http_port(basicConfigs.http_port)
-          , http_web_dir(basicConfigs.http_web_dir)
-          , http_disable_auth(basicConfigs.http_disable_auth)
-          , jwt_secret(basicConfigs.jwt_secret)
-          , enable_rpc(basicConfigs.enable_rpc)
-          , rpc_port(basicConfigs.rpc_port)
-          , use_pthread(basicConfigs.use_pthread)
-          , verbose(basicConfigs.verbose)
-          , log_dir(basicConfigs.log_dir)
-          , max_log_file_size_mb(basicConfigs.max_log_file_size_mb)
-          , max_n_log_files(basicConfigs.max_n_log_files)
-          , audit_log_expire(basicConfigs.audit_log_expire)
-          , audit_log_dir(basicConfigs.audit_log_dir)
-          , backup_log_dir(basicConfigs.backup_log_dir)
-          , snapshot_dir(basicConfigs.snapshot_dir)
-          , max_backup_log_file_size(basicConfigs.max_backup_log_file_size)
-          , ft_index_options(basicConfigs.ft_index_options)
-          , unlimited_token(basicConfigs.unlimited_token)
-          , reset_admin_password(basicConfigs.reset_admin_password)
-          , enable_plugin(basicConfigs.enable_plugin) {}
-
-    std::string db_dir;  // db
-    int thread_limit;                // number of threads, for both rpc and http
-    int subprocess_max_idle_seconds;
+    std::string db_dir = "./lgraph_db";  // db
+    int thread_limit = 0;                // number of threads, for both rpc and http
+    int subprocess_max_idle_seconds = 600;
     // address and ssl
-    std::string bind_host;
-    bool enable_ssl;
+    std::string bind_host = "0.0.0.0";
+    bool enable_ssl = false;
     std::string server_key_file;
     std::string server_cert_file;
     // http
-    uint16_t http_port;
-    std::string http_web_dir;
-    bool http_disable_auth;
-    std::string jwt_secret;  // salt for jwt
+    uint16_t http_port = 7071;
+    std::string http_web_dir = "./resource";
+    bool http_disable_auth = false;
+    std::string jwt_secret = "fma.ai";  // salt for jwt
     // rpc & ha
-    bool enable_rpc;
-    uint16_t rpc_port;
-    bool use_pthread;
+    bool enable_rpc = false;
+    uint16_t rpc_port = 9091;
+    bool use_pthread = false;
     bool enable_ha = false;
     std::string ha_conf;
     std::string ha_log_dir;
@@ -115,28 +63,29 @@ struct BasicConfigs {
                                                     // indicating a random time.
 
     // log
-    int verbose;
+    int verbose = 1;
     std::string log_dir;
-    size_t max_log_file_size_mb;
-    size_t max_n_log_files;
-    size_t audit_log_expire;
-    std::string audit_log_dir;
-    std::string backup_log_dir;
-    std::string snapshot_dir;
-    size_t max_backup_log_file_size;
+    size_t max_log_file_size_mb = 256;
+    size_t max_n_log_files = 16;
+    size_t audit_log_expire = 0;
+    std::string audit_log_dir = "./audit_log";
+    std::string backup_log_dir = "./binlog";
+    std::string snapshot_dir = "./snapshot_log";
+    size_t max_backup_log_file_size = (size_t)1 << 30;
     // fulltext index
     FullTextIndexOptions ft_index_options;
     // token time
-    bool unlimited_token;
+    bool unlimited_token = false;
     // reset admin password
-    bool reset_admin_password;
+    bool reset_admin_password = false;
     // vertex and edge count
-    bool enable_realtime_count{};
+    bool enable_realtime_count = true;
     // bolt
     int bolt_port = 0;
     int bolt_io_thread_num = 1;
     // default disable plugin load/delete
     bool enable_plugin = false;
+    BrowserOptions browser_options;
 };
 
 template <typename T>
@@ -151,26 +100,12 @@ inline void AddOption(std::map<std::string, std::string>& m, const std::string& 
 
 // config for a TuGraph instance
 struct GlobalConfig : public BasicConfigs {
-    GlobalConfig()
-        : durable(false),
-          txn_optimistic(false),
-          enable_audit_log(false),
-          enable_ip_check(false),
-          enable_backup_log(false) {}
-    GlobalConfig(const GlobalConfig& rhs)
-        : BasicConfigs(rhs),
-          durable(rhs.durable.load()),
-          txn_optimistic(rhs.txn_optimistic.load()),
-          enable_audit_log(rhs.enable_audit_log.load()),
-          enable_ip_check(rhs.enable_ip_check.load()),
-          enable_backup_log(rhs.enable_backup_log.load()) {}
-
     // modifiable
-    std::atomic<bool> durable;
-    std::atomic<bool> txn_optimistic;
-    std::atomic<bool> enable_audit_log;
-    std::atomic<bool> enable_ip_check;
-    std::atomic<bool> enable_backup_log;
+    std::atomic<bool> durable{false};
+    std::atomic<bool> txn_optimistic{false};
+    std::atomic<bool> enable_audit_log{false};
+    std::atomic<bool> enable_ip_check{false};
+    std::atomic<bool> enable_backup_log{false};
 
     [[nodiscard]] virtual std::map<std::string, std::string> FormatAsOptions() const;
     [[nodiscard]] std::string FormatAsString(size_t heading_space = 2) const;
