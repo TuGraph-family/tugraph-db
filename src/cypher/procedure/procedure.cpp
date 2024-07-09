@@ -3807,25 +3807,36 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT, "query_spec should be integer");
     std::vector<float> query_vector;
     for (size_t i = 0; i < args[2].List().size(); ++i) {
-        query_vector.emplace_back(float(args[2].List()[i].Double()));
+        float fltValue;
+        if (args[2].List().at(i).type == parser::Expression::INT) {
+            int dblValue = args[2].List().at(i).Int();
+            fltValue = static_cast<float>(dblValue);
+        } else {
+            double dblValue = args[2].List().at(i).Double();
+            fltValue = static_cast<float>(dblValue);
+        }
+        query_vector.emplace_back(fltValue);
     }
     auto raw_txn = ctx->txn_->GetTxn();
     lgraph::Transaction& txn = *raw_txn;
     auto SchemaInfo = ctx->txn_->GetTxn()->GetSchemaInfo();
     //SchemaInfoGetSchema(args[0].String(), true);
     ::lgraph::Schema* schema = SchemaInfo.v_schema_manager.GetSchema(args[0].String());
-    auto index_type = schema->GetFieldExtractor(args[1].String())->GetVectorIndex()->GetIndexType();
+    auto extr = schema->GetFieldExtractor(args[1].String());
+    auto index_type = extr->GetVectorIndex()->GetIndexType();
     if (index_type == "IVF_FLAT") {
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
                          "Please check the parameter, nprobe should be an integer in the range [1,65536]");
             
         //schema.GetFieldExtractor(args[1].String())->GetVectorIndex()->Load();
-        auto extr = schema->GetFieldExtractor(args[1].String());
         std::vector<float> distances; 
         std::vector<int64_t> indices;
         int64_t count = 0;
-        auto result = extr->GetVectorIndex()->Search(query_vector, size_t(args[3].Int()), distances, indices);
-        if (result) {
+        auto success = extr->GetVectorIndex()->SetSearchSpec(args[4].Int());
+            LOG_INFO() << "10";
+        auto result = extr->GetVectorIndex()->Search(query_vector, static_cast<size_t>(args[3].Int()), distances, indices);
+            LOG_INFO() << "9";
+        if (result && success) {
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();
@@ -3833,11 +3844,11 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
                     continue;
                 }
                 Record r;
-                auto vector = extr->FieldToString(prop);
+                auto vector = extr->FieldToString(extr->GetConstRef(prop));
                 auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 for (size_t i = 0; i < distances.size(); ++i) {
                     if (count == indices[i]) {
-                        r.AddConstant(::lgraph::FieldData(std::to_string(static_cast<long long>(vid))));
+                        r.AddConstant(::lgraph::FieldData(std::to_string(vid)));
                         r.AddConstant(::lgraph::FieldData(args[0].String()));
                         r.AddConstant(::lgraph::FieldData(args[1].String()));
                         r.AddConstant(::lgraph::FieldData(vector));

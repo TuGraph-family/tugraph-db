@@ -881,7 +881,7 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                         if (fe->GetIsNull(prop)) {
                             continue;
                         }
-                        floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                        //floatvector.emplace_back((fe->GetConstRef(prop)).AsType<std::vector<float>>());
                         count++;
                     }
                     fe->GetVectorIndex()->Build();

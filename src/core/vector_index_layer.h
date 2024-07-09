@@ -38,8 +38,6 @@ class VectorIndex {
     VectorIndex& operator=(const VectorIndex& rhs) = delete;
 
     VectorIndex& operator=(VectorIndex&& rhs) = delete;
-    
-    ~VectorIndex();
 
     // get label
     std::string GetLabel() { return label_; }

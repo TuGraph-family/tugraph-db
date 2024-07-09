@@ -63,7 +63,7 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
                         if (fe.GetIsNull(prop)) {
                             continue;
                         }
-                        floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                        floatvector.emplace_back((fe.GetConstRef(prop)).AsType<std::vector<float>>());
                         count++;
                     }
                     fe.GetVectorIndex()->Build();
@@ -157,7 +157,7 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
                         if (fe.GetIsNull(prop)) {
                             continue;
                         }
-                        floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                        floatvector.emplace_back((fe.GetConstRef(prop)).AsType<std::vector<float>>());
                         count++;
                     }
                     fe.GetVectorIndex()->Build();

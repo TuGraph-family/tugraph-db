@@ -1,4 +1,5 @@
 #include "core/vector_index_layer.h"
+#include "/root/tugraph-db/include/tools/lgraph_log.h"
 
 namespace lgraph {
 VectorIndex::VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec)
@@ -18,17 +19,6 @@ VectorIndex::VectorIndex(const VectorIndex& rhs)
       quantizer_(rhs.quantizer_),
       index_(rhs.index_),
       vector_index_manager_(rhs.vector_index_manager_) {}
-
-VectorIndex::~VectorIndex() {
-    if (quantizer_ != nullptr) {
-        delete quantizer_;
-        quantizer_ = nullptr;
-    }
-    if (index_ != nullptr) {
-        delete index_;
-        index_ = nullptr;
-    }
-}
 
 bool VectorIndex::SetSearchSpec(int query_spec) {
     query_spec_ = query_spec;
@@ -87,13 +77,18 @@ void VectorIndex::Load(std::vector<uint8_t>& idx_bytes) {
 
 // search vector in index
 bool VectorIndex::Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<int64_t>& indices) {
+    LOG_DEBUG() << "11";
     if (query.empty() || num_results == 0) {
         return false;
     }
+        LOG_DEBUG() << "12";
     distances.resize(num_results * 1);
     indices.resize(num_results * 1);
-    index_->nprobe = query_spec_;
+        LOG_DEBUG() << "13";
+    index_->nprobe = static_cast<size_t>(query_spec_);
+        LOG_DEBUG() << "14";
     index_->search(1, query.data(), num_results, distances.data(), indices.data());
+        LOG_DEBUG() << "15";
     return !indices.empty();
 }
 }

@@ -2149,6 +2149,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
         if (schema->DetachProperty()) {
             LOG_INFO() <<
                 FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
+            VectorIndex* index = extractor->GetVectorIndex();
             uint64_t count = 0;
             std::vector<std::vector<float>> floatvector;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
@@ -2157,19 +2158,18 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
-                }
-                floatvector.emplace_back(prop.AsType<std::vector<float>>());
+                }      
+                floatvector.emplace_back((extractor->GetConstRef(prop)).AsType<std::vector<float>>());
                 count++;
             }
-
-            if ((extractor->GetVectorIndex()->GetVectorIndexManager()).UpdateCount(count)) {
-                if ((extractor->GetVectorIndex()->GetVectorIndexManager()).WhetherUpdate()) {
-                    vector_index->Build();
-                    vector_index->Add(floatvector, count);
+            if ((index->GetVectorIndexManager()).UpdateCount(count)) {
+                if ((index->GetVectorIndexManager()).WhetherUpdate()) {
+                    index->Build();
+                    index->Add(floatvector, count);
                     //vector_index->Save();
                 }
             } else { 
-                return false; 
+                
             }
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;
