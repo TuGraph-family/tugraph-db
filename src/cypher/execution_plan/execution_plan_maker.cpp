@@ -142,7 +142,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
         return ret;
     }
     _DumpPlanBeforeConnect(0, false);
-    LOG_INFO() << "Dump plan finished!" << __FILE__ << __LINE__;
+    LOG_INFO() << "Dump plan finished!";
     root = pattern_graph_root_[0];
     for (size_t i = 1; i < pattern_graph_root_.size(); i++) {
         if (should_connect_[i])
@@ -160,7 +160,7 @@ std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statisti
         if (should_connect_[i])
             OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
     }
-    LOG_DEBUG() << s;
+    LOG_INFO() << s;
     return s;
 }
 
