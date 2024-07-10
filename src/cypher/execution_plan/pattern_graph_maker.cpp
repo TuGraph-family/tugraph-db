@@ -747,7 +747,7 @@ std::any PatternGraphMaker::visit(geax::frontend::VNone* node) {
 std::any PatternGraphMaker::visit(geax::frontend::Ref* node) {
     auto& symbols = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
     if (symbols.find(node->name()) == symbols.end()) {
-        throw lgraph::CypherException("Unknown variable: " + node->name());
+        THROW_CODE(CypherException, "Unknown variable: " + node->name());
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
