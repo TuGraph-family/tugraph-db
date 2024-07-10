@@ -1700,12 +1700,10 @@ std::any CypherBaseVisitorV2::visitOC_Namespace(LcypherParser::OC_NamespaceConte
 std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     LcypherParser::OC_ListComprehensionContext *ctx) {
     auto listComprehension = ALLOC_GEAOBJECT(geax::frontend::ListComprehension);
-    auto var = ALLOC_GEAOBJECT(geax::frontend::VString);
-    checkedAnyCast(visit(ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()), var);
-    auto variable_expr = ALLOC_GEAOBJECT(geax::frontend::Ref);
-    auto var_name = var->val();
-    variable_expr->setName(std::move(var_name));
-    listComprehension->setVariable(variable_expr);
+    auto var = ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()->getText();
+    auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
+    variable_ref->setName(std::move(var));
+    listComprehension->setVariable(variable_ref);
     geax::frontend::Expr *in_expr, *op_expr;
     checkedAnyCast(visit(ctx->oC_FilterExpression()->oC_IdInColl()->oC_Expression()), in_expr);
     if (ctx->oC_Expression()) {
