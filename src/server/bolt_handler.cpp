@@ -153,12 +153,11 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     auto& cypher = std::any_cast<const std::string&>(fields[0]);
                     auto& extra = std::any_cast<
                         const std::unordered_map<std::string, std::any>&>(fields[2]);
+                    std::string graph;
                     auto db_iter = extra.find("db");
-                    if (db_iter == extra.end()) {
-                        THROW_CODE(InputError,
-                            "Missing 'db' item in the 'extra' info of 'Run' msg");
+                    if (db_iter != extra.end()) {
+                        graph = std::any_cast<const std::string&>(db_iter->second);
                     }
-                    auto& graph = std::any_cast<const std::string&>(db_iter->second);
                     auto& field1 = std::any_cast<
                         std::unordered_map<std::string, std::any>&>(fields[1]);
                     auto sm = BoltServer::Instance().StateMachine();
