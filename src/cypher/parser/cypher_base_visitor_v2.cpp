@@ -468,16 +468,13 @@ std::any CypherBaseVisitorV2::visitOC_Delete(LcypherParser::OC_DeleteContext *ct
 }
 
 std::any CypherBaseVisitorV2::visitOC_Remove(LcypherParser::OC_RemoveContext *ctx) {
-    if (VisitGuard::InClause(VisitType::kUpdatingClause, visit_types_)) {
-        geax::frontend::LinearDataModifyingStatement *node = nullptr;
-        checkedCast(node_, node);
-        for (auto &item : ctx->oC_RemoveItem()) {
-            auto stmt = ALLOC_GEAOBJECT(geax::frontend::RemoveStatement);
-            node->appendModifyStatement(stmt);
-            SWITCH_CONTEXT_VISIT(item, stmt);
-        }
-    } else {
-        NOT_SUPPORT_AND_THROW();
+    VisitGuard::InClause(VisitType::kUpdatingClause, visit_types_);
+    geax::frontend::LinearDataModifyingStatement *node = nullptr;
+    checkedCast(node_, node);
+    for (auto &item : ctx->oC_RemoveItem()) {
+        auto stmt = ALLOC_GEAOBJECT(geax::frontend::RemoveStatement);
+        node->appendModifyStatement(stmt);
+        SWITCH_CONTEXT_VISIT(item, stmt);
     }
     return 0;
 }
