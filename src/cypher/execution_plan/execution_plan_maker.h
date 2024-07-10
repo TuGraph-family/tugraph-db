@@ -239,7 +239,6 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
-
 };
 
 }  // namespace cypher
