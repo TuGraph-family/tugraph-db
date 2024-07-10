@@ -1560,7 +1560,16 @@ std::any CypherBaseVisitorV2::visitOC_FilterExpression(
 }
 
 std::any CypherBaseVisitorV2::visitOC_IdInColl(LcypherParser::OC_IdInCollContext *ctx) {
-    return visitChildren(ctx);
+    geax::frontend::ListComprehension *listComprehension = nullptr;
+    checkedCast(node_, listComprehension);
+    auto var = ctx->oC_Variable()->getText();
+    auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
+    variable_ref->setName(std::move(var));
+    listComprehension->setVariable(variable_ref);
+    geax::frontend::Expr *in_expr;
+    checkedAnyCast(visit(ctx->oC_Expression()), in_expr);
+    listComprehension->setInExpression(in_expr);
+    return 0;
 }
 
 std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
@@ -1700,18 +1709,13 @@ std::any CypherBaseVisitorV2::visitOC_Namespace(LcypherParser::OC_NamespaceConte
 std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     LcypherParser::OC_ListComprehensionContext *ctx) {
     auto listComprehension = ALLOC_GEAOBJECT(geax::frontend::ListComprehension);
-    auto var = ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()->getText();
-    auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
-    variable_ref->setName(std::move(var));
-    listComprehension->setVariable(variable_ref);
-    geax::frontend::Expr *in_expr, *op_expr;
-    checkedAnyCast(visit(ctx->oC_FilterExpression()->oC_IdInColl()->oC_Expression()), in_expr);
+    SWITCH_CONTEXT_VISIT(ctx->oC_FilterExpression(), listComprehension);
+    geax::frontend::Expr *op_expr;
     if (ctx->oC_Expression()) {
         checkedAnyCast(visit(ctx->oC_Expression()), op_expr);
     } else {
         CYPHER_TODO();
     }
-    listComprehension->setInExpression(in_expr);
     listComprehension->setOpExpression(op_expr);
     return (geax::frontend::Expr*)listComprehension;
 }
