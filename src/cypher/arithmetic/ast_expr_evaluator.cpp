@@ -114,8 +114,7 @@ static cypher::FieldData Neg(const cypher::FieldData& x) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::GetField* node) {
     auto expr = std::any_cast<Entry>(node->expr()->accept(*this));
-    auto field = expr.GetEntityField(ctx_, node->fieldName());
-    return Entry(cypher::FieldData(field));
+    return Entry(cypher::FieldData(expr.GetEntityField(ctx_, node->fieldName())));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::TupleGet* node) {
