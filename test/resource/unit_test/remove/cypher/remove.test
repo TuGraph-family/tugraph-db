@@ -1,0 +1,2 @@
+MATCH (a {name:'Liam Neeson'}) REMOVE a.birthyear RETURN a.name,a.birthyear;
+MATCH (a {name:'Liam Neeson'}) REMOVE a.name RETURN a.name,a.birthyear;

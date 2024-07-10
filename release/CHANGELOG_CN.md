@@ -1,5 +1,23 @@
 # TuGraph 更新日志
 
+# 4.3.1 (2024-06-13)
+
+**重大变更:**
+
+1. 支持非唯一组合索引
+2. cypher支持GQL ASTNode解析链路
+3. 支持通过websocket进行Bolt数据传输
+
+**优化和错误修复:**
+
+1. 修复内置存储过程algo.native.extract
+2. 其他错误修复
+
+**接口更变:**
+
+1. lgraph_server启动时默认不打开增删procedure的功能，需配置enable_procedure为true才可增删procedure
+2. java client新增callCypher接口可返回header信息
+
 # 4.3.0 (2024-05-21)
 
 **重大变更:**
@@ -7,13 +25,15 @@
 1. DB-GPT中实现TuGraph上的知识图谱构建与检索: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.6
 2. DB-GPT支持TuGraph：https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.5
 3. 属性分离模式下的schema变更优化，支持快速变更
+4. 支持组合索引
 
 **优化和错误修复:**
 
 1. 新增内置存储过程：upsertVertexByJson、upsertEdgeByJson、createVertexLabelByJson、createEdgeLabelByJson、dropAllVertex
 2. 支持自定义HA模式下snapshot开始时间
 3. 新增地理类型数据相关内置函数
-4. 其他错误修复
+4. 新增开发者说明文档
+5. 其他错误修复
 
 **接口更变:**
 

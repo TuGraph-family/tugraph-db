@@ -516,7 +516,7 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
-                                  {"label_type", {1, lgraph_api::LGraphType::LIST}}},
+                                  {"label_type", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},

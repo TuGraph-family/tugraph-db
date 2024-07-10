@@ -71,7 +71,7 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 auto dst_nid = graph.AddNode("", dst_alias, Node::ARGUMENT);
                 graph.AddRelationship(std::set<std::string>{}, src_nid, dst_nid,
                                       parser::LinkDirection::UNKNOWN, a.first,
-                                      Relationship::ARGUMENT);
+                                      Relationship::ARGUMENT, {});
                 auto &src_node = graph.GetNode(src_nid);
                 auto &dst_node = graph.GetNode(dst_nid);
                 src_node.Visited() = true;
@@ -152,6 +152,10 @@ static void BuildResultSetInfo(const QueryPart &stmt, ResultInfo &result_info) {
         for (auto &item : ret_items) {
             auto &e = std::get<0>(item);
             auto &alias = std::get<1>(item);
+            bool isHidden = std::get<2>(item);
+            if (isHidden) {
+                continue;
+            }
             ArithExprNode ae(e, stmt.symbol_table);
             bool aggregate = ae.ContainsAggregation();
             if (aggregate) result_info.aggregated = true;

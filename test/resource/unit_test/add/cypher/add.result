@@ -1,0 +1,26 @@
+CREATE (passerA:Person {name:'Passerby A', birthyear:1983}) CREATE (passerB:Person {name:'Passerby B', birthyear:1984}) CREATE (passerA)-[:MARRIED]->(passerB),       (passerB)-[:MARRIED]->(passerA);
+[{"<SUMMARY>":"created 2 vertices, created 2 edges."}]
+MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+MATCH (a:Person {name:'Lindsay Lohan'})-[r]->(b:Film {title:'The Parent Trap'}) RETURN r;
+[{"r":{"dst":19,"forward":false,"identity":0,"label":"DIRECTED","label_id":3,"src":8,"temporal_id":0}},{"r":{"dst":19,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Halle/Annie"},"src":8,"temporal_id":0}}]
+MATCH (a:Film),(b:City) CREATE (a)-[:BORN_IN]->(b) /* 15 edges */;
+[{"<SUMMARY>":"created 0 vertices, created 15 edges."}]
+CREATE (sy:City {name:'Sanya'}) RETURN sy,sy.name;
+[{"sy":{"identity":23,"label":"City","properties":{"name":"Sanya"}},"sy.name":"Sanya"}]
+MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) CREATE (a)-[r:BORN_IN]->(sy) RETURN a.name,r,sy.name;
+[{"a.name":"Passerby A","r":{"dst":23,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":null,"weight":null},"src":21,"temporal_id":0},"sy.name":"Sanya"}]
+MATCH (a:Person {name:'Passerby A'}), (sy:City {name:'Sanya'}) WITH a,sy CREATE (a)-[r:BORN_IN]->(sy);
+[{"<SUMMARY>":"created 0 vertices, created 1 edges."}]
+CREATE (passerC:Person {name:'Passerby C'});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+MATCH (p:Person {name:'Passerby C'}) RETURN exists(p.birthyear) /* false */;
+[{"exists(p.birthyear)":false}]
+WITH 'Passerby D' AS x, 2020 AS y CREATE (:Person {name:x, birthyear:y});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+MATCH (a {name:'Passerby A'}) CREATE (:Person {name:'Passerby E', birthyear:a.birthyear});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+MATCH (a {name:'Passerby A'}) CREATE (:Person {name:'Passerby F', birthyear:a.birthyear+24});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+MATCH (a {name:'Passerby A'}) CREATE (:Person {name:'Passerby G', birthyear:id(a)});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]

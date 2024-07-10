@@ -1,5 +1,23 @@
 # Change Log for TuGraph
 
+# 4.3.1 (2024-06-13)
+
+**Breaking Changes:**
+
+1. Support non-unique composite index
+2. Cypher supports GQL ASTNode parsing links
+3. Support bolt data transfer over websocket
+
+**Improvements And Bug Fixes:**
+
+1. Fix the built-in stored procedure algo.native.extract
+2. Other bug fixes
+
+**Interface Modification:**
+
+1. The function of adding and deleting procedures is not enabled by default when lgraph_server is started. Enable_procedure must be configured to true to add and delete procedures
+2. The java client adds a callCypher interface to return header information
+
 # 4.3.0 (2024-05-21)
 
 **Breaking Changes:**
@@ -7,13 +25,15 @@
 1. Integrate TuGraph-DB to GraphRAG framework in DB-GPT: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.6
 2. Support using TuGraph-DB in DB-GPT: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.5
 3. Support quick schema changes in detached property model.
+4. Support composite index
 
 **Improvements And Bug Fixes:**
 
 1. Add new built-in procedures: upsertVertexByJson, upsertEdgeByJson, createVertexLabelByJson, createEdgeLabelByJson, dropAllVertex.
 2. Support user-defined snapshot start time in HA mode.
 3. Add new functions for spatial data type.
-4. Other bug fixes.
+4. Add development guide doc
+5. Other bug fixes.
 
 **Interfaces Modification:**
 

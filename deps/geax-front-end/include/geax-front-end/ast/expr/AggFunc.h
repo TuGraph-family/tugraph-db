@@ -33,12 +33,17 @@ enum class GeneralSetFunction {
     kStdDevSamp,
     kStdDevPop,
     kGroupConcat,
+    kStDev,
+    kStDevP,
+    kVariance,
+    kVarianceP,
     kLastButNotUse
 };
 
 inline const char* ToString(GeneralSetFunction type) {
     static const StrArray<enumNum(GeneralSetFunction::kLastButNotUse)> kDict = {
-        "avg", "count", "max", "min", "sum", "collect", "stdDevSamp", "stdDevPop", "groupConcat"};
+        "avg", "count", "max", "min", "sum", "collect", "stdDevSamp", "stdDevPop", "groupConcat",
+        "stDev", "stDevP", "variance", "varianceP"};
     const auto idx = static_cast<size_t>(type);
     return idx < kDict.size() ? kDict[idx] : geax::frontend::kUnknown;
 }
@@ -53,7 +58,11 @@ inline bool ToEnum(std::string_view sv, GeneralSetFunction& type) {
         {"collect", GeneralSetFunction::kCollect},
         {"stdDevSamp", GeneralSetFunction::kStdDevSamp},
         {"stdDevPop", GeneralSetFunction::kStdDevPop},
-        {"groutConcat", GeneralSetFunction::kGroupConcat}};
+        {"groutConcat", GeneralSetFunction::kGroupConcat},
+        {"stDev", GeneralSetFunction::kStDev},
+        {"stDevP", GeneralSetFunction::kStDevP},
+        {"variance", GeneralSetFunction::kVariance},
+        {"varianceP", GeneralSetFunction::kVarianceP}};
     auto it = kTypeMap.find(sv);
     return it != kTypeMap.end() && (type = it->second, true);
 }

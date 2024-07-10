@@ -1208,6 +1208,49 @@ struct CompositeKeyVid {
                 THROW_CODE(KvException, "Unknown data type: {}", types[i]);
             }
         }
+        return vid < rhs.vid;
+    }
+
+    bool operator==(const CompositeKeyVid& rhs) const {
+        int n = keys.size();
+        for (int i = 0; i < n; ++i) {
+            switch (types[i]) {
+            case FieldType::BOOL:
+                if (keys[i].AsType<bool>() == rhs.keys[i].AsType<bool>()) continue;
+                return false;
+            case FieldType::INT8:
+                if (keys[i].AsType<int8_t>() == rhs.keys[i].AsType<int8_t>()) continue;
+                return false;
+            case FieldType::INT16:
+                if (keys[i].AsType<int16_t>() == rhs.keys[i].AsType<int16_t>()) continue;
+                return false;
+            case FieldType::INT32:
+                if (keys[i].AsType<int32_t>() == rhs.keys[i].AsType<int32_t>()) continue;
+                return false;
+            case FieldType::DATE:
+                if (keys[i].AsType<int32_t>() == rhs.keys[i].AsType<int32_t>()) continue;
+                return false;
+            case FieldType::INT64:
+                if (keys[i].AsType<int64_t>() == rhs.keys[i].AsType<int64_t>()) continue;
+                return false;
+            case FieldType::DATETIME:
+                if (keys[i].AsType<int64_t>() == rhs.keys[i].AsType<int64_t>()) continue;
+                return false;
+            case FieldType::FLOAT:
+                if (keys[i].AsType<float>() == rhs.keys[i].AsType<float>()) continue;
+                return false;
+            case FieldType::DOUBLE:
+                if (keys[i].AsType<double>() == rhs.keys[i].AsType<double>()) continue;
+                return false;
+            case FieldType::STRING:
+                if (keys[i].AsType<std::string>() == rhs.keys[i].AsType<std::string>()) continue;
+                return false;
+            case FieldType::BLOB:
+                THROW_CODE(KvException, "Blob fields cannot act as key.");
+            default:
+                THROW_CODE(KvException, "Unknown data type: {}", types[i]);
+            }
+        }
         return true;
     }
 };
@@ -1472,6 +1515,17 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
+                bool can_index = true;
+                for (const std::string &field : fields) {
+                    const _detail::FieldExtractor* extractor = v_schema->GetFieldExtractor(field);
+                    if (extractor->GetIsNull(prop)) {
+                        can_index = false;
+                        break;
+                    }
+                }
+                if (!can_index) {
+                    continue;
+                }
                 std::vector<Value> values;
                 std::vector<FieldType> types;
                 for (auto &field : fields) {
@@ -1505,6 +1559,29 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                             index->_AppendCompositeIndexEntry(txn.GetTxn(),
                                    composite_index_helper::GenerateCompositeIndexKey(kv.keys),
                                    (VertexId)kv.vid);
+                        break;
+                    }
+                case CompositeIndexType::NonUniqueIndex:
+                    {
+                        std::vector<Value> key;
+                        if (!key_vids.empty())
+                            key = key_vids.front().keys;
+                        std::vector<VertexId> vids;
+                        for (size_t i = 0; i < key_vids.size(); ++i) {
+                            auto& kv = key_vids[i];
+                            if (!(key == kv.keys)) {
+                                // write out a bunch of vids
+                                index->_AppendNonUniqueCompositeIndexEntry(txn.GetTxn(),
+                                composite_index_helper::GenerateCompositeIndexKey(key), vids);
+                                key = kv.keys;
+                                vids.clear();
+                            }
+                            vids.push_back(kv.vid);
+                        }
+                        if (!vids.empty()) {
+                            index->_AppendNonUniqueCompositeIndexEntry(txn.GetTxn(),
+                                     composite_index_helper::GenerateCompositeIndexKey(key), vids);
+                        }
                         break;
                     }
                 }
@@ -1801,10 +1878,10 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
             else
                 THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
         }
-        if (extractor->IsOptional() && type == CompositeIndexType::UniqueIndex) {
+        /* if (extractor->IsOptional() && type == CompositeIndexType::UniqueIndex) {
             THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
                        label, field);
-        }
+        } */
         if (extractor->Type() == FieldType::BLOB) {
             THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
         }

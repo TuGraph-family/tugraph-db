@@ -185,9 +185,11 @@ class Filter {
         return clone;
     }
 
-    std::shared_ptr<Filter> Left() const { return _left; }
+    const std::shared_ptr<Filter>& Left() const { return _left; }
+    std::shared_ptr<Filter>& Left() { return _left; }
 
-    std::shared_ptr<Filter> Right() const { return _right; }
+    const std::shared_ptr<Filter>& Right() const { return _right; }
+    std::shared_ptr<Filter>& Right() { return _right; }
 
     Type Type() const { return _type; }
 
@@ -480,8 +482,8 @@ class RangeFilter : public Filter {
     }
 
     lgraph::CompareOp GetCompareOp() { return _compare_op; }
-    cypher::ArithExprNode GetAeLeft() { return _ae_left; }
-    cypher::ArithExprNode GetAeRight() { return _ae_right; }
+    const cypher::ArithExprNode& GetAeLeft() { return _ae_left; }
+    const cypher::ArithExprNode& GetAeRight() { return _ae_right; }
 
     static std::map<lgraph::CompareOp, std::string> _compare_name;
 
