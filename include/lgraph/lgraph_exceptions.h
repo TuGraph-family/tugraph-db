@@ -46,6 +46,7 @@ X(ParseStringException, "Parse string exception.") \
 X(ParseIncompatibleType, "Parse incompatible type.") \
 X(ParseFieldDataException, "Parse field data exception.") \
 X(DataSizeTooLarge, "Data size too large.") \
+X(VectorSizeTooLarge, "Vector size too large.") \
 X(RecordSizeLimitExceeded, "Record size limit exceeded.") \
 X(LabelNotExist, "Label not exist.") \
 X(LabelExist, "Label exist.") \
@@ -77,7 +78,8 @@ X(GraphCreateException, "Graph create exception.") \
 X(CypherParameterTypeError, "Cypher parameter type error.") \
 X(ReachMaximumEid, "Edge eid exceeds the limit.")      \
 X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds the limit.") \
-X(PluginDisabled, "Plugin disabled!")
+X(PluginDisabled, "Plugin disabled!") \
+X(BoltDataException, "Bolt data exception")
 
 enum class ErrorCode {
 #define X(code, msg) code,

@@ -47,6 +47,7 @@ enum KeyWord {
     POINT,
     LINESTRING,
     POLYGON,
+    FLOAT_VECTOR,
     LABEL,  // VERTEX_LABEL or EDGE_LABEL
     VERTEX_LABEL,
     EDGE_LABEL,
@@ -80,6 +81,7 @@ class KeyWordFunc {
             {KeyWord::POINT, "POINT"},
             {KeyWord::LINESTRING, "LINESTRING"},
             {KeyWord::POLYGON, "POLYGON"},
+            {KeyWord::FLOAT_VECTOR, "FLOAT_VECTOR"},
             {KeyWord::LABEL, "LABEL"},
             {KeyWord::VERTEX_LABEL, "VERTEX_LABEL"},
             {KeyWord::EDGE_LABEL, "EDGE_LABEL"},
@@ -958,9 +960,11 @@ class ImportConfParser {
                     cd.size = fs::file_size(file);
                 }
                 cd.data_format = item["format"];
-                if (cd.data_format != "CSV" && cd.data_format != "JSON") {
+
+                if (cd.data_format != "CSV" && cd.data_format != "JSON" &&
+                    cd.data_format != "GraphAr") {
                     THROW_CODE(InputError,
-                        "\"format\" value error : {}, should be CSV or JSON in json {}",
+                        "\"format\" value error : {}, should be CSV, JSON or GraphAr in json {}",
                                 cd.data_format, item.dump(4));
                 }
                 cd.label = item["label"];

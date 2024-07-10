@@ -67,6 +67,15 @@ struct FieldDataConvert {
             return FieldData::Polygon(std::move(*fd.release_polygon()));
         case ProtoFieldData::kSpatial:
             return FieldData::Spatial(std::move(*fd.release_polygon()));
+        case ProtoFieldData::kFvector:
+            {
+                std::vector<float> vec;
+                auto size = fd.fvector().fv_size();
+                for (int i = 0; i < size; i++) {
+                    vec.push_back(fd.release_fvector()->fv(i));
+                }
+                return FieldData::FloatVector(vec);
+            }
         }
         FMA_ASSERT(false);
         return FieldData();
@@ -104,8 +113,17 @@ struct FieldDataConvert {
             return FieldData::LineString(fd.linestring());
         case ProtoFieldData::kPolygon:
             return FieldData::Polygon(fd.polygon());
-         case ProtoFieldData::kSpatial:
+        case ProtoFieldData::kSpatial:
             return FieldData::Spatial(fd.spatial());
+        case ProtoFieldData::kFvector:
+            {
+                std::vector<float> vec;
+                auto size = fd.fvector().fv_size();
+                for (int i = 0; i < size; i++) {
+                    vec.push_back(fd.fvector().fv(i));
+                }
+                return FieldData::FloatVector(vec);
+            }
         }
         FMA_ASSERT(false);
         return FieldData();
@@ -145,6 +163,14 @@ struct FieldDataConvert {
             return ret->set_polygon(std::move(*fd.data.buf));
         case FieldType::SPATIAL:
             return ret->set_spatial(std::move(*fd.data.buf));
+        case FieldType::FLOAT_VECTOR:
+            {
+                lgraph::FloatVector* point = new lgraph::FloatVector;
+                for (float num : *fd.data.vp) {
+                    point->add_fv(num);
+                }
+                return ret->set_allocated_fvector(point);
+            }
         }
         FMA_ASSERT(false);
     }
@@ -183,6 +209,14 @@ struct FieldDataConvert {
             return ret->set_polygon(*fd.data.buf);
         case FieldType::SPATIAL:
             return ret->set_spatial(*fd.data.buf);
+        case FieldType::FLOAT_VECTOR:
+            {
+                lgraph::FloatVector* point = new lgraph::FloatVector;
+                for (float num : *fd.data.vp) {
+                    point->add_fv(num);
+                }
+                return ret->set_allocated_fvector(point);
+            }
         }
         FMA_ASSERT(false);
     }
