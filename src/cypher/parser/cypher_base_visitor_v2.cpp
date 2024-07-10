@@ -1708,7 +1708,7 @@ std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     auto var = ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()->getText();
     auto variable_expr = ALLOC_GEAOBJECT(geax::frontend::Ref);
     variable_expr->setName(std::move(var));
-    listComprehension->appendElem(variable_expr);
+    listComprehension->setVariable(variable_expr);
     geax::frontend::Expr *in_expr, *op_expr;
     checkedAnyCast(visit(ctx->oC_FilterExpression()->oC_IdInColl()->oC_Expression()), in_expr);
     if (ctx->oC_Expression()) {
@@ -1716,8 +1716,8 @@ std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     } else {
         CYPHER_TODO();
     }
-    listComprehension->appendElem(in_expr);
-    listComprehension->appendElem(op_expr);
+    listComprehension->setInExpression(in_expr);
+    listComprehension->setOpExpression(op_expr);
     return (geax::frontend::Expr*)listComprehension;
 }
 

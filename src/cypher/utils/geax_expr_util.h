@@ -137,7 +137,8 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     }
     std::any visit(geax::frontend::ListComprehension* node) override {
         std::string res("{");
-        const auto & exprs = node->elems();
+        const auto & exprs = std::vector{ node->getVariable(),
+                             node->getInExpression(), node->getOpExpression()};
         for (size_t idx = 0; idx < exprs.size(); ++idx) {
             std::string temp;
             checkedAnyCast(exprs[idx]->accept(*this), temp);

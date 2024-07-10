@@ -529,15 +529,12 @@ std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
 std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
     geax::frontend::Ref *ref = nullptr;
     geax::frontend::Expr *in_expr = nullptr, *op_expr = nullptr;
-    checkedCast(node->elems()[0], ref);
-    checkedCast(node->elems()[1], in_expr);
-    checkedCast(node->elems()[2], op_expr);
+    checkedCast(node->getVariable(), ref);
+    checkedCast(node->getInExpression(), in_expr);
+    checkedCast(node->getOpExpression(), op_expr);
     Entry in_e;
-    if (in_expr->type() == geax::frontend::AstNodeType::kRef) {
-        checkedAnyCast(in_expr->accept(*this), in_e);
-    } else if (in_expr->type() == geax::frontend::AstNodeType::kFunc) {
+    if (in_expr->type() == geax::frontend::AstNodeType::kFunc) {
         auto* range = (geax::frontend::Function*)in_expr;
-        if (boost::to_lower_copy(range->name()) != "range") CYPHER_TODO();
         int s = (int)range->args().size();
         std::vector<geax::frontend::Expr*> transfer_args(s);
         for (int i = 0; i < s; ++i) {
@@ -555,8 +552,9 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
         range->setArgs(std::move(transfer_args));
         checkedAnyCast(range->accept(*this), in_e);
     } else {
-        CYPHER_TODO();
+        checkedAnyCast(in_expr->accept(*this), in_e);
     }
+    CYPHER_THROW_ASSERT(in_e.IsArray());
     auto data_array = in_e.constant.array;
     std::vector<::lgraph::FieldData> ret_data;
     for (auto &data : *data_array) {
