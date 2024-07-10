@@ -132,6 +132,16 @@
             "query": "match (n:Person)-[r:HAS_CHILD]->(m:Person)<-[r1:MARRIED]-(m1:Person) where m.name = 'Michael Redgrave' return n,m1",
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n,m1]\n        Expand(All) [m <-- m1 ]\n            Expand(All) [m <-- n ]\n                Node Index Seek [m]  IN []\n",
             "res": 1
+          },
+          {
+            "query": "match (n)-[r:HAS_CHILD]->(m:Person)<-[r1:MARRIED]-(m1) return n,m1",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n,m1]\n        Expand(All) [m <-- m1 ]\n            Expand(All) [m <-- n ]\n                Node By Label Scan [m:Person]\n",
+            "res": 2
+          },
+          {
+            "query": "match p = (n)<-[r]-(m)-[r1]->(m1:City) RETURN p",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [p]\n        Expand(All) [m --> n ]\n            Expand(All) [m1 <-- m ]\n                Node By Label Scan [m1:City]\n",
+            "res": 9
           }
         ]
       }
