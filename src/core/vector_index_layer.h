@@ -16,17 +16,16 @@ class VectorIndex {
    friend class Transaction;
    friend class IndexManager;
 
- private:
-    std::string label_;
-    std::string name_;
-    std::string distance_type_;
-    std::string index_type_;
-    int vec_dimension_;
-    std::vector<int> index_spec_;
-    int query_spec_;
-    faiss::IndexFlatL2* quantizer_;
-    faiss::IndexIVFFlat* index_;
-    VectorIndexManager vector_index_manager_; 
+   std::string label_;
+   std::string name_;
+   std::string distance_type_;
+   std::string index_type_;
+   int vec_dimension_;
+   std::vector<int> index_spec_;
+   int query_spec_;
+   faiss::IndexFlatL2* quantizer_;
+   faiss::IndexIVFFlat* index_;
+   VectorIndexManager vector_index_manager_; 
 
  public:
     VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec);
@@ -55,7 +54,7 @@ class VectorIndex {
     int GetVecDimension() { return vec_dimension_; }
 
     // get vector_index_manager
-    VectorIndexManager GetVectorIndexManager() { return vector_index_manager_; }
+    VectorIndexManager* GetVectorIndexManager() { return &vector_index_manager_; }
 
     //set search specification
     bool SetSearchSpec(int query_spec);

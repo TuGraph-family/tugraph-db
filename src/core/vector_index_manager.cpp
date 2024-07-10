@@ -13,11 +13,24 @@ VectorIndexManager::VectorIndexManager(const VectorIndexManager& rhs)
       count_(rhs.count_),
       indexed_(rhs.indexed_) {}
 
+
+void VectorIndexManager::addCount() {
+    count_++;
+}
+
+bool VectorIndexManager::MakeVectorIndex() { 
+    indexed_ = true;
+    return true; 
+}
+
+bool VectorIndexManager::UpdateCount(size_t DataSize) {
+    count_ = DataSize;
+    return true;
+} 
+
 bool VectorIndexManager::WhetherUpdate() {
-    auto count = getCount();
-    if (count >= 10000) {
-        count = 0;
-        UpdateCount(count);
+    if (count_ >= 10000) {
+        count_ = 0;
         return true;
     } else {
         return false;

@@ -8,11 +8,12 @@
 #include <string>  
 #include <vector>  
 
+#include "/root/tugraph-db/include/tools/lgraph_log.h"
+
 
 namespace lgraph {
 
 class VectorIndexManager {
-private:
    std::string label_;
    std::string name_;
    size_t count_;
@@ -38,11 +39,11 @@ public:
 
    bool isIndexed() { return indexed_; }
 
-   void addCount() { count_++; }
+   void addCount();
 
-   bool MakeVectorIndex() { indexed_ = true;  return true; }
+   bool MakeVectorIndex();
 
-   bool UpdateCount(size_t& DataSize) { count_ = DataSize;  return true; } 
+   bool UpdateCount(size_t DataSize);
 
    bool WhetherUpdate();
 

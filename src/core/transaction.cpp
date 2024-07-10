@@ -869,24 +869,26 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
         } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
             fe->ParseAndSet(new_prop, values[i]);
             // update vector index
-            if (fe->GetVectorIndex()->GetVectorIndexManager().isIndexed()) {
-                fe->GetVectorIndex()->GetVectorIndexManager().addCount();
-                if (fe->GetVectorIndex()->GetVectorIndexManager().WhetherUpdate()) {
+            if (fe->GetVectorIndex()->GetVectorIndexManager()->isIndexed()) {
+                fe->GetVectorIndex()->GetVectorIndexManager()->addCount();
+                if (fe->GetVectorIndex()->GetVectorIndexManager()->WhetherUpdate()) {
                     uint64_t count = 0;
                     std::vector<std::vector<float>> floatvector;
                     auto kv_iter = schema->GetPropertyTable().GetIterator(*txn_);
                     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                        //auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                         auto prop = kv_iter->GetValue();
                         if (fe->GetIsNull(prop)) {
                             continue;
                         }
-                        //floatvector.emplace_back((fe->GetConstRef(prop)).AsType<std::vector<float>>());
+                        std::vector<float>* floatvectorPtr = reinterpret_cast<std::vector<float>*>((char*)(fe->GetConstRef(prop)).Data());
+                        floatvector.emplace_back(*floatvectorPtr);
                         count++;
                     }
+                    LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
                     fe->GetVectorIndex()->Build();
                     fe->GetVectorIndex()->Add(floatvector, count);
                     //fe.GetVectorIndex()->Save();
+                    LOG_INFO() << FMA_FMT("end rebuilding vector index in detached model");
                 }
             }
         } else {

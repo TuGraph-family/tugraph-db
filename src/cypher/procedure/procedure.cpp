@@ -3828,14 +3828,12 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
                          "Please check the parameter, nprobe should be an integer in the range [1,65536]");
             
-        //schema.GetFieldExtractor(args[1].String())->GetVectorIndex()->Load();
         std::vector<float> distances; 
         std::vector<int64_t> indices;
         int64_t count = 0;
-        auto success = extr->GetVectorIndex()->SetSearchSpec(args[4].Int());
-            LOG_INFO() << "10";
-        auto result = extr->GetVectorIndex()->Search(query_vector, static_cast<size_t>(args[3].Int()), distances, indices);
-            LOG_INFO() << "9";
+        lgraph::VectorIndex* index = extr->GetVectorIndex();
+        auto success = index->SetSearchSpec(args[4].Int());
+        auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()), distances, indices);
         if (result && success) {
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {

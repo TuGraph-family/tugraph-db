@@ -2140,33 +2140,33 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
         schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
 
-        if ((extractor->GetVectorIndex()->GetVectorIndexManager()).MakeVectorIndex()) {
+        if ((extractor->GetVectorIndex()->GetVectorIndexManager())->MakeVectorIndex()) {
             LOG_INFO() <<
                 FMA_FMT("set the vector index for {}:{}", label, field);
         }
 
         // detach property
         if (schema->DetachProperty()) {
-            LOG_INFO() <<
-                FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
             VectorIndex* index = extractor->GetVectorIndex();
             uint64_t count = 0;
             std::vector<std::vector<float>> floatvector;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                // auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
                 }      
-                floatvector.emplace_back((extractor->GetConstRef(prop)).AsType<std::vector<float>>());
+                auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+                floatvector.emplace_back(vector);
                 count++;
             }
-            if ((index->GetVectorIndexManager()).UpdateCount(count)) {
-                if ((index->GetVectorIndexManager()).WhetherUpdate()) {
+            if ((index->GetVectorIndexManager())->UpdateCount(count)) {
+                if ((index->GetVectorIndexManager())->WhetherUpdate()) {
+                    LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
                     index->Build();
                     index->Add(floatvector, count);
                     //vector_index->Save();
+                    LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model", label, field);
                 }
             } else { 
                 
@@ -2175,8 +2175,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             LOG_DEBUG() << "index count: " << count;
             txn.Commit();
             schema_.Assign(new_schema.release());
-            LOG_INFO() <<
-                FMA_FMT("end building vector index for {}:{} in detached model", label, field);
+
             return true;
         }
     }

@@ -1,5 +1,4 @@
 #include "core/vector_index_layer.h"
-#include "/root/tugraph-db/include/tools/lgraph_log.h"
 
 namespace lgraph {
 VectorIndex::VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec)
@@ -34,10 +33,7 @@ bool VectorIndex::Add(const std::vector<std::vector<float>>& vectors, size_t num
         index_vectors.insert(index_vectors.end(), vec.begin(), vec.end());
     }
     // TODO
-    if ("IVF_Flat" == index_type_) {
-        if (index_ == nullptr) {
-            return false;
-        }
+    if (index_type_ == "IVF_FLAT") {
         // train after build quantizer
         assert(!index_->is_trained);
         index_->train(num_vectors, index_vectors.data());
@@ -52,7 +48,7 @@ bool VectorIndex::Add(const std::vector<std::vector<float>>& vectors, size_t num
 // build index
 bool VectorIndex::Build() {
     // TODO
-    if ("IVF_Flat" == index_type_) {
+    if (index_type_ == "IVF_FLAT") {
         quantizer_ = new faiss::IndexFlatL2(vec_dimension_);
         index_ = new faiss::IndexIVFFlat(quantizer_, vec_dimension_, index_spec_[0]);
     } else {
@@ -77,18 +73,13 @@ void VectorIndex::Load(std::vector<uint8_t>& idx_bytes) {
 
 // search vector in index
 bool VectorIndex::Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<int64_t>& indices) {
-    LOG_DEBUG() << "11";
     if (query.empty() || num_results == 0) {
         return false;
     }
-        LOG_DEBUG() << "12";
     distances.resize(num_results * 1);
     indices.resize(num_results * 1);
-        LOG_DEBUG() << "13";
     index_->nprobe = static_cast<size_t>(query_spec_);
-        LOG_DEBUG() << "14";
     index_->search(1, query.data(), num_results, distances.data(), indices.data());
-        LOG_DEBUG() << "15";
     return !indices.empty();
 }
 }

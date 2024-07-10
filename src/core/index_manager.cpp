@@ -112,7 +112,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             }
             VectorIndex* vector_index = new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec);
             index->SetReady();
-            schema->GetFieldExtractor(field)->GetVectorIndex()->GetVectorIndexManager().MakeVectorIndex();
+            schema->GetFieldExtractor(field)->GetVectorIndex()->GetVectorIndexManager()->MakeVectorIndex();
             schema->MarkVertexIndexed(fe->GetFieldId(), index);
             schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
         } else {
