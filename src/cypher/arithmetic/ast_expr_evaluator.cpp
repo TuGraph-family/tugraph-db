@@ -542,9 +542,11 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
             if (arg->type() == geax::frontend::AstNodeType::kFunc) {
                 Entry entry_arg;
                 checkedAnyCast(arg->accept(*this), entry_arg);
+                // Currently supports range function, the parameter is int
+                // type, and it can be expanded in the future
                 auto vint = new geax::frontend::VInt();
                 vint->setVal(entry_arg.constant.scalar.AsInt64());
-                transfer_args[i] = vint;
+                transfer_args[i] = std::move(vint);
             } else {
                 transfer_args[i] = arg;
             }
