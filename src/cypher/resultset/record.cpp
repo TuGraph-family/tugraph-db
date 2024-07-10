@@ -53,20 +53,28 @@ bool Entry::GetEntityEfficient(RTContext *ctx) const {
         {
             auto vit = node->ItRef();
             CYPHER_THROW_ASSERT(node && vit);
-            return node->IsValidAfterMaterialize(ctx);
+            bool ret =  node->IsValidAfterMaterialize(ctx);
+            LOG_INFO() << "--------------GetEntityEfficient NODE " << this->ToString() << " value = " << ret;
+            return ret;
         }
     case RELATIONSHIP:
         {
             if (relationship->VarLen()) {
                 auto & eits = relationship->ItsRef();
                 for (auto& it : eits) {
-                    if (!it.IsValid()) return false;
+                    if (!it.IsValid()) {
+                        LOG_INFO() << "--------------GetEntityEfficient VREL " << this->ToString() << " value = false";
+                    return false;
+                    }
                 }
+                LOG_INFO() << "--------------GetEntityEfficient VREL " << this->ToString() << " value = true";
                 return true;
             } else {
                 auto eit = relationship->ItRef();
                 CYPHER_THROW_ASSERT(relationship && eit);
-                return eit->IsValid();
+                bool ret = eit->IsValid();
+                LOG_INFO() << "--------------GetEntityEfficient UREL " << this->ToString() << " value = " << ret;
+                return ret;
             }
         }
     case NODE_SNAPSHOT:

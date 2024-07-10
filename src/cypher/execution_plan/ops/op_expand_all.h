@@ -19,6 +19,7 @@
 
 #include "cypher/execution_plan/ops/op.h"
 #include "filter/filter.h"
+#include "parser/symbol_table.h"
 
 namespace cypher {
 
@@ -70,9 +71,11 @@ class ExpandAll : public OpBase {
     }
 
     bool _CheckToSkipEdge(RTContext *ctx) const {
-        return eit_->IsValid() &&
+        bool ret = eit_->IsValid() &&
                (pattern_graph_->VisitedEdges().Contains(*eit_) || _CheckToSkipEdgeFilter(ctx) ||
                 (expand_into_ && eit_->GetNbr(expand_direction_) != neighbor_->PullVid()));
+        LOG_INFO() << "-----------------------_CheckToSkipEdge edge = " << eit_->GetUid().ToString() << " return " << ret;
+        return ret;
     }
 
     bool _FilterNeighborLabel(RTContext *ctx) {
@@ -166,7 +169,7 @@ class ExpandAll : public OpBase {
         auto rit = sym_tab.symbols.find(relp_->Alias());
         CYPHER_THROW_ASSERT(sit != sym_tab.symbols.end() && nit != sym_tab.symbols.end() &&
                             rit != sym_tab.symbols.end());
-        expand_into_ = nit->second.scope == SymbolNode::ARGUMENT;
+        expand_into_ = nit->second.scope == SymbolNode::ARGUMENT ||  nit->second.scope == SymbolNode::EXISTS;
         expand_direction_ = relp_->Undirected()            ? BIDIRECTIONAL
                             : relp_->Src() == start_->ID() ? FORWARD
                                                            : REVERSED;
@@ -188,10 +191,13 @@ class ExpandAll : public OpBase {
         record = child->record;
         record->values[start_rec_idx_].type = Entry::NODE;
         record->values[start_rec_idx_].node = start_;
+        LOG_INFO() << "------------expand start = " << start_->Alias() << " idx = " <<  start_rec_idx_;
         record->values[nbr_rec_idx_].type = Entry::NODE;
         record->values[nbr_rec_idx_].node = neighbor_;
+        LOG_INFO() << "------------expand neighbor = " << neighbor_->Alias() << " idx = " <<  nbr_rec_idx_;
         record->values[relp_rec_idx_].type = Entry::RELATIONSHIP;
         record->values[relp_rec_idx_].relationship = relp_;
+        LOG_INFO() << "------------expand relationship = " << relp_->Alias() << " idx = " <<  relp_rec_idx_;
         return OP_OK;
     }
 
