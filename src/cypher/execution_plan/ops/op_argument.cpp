@@ -51,6 +51,7 @@ OpBase::OpResult Argument::Initialize(RTContext *ctx) {
             CYPHER_THROW_ASSERT(!node.Empty());
             record->values[arg.rec_idx].type = Entry::NODE;
             record->values[arg.rec_idx].node = &node;
+            LOG_INFO() << "------------Argument::Initialize NODE = " << node.Alias() << " idx = " << arg.rec_idx;
         } else if (arg.type == SymbolNode::RELATIONSHIP) {
             auto &relp = pattern_graph_->GetRelationship(arg.alias);
             CYPHER_THROW_ASSERT(!relp.Empty());
@@ -78,6 +79,7 @@ OpBase::OpResult Argument::RealConsume(RTContext *ctx) {
             /* Note: The input may be invalid, such as nodes produced by OPTIONAL MATCH.
              * Set the record invalid in that cases. */
             record->values[a.rec_idx].node->PushVid(input.node->PullVid());
+            LOG_INFO() << "------------Argument::RealConsume NODE = " << input.ToString() << " PushVid = " << input.node->PullVid() << " idx = " << a.rec_idx;
             break;
         case Entry::NODE_SNAPSHOT:
             if (vid < 0) {
@@ -89,6 +91,7 @@ OpBase::OpResult Argument::RealConsume(RTContext *ctx) {
             }
             if (vid < 0) CYPHER_TODO();
             record->values[a.rec_idx].node->PushVid(vid);
+            LOG_INFO() << "------------Argument::RealConsume NODE_SNAPSHOT = " << input.ToString() << " PushVid = " << vid << " idx = " << a.rec_idx;
             break;
         case Entry::RELATIONSHIP:
             if (!input.relationship->ItRef()->IsValid()) CYPHER_TODO();

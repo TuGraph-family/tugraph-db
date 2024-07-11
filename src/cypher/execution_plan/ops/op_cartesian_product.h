@@ -17,6 +17,7 @@
 //
 #pragma once
 
+#include <cstddef>
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
@@ -74,6 +75,7 @@ class CartesianProduct : public OpBase {
         }
         if (!sym_tab) throw lgraph::CypherException("CartesianProduct initialize failed");
         record = std::make_shared<Record>(sym_tab->symbols.size(), sym_tab, ctx->param_tab_);
+        LOG_INFO() << "-------CartesianProduct Initialize record size = " << record->values.size();
         return OP_OK;
     }
 
@@ -84,6 +86,12 @@ class CartesianProduct : public OpBase {
                 auto res = child->Consume(ctx);
                 if (res != OP_OK) return res;
                 record->Merge(*child->record);
+                for (size_t idx = 0; idx < child->record->values.size(); ++idx) {
+                    LOG_INFO() << "CartesianProduct RealConsume child has " << child->record->values[idx].ToString() << " idx = " << idx;
+                }
+                for (size_t idx = 0; idx < record->values.size(); ++idx) {
+                    LOG_INFO() << "CartesianProduct RealConsume record has " << record->values[idx].ToString() << " idx = " << idx << " address record = " << record.get();
+                }
             }
             return OP_OK;
         }
@@ -96,8 +104,12 @@ class CartesianProduct : public OpBase {
             // Failed to get data from first stream,
             // try pulling other streams for data.
             auto res = PullFromStreams(ctx);
-            if (res != OP_OK) return res;
+            if (res != OP_OK) {
+                LOG_INFO() << "++++++++++++++++++ ---------------------";
+                return res;
+            }
         }
+        LOG_INFO() << "--------------------- ++++++++++++++++++";
         return OP_OK;
     }
 

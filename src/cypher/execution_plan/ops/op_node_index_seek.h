@@ -97,6 +97,7 @@ class NodeIndexSeek : public OpBase {
     }
 
     OpResult RealConsume(RTContext *ctx) override {
+        LOG_INFO() << "---------------into NodeIndexSeek::RealConsume vid = " << it_->GetId();
         /* Always set node's vid to -1:
          * - if found a new vertex ok, pull vid when use it;
          * - otherwise, set node to -1 in case mistaken for the
@@ -105,6 +106,7 @@ class NodeIndexSeek : public OpBase {
         node_->SetVid(-1);
 
         if (HandOff() == OP_OK) {
+            LOG_INFO() << "---------------leave NodeIndexSeek::RealConsume OP_OK vid = " << it_->GetId();
             return OP_OK;
         }
         while ((size_t)value_rec_idx_ < target_values_.size() - 1) {
@@ -118,9 +120,11 @@ class NodeIndexSeek : public OpBase {
                 it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
             }
             if (it_->IsValid()) {
+                LOG_INFO() << "---------------leave NodeIndexSeek::RealConsume OP_OK vid = " << it_->GetId();
                 return OP_OK;
             }
         }
+        LOG_INFO() << "---------------leave NodeIndexSeek::RealConsume OP_DEPLETED vid = " << it_->GetId();
         return OP_DEPLETED;
     }
 

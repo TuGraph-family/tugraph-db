@@ -1,0 +1,2 @@
+#MATCH (n {name:'Rachel Kempson'}),(m {name:'Michael Redgrave'}) RETURN exists((n)-[]->(m)) /*true*/;
+MATCH (n {name:'Rachel Kempson'}),(m {name:'Michael Redgrave'}) with n,m match (n)-[]->(m) return n,m;

@@ -31,8 +31,10 @@
 #include "cypher/parser/generated/LcypherLexer.h"
 #include "cypher/parser/generated/LcypherParser.h"
 #include "cypher/parser/cypher_base_visitor.h"
+#include "cypher/parser/cypher_base_visitor_v2.h"
 #include "cypher/parser/cypher_error_listener.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
+#include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
 #include "cypher/execution_plan/runtime_context.h"
@@ -97,6 +99,63 @@ class TestQuery : public TuGraphTest {
         ctx_ = std::make_shared<cypher::RTContext>(
             nullptr, galaxy_.get(),
             lgraph::_detail::DEFAULT_ADMIN_NAME, graph_name_);
+    }
+
+     bool test_cypher_case2(const std::string& cypher, std::string& result) {
+        try {
+            antlr4::ANTLRInputStream input(cypher);
+            parser::LcypherLexer lexer(&input);
+            antlr4::CommonTokenStream tokens(&lexer);
+            parser::LcypherParser parser(&tokens);
+            parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
+            geax::common::ObjectArenaAllocator objAlloc_;
+            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+            AstNode* node = visitor.result();
+            // rewrite ast
+            cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
+            node->accept(gen_anonymous_alias_rewriter);
+            // cypher::ExistsPathPatternRewriter exists_path_pattern_rewriter(objAlloc_);
+            // node->accept(exists_path_pattern_rewriter);
+            cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
+            node->accept(multi_path_pattern_rewriter);
+            // dump
+            AstDumper dumper;
+            auto ret = dumper.handle(node);
+            if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+                UT_LOG() << "dumper.handle(node) gql: " << cypher;
+                UT_LOG() << "dumper.handle(node) ret: " << ToString(ret);
+                UT_LOG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+                result = dumper.error_msg();
+                return false;
+            } else {
+                UT_DBG() << "--- dumper.handle(node) dump ---";
+                UT_DBG() << dumper.dump();
+            }
+            LOG_INFO() << "------------------------- " << __FILE__ << " " << __LINE__;
+            cypher::ExecutionPlanV2 execution_plan_v2;
+            ret = execution_plan_v2.Build(node, ctx_.get());
+            if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+                UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
+                result = execution_plan_v2.ErrorMsg();
+                return false;
+            } else {
+                try {
+                    execution_plan_v2.Execute(ctx_.get());
+                } catch (std::exception& e) {
+                    UT_LOG() << e.what();
+                    result = e.what();
+                    return true;
+                }
+                UT_LOG() << "-----result-----";
+                result = ctx_->result_->Dump(false);
+                UT_LOG() << result;
+            }
+        } catch (std::exception& e) {
+            UT_LOG() << e.what();
+            result = e.what();
+            return true;
+        }
+        return true;
     }
 
     bool test_gql_case(const std::string& gql, std::string& result) {
@@ -222,7 +281,7 @@ class TestQuery : public TuGraphTest {
             UT_LOG() << query;
             bool success;
             if (query_type_ == lgraph::ut::QUERY_TYPE::CYPHER) {
-                success = test_cypher_case(query, result);
+                success = test_cypher_case2(query, result);
             } else if (query_type_ == lgraph::ut::QUERY_TYPE::GQL) {
                 success = test_gql_case(query, result);
             } else {

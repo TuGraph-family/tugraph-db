@@ -20,6 +20,7 @@
 
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/execution_plan/ops/op_argument.h"
+#include "tools/lgraph_log.h"
 
 namespace cypher {
 
@@ -103,6 +104,12 @@ class Apply : public OpBase {
                 return OP_DEPLETED;
             }
             state = StreamConsuming;
+        }
+        LOG_INFO() << "Apply lhs = " << children[1]->ToString();
+        LOG_INFO() << "Apply rhs = " << children[0]->ToString();
+        for (size_t idx = 0; idx < children[1]->record->values.size(); ++idx) {
+            LOG_INFO() << "Apply RealConsume lhs has " << children[1]->record->values[idx].ToString()
+                       << " idx = " << idx << " address record = " << record.get();
         }
         auto res = rhs->Consume(ctx);
         // then process rhs

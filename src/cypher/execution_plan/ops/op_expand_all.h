@@ -63,6 +63,7 @@ class ExpandAll : public OpBase {
         }
         eit_->Initialize(ctx->txn_->GetTxn().get(), iter_type,
                          start_->PullVid(), types, std::move(props));
+        LOG_INFO() << "-----------_InitializeEdgeIter uid = " << eit_->GetUid().ToString() << " Valid = " << eit_->IsValid() << " get ner = " << eit_->GetNbr(expand_direction_) << " ner = " << neighbor_->PullVid();
     }
 
     bool _CheckToSkipEdgeFilter(RTContext *ctx) const {
@@ -74,7 +75,7 @@ class ExpandAll : public OpBase {
         bool ret = eit_->IsValid() &&
                (pattern_graph_->VisitedEdges().Contains(*eit_) || _CheckToSkipEdgeFilter(ctx) ||
                 (expand_into_ && eit_->GetNbr(expand_direction_) != neighbor_->PullVid()));
-        LOG_INFO() << "-----------------------_CheckToSkipEdge edge = " << eit_->GetUid().ToString() << " return " << ret;
+        LOG_INFO() << "-----------------------_CheckToSkipEdge edge = " << eit_->GetUid().ToString() << " valid = " << eit_->IsValid() << " get ner = " << eit_->GetNbr(expand_direction_) << " ner = " << neighbor_->PullVid() << " return " << ret;
         return ret;
     }
 
@@ -173,6 +174,7 @@ class ExpandAll : public OpBase {
         expand_direction_ = relp_->Undirected()            ? BIDIRECTIONAL
                             : relp_->Src() == start_->ID() ? FORWARD
                                                            : REVERSED;
+        LOG_INFO() << "-------------ExpandAll expand_direction_ = " << expand_direction_;
         start_rec_idx_ = sit->second.id;
         nbr_rec_idx_ = nit->second.id;
         relp_rec_idx_ = rit->second.id;
@@ -191,10 +193,10 @@ class ExpandAll : public OpBase {
         record = child->record;
         record->values[start_rec_idx_].type = Entry::NODE;
         record->values[start_rec_idx_].node = start_;
-        LOG_INFO() << "------------expand start = " << start_->Alias() << " idx = " <<  start_rec_idx_;
+        LOG_INFO() << "------------expand start = " << start_->Alias() << " idx = " <<  start_rec_idx_ << " get vid = " << start_->GetVid() << " pull vid = " << start_->PullVid();;
         record->values[nbr_rec_idx_].type = Entry::NODE;
         record->values[nbr_rec_idx_].node = neighbor_;
-        LOG_INFO() << "------------expand neighbor = " << neighbor_->Alias() << " idx = " <<  nbr_rec_idx_;
+        LOG_INFO() << "------------expand neighbor = " << neighbor_->Alias() << " idx = " <<  nbr_rec_idx_ << " get vid = " << neighbor_->GetVid() << " pull vid = " << neighbor_->PullVid();
         record->values[relp_rec_idx_].type = Entry::RELATIONSHIP;
         record->values[relp_rec_idx_].relationship = relp_;
         LOG_INFO() << "------------expand relationship = " << relp_->Alias() << " idx = " <<  relp_rec_idx_;
