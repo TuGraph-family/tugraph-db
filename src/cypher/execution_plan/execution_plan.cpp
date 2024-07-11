@@ -514,6 +514,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
             start_hints.emplace_back(hint.substr(0, hint.length() - 2));
         }
     }
+    // TODO(botu.wzy): A better implementation of picking the starting node
     std::vector<NodeID> start_nodes;
     /* The argument nodes are specific, we add them into start nodes first.
      * If there are both specific node & argument in pattern, prefer the former.
@@ -538,6 +539,17 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
     }
     for (auto &a : args_ordered) start_nodes.emplace_back(a.second);
     for (auto &s : start_hints) start_nodes.emplace_back(pattern_graph.GetNode(s).ID());
+    for (auto &n : pattern_graph.GetNodes()) {
+        if (n.derivation_ == Node::MATCHED && !n.Label().empty() &&
+            n.Prop().type == Property::VALUE) {
+            start_nodes.emplace_back(n.ID());
+        }
+    }
+    for (auto &n : pattern_graph.GetNodes()) {
+        if (n.derivation_ == Node::MATCHED && !n.Label().empty()) {
+            start_nodes.emplace_back(n.ID());
+        }
+    }
     for (auto &n : pattern_graph.GetNodes()) {
         if (n.derivation_ != Node::CREATED && n.derivation_ != Node::MERGED)
             start_nodes.emplace_back(n.ID());
