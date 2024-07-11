@@ -533,39 +533,16 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
     checkedCast(node->getInExpression(), in_expr);
     checkedCast(node->getOpExpression(), op_expr);
     Entry in_e;
-    if (in_expr->type() == geax::frontend::AstNodeType::kFunc) {
-        auto* range = (geax::frontend::Function*)in_expr;
-        int s = (int)range->args().size();
-        std::vector<geax::frontend::Expr*> transfer_args(s);
-        for (int i = 0; i < s; ++i) {
-            auto arg = range->args()[i];
-            if (arg->type() == geax::frontend::AstNodeType::kFunc) {
-                Entry entry_arg;
-                checkedAnyCast(arg->accept(*this), entry_arg);
-                // Currently supports range function, the parameter is int
-                // type, and it can be expanded in the future
-                auto vint = new geax::frontend::VInt();
-                vint->setVal(entry_arg.constant.scalar.AsInt64());
-                transfer_args[i] = std::move(vint);
-            } else {
-                transfer_args[i] = arg;
-            }
-        }
-        range->setArgs(std::move(transfer_args));
-        checkedAnyCast(range->accept(*this), in_e);
-    } else {
-        checkedAnyCast(in_expr->accept(*this), in_e);
-    }
+    checkedAnyCast(in_expr->accept(*this), in_e);
     CYPHER_THROW_ASSERT(in_e.IsArray());
     auto data_array = in_e.constant.array;
     std::vector<::lgraph::FieldData> ret_data;
     for (auto &data : *data_array) {
         auto it = sym_tab_->symbols.find(ref->name());
-        if (it == sym_tab_->symbols.end()) CYPHER_TODO();
-        cypher::FieldData arg;
-        arg.type = FieldData::SCALAR;
-        arg.scalar = ::lgraph::FieldData(data.AsInt64());
-        const_cast<Record*>(record_)->values[it->second.id] = Entry(arg);
+        if (it == sym_tab_->symbols.end()) {
+            THROW_CODE(CypherException, "Unknown variable: {}", ref->name());
+        }
+        const_cast<Record*>(record_)->values[it->second.id] = Entry(cypher::FieldData(data));
         Entry one_result;
         checkedAnyCast(op_expr->accept(*this), one_result);
         ret_data.push_back(one_result.constant.scalar);
