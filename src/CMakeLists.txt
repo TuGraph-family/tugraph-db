@@ -21,7 +21,7 @@ install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
         DESTINATION share/lgraph)
 install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/../deps/tugraph-db-browser
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/browser-resource
         DESTINATION share/lgraph)
 # install procedure demos
 install(DIRECTORY
