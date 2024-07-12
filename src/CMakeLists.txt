@@ -54,7 +54,7 @@ add_custom_command(TARGET lgraph_server
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/browser-resource
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource)
 add_custom_command(TARGET lgraph_server
         POST_BUILD

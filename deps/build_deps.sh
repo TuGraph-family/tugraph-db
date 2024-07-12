@@ -11,4 +11,18 @@ npm run build
 RESOURCE_DIR=${SCRIPT_DIR}/../src/restful/server/resource/
 rm -rf ${RESOURCE_DIR}
 cp -r dist ${RESOURCE_DIR}
-cd -
+cd ..
+
+echo "======================================"
+echo "Building tugraph-db-browser"
+echo "======================================"
+
+cd tugraph-db-browser
+yarn bootstrap
+cd client
+rm -rf dist
+yarn build
+BROWSER_RESOURCE_DIR=${SCRIPT_DIR}/../src/restful/server/browser-resource
+rm -rf ${BROWSER_RESOURCE_DIR}
+cp -r dist/resource ${BROWSER_RESOURCE_DIR}
+cp -r src/constants/demo_data ${BROWSER_RESOURCE_DIR}/
