@@ -95,23 +95,6 @@
             "res": 2
           }
         ],
-        "schema_rewrite": [
-          {
-            "query": "MATCH p=(n1)-[r1]->(n2)-[r2]->(m:Person) return count(p)",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p)]\n        Expand(All) [n2 --> m ]\n            Expand(All) [n1 --> n2 ]\n                Node By Label Scan [n1:Person]\n",
-            "res": 1
-          },
-          {
-            "query": "MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City),p2=(n3)-[r3]->(m2:Film) return count(p1)",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Cartesian Product\n            Expand(All) [n2 --> m1 ]\n                Expand(All) [n1 --> n2 ]\n                    Node By Label Scan [n1:Person]\n            Expand(All) [n3 --> m2 ]\n                Node By Label Scan [n3:Person]\n",
-            "res": 1
-          },
-          {
-            "query": "MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City) with count(p1) as cp match p1=(n1)-[r1]->(m1:Film) return count(p1)",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Apply\n            Expand(All) [n1 --> m1 ]\n                Node By Label Scan Dynamic [n1:Person]\n                    Argument [cp]\n            Aggregate [cp]\n                Expand(All) [n2 --> m1 ]\n                    Expand(All) [n1 --> n2 ]\n                        Node By Label Scan [n1:Person]\n",
-            "res": 1
-          }
-        ],
         "where_rewrite": [
           {
             "query": "match(p:Person),(c:City) where p.name = 'Christopher Nolan' and c.name = 'Houston' return p,c",
@@ -132,6 +115,33 @@
             "query": "match(c:City)<-[r:BORN_IN]-(p:Person) where c.name = 'London' and p.name <> 'Christopher Nolan' return r",
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Filter [{p.name != Christopher Nolan}]\n            Expand(All) [c <-- p ]\n                Node Index Seek [c]  IN []\n",
             "res": 2
+          }
+        ],
+        "start_vertex": [
+          {
+            "query": "match(c:City)<-[r:BORN_IN]-(p:Person {name:'Christopher Nolan'}) return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Expand(All) [p --> c ]\n            Node Index Seek [p]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match(c:City)<-[r:BORN_IN]-(p:Person) where p.name = 'Christopher Nolan' return r",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Expand(All) [p --> c ]\n            Node Index Seek [p]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match (n:Person)-[r:HAS_CHILD]->(m:Person)<-[r1:MARRIED]-(m1:Person) where m.name = 'Michael Redgrave' return n,m1",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n,m1]\n        Expand(All) [m <-- m1 ]\n            Expand(All) [m <-- n ]\n                Node Index Seek [m]  IN []\n",
+            "res": 1
+          },
+          {
+            "query": "match (n)-[r:HAS_CHILD]->(m:Person)<-[r1:MARRIED]-(m1) return n,m1",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n,m1]\n        Expand(All) [m <-- m1 ]\n            Expand(All) [m <-- n ]\n                Node By Label Scan [m:Person]\n",
+            "res": 2
+          },
+          {
+            "query": "match p = (n)<-[r]-(m)-[r1]->(m1:City) RETURN p",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [p]\n        Expand(All) [m --> n ]\n            Expand(All) [m1 <-- m ]\n                Node By Label Scan [m1:City]\n",
+            "res": 9
           }
         ]
       }

@@ -55,6 +55,27 @@ namespace cypher {
  *                     Node By Label Scan [n0:user]
  **/
 
+// removed test case in cypher_plan_validate.json
+/*
+"schema_rewrite": [
+    {
+        "query": "MATCH p=(n1)-[r1]->(n2)-[r2]->(m:Person) return count(p)",
+        "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p)]\n        Expand(All) [n2 --> m ]\n            Expand(All) [n1 --> n2 ]\n                Node By Label Scan [n1:Person]\n",
+        "res": 1
+    },
+    {
+        "query": "MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City),p2=(n3)-[r3]->(m2:Film) return count(p1)",
+        "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Cartesian Product\n            Expand(All) [n2 --> m1 ]\n                Expand(All) [n1 --> n2 ]\n                    Node By Label Scan [n1:Person]\n            Expand(All) [n3 --> m2 ]\n                Node By Label Scan [n3:Person]\n",
+        "res": 1
+    },
+    {
+        "query": "MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City) with count(p1) as cp match p1=(n1)-[r1]->(m1:Film) return count(p1)",
+        "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Aggregate [count(p1)]\n        Apply\n            Expand(All) [n1 --> m1 ]\n                Node By Label Scan Dynamic [n1:Person]\n                    Argument [cp]\n            Aggregate [cp]\n                Expand(All) [n2 --> m1 ]\n                    Expand(All) [n1 --> n2 ]\n                        Node By Label Scan [n1:Person]\n",
+        "res": 1
+    }
+]
+*/
+
 class OptRewriteWithSchemaInference : public OptPass {
     bool check_v_label_valid(const lgraph::SchemaInfo *schema_info, const std::string label) {
         auto vertex_labels = schema_info->v_schema_manager.GetAllLabels();
