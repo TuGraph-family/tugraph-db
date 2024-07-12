@@ -180,10 +180,10 @@ int main(int argc, char** argv) {
         config.Add(import_config.delimiter, "delimiter", true)
             .Comment("Delimiter used in the CSV files");
         config.Add(import_config.enable_fulltext_index, "enable_fulltext_index", true)
-            .Comment("Whether to enable fulltext index");
+                .Comment("Whether to enable fulltext index");
         config.Add(import_config.fulltext_index_analyzer, "fulltext_index_analyzer", true)
-            .SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
-            .Comment("fulltext index analyzer");
+                .SetPossibleValues({"SmartChineseAnalyzer", "StandardAnalyzer"})
+                .Comment("fulltext index analyzer");
         config.ExitAfterHelp(true);
         try {
             config.ParseAndFinalize(argc, argv);
@@ -199,8 +199,6 @@ int main(int argc, char** argv) {
         config.Add(import_config_v3.config_file, "c,config_file", false)
             .Comment("Config file path");
         config.Add(import_config_v3.continue_on_error, "i,continue_on_error", true);
-        config.Add(import_config_v3.is_graphar, "gar", true)
-            .Comment("Whether the config file is GraphAr file");
         config.Add(import_config_v3.db_dir, "d,dir", true).Comment("The DB data directory");
         config.Add(import_config_v3.user, "u,user", true).Comment("DB username.");
         config.Add(import_config_v3.password, "p,password", true).Comment("DB password.");
