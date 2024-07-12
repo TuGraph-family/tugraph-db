@@ -86,10 +86,12 @@ class NodeIndexSeek : public OpBase {
         CYPHER_THROW_ASSERT(!target_values_.empty());
         auto value = target_values_[0];
         if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
+            LOG_INFO() << "--------------NodeIndexSeek Initialize INDEX_ITER " << " field = " << field_ << " val = " << value.ToString();
             it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(),
                             field_, value, value);
         } else {
             // Weak index iterator
+            LOG_INFO() << "--------------NodeIndexSeek Initialize WEAK_INDEX_ITER " << " field = " << field_ << " val = " << value.ToString();
             it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
         }
         consuming_ = false;
