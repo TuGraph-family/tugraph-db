@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
 #ifndef GEAXFRONTEND_UTILS_ASTDUMPER_H_
 #define GEAXFRONTEND_UTILS_ASTDUMPER_H_
 
@@ -58,20 +57,20 @@ namespace frontend {
 #endif
 
 class IndentGuard {
-public:
+ public:
     explicit IndentGuard(int64_t* indent, const int64_t& indent_size)
         : indent_(indent), indent_size_(indent_size) {
         *indent_ += indent_size_;
     }
     ~IndentGuard() { *indent_ -= indent_size_; }
 
-private:
+ private:
     int64_t* indent_;
     int64_t indent_size_;
 };
 
 class VariableGuard {
-public:
+ public:
     explicit VariableGuard(std::string& str, int64_t* indent, const std::string& var,
                            const std::string& var_type_name, bool is_list = false,
                            bool is_newline = true)
@@ -90,7 +89,7 @@ public:
             .append(is_newline_ ? "\n" : "");
     }
 
-private:
+ private:
     std::string& str_;
     int64_t* indent_;
     bool is_list_;
@@ -109,7 +108,7 @@ private:
 #endif
 
 class AstDumper : public AstNodeVisitor {
-public:
+ public:
     AstDumper() = default;
 
     ~AstDumper() = default;
@@ -409,10 +408,12 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(PropStruct* node) override {
-        INDET_GUARD();
-        VARIABLE_GUARD_WITH_TYPE_NAME();
-        auto& properties = node->properties();
-        VISIT_PARAM_AND_CHECK_WITH_MSG(properties);
+        if (node) {
+            INDET_GUARD();
+            VARIABLE_GUARD_WITH_TYPE_NAME();
+            auto& properties = node->properties();
+            VISIT_PARAM_AND_CHECK_WITH_MSG(properties);
+        }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(YieldField* node) override {
@@ -420,6 +421,10 @@ public:
         VARIABLE_GUARD_WITH_TYPE_NAME();
         auto& items = node->items();
         VISIT_AND_CHECK_WITH_MSG(items);
+        auto predicate = node->predicate();
+        if (predicate) {
+            VISIT_PARAM_AND_CHECK_WITH_MSG(predicate);
+        }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(TableFunctionClause* node) override {
@@ -1511,7 +1516,7 @@ public:
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
-protected:
+ protected:
     std::any reportError() override { return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT; }
     std::string str_;
     std::string error_msg_;

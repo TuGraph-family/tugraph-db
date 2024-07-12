@@ -18,7 +18,6 @@
 #include "procedure/procedure_v2.h"
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/procedure/utils.h"
-#include "geax-front-end/ast/clause/ClauseNodeFwd.h"
 #include "resultset/record.h"
 #include "tools/lgraph_log.h"
 
@@ -181,10 +180,9 @@ class GqlInQueryCall : public OpBase {
                 parameters.reserve(args_.size());
                 for (auto expr : args_) {
                     ArithExprNode node(expr, pattern_graph_->symbol_table);
-                    // TODO(lingsu): dummy record
                     parameters.emplace_back(node.Evaluate(ctx, *record.get()));
                 }
-                p->function(ctx, nullptr, parameters, _yield_items, &buffer_);
+                p->function(ctx, record.get(), parameters, _yield_items, &buffer_);
                 std::reverse(buffer_.begin(), buffer_.end());
                 state = StreamDepleted;
                 return HandOff(ctx, record);
@@ -197,7 +195,6 @@ class GqlInQueryCall : public OpBase {
                         throw lgraph::EvaluationException("unregistered standalone function: " +
                                                           func_name_);
                     }
-                    std::vector<Record> records;
                     std::vector<std::string> _yield_items;
                     if (yield_.has_value()) {
                         for (auto &pair : yield_.value()->items()) {
@@ -208,10 +205,9 @@ class GqlInQueryCall : public OpBase {
                     parameters.reserve(args_.size());
                     for (auto expr : args_) {
                         ArithExprNode node(expr, pattern_graph_->symbol_table);
-                        // TODO(lingsu): dummy record
-                        parameters.emplace_back(node.Evaluate(ctx, Record(1)));
+                        parameters.emplace_back(node.Evaluate(ctx, *record.get()));
                     }
-                    p->function(ctx, nullptr, parameters, _yield_items, &records);
+                    p->function(ctx, record.get(), parameters, _yield_items, &buffer_);
                     std::reverse(buffer_.begin(), buffer_.end());
                     if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 }

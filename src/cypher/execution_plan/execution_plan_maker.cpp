@@ -584,7 +584,16 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
     NOT_SUPPORT();
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::YieldField* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::YieldField* node) {
+    if (node->predicate()) {
+        auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
+            node->predicate(), pattern_graphs_[cur_pattern_graph_].symbol_table);
+        auto op_filter = new OpFilter(expr_filter);
+        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        pattern_graph_root_[cur_pattern_graph_] = op_filter;
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::TableFunctionClause* node) { NOT_SUPPORT(); }
 
@@ -1031,6 +1040,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         ops.emplace_back(new Skip(std::get<0>(node->offset().value())));
     }
     std::vector<std::pair<int, bool>> order_by_items;
+    // TODO(lingsu): check whether the orderby key appears in the symbol table or return items,
+    // and GetField type should complement the return items
     for (auto order_by_field : node->orderBys()) {
         for (size_t i = 0; i < items.size(); ++i) {
             if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(order_by_field->field())) {
@@ -1059,12 +1070,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         }
     }
     if (order_by_items.size() != node->orderBys().size()) {
-        NOT_SUPPORT_WITH_MSG("Unknown order by field");
+        THROW_CODE(InputError, FMA_FMT("Unknown order by field"));
     }
     if (!order_by_items.empty()) {
         ops.emplace_back(new Sort(
-            order_by_items, node->limit().has_value() ? std::get<0>(node->limit().value()) : -1,
-            node->offset().has_value() ? std::get<0>(node->offset().value()) : -1));
+            order_by_items, node->offset().has_value() ? std::get<0>(node->offset().value()) : -1,
+            node->limit().has_value() ? std::get<0>(node->limit().value()) : -1));
     }
     // AGGREGATE
     bool has_aggregation = false;
@@ -1206,6 +1217,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
     expand_ops.emplace_back(op);
     if (auto op = _SingleBranchConnect(expand_ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    }
+    if (node->yield().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
