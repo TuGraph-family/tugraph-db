@@ -6,3 +6,5 @@ WITH [2,4,6] AS y RETURN [x IN y | x] AS result;
 [{"result":[2,4,6]}]
 WITH [2,4,6] AS y RETURN [x IN range(0, size(y)) | x] AS result;
 [{"result":[0,1,2,3]}]
+RETURN [x in [x in [x in [1,2] |x+1] |x+1] | x+1+head([x in [1,2,3] | x^2])]
+[{"[x in [x in [x in [1,2] |x+1] |x+1] | x+1+head([x in [1,2,3] | x^2])]":[5.0,6.0]}]
