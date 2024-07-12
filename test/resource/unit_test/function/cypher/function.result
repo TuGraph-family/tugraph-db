@@ -74,7 +74,6 @@ RETURN coalesce(null, null);
 [{"coalesce(null, null)":null}]
 MATCH (n) RETURN coalesce(n.birthyear, n.name);
 [{"coalesce(n.birthyear, n.name)":1910},{"coalesce(n.birthyear, n.name)":1908},{"coalesce(n.birthyear, n.name)":1937},{"coalesce(n.birthyear, n.name)":1939},{"coalesce(n.birthyear, n.name)":1952},{"coalesce(n.birthyear, n.name)":1963},{"coalesce(n.birthyear, n.name)":1930},{"coalesce(n.birthyear, n.name)":1954},{"coalesce(n.birthyear, n.name)":1986},{"coalesce(n.birthyear, n.name)":1965},{"coalesce(n.birthyear, n.name)":1873},{"coalesce(n.birthyear, n.name)":1932},{"coalesce(n.birthyear, n.name)":1970},{"coalesce(n.birthyear, n.name)":"New York"},{"coalesce(n.birthyear, n.name)":"London"},{"coalesce(n.birthyear, n.name)":"Houston"},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null}]
-#EXPECT
 RETURN abs('haha');
 [CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Abs.
 RETURN ceil('haha');

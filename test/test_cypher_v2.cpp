@@ -345,12 +345,12 @@ TEST_F(TestCypherV2, TestFind) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestQuery) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/query/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestQuery) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/query/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestHint) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -380,12 +380,12 @@ TEST_F(TestCypherV2, TestMultiMatch) {
 //     test_files(dir);
 // }
 
-// TEST_F(TestCypherV2, TestFunction) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/function/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestFunction) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/function/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestParameter) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -464,12 +464,12 @@ TEST_F(TestCypherV2, TestAdd) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestSet) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/set/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestSet) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/set/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestDelete) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
@@ -485,12 +485,12 @@ TEST_F(TestCypherV2, TestDelete) {
 //     test_files(dir);
 // }
 
-// TEST_F(TestCypherV2, TestOrderby) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/orderby/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestOrderby) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/orderby/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestMerge) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);

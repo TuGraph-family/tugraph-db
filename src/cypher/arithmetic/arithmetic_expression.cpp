@@ -1278,6 +1278,7 @@ cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
     std::string regexp_str = regexp.constant.scalar.AsString();
     auto variable = args[2].Evaluate(ctx, record);
     std::string variable_str = variable.constant.scalar.AsString();
+    if (variable_str.empty()) return cypher::FieldData(lgraph_api::FieldData(false));
     bool ret = std::regex_match(variable_str, std::regex(regexp_str));
     return cypher::FieldData(lgraph_api::FieldData(ret));
 }

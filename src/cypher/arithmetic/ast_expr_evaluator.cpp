@@ -21,6 +21,7 @@
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
+#include "lgraph/lgraph_exceptions.h"
 
 #ifndef DO_BINARY_EXPR
 #define DO_BINARY_EXPR(func)                                       \
@@ -257,7 +258,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Function* node) {
         }
         return Entry(it->second(ctx_, *record_, args));
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(InputError, FMA_FMT("Plugin [{}] does not exist.", func_name));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Case* node) {
@@ -322,8 +323,14 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
                 NOT_SUPPORT_AND_THROW();
             }
             std::vector<Entry> args;
-            args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(node->isDistinct()))));
-            args.emplace_back(std::any_cast<Entry>(node->expr()->accept(*this)));
+            if (func_name == "count" &&
+                node->expr()->type() == geax::frontend::AstNodeType::kVString &&
+                ((geax::frontend::VString*)node->expr())->val() == "*" && record_->Null()) {
+                args.emplace_back(Entry(cypher::FieldData()));
+            } else {
+                args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(node->isDistinct()))));
+                args.emplace_back(std::any_cast<Entry>(node->expr()->accept(*this)));
+            }
             agg_ctxs_[agg_pos_]->Step(args);
             return Entry(cypher::FieldData());
         }
@@ -522,6 +529,12 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::IsNull* node) {
     ret.type = FieldData::SCALAR;
     ret.scalar = ::lgraph::FieldData(e.IsNull());
     return Entry(ret);
+}
+
+std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
+    auto path_chains = node->pathChains();
+    if (path_chains.size() > 1) NOT_SUPPORT_AND_THROW();
+    NOT_SUPPORT_AND_THROW();
 }
 
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }

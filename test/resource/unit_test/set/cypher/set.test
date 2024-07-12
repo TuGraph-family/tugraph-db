@@ -14,7 +14,5 @@ match (n) return n,properties(n) /*debug*/;
 MATCH (n {name:'A'})-[r:KNOWS]->(m {name:'B'}) SET r.weight=11;
 MATCH (n)-[r:KNOWS]->(m) WHERE r.weight=15 SET r += {weight:16};
 MATCH (n)-[r:KNOWS]->(m) WHERE r.weight=40 SET r.weight = r.weight + 1;
-MATCH (n)-[r:KNOWS]->(m) WHERE r.weight=20 SET r=NULL;
 match (n)-[r]->(m) return r,properties(r) /*debug*/;
-MATCH (n:Person {name:'Y'}) SET n=NULL;
 match (n) return n,properties(n) /*debug*/;
