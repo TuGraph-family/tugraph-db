@@ -57,8 +57,6 @@ cypher::FieldData doCallBuiltinFunc(const std::string& name, cypher::RTContext* 
 
 namespace cypher {
 
-std::unordered_map<ExprType, uint32_t> ExprGuard::cur_types_ = {};
-
 static cypher::FieldData And(const cypher::FieldData& x, const cypher::FieldData& y) {
     cypher::FieldData ret;
     if (x.IsBool() && y.IsBool()) {
@@ -451,10 +449,6 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::VNull* node) {
 std::any cypher::AstExprEvaluator::visit(geax::frontend::VNone* node) { NOT_SUPPORT_AND_THROW(); }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Ref* node) {
-    if (ExprGuard::InClause(ExprType::kListComprehension) &&
-        local_variable_table_.find(node->name()) != local_variable_table_.end()) {
-        return local_variable_table_[node->name()];
-    }
     auto it = sym_tab_->symbols.find(node->name());
     if (it == sym_tab_->symbols.end()) NOT_SUPPORT_AND_THROW();
     switch (it->second.type) {
@@ -556,17 +550,15 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
     CYPHER_THROW_ASSERT(in_e.IsArray());
     auto data_array = in_e.constant.array;
     std::vector<::lgraph::FieldData> ret_data;
-    ExprGuard exprGuard(ExprType::kListComprehension);
-    bool is_insert = local_variable_table_.emplace(ref->name(), Entry()).second;
+    auto it = sym_tab_->symbols.find(ref->name());
+    Entry origin = record_->values[it->second.id];
     for (auto &data : *data_array) {
-        local_variable_table_[ref->name()] = Entry(cypher::FieldData(data));
+        const_cast<Record*>(record_)->values[it->second.id] = Entry(cypher::FieldData(data));
         Entry one_result;
         checkedAnyCast(op_expr->accept(*this), one_result);
         ret_data.push_back(one_result.constant.scalar);
     }
-    if (is_insert) {
-        local_variable_table_.erase(ref->name());
-    }
+    const_cast<Record*>(record_)->values[it->second.id] = origin;
     return Entry(cypher::FieldData(ret_data));
 }
 

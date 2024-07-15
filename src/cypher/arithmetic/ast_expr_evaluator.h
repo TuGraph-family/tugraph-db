@@ -162,26 +162,6 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     const SymbolTable* sym_tab_;
     const Record* record_;
     std::shared_ptr<AggCtx> agg_func_;
-    std::unordered_map<std::string, Entry> local_variable_table_;
-};
-
-enum class ExprType {
-    kListComprehension
-};
-
-class ExprGuard {
-    ExprType type_;
-    static std::unordered_map<ExprType, uint32_t> cur_types_;
- public:
-    explicit ExprGuard(ExprType type) : type_(type) {
-        cur_types_[type_]++;
-    }
-
-    ~ExprGuard() { cur_types_[type_]--; }
-
-    static bool InClause(ExprType type) {
-        return cur_types_[type];
-    }
 };
 
 }  // namespace cypher
