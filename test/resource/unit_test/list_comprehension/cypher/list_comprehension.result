@@ -12,3 +12,5 @@ RETURN [x in [1] | x + head([x in [2,3] | x+1]) +  x ];
 [{"[x in [1] | x + head([x in [2,3] | x+1]) +  x ]":[5]}]
 RETURN [ _ in range(1,10) | x];
 [CypherException] Unknown variable: x
+RETURN [x in [x in [x in [2,3,4] |x+1] |x+1] | x+1+head([x in [1,2,3] | x^2])+x];
+[{"[x in [x in [x in [2,3,4] |x+1] |x+1] | x+1+head([x in [1,2,3] | x^2])+x]":[10.0,12.0,14.0]}]
