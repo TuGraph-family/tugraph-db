@@ -2727,7 +2727,8 @@ void AlgoFuncV2::ShortestPath(RTContext *ctx, const Record *record, const cypher
     auto end_vid = args[1].node->PullVid();
     cypher::Path path;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_filters, max_hops, path,
+    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid,
+                               edge_filters, max_hops, path,
                                 direction, std::nullopt);
 
     auto pp = global_ptable.GetProcedure("algo.shortestPath");

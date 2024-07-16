@@ -45,7 +45,8 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
         {
             CYPHER_THROW_ASSERT(constant.type == cypher::FieldData::MAP);
             auto it = constant.map->find(fd);
-            CYPHER_THROW_ASSERT(it != constant.map->end() && it->second.type == cypher::FieldData::SCALAR);
+            CYPHER_THROW_ASSERT(it != constant.map->end() &&
+                                it->second.type == cypher::FieldData::SCALAR);
             return it->second.scalar;
         }
     case RELP_SNAPSHOT:

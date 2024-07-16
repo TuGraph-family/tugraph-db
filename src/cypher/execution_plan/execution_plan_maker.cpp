@@ -578,9 +578,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
             right->setName(std::move(val));
             expr->setRight(right);
         }
-    } else if(value->type() == geax::frontend::AstNodeType::kGetField) {
+    } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
         p.type = Property::VARIABLE;
-        p.value_alias = ((geax::frontend::Ref*)(((geax::frontend::GetField*)value)->expr()))->name();
+        p.value_alias = ((geax::frontend::Ref*)((
+                         (geax::frontend::GetField*)value)->expr()))->name();
         p.value = lgraph::FieldData(p.value_alias);
         p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
         if (is_end_path_) {

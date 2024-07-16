@@ -197,7 +197,8 @@ class InQueryCall : public OpBase {
                     ArithExprNode node(expr, pattern_->symbol_table);
                     evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
                 }
-                procedure_->function(ctx, record.get(), evaluate_parameters, _yield_items, &buffer_);
+                procedure_->function(ctx, record.get(),
+                                     evaluate_parameters, _yield_items, &buffer_);
                 std::reverse(buffer_.begin(), buffer_.end());
                 state = StreamDepleted;
                 return HandOff(ctx, record);
@@ -225,7 +226,8 @@ class InQueryCall : public OpBase {
                         ArithExprNode node(expr, pattern_->symbol_table);
                         evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
                     }
-                    procedure_->function(ctx, record.get(), evaluate_parameters, _yield_items, &buffer_);
+                    procedure_->function(ctx, record.get(),
+                                         evaluate_parameters, _yield_items, &buffer_);
                     std::reverse(buffer_.begin(), buffer_.end());
                     if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 }
