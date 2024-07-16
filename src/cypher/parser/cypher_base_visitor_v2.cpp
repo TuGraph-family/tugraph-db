@@ -1442,7 +1442,13 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
         checkedCast(name_expr, vstr);
         std::string name = vstr->val();
         auto expr = ALLOC_GEAOBJECT(geax::frontend::Ref);
-        expr->setName(std::move(name));
+        if (list_comprehension_depth == 0 || list_comprehension_anonymous_symbols_.find(name) ==
+                                                 list_comprehension_anonymous_symbols_.end()) {
+            expr->setName(std::move(name));
+        } else {
+            auto list_comprehension_name = list_comprehension_anonymous_symbols_[name].top();
+            expr->setName(std::move(list_comprehension_name));
+        }
         return (geax::frontend::Expr *)expr;
     } else if (ctx->oC_Literal()) {
         return visit(ctx->oC_Literal());
@@ -1581,6 +1587,13 @@ std::any CypherBaseVisitorV2::visitOC_IdInColl(LcypherParser::OC_IdInCollContext
     geax::frontend::ListComprehension *listComprehension = nullptr;
     checkedCast(node_, listComprehension);
     auto var = ctx->oC_Variable()->getText();
+    if (list_comprehension_anonymous_symbols_.find(var) ==
+        list_comprehension_anonymous_symbols_.end()) {
+        list_comprehension_anonymous_symbols_[var] = std::stack<std::string>();
+    }
+    auto anonymous_var = GenerateListComprehension(var);
+    list_comprehension_anonymous_symbols_[var].push(anonymous_var);
+    var = anonymous_var;
     auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
     variable_ref->setName(std::move(var));
     listComprehension->setVariable(variable_ref);
@@ -1729,6 +1742,7 @@ std::any CypherBaseVisitorV2::visitOC_Namespace(LcypherParser::OC_NamespaceConte
 
 std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     LcypherParser::OC_ListComprehensionContext *ctx) {
+    list_comprehension_depth++;
     auto listComprehension = ALLOC_GEAOBJECT(geax::frontend::ListComprehension);
     SWITCH_CONTEXT_VISIT(ctx->oC_FilterExpression(), listComprehension);
     geax::frontend::Expr *op_expr;
@@ -1738,6 +1752,9 @@ std::any CypherBaseVisitorV2::visitOC_ListComprehension(
         CYPHER_TODO();
     }
     listComprehension->setOpExpression(op_expr);
+    list_comprehension_depth--;
+    list_comprehension_anonymous_symbols_[ctx->oC_FilterExpression()->
+                                          oC_IdInColl()->oC_Variable()->getText()].pop();
     return (geax::frontend::Expr*)listComprehension;
 }
 

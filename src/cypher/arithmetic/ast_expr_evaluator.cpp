@@ -551,14 +551,12 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
     auto data_array = in_e.constant.array;
     std::vector<::lgraph::FieldData> ret_data;
     auto it = sym_tab_->symbols.find(ref->name());
-    Entry origin = record_->values[it->second.id];
     for (auto &data : *data_array) {
         const_cast<Record*>(record_)->values[it->second.id] = Entry(cypher::FieldData(data));
         Entry one_result;
         checkedAnyCast(op_expr->accept(*this), one_result);
         ret_data.push_back(one_result.constant.scalar);
     }
-    const_cast<Record*>(record_)->values[it->second.id] = origin;
     return Entry(cypher::FieldData(ret_data));
 }
 

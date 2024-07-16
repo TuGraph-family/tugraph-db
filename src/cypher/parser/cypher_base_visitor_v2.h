@@ -84,6 +84,14 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     geax::frontend::PathChain* path_chain_;
     geax::frontend::FilterStatement* filter_in_with_clause_;
     parser::CmdType cmd_type_;
+    std::unordered_map<std::string, std::stack<std::string>> list_comprehension_anonymous_symbols_;
+    std::unordered_map<std::string, int32_t> list_comprehension_anonymous_idx_;
+    int32_t list_comprehension_depth {0};
+
+    std::string GenerateListComprehension(const std::string &x) {
+        return std::string("LIST_COMPREHENSION@") + x + "@" +
+               std::to_string(list_comprehension_anonymous_idx_[x]++);
+    }
 
  public:
     CypherBaseVisitorV2() = delete;
