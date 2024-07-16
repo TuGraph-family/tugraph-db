@@ -41,6 +41,13 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
                 std::stoi(constant.scalar.string().substr(2, constant.scalar.string().size() - 3));
             return ctx->txn_->GetTxn()->GetVertexField(vid, fd);
         }
+    case CONSTANT:
+        {
+            CYPHER_THROW_ASSERT(constant.type == cypher::FieldData::MAP);
+            auto it = constant.map->find(fd);
+            CYPHER_THROW_ASSERT(it != constant.map->end() && it->second.type == cypher::FieldData::SCALAR);
+            return it->second.scalar;
+        }
     case RELP_SNAPSHOT:
     default:
         CYPHER_TODO();

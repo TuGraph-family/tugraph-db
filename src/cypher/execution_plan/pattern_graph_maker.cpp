@@ -318,6 +318,11 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
             p.type = Property::PARAMETER;
             p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
             p.value_alias = ((geax::frontend::Param*)value)->name();
+        } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+            p.type = Property::VARIABLE;
+            p.value_alias = ((geax::frontend::Ref*)(((geax::frontend::GetField*)value)->expr()))->name();
+            p.value = lgraph::FieldData(p.value_alias);
+            p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
         } else {
             NOT_SUPPORT();
         }
@@ -953,6 +958,13 @@ std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node)
 
 std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
     auto& query_stmts = node->queryStatements();
+    int match_count = 0;
+    for (auto &stat : query_stmts) {
+        if (stat->type() == geax::frontend::AstNodeType::kMatchStatement) {
+            match_count++;
+        }
+    }
+    if (match_count > 1) CYPHER_TODO();
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }

@@ -70,9 +70,9 @@
 #ifndef NOT_SUPPORT_AND_THROW
 #define NOT_SUPPORT_AND_THROW()                                                                 \
     do {                                                                                        \
-        auto error_msg_ = fma_common::StringFormatter::Format("visit(...) failed at {}:{}",     \
+        auto error_msg = fma_common::StringFormatter::Format("visit(...) failed at {}:{}",     \
                                                               std::string(__FILE__), __LINE__); \
-        throw lgraph::CypherException(error_msg_);                                              \
+        throw lgraph::CypherException(error_msg);                                              \
     } while (0)
 #endif
 

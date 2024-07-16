@@ -395,6 +395,12 @@ class AlgoFuncV2 {
                         const VEC_STR_V2 &yield_items, std::vector<Record> *records);
 };
 
+class SpatialFuncV2 {
+ public:
+    static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                         const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+};
+
 struct ProcedureV2 {
     /* <name, <index, type>> */
     typedef std::vector<std::pair<std::string, std::pair<int, lgraph_api::LGraphType>>> SIG_SPEC;
@@ -814,6 +820,13 @@ static std::vector<ProcedureV2> global_procedures_v2 = {
                 ProcedureV2::SIG_SPEC{
                     {"similarity", {0, lgraph_api::LGraphType::FLOAT}},
                 }),
+
+    // spatial
+    ProcedureV2("spatial.distance", SpatialFuncV2::Distance,
+                ProcedureV2::SIG_SPEC{
+                  {"Spatial1", {0, lgraph_api::LGraphType::STRING}},
+                  {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
+                ProcedureV2::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
 
     ProcedureV2("dbms.security.listRoles", BuiltinProcedureV2::DbmsSecurityListRoles,
                 ProcedureV2::SIG_SPEC{},

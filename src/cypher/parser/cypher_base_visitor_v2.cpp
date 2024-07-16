@@ -436,6 +436,7 @@ std::any CypherBaseVisitorV2::visitOC_SetItem(LcypherParser::OC_SetItemContext *
         update->setV(std::move(variable));
         if (ctx->oC_Expression()) {
             VisitGuard guard(VisitType::kSetVariable, visit_types_);
+            VisitGuard guardLabel(VisitType::kSetLabel, visit_types_);
             SWITCH_CONTEXT_VISIT(ctx->oC_Expression(), update);
         } else {
             THROW_CODE(InputError, FMA_FMT("Variable `{}` not defined", vstr->val()));
@@ -1436,6 +1437,9 @@ std::any CypherBaseVisitorV2::visitOC_PropertyOrLabelsExpression(
 
 std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
     if (ctx->oC_Variable()) {
+        if (VisitGuard::InClause(VisitType::kSetLabel, visit_types_)) {
+            THROW_CODE(CypherException, "Not support vertex or edge as right value in set clause.");
+        }
         geax::frontend::Expr *name_expr = nullptr;
         checkedAnyCast(visit(ctx->oC_Variable()), name_expr);
         geax::frontend::VString *vstr = nullptr;
@@ -1868,7 +1872,8 @@ std::any CypherBaseVisitorV2::visitOC_MapLiteral(LcypherParser::OC_MapLiteralCon
             ps->appendProperty(std::move(name), expr);
         }
     } else if (VisitGuard::InClause(VisitType::kStandaloneCall, visit_types_) ||
-               VisitGuard::InClause(VisitType::kInQueryCall, visit_types_)) {
+               VisitGuard::InClause(VisitType::kInQueryCall, visit_types_) ||
+               VisitGuard::InClause(VisitType::kReadingClause, visit_types_)) {
         auto map = ALLOC_GEAOBJECT(geax::frontend::MkMap);
         if (ctx->oC_Expression().size() != ctx->oC_PropertyKeyName().size())
             NOT_SUPPORT_AND_THROW();

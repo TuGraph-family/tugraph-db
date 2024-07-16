@@ -19,7 +19,7 @@
 
 #include <vector>
 #include "parser/clause.h"
-#include "procedure/procedure.h"
+#include "procedure/procedure_v2.h"
 #include "db/galaxy.h"
 #include "core/defs.h"
 #include "cypher/procedure/utils.h"
@@ -31,7 +31,7 @@ namespace cypher {
 class InQueryCall : public OpBase {
     const PatternGraph *pattern_ = nullptr;
     std::string func_name_;
-    Procedure *procedure_ = nullptr;
+    ProcedureV2 *procedure_ = nullptr;
     parser::Clause::TYPE_CALL call_clause_;
     ///< only used when call plugins with signature
     ///< I don't know why I write such shit-like code
@@ -41,7 +41,7 @@ class InQueryCall : public OpBase {
     std::unique_ptr<cypher::PluginAdapter> plugin_adapter_;
 
     void SetFunc(const std::string &name) {
-        auto p = global_ptable.GetProcedure(name);
+        auto p = global_ptable_v2.GetProcedureV2(name);
         if (!p) {
             throw lgraph::EvaluationException("unregistered standalone function: " + name);
         }
@@ -191,7 +191,13 @@ class InQueryCall : public OpBase {
                 std::transform(yield_items.cbegin(), yield_items.cend(),
                                std::back_inserter(_yield_items),
                                [](const auto &item) { return item.first; });
-                procedure_->function(ctx, record.get(), parameters, _yield_items, &buffer_);
+                std::vector<Entry> evaluate_parameters;
+                evaluate_parameters.reserve(parameters.size());
+                for (const auto& expr : parameters) {
+                    ArithExprNode node(expr, pattern_->symbol_table);
+                    evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
+                }
+                procedure_->function(ctx, record.get(), evaluate_parameters, _yield_items, &buffer_);
                 std::reverse(buffer_.begin(), buffer_.end());
                 state = StreamDepleted;
                 return HandOff(ctx, record);
@@ -213,7 +219,13 @@ class InQueryCall : public OpBase {
                      * e.g.
                      *   MATCH (n) CALL db.addLabel(n.name)  */
                     if (procedure_->separate_txn) CYPHER_TODO();
-                    procedure_->function(ctx, record.get(), parameters, _yield_items, &buffer_);
+                    std::vector<Entry> evaluate_parameters;
+                    evaluate_parameters.reserve(parameters.size());
+                    for (const auto& expr : parameters) {
+                        ArithExprNode node(expr, pattern_->symbol_table);
+                        evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
+                    }
+                    procedure_->function(ctx, record.get(), evaluate_parameters, _yield_items, &buffer_);
                     std::reverse(buffer_.begin(), buffer_.end());
                     if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 }
