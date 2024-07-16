@@ -125,17 +125,33 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
         const auto& exprs = node->elems();
         for (size_t idx = 0; idx < exprs.size(); ++idx) {
             std::string temp;
-            if (idx != exprs.size() - 1) {
-                checkedAnyCast(exprs[idx]->accept(*this), temp);
-                res += temp;
-                res += ", ";
-            }
             checkedAnyCast(exprs[idx]->accept(*this), temp);
             res += temp;
-            res += "}";
+            if (idx != exprs.size() - 1) {
+                res += ", ";
+            } else {
+                res += "}";
+            }
         }
         return res;
     }
+    std::any visit(geax::frontend::ListComprehension* node) override {
+        std::string res("{");
+        const auto & exprs = std::vector{ node->getVariable(),
+                             node->getInExpression(), node->getOpExpression()};
+        for (size_t idx = 0; idx < exprs.size(); ++idx) {
+            std::string temp;
+            checkedAnyCast(exprs[idx]->accept(*this), temp);
+            res += temp;
+            if (idx != exprs.size() - 1) {
+                res += ", ";
+            } else {
+                res += "}";
+            }
+        }
+        return res;
+    }
+
     std::any visit(geax::frontend::MkMap* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MkRecord* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MkSet* node) override { NOT_SUPPORT_AND_THROW(); }

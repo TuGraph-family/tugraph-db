@@ -150,6 +150,7 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::LabelOr* node) override;
     std::any visit(geax::frontend::IsLabeled* node) override;
     std::any visit(geax::frontend::IsNull* node) override;
+    std::any visit(geax::frontend::ListComprehension* node) override;
     std::any visit(geax::frontend::Exists* node) override;
 
     std::any reportError() override;

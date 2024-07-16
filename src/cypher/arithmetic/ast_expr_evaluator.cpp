@@ -539,4 +539,25 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
 
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
 
+std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
+    geax::frontend::Ref *ref = nullptr;
+    geax::frontend::Expr *in_expr = nullptr, *op_expr = nullptr;
+    checkedCast(node->getVariable(), ref);
+    checkedCast(node->getInExpression(), in_expr);
+    checkedCast(node->getOpExpression(), op_expr);
+    Entry in_e;
+    checkedAnyCast(in_expr->accept(*this), in_e);
+    CYPHER_THROW_ASSERT(in_e.IsArray());
+    auto data_array = in_e.constant.array;
+    std::vector<::lgraph::FieldData> ret_data;
+    auto it = sym_tab_->symbols.find(ref->name());
+    for (auto &data : *data_array) {
+        const_cast<Record*>(record_)->values[it->second.id] = Entry(cypher::FieldData(data));
+        Entry one_result;
+        checkedAnyCast(op_expr->accept(*this), one_result);
+        ret_data.push_back(one_result.constant.scalar);
+    }
+    return Entry(cypher::FieldData(ret_data));
+}
+
 }  // namespace cypher
