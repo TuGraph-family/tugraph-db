@@ -51,7 +51,6 @@ add_library(${TARGET_SERVER_LIB} STATIC
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
-        import/graphar_parser.cpp
         restful/server/rest_server.cpp
         restful/server/stdafx.cpp
         http/http_server.cpp
@@ -73,7 +72,6 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             lgraph_cypher_lib
             geax_isogql
             bolt
-            gar
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -113,7 +111,6 @@ else ()
             cpprest
             boost_thread
             boost_chrono
-            gar
             profiler
             snappy
             pthread
