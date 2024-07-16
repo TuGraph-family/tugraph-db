@@ -14,7 +14,7 @@ include(BuildClients.cmake)
 include(BuildCythonExtension.cmake)
 include(BuildBoltLib.cmake)
 
-install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_python lgraph_db_python
+install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_db_python
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib64)
 install(DIRECTORY
