@@ -965,7 +965,9 @@ std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* n
             match_count++;
         }
     }
-    if (match_count > 1) CYPHER_TODO();
+    if (match_count > 1) {
+        THROW_CODE(CypherException, "Not support more than one (optional) match clause.");
+    }
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }
