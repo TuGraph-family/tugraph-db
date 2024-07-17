@@ -383,12 +383,12 @@ TEST_F(TestCypherV2, TestMultiMatch) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestOptionalMatch) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/optional_match/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestOptionalMatch) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/optional_match/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestUnion) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -530,12 +530,12 @@ TEST_F(TestCypherV2, TestAggregate) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestAlgo) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/algo/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestAlgo) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/algo/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestTopn) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
