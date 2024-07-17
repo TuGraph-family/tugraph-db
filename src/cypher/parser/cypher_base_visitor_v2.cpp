@@ -1438,6 +1438,7 @@ std::any CypherBaseVisitorV2::visitOC_PropertyOrLabelsExpression(
 std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
     if (ctx->oC_Variable()) {
         if (VisitGuard::InClause(VisitType::kSetLabel, visit_types_)) {
+            // TODO(lpp) support update vertex or edge
             THROW_CODE(CypherException, "Not support to update the entire vertex or "
                        "edge in set clause.");
         }

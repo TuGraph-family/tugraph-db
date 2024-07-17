@@ -18,17 +18,17 @@
 #pragma once
 
 #include "server/state_machine.h"
-#include "procedure/procedure.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "cypher/procedure/procedure_v2.h"
 
 namespace cypher {
 class StandaloneCall : public OpBase {
     std::string func_name_;
-    Procedure *procedure_ = nullptr;
+    ProcedureV2 *procedure_ = nullptr;
     parser::Clause::TYPE_CALL call_clause_;
 
     void SetFunc(const std::string &name) {
-        auto p = global_ptable.GetProcedure(name);
+        auto p = global_ptable_v2.GetProcedureV2(name);
         if (!p) {
             throw lgraph::EvaluationException("unregistered standalone function: " + name);
         }

@@ -19,13 +19,13 @@
 
 #include <vector>
 #include "parser/clause.h"
-#include "procedure/procedure_v2.h"
 #include "db/galaxy.h"
 #include "core/defs.h"
 #include "cypher/procedure/utils.h"
 #include "cypher/cypher_exception.h"
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
+#include "cypher/procedure/procedure_v2.h"
 
 namespace cypher {
 class InQueryCall : public OpBase {
