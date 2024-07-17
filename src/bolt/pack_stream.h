@@ -79,9 +79,11 @@ class PackStream {
     }
 
     void PackDate(const bolt::Date& m) {
+        packer_.StructHeader('D', 1);
         packer_.Int64(m.days);
     }
     void PackLocalTime(const bolt::LocalTime& m) {
+        packer_.StructHeader('t', 1);
         packer_.Int64(m.nanoseconds);
     }
 
