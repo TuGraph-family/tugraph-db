@@ -129,7 +129,8 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         }
                     } else if (p.type == parser::Expression::DataType::MAP) {
                         for (auto &pp : p.Map()) {
-                            parameter_type_variable_to_string(const_cast<parser::Expression&>(pp.second));
+                            parameter_type_variable_to_string(
+                                const_cast<parser::Expression&>(pp.second));
                         }
                     } else if (p.type == parser::Expression::DataType::VARIABLE) {
                         p.type = parser::Expression::DataType::STRING;
