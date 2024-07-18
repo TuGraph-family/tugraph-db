@@ -3,6 +3,41 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
+RUN cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak && echo $' \n\
+# /etc/yum.repos.d/CentOS-Base.repo \n\
+ \n\
+[base] \n\
+name=CentOS-$releasever - Base \n\
+baseurl=http://vault.centos.org/7.9.2009/os/$basearch/ \n\
+gpgcheck=1 \n\
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
+ \n\
+[updates] \n\
+name=CentOS-$releasever - Updates \n\
+baseurl=http://vault.centos.org/7.9.2009/updates/$basearch/ \n\
+gpgcheck=1 \n\
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
+ \n\
+[extras] \n\
+name=CentOS-$releasever - Extras \n\
+baseurl=http://vault.centos.org/7.9.2009/extras/$basearch/ \n\
+gpgcheck=1 \n\
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
+ \n\
+[centosplus] \n\
+name=CentOS-$releasever - Plus \n\
+baseurl=http://vault.centos.org/7.9.2009/centosplus/$basearch/ \n\
+gpgcheck=1 \n\
+enabled=0 \n\
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
+ \n\
+[contrib] \n\
+name=CentOS-$releasever - Contrib \n\
+baseurl=http://vault.centos.org/7.9.2009/contrib/$basearch/ \n\
+gpgcheck=1 \n\
+enabled=0 \n\
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 ' > /etc/yum.repos.d/CentOS-Base.repo && yum clean all && yum makecache
+
 RUN yum -x filesystem update -y && yum install -y \
     git \
     gcc \
@@ -12,9 +47,7 @@ RUN yum -x filesystem update -y && yum install -y \
     bzip2 \
     unzip \
     openssl-static \
-    java-1.8.0-openjdk* \
-    libcurl-devel.x86_64 \
-    unzip
+    libcurl-devel.x86_64
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
@@ -57,14 +90,6 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
     && cp -r /extensions /usr/local/include/boost/geometry/ \
     && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
 
-#install maven
-# if it is not accessible, replace it with the link below
-# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
-RUN cd opt \
-    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
-    && tar xf apache-maven-3.8.7-bin.tar.gz \
-    && rm apache-maven-*.tar.gz
-
 # install tugraph
 # specifies the path of the object storage where the installation package resides
 ARG FILEPATH
@@ -73,42 +98,5 @@ ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
 RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
-# install tugraph demo
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
-    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph_demos \
-    && cp -r tugraph-demo/movie /var/lib/lgraph_demos/movie \
-    && cp -r tugraph-demo/the_three_body /var/lib/lgraph_demos/the_three_body \
-    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph_demos/three_kingdoms \
-    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph_demos/wandering_earth \
-    && cp tugraph-demo/setup.sh /setup.sh
-
-# install node.js && pnpm
-# if it is not accessible, replace it with the link below
-# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.20.0-linux-x64.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.20.0-linux-x64.tar.gz \
-    && tar xvf node-v16.20.0-linux-x64.tar.gz && cd node-v16.20.0-linux-x64/ \
-    && ln -s /node-v16.20.0-linux-x64/bin/npm /usr/local/bin/ \
-    && ln -s /node-v16.20.0-linux-x64/bin/node /usr/local/bin/ \
-    && npm config set registry https://registry.npmmirror.com \
-    && rm -rf /node-v16.20.0-linux-x64.tar.gz \
-    && npm install --global yarn \
-    && npm install --global pnpm \
-    && ln -s /node-v16.20.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
-    && ln -s /node-v16.20.0-linux-x64/bin/pnpm /usr/local/bin/pnpm \
-    && yarn config set registry https://registry.npmmirror.com \
-    && pnpm config set registry https://registry.npmmirror.com
-
-# install tugraph-db-browser dependencies
-RUN cd /usr/local/share/lgraph/tugraph-db-browser \
-    && pnpm run bootstrap \
-    && pnpm run build
-
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
-    LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
-    PATH=/opt/apache-maven-3.8.7/bin:$PATH
-
-# set locale
-RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
-ENV LANG     zh_CN.utf8
-ENV LC_ALL   zh_CN.utf8
+ENV LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64:$PYTHONPATH
