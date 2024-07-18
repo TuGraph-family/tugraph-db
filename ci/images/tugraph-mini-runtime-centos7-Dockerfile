@@ -3,6 +3,12 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
+RUN sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+    -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009|g" \
+    -e "s|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009|g" \
+    -i.bak \
+    /etc/yum.repos.d/CentOS-*.repo && yum clean all && yum makecache
+
 RUN yum -x filesystem update -y && yum install -y \
     gcc \
     openssl-static \

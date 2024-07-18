@@ -3,40 +3,11 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:7.3.1611
 
-RUN cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak && echo $' \n\
-# /etc/yum.repos.d/CentOS-Base.repo \n\
- \n\
-[base] \n\
-name=CentOS-$releasever - Base \n\
-baseurl=http://vault.centos.org/7.9.2009/os/$basearch/ \n\
-gpgcheck=1 \n\
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
- \n\
-[updates] \n\
-name=CentOS-$releasever - Updates \n\
-baseurl=http://vault.centos.org/7.9.2009/updates/$basearch/ \n\
-gpgcheck=1 \n\
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
- \n\
-[extras] \n\
-name=CentOS-$releasever - Extras \n\
-baseurl=http://vault.centos.org/7.9.2009/extras/$basearch/ \n\
-gpgcheck=1 \n\
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
- \n\
-[centosplus] \n\
-name=CentOS-$releasever - Plus \n\
-baseurl=http://vault.centos.org/7.9.2009/centosplus/$basearch/ \n\
-gpgcheck=1 \n\
-enabled=0 \n\
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \n\
- \n\
-[contrib] \n\
-name=CentOS-$releasever - Contrib \n\
-baseurl=http://vault.centos.org/7.9.2009/contrib/$basearch/ \n\
-gpgcheck=1 \n\
-enabled=0 \n\
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 ' > /etc/yum.repos.d/CentOS-Base.repo && yum clean all && yum makecache
+RUN sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+    -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009|g" \
+    -e "s|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009|g" \
+    -i.bak \
+    /etc/yum.repos.d/CentOS-*.repo && yum clean all && yum makecache
 
 RUN yum -x filesystem update -y && yum install -y \
     git \
