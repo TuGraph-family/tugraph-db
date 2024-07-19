@@ -474,6 +474,10 @@ class Schema {
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                         std::vector<size_t>& created);
 
+    void AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
+
+    void DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
+
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);
     void AddEdgeToFullTextIndex(EdgeUid euid, const Value& record,

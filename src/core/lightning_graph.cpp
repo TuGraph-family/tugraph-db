@@ -2155,21 +2155,24 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
-                }      
+                }
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+                index->AddVectorInTable(txn.GetTxn(), extractor->GetConstRef(prop), vid);
                 floatvector.emplace_back(vector);
                 count++;
             }
+            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
             if ((index->GetVectorIndexManager())->UpdateCount(count)) {
                 if ((index->GetVectorIndexManager())->WhetherUpdate()) {
-                    LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
+                    index->CleanVectorFromTable(txn.GetTxn());
                     index->Build();
                     index->Add(floatvector, count);
                     //vector_index->Save();
                     LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model", label, field);
-                }
-            } else { 
-                
+                } else {
+                    LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model", label, field);
+                }  
             }
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;

@@ -469,6 +469,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     graph_->DeleteVertex(*txn_, it, on_edge_deleted);
     if (schema->DetachProperty()) {
         schema->DeleteDetachedVertexProperty(*txn_, vid);
+        schema->DeleteDetachedVectorIndex(*txn_, vid, prop);
     }
     vertex_delta_count_[schema->GetLabelId()]--;
     // delete vertex fulltext index
@@ -868,29 +869,6 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
             // no need to update index since blob cannot be indexed
         } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
             fe->ParseAndSet(new_prop, values[i]);
-            // update vector index
-            if (fe->GetVectorIndex()->GetVectorIndexManager()->isIndexed()) {
-                fe->GetVectorIndex()->GetVectorIndexManager()->addCount();
-                if (fe->GetVectorIndex()->GetVectorIndexManager()->WhetherUpdate()) {
-                    uint64_t count = 0;
-                    std::vector<std::vector<float>> floatvector;
-                    auto kv_iter = schema->GetPropertyTable().GetIterator(*txn_);
-                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                        auto prop = kv_iter->GetValue();
-                        if (fe->GetIsNull(prop)) {
-                            continue;
-                        }
-                        std::vector<float>* floatvectorPtr = reinterpret_cast<std::vector<float>*>((char*)(fe->GetConstRef(prop)).Data());
-                        floatvector.emplace_back(*floatvectorPtr);
-                        count++;
-                    }
-                    LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
-                    fe->GetVectorIndex()->Build();
-                    fe->GetVectorIndex()->Add(floatvector, count);
-                    //fe.GetVectorIndex()->Save();
-                    LOG_INFO() << FMA_FMT("end rebuilding vector index in detached model");
-                }
-            }
         } else {
             fe->ParseAndSet(new_prop, values[i]);
             // update index if there is no error
@@ -934,6 +912,8 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
     }
     if (schema->DetachProperty()) {
         schema->SetDetachedVertexProperty(*txn_, vid, new_prop);
+        schema->DeleteDetachedVectorIndex(*txn_, vid, old_prop);
+        schema->AddDetachedVectorToVectorIndex(*txn_, vid, new_prop);       
     } else {
         it.SetProperty(std::move(new_prop));
     }
@@ -1247,6 +1227,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     schema->AddVertexToIndex(*txn_, newvid, prop, created_index);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(*txn_, newvid, prop);
+        schema->AddDetachedVectorToVectorIndex(*txn_, newvid, prop);
     }
     if (fulltext_index_) {
         schema->AddVertexToFullTextIndex(newvid, prop, fulltext_buffers_);

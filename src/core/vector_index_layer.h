@@ -5,6 +5,8 @@
 #include "core/vector_index_manager.h"
 #include "faiss/IndexFlat.h"
 #include "faiss/IndexIVFFlat.h"
+#include "core/kv_store.h"
+#include "core/graph_data_pack.h"
 #include "faiss/index_io.h"
 #include "faiss/impl/io.h"
 
@@ -25,10 +27,13 @@ class VectorIndex {
    int query_spec_;
    faiss::IndexFlatL2* quantizer_;
    faiss::IndexIVFFlat* index_;
-   VectorIndexManager vector_index_manager_; 
+   VectorIndexManager vector_index_manager_;
+   std::shared_ptr<KvTable> table_;
+   bool rebuild_;
 
  public:
-    VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type, const std::string& index_type, int vec_dimension, std::vector<int> index_spec);
+    VectorIndex(const std::string& label, const std::string& name, const std::string& distance_type,
+                const std::string& index_type, int vec_dimension, std::vector<int> index_spec, std::shared_ptr<KvTable> table);
 
     VectorIndex(const VectorIndex& rhs);
 
@@ -53,8 +58,14 @@ class VectorIndex {
     //get vector dimension
     int GetVecDimension() { return vec_dimension_; }
 
+    //get the vector table
+    std::shared_ptr<KvTable> GetTable() { return table_; }
+
     // get vector_index_manager
     VectorIndexManager* GetVectorIndexManager() { return &vector_index_manager_; }
+
+    // get whether rebuild
+    bool GetWhetherRebuild() { return rebuild_; }
 
     //set search specification
     bool SetSearchSpec(int query_spec);
@@ -73,5 +84,15 @@ class VectorIndex {
 
     // search vector in index
     bool Search(const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<int64_t>& indices);
+
+    static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,
+                                   const std::string& name, FieldType dt, IndexType type);
+
+    void AddVectorInTable(KvTransaction& txn, const Value& k, VertexId vid);
+
+    void CleanVectorFromTable(KvTransaction& txn);
+
+    bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query, size_t num_results, std::vector<float>& distances, std::vector<int64_t>& indices);
+
 };
-}  // namespace lgraph
+} // namespace lgraph

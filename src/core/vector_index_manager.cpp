@@ -24,7 +24,7 @@ bool VectorIndexManager::MakeVectorIndex() {
 }
 
 bool VectorIndexManager::UpdateCount(size_t DataSize) {
-    count_ = DataSize;
+    count_ = count_ + DataSize;
     return true;
 } 
 

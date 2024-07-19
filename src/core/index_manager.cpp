@@ -110,7 +110,9 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 index_spec.push_back(std::stof(match.str()));  
                 ++begin_it; 
             }
-            VectorIndex* vector_index = new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec);
+            auto tbl =
+                VectorIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.type);
+            VectorIndex* vector_index = new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec, std::move(tbl));
             index->SetReady();
             schema->GetFieldExtractor(field)->GetVectorIndex()->GetVectorIndexManager()->MakeVectorIndex();
             schema->MarkVertexIndexed(fe->GetFieldId(), index);
@@ -179,7 +181,8 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label, 
 
     index.reset(new VertexIndex(nullptr, dt, type));  // no need to creates index table
     
-    vector_index.reset(new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec)); 
+    auto tbl = VectorIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt, type);
+    vector_index.reset(new VectorIndex(label, field, distance_type, index_type, vec_dimension, index_spec, std::move(tbl))); 
     return true;
 }
 
