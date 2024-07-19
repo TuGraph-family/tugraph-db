@@ -25,13 +25,13 @@
 #include "cypher/cypher_exception.h"
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
-#include "cypher/procedure/procedure_v2.h"
+#include "cypher/procedure/procedure.h"
 
 namespace cypher {
 class InQueryCall : public OpBase {
     const PatternGraph *pattern_ = nullptr;
     std::string func_name_;
-    ProcedureV2 *procedure_ = nullptr;
+    Procedure *procedure_ = nullptr;
     parser::Clause::TYPE_CALL call_clause_;
     ///< only used when call plugins with signature
     ///< I don't know why I write such shit-like code
@@ -41,7 +41,7 @@ class InQueryCall : public OpBase {
     std::unique_ptr<cypher::PluginAdapter> plugin_adapter_;
 
     void SetFunc(const std::string &name) {
-        auto p = global_ptable_v2.GetProcedureV2(name);
+        auto p = global_ptable.GetProcedure(name);
         if (!p) {
             throw lgraph::EvaluationException("unregistered standalone function: " + name);
         }

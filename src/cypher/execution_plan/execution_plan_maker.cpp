@@ -956,7 +956,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
     }
 
-    auto p = global_ptable_v2.GetProcedureV2(name);
+    auto p = global_ptable.GetProcedure(name);
     if (p == nullptr) {
         result_info_.header.colums.emplace_back(name);
     } else {

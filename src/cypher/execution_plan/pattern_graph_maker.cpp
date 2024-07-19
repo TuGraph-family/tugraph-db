@@ -17,7 +17,7 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
-#include "cypher/procedure/procedure_v2.h"
+#include "cypher/procedure/procedure.h"
 #include "db/galaxy.h"
 
 
@@ -342,7 +342,7 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
-    auto p = global_ptable_v2.GetProcedureV2(curr_procedure_name_);
+    auto p = global_ptable.GetProcedure(curr_procedure_name_);
     if (p) {
         for (auto& pair : node->items()) {
             const std::string& name = std::get<0>(pair);
