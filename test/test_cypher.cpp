@@ -1239,7 +1239,8 @@ int test_procedure(cypher::RTContext *ctx) {
     eval_scripts(ctx, plugin_scripts);
 
     static std::vector<std::string> scripts = {
-        "CALL db.createVertexLabel('Director', 'name', 'name', 'string', false, 'age', 'int16', true)",
+        "CALL db.createVertexLabel('Director', 'name', 'name', 'string', "
+        "false, 'age', 'int16', true)",
         "CALL db.createVertexLabel('P2', 'flag1', 'flag1', 'bool', false, 'flag2', 'bool', true)",
         "CALL db.createEdgeLabel('LIKE', '[]')",
 
@@ -1498,8 +1499,8 @@ int test_add(cypher::RTContext *ctx) {
 // NOTE: SET vertex/edge NULL is deprecated, use DELETE instead.
 int test_set(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts = {
-        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, 'age', 'int16', true, "
-        "'eyes', 'string', true, 'date', 'DATE', true)",
+        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, "
+        "'age', 'int16', true, 'eyes', 'string', true, 'date', 'DATE', true)",
         "CALL db.createEdgeLabel('KNOWS', '[]', 'weight', 'int16', true)",
         R"(
 CREATE (a:Person {name:'A', age:13, date:DATE('2023-07-23')})
@@ -1546,8 +1547,8 @@ CREATE (a)-[:KNOWS {weight:10}]->(b),
 
 int test_delete(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts = {
-        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, 'age', 'int16', true, "
-        "'eyes', 'string', true)",
+        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', "
+        "false, 'age', 'int16', true, 'eyes', 'string', true)",
         "CALL db.createEdgeLabel('KNOWS', '[]', 'weight', 'int16', true)",
         R"(
 CREATE (a:Person {name:'A', age:13})
@@ -1586,10 +1587,11 @@ CREATE (a)-[:KNOWS {weight:10}]->(b),
 
 int test_merge(cypher::RTContext *ctx) {
     static const std::vector<std::string> add = {
-        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, 'birthyear', 'int16', "
+        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, "
+        "'birthyear', 'int16', "
         "true, 'gender', 'int8',   true)\n",  // birthyear and gender can be null
-        "CALL db.createVertexLabel('City', 'name', 'name', 'string', false, 'area', 'double',false, "
-        "'population', 'double', true)\n",
+        "CALL db.createVertexLabel('City', 'name', 'name', 'string', "
+        "false, 'area', 'double',false, 'population', 'double', true)\n",
         "CALL db.createEdgeLabel('Knows', '[]', 'intimacy', 'double', true)\n",
         "CALL db.createEdgeLabel('Livein', '[]')\n",
         "CALL db.addIndex('City', 'area', true)\n",
@@ -1887,8 +1889,8 @@ CREATE (rachel)-[:HAS_CHILD]->(vanessa),
 
 int test_create_yago(cypher::RTContext *ctx) {
     static const std::vector<std::string> scripts = {
-        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, 'birthyear', 'int16', "
-        "true)",
+        "CALL db.createVertexLabel('Person', 'name', 'name', "
+        "'string', false, 'birthyear', 'int16', true)",
         "CALL db.createVertexLabel('City', 'name', 'name', 'string', false)",
         "CALL db.createVertexLabel('Film', 'title', 'title', 'string', false)",
         "CALL db.createEdgeLabel('HAS_CHILD', '[]')",
@@ -1964,7 +1966,8 @@ CREATE (rachel)-[:HAS_CHILD]->(vanessa),
 
 int test_aggregate(cypher::RTContext *ctx) {
     static const std::vector<std::string> create = {
-        "CALL db.createVertexLabel('Person', 'name', 'name', 'string', false, 'age', 'int16', true, "
+        "CALL db.createVertexLabel('Person', 'name', 'name', "
+        "'string', false, 'age', 'int16', true, "
         "'eyes', 'string', true)",
         "CALL db.createEdgeLabel('KNOWS', '[]')",
         R"(
@@ -2115,7 +2118,8 @@ int test_ldbc_snb(cypher::RTContext *ctx) {
         "CALL db.createVertexLabel('TagClass', 'name', 'name', 'string', false)",
         "CALL db.createVertexLabel('Tag', 'name', 'name', 'string', false)",
         "CALL db.createVertexLabel('Forum', 'name', 'name', 'string', false)",
-        "CALL db.createVertexLabel('Person', 'id', 'id', 'int32', false, 'birthday', 'string', true)",
+        "CALL db.createVertexLabel('Person', 'id', 'id', 'int32', false, "
+        "'birthday', 'string', true)",
         "CALL db.createVertexLabel('Comment', 'id', 'id', 'int32', false)",
         "CALL db.createVertexLabel('Message', 'id', 'id', 'int32', false)",
         "CALL db.createEdgeLabel('hasTag', '[]')",

@@ -834,12 +834,14 @@ void test_label(lgraph::RpcClient& client) {
 
     ret = client.CallCypher(
         str,
-        "CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)");
+        "CALL db.createVertexLabel('actor', 'name', 'name', 'string', "
+        "false, 'age', 'int8', true)");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(
         str,
-        "CALL db.createVertexLabel('dirctor', 'name', 'name', 'string', false, 'age', 'int8', true)");
+        "CALL db.createVertexLabel('dirctor', 'name', 'name', 'string', "
+        "false, 'age', 'int8', true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
@@ -900,7 +902,8 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
 
     ret = client.CallCypher(
         str,
-        "CALL db.createEdgeLabel('married', '[]', 'address', 'string', false, 'date', 'int32', false)");
+        "CALL db.createEdgeLabel('married', '[]', 'address', 'string', "
+        "false, 'date', 'int32', false)");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
@@ -921,7 +924,8 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(HasElement(json_val, "married", "label"), false);
     ret = client.CallCypher(
         str,
-        "CALL db.createEdgeLabel('married', '[]', 'address', 'string', false, 'date', 'int32', false)");
+        "CALL db.createEdgeLabel('married', '[]', 'address', 'string', "
+        "false, 'date', 'int32', false)");
     UT_EXPECT_TRUE(ret);
 }
 
@@ -1027,7 +1031,8 @@ void test_createlabel(lgraph::RpcClient& client) {
     std::string str;
     std::string test_str2;
     bool ret = client.CallCypher(str,
-                                 "CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', "
+                                 "CALL db.createLabel('vertex', 'animal', "
+                                 "'sleep', ['eat', 'string', "
                                  "true], ['sleep', 'int8', false])");
 
     UT_EXPECT_TRUE(ret);

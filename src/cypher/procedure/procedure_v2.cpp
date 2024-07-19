@@ -2243,8 +2243,9 @@ void BuiltinProcedureV2::DbmsHaClusterInfo(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedureV2::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
-                                               std::vector<Record> *records) {
+                                                 const VEC_EXPR_V2 &args,
+                                                 const VEC_STR_V2 &yield_items,
+                                                 std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
                      "e.g. db.createEdgeLabelByJson(json_data)");
     CYPHER_ARG_CHECK(args[0].IsString(), "json_data type should be json string")
@@ -2290,8 +2291,9 @@ void BuiltinProcedureV2::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *r
 }
 
 void BuiltinProcedureV2::DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
-                                                 const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
-                                                 std::vector<Record> *records) {
+                                                   const VEC_EXPR_V2 &args,
+                                                   const VEC_STR_V2 &yield_items,
+                                                   std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
                      "e.g. db.createVertexLabelByJson(json_data)");
     CYPHER_ARG_CHECK(args[0].IsString(), "json_data type should be json string")
@@ -2908,8 +2910,10 @@ void BuiltinProcedureV2::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
     }
 }
 
-void BuiltinProcedureV2::DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
-                                       const VEC_STR_V2 &yield_items, std::vector<Record> *records) {
+void BuiltinProcedureV2::DbDropAllVertex(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR_V2 &args,
+                                         const VEC_STR_V2 &yield_items,
+                                         std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
@@ -2921,8 +2925,9 @@ void BuiltinProcedureV2::DbDropAllVertex(RTContext *ctx, const Record *record, c
 }
 
 void BuiltinProcedureV2::DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
-                                              std::vector<Record> *records) {
+                                                const VEC_EXPR_V2 &args,
+                                                const VEC_STR_V2 &yield_items,
+                                                std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
@@ -2935,13 +2940,15 @@ void BuiltinProcedureV2::DbDeleteCompositeIndex(RTContext *ctx, const Record *re
     }
     bool success = ctx->ac_db_->DeleteVertexCompositeIndex(args[0].constant.AsString(), fields);
     if (!success) {
-        throw lgraph::IndexNotExistException(args[0].constant.AsString(), args[1].constant.AsString());
+        throw lgraph::IndexNotExistException(args[0].constant.AsString(),
+                                             args[1].constant.AsString());
     }
 }
 
 void BuiltinProcedureV2::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
-                                               std::vector<cypher::Record> *records) {
+                                                 const VEC_EXPR_V2 &args,
+                                                 const VEC_STR_V2 &yield_items,
+                                                 std::vector<cypher::Record> *records) {
     if (ctx->txn_) ctx->txn_->Abort();
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("This function takes exactly 0 arguments, but {} "
                                            "given. Usage: dbms.graph.getGraphSchema()",

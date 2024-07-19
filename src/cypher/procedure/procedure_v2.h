@@ -376,11 +376,14 @@ class BuiltinProcedureV2 {
     static void DbmsHaClusterInfo(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
                                   const VEC_STR_V2 &yield_items, std::vector<Record> *records);
 
-    static void DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
-                                        const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+    static void DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record,
+                                        const VEC_EXPR_V2 &args,
+                                        const VEC_STR_V2 &yield_items,
+                                        std::vector<Record> *records);
 
     static void DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
-                                          const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                          const VEC_EXPR_V2 &args,
+                                          const VEC_STR_V2 &yield_items,
                                           std::vector<Record> *records);
 
     static void DbUpsertVertex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
@@ -402,11 +405,15 @@ class BuiltinProcedureV2 {
     static void DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
                                 const VEC_STR_V2 &yield_items, std::vector<Record> *records);
 
-    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
-                                       const VEC_STR_V2 &yield_items, std::vector<Record> *records);
-    
-    static void DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
-                                        const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
+                                       const VEC_EXPR_V2 &args,
+                                       const VEC_STR_V2 &yield_items,
+                                       std::vector<Record> *records);
+
+    static void DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record,
+                                        const VEC_EXPR_V2 &args,
+                                        const VEC_STR_V2 &yield_items,
+                                        std::vector<Record> *records);
 };
 
 class AlgoFuncV2 {
