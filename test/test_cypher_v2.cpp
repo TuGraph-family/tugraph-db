@@ -166,6 +166,11 @@ class TestCypherV2 : public TuGraphTest {
 
     bool test_cypher_case(const std::string& cypher, std::string& result) {
         try {
+#if LGRAPH_ENABLE_PYTHON_PLUGIN
+#else
+            auto names = fma_common::Split(cypher, ".");
+            if (names.size() > 2 && names[0] == "plugin" && names[2] != "list")
+#endif
             antlr4::ANTLRInputStream input(cypher);
             parser::LcypherLexer lexer(&input);
             antlr4::CommonTokenStream tokens(&lexer);
@@ -473,6 +478,15 @@ TEST_F(TestCypherV2, TestProcedure) {
     std::string dir = test_suite_dir_ + "/procedure/cypher";
     test_files(dir);
 }
+
+#ifdef LGRAPH_ENABLE_PYTHON_PLUGIN
+TEST_F(TestCypherV2, TestPythonProcedure) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/python_procedure/cypher";
+    test_files(dir);
+}
+#endif
 
 TEST_F(TestCypherV2, TestAdd) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
