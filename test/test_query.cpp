@@ -114,8 +114,6 @@ class TestQuery : public TuGraphTest {
             // rewrite ast
             cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
             node->accept(gen_anonymous_alias_rewriter);
-            // cypher::ExistsPathPatternRewriter exists_path_pattern_rewriter(objAlloc_);
-            // node->accept(exists_path_pattern_rewriter);
             cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
             node->accept(multi_path_pattern_rewriter);
             // dump
