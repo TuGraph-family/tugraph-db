@@ -120,23 +120,6 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                         "Call procedure, unexpected parameter type, parameter: {}, type: {}",
                         it->first, it->second.scalar.GetType());
                 }
-            } else {
-                std::function<void(parser::Expression&)> parameter_type_variable_to_string =
-                    [&parameter_type_variable_to_string](parser::Expression &p) {
-                    if (p.type == parser::Expression::DataType::LIST) {
-                        for (auto &pp : p.List()) {
-                            parameter_type_variable_to_string(const_cast<parser::Expression&>(pp));
-                        }
-                    } else if (p.type == parser::Expression::DataType::MAP) {
-                        for (auto &pp : p.Map()) {
-                            parameter_type_variable_to_string(
-                                const_cast<parser::Expression&>(pp.second));
-                        }
-                    } else if (p.type == parser::Expression::DataType::VARIABLE) {
-                        p.type = parser::Expression::DataType::STRING;
-                    }
-                };
-                parameter_type_variable_to_string(p);
             }
         }
         std::vector<Entry> evaluate_parameters;

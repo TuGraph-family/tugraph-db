@@ -375,6 +375,38 @@ class BuiltinProcedureV2 {
 
     static void DbmsHaClusterInfo(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
                                   const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                        const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                          std::vector<Record> *records);
+
+    static void DbUpsertVertex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                               const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertEdge(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                             const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertVertexByJson(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                     const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbUpsertEdgeByJson(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                   const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbAddVertexCompositeIndex(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                          std::vector<Record> *records);
+
+    static void DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+
+    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                       const VEC_STR_V2 &yield_items, std::vector<Record> *records);
+    
+    static void DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                        const VEC_STR_V2 &yield_items, std::vector<Record> *records);
 };
 
 class AlgoFuncV2 {
@@ -1030,7 +1062,86 @@ static std::vector<ProcedureV2> global_procedures_v2 = {
                 ProcedureV2::SIG_SPEC{},
                 ProcedureV2::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}},
                                       {"is_master", {1, lgraph_api::LGraphType::BOOLEAN}}},
-                true, true)};
+                true, true),
+
+    ProcedureV2("db.createEdgeLabelByJson", BuiltinProcedureV2::DbCreateEdgeLabelByJson,
+              ProcedureV2::SIG_SPEC{{"json_data", {0, lgraph_api::LGraphType::STRING}}},
+              ProcedureV2::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    ProcedureV2("db.createVertexLabelByJson", BuiltinProcedureV2::DbCreateVertexLabelByJson,
+              ProcedureV2::SIG_SPEC{{"json_data", {0, lgraph_api::LGraphType::STRING}}},
+              ProcedureV2::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    ProcedureV2("db.upsertVertex", BuiltinProcedureV2::DbUpsertVertex,
+              ProcedureV2::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {1, lgraph_api::LGraphType::STRING}}},
+              ProcedureV2::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    ProcedureV2("db.upsertEdgeByJson", BuiltinProcedureV2::DbUpsertEdgeByJson,
+              ProcedureV2::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"start_spec", {1, lgraph_api::LGraphType::STRING}},
+                                  {"end_spec", {2, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {3, lgraph_api::LGraphType::STRING}}},
+              ProcedureV2::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    ProcedureV2("db.upsertVertexByJson", BuiltinProcedureV2::DbUpsertVertexByJson,
+              ProcedureV2::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {1, lgraph_api::LGraphType::STRING}}},
+              ProcedureV2::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true),
+
+    ProcedureV2("db.addVertexCompositeIndex", BuiltinProcedureV2::DbAddVertexCompositeIndex,
+              ProcedureV2::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_names", {1, lgraph_api::LGraphType::LIST}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+              ProcedureV2::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    ProcedureV2("db.dropAllVertex", BuiltinProcedureV2::DbDropAllVertex, ProcedureV2::SIG_SPEC{},
+              ProcedureV2::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    ProcedureV2("db.deleteCompositeIndex", BuiltinProcedureV2::DbDeleteCompositeIndex,
+              ProcedureV2::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_name", {1, lgraph_api::LGraphType::LIST}}},
+              ProcedureV2::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    ProcedureV2("dbms.graph.getGraphSchema", BuiltinProcedureV2::DbmsGraphGetGraphSchema,
+              ProcedureV2::SIG_SPEC{},
+              ProcedureV2::SIG_SPEC{{"schema", {0, lgraph_api::LGraphType::STRING}}},
+              true, true),
+
+    ProcedureV2("db.upsertEdge", BuiltinProcedureV2::DbUpsertEdge,
+              ProcedureV2::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"start_spec", {1, lgraph_api::LGraphType::STRING}},
+                                  {"end_spec", {2, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {3, lgraph_api::LGraphType::STRING}}},
+              ProcedureV2::SIG_SPEC{
+                  {"total", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
+                  {"index_conflict", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"insert", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"update", {4, lgraph_api::LGraphType::INTEGER}},
+              },
+              false, true)};
 
 class ProcedureTableV2 {
     std::unordered_map<std::string, ProcedureV2> ptable_;

@@ -1110,7 +1110,7 @@ void BuiltinProcedureV2::DbmsGraphModGraph(RTContext *ctx, const cypher::Record 
             act.max_size = kv.second.scalar.integer() << 30;
         } else if (kv.first == "description") {
             act.mod_desc = true;
-            if (kv.second.IsString())
+            if (!kv.second.IsString())
                 THROW_CODE(InputError, "Invalid value for description: must be string");
             act.desc = kv.second.AsString();
         } else {
@@ -1254,19 +1254,19 @@ void BuiltinProcedureV2::DbmsConfigUpdate(RTContext *ctx, const cypher::Record *
                                           const cypher::VEC_EXPR_V2 &args,
                                           const cypher::VEC_STR_V2 &yield_items,
                                           std::vector<cypher::Record> *records) {
-    // ctx->txn_.reset();
-    // ctx->ac_db_.reset();
-    // CYPHER_ARG_CHECK(args.size() == 1,
-    //                  "need exactly one parameter. "
-    //                  "e.g. dbms.config.update({durable: false, enable_audit_log: false})")
-    // CYPHER_ARG_CHECK(args[0].type == parser::Expression::MAP, "role type should be map")
-    // std::map<std::string, lgraph::FieldData> kvs;
-    // for (auto &kv : args[0].Map()) {
-    //     kvs[kv.first] = parser::MakeFieldData(kv.second);
-    // }
-    // bool need_reload = ctx->galaxy_->UpdateConfig(ctx->user_, kvs);
-    // // restart galaxy in a separate thread
-    // if (need_reload) ctx->galaxy_->ReloadFromDisk();
+     ctx->txn_.reset();
+     ctx->ac_db_.reset();
+     CYPHER_ARG_CHECK(args.size() == 1,
+                      "need exactly one parameter. "
+                      "e.g. dbms.config.update({durable: false, enable_audit_log: false})")
+     CYPHER_ARG_CHECK(args[0].IsMap(), "role type should be map")
+     std::map<std::string, lgraph::FieldData> kvs;
+     for (auto &kv : *args[0].constant.map) {
+         kvs[kv.first] = kv.second.scalar;
+     }
+     bool need_reload = ctx->galaxy_->UpdateConfig(ctx->user_, kvs);
+     // restart galaxy in a separate thread
+     if (need_reload) ctx->galaxy_->ReloadFromDisk();
 }
 
 void BuiltinProcedureV2::DbmsListBackupLogFiles(RTContext *ctx, const cypher::Record *record,
@@ -2239,6 +2239,764 @@ void BuiltinProcedureV2::DbmsHaClusterInfo(RTContext *ctx, const Record *record,
     Record r;
     r.AddConstant(lgraph::FieldData(lgraph::ValueToJson(peers).serialize()));
     r.AddConstant(lgraph::FieldData(ctx->sm_->IsCurrentMaster()));
+    records->emplace_back(r.Snapshot());
+}
+
+void BuiltinProcedureV2::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record,
+                                               const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                               std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
+                     "e.g. db.createEdgeLabelByJson(json_data)");
+    CYPHER_ARG_CHECK(args[0].IsString(), "json_data type should be json string")
+    nlohmann::json schema;
+    schema["schema"] = nlohmann::json::array();
+    auto ec = nlohmann::json::parse(args[0].constant.AsString());
+    schema["schema"].push_back(ec);
+    auto schema_desc = lgraph::import_v2::ImportConfParser::ParseSchema(schema);
+    if (schema_desc.label_desc.size() != 1) {
+        THROW_CODE(InputError, "json schema size error, size:{}", schema_desc.label_desc.size());
+    }
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<lgraph_api::FieldSpec> fds;
+    const auto& ld = schema_desc.label_desc[0];
+    if (ld.is_vertex) {
+        THROW_CODE(InputError, "is not edge json schema");
+    }
+    for (auto& p : ld.GetSchemaDef())
+        fds.emplace_back(p.second);
+    lgraph_api::EdgeOptions eo;
+    if (ld.HasTemporalField()) {
+        auto tf = ld.GetTemporalField();
+        eo.temporal_field = tf.name;
+        eo.temporal_field_order = tf.temporal_order;
+    }
+    eo.edge_constraints = ld.edge_constraints;
+    eo.detach_property = ld.detach_property;
+    bool ok = ctx->ac_db_->AddLabel(ld.is_vertex, ld.name, fds, eo);
+    if (ok) {
+        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge",
+                              ld.name);
+    } else {
+        throw lgraph::LabelExistException(ld.name, false);
+    }
+    for (auto& spec : ld.columns) {
+        if (spec.index) {
+            ctx->ac_db_->AddEdgeIndex(ld.name, spec.name, spec.idxType);
+            LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                  ld.name, spec.name, static_cast<int>(spec.idxType));
+        }
+    }
+}
+
+void BuiltinProcedureV2::DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
+                                                 const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
+                     "e.g. db.createVertexLabelByJson(json_data)");
+    CYPHER_ARG_CHECK(args[0].IsString(), "json_data type should be json string")
+    nlohmann::json schema;
+    schema["schema"] = nlohmann::json::array();
+    auto ec = nlohmann::json::parse(args[0].constant.AsString());
+    schema["schema"].push_back(ec);
+    auto schema_desc = lgraph::import_v2::ImportConfParser::ParseSchema(schema);
+    if (schema_desc.label_desc.size() != 1) {
+        THROW_CODE(InputError, "json schema size error, size:{}", schema_desc.label_desc.size());
+    }
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<lgraph_api::FieldSpec> fds;
+    const auto& ld = schema_desc.label_desc[0];
+    if (!ld.is_vertex) {
+        THROW_CODE(InputError, "is not vertex json schema");
+    }
+    for (auto& p : ld.GetSchemaDef())
+        fds.emplace_back(p.second);
+    lgraph_api::VertexOptions vo;
+    vo.primary_field = ld.GetPrimaryField().name;
+    vo.detach_property = ld.detach_property;
+    bool ok = ctx->ac_db_->AddLabel(ld.is_vertex, ld.name, fds, vo);
+    if (ok) {
+        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge",
+                              ld.name);
+    } else {
+        throw lgraph::LabelExistException(ld.name, true);
+    }
+    for (auto& spec : ld.columns) {
+        if (spec.index && !spec.primary) {
+            ctx->ac_db_->AddVertexIndex(ld.name, spec.name, spec.idxType);
+            LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                  ld.name, spec.name, static_cast<int>(spec.idxType));
+        }
+    }
+}
+
+std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_object,
+                                                     const lgraph_api::FieldSpec& fs) {
+    if (j_object.is_null()) {
+        if (fs.optional) {
+            return lgraph_api::FieldData();
+        } else {
+            return {};
+        }
+    }
+    try {
+        switch (fs.type) {
+        case lgraph_api::FieldType::BOOL:
+            return lgraph_api::FieldData(j_object.get<bool>());
+        case lgraph_api::FieldType::INT8:
+            return lgraph_api::FieldData(j_object.get<int8_t>());
+        case lgraph_api::FieldType::INT16:
+            return lgraph_api::FieldData(j_object.get<int16_t>());
+        case lgraph_api::FieldType::INT32:
+            return lgraph_api::FieldData(j_object.get<int32_t>());
+        case lgraph_api::FieldType::INT64:
+            return lgraph_api::FieldData(j_object.get<int64_t>());
+        case lgraph_api::FieldType::FLOAT:
+            return lgraph_api::FieldData(j_object.get<float>());
+        case lgraph_api::FieldType::DOUBLE:
+            return lgraph_api::FieldData(j_object.get<double>());
+        case lgraph_api::FieldType::STRING:
+            return lgraph_api::FieldData(j_object.get<std::string>());
+        case lgraph_api::FieldType::DATE:
+            return lgraph_api::FieldData(lgraph_api::Date(j_object.get<std::string>()));
+        case lgraph_api::FieldType::DATETIME:
+            return lgraph_api::FieldData(lgraph_api::DateTime(j_object.get<std::string>()));
+        default:
+            return {};
+        }
+    } catch (...) {
+        return {};
+    }
+}
+
+void BuiltinProcedureV2::DbUpsertVertex(RTContext *ctx, const Record *record,
+                                      const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                      std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "need two parameters, e.g. db.upsertVertex(label_name, list_data)");
+    CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsArray(), "list_data type should be list")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    const auto& list = args[1].constant.array;
+    lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
+    auto txn = db.CreateReadTxn();
+    auto label_id = txn.GetVertexLabelId(args[0].constant.AsString());
+    auto vertex_fields = txn.GetVertexSchema(args[0].constant.AsString());
+    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
+    for (const auto& fd : vertex_fields) {
+        fd_type[fd.name] = std::make_pair(txn.GetVertexFieldId(label_id, fd.name), fd);
+    }
+    std::string pf = txn.GetVertexPrimaryField(args[0].constant.AsString());
+    auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
+    std::unordered_map<size_t, bool> unique_indexs;
+    for (auto& index : index_fds) {
+        if (index.label == pf) {
+            continue;
+        }
+        if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
+            unique_indexs[txn.GetVertexFieldId(label_id, index.field)] = true;
+        }
+    }
+
+    txn.Abort();
+    int64_t total = list->size();
+    int64_t data_error = 0;
+    int64_t index_conflict = 0;
+    int64_t insert = 0;
+    int64_t update = 0;
+    std::vector<std::tuple<int, std::vector<size_t>, std::vector<size_t>,
+                           std::vector<lgraph_api::FieldData>>> lines;
+    for (auto& line : *list) {
+        int primary_pos = -1;
+        std::vector<size_t> unique_pos;
+        std::vector<size_t> field_ids;
+        std::vector<lgraph_api::FieldData> fds;
+        bool success = true;
+        if (line.IsMap()) {
+            THROW_CODE(InputError, "The type of the elements in the list must be map");
+        }
+        for (auto& item : *line.map) {
+            auto iter = fd_type.find(item.first);
+            if (iter != fd_type.end()) {
+                auto fd = item.second.scalar;
+                if (fd.IsNull()) {
+                    success = false;
+                    break;
+                }
+                fds.emplace_back(std::move(fd));
+                field_ids.push_back(iter->second.first);
+                if (unique_indexs.count(iter->second.first)) {
+                    unique_pos.push_back(field_ids.size() - 1);
+                }
+                if (item.first == pf) {
+                    primary_pos = (int)field_ids.size() - 1;
+                }
+            }
+        }
+        if (success && primary_pos >= 0) {
+            lines.emplace_back(primary_pos, std::move(unique_pos),
+                               std::move(field_ids), std::move(fds));
+        } else {
+            data_error++;
+        }
+    }
+    txn = db.CreateWriteTxn();
+    for (auto& l : lines) {
+        int ret = txn.UpsertVertex(label_id, std::get<0>(l),
+                                   std::get<1>(l), std::get<2>(l), std::get<3>(l));
+        if (ret == 0) {
+            index_conflict++;
+        } else if (ret == 1) {
+            insert++;
+        } else {
+            update++;
+        }
+    }
+    txn.Commit();
+    Record r;
+    r.AddConstant(lgraph::FieldData(total));
+    r.AddConstant(lgraph::FieldData(data_error));
+    r.AddConstant(lgraph::FieldData(index_conflict));
+    r.AddConstant(lgraph::FieldData(insert));
+    r.AddConstant(lgraph::FieldData(update));
+    records->emplace_back(r.Snapshot());
+}
+
+void BuiltinProcedureV2::DbUpsertVertexByJson(RTContext *ctx, const Record *record,
+                                            const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                            std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "need two parameters, e.g. db.upsertVertexByJson(label_name, list_data)");
+    CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                     "list_data type should be json string")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    nlohmann::json json_data = nlohmann::json::parse(args[1].constant.AsString());
+    if (!json_data.is_array()) {
+        THROW_CODE(InputError, "The json data should be array type");
+    }
+    lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
+    auto txn = db.CreateReadTxn();
+    auto label_id = txn.GetVertexLabelId(args[0].constant.AsString());
+    auto vertex_fields = txn.GetVertexSchema(args[0].constant.AsString());
+    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
+    for (const auto& fd : vertex_fields) {
+        fd_type[fd.name] = std::make_pair(txn.GetVertexFieldId(label_id, fd.name), fd);
+    }
+    std::string pf = txn.GetVertexPrimaryField(args[0].constant.AsString());
+    auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
+    std::unordered_map<size_t, bool> unique_indexs;
+    for (auto& index : index_fds) {
+        if (index.label == pf) {
+            continue;
+        }
+        if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
+            unique_indexs[txn.GetVertexFieldId(label_id, index.field)] = true;
+        }
+    }
+
+    txn.Abort();
+    int64_t json_total = json_data.size();
+    int64_t json_error = 0;
+    int64_t index_conflict = 0;
+    int64_t insert = 0;
+    int64_t update = 0;
+    std::vector<std::tuple<int, std::vector<size_t>, std::vector<size_t>,
+                           std::vector<lgraph_api::FieldData>>> lines;
+    for (auto& line : json_data) {
+        int primary_pos = -1;
+        std::vector<size_t> unique_pos;
+        std::vector<size_t> field_ids;
+        std::vector<lgraph_api::FieldData> fds;
+        bool success = true;
+        for (auto& item : line.items()) {
+            auto iter = fd_type.find(item.key());
+            if (iter != fd_type.end()) {
+                auto fd = JsonToFieldData(item.value(), iter->second.second);
+                if (!fd) {
+                    success = false;
+                    break;
+                }
+                fds.emplace_back(std::move(fd.value()));
+                field_ids.push_back(iter->second.first);
+                if (unique_indexs.count(iter->second.first)) {
+                    unique_pos.push_back(field_ids.size() - 1);
+                }
+                if (item.key() == pf) {
+                    primary_pos = (int)field_ids.size() - 1;
+                }
+            }
+        }
+        if (success && primary_pos >= 0) {
+            lines.emplace_back(primary_pos, std::move(unique_pos),
+                               std::move(field_ids), std::move(fds));
+        } else {
+            json_error++;
+        }
+    }
+    txn = db.CreateWriteTxn();
+    for (auto& l : lines) {
+        int ret = txn.UpsertVertex(label_id, std::get<0>(l),
+                                   std::get<1>(l), std::get<2>(l), std::get<3>(l));
+        if (ret == 0) {
+            index_conflict++;
+        } else if (ret == 1) {
+            insert++;
+        } else {
+            update++;
+        }
+    }
+    txn.Commit();
+    Record r;
+    r.AddConstant(lgraph::FieldData(json_total));
+    r.AddConstant(lgraph::FieldData(json_error));
+    r.AddConstant(lgraph::FieldData(index_conflict));
+    r.AddConstant(lgraph::FieldData(insert));
+    r.AddConstant(lgraph::FieldData(update));
+    records->emplace_back(r.Snapshot());
+}
+
+void BuiltinProcedureV2::DbUpsertEdge(RTContext *ctx, const Record *record,
+                                    const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                    std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 4,
+                     "need 4 parameters, "
+                     "e.g. db.upsertEdge(label_name, start_spec, end_spec, list_data)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsMap(), "start_spec type should be map")
+    CYPHER_ARG_CHECK(args[2].IsMap(), "end_spec type should be map")
+    CYPHER_ARG_CHECK(args[3].IsArray(), "list_data type should be list")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    const auto& start = *args[1].constant.map;
+    if (!start.count("type") || !start.count("key")) {
+        THROW_CODE(InputError, "start_spec missing 'type' or 'key'");
+    }
+    const auto& end = *args[2].constant.map;
+    if (!end.count("type") || !end.count("key")) {
+        THROW_CODE(InputError, "end_spec missing 'type' or 'key'");
+    }
+    std::string start_type = start.at("type").AsString();
+    std::string start_json_key = start.at("key").AsString();
+    std::string end_type = end.at("type").AsString();
+    std::string end_json_key = end.at("key").AsString();
+    lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
+    auto txn = db.CreateReadTxn();
+    auto label_id = txn.GetEdgeLabelId(args[0].constant.AsString());
+
+    auto start_label_id = txn.GetVertexLabelId(start_type);
+    auto start_pf = txn.GetVertexPrimaryField(start_type);
+    auto start_pf_id = txn.GetVertexFieldId(start_label_id, start_pf);
+    lgraph_api::FieldSpec start_pf_fs;
+    auto vertex_fields = txn.GetVertexSchema(start_type);
+    for (auto& item : vertex_fields) {
+        if (item.name == start_pf) {
+            start_pf_fs = item;
+            break;
+        }
+    }
+
+    auto end_label_id = txn.GetVertexLabelId(end_type);
+    auto end_pf = txn.GetVertexPrimaryField(end_type);
+    auto end_pf_id = txn.GetVertexFieldId(end_label_id, end_pf);
+    lgraph_api::FieldSpec end_pf_fs;
+    vertex_fields = txn.GetVertexSchema(end_type);
+    for (auto& item : vertex_fields) {
+        if (item.name == end_pf) {
+            end_pf_fs = item;
+            break;
+        }
+    }
+
+    auto edge_fields = txn.GetEdgeSchema(args[0].constant.AsString());
+    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
+    for (const auto& fd : edge_fields) {
+        fd_type[fd.name] = std::make_pair(txn.GetEdgeFieldId(label_id, fd.name), fd);
+    }
+
+    auto index_fds = txn.GetTxn()->ListEdgeIndexByLabel(args[0].constant.AsString());
+    std::unordered_map<size_t, bool> unique_indexs;
+    for (auto& index : index_fds) {
+        if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
+            unique_indexs[txn.GetEdgeFieldId(label_id, index.field)] = true;
+        }
+    }
+
+    const auto& list = *args[3].constant.array;
+    int64_t json_total = list.size();
+    int64_t json_error = 0;
+    int64_t index_conflict = 0;
+    int64_t insert = 0;
+    int64_t update = 0;
+    std::vector<std::tuple<int64_t , int64_t, std::vector<size_t>, std::vector<size_t>,
+                           std::vector<lgraph_api::FieldData>>> lines;
+    for (auto& line : list) {
+        int64_t start_vid = -1;
+        int64_t end_vid = -1;
+        std::vector<size_t> unique_pos;
+        std::vector<size_t> field_ids;
+        std::vector<lgraph_api::FieldData> fds;
+        bool success = true;
+        if (!line.IsMap()) {
+            THROW_CODE(InputError, "The type of the elements in the list must be map");
+        }
+        for (auto& item : *line.map) {
+            if (item.first == start_json_key) {
+                auto fd = item.second.scalar;
+                if (fd.IsNull()) {
+                    success = false;
+                    break;
+                }
+                auto iiter = txn.GetVertexIndexIterator(
+                    start_label_id, start_pf_id, fd, fd);
+                if (!iiter.IsValid()) {
+                    success = false;
+                    break;
+                }
+                start_vid = iiter.GetVid();
+                continue;
+            } else if (item.first == end_json_key) {
+                auto fd = item.second.scalar;
+                if (fd.IsNull()) {
+                    success = false;
+                    break;
+                }
+                auto iiter = txn.GetVertexIndexIterator(
+                    end_label_id, end_pf_id, fd, fd);
+                if (!iiter.IsValid()) {
+                    success = false;
+                    break;
+                }
+                end_vid = iiter.GetVid();
+                continue;
+            } else {
+                auto iter = fd_type.find(item.first);
+                if (iter != fd_type.end()) {
+                    auto fd = item.second.scalar;
+                    if (fd.IsNull()) {
+                        success = false;
+                        break;
+                    }
+                    fds.emplace_back(std::move(fd));
+                    field_ids.push_back(iter->second.first);
+                    if (unique_indexs.count(iter->second.first)) {
+                        unique_pos.push_back(field_ids.size() - 1);
+                    }
+                }
+            }
+        }
+        if (success && start_vid >= 0 && end_vid >= 0) {
+            lines.emplace_back(start_vid, end_vid, std::move(unique_pos),
+                               std::move(field_ids), std::move(fds));
+        } else {
+            json_error++;
+        }
+    }
+    txn.Abort();
+    txn = db.CreateWriteTxn();
+    for (auto& l : lines) {
+        int ret = txn.UpsertEdge(std::get<0>(l), std::get<1>(l),
+                                 label_id, std::get<2>(l), std::get<3>(l), std::get<4>(l));
+        if (ret == 0) {
+            index_conflict++;
+        } else if (ret == 1) {
+            insert++;
+        } else {
+            update++;
+        }
+    }
+    txn.Commit();
+    Record r;
+    r.AddConstant(lgraph::FieldData(json_total));
+    r.AddConstant(lgraph::FieldData(json_error));
+    r.AddConstant(lgraph::FieldData(index_conflict));
+    r.AddConstant(lgraph::FieldData(insert));
+    r.AddConstant(lgraph::FieldData(update));
+    records->emplace_back(r.Snapshot());
+}
+
+void BuiltinProcedureV2::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                          std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 4,
+                     "need 4 parameters, "
+                     "e.g. db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(), "start_spec type should be json string")
+    CYPHER_ARG_CHECK(args[2].IsString(), "end_spec type should be json string")
+    CYPHER_ARG_CHECK(args[3].IsString(), "list_data type should be json string")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    nlohmann::json json_data = nlohmann::json::parse(args[3].constant.AsString());
+    if (!json_data.is_array()) {
+        THROW_CODE(InputError, "The json data should be array type");
+    }
+    nlohmann::json start = nlohmann::json::parse(args[1].constant.AsString());
+    if (!start.contains("type") || !start.contains("key")) {
+        THROW_CODE(InputError, "start_spec missing 'type' or 'key'");
+    }
+    nlohmann::json end = nlohmann::json::parse(args[2].constant.AsString());
+    if (!end.contains("type") || !end.contains("key")) {
+        THROW_CODE(InputError, "end_spec missing 'type' or 'key'");
+    }
+
+    std::string start_type = start["type"].get<std::string>();
+    std::string start_json_key = start["key"].get<std::string>();
+    std::string end_type = end["type"].get<std::string>();
+    std::string end_json_key = end["key"].get<std::string>();
+    lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
+    auto txn = db.CreateReadTxn();
+    auto label_id = txn.GetEdgeLabelId(args[0].constant.AsString());
+
+    auto start_label_id = txn.GetVertexLabelId(start_type);
+    auto start_pf = txn.GetVertexPrimaryField(start_type);
+    auto start_pf_id = txn.GetVertexFieldId(start_label_id, start_pf);
+    lgraph_api::FieldSpec start_pf_fs;
+    auto vertex_fields = txn.GetVertexSchema(start_type);
+    for (auto& item : vertex_fields) {
+        if (item.name == start_pf) {
+            start_pf_fs = item;
+            break;
+        }
+    }
+
+    auto end_label_id = txn.GetVertexLabelId(end_type);
+    auto end_pf = txn.GetVertexPrimaryField(end_type);
+    auto end_pf_id = txn.GetVertexFieldId(end_label_id, end_pf);
+    lgraph_api::FieldSpec end_pf_fs;
+    vertex_fields = txn.GetVertexSchema(end_type);
+    for (auto& item : vertex_fields) {
+        if (item.name == end_pf) {
+            end_pf_fs = item;
+            break;
+        }
+    }
+
+    auto edge_fields = txn.GetEdgeSchema(args[0].constant.AsString());
+    std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
+    for (const auto& fd : edge_fields) {
+        fd_type[fd.name] = std::make_pair(txn.GetEdgeFieldId(label_id, fd.name), fd);
+    }
+
+    auto index_fds = txn.GetTxn()->ListEdgeIndexByLabel(args[0].constant.AsString());
+    std::unordered_map<size_t, bool> unique_indexs;
+    for (auto& index : index_fds) {
+        if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
+            unique_indexs[txn.GetEdgeFieldId(label_id, index.field)] = true;
+        }
+    }
+
+    int64_t json_total = json_data.size();
+    int64_t json_error = 0;
+    int64_t index_conflict = 0;
+    int64_t insert = 0;
+    int64_t update = 0;
+    std::vector<std::tuple<int64_t , int64_t, std::vector<size_t>, std::vector<size_t>,
+                           std::vector<lgraph_api::FieldData>>> lines;
+    for (auto& line : json_data) {
+        int64_t start_vid = -1;
+        int64_t end_vid = -1;
+        std::vector<size_t> unique_pos;
+        std::vector<size_t> field_ids;
+        std::vector<lgraph_api::FieldData> fds;
+        bool success = true;
+        for (auto& item : line.items()) {
+            if (item.key() == start_json_key) {
+                auto fd = JsonToFieldData(item.value(), start_pf_fs);
+                if (!fd) {
+                    success = false;
+                    break;
+                }
+                auto iiter = txn.GetVertexIndexIterator(
+                    start_label_id, start_pf_id, fd.value(), fd.value());
+                if (!iiter.IsValid()) {
+                    success = false;
+                    break;
+                }
+                start_vid = iiter.GetVid();
+                continue;
+            } else if (item.key() == end_json_key) {
+                auto fd = JsonToFieldData(item.value(), end_pf_fs);
+                if (!fd) {
+                    success = false;
+                    break;
+                }
+                auto iiter = txn.GetVertexIndexIterator(
+                    end_label_id, end_pf_id, fd.value(), fd.value());
+                if (!iiter.IsValid()) {
+                    success = false;
+                    break;
+                }
+                end_vid = iiter.GetVid();
+                continue;
+            } else {
+                auto iter = fd_type.find(item.key());
+                if (iter != fd_type.end()) {
+                    auto fd = JsonToFieldData(item.value(), iter->second.second);
+                    if (!fd) {
+                        success = false;
+                        break;
+                    }
+                    fds.emplace_back(std::move(fd.value()));
+                    field_ids.push_back(iter->second.first);
+                    if (unique_indexs.count(iter->second.first)) {
+                        unique_pos.push_back(field_ids.size() - 1);
+                    }
+                }
+            }
+        }
+        if (success && start_vid >= 0 && end_vid >= 0) {
+            lines.emplace_back(start_vid, end_vid, std::move(unique_pos),
+                               std::move(field_ids), std::move(fds));
+        } else {
+            json_error++;
+        }
+    }
+    txn.Abort();
+    txn = db.CreateWriteTxn();
+    for (auto& l : lines) {
+        int ret = txn.UpsertEdge(std::get<0>(l), std::get<1>(l),
+                                 label_id, std::get<2>(l), std::get<3>(l), std::get<4>(l));
+        if (ret == 0) {
+            index_conflict++;
+        } else if (ret == 1) {
+            insert++;
+        } else {
+            update++;
+        }
+    }
+    txn.Commit();
+    Record r;
+    r.AddConstant(lgraph::FieldData(json_total));
+    r.AddConstant(lgraph::FieldData(json_error));
+    r.AddConstant(lgraph::FieldData(index_conflict));
+    r.AddConstant(lgraph::FieldData(insert));
+    r.AddConstant(lgraph::FieldData(update));
+    records->emplace_back(r.Snapshot());
+}
+
+void BuiltinProcedureV2::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
+                                                 const cypher::Record *record,
+                                                 const cypher::VEC_EXPR_V2 &args,
+                                                 const cypher::VEC_STR_V2 &yield_items,
+                                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 3,
+                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, unique)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsArray(), "field_names type should be list")
+    CYPHER_ARG_CHECK(args[2].IsBool(), "unique type should be boolean")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    /* close the previous txn first, in case of nested transaction */
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].constant.AsString();
+    auto fields_args = *args[1].constant.array;
+    std::vector<std::string> fields;
+    for (auto &arg : fields_args) {
+        fields.push_back(arg.AsString());
+    }
+    auto unique = args[2].constant.AsBool();
+    lgraph::CompositeIndexType type = unique ? lgraph::CompositeIndexType::UniqueIndex :
+                                             lgraph::CompositeIndexType::NonUniqueIndex;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
+    if (!success) {
+        std::string field_strings = boost::algorithm::join(fields, ",");
+        THROW_CODE(IndexExist, "VertexCompositeIndex [{}:{}] already exist.", label, field_strings);
+    }
+}
+
+void BuiltinProcedureV2::DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR_V2 &args,
+                                       const VEC_STR_V2 &yield_items, std::vector<Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: db.dropAllVertex()",
+                                           args.size()))
+    ctx->ac_db_->DropAllVertex();
+}
+
+void BuiltinProcedureV2::DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
+                                              const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                              std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
+    CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsArray(), "field_names type should be list<string>")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<std::string> fields;
+    for (const auto &v : *args[1].constant.array) {
+        fields.push_back(v.AsString());
+    }
+    bool success = ctx->ac_db_->DeleteVertexCompositeIndex(args[0].constant.AsString(), fields);
+    if (!success) {
+        throw lgraph::IndexNotExistException(args[0].constant.AsString(), args[1].constant.AsString());
+    }
+}
+
+void BuiltinProcedureV2::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record,
+                                               const VEC_EXPR_V2 &args, const VEC_STR_V2 &yield_items,
+                                               std::vector<cypher::Record> *records) {
+    if (ctx->txn_) ctx->txn_->Abort();
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("This function takes exactly 0 arguments, but {} "
+                                           "given. Usage: dbms.graph.getGraphSchema()",
+                                           args.size()))
+    auto db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    auto txn = db.CreateReadTxn();
+    nlohmann::json graph_schema;
+    graph_schema["schema"] = nlohmann::json::array();
+    for (auto& name : txn.GetAllLabels(true)) {
+        nlohmann::json node;
+        node["label"] = name;
+        node["type"] = "VERTEX";
+        auto s = txn.GetSchema(name, true);
+        node["primary"] = s->GetPrimaryField();
+        node["detach_property"] = s->DetachProperty();
+        for (auto& fd : s->GetFields()) {
+            nlohmann::json property;
+            property["name"] = fd.Name();
+            property["type"] = lgraph_api::to_string(fd.Type());
+            property["optional"] = fd.IsOptional();
+            auto vi = fd.GetVertexIndex();
+            if (vi) {
+                property["index"] = true;
+                property["unique"] = vi->IsUnique();
+            }
+            node["properties"].push_back(property);
+        }
+        graph_schema["schema"].push_back(node);
+    }
+    for (auto& name : txn.GetAllLabels(false)) {
+        nlohmann::json edge;
+        edge["label"] = name;
+        edge["type"] = "EDGE";
+        auto s = txn.GetSchema(name, false);
+        edge["detach_property"] = s->DetachProperty();
+        edge["constraints"] = nlohmann::json::array();
+        for (auto& pairs : s->GetEdgeConstraints()) {
+            edge["constraints"].push_back(std::vector<std::string>{pairs.first, pairs.second});
+        }
+        for (auto& fd : s->GetFields()) {
+            nlohmann::json property;
+            property["name"] = fd.Name();
+            property["type"] = lgraph_api::to_string(fd.Type());
+            property["optional"] = fd.IsOptional();
+            auto vi = fd.GetEdgeIndex();
+            if (vi) {
+                property["index"] = true;
+                property["unique"] = vi->IsUnique();
+            }
+            edge["properties"].push_back(property);
+        }
+        graph_schema["schema"].push_back(edge);
+    }
+    Record r;
+    r.AddConstant(lgraph::FieldData(graph_schema.dump()));
     records->emplace_back(r.Snapshot());
 }
 
