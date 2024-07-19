@@ -48,7 +48,7 @@ typedef std::unordered_map<std::string, std::unordered_map<std::string, lgraph::
 const std::unordered_map<std::string, lgraph::FieldType> BuiltinProcedure::type_map_ =
     lgraph::field_data_helper::_detail::_FieldName2TypeDict_();
 
-cypher::VEC_STR ProcedureTitlesV2(const std::string &procedure_name,
+cypher::VEC_STR ProcedureTitles(const std::string &procedure_name,
                                      const cypher::VEC_STR &yield_items) {
     cypher::VEC_STR titles;
     auto pp = global_ptable.GetProcedure(procedure_name);
@@ -1518,7 +1518,7 @@ void BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const
     CYPHER_ARG_CHECK(args[4].IsString(), "label_type type should be string")
     CYPHER_ARG_CHECK(args[5].IsString(), "field_access_level type should be string")
     cypher::VEC_STR titles =
-        ProcedureTitlesV2("dbms.security.modRoleFieldAccessLevel", yield_items);
+        ProcedureTitles("dbms.security.modRoleFieldAccessLevel", yield_items);
     std::string role = args[0].constant.scalar.AsString();
     std::string graph = args[1].constant.scalar.AsString();
     std::string label = args[2].constant.scalar.AsString();
@@ -2333,7 +2333,7 @@ void BuiltinProcedure::DbCreateVertexLabelByJson(RTContext *ctx, const Record *r
     }
 }
 
-std::optional<lgraph_api::FieldData> JsonToFieldDataV2(const nlohmann::json& j_object,
+std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_object,
                                                      const lgraph_api::FieldSpec& fs) {
     if (j_object.is_null()) {
         if (fs.optional) {
@@ -2517,7 +2517,7 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
         for (auto& item : line.items()) {
             auto iter = fd_type.find(item.key());
             if (iter != fd_type.end()) {
-                auto fd = JsonToFieldDataV2(item.value(), iter->second.second);
+                auto fd = JsonToFieldData(item.value(), iter->second.second);
                 if (!fd) {
                     success = false;
                     break;
@@ -2807,7 +2807,7 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
         bool success = true;
         for (auto& item : line.items()) {
             if (item.key() == start_json_key) {
-                auto fd = JsonToFieldDataV2(item.value(), start_pf_fs);
+                auto fd = JsonToFieldData(item.value(), start_pf_fs);
                 if (!fd) {
                     success = false;
                     break;
@@ -2821,7 +2821,7 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                 start_vid = iiter.GetVid();
                 continue;
             } else if (item.key() == end_json_key) {
-                auto fd = JsonToFieldDataV2(item.value(), end_pf_fs);
+                auto fd = JsonToFieldData(item.value(), end_pf_fs);
                 if (!fd) {
                     success = false;
                     break;
@@ -2837,7 +2837,7 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
             } else {
                 auto iter = fd_type.find(item.key());
                 if (iter != fd_type.end()) {
-                    auto fd = JsonToFieldDataV2(item.value(), iter->second.second);
+                    auto fd = JsonToFieldData(item.value(), iter->second.second);
                     if (!fd) {
                         success = false;
                         break;
@@ -3251,7 +3251,7 @@ static void _EmplaceBackwardNeighbor(
     }
 }
 
-void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
+void _EnumeratePartialPaths(lgraph::Transaction &txn,
                                const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
                                const int depth, const std::vector<std::string> &edge_labels,
                                cypher::Path &path,
@@ -3263,7 +3263,7 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_labels,
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels,
                                               path, paths);
                     path.PopBack();
                 }
@@ -3273,7 +3273,7 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_labels,
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels,
                                               path, paths);
                     path.PopBack();
                 }
@@ -3289,7 +3289,7 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                     auto it = hop_info.find(nbr);
                     if (it != hop_info.end() && it->second == depth - 1) {
                         path.Append(eit.GetUid());
-                        _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_labels, path,
+                        _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
                                                paths);
                         path.PopBack();
                     }
@@ -3302,7 +3302,7 @@ void _EnumeratePartialPaths_v2(lgraph::Transaction &txn,
                     auto it = hop_info.find(nbr);
                     if (it != hop_info.end() && it->second == depth - 1) {
                         path.Append(eit.GetUid());
-                        _EnumeratePartialPaths_v2(txn, hop_info, nbr, depth - 1, edge_labels, path,
+                        _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
                                                   paths);
                         path.PopBack();
                     }
@@ -3405,10 +3405,10 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         auto bvid = std::get<1>(hit);
         cypher::Path path;
         path.SetStart(fvid);
-        _EnumeratePartialPaths_v2(txn, parent, fvid, parent[fvid], edge_labels, path, fpaths);
+        _EnumeratePartialPaths(txn, parent, fvid, parent[fvid], edge_labels, path, fpaths);
         path.Clear();
         path.SetStart(bvid);
-        _EnumeratePartialPaths_v2(txn, child, bvid, child[bvid], edge_labels, path, bpaths);
+        _EnumeratePartialPaths(txn, child, bvid, child[bvid], edge_labels, path, bpaths);
         for (auto &fpath : fpaths) {
             fpath.Reverse();
             fpath.Append(std::get<4>(hit)
@@ -3499,7 +3499,7 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     auto pp = global_ptable.GetProcedure("algo.shortestPath");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
                         pp->ContainsYieldItem("totalCost") && pp->ContainsYieldItem("path"));
-    cypher::VEC_STR titles = ProcedureTitlesV2("algo.shortestPath", yield_items);
+    cypher::VEC_STR titles = ProcedureTitles("algo.shortestPath", yield_items);
     std::unordered_map<std::string, std::function<void(Record &)>> lmap = {
         {"nodeCount",
          [&](Record &r) {
@@ -3553,7 +3553,7 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record,
     auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
                         pp->ContainsYieldItem("relationshipIds") && pp->ContainsYieldItem("cost"));
-    cypher::VEC_STR titles = ProcedureTitlesV2("algo.allShortestPaths", yield_items);
+    cypher::VEC_STR titles = ProcedureTitles("algo.allShortestPaths", yield_items);
     std::unordered_map<std::string, std::function<void(const cypher::Path &, Record &)>> lmap = {
         {"nodeIds",
          [&](const cypher::Path &path, Record &r) {
@@ -3692,7 +3692,7 @@ void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record,
         node_prs_curr = node_prs_next;
         num_iterations--;
     }
-    cypher::VEC_STR titles = ProcedureTitlesV2("algo.pagerank", yield_items);
+    cypher::VEC_STR titles = ProcedureTitles("algo.pagerank", yield_items);
     std::unordered_map<std::string, bool> title_exsited;
     std::transform(titles.begin(), titles.end(), std::inserter(title_exsited, title_exsited.end()),
                    [](const std::string &title) { return std::make_pair(title, true); });
@@ -3735,7 +3735,7 @@ void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record,
         union_set.emplace(item.AsInt64());
     }
     std::unordered_set<std::string> title_exsited;
-    cypher::VEC_STR titles = ProcedureTitlesV2("algo.jaccard", yield_items);
+    cypher::VEC_STR titles = ProcedureTitles("algo.jaccard", yield_items);
     std::transform(titles.begin(), titles.end(), std::inserter(title_exsited, title_exsited.end()),
                    [](const std::string &title) { return title; });
     if (title_exsited.find("similarity") != title_exsited.end()) {
