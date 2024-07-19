@@ -3842,18 +3842,17 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
             auto success = index->SetSearchSpec(args[4].Int());
             auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()), index_distances, index_indices);
             if (result && success) {
-                LOG_DEBUG() << "2";
                 auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
                 for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                     auto prop = kv_iter->GetValue();
                     if (extr->GetIsNull(prop)) {
                         continue;
                     }
-                    auto vector = extr->FieldToString(extr->GetConstRef(prop));
                     auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                    auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
                     for (size_t i = 0; i < index_distances.size(); ++i) {
                         if (count == index_indices[i]) {
-                            SearchResult.emplace_back(make_tuple(std::to_string(vid), vector, index_distances[i]));
+                            SearchResult.emplace_back(make_tuple(std::to_string(vid), fma_common::ToString(vector), index_distances[i]));
                         }
                     }
                     count++;
@@ -3861,16 +3860,15 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, 
             }
         }
         if (index->GetVectorIndexManager()->getCount() != 0) {
-            LOG_DEBUG() << "3";
             if (index->GetFlatSearchResult(txn.GetTxn(), query_vector, static_cast<size_t>(args[3].Int()), Flat_distances, Flat_indices)) {
                 auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
                 for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                     auto prop = kv_iter->GetValue();
-                    auto vector = extr->FieldToString(prop);
                     auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                    auto vector = prop.AsType<std::vector<float>>();
                     for (size_t i = 0; i < Flat_distances.size(); ++i) {
                         if (count == Flat_indices[i]) {
-                            SearchResult.emplace_back(make_tuple(std::to_string(vid), vector, Flat_distances[i]));
+                            SearchResult.emplace_back(make_tuple(std::to_string(vid), fma_common::ToString(vector), Flat_distances[i]));
                         }
                     }
                     count++;
