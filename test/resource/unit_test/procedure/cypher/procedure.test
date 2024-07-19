@@ -31,7 +31,7 @@ CALL dbms.security.deleteUser('guest1');
 CALL dbms.security.listUsers();
 CALL dbms.graph.createGraph('demo2');
 CALL dbms.security.createUser('guest2','123');
-CALL dbms.system.info();
+#CALL dbms.system.info();
 CALL dbms.config.list();
 CALL dbms.security.listAllowedHosts();
 CALL dbms.security.addAllowedHosts('192.168.1.2', '192.168.1.3');

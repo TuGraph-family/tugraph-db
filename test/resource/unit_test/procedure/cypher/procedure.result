@@ -57,8 +57,7 @@ CALL dbms.graph.createGraph('demo2');
 []
 CALL dbms.security.createUser('guest2','123');
 []
-CALL dbms.system.info();
-[{"name":"lgraph_version","value":"4.3.1"},{"name":"up_time","value":0.0},{"name":"git_branch","value":"\"\""},{"name":"git_commit","value":"\"\""},{"name":"web_commit","value":"\"\""},{"name":"cpp_id","value":"\"GNU\""},{"name":"cpp_version","value":"\"8.4.0\""},{"name":"python_version","value":"\"3.6.9\""}]
+#CALL dbms.system.info();
 CALL dbms.config.list();
 [{"name":"bind_host","value":"0.0.0.0"},{"name":"browser.credential_timeout","value":3600},{"name":"browser.retain_connection_credentials","value":true},{"name":"disable_auth","value":false},{"name":"durable","value":false},{"name":"enable_audit_log","value":false},{"name":"enable_backup_log","value":false},{"name":"enable_fulltext_index","value":false},{"name":"enable_ha","value":false},{"name":"enable_ip_check","value":false},{"name":"enable_rpc","value":false},{"name":"enable_ssl","value":false},{"name":"optimistic_txn","value":false},{"name":"port","value":7071},{"name":"subprocess_max_idle_seconds","value":600},{"name":"thread_limit","value":0},{"name":"verbose","value":1}]
 CALL dbms.security.listAllowedHosts();
