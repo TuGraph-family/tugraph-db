@@ -169,11 +169,11 @@ MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:MARRIED]->()-[:ACTED_IN]->
 MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:MARRIED]->()-[:BORN_IN]->()) /*false*/;
 [{"exists((n)-[:MARRIED]->()-[:BORN_IN]->())":false}]
 MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[*3]->()) /*true*/;
-[{"{EXISTS(NestedPattern(n,@ANON_N1))}":true}]
+[{"exists((n)-[*3]->())":true}]
 MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:MARRIED*3]->()) /*false*/;
 [{"exists((n)-[:MARRIED*3]->())":false}]
 MATCH (n {name:'Rachel Kempson'}) RETURN exists((n)-[:MARRIED|HAS_CHILD*3]->()) /*true*/;
-[{"{EXISTS(NestedPattern(n,@ANON_N1))}":true}]
+[{"exists((n)-[:MARRIED|HAS_CHILD*3]->())":true}]
 MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN exists((n)-[]->(m)) /*3 true*/;
 [{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":true},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":true},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":false},{"exists((n)-[]->(m))":true}]
 MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN exists((n)-[:MARRIED]->(m)) /*1 true*/;

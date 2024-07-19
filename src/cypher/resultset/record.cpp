@@ -15,6 +15,7 @@
 #include "cypher/resultset/record.h"
 
 #include "execution_plan/runtime_context.h"
+#include <boost/algorithm/string.hpp>
 #include "parser/symbol_table.h"
 
 namespace cypher {
@@ -53,33 +54,76 @@ bool Entry::GetEntityEfficient(RTContext *ctx) const {
         {
             auto vit = node->ItRef();
             CYPHER_THROW_ASSERT(node && vit);
-            bool ret =  node->IsValidAfterMaterialize(ctx);
-            LOG_INFO() << "--------------GetEntityEfficient NODE " << this->ToString() << " value = " << ret;
-            return ret;
+            return node->IsValidAfterMaterialize(ctx);
         }
     case RELATIONSHIP:
         {
             if (relationship->VarLen()) {
-                auto & eits = relationship->ItsRef();
-                for (auto& it : eits) {
-                    if (!it.IsValid()) {
-                        LOG_INFO() << "--------------GetEntityEfficient VREL " << this->ToString() << " value = false";
-                    return false;
-                    }
+                auto &eits = relationship->ItsRef();
+                for (auto &it : eits) {
+                    if (!it.IsValid()) return false;
                 }
-                LOG_INFO() << "--------------GetEntityEfficient VREL " << this->ToString() << " value = true";
+                
                 return true;
             } else {
                 auto eit = relationship->ItRef();
                 CYPHER_THROW_ASSERT(relationship && eit);
-                bool ret = eit->IsValid();
-                LOG_INFO() << "--------------GetEntityEfficient UREL " << this->ToString() << " value = " << ret;
-                return ret;
+                return eit->IsValid();
             }
         }
     case NODE_SNAPSHOT:
+        {
+            CYPHER_THROW_ASSERT(constant.type == cypher::FieldData::SCALAR &&
+                                constant.scalar.type == lgraph::FieldType::STRING);
+            auto vid =
+                std::stoi(constant.scalar.string().substr(2, constant.scalar.string().size() - 3));
+            auto vit = ctx->txn_->GetVertexIterator(vid, true);
+            return vit.IsValid();
+        }
     case RELP_SNAPSHOT:
-        CYPHER_TODO();
+        {
+            CYPHER_THROW_ASSERT(constant.type == cypher::FieldData::SCALAR &&
+                                constant.scalar.type == lgraph::FieldType::STRING);
+            auto str = constant.scalar.string().substr(1, constant.scalar.string().size() - 2);
+            std::vector<std::string> euid;
+            boost::split(euid, str, boost::is_any_of("_"));
+            int64_t src = std::stoi(euid[0]);
+            int64_t dst = std::stoi(euid[1]);
+            uint16_t lid = std::stoi(euid[2]);
+            int64_t tid = std::stoi(euid[3]);
+            int64_t eid = std::stoi(euid[4]);
+            auto eit = ctx->txn_->GetOutEdgeIterator({src, dst, lid, tid, eid}, true);
+            return eit.IsValid();
+        }
+    case VAR_LEN_RELP:
+        {
+            auto paths = relationship->path_;
+            auto len = paths.Length();
+            for (size_t idx = 0; idx < len; ++idx) {
+                auto euid = paths.GetNthEdge(idx);
+                int64_t vid;
+                if (paths.dirs_[idx]) {
+                    vid = euid.dst;
+                } else {
+                    vid = euid.src;
+                }
+                auto vit = ctx->txn_->GetVertexIterator(vid, true);
+                if (!vit.IsValid()) return false;
+                auto eit = ctx->txn_->GetOutEdgeIterator(euid, true);
+                if (!eit.IsValid()) return false;
+                if (idx == len - 1) {
+                    int64_t last_vid;
+                    if (paths.dirs_[idx]) {
+                        last_vid = euid.dst;
+                    } else {
+                        last_vid = euid.src;
+                    }
+                    auto vit = ctx->txn_->GetVertexIterator(last_vid, true);
+                    if (!vit.IsValid()) return false;
+                }
+            }
+            return true;
+        }
     default:
         return false;
     }

@@ -126,6 +126,7 @@ static OpBase* _Connect(OpBase* lhs, OpBase* rhs, PatternGraph* pattern_graph) {
 geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode* astNode,
                                                         OpBase*& root) {
     cur_types_.clear();
+    cur_pattern_graph_ = -1;
     auto ret = std::any_cast<geax::frontend::GEAXErrorCode>(astNode->accept(*this));
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         return ret;
@@ -265,12 +266,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::GraphPattern* node) {
         NOT_SUPPORT();
     }
     if (node->where().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->where().value());
         auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
             node->where().value(), pattern_graphs_[cur_pattern_graph_].symbol_table);
         auto op_filter = new OpFilter(expr_filter);
-        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        if (pattern_graph_root_[cur_pattern_graph_]) {
+            op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        }
         pattern_graph_root_[cur_pattern_graph_] = op_filter;
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->where().value());
     }
     if (node->yield().has_value()) {
         NOT_SUPPORT();
@@ -334,26 +337,18 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kExists, cur_types_)) {
         auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
         std::vector<OpBase*> rewriter;
-        auto limit = new Limit(1);
-        rewriter.push_back(limit);
-        auto optional = new Optional();
-        rewriter.push_back(optional);
-        rewriter.insert(rewriter.end(), expand_ops.begin(), expand_ops.end() - 1);
+        if (ClauseGuard::InClause(geax::frontend::AstNodeType::kPrimitiveResultStatement,
+                                  cur_types_)) {
+            auto limit = new Limit(1);
+            rewriter.push_back(limit);
+            auto optional = new Optional();
+            rewriter.push_back(optional);
+        }
+        rewriter.insert(rewriter.end(), expand_ops.begin(), expand_ops.end());
         auto argument = new Argument(&sym_tab);
         rewriter.push_back(argument);
-        for (auto op : rewriter) {
-            LOG_INFO() << "------------PathChain expand_ops = " << op->ToString();
-        }
         auto op = _SingleBranchConnect(rewriter);
-        LOG_INFO() << "------------PathChain _SingleBranchConnect op = " << op->ToString();
-        LOG_INFO() << "------------PathChain pattern_graph_root_[cur_pattern_graph_] = "
-                   << pattern_graph_root_[cur_pattern_graph_]->ToString();
-        if (pattern_graph_root_[cur_pattern_graph_]) {
-            auto connection = new Apply(argument, &pattern_graphs_[cur_pattern_graph_]);
-            connection->AddChild(op);
-            connection->AddChild(pattern_graph_root_[cur_pattern_graph_]);
-            pattern_graph_root_[cur_pattern_graph_] = connection;
-        }
+        pattern_graph_root_[cur_pattern_graph_] = op;
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
     // The handling here is for the Match Clause, other situations need to be considered.
@@ -843,6 +838,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); 
 std::any ExecutionPlanMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Exists* node) {
+    pattern_graph_root_.resize(pattern_graph_root_.size() + 1);
+    ++cur_pattern_graph_;
+    ++pattern_graph_size_;
     ClauseGuard cg(node->type(), cur_types_);
     for (auto& path_chain : node->pathChains()) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_chain);
@@ -883,7 +881,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ProcedureBody* node) {
     pattern_graph_size_ = node->statements().size();
     pattern_graph_root_.resize(pattern_graph_size_, nullptr);
     for (size_t i = 0; i < node->statements().size(); i++) {
-        cur_pattern_graph_ = i;
+        cur_pattern_graph_ += 1;
         // Build Argument
         auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
         for (auto& symbol : sym_tab.symbols) {
@@ -974,7 +972,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) {
     auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
         node->predicate(), pattern_graphs_[cur_pattern_graph_].symbol_table);
     auto op_filter = new OpFilter(expr_filter);
-    op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+    if (pattern_graph_root_[cur_pattern_graph_]) {
+        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+    }
     pattern_graph_root_[cur_pattern_graph_] = op_filter;
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -1041,13 +1041,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         ops.push_back(result);
     }
     std::vector<std::tuple<ArithExprNode, std::string>> arith_items;
-    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     result_info_.header.colums.clear();
     ClauseGuard cg(node->type(), cur_types_);
     for (auto& item : items) {
         auto expr = std::get<1>(item);
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
-        ArithExprNode ae(expr, pattern_graph.symbol_table);
+        ArithExprNode ae(expr, pattern_graphs_[cur_pattern_graph_].symbol_table);
         auto alias = std::get<0>(item);
         arith_items.push_back(std::make_tuple(ae, alias));
         AstAggExprDetector agg_expr_detector(expr);
@@ -1061,8 +1060,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         // build header
         if (expr->type() == geax::frontend::AstNodeType::kRef) {
             std::string& name = ((geax::frontend::Ref*)expr)->name();
-            auto it = pattern_graph.symbol_table.symbols.find(name);
-            if (it == pattern_graph.symbol_table.symbols.end()) {
+            auto it = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(name);
+            if (it == pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.end()) {
                 error_msg_ = "Unknown variable: " + name;
                 return geax::frontend::GEAXErrorCode::GEAX_ERROR;
             }
@@ -1144,7 +1143,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         std::vector<std::string> item_names;
         std::vector<ArithExprNode> arith_items;
         for (auto& item : items) {
-            ArithExprNode ae(std::get<1>(item), pattern_graph.symbol_table);
+            ArithExprNode ae(std::get<1>(item), pattern_graphs_[cur_pattern_graph_].symbol_table);
             auto alias = std::get<0>(item);
             if (ae.ContainsAggregation()) {
                 aggregated_expressions.push_back(ae);
@@ -1159,14 +1158,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         if (has_aggregation) {
             ops.emplace_back(new Aggregate(
                 aggregated_expressions, aggr_item_names, noneaggregated_expressions,
-                noneaggr_item_names, item_names, &pattern_graph.symbol_table, result_info_.header));
+                noneaggr_item_names, item_names, &pattern_graphs_[cur_pattern_graph_].symbol_table, result_info_.header));
         }
     }
     if (!has_aggregation) {
         if (node->distinct()) {
             ops.emplace_back(new Distinct());
         }
-        ops.emplace_back(new Project(arith_items, &pattern_graph.symbol_table));
+        ops.emplace_back(new Project(arith_items, &pattern_graphs_[cur_pattern_graph_].symbol_table));
     }
     if (auto op = _SingleBranchConnect(ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);

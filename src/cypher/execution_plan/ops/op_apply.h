@@ -93,7 +93,6 @@ class Apply : public OpBase {
     }
 
     OpResult RealConsume(RTContext *ctx) override {
-        LOG_INFO() << "-------------into Apply::RealConsume";
         /* perform a nested loop by taking a single row from the left-hand side,
          * and using the Argument operator on the right-hand side, execute the
          * operator tree on the right-hand side.  */
@@ -102,16 +101,9 @@ class Apply : public OpBase {
             if (PullFromLhs(ctx) != OP_OK) {
                 // starting with lhs first
                 state = StreamDepleted;
-                LOG_INFO() << "-------------leave  Apply::RealConsume OP_DEPLETED";
                 return OP_DEPLETED;
             }
             state = StreamConsuming;
-        }
-        LOG_INFO() << "Apply lhs = " << children[1]->ToString();
-        LOG_INFO() << "Apply rhs = " << children[0]->ToString();
-        for (size_t idx = 0; idx < children[1]->record->values.size(); ++idx) {
-            LOG_INFO() << "Apply RealConsume lhs has " << children[1]->record->values[idx].ToString()
-                       << " idx = " << idx;
         }
         auto res = rhs->Consume(ctx);
         // then process rhs

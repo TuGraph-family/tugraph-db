@@ -168,7 +168,7 @@ class ExpandAll : public OpBase {
         auto rit = sym_tab.symbols.find(relp_->Alias());
         CYPHER_THROW_ASSERT(sit != sym_tab.symbols.end() && nit != sym_tab.symbols.end() &&
                             rit != sym_tab.symbols.end());
-        expand_into_ = nit->second.scope == SymbolNode::ARGUMENT ||  nit->second.scope == SymbolNode::EXISTS;
+        expand_into_ = nit->second.scope == SymbolNode::ARGUMENT;
         expand_direction_ = relp_->Undirected()            ? BIDIRECTIONAL
                             : relp_->Src() == start_->ID() ? FORWARD
                                                            : REVERSED;

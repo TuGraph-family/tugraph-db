@@ -26,7 +26,7 @@ Argument::Argument(const SymbolTable *sym_tab)
     : OpBase(OpType::ARGUMENT, "Argument"), sym_tab_(sym_tab) {
     std::map<size_t, std::pair<std::string, SymbolNode::Type>> ordered_alias;
     for (auto &a : sym_tab->symbols) {
-        if (a.second.scope == SymbolNode::ARGUMENT || a.second.scope == SymbolNode::EXISTS) {
+        if (a.second.scope == SymbolNode::ARGUMENT) {
             ordered_alias.emplace(a.second.id, std::make_pair(a.first, a.second.type));
         }
     }

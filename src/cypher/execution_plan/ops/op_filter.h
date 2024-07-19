@@ -101,9 +101,7 @@ class OpFilter : public OpBase {
         while (true) {
             res = child->Consume(ctx);
             if (res != OP_OK) return res;
-            if (filter_->DoFilter(ctx, *child->record)) {
-                break;
-            }
+            if (filter_->DoFilter(ctx, *child->record)) break;
         }
 #ifndef NDEBUG
         LOG_DEBUG() << "[" << __FILE__ << "] " << filter_->ToString() << " passed!";

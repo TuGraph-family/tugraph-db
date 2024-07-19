@@ -34,7 +34,6 @@ struct SymbolNode {
         LOCAL,             // MATCH (n) RETURN n,1 AS num
         ARGUMENT,          // WITH a
         DERIVED_ARGUMENT,  // derived from argument, WITH a UNWIND a AS x
-        EXISTS,
     } scope;
 
     SymbolNode(size_t i, Type t, Scope s) : id(i), type(t), scope(s) {}
@@ -59,7 +58,6 @@ struct SymbolNode {
             {SymbolNode::Scope::LOCAL, "LOCAL"},
             {SymbolNode::Scope::ARGUMENT, "ARGUMENT"},
             {SymbolNode::Scope::DERIVED_ARGUMENT, "DERIVED_ARGUMENT"},
-            {SymbolNode::Scope::EXISTS, "EXISTS"},
         };
         auto it = scope_map.find(s);
         if (it == scope_map.end()) {

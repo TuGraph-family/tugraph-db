@@ -12,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <map>
 #include <unordered_set>
 #include "geax-front-end/isogql/GQLAstVisitor.h"
 #include "cypher/utils/geax_util.h"
@@ -20,7 +21,6 @@
 #include "cypher/procedure/procedure_v2.h"
 #include "db/galaxy.h"
 #include "lgraph/lgraph_exceptions.h"
-
 
 namespace cypher {
 
@@ -799,6 +799,9 @@ std::any PatternGraphMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); }
 std::any PatternGraphMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
+    pattern_graphs_.resize(pattern_graphs_.size() + 1);
+    symbols_idx_.resize(symbols_idx_.size() + 1);
+    ++cur_pattern_graph_;
     ClauseGuard cg(node->type(), cur_types_);
     for (auto& path_chain : node->pathChains()) {
         auto head = path_chain->head();
@@ -814,6 +817,31 @@ std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(edge);
         }
     }
+
+    
+    auto& symbols_prev = pattern_graphs_[cur_pattern_graph_ - 1].symbol_table.symbols;
+    auto& symbols_cur = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
+    std::unordered_map<std::string, SymbolNode> temp_symbols;
+    std::map<size_t, std::pair<std::string, SymbolNode>> argument_symbols;
+    size_t temp_symbols_idx = 0;
+    for (auto & [alias, symbol] : symbols_prev) {
+        auto it = symbols_cur.find(alias);
+        if (it != symbols_cur.end()) {
+            argument_symbols.emplace(symbol.id, std::make_pair(alias, SymbolNode(symbol.id, symbol.type, SymbolNode::ARGUMENT)));
+        }
+    }
+
+    for (auto & [id, pair] : argument_symbols) {
+        temp_symbols.emplace(pair.first, SymbolNode(temp_symbols_idx++, pair.second.type, pair.second.scope));
+    }
+
+    for (auto & [alias, symbol] : symbols_cur) {
+        auto it = symbols_prev.find(alias);
+        if (it == symbols_prev.end()) {
+            temp_symbols.emplace(alias, SymbolNode(temp_symbols_idx++, symbol.type, symbol.scope));
+        }
+    }
+    std::swap(symbols_cur, temp_symbols);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -1132,18 +1160,8 @@ std::any PatternGraphMaker::reportError() { return error_msg_; }
 void PatternGraphMaker::AddSymbol(const std::string& symbol_alias, cypher::SymbolNode::Type type,
                                   cypher::SymbolNode::Scope scope) {
     auto& table = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
-    auto it = table.find(symbol_alias);
-    if (ClauseGuard::InClause(geax::frontend::AstNodeType::kExists, cur_types_)) {
-        if (it  != table.end()) {
-            it->second.scope = cypher::SymbolNode::Scope::EXISTS;
-        } else {
-            table.emplace(symbol_alias, SymbolNode(symbols_idx_[cur_pattern_graph_]++, type, scope));
-            //THROW_CODE(ParserException, "PatternExpressions are not allowed to introduce new variables: {} ", symbol_alias);
-        }
-    } else {
-        if (it != table.end()) return;
-        table.emplace(symbol_alias, SymbolNode(symbols_idx_[cur_pattern_graph_]++, type, scope));
-    }
+    if (table.find(symbol_alias) != table.end()) return;
+    table.emplace(symbol_alias, SymbolNode(symbols_idx_[cur_pattern_graph_]++, type, scope));
 }
 
 void PatternGraphMaker::AddNode(Node* node) {
