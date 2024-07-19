@@ -2333,7 +2333,7 @@ void BuiltinProcedureV2::DbCreateVertexLabelByJson(RTContext *ctx, const Record 
     }
 }
 
-std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_object,
+std::optional<lgraph_api::FieldData> JsonToFieldDataV2(const nlohmann::json& j_object,
                                                      const lgraph_api::FieldSpec& fs) {
     if (j_object.is_null()) {
         if (fs.optional) {
@@ -2517,7 +2517,7 @@ void BuiltinProcedureV2::DbUpsertVertexByJson(RTContext *ctx, const Record *reco
         for (auto& item : line.items()) {
             auto iter = fd_type.find(item.key());
             if (iter != fd_type.end()) {
-                auto fd = JsonToFieldData(item.value(), iter->second.second);
+                auto fd = JsonToFieldDataV2(item.value(), iter->second.second);
                 if (!fd) {
                     success = false;
                     break;
@@ -2807,7 +2807,7 @@ void BuiltinProcedureV2::DbUpsertEdgeByJson(RTContext *ctx, const Record *record
         bool success = true;
         for (auto& item : line.items()) {
             if (item.key() == start_json_key) {
-                auto fd = JsonToFieldData(item.value(), start_pf_fs);
+                auto fd = JsonToFieldDataV2(item.value(), start_pf_fs);
                 if (!fd) {
                     success = false;
                     break;
@@ -2821,7 +2821,7 @@ void BuiltinProcedureV2::DbUpsertEdgeByJson(RTContext *ctx, const Record *record
                 start_vid = iiter.GetVid();
                 continue;
             } else if (item.key() == end_json_key) {
-                auto fd = JsonToFieldData(item.value(), end_pf_fs);
+                auto fd = JsonToFieldDataV2(item.value(), end_pf_fs);
                 if (!fd) {
                     success = false;
                     break;
@@ -2837,7 +2837,7 @@ void BuiltinProcedureV2::DbUpsertEdgeByJson(RTContext *ctx, const Record *record
             } else {
                 auto iter = fd_type.find(item.key());
                 if (iter != fd_type.end()) {
-                    auto fd = JsonToFieldData(item.value(), iter->second.second);
+                    auto fd = JsonToFieldDataV2(item.value(), iter->second.second);
                     if (!fd) {
                         success = false;
                         break;
