@@ -25,19 +25,19 @@ TEST_F(TestLGraphCLI, LGraphCLI) {
     std::string file = "statements.txt";
     std::string statements = R"(
 CALL db.createVertexLabel('person', 'int8',
-'bool' ,BOOL, false,
-'int8' ,INT8, false,
-'int16' ,INT16, false,
-'int32' ,INT32, false,
-'int64' ,INT64, false,
-'float' ,FLOAT, false,
-'double' ,DOUBLE, false,
-'date' ,DATE, false,
-'datetime' ,DATETIME, false,
-'string' ,STRING, false);
+'bool' ,'BOOL', false,
+'int8' ,'INT8', false,
+'int16' ,'INT16', false,
+'int32' ,'INT32', false,
+'int64' ,'INT64', false,
+'float' ,'FLOAT', false,
+'double' ,'DOUBLE', false,
+'date' ,'DATE', false,
+'datetime' ,'DATETIME', false,
+'string' ,'STRING', false);
 
 CALL db.createEdgeLabel('is_friend', '[["person","person"]]',
-'message', STRING, false);
+'message', 'STRING', false);
 
 create
 (n1:person{
