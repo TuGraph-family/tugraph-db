@@ -30,6 +30,7 @@
 #include "cypher/monitor/memory_monitor_allocator.h"
 #include "fma-common/encrypt.h"
 #include "import/import_v3.h"
+#include "server/bolt_session.h"
 
 namespace cypher {
 
@@ -1644,6 +1645,24 @@ void BuiltinProcedure::DbmsMetaRefreshCount(RTContext *ctx, const Record *record
     if (ctx->txn_) ctx->txn_->Abort();
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     ac_db.RefreshCount();
+}
+
+void BuiltinProcedure::DbmsSecurityIsDefaultUserPassword(RTContext *ctx, const cypher::Record *record,
+                                                         const cypher::VEC_EXPR &args,
+                                                         const cypher::VEC_STR &yield_items,
+                                                         std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(
+        args.size() == 0,
+        "need 0 parameters, e.g. dbms.security.isDefaultUserPassword()")
+    if (ctx->txn_) ctx->txn_->Abort();
+    bool is_default_user_password = false;
+    if (ctx->bolt_conn_) {
+        auto session = (bolt::BoltSession*)(ctx->bolt_conn_->GetContext());
+        is_default_user_password = session->using_default_user_password;
+    }
+    Record r;
+    r.AddConstant(lgraph::FieldData(is_default_user_password));
+    records->emplace_back(r.Snapshot());
 }
 
 void BuiltinProcedure::DbmsSecurityChangePassword(RTContext *ctx, const cypher::Record *record,
