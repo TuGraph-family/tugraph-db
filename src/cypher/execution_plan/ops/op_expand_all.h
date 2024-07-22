@@ -19,7 +19,6 @@
 
 #include "cypher/execution_plan/ops/op.h"
 #include "filter/filter.h"
-#include "parser/symbol_table.h"
 
 namespace cypher {
 
@@ -71,10 +70,9 @@ class ExpandAll : public OpBase {
     }
 
     bool _CheckToSkipEdge(RTContext *ctx) const {
-        bool ret = eit_->IsValid() &&
+        return eit_->IsValid() &&
                (pattern_graph_->VisitedEdges().Contains(*eit_) || _CheckToSkipEdgeFilter(ctx) ||
                 (expand_into_ && eit_->GetNbr(expand_direction_) != neighbor_->PullVid()));
-        return ret;
     }
 
     bool _FilterNeighborLabel(RTContext *ctx) {

@@ -20,7 +20,6 @@
 
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/execution_plan/ops/op_argument.h"
-#include "tools/lgraph_log.h"
 
 namespace cypher {
 

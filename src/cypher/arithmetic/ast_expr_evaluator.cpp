@@ -21,9 +21,6 @@
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
-#include "geax-front-end/ast/AstNode.h"
-#include "geax-front-end/ast/clause/Edge.h"
-#include "geax-front-end/ast/clause/Node.h"
 #include "lgraph/lgraph_exceptions.h"
 
 #ifndef DO_BINARY_EXPR
@@ -58,17 +55,17 @@ cypher::FieldData doCallBuiltinFunc(const std::string& name, cypher::RTContext* 
     return data;
 }
 
-const std::string& getNodeOrEdgeName(geax::frontend::AstNode* ast_node, bool is_vertex) {
-    if (is_vertex) {
-        if (ast_node->type() != geax::frontend::AstNodeType::kNode) NOT_SUPPORT_AND_THROW();
+const std::string& getNodeOrEdgeName(geax::frontend::AstNode* ast_node) {
+    if (ast_node->type() == geax::frontend::AstNodeType::kNode) {
         geax::frontend::Node* node = (geax::frontend::Node*)ast_node;
         if (!node->filler()->v().has_value()) NOT_SUPPORT_AND_THROW();
         return node->filler()->v().value();
-    } else {
-        if (ast_node->type() != geax::frontend::AstNodeType::kEdge) NOT_SUPPORT_AND_THROW();
+    } else if (ast_node->type() == geax::frontend::AstNodeType::kEdge) {
         geax::frontend::Edge* edge = (geax::frontend::Edge*)ast_node;
         if (!edge->filler()->v().has_value()) NOT_SUPPORT_AND_THROW();
         return edge->filler()->v().value();
+    } else {
+        NOT_SUPPORT_AND_THROW();
     }
 }
 
@@ -131,8 +128,7 @@ static cypher::FieldData Neg(const cypher::FieldData& x) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::GetField* node) {
     auto expr = std::any_cast<Entry>(node->expr()->accept(*this));
-    auto field = expr.GetEntityField(ctx_, node->fieldName());
-    return Entry(cypher::FieldData(field));
+    return Entry(cypher::FieldData(expr.GetEntityField(ctx_, node->fieldName())));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::TupleGet* node) {
@@ -553,7 +549,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
     auto path_chains = node->pathChains();
     if (path_chains.size() > 1) NOT_SUPPORT_AND_THROW();
     auto head = path_chains[0]->head();
-    const std::string head_name = getNodeOrEdgeName(head, true);
+    const std::string head_name = getNodeOrEdgeName(head);
     auto it_head = sym_tab_->symbols.find(head_name);
     if (it_head == sym_tab_->symbols.end() || it_head->second.type != SymbolNode::NODE)
         NOT_SUPPORT_AND_THROW();
@@ -563,14 +559,14 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
     auto& tails = path_chains[0]->tails();
     for (auto& tail : tails) {
         auto relationship = std::get<0>(tail);
-        const std::string rel_name = getNodeOrEdgeName(relationship, false);
+        const std::string rel_name = getNodeOrEdgeName(relationship);
         auto it_rel = sym_tab_->symbols.find(rel_name);
         if (it_rel == sym_tab_->symbols.end() || it_rel->second.type != SymbolNode::RELATIONSHIP)
             NOT_SUPPORT_AND_THROW();
         if (!record_->values[it_rel->second.id].GetEntityEfficient(ctx_))
             return Entry(cypher::FieldData(lgraph::FieldData(false)));
         auto neighbor = std::get<1>(tail);
-        const std::string ne_name = getNodeOrEdgeName(neighbor, true);
+        const std::string ne_name = getNodeOrEdgeName(neighbor);
         auto it_ne = sym_tab_->symbols.find(ne_name);
         if (it_ne == sym_tab_->symbols.end() || it_ne->second.type != SymbolNode::NODE)
             NOT_SUPPORT_AND_THROW();

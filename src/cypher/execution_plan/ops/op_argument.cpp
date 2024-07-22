@@ -17,7 +17,6 @@
 //
 
 #include "cypher/execution_plan/ops/op_argument.h"
-#include "parser/symbol_table.h"
 #include "tools/lgraph_log.h"
 
 namespace cypher {

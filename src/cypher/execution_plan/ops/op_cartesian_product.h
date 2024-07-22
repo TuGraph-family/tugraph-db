@@ -17,7 +17,6 @@
 //
 #pragma once
 
-#include <cstddef>
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
@@ -97,9 +96,7 @@ class CartesianProduct : public OpBase {
             // Failed to get data from first stream,
             // try pulling other streams for data.
             auto res = PullFromStreams(ctx);
-            if (res != OP_OK) {
-                return res;
-            }
+            if (res != OP_OK) return res;
         }
         return OP_OK;
     }

@@ -15,12 +15,6 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/ops/ops.h"
-#include "execution_plan/ops/op_argument.h"
-#include "execution_plan/ops/op_limit.h"
-#include "execution_plan/ops/op_optional.h"
-#include "geax-front-end/ast/AstNode.h"
-#include "geax-front-end/ast/expr/Exists.h"
-#include "tools/lgraph_log.h"
 #include "cypher/execution_plan/execution_plan_maker.h"
 
 namespace cypher {
