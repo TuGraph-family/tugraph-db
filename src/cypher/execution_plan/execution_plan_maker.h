@@ -39,6 +39,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::string error_msg_;
 
     std::vector<OpBase*> pattern_graph_root_;
+    std::vector<bool> should_connect_;
     std::vector<PatternGraph>& pattern_graphs_;
     size_t cur_pattern_graph_;
     size_t pattern_graph_size_;
@@ -103,6 +104,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ResetTimeZone* node) override;
     std::any visit(geax::frontend::ResetGraph* node) override;
     std::any visit(geax::frontend::ResetParam* node) override;
+    std::any visit(geax::frontend::RemoveSingleProperty* node) override;
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -167,6 +169,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
     std::any visit(geax::frontend::Param* node) override;
+    std::any visit(geax::frontend::ListComprehension* node) override;
 
     // predicates
     std::any visit(geax::frontend::IsNull* node) override;

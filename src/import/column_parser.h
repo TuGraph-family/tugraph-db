@@ -617,6 +617,8 @@ class JsonLinesParser : public BlockParser {
                 case FieldType::SPATIAL:
                     // TODO(shw): support import for spatial type;
                     throw std::runtime_error("do not support spatial type now!");
+                case FieldType::FLOAT_VECTOR:
+                    throw std::runtime_error("do not support FLOAT_VECTOR type now!");
                 }
                 if (fd.is_null()) {
                     throw std::bad_cast();

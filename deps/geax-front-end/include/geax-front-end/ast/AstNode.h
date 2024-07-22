@@ -92,6 +92,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(ReplaceStatement, kReplaceStatement, "ReplaceStatement")                         \
     TYPE(SetStatement, kSetStatement, "SetStatement")                                     \
     TYPE(RemoveStatement, kRemoveStatement, "RemoveStatement")                            \
+    TYPE(RemoveSingleProperty, kRemoveSingleProperty, "RemoveSingleProperty")             \
     TYPE(MergeStatement, kMergeStatement, "MergeStatement")                               \
     TYPE(OtherWise, kOtherWise, "OtherWise")                                              \
     TYPE(Union, kUnion, "Union")                                                          \
@@ -188,6 +189,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(MkRecord, kMkRecord, "MkRecord")                                                 \
     TYPE(MkSet, kMkSet, "MkSet")                                                          \
     TYPE(MkTuple, kMkTuple, "MkTuple")                                                    \
+    TYPE(ListComprehension, kListComprehension, "ListComprehension")                      \
     TYPE(UnwindStatement, kUnwindStatement, "UnwindStatement")                            \
     TYPE(InQueryProcedureCall, kInQueryProcedureCall, "InQueryProcedureCall")             \
     TYPE(DummyNode, kNotDefined, "NotDefined")

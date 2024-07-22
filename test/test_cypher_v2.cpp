@@ -199,6 +199,23 @@ class TestCypherV2 : public TuGraphTest {
                 result = execution_plan_v2.ErrorMsg();
                 return false;
             } else {
+//                if (visitor.CommandType() != parser::CmdType::QUERY) {
+//                    ctx_->result_info_ = std::make_unique<cypher::ResultInfo>();
+//                    ctx_->result_ = std::make_unique<lgraph::Result>();
+//                    std::string header, data;
+//                    if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
+//                        header = "@plan";
+//                        data = execution_plan_v2.DumpPlan(0, false);
+//                    } else {
+//                        header = "@profile";
+//                        data = execution_plan_v2.DumpGraph();
+//                    }
+//                    ctx_->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
+//                    auto r = ctx_->result_->MutableRecord();
+//                    r->Insert(header, lgraph::FieldData(data));
+//                    result = ctx_->result_->Dump(false);
+//                    return true;
+//                }
                 try {
                     execution_plan_v2.Execute(ctx_.get());
                 } catch (std::exception& e) {
@@ -372,12 +389,12 @@ TEST_F(TestCypherV2, TestMultiMatch) {
 //     test_files(dir);
 // }
 
-// TEST_F(TestCypherV2, TestUnion) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/union/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestUnion) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/union/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestFunction) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -428,19 +445,19 @@ TEST_F(TestCypherV2, TestWith) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestListComprehension) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/list_comprehension/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestListComprehension) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/list_comprehension/cypher";
+    test_files(dir);
+}
 
-// TEST_F(TestCypherV2, TestProfile) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/profile/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestProfile) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/profile/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestUnwind) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -477,12 +494,12 @@ TEST_F(TestCypherV2, TestDelete) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestRemove) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/remove/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestRemove) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/remove/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestOrderby) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);

@@ -764,7 +764,7 @@ std::any PatternGraphMaker::visit(geax::frontend::VNone* node) {
 std::any PatternGraphMaker::visit(geax::frontend::Ref* node) {
     auto& symbols = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
     if (symbols.find(node->name()) == symbols.end()) {
-        throw lgraph::CypherException("Unknown variable: " + node->name());
+        THROW_CODE(CypherException, "Unknown variable: " + node->name());
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -817,8 +817,6 @@ std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(edge);
         }
     }
-
-    
     auto& symbols_prev = pattern_graphs_[cur_pattern_graph_ - 1].symbol_table.symbols;
     auto& symbols_cur = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
     std::unordered_map<std::string, SymbolNode> temp_symbols;
@@ -875,8 +873,30 @@ std::any PatternGraphMaker::visit(geax::frontend::SessionSet* node) { NOT_SUPPOR
 std::any PatternGraphMaker::visit(geax::frontend::SessionReset* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
-    pattern_graphs_.resize(node->statements().size());
-    symbols_idx_.resize(node->statements().size(), 0);
+    size_t pattern_graphs_size = 0;
+    for (auto i : node->statements()) {
+        auto statement = i->statement();
+        pattern_graphs_size += 1;
+        if (statement->type() == geax::frontend::AstNodeType::kQueryStatement) {
+            geax::frontend::QueryStatement *queryStatement =
+                (geax::frontend::QueryStatement*)statement;
+            // not support join query, but support union query
+            // in CompositeQueryStatement
+            int union_size = queryStatement->joinQuery()->head()->body().size();
+            pattern_graphs_size += union_size;
+            if (union_size) {
+                for (int j = 0; j <= union_size; ++j) {
+                    pattern_graph_in_union_.push_back(true);
+                }
+            } else {
+                pattern_graph_in_union_.push_back(false);
+            }
+        } else {
+            pattern_graph_in_union_.push_back(false);
+        }
+    }
+    pattern_graphs_.resize(pattern_graphs_size);
+    symbols_idx_.resize(pattern_graphs_size, 0);
     for (auto stmt : node->statements()) {
         cur_pattern_graph_ += 1;
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(stmt);
@@ -952,6 +972,10 @@ std::any PatternGraphMaker::visit(geax::frontend::JoinRightPart* node) { NOT_SUP
 std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node) {
     auto head = node->head();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    for (auto statement : node->body()) {
+        cur_pattern_graph_ += 1;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(statement));
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -1039,12 +1063,14 @@ std::any PatternGraphMaker::visit(geax::frontend::PrimitiveResultStatement* node
                 alias,
                 SymbolNode(symbols_idx_[cur_pattern_graph_]++, symbol_type, SymbolNode::LOCAL));
         }
-        if (cur_pattern_graph_ < pattern_graphs_.size() - 1 &&
-            pattern_graphs_[cur_pattern_graph_ + 1].symbol_table.symbols.find(alias) ==
-                pattern_graphs_[cur_pattern_graph_ + 1].symbol_table.symbols.end()) {
-            pattern_graphs_[cur_pattern_graph_ + 1].symbol_table.symbols.emplace(
-                alias, SymbolNode(symbols_idx_[cur_pattern_graph_ + 1]++, symbol_type,
-                                  SymbolNode::ARGUMENT));
+        if (!pattern_graph_in_union_[cur_pattern_graph_]) {
+            if (cur_pattern_graph_ < pattern_graphs_.size() - 1 &&
+                pattern_graphs_[cur_pattern_graph_ + 1].symbol_table.symbols.find(alias) ==
+                    pattern_graphs_[cur_pattern_graph_ + 1].symbol_table.symbols.end()) {
+                pattern_graphs_[cur_pattern_graph_ + 1].symbol_table.symbols.emplace(
+                    alias, SymbolNode(symbols_idx_[cur_pattern_graph_ + 1]++, symbol_type,
+                                      SymbolNode::ARGUMENT));
+            }
         }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -1098,7 +1124,9 @@ std::any PatternGraphMaker::visit(geax::frontend::DeleteStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::RemoveStatement* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::MergeStatement* node) {
     ClauseGuard cg(node->type(), cur_types_);
@@ -1179,6 +1207,17 @@ void PatternGraphMaker::AddRelationship(Relationship* rel) {
         return;
     }
     pattern_graph.AddRelationship(rel);
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::RemoveSingleProperty* node) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::ListComprehension* node) {
+    geax::frontend::Ref *ref = nullptr;
+    checkedCast(node->getVariable(), ref);
+    AddSymbol(ref->name(), cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getVariable());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getInExpression());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getOpExpression());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 }  // namespace cypher

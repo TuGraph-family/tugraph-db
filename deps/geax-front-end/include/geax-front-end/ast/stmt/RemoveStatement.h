@@ -18,6 +18,7 @@
 #ifndef GEAXFRONTEND_AST_STMT_REMOVESTATEMENT_H_
 #define GEAXFRONTEND_AST_STMT_REMOVESTATEMENT_H_
 
+#include "geax-front-end/ast/clause/RemoveItem.h"
 #include "geax-front-end/ast/stmt/PrimitiveDataModifyStatement.h"
 
 namespace geax {
@@ -27,8 +28,14 @@ class RemoveStatement : public PrimitiveDataModifyStatement {
 public:
     RemoveStatement() : PrimitiveDataModifyStatement(AstNodeType::kRemoveStatement) {}
     ~RemoveStatement() = default;
+    void appendItem(RemoveItem* item) { items_.emplace_back(item); }
+    void setItems(std::vector<RemoveItem*>&& items) { items_ = std::move(items); }
+    const std::vector<RemoveItem*>& items() const { return items_; }
 
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+
+ private:
+    std::vector<RemoveItem*> items_;
 };  // class RemoveStatement
 
 }  // namespace frontend

@@ -101,7 +101,15 @@ class Project : public OpBase {
             // on the second call.
             if (single_response_) return OP_DEPLETED;
             single_response_ = true;
-            r = std::make_shared<Record>();  // fake empty record.
+            // QUERY: RETURN [x IN range(0,10) | x^3] AS result
+            // List comprehension is divided into three parts:
+            // x (reference), range(0,10) (range), and x^3 (expression).
+            // When calculating x^3, we need to get the value of x.
+            // The symbol of x is stored in the symbol table,
+            // and its value is stored in the Project op.
+            // Therefore, we need to change r from an empty record to a record
+            // of the same size as the symbol table.
+            r = std::make_shared<Record>(sym_tab_.symbols.size());
         }
         if (res != OP_OK) return res;
         int re_idx = 0;

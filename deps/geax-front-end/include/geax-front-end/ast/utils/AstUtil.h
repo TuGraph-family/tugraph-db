@@ -155,6 +155,9 @@ class AstExprToString : public AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::MkList* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
+    std::any visit(geax::frontend::ListComprehension* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
     std::any visit(geax::frontend::MkMap* node) override {
         str_ += "{";
         for (auto& pair : node->elems()) {

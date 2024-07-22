@@ -524,6 +524,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
                      "need two parameters, e.g. db.upsertVertex(label_name, list_data)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST, "list_data type should be list")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     const auto& list = args[1].List();
     lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
@@ -618,6 +619,7 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
                      "list_data type should be json string")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     nlohmann::json json_data = nlohmann::json::parse(args[1].String());
     if (!json_data.is_array()) {
@@ -716,6 +718,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args[2].type == parser::Expression::MAP,
                      "end_spec type should be map")
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::LIST, "list_data type should be list")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     const auto& start = args[1].Map();
     if (!start.count("type") || !start.count("key")) {
@@ -877,6 +880,7 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                      "end_spec type should be json string")
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::STRING,
                      "list_data type should be json string")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     nlohmann::json json_data = nlohmann::json::parse(args[3].String());
     if (!json_data.is_array()) {
